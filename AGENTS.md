@@ -88,6 +88,12 @@ fn main(argv: Array<string>) -> number {
 ```
 
 - Every file starts with `module <name>`.
+- A sibling module in the same source directory is imported by its bare module
+  name: `import world` for `src/world.glyph`. No package prefix. Only `std/...`
+  and real npm packages carry a path.
+- To use both a module's namespace and its bare constructors, import it twice:
+  `import rules` and `import rules { Walked, Refused }`. That is the general
+  rule, not a quirk of any one module.
 - `main(argv: Array<string>)` is the entrypoint. Its `number` return is the
   process exit code.
 - `main` **may be `async`**: `async fn main(argv: Array<string>) -> number`. The
@@ -338,10 +344,23 @@ through verbatim; a single-line one that interpolates comes back in the ordinary
 Not detailed below, but shipped and importable: `std/task` (structured
 concurrency), `std/timers` (`after`, `every`, `cancel`, `unref`, `sleep`),
 `std/websocket` (`connect`, `on_open`, `on_message`, `on_close`, `on_error`,
-`send`, `close`, `is_open`), `std/store`, `std/path`, `std/math`, `std/random`,
+`send`, `close`, `is_open`), `std/store`, `std/path`, `std/math`,
 `std/crypto`, `std/encoding`, `std/log`, `std/set`, `std/collections`. Reach for
 these before declaring a Node builtin or a host global by hand: `std/timers` is
 how you schedule work, and `std/websocket` is how you open a connection.
+
+Two ways to read a module's real signatures when it is not written out below.
+Import a name it does not export and read the error, which lists the ones it
+does:
+
+```
+[E0105] import: `nonexistent` is not exported by `std/random` (exports: Rng, seeded)
+```
+
+Or read the emitted runtime: `glyph build` writes the stdlib source it used to
+`<out>/.glyph-runtime/std/*.ts`. That directory holds only the modules your
+project imports, not all 37, so it answers "what does this give me" for a module
+you already use and cannot introduce you to one you do not.
 
 
 Call namespaced functions as `module.fn(...)`. Types and constructors come in via
@@ -705,7 +724,7 @@ type Rng
 seeded(seed: number) -> Rng                       // a generator fixed by the seed
 rng.next() -> number                              // method: next float in [0, 1)
 rng.int(lo: number, hi: number) -> number         // method: whole number in [lo, hi)
-rng.bool(probability: number) -> bool             // method: true with this probability
+rng.bool(probability?: number) -> bool            // method: true with this probability (default 0.5)
 rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 ```
 
@@ -998,8 +1017,12 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
   are not identifiers; an identifier key stays bareword (`{ plain: x }`).
   Object-literal *shorthand* is still rejected — always write the value. An
   interpolated key (`{"${e}": x}`) is not allowed (no computed keys).
-- **`mut` is narrow.** It only enables reassignment and mutating method calls;
-  there is no `mut` parameter, field, or other position.
+- **`mut` is narrow, but it is not a restriction on parameters.** It marks the
+  four assignment and mutating-call forms above; there is no `mut` *declaration*
+  modifier, so you cannot write `fn f(mut x: T)` or a `mut` field in a record.
+  A parameter's fields are mutable in place: inside `fn drain(s: Stats)`,
+  `mut s.energy = s.energy - 30` is legal and the caller sees it. You do not
+  have to rebuild and return a whole record to change one field of it.
 - **Write a `//` comment on its own line, above what it documents.** `glyph fmt`
   keeps a comment above the same item, including inside a record, a union variant
   list, an array or object literal, an argument list, and a `match` (a construct

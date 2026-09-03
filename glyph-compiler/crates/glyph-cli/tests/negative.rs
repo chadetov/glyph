@@ -48,7 +48,11 @@ fn every_negative_case_fails_with_its_expected_code() {
     );
 
     for glyph_path in &entries {
-        let name = glyph_path.file_stem().unwrap().to_string_lossy().into_owned();
+        let name = glyph_path
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
         let expected = fs::read_to_string(glyph_path.with_extension("expected_error"))
             .unwrap_or_else(|e| panic!("{name}: missing .expected_error: {e}"));
         let code = expected.trim();

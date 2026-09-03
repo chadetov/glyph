@@ -31,7 +31,6 @@ fn stdlib_doc() -> PathBuf {
     .collect()
 }
 
-
 /// Whole-word membership: `name` appears in `text` not flanked by identifier
 /// characters (so `get` matches `record.get` but not `getter`).
 fn contains_word(text: &str, name: &str) -> bool {
@@ -57,8 +56,7 @@ fn is_ident_byte(b: u8) -> bool {
 #[test]
 fn every_runtime_std_export_is_documented() {
     let doc_path = stdlib_doc();
-    let doc = fs::read_to_string(&doc_path)
-        .unwrap_or_else(|e| panic!("read {doc_path:?}: {e}"));
+    let doc = fs::read_to_string(&doc_path).unwrap_or_else(|e| panic!("read {doc_path:?}: {e}"));
 
     let dir = runtime_std_dir();
     let mut modules: Vec<PathBuf> = fs::read_dir(&dir)
@@ -77,8 +75,7 @@ fn every_runtime_std_export_is_documented() {
     let mut checked = 0usize;
     for module in &modules {
         let stem = module.file_stem().unwrap().to_string_lossy().to_string();
-        let source = fs::read_to_string(module)
-            .unwrap_or_else(|e| panic!("read {module:?}: {e}"));
+        let source = fs::read_to_string(module).unwrap_or_else(|e| panic!("read {module:?}: {e}"));
         for item in glyph_cli::runtime::exported_items(&source) {
             checked += 1;
             if !contains_word(&doc, &item.name) {

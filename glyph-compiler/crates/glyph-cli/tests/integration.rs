@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use glyph_cli::{build_project, build::build_project_inner};
+use glyph_cli::{build::build_project_inner, build_project};
 
 /// Build a uniquely-named temp directory rooted at the OS temp dir.
 /// Returns the path; the test is responsible for not relying on
@@ -147,10 +147,16 @@ fn build_writes_a_v3_source_map() {
     // The map is a v3 map that names the Glyph source and embeds it.
     let map = std::fs::read_to_string(out.join("main.ts.map")).unwrap();
     assert!(map.contains("\"version\":3"), "v3: {map}");
-    assert!(map.contains("\"sources\":[\"main.glyph\"]"), "names the source: {map}");
+    assert!(
+        map.contains("\"sources\":[\"main.glyph\"]"),
+        "names the source: {map}"
+    );
     assert!(map.contains("fn f"), "embeds sourcesContent: {map}");
     // Non-empty mappings (not the empty-string field).
-    assert!(!map.contains("\"mappings\":\"\""), "non-empty mappings: {map}");
+    assert!(
+        !map.contains("\"mappings\":\"\""),
+        "non-empty mappings: {map}"
+    );
 }
 
 #[test]
@@ -176,7 +182,10 @@ fn build_produces_structured_diagnostics() {
         .expect("a structured E0200");
     assert_eq!(d.severity, "error");
     assert_eq!(d.stage, "typecheck");
-    assert!(d.range.start.line >= 1 && d.range.start.col >= 1, "1-based pos");
+    assert!(
+        d.range.start.line >= 1 && d.range.start.col >= 1,
+        "1-based pos"
+    );
     assert!(d.help.is_some(), "carries the help");
 }
 
@@ -224,10 +233,16 @@ fn record_descriptor_rejects_extra_keys_unless_open() {
     // Point (strict) checks the key set; Loose (@open) does not.
     let point = ts.split("export const Point").nth(1).unwrap_or("");
     let point_is = point.split("parse(").next().unwrap_or("");
-    assert!(point_is.contains("Object.keys"), "strict record checks its keys: {point_is}");
+    assert!(
+        point_is.contains("Object.keys"),
+        "strict record checks its keys: {point_is}"
+    );
     let loose = ts.split("export const Loose").nth(1).unwrap_or("");
     let loose_is = loose.split("parse(").next().unwrap_or("");
-    assert!(!loose_is.contains("Object.keys"), "@open record does not check keys: {loose_is}");
+    assert!(
+        !loose_is.contains("Object.keys"),
+        "@open record does not check keys: {loose_is}"
+    );
 }
 
 #[test]
@@ -247,10 +262,19 @@ fn redact_masks_fields_in_the_descriptor_and_flags_unknown_names() {
     let report = build_project_inner(&src, &out, false).expect("build ok");
     assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
     let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
-    assert!(ts.contains("redact(value: User)"), "emits a redact method: {ts}");
-    assert!(ts.contains("\"ssn\": \"[REDACTED]\""), "masks the field: {ts}");
+    assert!(
+        ts.contains("redact(value: User)"),
+        "emits a redact method: {ts}"
+    );
+    assert!(
+        ts.contains("\"ssn\": \"[REDACTED]\""),
+        "masks the field: {ts}"
+    );
     // The other members are untouched — the redact method is additive.
-    assert!(ts.contains("is(value: unknown): value is User"), "is intact: {ts}");
+    assert!(
+        ts.contains("is(value: unknown): value is User"),
+        "is intact: {ts}"
+    );
     assert!(ts.contains("schema:"), "schema intact: {ts}");
 
     // An unknown redacted field name is E0219.
@@ -262,7 +286,11 @@ fn redact_masks_fields_in_the_descriptor_and_flags_unknown_names() {
     );
     let report = build_project_inner(&bad.join("src"), &bad.join("out"), false).expect("build");
     assert!(report.has_errors(), "unknown redact field is an error");
-    assert!(report.diagnostics.iter().any(|d| d.contains("E0219")), "{:?}", report.diagnostics);
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0219")),
+        "{:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
@@ -273,7 +301,11 @@ fn rebuild_prunes_a_renamed_modules_stale_ts_and_map() {
     let root = unique_tmp("prune");
     let src = root.join("src");
     let out = root.join("dist");
-    write_file(&src, "old.glyph", "module old\nfn f() -> number { return 1 }\n");
+    write_file(
+        &src,
+        "old.glyph",
+        "module old\nfn f() -> number { return 1 }\n",
+    );
     build_project_inner(&src, &out, false).expect("first build");
     assert!(out.join("old.ts").exists(), "old.ts emitted");
     assert!(out.join("old.ts.map").exists(), "old.ts.map emitted");
@@ -283,13 +315,20 @@ fn rebuild_prunes_a_renamed_modules_stale_ts_and_map() {
 
     // Rename the module and rebuild.
     std::fs::remove_file(src.join("old.glyph")).unwrap();
-    write_file(&src, "new.glyph", "module new\nfn f() -> number { return 2 }\n");
+    write_file(
+        &src,
+        "new.glyph",
+        "module new\nfn f() -> number { return 2 }\n",
+    );
     build_project_inner(&src, &out, false).expect("second build");
 
     assert!(out.join("new.ts").exists(), "new.ts emitted");
     assert!(!out.join("old.ts").exists(), "stale old.ts pruned");
     assert!(!out.join("old.ts.map").exists(), "stale old.ts.map pruned");
-    assert!(out.join("keep.me").exists(), "unrelated user file preserved");
+    assert!(
+        out.join("keep.me").exists(),
+        "unrelated user file preserved"
+    );
 }
 
 #[test]
@@ -314,7 +353,10 @@ fn regen_refreshes_generated_files_from_the_spec() {
         .expect("initial gen");
     let gen_file = out.join("api.glyph");
     let first = std::fs::read_to_string(&gen_file).unwrap();
-    assert!(first.contains("Regenerate with"), "provenance header: {first}");
+    assert!(
+        first.contains("Regenerate with"),
+        "provenance header: {first}"
+    );
     assert!(!first.contains("title"), "spec has no title field yet");
 
     // Add a `title` field, then regen the whole tree.
@@ -330,19 +372,33 @@ fn regen_refreshes_generated_files_from_the_spec() {
     assert_eq!(report.ran.len(), 1, "one recorded command re-run");
 
     let second = std::fs::read_to_string(&gen_file).unwrap();
-    assert!(second.contains("title"), "the new field flowed in: {second}");
+    assert!(
+        second.contains("title"),
+        "the new field flowed in: {second}"
+    );
 
     // Idempotent: a second regen with no spec change leaves the file identical.
     glyph_cli::regen::regen(&root).expect("regen again");
-    assert_eq!(second, std::fs::read_to_string(&gen_file).unwrap(), "idempotent");
+    assert_eq!(
+        second,
+        std::fs::read_to_string(&gen_file).unwrap(),
+        "idempotent"
+    );
 }
 
 #[test]
 fn regen_reports_when_nothing_is_generated() {
     let root = unique_tmp("regen_empty");
-    write_file(&root, "hand.glyph", "module m\nfn f() -> number { return 1 }\n");
+    write_file(
+        &root,
+        "hand.glyph",
+        "module m\nfn f() -> number { return 1 }\n",
+    );
     let err = glyph_cli::regen::regen(&root).expect_err("no generated files");
-    assert!(matches!(err, glyph_cli::regen::RegenError::NoGenerated { .. }));
+    assert!(matches!(
+        err,
+        glyph_cli::regen::RegenError::NoGenerated { .. }
+    ));
 }
 
 #[test]
@@ -367,13 +423,26 @@ fn build_warns_on_unused_import_binding_and_unreachable_code() {
     );
 
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "lints are warnings: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "lints are warnings: {:?}",
+        report.diagnostics
+    );
     let codes: Vec<&str> = ["E0106", "E0107", "E0108"]
         .into_iter()
         .filter(|c| report.diagnostics.iter().any(|d| d.contains(c)))
         .collect();
-    assert_eq!(codes, vec!["E0106", "E0107", "E0108"], "{:?}", report.diagnostics);
-    assert_eq!(report.emitted, vec!["main.ts".to_string()], "warnings still emit");
+    assert_eq!(
+        codes,
+        vec!["E0106", "E0107", "E0108"],
+        "{:?}",
+        report.diagnostics
+    );
+    assert_eq!(
+        report.emitted,
+        vec!["main.ts".to_string()],
+        "warnings still emit"
+    );
 }
 
 #[test]
@@ -538,7 +607,10 @@ fn build_reports_emit_diagnostic_for_unsupported_construct() {
         report.diagnostics
     );
     assert!(report.emitted.is_empty());
-    assert!(!out.join("main.ts").exists(), "no .ts for a rejected module");
+    assert!(
+        !out.join("main.ts").exists(),
+        "no .ts for a rejected module"
+    );
 }
 
 #[test]
@@ -672,7 +744,10 @@ fn build_fails_for_empty_directory() {
     let out = root.join("dist");
     std::fs::create_dir_all(&src).unwrap();
     let err = build_project(&src, &out).expect_err("empty dir should fail");
-    assert!(matches!(err, glyph_cli::BuildError::NoSources(_)), "got: {err:?}");
+    assert!(
+        matches!(err, glyph_cli::BuildError::NoSources(_)),
+        "got: {err:?}"
+    );
 }
 
 #[test]
@@ -696,7 +771,12 @@ fn diagnostics_include_source_context_via_ariadne() {
     );
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");
-    assert_eq!(report.diagnostics.len(), 1, "diagnostics: {:?}", report.diagnostics);
+    assert_eq!(
+        report.diagnostics.len(),
+        1,
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
     let d = &report.diagnostics[0];
     // The message itself.
     assert!(d.contains("bogus"), "missing offending name in:\n{d}");
@@ -734,7 +814,10 @@ fn build_flags_non_exhaustive_match_on_tagged_union() {
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");
     assert!(
-        report.diagnostics.iter().any(|d| d.contains("Feed") && d.contains("Failed")),
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("Feed") && d.contains("Failed")),
         "expected non-exhaustive match diagnostic mentioning Feed + Failed; got: {:?}",
         report.diagnostics
     );
@@ -902,12 +985,9 @@ fn build_flags_return_type_mismatch() {
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");
     assert!(
-        report
-            .diagnostics
-            .iter()
-            .any(|d| d.contains("typecheck")
-                && d.contains("expected `number`")
-                && d.contains("found `string`")),
+        report.diagnostics.iter().any(|d| d.contains("typecheck")
+            && d.contains("expected `number`")
+            && d.contains("found `string`")),
         "expected a return type-mismatch diagnostic; got: {:?}",
         report.diagnostics
     );
@@ -930,7 +1010,11 @@ fn build_skips_hidden_and_target_directories() {
     // files only by accident), never project sources to compile.
     write_file(&src, ".git/decoy.glyph", "module decoy\nfn main(\n");
     write_file(&src, "target/decoy.glyph", "module decoy\nfn main(\n");
-    write_file(&src, "node_modules/pkg/decoy.glyph", "module decoy\nfn main(\n");
+    write_file(
+        &src,
+        "node_modules/pkg/decoy.glyph",
+        "module decoy\nfn main(\n",
+    );
 
     let report = build_project(&src, &out).expect("build_project ok");
     assert!(
@@ -952,10 +1036,7 @@ fn repo_examples_emit_typescript_without_diagnostics() {
     // TypeScript with no diagnostics. This is the Phase 1 Week 4 emission gate;
     // it guards against an emitter regression silently breaking an example.
     let examples = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../examples"));
-    assert!(
-        examples.is_dir(),
-        "examples dir not found at {examples:?}"
-    );
+    assert!(examples.is_dir(), "examples dir not found at {examples:?}");
     // A sibling import resolves against the build root, so a multi-module app in
     // its own directory under `examples/apps/` is a project only when that
     // directory *is* the root. Rolling them into one root does not merely fail
@@ -975,7 +1056,10 @@ fn repo_examples_emit_typescript_without_diagnostics() {
         std::fs::remove_dir_all(staged.join("apps").join(&name)).expect("unstage app");
         apps.push(path);
     }
-    assert!(!apps.is_empty(), "no multi-module apps found under examples/apps");
+    assert!(
+        !apps.is_empty(),
+        "no multi-module apps found under examples/apps"
+    );
 
     for app in &apps {
         let app_out = unique_tmp("exampleapp").join("dist");
@@ -1059,13 +1143,19 @@ fn build_writes_the_runtime_and_a_tsconfig() {
         ".glyph-runtime/glyph-prelude.d.ts",
         ".glyph-runtime/glyph-stdlib.d.ts",
     ] {
-        assert!(out.join(rel).is_file(), "missing bundled runtime file {rel}");
+        assert!(
+            out.join(rel).is_file(),
+            "missing bundled runtime file {rel}"
+        );
     }
     // This program imports no stdlib module and uses no descriptor or `Option`,
     // so `option.ts` and `schema.ts` are unreached (G115): writing them anyway
     // is exactly the unfiltered-bundle behavior a browser deploy target cannot
     // tolerate (see `build_prunes_unreached_std_modules_from_a_browser_hostile_program`).
-    for rel in [".glyph-runtime/std/option.ts", ".glyph-runtime/std/schema.ts"] {
+    for rel in [
+        ".glyph-runtime/std/option.ts",
+        ".glyph-runtime/std/schema.ts",
+    ] {
         assert!(
             !out.join(rel).is_file(),
             "{rel} written despite the program never reaching it"
@@ -1115,7 +1205,10 @@ fn main() {
         ".glyph-runtime/std/result.ts",
         ".glyph-runtime/glyph-bootstrap.ts",
     ] {
-        assert!(out.join(rel).is_file(), "missing reachable runtime file {rel}");
+        assert!(
+            out.join(rel).is_file(),
+            "missing reachable runtime file {rel}"
+        );
     }
 
     // Unreached, including all seven browser-hostile Node modules: a program
@@ -1175,13 +1268,24 @@ fn rebuilding_after_deleting_an_extern_shim_does_not_leave_it_behind() {
     );
 
     let first = build_project_inner(&src, &out, false).expect("first build ok");
-    assert!(!first.has_errors(), "first build diags: {:?}", first.diagnostics);
-    assert!(out.join("extern/clock.ts").is_file(), "the shim should be staged");
+    assert!(
+        !first.has_errors(),
+        "first build diags: {:?}",
+        first.diagnostics
+    );
+    assert!(
+        out.join("extern/clock.ts").is_file(),
+        "the shim should be staged"
+    );
 
     // Delete the shim and the import that reached it, then rebuild into the
     // SAME out dir. This is the ordinary edit-and-rebuild path.
     std::fs::remove_file(src.join("extern/clock.ts")).expect("remove shim");
-    write_file(&src, "main.glyph", "module main\n\nfn main() {\n  print(\"hi\")\n}\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nfn main() {\n  print(\"hi\")\n}\n",
+    );
 
     let second = build_project_inner(&src, &out, false).expect("second build ok");
     assert!(
@@ -1662,8 +1766,7 @@ fn handler(req: http.Request) -> Result<http.Response, string> {{
         ),
     );
     let entry = src.join("main.glyph");
-    let (code, stdout, stderr, _) =
-        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     assert!(
         stdout.contains("plain=Ok(plain body)"),
@@ -1990,7 +2093,10 @@ fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
     );
 
     let file = src.join("app.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -2171,7 +2277,10 @@ fn imported_generic_descriptor_is_rejects_bad_element_at_runtime() {
     );
 
     let file = src.join("app.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -2462,7 +2571,11 @@ fn types_companion_package_resolves_over_the_typeless_js() {
     }
     let root = unique_tmp("typescompanion");
     // A project boundary, so the node_modules walk stops here.
-    write_file(&root, "package.json", "{\n  \"name\": \"proj\",\n  \"version\": \"1.0.0\"\n}\n");
+    write_file(
+        &root,
+        "package.json",
+        "{\n  \"name\": \"proj\",\n  \"version\": \"1.0.0\"\n}\n",
+    );
     // A typeless JS package: has a JS entry, ships no declarations.
     write_file(
         &root,
@@ -2494,7 +2607,9 @@ fn types_companion_package_resolves_over_the_typeless_js() {
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
-        TscOutcome::Failed(msg) => panic!("@types companion did not resolve over the typeless js:\n{msg}"),
+        TscOutcome::Failed(msg) => {
+            panic!("@types companion did not resolve over the typeless js:\n{msg}")
+        }
         TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }
@@ -2539,7 +2654,11 @@ fn main() -> void {
 "#,
     );
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "sanitized taint program: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "sanitized taint program: {:?}",
+        report.diagnostics
+    );
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("sanitized path should pass tsc:\n{msg}"),
@@ -2625,9 +2744,15 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
-            assert_eq!(code, 0, "where-refinement had {code} wrong boundary outcome(s)");
+            assert_eq!(
+                code, 0,
+                "where-refinement had {code} wrong boundary outcome(s)"
+            );
         }
         glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
             eprintln!("skipping: toolchain not found at run time");
@@ -2711,7 +2836,10 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "boundary parse gave {code} wrong answer(s)");
         }
@@ -2756,7 +2884,10 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "bigint produced {code} wrong result(s)");
         }
@@ -2835,7 +2966,10 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "parse_iso had {code} wrong outcome(s)");
         }
@@ -2895,7 +3029,10 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "std/decimal produced {code} wrong result(s)");
         }
@@ -2972,7 +3109,9 @@ const bad: Schema<Point> = object_schema({ x: number_schema() })
         }
         TscOutcome::Failed(msg) => {
             assert!(
-                msg.contains("age") || msg.contains('y') || msg.to_lowercase().contains("assignable"),
+                msg.contains("age")
+                    || msg.contains('y')
+                    || msg.to_lowercase().contains("assignable"),
                 "expected a shape/type mismatch, got:\n{msg}"
             );
         }
@@ -3064,9 +3203,9 @@ const point_schema: Schema<Point> = object_schema({ x: number_schema(), y: numbe
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
-        TscOutcome::Failed(msg) => panic!(
-            "the D28 boundary cast did not reach the returns a `match` lowers to:\n{msg}"
-        ),
+        TscOutcome::Failed(msg) => {
+            panic!("the D28 boundary cast did not reach the returns a `match` lowers to:\n{msg}")
+        }
         TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }
@@ -3137,9 +3276,9 @@ const good: Codec<Point> = object_codec({ x: number_codec() })
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
-        TscOutcome::Failed(msg) => panic!(
-            "infer_output failed to unwrap a validator NOT named `Schema` (`Codec`):\n{msg}"
-        ),
+        TscOutcome::Failed(msg) => {
+            panic!("infer_output failed to unwrap a validator NOT named `Schema` (`Codec`):\n{msg}")
+        }
         TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }
@@ -3277,7 +3416,11 @@ fn main(argv: Array<string>) -> number {
 
     let out = root.join("dist");
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
 
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
@@ -3334,7 +3477,11 @@ fn main(argv: Array<string>) -> number {
 
     let out = root.join("dist");
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
 
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
@@ -3382,7 +3529,11 @@ pub async fn main(argv: Array<string>) -> number {
 
     let out = root.join("dist");
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
 
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
@@ -3443,10 +3594,16 @@ export function tally(): number {
     );
     write_file(&src, "main.glyph", main_glyph);
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
-        TscOutcome::Failed(msg) => panic!("the named ChildProcess surface did not type-check:\n{msg}"),
+        TscOutcome::Failed(msg) => {
+            panic!("the named ChildProcess surface did not type-check:\n{msg}")
+        }
         TscOutcome::NotFound => {
             eprintln!("skipping: tsc not found at check time");
             return;
@@ -3496,7 +3653,11 @@ export function tally(): number {
         write_file(&src, "extern/child.ts", extern_ts);
         write_file(&src, "main.glyph", main_glyph);
         let report = build_project_inner(&src, &out, false).expect("build ok");
-        assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+        assert!(
+            !report.has_errors(),
+            "diagnostics: {:?}",
+            report.diagnostics
+        );
         match check_with_tsc(&out).expect("run tsc") {
             TscOutcome::Passed => panic!("{label} was accepted by tsc"),
             TscOutcome::Failed(_) => {}
@@ -3538,7 +3699,11 @@ pub fn main(argv: Array<string>) -> number {
 "#,
     );
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {
             panic!("the shim exports `Signals` from `child_process`; `@types/node` does not")
@@ -3573,7 +3738,11 @@ export function stop(): number {
         "module main\nimport extern/sig { stop }\nfn main(argv: Array<string>) -> number {\n  return stop()\n}\n",
     );
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "diagnostics: {:?}",
+        report.diagnostics
+    );
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("`NodeJS.Signals` did not type-check:\n{msg}"),
@@ -3626,7 +3795,10 @@ fn examples_run_and_report_pass_and_fail() {
     );
     let report = glyph_cli::examples::run_examples(&src).expect("run_examples ok");
     assert!(report.ran, "examples should have run");
-    assert!(report.build_failed.is_none(), "augmented build should compile");
+    assert!(
+        report.build_failed.is_none(),
+        "augmented build should compile"
+    );
     assert_eq!(report.total, 3, "three @example lines");
     assert_eq!(
         report.failures.len(),
@@ -3664,7 +3836,11 @@ fn property_tests_run_through_examples() {
     );
     let report = glyph_cli::examples::run_examples(&src).expect("run ok");
     assert!(report.ran);
-    assert!(report.build_failed.is_none(), "should compile: {:?}", report.build_failed);
+    assert!(
+        report.build_failed.is_none(),
+        "should compile: {:?}",
+        report.build_failed
+    );
     assert_eq!(report.total, 2, "two property @examples");
     assert_eq!(
         report.failures.len(),
@@ -3693,7 +3869,10 @@ fn doc_run_blocks_execute_and_assert() {
     );
     let report = glyph_cli::examples::run_examples(&src).expect("run ok");
     assert!(report.ran);
-    assert!(report.build_failed.is_none(), "augmented build should compile");
+    assert!(
+        report.build_failed.is_none(),
+        "augmented build should compile"
+    );
     assert_eq!(report.total, 1, "one @run block");
     assert_eq!(
         report.failures.len(),
@@ -3701,7 +3880,11 @@ fn doc_run_blocks_execute_and_assert() {
         "the block's second assert fails: {:?}",
         report.failures
     );
-    assert!(report.failures[0].contains("doc-run"), "{:?}", report.failures);
+    assert!(
+        report.failures[0].contains("doc-run"),
+        "{:?}",
+        report.failures
+    );
 }
 
 #[test]
@@ -3720,7 +3903,10 @@ fn run_executes_main_and_propagates_exit_code() {
         "module runprog\nfn main(argv: Array<string>) -> number {\n  return 7\n}\n",
     );
     let file = root.join("runprog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 7, "main's return value should be the exit code");
         }
@@ -3766,7 +3952,10 @@ fn a_code_set_from_inside_main_survives_a_void_return() {
          }\n",
     );
     let file = root.join("setexit.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 4, "the code recorded inside `main` is the exit code");
         }
@@ -3798,7 +3987,10 @@ fn a_main_returning_a_number_still_wins_over_an_earlier_recorded_code() {
          }\n",
     );
     let file = root.join("setexitret.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 5, "the return value is the later verdict");
         }
@@ -3828,7 +4020,10 @@ fn a_void_main_that_records_nothing_still_exits_zero() {
          }\n",
     );
     let file = root.join("voidmain.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "a program that records nothing exits 0");
         }
@@ -3879,7 +4074,11 @@ export function serve(port: number): Promise<void> {
         "module main\nimport extern/server { serve }\nasync fn main(argv: Array<string>) -> number {\n  let _ = await serve(8080)\n  return 0\n}\n",
     );
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "extern server is well-formed: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "extern server is well-formed: {:?}",
+        report.diagnostics
+    );
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
@@ -3913,7 +4112,11 @@ fn extern_ts_module_is_imported_typed_and_preserved() {
     );
 
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "extern import is well-formed: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "extern import is well-formed: {:?}",
+        report.diagnostics
+    );
     let staged = out.join("extern").join("mathx.ts");
     assert!(staged.exists(), "the extern .ts is staged into the output");
 
@@ -4005,9 +4208,15 @@ async fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
-            assert_eq!(code, 0, "task.pool broke ordering (1), the limit (2), or completeness (3)");
+            assert_eq!(
+                code, 0,
+                "task.pool broke ordering (1), the limit (2), or completeness (3)"
+            );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping task.pool run: `tsx` not found on PATH");
@@ -4016,7 +4225,9 @@ async fn main(argv: Array<string>) -> number {
             panic!("task.pool program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4070,7 +4281,10 @@ async fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "async thunks + task.all produced a wrong result");
         }
@@ -4081,7 +4295,9 @@ async fn main(argv: Array<string>) -> number {
             panic!("async-closure program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4124,7 +4340,10 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "inline-union program produced a wrong value");
         }
@@ -4135,7 +4354,9 @@ fn main(argv: Array<string>) -> number {
             panic!("inline-union program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4189,18 +4410,29 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
-            assert_eq!(code, 0, "value-position match with a return arm dispatched wrong");
+            assert_eq!(
+                code, 0,
+                "value-position match with a return arm dispatched wrong"
+            );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping value-position-match run: `tsx` not found on PATH");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
-            panic!("value-position-match program failed to build: {:?}", r.diagnostics);
+            panic!(
+                "value-position-match program failed to build: {:?}",
+                r.diagnostics
+            );
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4254,7 +4486,10 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "nested-literal match dispatched a case wrong");
         }
@@ -4262,10 +4497,15 @@ fn main(argv: Array<string>) -> number {
             eprintln!("skipping nested-literal run: `tsx` not found on PATH");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
-            panic!("nested-literal program failed to build: {:?}", r.diagnostics);
+            panic!(
+                "nested-literal program failed to build: {:?}",
+                r.diagnostics
+            );
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4431,9 +4671,15 @@ fn fs_make_dir_and_append_text_round_trip() {
     );
     write_file(&root, "fsprog.glyph", &prog);
     let file_glyph = root.join("fsprog.glyph");
-    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
-            assert_eq!(code, 0, "make_dir + two append_text should yield exactly \"a\\nb\\n\"");
+            assert_eq!(
+                code, 0,
+                "make_dir + two append_text should yield exactly \"a\\nb\\n\""
+            );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping fs append/mkdir run: `tsx` not found on PATH");
@@ -4519,7 +4765,10 @@ fn main(argv: Array<string>) -> number {
     .replace("__DIR__", &dir.display().to_string());
     write_file(&root, "prog.glyph", &prog);
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -4539,7 +4788,9 @@ fn main(argv: Array<string>) -> number {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("read_dir/is_dir/stat must type-check under tsc --strict:\n{msg}")
         }
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
     }
 }
 
@@ -4603,7 +4854,10 @@ fn main(argv: Array<string>) -> number {
     .replace("__DIR__", &dir.display().to_string());
     write_file(&root, "prog.glyph", &prog);
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -4624,7 +4878,9 @@ fn main(argv: Array<string>) -> number {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("the `Other({{ code }})` pattern must type-check under tsc --strict:\n{msg}")
         }
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
     }
 }
 
@@ -4669,9 +4925,15 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
-            assert_eq!(code, 0, "captures_all must yield [[\"a\",\"1\"],[\"bb\",\"22\"]]");
+            assert_eq!(
+                code, 0,
+                "captures_all must yield [[\"a\",\"1\"],[\"bb\",\"22\"]]"
+            );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping regex captures_all run: `tsx` not found on PATH");
@@ -4680,7 +4942,9 @@ fn main(argv: Array<string>) -> number {
             panic!("unexpected build failure: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4741,7 +5005,10 @@ async fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "1 = a sibling of the failing task was abandoned, 2 = the failure was reported as ok, 3 = the surviving values are wrong");
         }
@@ -4752,7 +5019,9 @@ async fn main(argv: Array<string>) -> number {
             panic!("unexpected build failure: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("has main; got NoMain: {exports:?}")
+        }
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -4808,7 +5077,10 @@ fn string_breadth_helpers_round_trip() {
          }\n";
     write_file(&root, "strprog.glyph", prog);
     let file_glyph = root.join("strprog.glyph");
-    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "a non-zero code names the failing assertion group");
         }
@@ -4873,7 +5145,10 @@ fn array_fold_index_of_and_flat_map() {
          }\n";
     write_file(&root, "arrprog.glyph", prog);
     let file_glyph = root.join("arrprog.glyph");
-    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "a non-zero code names the failing assertion group");
         }
@@ -5080,7 +5355,8 @@ fn start_here_tutorials_broken_program_is_exactly_e0200() {
          }\n\
          fn main(argv: Array<string>) -> number { return 0 }\n";
     write_file(&root.join("broken"), "main.glyph", broken);
-    let report = build_project_inner(&root.join("broken"), &root.join("bout"), false).expect("build");
+    let report =
+        build_project_inner(&root.join("broken"), &root.join("bout"), false).expect("build");
     assert!(report.has_errors(), "the broken program must not compile");
     assert!(
         report.diagnostics.iter().any(|d| d.contains("E0200")),
@@ -5095,7 +5371,11 @@ fn start_here_tutorials_broken_program_is_exactly_e0200() {
     );
     write_file(&root.join("fixed"), "main.glyph", &fixed);
     let ok = build_project_inner(&root.join("fixed"), &root.join("fout"), false).expect("build");
-    assert!(!ok.has_errors(), "the fixed program must compile: {:?}", ok.diagnostics);
+    assert!(
+        !ok.has_errors(),
+        "the fixed program must compile: {:?}",
+        ok.diagnostics
+    );
 }
 
 #[test]
@@ -5144,10 +5424,19 @@ fn run_reports_no_main_for_a_library_instead_of_a_type_error() {
         "module lib\nfn helper(x: number) -> number { return x }\nfn other() -> number { return 1 }\n",
     );
     let file = root.join("lib.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
-            assert!(exports.contains(&"helper".to_string()), "lists exports: {exports:?}");
-            assert!(exports.contains(&"other".to_string()), "lists exports: {exports:?}");
+            assert!(
+                exports.contains(&"helper".to_string()),
+                "lists exports: {exports:?}"
+            );
+            assert!(
+                exports.contains(&"other".to_string()),
+                "lists exports: {exports:?}"
+            );
         }
         other => panic!("expected NoMain for a library, got {other:?}"),
     }
@@ -5174,27 +5463,45 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
     // test needs.
     write_file(&root, "broken.glyph", TSC_RED_GLYPH_CLEAN);
     let file = root.join("broken.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             assert!(msg.to_lowercase().contains("error"), "tsc output: {msg}");
             // The tsc error is remapped onto the Glyph source: it carries the
             // TS code and no longer points at the generated `.ts`.
-            assert!(msg.contains("[TS"), "should carry the remapped tsc code: {msg}");
-            assert!(!msg.contains("broken.ts("), "raw .ts location should be gone: {msg}");
+            assert!(
+                msg.contains("[TS"),
+                "should carry the remapped tsc code: {msg}"
+            );
+            assert!(
+                !msg.contains("broken.ts("),
+                "raw .ts location should be gone: {msg}"
+            );
         }
         glyph_cli::run::RunOutcome::Ran(code) => {
             panic!("tsc-broken code must not run; got exit {code}");
         }
-        other => panic!("expected TypeCheckFailed, got a different outcome: {}", outcome_name(&other)),
+        other => panic!(
+            "expected TypeCheckFailed, got a different outcome: {}",
+            outcome_name(&other)
+        ),
     }
 
     // With checking off, the same program runs (its return value is 0).
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(0) => {}
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping --no-check run assertion: tsx not found");
         }
-        other => panic!("--no-check should run the program; got {}", outcome_name(&other)),
+        other => panic!(
+            "--no-check should run the program; got {}",
+            outcome_name(&other)
+        ),
     }
 }
 
@@ -5222,8 +5529,14 @@ fn fmt_normalizes_a_comment_free_file_in_place() {
     assert_eq!(report.formatted.len(), 1, "expected one file formatted");
 
     let after = std::fs::read_to_string(&file).unwrap();
-    assert_ne!(after, "module messy\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n");
-    assert!(glyph_parser::parse(&after).is_ok(), "formatted file must parse");
+    assert_ne!(
+        after,
+        "module messy\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n"
+    );
+    assert!(
+        glyph_parser::parse(&after).is_ok(),
+        "formatted file must parse"
+    );
 
     // Idempotent: a second pass changes nothing.
     let report2 = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
@@ -5252,7 +5565,11 @@ fn fmt_check_reports_without_writing() {
     // Format it for real, then --check reports it clean.
     glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
     let report2 = glyph_cli::fmt::format_path(&file, true).expect("fmt ok");
-    assert_eq!(report2.formatted.len(), 0, "a canonical file is clean under --check");
+    assert_eq!(
+        report2.formatted.len(),
+        0,
+        "a canonical file is clean under --check"
+    );
     assert_eq!(report2.unchanged.len(), 1);
 }
 
@@ -5263,13 +5580,20 @@ fn fmt_preserves_comments() {
     write_file(&root, "commented.glyph", original);
     let file = root.join("commented.glyph");
     let report = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
-    assert!(report.failed.is_empty(), "should not fail: {:?}", report.failed);
+    assert!(
+        report.failed.is_empty(),
+        "should not fail: {:?}",
+        report.failed
+    );
     let after = std::fs::read_to_string(&file).unwrap();
     assert!(
         after.contains("// keep this comment"),
         "comment must be preserved:\n{after}"
     );
-    assert!(glyph_parser::parse(&after).is_ok(), "formatted file must parse");
+    assert!(
+        glyph_parser::parse(&after).is_ok(),
+        "formatted file must parse"
+    );
 
     // Idempotent: a second pass changes nothing.
     let report2 = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
@@ -5296,7 +5620,10 @@ fn run_reports_build_failure_for_a_broken_target() {
          fn main(argv: Array<string>) -> number {\n  return 0\n}\n",
     );
     let file = root.join("brokenprog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::BuildFailed(report) => {
             assert!(
                 !report.diagnostics.is_empty(),
@@ -5352,7 +5679,10 @@ fn cross_module_record_payload_union_match_binds_whole_object() {
     assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
     let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
     // The whole object is bound, not `.value`.
-    assert!(ts.contains("const v = __") && !ts.contains("const v = __m0.value"), "{ts}");
+    assert!(
+        ts.contains("const v = __") && !ts.contains("const v = __m0.value"),
+        "{ts}"
+    );
 }
 
 #[test]
@@ -5479,7 +5809,10 @@ fn inferred_let_scrutinee_types_from_the_cross_module_call_it_binds() {
     assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
     let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
     // The record payload is the whole object, not `.value`.
-    assert!(ts.contains("const r = __m0;") && !ts.contains("const r = __m0.value"), "{ts}");
+    assert!(
+        ts.contains("const r = __m0;") && !ts.contains("const r = __m0.value"),
+        "{ts}"
+    );
 }
 
 #[test]
@@ -5640,7 +5973,10 @@ fn non_exhaustive_imported_union_match_is_caught() {
     let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
     assert!(report.has_errors(), "a missing variant must be caught");
     assert!(
-        report.diagnostics.iter().any(|d| d.contains("E0200") && d.contains("NotANumber")),
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("NotANumber")),
         "diags: {:?}",
         report.diagnostics
     );
@@ -5699,7 +6035,10 @@ fn an_alias_to_a_union_is_not_accused_of_having_no_variants() {
     );
     let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
     assert!(
-        !report.diagnostics.iter().any(|d| format!("{d:?}").contains("E0220")),
+        !report
+            .diagnostics
+            .iter()
+            .any(|d| format!("{d:?}").contains("E0220")),
         "an alias to a union must not be accused of having no variants: {:?}",
         report.diagnostics
     );
@@ -6424,7 +6763,10 @@ fn run_reports_every_build_diagnostic_including_on_a_cache_hit() {
     let second = run();
     let out2 = String::from_utf8_lossy(&second.stdout).to_string();
     let err2 = String::from_utf8_lossy(&second.stderr).to_string();
-    assert!(out2.contains("hi"), "the program still runs: stdout {out2:?}");
+    assert!(
+        out2.contains("hi"),
+        "the program still runs: stdout {out2:?}"
+    );
     assert!(
         err2.contains("E0204") && err2.contains("E0106"),
         "a warm cache must report the identical diagnostics: stderr {err2}"
@@ -6534,7 +6876,10 @@ fn imported_descriptor_field_rejects_bad_data_at_runtime() {
     );
 
     let file = src.join("app.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -6545,7 +6890,10 @@ fn imported_descriptor_field_rejects_bad_data_at_runtime() {
         glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
         glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
-            panic!("two-module descriptor program should build: {:?}", r.diagnostics)
+            panic!(
+                "two-module descriptor program should build: {:?}",
+                r.diagnostics
+            )
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("emitted descriptor checks should type-check under tsc:\n{msg}")
@@ -6795,7 +7143,10 @@ fn failing_example_is_visible_under_json() {
         .unwrap_or_else(|| panic!("examples.failures must be an array: {v}"));
     assert_eq!(failures.len(), 1, "the failure is listed: {v}");
     assert!(
-        failures[0].as_str().unwrap_or_default().contains("double(2)"),
+        failures[0]
+            .as_str()
+            .unwrap_or_default()
+            .contains("double(2)"),
         "the failure names the example: {v}"
     );
     assert!(
@@ -6939,7 +7290,11 @@ fn missing_tsx_refuses_to_look_verified() {
         serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("JSON ({e}): {stdout}"));
     assert_eq!(v["ok"], serde_json::json!(false), "{v}");
     assert_eq!(v["examples"]["ran"], serde_json::json!(false), "{v}");
-    assert_eq!(json.status.code(), Some(2), "--json agrees on the code: {v}");
+    assert_eq!(
+        json.status.code(),
+        Some(2),
+        "--json agrees on the code: {v}"
+    );
 }
 
 // --- `glyph build --watch` (G123) -------------------------------------------
@@ -7028,7 +7383,10 @@ fn build_watch_rebuilds_on_source_change_without_exiting() {
     // The defining behavior: a one-shot `glyph build` would have exited with
     // its first build. Watch mode must still be running.
     assert!(
-        child.try_wait().expect("poll child after first build").is_none(),
+        child
+            .try_wait()
+            .expect("poll child after first build")
+            .is_none(),
         "glyph build --watch exited instead of staying alive after its first build"
     );
 
@@ -7063,7 +7421,6 @@ fn build_watch_rebuilds_on_source_change_without_exiting() {
     // on drop, so this holds whether the test passes or unwinds above.
     kill_watch(child);
 }
-
 
 // --- `--watch` on the layouts and timings the dev loop actually hits --------
 //
@@ -7433,10 +7790,7 @@ fn check_on_a_clean_file_exits_zero() {
         std::ffi::OsStr::new("--no-tsc"),
     ]);
     assert_eq!(code, 0, "a clean file passes: {stderr}");
-    assert!(
-        stderr.contains("no diagnostics"),
-        "and says so: {stderr}"
-    );
+    assert!(stderr.contains("no diagnostics"), "and says so: {stderr}");
 }
 
 #[test]
@@ -7570,7 +7924,11 @@ fn check_json_uses_the_same_keys_as_build_json() {
     assert_eq!(v["errors"], serde_json::json!(1), "{v}");
     assert_eq!(v["warnings"], serde_json::json!(0), "{v}");
     assert_eq!(v["tsc"], serde_json::json!("not-run"), "{v}");
-    assert_eq!(v["diagnostics"][0]["code"], serde_json::json!("E0204"), "{v}");
+    assert_eq!(
+        v["diagnostics"][0]["code"],
+        serde_json::json!("E0204"),
+        "{v}"
+    );
 }
 
 #[test]
@@ -7674,7 +8032,10 @@ fn check_reports_tsc_errors_on_a_glyph_clean_tree() {
     let (code, _stdout, stderr, _) =
         spawn_glyph(&[std::ffi::OsStr::new("check"), path.as_os_str()]);
     assert_eq!(code, 1, "the tsc stage fails the check: {stderr}");
-    assert!(stderr.contains("TS2345"), "remapped onto Glyph source: {stderr}");
+    assert!(
+        stderr.contains("TS2345"),
+        "remapped onto Glyph source: {stderr}"
+    );
     assert!(
         !stderr.contains("no diagnostics"),
         "and no green line above it: {stderr}"
@@ -7975,7 +8336,10 @@ async fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+    match glyph_cli::run::run_file(&file, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "async handler map dispatched the wrong answer");
         }
@@ -8021,7 +8385,11 @@ fn a_variant_named_after_a_js_global_keeps_its_name() {
 
     let out = root.join("out");
     let report = build_project_inner(&src, &out, false).expect("build ran");
-    assert!(!report.has_errors(), "compiles now: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "compiles now: {:?}",
+        report.diagnostics
+    );
     let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
 
     // The author's name survives verbatim, which is the half that matters for
@@ -8044,7 +8412,11 @@ fn a_variant_named_after_a_js_global_keeps_its_name() {
         "and never the shadowed name: {ts}"
     );
     // And the program actually emits, which the old behaviour never let it do.
-    assert!(!report.emitted.is_empty(), "emitted nothing: {:?}", report.emitted);
+    assert!(
+        !report.emitted.is_empty(),
+        "emitted nothing: {:?}",
+        report.emitted
+    );
 }
 
 #[test]
@@ -8334,7 +8706,11 @@ fn generic_sibling_record_substitutes_its_type_argument() {
     // gets the same argument substitution a local generic record gets.
     let root = unique_tmp("g75generic");
     let src = root.join("src");
-    write_file(&src, "catalog.glyph", "module catalog\npub type Box<T> = { value: T }\n");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\npub type Box<T> = { value: T }\n",
+    );
     write_file(
         &src,
         "main.glyph",
@@ -8350,7 +8726,11 @@ fn generic_sibling_record_substitutes_its_type_argument() {
     // The field set is real, so a typo on the generic record is caught too.
     let root = unique_tmp("g75genericfield");
     let src = root.join("src");
-    write_file(&src, "catalog.glyph", "module catalog\npub type Box<T> = { value: T }\n");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\npub type Box<T> = { value: T }\n",
+    );
     write_file(
         &src,
         "main.glyph",
@@ -8362,7 +8742,10 @@ fn generic_sibling_record_substitutes_its_type_argument() {
     );
     let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
     assert!(
-        report.diagnostics.iter().any(|d| d.contains("E0210") && d.contains("Box")),
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0210") && d.contains("Box")),
         "diags: {:?}",
         report.diagnostics
     );
@@ -8504,15 +8887,8 @@ fn a_reserved_or_shadowing_declaration_is_reported_exactly_once() {
     );
     write_file(&src, "reserved.glyph", "module reserved\nfn switch() {}\n");
 
-    let report =
-        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
-    let count = |code: &str| {
-        report
-            .structured
-            .iter()
-            .filter(|d| d.code == code)
-            .count()
-    };
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let count = |code: &str| report.structured.iter().filter(|d| d.code == code).count();
     assert_eq!(count("E0110"), 1, "diags: {:?}", report.structured);
     assert_eq!(count("E0109"), 1, "diags: {:?}", report.structured);
 }
@@ -8531,8 +8907,7 @@ fn a_module_local_issue_type_is_rejected_at_the_declaration() {
         "module main\ntype Issue = { path: Array<string>, message: string }\npub type User = { id: string }\n",
     );
 
-    let report =
-        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
     let shadow: Vec<_> = report
         .structured
         .iter()
@@ -8565,8 +8940,7 @@ fn an_unresolvable_local_import_names_the_module_and_where_it_lives() {
         "module app/nested/model\npub type Id = string\n",
     );
 
-    let report =
-        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
     let unresolved: Vec<_> = report
         .structured
         .iter()
@@ -8602,8 +8976,7 @@ fn a_declared_npm_module_is_not_reported_when_a_local_file_shares_its_name() {
         "module main\nimport tinylog { log }\npub fn go() -> void {\n\x20 log(\"hi\")\n}\n",
     );
 
-    let report =
-        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
     let unresolved: Vec<_> = report
         .structured
         .iter()
@@ -8620,11 +8993,7 @@ fn an_import_matching_nothing_is_reported_only_when_the_build_can_see_node_modul
     // help line that tells the user to install it or declare it.
     let root = unique_tmp("npmview");
     let src = root.join("src");
-    write_file(
-        &src,
-        "model.glyph",
-        "module model\npub type Id = string\n",
-    );
+    write_file(&src, "model.glyph", "module model\npub type Id = string\n");
     write_file(
         &src,
         "main.glyph",
@@ -8778,13 +9147,20 @@ fn the_same_tree_without_markers_still_fails_to_resolve() {
     two_app_tree(&root, false);
 
     let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
-    assert!(tree.has_errors(), "an unmarked tree must still report E0104");
+    assert!(
+        tree.has_errors(),
+        "an unmarked tree must still report E0104"
+    );
     assert!(
         tree.diagnostics().any(|d| d.contains("E0104")),
         "{:?}",
         tree.diagnostics().collect::<Vec<_>>()
     );
-    assert_eq!(tree.projects.len(), 1, "no marker means exactly one project");
+    assert_eq!(
+        tree.projects.len(),
+        1,
+        "no marker means exactly one project"
+    );
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&out);
 }
@@ -9071,7 +9447,10 @@ fn a_tsc_error_is_quoted_against_its_own_projects_source() {
     // path suffix of another key *is* the collision, whatever the matcher then
     // makes of it, so assert the shape and not just the outcome.
     let keys: Vec<&str> = flat.module_maps.iter().map(|m| m.ts_rel.as_str()).collect();
-    let out_dir = out.file_name().and_then(|n| n.to_str()).expect("out dir name");
+    let out_dir = out
+        .file_name()
+        .and_then(|n| n.to_str())
+        .expect("out dir name");
     assert!(
         keys.iter().all(|k| k.starts_with(&format!("{out_dir}/"))),
         "every module map must name the out path its file landed at: {keys:?}"
@@ -9220,10 +9599,9 @@ fn an_enclosing_project_cannot_import_from_a_nested_one() {
         "the message names the other project relative to the target: {diags:?}"
     );
     assert!(
-        !diags.iter().any(|d| d.contains(&format!(
-            "rooted at `{}",
-            root.display()
-        ))),
+        !diags
+            .iter()
+            .any(|d| d.contains(&format!("rooted at `{}", root.display()))),
         "the project is not named by an absolute path: {diags:?}"
     );
     let _ = std::fs::remove_dir_all(&root);
@@ -9253,8 +9631,7 @@ fn a_marker_at_the_build_target_roots_at_its_src() {
     .expect("write main");
     // A stray `.glyph` outside `src/` is not a module of this project.
     std::fs::create_dir_all(root.join("scripts")).expect("create scripts");
-    std::fs::write(root.join("scripts").join("tool.glyph"), "module tool\n")
-        .expect("write tool");
+    std::fs::write(root.join("scripts").join("tool.glyph"), "module tool\n").expect("write tool");
 
     let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
     assert!(
@@ -9611,7 +9988,11 @@ fn imported_literal_union_field_keeps_its_membership_check() {
     let root = unique_tmp("impunion");
     let out = root.join("dist");
     let src = root.join("src");
-    write_file(&src, "cat.glyph", "module cat\npub type ColType = \"text\" | \"int\"\n");
+    write_file(
+        &src,
+        "cat.glyph",
+        "module cat\npub type ColType = \"text\" | \"int\"\n",
+    );
     write_file(
         &src,
         "main.glyph",
@@ -9730,8 +10111,7 @@ fn a_never_function_may_not_return_a_value() {
         "main.glyph",
         "module main\npub fn bad() -> never {\n  return 1\n}\n",
     );
-    let report =
-        build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
     assert!(
         report.diagnostics.iter().any(|d| d.contains("E0204")),
         "returning a value where `never` is declared is a type error: {:?}",
@@ -9793,7 +10173,11 @@ fn an_unverifiable_field_is_only_refused_where_it_is_trusted() {
          }\n",
     );
     let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
-    assert!(!report.has_errors(), "declaring one is fine: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "declaring one is fine: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
@@ -9816,7 +10200,11 @@ fn an_unknown_field_is_not_an_unverifiable_one() {
          }\n",
     );
     let report = build_project_inner(&src, &out, false).expect("build ok");
-    assert!(!report.has_errors(), "unknown parses: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "unknown parses: {:?}",
+        report.diagnostics
+    );
     let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
     assert!(
         !ts.contains("!((value as Record<string, unknown>).payload !== undefined)"),
@@ -9925,7 +10313,11 @@ fn omitting_a_trailing_optional_argument_is_still_legal() {
          }\n",
     );
     let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
-    assert!(!report.has_errors(), "both spellings compile: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "both spellings compile: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]
@@ -9978,7 +10370,11 @@ fn a_real_stdlib_member_through_a_namespace_still_compiles() {
          }\n",
     );
     let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
-    assert!(!report.has_errors(), "real members compile: {:?}", report.diagnostics);
+    assert!(
+        !report.has_errors(),
+        "real members compile: {:?}",
+        report.diagnostics
+    );
 }
 
 // --- std/bytes (G102) -------------------------------------------------------
@@ -10223,9 +10619,18 @@ pub fn main(argv: Array<string>) -> number {
     // The RFC 6238 vector. A key or a message routed through a string would
     // give some other eight digits, and nothing else here would notice.
     assert!(stdout.contains("totp=94287082"), "RFC 6238 T=59: {stdout}");
-    assert!(stdout.contains("same=true"), "a binary file round-trips: {stdout}");
-    assert!(stdout.contains("magic=89504e47"), "the PNG magic survives: {stdout}");
-    assert!(stdout.contains("signed=true"), "starts_with finds it: {stdout}");
+    assert!(
+        stdout.contains("same=true"),
+        "a binary file round-trips: {stdout}"
+    );
+    assert!(
+        stdout.contains("magic=89504e47"),
+        "the PNG magic survives: {stdout}"
+    );
+    assert!(
+        stdout.contains("signed=true"),
+        "starts_with finds it: {stdout}"
+    );
     assert!(
         stdout.contains("text=refused at 0"),
         "0x89 is not text, and to_text says where: {stdout}"
@@ -10241,7 +10646,10 @@ pub fn main(argv: Array<string>) -> number {
         stdout.contains("dig=9452f2de485ecf156ae9b4da5072478302060aa4"),
         "a digest over the same octets: {stdout}"
     );
-    assert!(stdout.contains("safe=true"), "equal secrets compare equal: {stdout}");
+    assert!(
+        stdout.contains("safe=true"),
+        "equal secrets compare equal: {stdout}"
+    );
     assert!(
         stdout.contains("nolen=false"),
         "different lengths answer false instead of throwing: {stdout}"
@@ -10340,8 +10748,7 @@ fn octets(xs: Array<int>) -> bytes.Bytes {{
         ),
     );
     let entry = src.join("main.glyph");
-    let (code, stdout, stderr, _) =
-        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     assert!(
         stdout.contains("second=refused:in_use"),
@@ -10349,7 +10756,10 @@ fn octets(xs: Array<int>) -> bytes.Bytes {{
     );
     // The lone 0xC3 is held back rather than decoded to U+FFFD, so the first
     // read is "hi " and the character appears whole in the second.
-    assert!(stdout.contains("got=hi "), "first read stops before the partial character: {stdout}");
+    assert!(
+        stdout.contains("got=hi "),
+        "first read stops before the partial character: {stdout}"
+    );
     assert!(
         stdout.contains("got=\u{e9}!"),
         "the split character arrives whole, not as U+FFFD: {stdout}"
@@ -10358,7 +10768,10 @@ fn octets(xs: Array<int>) -> bytes.Bytes {{
         !stdout.contains('\u{fffd}'),
         "nothing was replaced by U+FFFD: {stdout}"
     );
-    assert!(stdout.contains("client=echo:hi "), "the echo came back: {stdout}");
+    assert!(
+        stdout.contains("client=echo:hi "),
+        "the echo came back: {stdout}"
+    );
 }
 
 /// `std/url` against the cases a hand-rolled parser gets wrong.
@@ -10462,7 +10875,11 @@ pub fn decoded(text: string) -> Result<string, string> {
         "the url module should compile: {:?}",
         report.build_failed
     );
-    assert!(report.failures.is_empty(), "every case should hold: {:?}", report.failures);
+    assert!(
+        report.failures.is_empty(),
+        "every case should hold: {:?}",
+        report.failures
+    );
     assert_eq!(report.total, 15, "every @example above ran");
 }
 
@@ -10511,10 +10928,12 @@ pub async fn main() -> void {{
         ),
     );
     let entry = src.join("main.glyph");
-    let (code, stdout, stderr, _) =
-        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
-    assert!(stdout.contains("localhost=resolved"), "the hosts file resolves: {stdout}");
+    assert!(
+        stdout.contains("localhost=resolved"),
+        "the hosts file resolves: {stdout}"
+    );
     assert!(
         stdout.contains("invalid=refused"),
         "an unresolvable name is a value, not a throw: {stdout}"
@@ -10752,14 +11171,19 @@ fn index_size(i: int) -> int {{
         ),
     );
     let entry = src.join("main.glyph");
-    let (code, stdout, stderr, _) =
-        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     assert!(stdout.contains("bound"), "the server bound: {stdout}");
     // The handshake: Node's client refuses outright if Sec-WebSocket-Accept is
     // wrong, so any traffic at all proves the digest.
-    assert!(stdout.contains("server_text=hello"), "text reached the server: {stdout}");
-    assert!(stdout.contains("client_text=echo:hello"), "and came back: {stdout}");
+    assert!(
+        stdout.contains("server_text=hello"),
+        "text reached the server: {stdout}"
+    );
+    assert!(
+        stdout.contains("client_text=echo:hello"),
+        "and came back: {stdout}"
+    );
     // Each length encoding, in both directions, with the payload unchanged.
     for n in ["8", "200", "70000"] {
         assert!(
@@ -10773,7 +11197,10 @@ fn index_size(i: int) -> int {{
     }
     // 1000 is a deliberate close. 1005 would mean the close frame carried no
     // status, which is what an earlier version of this server sent.
-    assert!(stdout.contains("client_close=1000"), "a clean close says so: {stdout}");
+    assert!(
+        stdout.contains("client_close=1000"),
+        "a clean close says so: {stdout}"
+    );
 }
 
 /// A record payload's field matched against a nested pattern, two levels deep:
@@ -10851,10 +11278,16 @@ fn main() {
     let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     // The rotation fired: a black node whose left child is red recolors to red.
-    assert!(stdout.contains("balanced=red"), "the rotation arm matched: {stdout}");
+    assert!(
+        stdout.contains("balanced=red"),
+        "the rotation arm matched: {stdout}"
+    );
     // And the arm that does not match falls through to `other` instead of being
     // swallowed by the outer `Node` tag.
-    assert!(stdout.contains("untouched=black"), "the non-matching value fell through: {stdout}");
+    assert!(
+        stdout.contains("untouched=black"),
+        "the non-matching value fell through: {stdout}"
+    );
 }
 
 /// A field pattern that can fail does not cover its variant. Without a
@@ -10955,9 +11388,15 @@ fn main() {
     let entry = src.join("main.glyph");
     let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
-    assert!(stdout.contains("a=black"), "the Black arm matched: {stdout}");
+    assert!(
+        stdout.contains("a=black"),
+        "the Black arm matched: {stdout}"
+    );
     assert!(stdout.contains("b=red"), "the Red arm matched: {stdout}");
-    assert!(stdout.contains("c=leaf"), "the else arm took the rest: {stdout}");
+    assert!(
+        stdout.contains("c=leaf"),
+        "the else arm took the rest: {stdout}"
+    );
 }
 
 /// The namespace-import twin of `a_nested_field_pattern_works_on_an_imported_union`:
@@ -11029,9 +11468,18 @@ fn main() {
     let entry = src.join("main.glyph");
     let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
-    assert!(stdout.contains("a=deep:inner/outer"), "the nested payload-carrying arm matched: {stdout}");
-    assert!(stdout.contains("b=shallow:solo"), "the nested nullary-variant arm matched: {stdout}");
-    assert!(stdout.contains("c=leaf"), "the else arm took the rest: {stdout}");
+    assert!(
+        stdout.contains("a=deep:inner/outer"),
+        "the nested payload-carrying arm matched: {stdout}"
+    );
+    assert!(
+        stdout.contains("b=shallow:solo"),
+        "the nested nullary-variant arm matched: {stdout}"
+    );
+    assert!(
+        stdout.contains("c=leaf"),
+        "the else arm took the rest: {stdout}"
+    );
 }
 
 /// The same imported-union arm, but over a *generic self-referential* union
@@ -11208,10 +11656,22 @@ fn main() {
     let entry = src.join("main.glyph");
     let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
-    assert!(stdout.contains("balanced=red"), "the rotation arm matched: {stdout}");
-    assert!(stdout.contains("untouched=black"), "the non-matching value fell through: {stdout}");
-    assert!(stdout.contains("deep=2"), "the nested arm won at a concrete type: {stdout}");
-    assert!(stdout.contains("shallow=1"), "the flat arm took the rest: {stdout}");
+    assert!(
+        stdout.contains("balanced=red"),
+        "the rotation arm matched: {stdout}"
+    );
+    assert!(
+        stdout.contains("untouched=black"),
+        "the non-matching value fell through: {stdout}"
+    );
+    assert!(
+        stdout.contains("deep=2"),
+        "the nested arm won at a concrete type: {stdout}"
+    );
+    assert!(
+        stdout.contains("shallow=1"),
+        "the flat arm took the rest: {stdout}"
+    );
 }
 
 /// Exhaustiveness on a union does not depend on whether the union is generic.
@@ -11440,8 +11900,7 @@ fn an_imported_generic_union_is_exhaustiveness_checked() {
             "   Leaf => \"leaf\",\n    Node({ key: k }) => k,\n",
         ),
     );
-    let fixed =
-        build_project_inner(&fixed_src, &fixed_root.join("dist"), false).expect("build");
+    let fixed = build_project_inner(&fixed_src, &fixed_root.join("dist"), false).expect("build");
     assert!(
         !fixed.has_errors(),
         "covering every variant must build clean: {:?}",
@@ -11462,7 +11921,11 @@ fn an_imported_generic_union_is_exhaustiveness_checked() {
     let plain_root = unique_tmp("impplainexhaust");
     let plain_src = plain_root.join("src");
     write_file(&plain_src, "tree.glyph", PLAIN);
-    write_file(&plain_src, "main.glyph", &MAIN.replace("Tree<string>", "Tree"));
+    write_file(
+        &plain_src,
+        "main.glyph",
+        &MAIN.replace("Tree<string>", "Tree"),
+    );
     let plain = build_project_inner(&plain_src, &plain_root.join("dist"), false).expect("build");
     assert!(
         plain
@@ -11588,7 +12051,10 @@ fn an_example_with_a_bracketed_argument_list_still_runs() {
         src.as_os_str(),
         std::ffi::OsStr::new("--no-tsc"),
     ]);
-    assert_eq!(code, 1, "the bracketed example is false and must fail: {stderr}");
+    assert_eq!(
+        code, 1,
+        "the bracketed example is false and must fail: {stderr}"
+    );
     assert!(
         stderr.contains("1 of 1 example(s) failed"),
         "it runs rather than landing in malformed: {stderr}"

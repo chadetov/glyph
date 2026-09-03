@@ -20,10 +20,10 @@ fn embedded_bootstrap_is_the_real_agents_md() {
         glyph_cli::LLMS_BOOTSTRAP.contains("# Glyph for agents"),
         "embedded bootstrap does not look like AGENTS.md"
     );
-    let on_disk = fs::read_to_string(repo_file("AGENTS.md"))
-        .expect("read AGENTS.md");
+    let on_disk = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
     assert_eq!(
-        glyph_cli::LLMS_BOOTSTRAP, on_disk,
+        glyph_cli::LLMS_BOOTSTRAP,
+        on_disk,
         "the embedded bootstrap is stale; rebuild after editing AGENTS.md"
     );
 }
@@ -88,8 +88,8 @@ fn cheatsheet_documents_std_random_signatures() {
 fn root_and_web_mirrors_match_agents_md() {
     let agents = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
     for mirror in ["llms.txt", "web/llms.txt"] {
-        let text = fs::read_to_string(repo_file(mirror))
-            .unwrap_or_else(|e| panic!("read {mirror}: {e}"));
+        let text =
+            fs::read_to_string(repo_file(mirror)).unwrap_or_else(|e| panic!("read {mirror}: {e}"));
         assert_eq!(
             agents, text,
             "{mirror} has drifted from AGENTS.md; re-copy AGENTS.md over it"
@@ -143,7 +143,8 @@ fn agents_md_inlines_every_diagnostic_code() {
     // catalogue. Keep that true: every `E0xxx` documented in the error-codes
     // catalogue must appear in AGENTS.md, so adding a code without a bootstrap
     // row fails here instead of silently making the README a lie.
-    let catalogue = fs::read_to_string(repo_file("docs/error-codes.md")).expect("read error-codes.md");
+    let catalogue =
+        fs::read_to_string(repo_file("docs/error-codes.md")).expect("read error-codes.md");
     let agents = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
     // Extract every `E0` followed by exactly three digits (a diagnostic code).
     let bytes = catalogue.as_bytes();
@@ -159,7 +160,10 @@ fn agents_md_inlines_every_diagnostic_code() {
     }
     codes.sort();
     codes.dedup();
-    let missing: Vec<&String> = codes.iter().filter(|c| !agents.contains(c.as_str())).collect();
+    let missing: Vec<&String> = codes
+        .iter()
+        .filter(|c| !agents.contains(c.as_str()))
+        .collect();
     assert!(
         missing.is_empty(),
         "AGENTS.md is missing diagnostic codes documented in docs/error-codes.md: {missing:?} \
@@ -224,11 +228,7 @@ fn the_resolver_seed_lists_every_runtime_export() {
             Some((b, _)) => b,
             None => panic!("{key}: could not find the end of its seed list"),
         };
-        let listed: BTreeSet<&str> = block
-            .split('"')
-            .skip(1)
-            .step_by(2)
-            .collect();
+        let listed: BTreeSet<&str> = block.split('"').skip(1).step_by(2).collect();
 
         let src = std::fs::read_to_string(&path).expect("read runtime module");
         for item in glyph_cli::runtime::exported_items(&src) {

@@ -125,11 +125,7 @@ impl CheckReport {
 ///
 /// Nothing is executed: no entrypoint is generated, `tsx` is never spawned, and
 /// the `@example` / `@doc @run` gate is not run.
-pub fn check_path(
-    path: &Path,
-    with_color: bool,
-    run_tsc: bool,
-) -> Result<CheckReport, CheckError> {
+pub fn check_path(path: &Path, with_color: bool, run_tsc: bool) -> Result<CheckReport, CheckError> {
     if !path.exists() {
         return Err(CheckError::Missing(path.to_path_buf()));
     }
@@ -212,8 +208,7 @@ fn check_in(
         if let TscOutcome::Failed(msg) = &tsc {
             let remapped_text =
                 crate::tscmap::remap_tsc_output(msg, &report.module_maps, with_color);
-            let remapped =
-                crate::tscmap::remap_tsc_to_diagnostics(msg, &report.module_maps);
+            let remapped = crate::tscmap::remap_tsc_to_diagnostics(msg, &report.module_maps);
             error_count += remapped.iter().filter(|d| d.severity == "error").count();
             structured.extend(remapped);
             tsc = TscOutcome::Failed(remapped_text);
@@ -221,7 +216,11 @@ fn check_in(
     }
 
     Ok(CheckReport {
-        project_srcs: tree.projects.iter().map(|p| p.project.src.clone()).collect(),
+        project_srcs: tree
+            .projects
+            .iter()
+            .map(|p| p.project.src.clone())
+            .collect(),
         modules: report.modules,
         diagnostics: report.diagnostics,
         structured,

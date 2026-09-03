@@ -296,7 +296,8 @@ impl TreeReport {
             .and_then(|n| n.to_str())
             .unwrap_or_default();
         for p in &self.projects {
-            flat.diagnostics.extend(p.report.diagnostics.iter().cloned());
+            flat.diagnostics
+                .extend(p.report.diagnostics.iter().cloned());
             flat.structured.extend(p.report.structured.iter().cloned());
             flat.error_count += p.report.error_count;
             flat.modules.extend(p.report.modules.iter().cloned());
@@ -384,7 +385,10 @@ pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeRep
             .iter()
             .filter_map(|(p, _)| p.out_rel.strip_prefix(&project.out_rel).ok())
             .filter(|rel| !rel.as_os_str().is_empty())
-            .map(|rel| rel.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/"))
+            .map(|rel| {
+                rel.to_string_lossy()
+                    .replace(std::path::MAIN_SEPARATOR, "/")
+            })
             .collect();
         let report = build_project_inner_with(
             &project.src,
@@ -410,7 +414,11 @@ pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeRep
 /// cost of checking a file scaled with whatever else happened to live beneath
 /// it. Directory targets still build the whole tree, because there the nested
 /// projects are the point.
-pub fn build_one_project(src: &Path, out: &Path, with_color: bool) -> Result<TreeReport, BuildError> {
+pub fn build_one_project(
+    src: &Path,
+    out: &Path,
+    with_color: bool,
+) -> Result<TreeReport, BuildError> {
     let report = build_project_inner(src, out, with_color)?;
     Ok(TreeReport {
         projects: vec![ProjectReport {
@@ -434,7 +442,8 @@ fn display_relative(base: &Path, path: &Path) -> String {
     if rel.as_os_str().is_empty() {
         ".".to_string()
     } else {
-        rel.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/")
+        rel.to_string_lossy()
+            .replace(std::path::MAIN_SEPARATOR, "/")
     }
 }
 
@@ -594,11 +603,12 @@ fn build_project_inner_with(
                         }
                     }
                 }
-                if !td.generics.is_empty()
-                    && matches!(&td.body, glyph_ast::TypeExpr::Record { .. })
+                if !td.generics.is_empty() && matches!(&td.body, glyph_ast::TypeExpr::Record { .. })
                 {
-                    generic_descriptor_arities
-                        .insert((module_path.clone(), td.name.to_string()), td.generics.len());
+                    generic_descriptor_arities.insert(
+                        (module_path.clone(), td.name.to_string()),
+                        td.generics.len(),
+                    );
                 }
                 if td.is_public && td.generics.is_empty() {
                     if glyph_emit::emits_plain_descriptor(td) {
@@ -627,36 +637,40 @@ fn build_project_inner_with(
 
         let parsed = parse_module(&db, *sf);
         if let Some(err) = parsed.error() {
-            report.diagnostics.push(render_parse_error(
+            report
+                .diagnostics
+                .push(render_parse_error(module_path, &source, err, with_color));
+            report.structured.push(crate::diagnostic::from_parse_error(
                 module_path,
                 &source,
                 err,
-                with_color,
             ));
-            report
-                .structured
-                .push(crate::diagnostic::from_parse_error(module_path, &source, err));
             report.error_count += 1;
             // Downstream queries gracefully degrade on parse failure;
             // their results are necessarily empty. Skip them so the
             // report doesn't pile up redundant cascade-errors.
             continue;
         }
+        // Past the parse-error continue above, `parsed.module()` is the `Ok`
+        // side of the same `Result` and is always `Some`. Bound once so every
+        // diagnostic below this point can look its enclosing declaration up
+        // for `entity` (0.1.107) without re-checking.
+        let ast = parsed.module().expect("no parse error: checked above");
 
         let syms = module_symbols(&db, *sf);
         for e in syms.errors() {
-            report.diagnostics.push(render_resolve_error(
-                module_path,
-                &source,
-                e,
-                with_color,
-            ));
-            report.structured.push(crate::diagnostic::from_resolve_error(
-                module_path,
-                &source,
-                e,
-                crate::render::stage_label_for(e),
-            ));
+            report
+                .diagnostics
+                .push(render_resolve_error(module_path, &source, e, with_color));
+            report
+                .structured
+                .push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    e,
+                    crate::render::stage_label_for(e),
+                    ast,
+                ));
             report.error_count += 1;
         }
 
@@ -683,36 +697,36 @@ fn build_project_inner_with(
                 &|path: &str| locate_module_site(src, &files, other_projects, path),
             );
             for e in &local_import_errors {
-                report.diagnostics.push(render_resolve_error(
-                    module_path,
-                    &source,
-                    e,
-                    with_color,
-                ));
-                report.structured.push(crate::diagnostic::from_resolve_error(
-                    module_path,
-                    &source,
-                    e,
-                    crate::render::stage_label_for(e),
-                ));
+                report
+                    .diagnostics
+                    .push(render_resolve_error(module_path, &source, e, with_color));
+                report
+                    .structured
+                    .push(crate::diagnostic::from_resolve_error(
+                        module_path,
+                        &source,
+                        e,
+                        crate::render::stage_label_for(e),
+                        ast,
+                    ));
                 report.error_count += 1;
             }
         }
 
         let diags = import_diagnostics(&db, *sf);
         for e in diags.errors() {
-            report.diagnostics.push(render_resolve_error(
-                module_path,
-                &source,
-                e,
-                with_color,
-            ));
-            report.structured.push(crate::diagnostic::from_resolve_error(
-                module_path,
-                &source,
-                e,
-                crate::render::stage_label_for(e),
-            ));
+            report
+                .diagnostics
+                .push(render_resolve_error(module_path, &source, e, with_color));
+            report
+                .structured
+                .push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    e,
+                    crate::render::stage_label_for(e),
+                    ast,
+                ));
             report.error_count += 1;
         }
 
@@ -727,18 +741,18 @@ fn build_project_inner_with(
             &[]
         };
         for e in resolve_errors {
-            report.diagnostics.push(render_resolve_error(
-                module_path,
-                &source,
-                e,
-                with_color,
-            ));
-            report.structured.push(crate::diagnostic::from_resolve_error(
-                module_path,
-                &source,
-                e,
-                crate::render::stage_label_for(e),
-            ));
+            report
+                .diagnostics
+                .push(render_resolve_error(module_path, &source, e, with_color));
+            report
+                .structured
+                .push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    e,
+                    crate::render::stage_label_for(e),
+                    ast,
+                ));
             report.error_count += 1;
         }
 
@@ -747,15 +761,15 @@ fn build_project_inner_with(
         // not block emission.
         let types = type_map(&db, *sf);
         for e in types.errors() {
-            report.diagnostics.push(render_type_error(
+            report
+                .diagnostics
+                .push(render_type_error(module_path, &source, e, with_color));
+            report.structured.push(crate::diagnostic::from_type_error(
                 module_path,
                 &source,
                 e,
-                with_color,
+                ast,
             ));
-            report
-                .structured
-                .push(crate::diagnostic::from_type_error(module_path, &source, e));
             if e.severity() == glyph_typechecker::Severity::Error {
                 report.error_count += 1;
             }
@@ -767,7 +781,9 @@ fn build_project_inner_with(
             continue;
         }
         let Some(ast) = parsed.module() else { continue };
-        let Some(resolved) = r.resolved() else { continue };
+        let Some(resolved) = r.resolved() else {
+            continue;
+        };
 
         // Advisory lints (unused import/binding, unreachable code): warnings
         // that surface but never block emission. Computed only here, on a
@@ -777,12 +793,15 @@ fn build_project_inner_with(
             report
                 .diagnostics
                 .push(render_resolve_error(module_path, &source, &e, with_color));
-            report.structured.push(crate::diagnostic::from_resolve_error(
-                module_path,
-                &source,
-                &e,
-                crate::render::stage_label_for(&e),
-            ));
+            report
+                .structured
+                .push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    &e,
+                    crate::render::stage_label_for(&e),
+                    ast,
+                ));
         }
 
         // A module with nothing `pub`, no `main`, and no import elsewhere in
@@ -799,12 +818,15 @@ fn build_project_inner_with(
             report
                 .diagnostics
                 .push(render_resolve_error(module_path, &source, &e, with_color));
-            report.structured.push(crate::diagnostic::from_resolve_error(
-                module_path,
-                &source,
-                &e,
-                crate::render::stage_label_for(&e),
-            ));
+            report
+                .structured
+                .push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    &e,
+                    crate::render::stage_label_for(&e),
+                    ast,
+                ));
         }
 
         let ctx = glyph_emit::EmitContext {
@@ -846,8 +868,7 @@ fn build_project_inner_with(
                     path: out.join(&map_rel),
                     source: e,
                 })?;
-                let ts_with_map =
-                    format!("{}\n//# sourceMappingURL={}\n", output.ts, map_basename);
+                let ts_with_map = format!("{}\n//# sourceMappingURL={}\n", output.ts, map_basename);
                 std::fs::write(&ts_path, ts_with_map).map_err(|e| BuildError::Io {
                     path: ts_path.clone(),
                     source: e,
@@ -865,9 +886,12 @@ fn build_project_inner_with(
                 report
                     .diagnostics
                     .push(render_emit_error(module_path, &source, &e, with_color));
-                report
-                    .structured
-                    .push(crate::diagnostic::from_emit_error(module_path, &source, &e));
+                report.structured.push(crate::diagnostic::from_emit_error(
+                    module_path,
+                    &source,
+                    &e,
+                    ast,
+                ));
                 report.error_count += 1;
             }
         }
@@ -1162,7 +1186,10 @@ fn collect_files_with_suffix_inner(
         if meta.is_dir() {
             collect_files_with_suffix_inner(&path, suffix, follow_symlinks, seen, out)?;
         } else if meta.is_file()
-            && path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(suffix))
+            && path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.ends_with(suffix))
         {
             out.push(path);
         }
@@ -1213,9 +1240,7 @@ fn walk_glyph_files(
                 continue;
             }
             walk_glyph_files(&path, project_root, out)?;
-        } else if meta.is_file()
-            && path.extension().and_then(|e| e.to_str()) == Some("glyph")
-        {
+        } else if meta.is_file() && path.extension().and_then(|e| e.to_str()) == Some("glyph") {
             out.push(path);
         }
     }
@@ -1229,7 +1254,9 @@ fn walk_glyph_files(
 pub(crate) fn derive_module_path(src_root: &Path, file: &Path) -> String {
     let rel = file.strip_prefix(src_root).unwrap_or(file);
     let no_ext = rel.with_extension("");
-    no_ext.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/")
+    no_ext
+        .to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/")
 }
 
 /// Where a module named by an unresolved import actually lives, if anywhere
@@ -1516,7 +1543,10 @@ mod tests {
         let mut out = std::collections::BTreeSet::new();
         declared_ambient_modules(crate::runtime::NODE_SHIMS.1, &mut out);
         for m in ["fs", "path", "http", "crypto", "os", "url"] {
-            assert!(out.contains(m), "bundled shim should declare `{m}`: {out:?}");
+            assert!(
+                out.contains(m),
+                "bundled shim should declare `{m}`: {out:?}"
+            );
         }
     }
 
@@ -1541,21 +1571,32 @@ mod tests {
         let types = root.join(".types");
         std::fs::create_dir_all(&types).unwrap();
         std::fs::write(root.join("main.glyph"), "module main\n").unwrap();
-        std::fs::write(types.join("ext.d.ts"), "declare module \"ext\" { export const v: number; }\n").unwrap();
+        std::fs::write(
+            types.join("ext.d.ts"),
+            "declare module \"ext\" { export const v: number; }\n",
+        )
+        .unwrap();
         let fp1 = source_fingerprint(&root).unwrap();
         // Same .glyph, changed ambient declaration.
-        std::fs::write(types.join("ext.d.ts"), "declare module \"ext\" { export const v: string; }\n").unwrap();
+        std::fs::write(
+            types.join("ext.d.ts"),
+            "declare module \"ext\" { export const v: string; }\n",
+        )
+        .unwrap();
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_ne!(fp1, fp2, "fingerprint must change when a .types/*.d.ts changes");
+        assert_ne!(
+            fp1, fp2,
+            "fingerprint must change when a .types/*.d.ts changes"
+        );
     }
 
     /// Build a throwaway `<src>` root holding one `.glyph` module and one
     /// hand-written shim under `extern/`. Each caller passes its own `tag` so
     /// the roots do not collide when the tests run in parallel.
     fn extern_fixture(tag: &str) -> PathBuf {
-        let root = std::env::temp_dir()
-            .join(format!("glyph-fp-extern-{}-{tag}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("glyph-fp-extern-{}-{tag}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(root.join("extern")).unwrap();
         std::fs::write(root.join("main.glyph"), "module main\n").unwrap();
@@ -1581,7 +1622,10 @@ mod tests {
         .unwrap();
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_ne!(fp1, fp2, "editing <src>/extern/x.ts must bust the fingerprint");
+        assert_ne!(
+            fp1, fp2,
+            "editing <src>/extern/x.ts must bust the fingerprint"
+        );
     }
 
     #[test]
@@ -1591,7 +1635,10 @@ mod tests {
         std::fs::remove_file(root.join("extern/x.ts")).unwrap();
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_ne!(fp1, fp2, "deleting <src>/extern/x.ts must bust the fingerprint");
+        assert_ne!(
+            fp1, fp2,
+            "deleting <src>/extern/x.ts must bust the fingerprint"
+        );
     }
 
     #[test]
@@ -1601,7 +1648,10 @@ mod tests {
         std::fs::write(root.join("extern/y.ts"), "export const n = 1;\n").unwrap();
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_ne!(fp1, fp2, "adding <src>/extern/y.ts must bust the fingerprint");
+        assert_ne!(
+            fp1, fp2,
+            "adding <src>/extern/y.ts must bust the fingerprint"
+        );
     }
 
     #[test]
@@ -1614,7 +1664,10 @@ mod tests {
         std::fs::write(root.join("extern/README.md"), "shims, rewritten\n").unwrap();
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_eq!(fp1, fp2, "a non-.ts file under extern/ must not bust the fingerprint");
+        assert_eq!(
+            fp1, fp2,
+            "a non-.ts file under extern/ must not bust the fingerprint"
+        );
     }
 
     #[cfg(unix)]
@@ -1632,6 +1685,9 @@ mod tests {
         std::fs::write(&shared, "export const v = 2;\n").unwrap();
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
-        assert_ne!(fp1, fp2, "a symlinked extern shim must bust the fingerprint");
+        assert_ne!(
+            fp1, fp2,
+            "a symlinked extern shim must bust the fingerprint"
+        );
     }
 }

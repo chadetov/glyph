@@ -47,7 +47,6 @@ impl ModuleMap {
     }
 }
 
-
 /// The `is`-narrowing note (G98).
 ///
 /// `match row[col] { is string => Some(row[col]), else => None }` is a `tsc`
@@ -89,10 +88,9 @@ pub fn remap_tsc_output(raw: &str, maps: &[ModuleMap], with_color: bool) -> Stri
     let mut out = String::new();
     for line in raw.lines() {
         match parse_tsc_line(line) {
-            Some(err) => match find_module(maps, err.path).and_then(|m| {
-                m.span_for(err.line, err.col)
-                    .map(|span| (m, span))
-            }) {
+            Some(err) => match find_module(maps, err.path)
+                .and_then(|m| m.span_for(err.line, err.col).map(|span| (m, span)))
+            {
                 Some((m, span)) => {
                     out.push_str(&render_tsc_error(
                         &m.glyph_path,
@@ -130,8 +128,12 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
         let Some(err) = parse_tsc_line(line) else {
             continue;
         };
-        match find_module(maps, err.path).and_then(|m| m.span_for(err.line, err.col).map(|s| (m, s)))
+        match find_module(maps, err.path)
+            .and_then(|m| m.span_for(err.line, err.col).map(|s| (m, s)))
         {
+            // No `entity`: a `tsc`-remapped diagnostic is keyed off the
+            // emitted TS source map rather than a parsed Glyph module, and
+            // there is no declaration table here to look one up in.
             Some((m, span)) => out.push(Diagnostic::new(
                 &m.glyph_path,
                 &m.glyph_source,
@@ -142,6 +144,7 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                 err.message.to_string(),
                 None,
                 is_narrowing_note(err.code, &m.glyph_source, span),
+                None,
             )),
             None => {
                 let at = Pos {
@@ -159,6 +162,7 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                         end: at,
                     },
                     stage: "tsc".to_string(),
+                    entity: None,
                     help: None,
                     note: None,
                 });
@@ -278,8 +282,9 @@ mod tests {
 
     #[test]
     fn parses_a_tsc_error_line() {
-        let e = parse_tsc_line("out/main.ts(59,26): error TS2339: Property 'value' does not exist.")
-            .expect("parsed");
+        let e =
+            parse_tsc_line("out/main.ts(59,26): error TS2339: Property 'value' does not exist.")
+                .expect("parsed");
         assert_eq!(e.path, "out/main.ts");
         assert_eq!((e.line, e.col), (59, 26));
         assert_eq!(e.code, "TS2339");
@@ -302,11 +307,15 @@ mod tests {
             source_map: vec![(0, a_span), (12, bad_span)],
         };
         // The error is on ts line 3 (offset 12..), so it maps to `bad_span`.
-        let raw = "out/main.ts(3,7): error TS2322: Type 'number' is not assignable to type 'string'.\n";
+        let raw =
+            "out/main.ts(3,7): error TS2322: Type 'number' is not assignable to type 'string'.\n";
         let out = remap_tsc_output(raw, std::slice::from_ref(&m), false);
         assert!(out.contains("main.glyph"), "renders against glyph: {out}");
         assert!(out.contains("TS2322"), "keeps the tsc code: {out}");
-        assert!(!out.contains("main.ts(3,7)"), "the raw .ts location is gone: {out}");
+        assert!(
+            !out.contains("main.ts(3,7)"),
+            "the raw .ts location is gone: {out}"
+        );
     }
 
     #[test]
@@ -360,7 +369,13 @@ mod tests {
         };
         let raw = "std/http.ts(4,2): error TS1005: ';' expected.\nFound 1 error.\n";
         let out = remap_tsc_output(raw, std::slice::from_ref(&m), false);
-        assert!(out.contains("std/http.ts(4,2)"), "stdlib error passes through: {out}");
-        assert!(out.contains("Found 1 error."), "summary passes through: {out}");
+        assert!(
+            out.contains("std/http.ts(4,2)"),
+            "stdlib error passes through: {out}"
+        );
+        assert!(
+            out.contains("Found 1 error."),
+            "summary passes through: {out}"
+        );
     }
 }

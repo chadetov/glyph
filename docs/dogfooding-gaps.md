@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-167 entries, 133 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+171 entries, 134 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+18 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -4947,7 +4947,13 @@ which is the intended answer; the finding is that the compiler never said so.
   genuine emitter deferral and the current wording is honest for it. The two are
   currently one error, and separating them is a scope call, not a patch.
 
-  *Reproduced against 0.1.99.* First reproduced against 0.1.87; re-checked and
+  *Reproduced against 0.1.105: `Node(c, k)` over a variant whose payload is a
+  record reports `[E0300] emit: TS emission for a nested or multi-argument
+  pattern in a match arm is not implemented yet`, with no typecheck diagnostic
+  before it. This is the same shape G168 closed for literal-and-variant matches
+  in 0.1.105, in a place the unification did not reach: the checker passes a
+  program the emitter cannot build, and the reason surfaces from the wrong pass.
+  Worth fixing as a diagnostic before it is fixed as a feature*.* First reproduced against 0.1.87; re-checked and
   the claim still holds: the same `Node(c, l, k, r) => 1` arm still hits
   `[E0300] Error: emit: TS emission for a nested or multi-argument pattern in
   a match arm is not implemented yet`, word for word. The recorded snippet
@@ -6693,3 +6699,101 @@ and is the owner's to confirm.
   where the 0.1.103 run had been queued 4h36m on the same job. Both were
   observed rather than inferred, from `gh run view` showing every other job
   complete and `Smoke macos-13: queued`.*
+
+- **G168. [FIXED] A match mixing a literal and a bare PascalCase arm typechecked clean and then failed in the emitter.**
+  Four of the seven catch-all checks treated a bare PascalCase `Pattern::Ident`
+  as a catch-all, on the reasoning that a `bool` or a number has no constructors
+  so such a name must be a binding. The reasoning was wrong, and the rest of the
+  compiler had already decided otherwise: `glyph-resolver/src/resolve.rs:763`
+  resolves a constructor-shaped `Pattern::Ident` through `resolve_name_ref`
+  rather than binding a local, and every emitter path lowers it to a tag test
+  (`glyph-emit/src/lib.rs:3238`, `:3659`, `:3739`). A pattern that binds nothing
+  and tests a tag absorbs nothing, so calling it a catch-all certified a match
+  the emitter could not build.
+
+  ```glyph
+  match b {
+    true => 1,
+    Red => 2,
+  }
+  ```
+
+  Against 0.1.104 this produced no typecheck diagnostic and then
+  `[E0300] emit: TS emission for a match mixing literal and variant patterns is
+  not implemented yet`. The compiler's answer was "this program is fine, and
+  also I cannot compile it." It now reports `[E0209] non-exhaustive match on
+  bool: false not covered`, which is the real defect and is caught in the pass
+  whose job it is.
+
+  Found while unifying the seven predicates rather than by looking for it. The
+  same shape appeared in 11 of 88 constructed cases, reporting E0218 over a
+  number or string, E0200 over a string-literal union and E0208 over an array,
+  each replacing an emitter bail-out or a raw `TS2339` leaked from `tsc`.
+
+  *Verified against 0.1.104 and after: no program that compiled before is
+  rejected now. Across 31 apps, 62 corpus files, 36 negative tests and 7 catches
+  the diagnostic output is byte-identical, and 1,149 emitted `.ts` files are
+  byte-identical. Every changed case is one the old code passed and then failed
+  later.*
+
+- **G169. `check_imported_union_coverage` does not escalate an unknown PascalCase head to E0220 where the module-local check does.**
+  A bare PascalCase arm naming no variant of an imported union is reported by
+  the module-local `check_patterns_exhaustive` and not by the imported path.
+  This is an asymmetry in "is this a known variant", a different predicate from
+  the catch-all one unified in 0.1.105, so it was deliberately left alone rather
+  than folded into a release whose deliverable was an empty diagnostic diff.
+
+  *Reproduced against 0.1.105: a constructed matrix shows `Zed` over a local
+  union reporting `E0200` and `E0220` together, while the imported spelling of
+  the same union reports only the exhaustiveness error.*
+
+- **G170. The playground emits different TypeScript from `glyph build` for anything with a cross-module import.**
+  `glyph-cli/src/build.rs:535-612` computes six project-wide tables the emitter
+  needs (`record_payload_variants`, `generic_descriptor_arities`,
+  `plain_descriptors`, `descriptorless_aliases`, `union_variant_names`,
+  `imported_module_paths`), each carrying a comment naming the bug a
+  module-local scan caused: G124, G147, the G139 family.
+  `glyph-wasm/src/lib.rs:124` emits with `EmitContext::single()`, which is all
+  six empty, and skips `module_lints`, which `analyze` runs.
+
+  So the playground produces different output from the compiler for a
+  cross-module program, and reports fewer diagnostics than `glyph check`. Two
+  site pages sell it on "this is the TypeScript you get". For a single-module
+  snippet that holds, which is why it has not been noticed: it is a property of
+  the snippet rather than of the tool.
+
+  The underlying shape is the finding. Those six tables answer "what does this
+  module export, and in what shape", which is `module_exports` and
+  `project_exports`'s job, and they live in the CLI because the emitter needs a
+  project-wide semantic pass the query layer does not provide. The emitter is
+  not merely outside salsa; it depends on a second symbol table maintained by
+  hand.
+
+  *Reproduced against 0.1.104 by reading both call sites. The divergence is
+  structural rather than a bug in either path: the wasm build cannot construct
+  the tables because it has one module.*
+
+- **G171. Excluding locals from the semantic graph rests on an assertion nobody has measured.**
+  The recorded reason is that a reference to a local resolves to a byte offset
+  and nothing is interned, and that no question this work answers is about a
+  `let`. The first is a fact about the implementation rather than a reason. The
+  second is the argument and it has never been checked.
+
+  It matters because the repair loop is what the graph is for. A type error
+  frequently lands on an expression inside a function body whose operands are
+  locals, and `glyph_references` explicitly declines locals
+  (`glyph-lsp/src/mcp.rs:685-702`), falling back to position-addressed answers
+  on a table every keystroke invalidates. That is the property `DeclKey` was
+  shipped to remove for top-level declarations.
+
+  **What settles it is a number:** the fraction of diagnostics across the 31-app
+  corpus whose primary span falls inside a function body. Small, and the
+  exclusion is settled permanently. Large, and this is an unscheduled item
+  wearing an exclusion's colour, which is a mistake this project has made once
+  already and corrected.
+
+  *Reproduced against 0.1.104: `glyph_references` on a local takes the
+  `SymbolTarget::Local` arm and answers file-scoped occurrences rather than a
+  project-wide identity, confirmed by reading the arm and by the tool's own
+  behaviour. What is not measured, and is the whole question, is the fraction of
+  diagnostics whose primary span sits inside a function body.*

@@ -4673,6 +4673,9 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 **0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps**
 - Migrate the query layer to salsa 0.28's moved `Update` trait, alone, with no feature work beside it
 - Stop `fmt` emitting a bare literal statement and a parenthesized one that reparse as a call (G162)
+- Escalate an unknown PascalCase head over an imported union to E0220, as the local path does (G169)
+- Make the playground emit what `glyph build` emits, or say plainly on the page that it does not (G170)
+- Measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded (G171)
 - Give the `std/net` integration test a deadline so a hang fails instead of leaking a process tree (G166)
 - Execute darwin-x64 somewhere in CI (macos-13 is the honest fix)
 - Run `check_binary_fresh.py` from the release workflow instead of by hand
@@ -4697,7 +4700,12 @@ separate identity (a type is a declaration; a second name for one thing is what
 none today), and the boundary node kinds (the origin question belongs where the
 generator already knows the answer).
 
-**0.1.105 — Next · The exhaustiveness relation, and the tools reading it**
+**0.1.105 — Shipped · One answer to "does this match have a catch-all"**
+- Unify the seven catch-all predicates into one, so the graph does not inherit a disagreement
+- Acceptance test is a diagnostic diff across all 31 apps: no change means it was free, any change is a finding
+- Nothing else ships beside it, because it is the one item here that can change what existing code reports
+
+**0.1.106 — Next · The exhaustiveness relation, and the tool reading it**
 - R4: retain the checker's arm-to-variant edges with a per-site exhaustive or catch-all flag (G139, G141, G142, G143, G148)
 - `glyph_variants`: for a type, every match site and which variants each one covers
 - Read the same edges forward: "if I add a variant, what must change" is the impact query
@@ -5003,7 +5011,63 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.105 — Next · The exhaustiveness relation, and the tools reading it
+### 0.1.106 — Next · The exhaustiveness relation, and the tool reading it
+
+0.1.105 gave the checker one answer to "does this site have a catch-all". This
+release keeps the relation that answer is computed from, so an agent can ask
+what breaks before it edits rather than after.
+
+**Three prerequisites the original plan did not know it needed**, all confirmed
+still true after the unification.
+
+*A match site has no identity.* `walk_decl` takes a bare `&Decl` with no index
+and no name, `Assigner` carries no enclosing-declaration field, and no
+span-to-declaration helper exists. Arms are site plus ordinal, decided in
+0.1.104, so the site itself has to be nameable first.
+
+*`required_variants` returns a display string, not an identity.* Four producers
+feed it and the module is in hand inside `imported_union_variants` and dropped
+at the return. The corpus holds 11 unrelated declarations named `Command`, so a
+bare string is not survivable as the type end of an edge. Threading a `DeclKey`
+touches all four producers and every caller.
+
+*The relation is not formed anywhere.* `check_patterns_exhaustive` keeps
+`covered: HashSet<Ident>`, variant names with no link to an arm, and the arm
+ordinal is destroyed in the recursion. Retaining this is not a save of something
+computed; it is computing it.
+
+**What is retained, decided in 0.1.105's design pass.** A site record with four
+states, exhaustive, has-a-catch-all, declined, and scrutinee-unresolved, the
+last because 128 corpus sites have a scrutinee that resolves to no type and
+reporting them absent would assert no relation exists. `mentions` edges, named
+that and not `covers`, because 71.6% of top-level edges are the deferred kind
+where the checker never concludes full coverage. The catch-all arm's ordinal.
+Not an unreachable-arm edge: measured 0 occurrences across 6,516 arms, and
+structurally so, since E0216 is an error and the graph is built from code that
+compiles.
+
+**Where it lives.** A separate `match_coverage(db, file)` tracked query rather
+than a field on `Types`, because `TypeMap` is span-keyed and a coverage set
+riding on it would be invalidated by a keystroke that changed no coverage.
+A project-level fold beside it, because the by-type index spans files.
+
+**Then the tool.** For a type, every match site over it and which variants each
+one names, plus the sites it could not index, named rather than counted.
+
+**One rule that binds it.** The edges are keyed by `DeclKey`, and no query that
+produces them may be keyed by a position. The five position-keyed
+per-declaration queries are not on this path and nothing outside `glyph-db`
+calls them, so the churn does not reach the edge set today; a per-declaration
+coverage query added later for incrementality would reintroduce exactly the
+renumbering `DeclKey` shipped to remove.
+
+*Reviewed against 0.1.105.* Re-checked after the unification changed this code:
+`is_catch_all_pattern` is one definition with nine call sites, the last
+hand-rolled uppercase test is gone, `glyph-db` retains no coverage of any kind,
+and `walk_decl` still takes a bare `&Decl`. The corpus figures are carried from
+the design pass and were measured with an instrumented build over 175 files.
+
+### 0.1.105 — Shipped · One answer to "does this match have a catch-all"
 
 The compiler works out which match arms cover which variants on every build, and
 then throws the answer away. Retaining it turns "what breaks if I add a variant"
@@ -5044,6 +5108,92 @@ this compiler has hit five times: G139, G141, G142, G143 and G148, each a site
 that failed to unwrap `Ty::App` to its base. All five are now fixed, which is
 exactly why the instrument matters: the fixes were found one at a time, by
 someone noticing. The unwrap surface is 33 sites today.
+
+#### What a design pass measured, and the five decisions it forced
+
+The release description was wrong about its central premise, and the corrections
+reshape it. Every number below was measured with an instrumented build over the
+whole corpus: 175 files, 37,204 lines, 2,733 match sites, 6,516 arms.
+
+**The checker does not compute what this release intended to retain.** It never
+forms a per-arm mapping. `check_patterns_exhaustive` keeps `covered:
+HashSet<Ident>`, variant names with no link to an arm, and a set cannot express
+first-match-wins. The arm ordinal is destroyed in the recursion, demonstrated on
+a constructed program where arms 0 and 2 arrive at depth 2 as indices 0 and 1.
+So "keep what is already computed" is not the work. The work is changing those
+functions to form the relation at all.
+
+**Three more facts the plan did not have.** There are seven coverage producers,
+not three, and they use at least three different catch-all predicates.
+`required_variants` returns a display string rather than an identity, and the
+corpus holds 11 unrelated declarations named `Command`. Nothing knows which
+declaration a match site sits in: `walk_decl` takes a `&Decl` with no index and
+no name, and no span-to-declaration helper exists anywhere in the tree.
+
+**Fork 1, decided: the edge is `mentions`, and it is named `mentions`.** What the
+checker has is "arm k names variant V at the top level of its pattern". What a
+consumer wants is "arm k fully covers V, payload included", and 1,645 of 2,298
+module-local top-level edges, 71.6%, are the deferred kind where the checker
+never reaches that conclusion. Shipping the mechanical save under the name
+`covers` would overclaim on nearly three quarters of the edge set, which is the
+exact-or-absent invariant applied to naming rather than to edges. `covers` needs
+`check_patterns_exhaustive` to return a per-arm verdict instead of only pushing
+errors, and that is a control-flow refactor of the function behind G139, G141,
+G142, G143 and G148. Doing it in the same release that first retains the output
+means a wrong edge cannot be attributed to either change.
+
+**Fork 2, decided: union-shaped scrutinees only.** The test is not "is this a
+match" but "is there a declaration someone could add a case to". A `bool` has no
+declaration, nor does a number, a string, or an array, and including them doubles
+the site table to answer nothing: 1,699 of 2,733 sites are of those kinds. String
+-literal unions are in, all 17 of them, because D30 makes them a declared type
+and "what breaks if I add a value" is the same user question.
+
+**Fork 3, decided: a separate `match_coverage(db, file)` query, plus a
+project-level fold.** Hanging the index off `Types` costs no extra traversal, and
+that is the wrong economy. `TypeMap` is keyed by `(u32, u32)` spans, so any byte
+change in a file shifts every span after it and recomputes the whole map; a
+coverage set riding on it would be invalidated by a keystroke that changed no
+coverage at all. That is the failure 0.1.103 was about, arriving from a new
+direction. The extra walk is cheap, the coverage set is 7.8% of `type_map`'s
+entry count, and a content-comparable value that backdates on its own is worth
+more than one saved traversal. The by-type index spans files, so it needs the
+project-level query beside it.
+
+**Fork 4, decided: four states, and the fourth one is named in the answer.**
+Exhaustive, has-a-catch-all, declined, and scrutinee-unresolved. 128 sites, 4.7%,
+have a scrutinee the checker could not resolve to any type, against 2 that
+decline. Reporting those 128 as absent asserts no relation exists, which is
+false, and absence meaning "no relation" is the invariant. The tool's answer
+carries them as named sites rather than a count: "23 sites must change, and these
+4 I could not index" sends a reader somewhere, where a bare number does not.
+
+**Fork 5, decided: unify the predicate, and do it first, alone.** Seven functions
+compute "does this site have a catch-all" and at least three rules disagree on
+`Pattern::Ident { "Foo" }`. A per-kind flag pushes that disagreement into the
+graph where every consumer inherits it, and the point of the graph is that one
+question has one answer. It is cheap to fix now and expensive once consumers
+depend on it. But it can change diagnostics on code that compiles today, which
+makes it the one user-visible change here, so it does not ride along with
+anything.
+
+**That splits the release.** 0.1.105 unifies the predicate and nothing else,
+with a diagnostic diff across all 31 apps as its acceptance test: if none change,
+it was free, and if any change, each is a finding to judge on its own. The
+identity plumbing, the retention and the tool follow in 0.1.106, and everything
+after shifts by one.
+
+**Not retained, on the evidence:** an unreachable-arm edge. Measured 0
+occurrences across 6,516 arms, and structurally so, since E0216 is an error and
+the graph is built from code that compiles. An edge whose population is empty in
+every well-formed program is a cost with no return.
+
+**One rule to write down before any of it.** The edges are keyed by `DeclKey`,
+and no query that produces them may be keyed by a position. The five
+position-keyed per-declaration queries are not on this path today and neither the
+language server nor the CLI calls them directly, so the churn does not reach the
+edge set; adding a per-declaration coverage query for incrementality would
+reintroduce exactly the renumbering `DeclKey` shipped to remove.
 
 *Reviewed against 0.1.104.* Re-checked rather than carried forward: the three
 coverage functions are still in `assign.rs` and nothing retains their output,

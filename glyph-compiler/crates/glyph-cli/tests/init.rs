@@ -20,13 +20,24 @@ fn scaffold_writes_a_runnable_starter() {
     assert_eq!(report.created.len(), 6, "expected six files created");
     assert!(report.skipped.is_empty());
 
-    for rel in ["src/main.glyph", "src/.types/README.md", "package.json", ".gitignore"] {
+    for rel in [
+        "src/main.glyph",
+        "src/.types/README.md",
+        "package.json",
+        ".gitignore",
+    ] {
         assert!(dir.join(rel).exists(), "missing scaffolded file: {rel}");
     }
 
     let pkg = std::fs::read_to_string(dir.join("package.json")).unwrap();
-    assert!(pkg.contains("\"glyph\""), "package.json lacks the glyph key");
-    assert!(pkg.contains(&format!("\"name\": \"{}\"", dir.file_name().unwrap().to_string_lossy())));
+    assert!(
+        pkg.contains("\"glyph\""),
+        "package.json lacks the glyph key"
+    );
+    assert!(pkg.contains(&format!(
+        "\"name\": \"{}\"",
+        dir.file_name().unwrap().to_string_lossy()
+    )));
     // C5: the toolchain is pinned so `glyph run`/`build` resolve a consistent
     // TypeScript across a team. The scaffold must be valid JSON with both pins.
     let parsed: serde_json::Value = serde_json::from_str(&pkg).expect("package.json is valid JSON");
@@ -71,15 +82,25 @@ fn each_template_scaffolds_and_compiles() {
 fn re_running_never_overwrites() {
     let dir = unique_tmp();
     scaffold(&dir).expect("first scaffold");
-    std::fs::write(dir.join("src/main.glyph"), "module main\n// edited by the user\n")
-        .expect("edit main");
+    std::fs::write(
+        dir.join("src/main.glyph"),
+        "module main\n// edited by the user\n",
+    )
+    .expect("edit main");
 
     let second = scaffold(&dir).expect("second scaffold");
     assert_eq!(second.created.len(), 0, "second run should create nothing");
-    assert_eq!(second.skipped.len(), 6, "second run should skip all six files");
+    assert_eq!(
+        second.skipped.len(),
+        6,
+        "second run should skip all six files"
+    );
 
     let main = std::fs::read_to_string(dir.join("src/main.glyph")).unwrap();
-    assert!(main.contains("edited by the user"), "user edit was clobbered");
+    assert!(
+        main.contains("edited by the user"),
+        "user edit was clobbered"
+    );
 }
 
 /// A scaffolded project builds when you point `glyph build` at the project
@@ -127,7 +148,11 @@ fn a_scaffolded_project_runs_from_its_own_directory_with_no_path() {
     // form that ignored the marker would look for `<dir>/main.glyph` and report
     // that the project has no entry point.
     let src = glyph_cli::config::project_src(&dir).expect("the scaffold is a project root");
-    assert_eq!(src, dir.join("src"), "the marker's src/ is the resolution root");
+    assert_eq!(
+        src,
+        dir.join("src"),
+        "the marker's src/ is the resolution root"
+    );
     assert!(
         src.join("main.glyph").is_file(),
         "and it holds the entry the scaffolder wrote"
@@ -186,11 +211,18 @@ fn the_scaffold_tells_an_agent_where_the_reference_is() {
     scaffold(&dir).expect("scaffold");
 
     let agents = std::fs::read_to_string(dir.join("AGENTS.md")).expect("AGENTS.md");
-    assert!(agents.contains("glyph llms"), "AGENTS.md must name the offline reference");
-    assert!(agents.contains("glyph mcp"), "AGENTS.md must name the analysis server");
+    assert!(
+        agents.contains("glyph llms"),
+        "AGENTS.md must name the offline reference"
+    );
+    assert!(
+        agents.contains("glyph mcp"),
+        "AGENTS.md must name the analysis server"
+    );
 
     let mcp = std::fs::read_to_string(dir.join(".mcp.json")).expect(".mcp.json");
-    let parsed: serde_json::Value = serde_json::from_str(&mcp).expect(".mcp.json must be valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&mcp).expect(".mcp.json must be valid JSON");
     assert_eq!(parsed["mcpServers"]["glyph"]["command"], "glyph");
     assert_eq!(parsed["mcpServers"]["glyph"]["args"][0], "mcp");
 }
@@ -213,7 +245,11 @@ fn agent_files_can_be_added_to_a_project_that_already_exists() {
     // Re-running must not clobber an AGENTS.md the project has since edited.
     std::fs::write(dir.join("AGENTS.md"), "hand written\n").expect("edit");
     let second = scaffold_agent_files(&dir, false).expect("second run");
-    assert_eq!(second.created.len(), 0, "nothing is rewritten without --force");
+    assert_eq!(
+        second.created.len(),
+        0,
+        "nothing is rewritten without --force"
+    );
     assert_eq!(second.skipped.len(), 2);
     assert_eq!(
         std::fs::read_to_string(dir.join("AGENTS.md")).unwrap(),
@@ -224,7 +260,9 @@ fn agent_files_can_be_added_to_a_project_that_already_exists() {
     // --force is the escape hatch, and it does replace.
     let third = scaffold_agent_files(&dir, true).expect("forced run");
     assert_eq!(third.created.len(), 2);
-    assert!(std::fs::read_to_string(dir.join("AGENTS.md")).unwrap().contains("glyph llms"));
+    assert!(std::fs::read_to_string(dir.join("AGENTS.md"))
+        .unwrap()
+        .contains("glyph llms"));
 }
 
 /// `glyph lsp` must tolerate `--stdio`.

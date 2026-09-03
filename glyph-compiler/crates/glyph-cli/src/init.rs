@@ -168,8 +168,13 @@ the places a guess compiles into something you did not mean.\n\
 \n\
 `glyph mcp` runs a Model Context Protocol server over stdio that answers from\n\
 the compiler's own analysis: diagnostics, the type at a cursor, definition,\n\
-references, and symbols. `.mcp.json` in this directory registers it, so an\n\
-agent that reads that file gets the tools without any setup.\n\
+references, symbols, and every match site over a tagged union. `.mcp.json` in\n\
+this directory registers it, so an agent that reads that file gets the tools\n\
+without any setup.\n\
+\n\
+Before adding a variant to a union, ask `glyph_variants` which sites handle it.\n\
+The ones it calls `has_catch_all` keep compiling and route the new variant into\n\
+`else`, so nothing tells you they are now wrong.\n\
 \n\
 Prefer those tools over grep when the question is semantic. Grep finds text that\n\
 matches; the compiler resolved every name to emit the program, so its answer is\n\
@@ -183,6 +188,8 @@ glyph build src --out dist\n\
 glyph run                # build and run the entry point\n\
 glyph fmt src            # format\n\
 glyph --explain E0200    # what a diagnostic code means\n\
+glyph --update           # update the installed compiler (not npm)\n\
+glyph upgrade            # move this project's pinned version\n\
 ```\n\
 \n\
 ## The generated TypeScript is not the source\n\
@@ -258,7 +265,10 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
     let entry = dir.join("src").join(entry_name);
     let files: [(PathBuf, &str); 6] = [
         (entry.clone(), entry_content),
-        (dir.join("src").join(".types").join("README.md"), TYPES_README),
+        (
+            dir.join("src").join(".types").join("README.md"),
+            TYPES_README,
+        ),
         (dir.join("package.json"), package_json.as_str()),
         (dir.join(".gitignore"), GITIGNORE),
         // An agent dropped into a Glyph project used to see a manifest and a
@@ -281,7 +291,13 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
         created.push(path);
     }
 
-    Ok(InitReport { root: dir.to_path_buf(), created, skipped, entry, runnable })
+    Ok(InitReport {
+        root: dir.to_path_buf(),
+        created,
+        skipped,
+        entry,
+        runnable,
+    })
 }
 
 /// A filesystem-safe npm package name derived from the directory name.
@@ -295,7 +311,13 @@ fn project_name(dir: &Path) -> String {
     let sanitized: String = raw
         .to_lowercase()
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect();
     let trimmed = sanitized.trim_matches('-');
     if trimmed.is_empty() {
@@ -311,8 +333,10 @@ fn project_name(dir: &Path) -> String {
 /// `npm install @glyphlang/glyph` in a directory that already has code. Without
 /// this they would have to know these files exist and hand-write them.
 pub fn scaffold_agent_files(dir: &Path, force: bool) -> Result<InitReport, InitError> {
-    let files: [(PathBuf, &str); 2] =
-        [(dir.join("AGENTS.md"), AGENTS_MD), (dir.join(".mcp.json"), MCP_JSON)];
+    let files: [(PathBuf, &str); 2] = [
+        (dir.join("AGENTS.md"), AGENTS_MD),
+        (dir.join(".mcp.json"), MCP_JSON),
+    ];
 
     let mut created = Vec::new();
     let mut skipped = Vec::new();

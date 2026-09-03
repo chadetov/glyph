@@ -4714,25 +4714,40 @@ generator already knows the answer).
 - `match_coverage(db, file)` plus a project fold, so the value backdates for its consumers; the query itself still re-executes on any edit
 - `glyph_variants`: for a type, every match site and which variants each one names, with unindexable sites named rather than counted
 
-**0.1.107 — Next · Impact before the edit, and the loop that uses it**
+**0.1.107 — Landed on main · The autofix stops reporting success over a file it broke, and the tool says how to update itself**
+- G173: `glyph fix` welded a pruned import onto the next line and exited 0; live since 0.1.99, not the 0.1.106 regression it was reported as
+- Both prune paths share one `decl_text_end`, and `fix` re-parses every file before writing it, so a broken rewrite fails loudly instead of quietly
+- The MCP server sends an `instructions` string for the first time: an agent learns `glyph --update` (the tool) and `glyph upgrade` (a project's pin) without opening a file
+- G174: the two routes for discovering an undocumented module's signatures are undocumented, and G179's pruning narrowed one of them
+- G175: the bootstrap prints `rng.bool(probability: number)` with no `?`, so the default 0.1.106 added is invisible to a reader
+- G176: the bootstrap's two statements about `mut` contradict, and the wrong reading costs an architecture rather than a probe
+- G177: E0101's help implies a project module needs a package prefix; a bare sibling import is the real spelling
+- G178: twelve modules sit under "not detailed", `std/random` among them despite now having a signature block
+- G179: 0.1.106 prunes the emitted runtime and nothing says so, which is the mechanism behind G174's narrowing
+- Evidence that docs alone do not carry this: `glyph --update` was added to the bootstrap and the next agent to need it still reached for npm
+- `glyph_variants` dropped a payload site whose file carries the G172 module/path mismatch from all three of its lists, on the layout `glyph init` generates
+- A diagnostic carries the declaration it sits in as `module::name`, on `glyph check --json` and `glyph_diagnostics`, so an error leads into the graph without a re-parse
+- Not the forward-impact query: that stays 0.1.108, which is what this release's prerequisites were clearing the way for
+
+**0.1.108 — Next · Impact before the edit, and the loop that uses it**
 - Read the same edges forward: "add `Suspended` to `UserStatus`, show me every site that must change"
 - The answer is exhaustive or it says which sites it could not index; a partial list is worse than none
 - Diagnostics carry entity IDs and structured context, so an agent gets from an error into the graph without re-parsing
 - Repair the five-times bug shape end to end, measured against the same task done by search alone
 
-**0.1.108 — Provenance, and the boundary as a node kind**
+**0.1.109 — Provenance, and the boundary as a node kind**
 - R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - G170: the playground emits what `glyph build` emits, or the page says plainly that it does not
 
-**0.1.109 — The incremental debt, in the order it actually binds**
+**0.1.110 — The incremental debt, in the order it actually binds**
 - `type_map`'s span keying first, because coverage edges, the overlay and the rekey all sit downstream of it
 - Then rekey the five position-keyed per-declaration queries to `DeclKey`, which has no user-visible effect on its own
 - Move the content-difference guard into `glyph-db` behind `set_file_text`, and make raw `set_text` non-public
 - G171: measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded
 
-**0.1.110 — The language server stops running a second compiler**
+**0.1.111 — The language server stops running a second compiler**
 - An overlay: disk text by default, editor buffer for open files, so the server consumes the model instead of re-running it
 - Measured today at 15.4ms per keystroke for diagnostics alone and 61.2ms for an editor burst on a 2,205-line file, growing about n^1.6
 - Database lifetime is the real question underneath it: `glyph build` throws its database away and only the MCP server keeps one
@@ -5031,7 +5046,7 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.107 — Next · Impact before the edit, and the loop that uses it
+### 0.1.108 — Next · Impact before the edit, and the loop that uses it
 
 0.1.106 retained the relation and put a tool on it. `glyph_variants` answers
 "which sites name this variant". This release answers the question an agent
@@ -5057,10 +5072,19 @@ The bug shape is the one this compiler has hit five times: G139, G141, G142, G14
 and G148, each a nested-payload failure, which is why 0.1.106 built the nested
 case rather than declining it.
 
-*Reviewed against 0.1.106.* Re-checked rather than carried forward: nothing reads
-the relation in the forward direction yet, and no diagnostic carries an entity
-id. The relation itself now exists, which is the dependency this release was
-waiting on.
+*Reviewed against 0.1.106.* Re-checked rather than carried forward, and this
+premise did not hold: `glyph_variants` (0.1.106) already reads the relation
+forward for the has_catch_all/exhaustive shape when called by union name, with
+a regression test on the exact "add a variant" edit this release describes. A
+resolve/typecheck/emit diagnostic that lands inside a top-level declaration now
+carries `entity` (the `module::name` identity `glyph_variants` reports for the
+same declaration), and `benchmarks/impact-before-edit/` is the committed
+fixture and measurement comparing that shape against search alone. Still open:
+whether the same forward answer holds for the nested-payload shape this release
+names (G139, G141, G142, G143, G148), where the impacted match reaches the
+union through a payload rather than as its own scrutinee. `glyph_variants`
+already lists those under `nested`; nothing has measured that case end to end
+yet.
 
 ### 0.1.106 — Shipped · The exhaustiveness relation, and the tool reading it
 

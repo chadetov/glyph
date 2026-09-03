@@ -4673,6 +4673,7 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 **0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps**
 - Migrate the query layer to salsa 0.28's moved `Update` trait, alone, with no feature work beside it
 - Stop `fmt` emitting a bare literal statement and a parenthesized one that reparse as a call (G162)
+- Decide what a file's address is, since its `module` header and its path-derived key can disagree (G172)
 - Escalate an unknown PascalCase head over an imported union to E0220, as the local path does (G169)
 - Make the playground emit what `glyph build` emits, or say plainly on the page that it does not (G170)
 - Measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded (G171)
@@ -4705,7 +4706,7 @@ generator already knows the answer).
 - Acceptance test is a diagnostic diff across all 31 apps: no change means it was free, any change is a finding
 - Nothing else ships beside it, because it is the one item here that can change what existing code reports
 
-**0.1.106 — Next · The exhaustiveness relation, and the tool reading it**
+**0.1.106 — Shipped · The exhaustiveness relation, and the tool reading it**
 - Give a match site an identity, since `walk_decl` takes a bare `&Decl` and nothing names the declaration a site sits in
 - Thread a `DeclKey` out of `required_variants`, which returns a display string today and the corpus holds 11 unrelated `Command`s
 - Make `check_patterns_exhaustive` form the per-arm relation it currently discards
@@ -4713,7 +4714,7 @@ generator already knows the answer).
 - `match_coverage(db, file)` plus a project fold, so the value backdates for its consumers; the query itself still re-executes on any edit
 - `glyph_variants`: for a type, every match site and which variants each one names, with unindexable sites named rather than counted
 
-**0.1.107 — Impact before the edit, and the loop that uses it**
+**0.1.107 — Next · Impact before the edit, and the loop that uses it**
 - Read the same edges forward: "add `Suspended` to `UserStatus`, show me every site that must change"
 - The answer is exhaustive or it says which sites it could not index; a partial list is worse than none
 - Diagnostics carry entity IDs and structured context, so an agent gets from an error into the graph without re-parsing
@@ -5030,7 +5031,38 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.106 — Next · The exhaustiveness relation, and the tool reading it
+### 0.1.107 — Next · Impact before the edit, and the loop that uses it
+
+0.1.106 retained the relation and put a tool on it. `glyph_variants` answers
+"which sites name this variant". This release answers the question an agent
+actually asks, which is the same edges read in the other direction: **add
+`Suspended` to `UserStatus`, and show me every site that must change.**
+
+**The answer is exhaustive or it says which sites it could not index.** A partial
+impact list is worse than no list, because an agent that trusts it edits
+believing it has seen the whole surface. 0.1.106 already established the honest
+shape by naming unkeyable sites rather than counting them; this release inherits
+that obligation and extends it, because a forward query has to be right about
+absence in a way a lookup does not.
+
+**Then the loop.** A diagnostic today is text with a span, so an agent's only
+route from an error back into the model is to re-parse the file it was just told
+about, which is the search this whole line of work exists to delete. Diagnostics
+carry the entity IDs they concern, and the queries chain so following a thread
+does not re-derive the world between hops.
+
+**Measured against search alone**, same agent and same prompt on both sides, with
+the instrument defined before the result is seen and the losing run published.
+The bug shape is the one this compiler has hit five times: G139, G141, G142, G143
+and G148, each a nested-payload failure, which is why 0.1.106 built the nested
+case rather than declining it.
+
+*Reviewed against 0.1.106.* Re-checked rather than carried forward: nothing reads
+the relation in the forward direction yet, and no diagnostic carries an entity
+id. The relation itself now exists, which is the dependency this release was
+waiting on.
+
+### 0.1.106 — Shipped · The exhaustiveness relation, and the tool reading it
 
 0.1.105 gave the checker one answer to "does this site have a catch-all". This
 release keeps the relation that answer is computed from, so an agent can ask

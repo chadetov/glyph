@@ -266,39 +266,32 @@ fn parse_coord(board: Board, row_text: string, col_text: string) -> Result<Coord
   }
 }
 
-// The three coordinate-taking verbs, so the verb and the coordinates can be
-// parsed in separate steps. (`?` cannot appear inside a `match` arm, so a
-// `parse_coord(...)?` in the arm that builds the command is not available.)
-type Verb =
-  | RevealVerb
-  | FlagVerb
-  | UnflagVerb
-
-fn verb_of(name: string) -> Option<Verb> {
+// The three coordinate-taking verbs, named twice: once here to tell a known
+// verb missing its coordinates from an unknown command, and once below to
+// build the command itself.
+fn is_coord_verb(name: string) -> bool {
   return match name {
-    "reveal" => Some(RevealVerb),
-    "r" => Some(RevealVerb),
-    "flag" => Some(FlagVerb),
-    "f" => Some(FlagVerb),
-    "unflag" => Some(UnflagVerb),
-    "u" => Some(UnflagVerb),
-    else => None,
+    "reveal" => true,
+    "r" => true,
+    "flag" => true,
+    "f" => true,
+    "unflag" => true,
+    "u" => true,
+    else => false,
   }
 }
 
+// Each arm's value is the whole `return`, so `parse_coord(...)?` can sit
+// inside it directly.
 fn coord_command(board: Board, name: string, r: string, c: string) -> Result<Command, CommandError> {
-  return match verb_of(name) {
-    None => Err(UnknownCommand({ name: name })),
-    Some(verb) => match parse_coord(board, r, c) {
-      Err(e) => Err(e),
-      Ok(at) => Ok(
-        match verb {
-          RevealVerb => Reveal({ at: at }),
-          FlagVerb => Flag({ at: at }),
-          UnflagVerb => Unflag({ at: at }),
-        },
-      ),
-    },
+  return match name {
+    "reveal" => Ok(Reveal({ at: parse_coord(board, r, c)? })),
+    "r" => Ok(Reveal({ at: parse_coord(board, r, c)? })),
+    "flag" => Ok(Flag({ at: parse_coord(board, r, c)? })),
+    "f" => Ok(Flag({ at: parse_coord(board, r, c)? })),
+    "unflag" => Ok(Unflag({ at: parse_coord(board, r, c)? })),
+    "u" => Ok(Unflag({ at: parse_coord(board, r, c)? })),
+    else => Err(UnknownCommand({ name: name })),
   }
 }
 
@@ -313,9 +306,9 @@ fn parse_command(board: Board, line: string) -> Result<Command, CommandError> {
     // trailing words are ignored so `reveal 3 4 please` still works.
     [name, r, c, ..._] => coord_command(board, name, r, c),
     // One or two words: a verb we know, but without a usable pair of numbers.
-    [name, ..._] => match verb_of(name) {
-      Some(_) => Err(MissingCoords({ name: name })),
-      None => Err(UnknownCommand({ name: name })),
+    [name, ..._] => match is_coord_verb(name) {
+      true => Err(MissingCoords({ name: name })),
+      false => Err(UnknownCommand({ name: name })),
     },
   }
 }

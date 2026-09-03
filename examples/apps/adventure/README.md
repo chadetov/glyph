@@ -18,22 +18,37 @@ glyph run examples/apps/adventure/main.glyph
 printf 'north\ntake lantern\ndown\nlook\nquit\n' | glyph run examples/apps/adventure/main.glyph
 ```
 
-## What it changed in Glyph
+## What it found, and what happened
 
-Shipped **0.1.40**, and it found a bug in the command everyone runs.
+Shipped **0.1.40**, and it found a bug in the command everyone runs, plus one
+that is still open.
 
-**G38: `glyph run` computed a build report and threw its diagnostics away.** On
-the success path the runner read `report.emitted` and nothing else, so
-`report.diagnostics` and `report.error_count` never reached anyone.
-`glyph run solo.glyph` printed the program's output and exited 0 while
-`glyph build .` on the identical tree printed E0204 on a sibling and E0106 on
-the file itself. A build now writes its diagnostics into the staging directory
-so a warm cache still reports them.
+**G38, fixed.** `glyph run` computed a full build report and only ever read
+`report.emitted` off it, so `report.diagnostics` and `report.error_count` never
+reached anyone. `glyph run solo.glyph` printed the program's output and exited 0
+while `glyph build .` on the identical tree printed E0204 on a sibling and
+E0106 on the file itself, seconds apart, same compiler, same source. Fixed in
+0.1.40: `run_file` now returns every diagnostic alongside the outcome, `glyph
+run` prints them before dispatching, and a build writes them to
+`.glyph-diagnostics.json` in the staging directory so a warm cache still
+reports what it found instead of going quiet on the second run. There is
+nothing left in this app's source that relates to G38; it was a bug in the
+runner, not something the app's code had to work around.
 
-**G39: member access and call arguments against `Ty::Unknown` were unchecked.**
-A misspelled `xs.pusj(x)` and a wrong-arity stdlib call both compiled. The
-manifesto promises no `any`; this was one, spelled `Unknown`, at the boundary
-where the promise is made. Half closed in 0.1.71.
+**G39, half fixed.** Member access and call arguments against a receiver typed
+`Ty::Unknown` went unchecked: a misspelled `xs.pusj(x)` or a wrong-arity stdlib
+call both compiled clean. Phase 1 (0.1.71) modeled optional arguments for six
+stdlib functions (`string.index_of`, `string.slice`, `string.pad_start`,
+`string.pad_end`, `array.slice`, `json.stringify`), so a `match` on one of
+those with a missing arm is now a compile-time E0200 instead of a runtime
+throw. What phase 1 did not touch is still true: a receiver that is genuinely
+`Ty::Unknown` (an unmodeled stdlib call, a misspelled method) still gets no
+member-access or arity checking at all. This app does not call anything left
+unmodeled by phase 1, so nothing in `main.glyph` is written around the gap; the
+finding came from probing the compiler with stdlib calls during this app's
+dogfooding round, not from a pattern this app's code needed to survive. The
+risk G39 names is still real for any Glyph program calling a stdlib function
+outside that six-function list: it just is not one this file happens to call.
 
 It was also one of three apps that became interactive with no source change when
 `io.read_line` was fixed in 0.1.62: before that it could not answer `look` while

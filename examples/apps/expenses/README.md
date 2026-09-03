@@ -27,17 +27,30 @@ and rolled impossible dates over.** It was a bare `Date.parse`, so
 invalid". A boundary validator failing open while its docs promise it fails
 closed is the verifiability pillar inverted. The rule that came out of it: when
 an app writes a correctness guard around a stdlib primitive, the guard belongs
-in the primitive.
+in the primitive. `parse_date` in `main.glyph` calls `time.parse_iso` with no
+guard of its own; an impossible date or a non-ISO string comes back `BadDate`
+with its line number rather than being silently accepted.
 
-**G37: a two-binding `for` over a call's result bound a string index**, so the
-loop printed `01:` where it should print `1:`. Clean build, `tsc --strict`
-passes, because `"0" + 1` is legal TypeScript.
+**G34 (0.1.47): `std/array` had no `fold`, so every accumulation was a `mut`
+in a loop.** That dilutes `grep mut`, the search D5's restriction is supposed
+to reward. `total_of` and `group_by_category` are both `array.fold` today, and
+across `examples/apps/` the same release took `grep mut` from 192 sites to 161.
 
-**G34** cost a pillar directly: with no `array.fold`, every accumulation is a
-`mut` in a loop, which dilutes `grep mut`. After the fix, `grep mut` over the
-apps tree went from 192 sites to 161.
+**G37: a two-binding `for` over a call's result bound a string index**, so
+`for i, raw in array.slice(lines, 1)` printed `01:` where it should print `1:`.
+Clean build, `tsc --strict` passes, because `"0" + 1` is legal TypeScript. This
+app's own `for i, raw in lines` (`lines` being `array.slice(string.split(text,
+"\n"), 1)`) used to need an explicit `Array<string>` annotation to bind a real
+number, with a comment calling the annotation load-bearing. `array.slice`
+getting a real stdlib signature in 0.1.71 closed the specific case this app
+hit; the annotation and its comment are gone from `parse_ledger` now, and a
+corrupted row reports its actual source line.
+
+All three are closed, and nothing in this app is working around an open gap.
 
 ## What it exercises
 
-`std/decimal` for exact money, a four-variant row-error union matched
-exhaustively, `?` propagation, and `array.fold`. Nine `@example` rows.
+`std/decimal` for exact money, `time.parse_iso` as a boundary validator, a
+four-variant row-error union matched exhaustively, `?` propagation,
+`array.fold` for both per-category and grand totals, and `std/record` for
+grouping by category. Nine `@example` rows.

@@ -42,8 +42,14 @@ because making `Result` decidable also made it classifiable and every `?` in a
 function returning the qualified type became an error. The app now carries both
 spellings deliberately and builds clean on both.
 
-**G74**: E0200 quoted the missing variant names for local and prelude unions and
-left them bare for imported ones.
+**G74 (0.1.58): E0200 quoted the missing variant names for local and prelude
+unions and left them bare for imported ones.** A module-local union reported
+``missing variants `B` ``; the same check on a union imported from another
+Glyph module reported `missing variants Maybe`, with the name bare. Two code
+paths built that list and only one of them formatted it.
+`check_imported_union_coverage` now backticks each name the way
+`check_patterns_exhaustive` already did, so the diagnostic has one shape no
+matter how the union arrived.
 
 ## What it exercises
 

@@ -26,8 +26,9 @@ hand-written adapter") has an app behind it rather than only a guide.
 
 It carried **G118** as a finding rather than a workaround: a client had no way
 to say a response body is text, so `Response.body` was `unknown` and
-`string.from` rendered `[object Object]` on a JSON body. `http.to_text` closed
-it; `fetch` below reads the feed body through it now. **G119** is still open:
+`string.from` rendered `[object Object]` on a JSON body. `http.to_text`,
+shipped in **0.1.100**, closed it; `fetch` below reads the feed body through it
+now. **G119** is still open:
 `url.join`'s `Err` branch is nearly unreachable because against a valid base
 anything that is not a URL is treated as a relative path.
 

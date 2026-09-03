@@ -23,6 +23,15 @@ pub struct GlyphDiagnostic {
     pub message: String,
     /// The stable diagnostic code (e.g. `E0204`).
     pub code: String,
+    /// The bare name of the top-level declaration this diagnostic's span
+    /// sits inside, when one is known (see `enclosing_decl_name`). `None`
+    /// for a diagnostic with no enclosing declaration to name: a parse
+    /// failure (no AST exists yet), or a span on the `module` line or an
+    /// import. This tool has no project index to qualify the name with a
+    /// module path — the caller (`glyph_diagnostics`), which does know the
+    /// file's own path, assembles the qualified `module::name` form the same
+    /// way `glyph_variants` addresses a declaration site.
+    pub decl_name: Option<String>,
 }
 
 /// Run the compiler front end (parse → resolve → typecheck) over `text` and
@@ -34,11 +43,14 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     let module = match glyph_parser::parse(text) {
         Ok(m) => m,
         Err(e) => {
+            // No `decl_name`: a file that failed to parse has no AST to look
+            // an enclosing declaration up in.
             return vec![GlyphDiagnostic {
                 start: e.span().start,
                 end: e.span().end,
                 message: with_help(format!("{e}"), e.help().as_deref()),
                 code: e.code().to_string(),
+                decl_name: None,
             }]
         }
     };
@@ -51,7 +63,7 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
             // Symbol collection failed (e.g. a duplicate declaration or a D15
             // barrel file); report those and stop — later phases need the table.
             for e in errors {
-                out.push(resolve_diag(&e));
+                out.push(resolve_diag(&e, &module));
             }
             return out;
         }
@@ -59,13 +71,13 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
 
     let stdlib = StdlibStubs::new();
     for e in verify_imports(&module, &stdlib) {
-        out.push(resolve_diag(&e));
+        out.push(resolve_diag(&e, &module));
     }
 
     let prelude = build_prelude();
     let (resolved, resolve_errors) = resolve_module(&module, symbols, &prelude);
     for e in &resolve_errors {
-        out.push(resolve_diag(e));
+        out.push(resolve_diag(e, &module));
     }
 
     let (_types, type_errors) = assign_types(&module, &resolved, &prelude);
@@ -75,6 +87,7 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
             end: e.span().end,
             message: with_help(format!("{e}"), e.help()),
             code: e.code().to_string(),
+            decl_name: enclosing_decl_name(&module, e.span().start),
         });
     }
 
@@ -84,7 +97,7 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     // on an otherwise error-free module, so they never mask a real error.
     if out.is_empty() {
         for e in module_lints(&module, &resolved) {
-            out.push(resolve_diag(&e));
+            out.push(resolve_diag(&e, &module));
         }
     }
 
@@ -966,12 +979,13 @@ pub fn base_completions() -> Vec<Completion> {
     out
 }
 
-fn resolve_diag(e: &glyph_resolver::ResolveError) -> GlyphDiagnostic {
+fn resolve_diag(e: &glyph_resolver::ResolveError, module: &Module) -> GlyphDiagnostic {
     GlyphDiagnostic {
         start: e.span().start,
         end: e.span().end,
         message: with_help(format!("{e}"), e.help()),
         code: e.code().to_string(),
+        decl_name: enclosing_decl_name(module, e.span().start),
     }
 }
 
@@ -980,6 +994,21 @@ fn with_help(message: String, help: Option<&str>) -> String {
         Some(h) => format!("{message}\n{h}"),
         None => message,
     }
+}
+
+/// The bare name of the top-level declaration whose span contains `offset`,
+/// or `None` when no top-level declaration contains it (an offset on the
+/// `module` line itself, or inside an import, which re-binds another
+/// module's name rather than declaring one of its own).
+fn enclosing_decl_name(module: &Module, offset: u32) -> Option<String> {
+    module.items.iter().find_map(|item| {
+        let span = item.span();
+        if span.start <= offset && offset < span.end {
+            item.name().map(|name| name.to_string())
+        } else {
+            None
+        }
+    })
 }
 
 /// Maps byte offsets to LSP line/character positions. `character` is counted in

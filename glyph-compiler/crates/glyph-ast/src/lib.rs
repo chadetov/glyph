@@ -88,6 +88,20 @@ impl Decl {
             Decl::Import(_) => false,
         }
     }
+
+    /// The name this declaration binds at its own top level, or `None` for an
+    /// import (which re-binds another module's name rather than declaring one
+    /// of its own).
+    pub fn name(&self) -> Option<&Ident> {
+        match self {
+            Decl::Import(_) => None,
+            Decl::Fn(d) => Some(&d.name),
+            Decl::Type(d) => Some(&d.name),
+            Decl::Const(d) => Some(&d.name),
+            Decl::Component(d) => Some(&d.name),
+            Decl::Interface(d) => Some(&d.name),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -542,9 +556,17 @@ pub struct JsxElement {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JsxAttr {
     /// `name="literal"`
-    String { name: Ident, value: String, span: Span },
+    String {
+        name: Ident,
+        value: String,
+        span: Span,
+    },
     /// `name={expr}`
-    Expr { name: Ident, value: Expr, span: Span },
+    Expr {
+        name: Ident,
+        value: Expr,
+        span: Span,
+    },
     /// `<case Loaded>` — `Loaded` is a positional attribute (no name, no
     /// value). Allowed before any named attributes (D6).
     Positional { name: Ident, span: Span },
@@ -561,7 +583,10 @@ pub enum JsxChild {
     Expr(Expr),
     /// Raw text between tags, sliced from the source verbatim. The
     /// typechecker may normalize whitespace; the parser preserves it.
-    Text { content: String, span: Span },
+    Text {
+        content: String,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -695,10 +720,7 @@ pub enum PostfixOp {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeExpr {
     /// `string`, `number`, `bool`, `void`, `unknown`, or any user-defined path.
-    Path {
-        segments: Vec<Ident>,
-        span: Span,
-    },
+    Path { segments: Vec<Ident>, span: Span },
     Generic {
         base: Box<TypeExpr>,
         args: Vec<TypeExpr>,
@@ -729,19 +751,13 @@ pub enum TypeExpr {
     /// cannot spell (a value-derived `z.infer<typeof s>`, a conditional type) is
     /// still nameable. Glyph's own checker treats it as opaque (`unknown`, no
     /// descriptor); `tsc` checks every use of it. Greppable by `extern_ts`.
-    Extern {
-        raw: String,
-        span: Span,
-    },
+    Extern { raw: String, span: Span },
     /// A union of string literals as a type (`"free" | "pro"`). A single literal
     /// (`"free"`) is a one-element union. Emitted as the TypeScript literal union
     /// (`tsc` enforces the narrowed type), and a record field of this type gets a
     /// runtime membership check in its descriptor. Distinct from a D8 tagged
     /// union, whose members are named constructors.
-    StringLiteralUnion {
-        values: Vec<String>,
-        span: Span,
-    },
+    StringLiteralUnion { values: Vec<String>, span: Span },
     /// A `typeof value` type query: the type of a value binding, referenced by a
     /// (possibly dotted) path. It emits as TypeScript `typeof <path>` and its
     /// operand is resolved as a real value reference, so it is the first-class,
@@ -749,10 +765,7 @@ pub enum TypeExpr {
     /// `type User = z.infer<typeof user_schema>` (a `z.infer<...>` generic over a
     /// `typeof`). Opaque to Glyph's own checker (`tsc` reduces it), like an
     /// imported `.d.ts` type.
-    TypeOf {
-        path: Vec<Ident>,
-        span: Span,
-    },
+    TypeOf { path: Vec<Ident>, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -789,24 +802,14 @@ pub struct UnionVariant {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern {
     /// `_` — match anything, bind nothing (D9).
-    Wildcard {
-        span: Span,
-    },
+    Wildcard { span: Span },
     /// `else` — catch-all arm pattern (D9). Only legal as the entire pattern
     /// of a `match` arm; the parser enforces this position.
-    Else {
-        span: Span,
-    },
+    Else { span: Span },
     /// Identifier binding: `x` binds the matched value to `x`.
-    Ident {
-        name: Ident,
-        span: Span,
-    },
+    Ident { name: Ident, span: Span },
     /// Literal pattern: `0`, `"hello"`, `true`, `false`, `void`.
-    Literal {
-        value: LiteralPattern,
-        span: Span,
-    },
+    Literal { value: LiteralPattern, span: Span },
     /// Variant constructor pattern. Two shapes:
     /// - **With args:** `Ok(x)`, `Err(_)`, `NetworkError({ url, status })`.
     ///   `path` is one or more segments; `args` is non-empty.
@@ -841,10 +844,7 @@ pub enum Pattern {
     },
     /// `is TypeName` guard pattern. Matches when the runtime descriptor of
     /// the value is compatible with `ty` (Q8 resolution).
-    IsType {
-        ty: TypeExpr,
-        span: Span,
-    },
+    IsType { ty: TypeExpr, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1082,12 +1082,15 @@ pub mod visit {
             Expr::Object { fields, .. } => {
                 for field in fields {
                     match field {
-                        ObjectField::KeyValue { value, .. }
-                        | ObjectField::Spread { value, .. } => f(value),
+                        ObjectField::KeyValue { value, .. } | ObjectField::Spread { value, .. } => {
+                            f(value)
+                        }
                     }
                 }
             }
-            Expr::Match { scrutinee, arms, .. } => {
+            Expr::Match {
+                scrutinee, arms, ..
+            } => {
                 f(scrutinee);
                 for arm in arms {
                     if let MatchArmBody::Expr(v) = &arm.body {

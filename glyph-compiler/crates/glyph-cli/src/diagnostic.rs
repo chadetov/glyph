@@ -7,6 +7,15 @@
 //! own diagnostics and the remapped `tsc` errors flow through the same shape.
 //! The shape round-trips (it deserializes as well as serializes) because
 //! `glyph run` caches a build's diagnostics beside its output in this format.
+//!
+//! A resolve/typecheck/emit diagnostic that lands inside a top-level
+//! declaration also carries `entity`, the same `module::name` identity
+//! `glyph_variants` reports for a match site over that declaration (0.1.107).
+//! An agent can then act on a batch of `--json` diagnostics by entity without
+//! re-deriving "which function is this" from a line number, which shifts
+//! under every unrelated edit above the site. A diagnostic from a stage that
+//! has no parsed module to look the entity up in (a parse failure, or a `tsc`
+//! error remapped from emitted TS) carries no entity rather than a guess.
 
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +36,10 @@ pub struct Diagnostic {
     pub range: Range,
     /// The compiler stage (`parse`/`resolve`/`typecheck`/`emit`/`tsc`).
     pub stage: String,
+    /// The `module::name` identity of the top-level declaration this
+    /// diagnostic's span sits inside, when one is known (see `entity_id`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entity: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub help: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -61,6 +74,7 @@ impl Diagnostic {
         message: String,
         help: Option<&str>,
         note: Option<&str>,
+        entity: Option<String>,
     ) -> Self {
         Diagnostic {
             code: code.to_string(),
@@ -72,6 +86,7 @@ impl Diagnostic {
                 end: pos_of(source, span.end),
             },
             stage: stage.to_string(),
+            entity,
             help: help.map(str::to_string),
             note: note.map(str::to_string),
         }
@@ -98,6 +113,8 @@ pub fn pos_of(source: &str, offset: u32) -> Pos {
 }
 
 pub fn from_parse_error(file: &str, source: &str, err: &ParseError) -> Diagnostic {
+    // No `entity`: a file that failed to parse has no declaration table to
+    // look one up in.
     Diagnostic::new(
         file,
         source,
@@ -108,10 +125,17 @@ pub fn from_parse_error(file: &str, source: &str, err: &ParseError) -> Diagnosti
         format!("{err}"),
         err.help().as_deref(),
         None,
+        None,
     )
 }
 
-pub fn from_resolve_error(file: &str, source: &str, err: &ResolveError, stage: &str) -> Diagnostic {
+pub fn from_resolve_error(
+    file: &str,
+    source: &str,
+    err: &ResolveError,
+    stage: &str,
+    module: &glyph_ast::Module,
+) -> Diagnostic {
     let severity = match err.severity() {
         glyph_resolver::Severity::Warning => "warning",
         glyph_resolver::Severity::Error => "error",
@@ -126,10 +150,16 @@ pub fn from_resolve_error(file: &str, source: &str, err: &ResolveError, stage: &
         format!("{err}"),
         err.help(),
         None,
+        entity_id(file, module, err.span().start),
     )
 }
 
-pub fn from_type_error(file: &str, source: &str, err: &TypeError) -> Diagnostic {
+pub fn from_type_error(
+    file: &str,
+    source: &str,
+    err: &TypeError,
+    module: &glyph_ast::Module,
+) -> Diagnostic {
     let severity = match err.severity() {
         Severity::Warning => "warning",
         Severity::Error => "error",
@@ -144,10 +174,37 @@ pub fn from_type_error(file: &str, source: &str, err: &TypeError) -> Diagnostic 
         format!("{err}"),
         err.help(),
         err.note(),
+        entity_id(file, module, err.span().start),
     )
 }
 
-pub fn from_emit_error(file: &str, source: &str, err: &EmitError) -> Diagnostic {
+/// The `module::name` identity of the top-level declaration enclosing byte
+/// `offset`, in the same spelling `glyph_variants` reports for a match site
+/// over the same declaration (see `glyph-lsp/src/mcp.rs`'s `render_key`).
+/// `None` when no top-level declaration contains the offset (a diagnostic on
+/// the `module` line itself, or on an import).
+///
+/// Without this, an agent acting on a `--json` diagnostic has to re-derive
+/// "which function is this" from a line number, and a line number shifts
+/// under every unrelated edit above the site — exactly the identity-loss
+/// problem the `module::name` convention exists to prevent elsewhere.
+pub fn entity_id(module_path: &str, module: &glyph_ast::Module, offset: u32) -> Option<String> {
+    module.items.iter().find_map(|item| {
+        let span = item.span();
+        if span.start <= offset && offset < span.end {
+            item.name().map(|name| format!("{module_path}::{name}"))
+        } else {
+            None
+        }
+    })
+}
+
+pub fn from_emit_error(
+    file: &str,
+    source: &str,
+    err: &EmitError,
+    module: &glyph_ast::Module,
+) -> Diagnostic {
     Diagnostic::new(
         file,
         source,
@@ -158,6 +215,7 @@ pub fn from_emit_error(file: &str, source: &str, err: &EmitError) -> Diagnostic 
         format!("{err}"),
         err.help(),
         err.note(),
+        entity_id(file, module, err.span().start),
     )
 }
 
@@ -179,6 +237,38 @@ mod tests {
         assert_eq!((p.line, p.col), (3, 1));
     }
 
+    /// Regression guard for the has_catch_all bug shape (0.1.107): a `--json`
+    /// diagnostic on a non-exhaustive match must be attributable to the exact
+    /// function it sits in, not just "the file", so an agent can act on a
+    /// batch of these without re-parsing every site to find out which
+    /// function each line number currently belongs to. The identity must also
+    /// agree with what `glyph_variants` reports for the same declaration
+    /// (`module::name`), so the two answers can be cross-referenced.
+    #[test]
+    fn entity_id_names_the_enclosing_declaration() {
+        let src = "module main\n\n\
+            fn describe_exhaustive(s: string) -> string {\n    s\n}\n\n\
+            fn describe_catchall(s: string) -> string {\n    s\n}\n";
+        let module = glyph_parser::parse(src).expect("fixture parses");
+
+        let exhaustive_offset = src.find("describe_exhaustive").unwrap() as u32;
+        assert_eq!(
+            entity_id("main", &module, exhaustive_offset),
+            Some("main::describe_exhaustive".to_string())
+        );
+
+        // A second declaration in the same file must not be misattributed to
+        // the first just because it comes later.
+        let catchall_offset = src.find("describe_catchall").unwrap() as u32;
+        assert_eq!(
+            entity_id("main", &module, catchall_offset),
+            Some("main::describe_catchall".to_string())
+        );
+
+        // An offset before any declaration (the `module` line) names nothing.
+        assert_eq!(entity_id("main", &module, 0), None);
+    }
+
     #[test]
     fn serializes_without_empty_optionals() {
         let d = Diagnostic::new(
@@ -189,6 +279,7 @@ mod tests {
             "error",
             "typecheck",
             "boom".to_string(),
+            None,
             None,
             None,
         );

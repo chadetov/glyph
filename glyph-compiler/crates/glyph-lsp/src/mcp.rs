@@ -362,11 +362,42 @@ fn handle(req: &Value, server: &mut Server) -> Option<Value> {
     }
 }
 
+/// What the client is told about this server before it calls anything.
+///
+/// The `instructions` string is the only channel that reaches an agent without
+/// it choosing to read something first: clients put it in the model's context
+/// at connect time. That matters more than it sounds. `glyph --update` has been
+/// in the bootstrap since it shipped, and the next agent that needed to update
+/// Glyph still reached for npm, because nothing put the command in front of it
+/// at the moment it was deciding. Documentation that has to be found does not
+/// carry; this does.
+///
+/// Keep it short. It is spent from every conversation's budget whether or not
+/// the agent uses a tool.
 fn initialize_result() -> Value {
     json!({
         "protocolVersion": PROTOCOL_VERSION,
         "capabilities": { "tools": { "listChanged": false } },
         "serverInfo": { "name": "glyph-mcp", "version": env!("CARGO_PKG_VERSION") },
+        "instructions": concat!(
+            "Glyph is a statically typed language that compiles to TypeScript. ",
+            "This server answers from the compiler's own analysis, so prefer it ",
+            "over grep for any semantic question: grep finds text that matches, ",
+            "the compiler resolved every name to emit the program.\n\n",
+            "Before adding or removing a variant of a tagged union, call ",
+            "`glyph_variants`. It lists every match site over that type and what ",
+            "each one does. Sites it reports as `has_catch_all` keep compiling ",
+            "when you add a variant and silently route the new one into `else`, ",
+            "which is the dangerous case precisely because nothing fails.\n\n",
+            "Run `glyph llms` for the full language reference. It works offline ",
+            "and is the same document the compiler ships. Read it before writing ",
+            "Glyph rather than inferring the syntax from the TypeScript it ",
+            "resembles.\n\n",
+            "To update: `glyph --update` moves this installed compiler to the ",
+            "newest release. `glyph upgrade` is the different one, moving a ",
+            "project's pinned version in package.json. Use these rather than ",
+            "installing from npm by hand."
+        ),
     })
 }
 
@@ -435,15 +466,27 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
 }
 
 fn tool_diagnostics(args: &Value, root: &Path) -> Result<String, String> {
-    let (_, text) = read_file(args, root)?;
+    let (path, text) = read_file(args, root)?;
     let index = LineIndex::new(&text);
+    // The same `module::name` identity `glyph_variants` reports for a match
+    // site over a declaration (0.1.107), so an agent can act on a batch of
+    // diagnostics by entity instead of re-deriving "which function is this"
+    // from a line number that shifts under every unrelated edit above the
+    // site. This tool stays off the project database (see the module docs),
+    // so the module half is this file's own path rather than a minted
+    // `ModuleId` — a pure transform of the path already given to the tool,
+    // not a database lookup.
+    let file_key = display_path(root, &path);
+    let module_str = file_key.strip_suffix(".glyph").unwrap_or(&file_key);
     let items: Vec<Value> = analyze(&text)
         .into_iter()
         .map(|d| {
+            let entity = d.decl_name.map(|name| format!("{module_str}::{name}"));
             json!({
                 "code": d.code,
                 "message": d.message,
                 "range": range_json(&index, &text, d.start, d.end),
+                "entity": entity,
             })
         })
         .collect();
@@ -848,7 +891,7 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     let nested: Vec<Value> = cov
         .sites()
         .iter()
-        .filter_map(|site| render.nested_value(site, &end))
+        .filter_map(|site| render.nested_value(site, &end, &name))
         .collect();
     // Sites over a same-named type this project could not key. They are not
     // the answer and they are not absent from it either: absence in this
@@ -1073,6 +1116,32 @@ fn unkeyed_namesake(end: &CoverageTypeRef, name: &str) -> bool {
     matches!(end, CoverageTypeRef::Unkeyed { name: n, .. } if n == name)
 }
 
+/// The same question `unkeyed_namesake` answers, one level down: whether a
+/// coverage edge's own union (still the checker's raw `CoverageTypeName`,
+/// unminted) is a namesake of the type being asked about that this project's
+/// `DeclIndex` cannot key.
+///
+/// `edge_is` alone is not enough here. It compares a `Declared` union against
+/// `end` by asking whether `decls` maps the *union's* module string to the
+/// *same declaration key* `end` names, and a G172 module-line/path mismatch
+/// means it never does: the union's module is the file's own `module` line,
+/// `end` (when derived, rather than found among the relation's own type ends)
+/// is keyed from the path-derived module `decls` actually holds the
+/// declaration under, and those two strings disagree by construction. Without
+/// this, a payload mention or gap that reaches such a type is `edge_is`-false
+/// against every candidate `end` and is dropped from `nested` entirely, the
+/// same silent omission `unkeyed_namesake` exists to prevent for a direct
+/// site. Matched by name alone, same as `unkeyed_namesake`: an edge this
+/// project cannot key has no module key left to compare by.
+fn edge_is_unkeyed_namesake(decls: &DeclIndex, union: &CoverageTypeName, name: &str) -> bool {
+    match union {
+        CoverageTypeName::Declared { module, name: n } => {
+            n == name && decls.key_of(module, name).is_none()
+        }
+        CoverageTypeName::Builtin { .. } => false,
+    }
+}
+
 /// The type end as an answer names it.
 ///
 /// Three shapes because the relation has three, and a consumer acts on the
@@ -1198,19 +1267,36 @@ impl SiteRender<'_> {
     /// The arms here carry their depth, because a depth is what makes them not
     /// this site's own accounting: the site was counted against its scrutinee's
     /// variant set, and these arms reach a level below that.
-    fn nested_value(&mut self, site: &ProjectCoverageSite, end: &CoverageTypeRef) -> Option<Value> {
+    fn nested_value(&mut self, site: &ProjectCoverageSite, end: &CoverageTypeRef, name: &str) -> Option<Value> {
         let decls = self.decls;
         let d = &site.site;
+        // `edge_is` alone misses a mention or gap whose union is a G172
+        // namesake of `end`: the union's module string is the file's own
+        // `module` line, and when `end` was derived (rather than found among
+        // the relation's own type ends) it is keyed from the path-derived
+        // module `decls` actually holds the declaration under, so the two
+        // never compare equal. `edge_is_unkeyed_namesake` is the same
+        // name-only fallback `unkeyed_namesake` already uses for a direct
+        // site, one level down, so the payload site is reported rather than
+        // silently dropped.
         let arms: Vec<Value> = d
             .mentions
             .iter()
-            .filter(|m| m.depth > 0 && edge_is(decls, &m.union, end))
+            .filter(|m| {
+                m.depth > 0
+                    && (edge_is(decls, &m.union, end)
+                        || edge_is_unkeyed_namesake(decls, &m.union, name))
+            })
             .map(|m| json!({ "arm": m.arm, "depth": m.depth, "variant": m.variant }))
             .collect();
         let missing: Vec<&String> = d
             .gaps
             .iter()
-            .filter(|g| g.depth > 0 && edge_is(decls, &g.union, end))
+            .filter(|g| {
+                g.depth > 0
+                    && (edge_is(decls, &g.union, end)
+                        || edge_is_unkeyed_namesake(decls, &g.union, name))
+            })
             .flat_map(|g| g.missing.iter())
             .collect();
         if arms.is_empty() && missing.is_empty() {
@@ -1861,6 +1947,46 @@ mod tests {
             .map(|d| d["code"].as_str().unwrap())
             .collect();
         assert!(codes.contains(&"E0210"), "{codes:?}");
+    }
+
+    /// An agent acting on a batch of `--json`-shaped diagnostics needs to get
+    /// from an error straight into the declaration it lives in, without
+    /// re-deriving "which function is this" from a line number — a line
+    /// number shifts under every unrelated edit above the site, so a diff
+    /// that touches nothing near the error can still stale a saved mapping.
+    /// `glyph_diagnostics` names the entity the same way `glyph_variants`
+    /// addresses a declaration site (`module::name`), so the two answers can
+    /// be cross-referenced.
+    #[test]
+    fn diagnostics_tool_names_the_enclosing_declaration() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\ntype U = { name: string }\nfn f(u: U) -> string {\n  return u.naem\n}\n",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
+        assert!(!is_error);
+        let items = value.as_array().unwrap();
+        assert_eq!(items.len(), 1, "{value}");
+        assert_eq!(items[0]["entity"], "a::f", "{value}");
+    }
+
+    /// A diagnostic that has no enclosing declaration to name — here, a parse
+    /// failure, which has no AST to look one up in — must say so with an
+    /// absent field, not a guessed value. `glyph_diagnostics` is a
+    /// single-file, off-the-database tool, so the entity is derived only from
+    /// this file's own parsed module; it is never wrong, only sometimes
+    /// unavailable.
+    #[test]
+    fn diagnostics_tool_names_no_entity_for_a_parse_failure() {
+        let root = tmp_root();
+        write(&root, "a.glyph", "module a\nfn f(\n");
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
+        assert!(!is_error);
+        let items = value.as_array().unwrap();
+        assert!(!items.is_empty(), "{value}");
+        assert!(items[0]["entity"].is_null(), "{value}");
     }
 
     #[test]
@@ -2828,6 +2954,61 @@ mod tests {
             json!([{ "arm": 0, "variant": "Up" }, { "arm": 1, "variant": "Down" }]),
             "{answer}"
         );
+    }
+
+    /// A site the project cannot key is still not absent when it reaches the
+    /// mismatched type through a payload rather than as its own scrutinee.
+    ///
+    /// `a_site_the_project_cannot_key_is_named_rather_than_absent` covers the
+    /// direct case; this is the same module-line/path mismatch (G172) with a
+    /// payload site layered on top, which is exactly the shape
+    /// `glyph_variants` silently dropped: neither a `sites` entry (the site's
+    /// own scrutinee is `Result`, not `Command`), nor an `unkeyed` entry
+    /// (`unkeyed` is keyed off the site's own scrutinee type, which is a
+    /// `Builtin`, not an `Unkeyed` namesake), nor a `nested` entry (`edge_is`
+    /// compares the mention's module string, taken from the file's own
+    /// `module` line, against the declaration's *path-derived* module, and a
+    /// mismatched file never has those agree). An agent asking "which sites
+    /// change if I add a variant to `Command`" would miss this one, which is
+    /// the one case where the compiler itself already flags the omission as
+    /// E0200.
+    #[test]
+    fn a_payload_site_the_project_cannot_key_is_named_rather_than_absent() {
+        let root = tmp_root();
+        write(
+            &root,
+            "models.glyph",
+            "module app/models\npub type Command =\n  | Up\n  | Down\npub fn run(c: Command) -> number {\n  return match c {\n    Up => 1,\n    Down => 0,\n  }\n}\npub fn from_result(r: Result<Command, string>) -> string {\n  return match r {\n    Ok(Up) => \"ok-up\",\n    Err(e) => e,\n  }\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = variants(&mut server, "models.glyph", "Command");
+        assert_eq!(answer["sites"], json!([]), "{answer}");
+
+        // The direct site still reports under `unkeyed`, same as the sibling
+        // test with no payload involved.
+        let unkeyed = answer["unkeyed"].as_array().unwrap();
+        assert_eq!(unkeyed.len(), 1, "{answer}");
+        assert_eq!(unkeyed[0]["declaration"], "models::run", "{answer}");
+
+        // The payload site must show up somewhere rather than vanish. It
+        // reaches `Command` one level into `Result`, so `nested` is where the
+        // clean-module sibling test (`a_payload_gap_is_reported_against_the_
+        // union_that_is_short_a_variant`) puts the same shape of site.
+        let nested = answer["nested"]
+            .as_array()
+            .unwrap_or_else(|| panic!("from_result must appear somewhere, not be absent: {answer}"));
+        assert_eq!(nested.len(), 1, "{answer}");
+        assert_eq!(nested[0]["declaration"], "models::from_result", "{answer}");
+        assert_eq!(nested[0]["type"]["kind"], "builtin", "{answer}");
+        assert_eq!(nested[0]["type"]["name"], "Result", "{answer}");
+        assert_eq!(
+            nested[0]["arms"],
+            json!([{ "arm": 0, "depth": 1, "variant": "Up" }]),
+            "{answer}"
+        );
+        // The genuine E0200 gap: `Down` never appears under the payload.
+        assert_eq!(nested[0]["missing"], json!(["Down"]), "{answer}");
     }
 
     /// A display name is not an address. Asked from a file that names neither

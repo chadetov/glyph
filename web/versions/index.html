@@ -46,6 +46,18 @@
         </p>
       </header>
 
+      <div class="breaking-note">
+        <strong>A release marked Breaking rejects code an earlier version accepted.</strong>
+        Usually because the compiler started catching something it had been missing, which is
+        the point of the language, but it can turn a green build red on an upgrade. Read that
+        release's note before taking it.
+        <br><br>
+        The marker is applied only where both versions were actually run and the older one
+        accepted the program. It is not inferred from how a note is worded, and an unmarked
+        release older than 0.1.99 has not been tested rather than been found safe. Every
+        release from here on states which it is.
+      </div>
+
       <section>
         <div class="release">
           <div class="rel-head">
@@ -160,6 +172,7 @@ match i &gt;= n { true =&gt; { break }, false =&gt; {}, }?
         <div class="release">
           <div class="rel-head">
             <span class="rel-ver">0.1.101</span>
+            <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">
@@ -215,6 +228,7 @@ pub fn has_bug(n: number) -&gt; bool {
         <div class="release">
           <div class="rel-head">
             <span class="rel-ver">0.1.99</span>
+            <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

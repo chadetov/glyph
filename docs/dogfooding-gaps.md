@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-172 entries, 138 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+179 entries, 139 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+21 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6844,3 +6844,126 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.106 by the fold's own `Unkeyed` case, which fires on
   this configuration and is covered by a test naming it.*
+
+- **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
+  reported success.** Pruning some names out of an `import M { a, b }` spliced
+  the rewritten declaration over `imp.span.end`, which sits past the newline
+  terminating the import. The newline went with it:
+
+  ```
+  before   import helper { one, two, three }
+           fn main(argv: Array<string>) -> number {
+
+  after    import helper { one }fn main(argv: Array<string>) -> number {
+  ```
+
+  `glyph fix` exited 0 saying "removed 2 unused import(s)"; `glyph check` then
+  exited 1 with `[E0002] expected newline after import, found Fn`. A project that
+  compiled before the autofix did not compile after it.
+
+  Two shapes broke and two did not: a declaration on the next line and another
+  import on the next line both broke, while a blank line after the import
+  survived (it absorbed the lost newline) and whole-import removal was untouched.
+  That last one is why it passed the suite: `full_line_span` walks the newline
+  back and carries an eleven-line comment explaining why, and the partial-prune
+  path added in 0.1.99 did not call it.
+
+  Not a 0.1.106 regression, though it was reported as one. 0.1.105 corrupts the
+  same file identically; the path has been live since 0.1.99. The reporter's
+  companion claim that `glyph fmt` also exits 0 on the broken file does not
+  reproduce: `fmt` exits 1.
+
+  *Fixed by giving both paths one `decl_text_end` helper so the terminator is
+  preserved rather than reconstructed, and by having `fix` re-parse every file
+  before writing it and refuse to write one it broke. Regression tests
+  `partial_prune_keeps_the_newline_before_the_next_declaration` and
+  `..._before_the_next_import` in `glyph-cli/src/fix.rs`; both fail against the
+  restored bug, and they fail through the re-parse guard rather than the content
+  assertion, which is the guard doing its job.*
+
+- **G174. The two ways to discover an undocumented stdlib module's signatures
+  are themselves undocumented, and 0.1.106 narrowed one of them.** An outside
+  author who needed `std/random` found its API two ways, neither written down:
+  importing a name that does not exist and reading `[E0105] ... (exports: Rng,
+  seeded)`, and reading the emitted runtime under `<out>/.glyph-runtime/std/*.ts`.
+
+  0.1.106 prunes the emitted runtime to the modules a project imports (13 rather
+  than 36 in that codebase). Route (b) now only reveals modules you already
+  import, so reading `std/websocket`'s API requires first importing
+  `std/websocket`. An unrelated size optimisation made the workaround for an open
+  documentation gap narrower.
+
+  *Reproduced against 0.1.106: `glyph llms` mentions `.glyph-runtime` zero
+  times, so the route an outside author used to read a module's types is written
+  down nowhere, and G179 confirms that route now shows only modules already
+  imported.*
+
+- **G175. The bootstrap's `std/random` block hides that `bool`'s argument is
+  optional.** 0.1.106 gave `Rng.bool` a real `= 0.5` default, so `r.bool()`
+  compiles and runs. The new signature block writes
+  `rng.bool(probability: number)` with no `?`, so a reader still cannot tell the
+  argument may be omitted. The contradiction moved rather than closed: before,
+  the comment promised a default the type denied; now the code has the default
+  and the documented signature under-reports it.
+
+  *Reproduced against 0.1.106: `glyph llms` prints
+  `rng.bool(probability: number) -> bool` with no `?`, while the runtime accepts
+  `r.bool()`.*
+
+- **G176. The bootstrap's two statements about `mut` contradict each other, and
+  the wrong reading costs an architecture.** The syntax section lists
+  `mut x.field = e` as legal. The gotchas section says `mut` "only enables
+  reassignment and mutating method calls; there is no `mut` parameter, field, or
+  other position."
+
+  Read together the second says you cannot mutate through a parameter, which
+  would force every state transition to rebuild and return a whole record. An
+  outside author was about to write that before probing and finding that
+  in-place mutation of a parameter's field works, and threaded one mutable
+  `Game` through the program on the strength of the probe.
+
+  The gotcha means `mut` is not a *declaration modifier*. It should say so, and
+  say in one line that a parameter's fields are mutable in place.
+
+  *Reproduced against 0.1.106: `glyph llms` contains both ``mut` is legal in
+  exactly four forms — `mut x = e`, `mut x.field = e`,` and `there is no `mut`
+  parameter, field, or other position.`*
+
+- **G177. A sibling module is imported by bare name, and E0101's fix text implies
+  otherwise.** The fix text reads "Use an absolute module path (`std/io`,
+  `myapp/x`)", and `myapp/x` implies a project module needs a package-name
+  prefix. It does not: a sibling in the same `src/` is `import world`. The author
+  had to probe to establish this on their second file.
+
+  Related and also undocumented as a general rule: using both a namespace and
+  bare constructors from one project module needs two import lines
+  (`import rules` and `import rules { Walked, Refused }`). The bootstrap shows
+  this for `std/time` and presents it as a quirk of that module.
+
+  *Reproduced against 0.1.106: `glyph-resolver/src/error.rs:216` renders "Use
+  an absolute module path (e.g. `std/io` or `myapp/feature`)", while a project
+  whose `src/main.glyph` says `import helper` for its sibling `src/helper.glyph`
+  compiles with exit 0.*
+
+- **G178. Eleven stdlib modules are shipped and importable with no documented
+  signatures.** `glyph llms` lists them under "Not detailed below, but shipped
+  and importable". `std/random` got a signature block in 0.1.106; the other
+  eleven are unverified. For anything simulation-shaped the RNG was not a
+  footnote, and the author could not call it without probing.
+
+  *Reproduced against 0.1.106: twelve modules sit under "Not detailed below,
+  but shipped and importable" (`collections`, `crypto`, `encoding`, `log`,
+  `math`, `path`, `random`, `set`, `store`, `task`, `timers`, `websocket`), and
+  `std/random` is among them despite now carrying a `seeded(seed: number) -> Rng`
+  block, so the list is itself stale.*
+
+- **G179. Runtime pruning changed what `glyph build` writes, and nothing says
+  so.** 0.1.106 emits only the std modules a project imports. Good for output
+  size, found by counting rather than read anywhere, and it is the mechanism
+  behind G174's narrowing. A behaviour change to what lands in a user's `out`
+  directory belongs in the release note and the guide.
+
+  *Reproduced against 0.1.106: a project importing only `std/io` emits three
+  modules into `dist/.glyph-runtime/std/` (`io`, `option`, `result`) out of the
+  37 the compiler ships. An outside author independently counted 13 where 0.1.95
+  emitted all of them.*

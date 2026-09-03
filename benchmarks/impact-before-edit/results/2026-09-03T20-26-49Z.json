@@ -1,0 +1,40 @@
+{
+  "search_alone": {
+    "method": "grep for `else =>` / `_ =>`, whole file",
+    "catch_all_sites_found": [
+      "describe_catchall",
+      "describe_direction"
+    ],
+    "note": "cannot attribute a hit to the union it matches on"
+  },
+  "glyph_variants": {
+    "method": "tools/call glyph_variants {\"path\": \"main.glyph\", \"name\": \"UserStatus\"}",
+    "catch_all_sites_found": [
+      "main::describe_catchall"
+    ],
+    "exhaustive_sites_found": [
+      "main::describe_exhaustive"
+    ]
+  },
+  "comparison": {
+    "search_alone": {
+      "found_the_real_site": true,
+      "false_positives": [
+        "describe_direction"
+      ],
+      "precision": 0.5
+    },
+    "glyph_variants": {
+      "found_the_real_site": true,
+      "false_positives": [],
+      "precision": 1.0
+    }
+  },
+  "after_edit_diagnostics": {
+    "e0200_count": 1,
+    "e0200_entity": "main::describe_exhaustive",
+    "describe_catchall_mentioned_anywhere": false
+  },
+  "ok": true,
+  "timestamp": "2026-09-03T20-26-49Z"
+}

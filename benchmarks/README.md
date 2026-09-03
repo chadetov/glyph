@@ -14,6 +14,8 @@ For each function, the same task is implemented in **Glyph, TypeScript, Python, 
 
 A companion **verifiability** demo lives in `verifiability/`: paired programs where Glyph rejects a bug at compile time that `tsc --strict` accepts (`verifiability/check.sh` asserts the invariant).
 
+A third demo, **impact-before-edit** (`impact-before-edit/`), measures the has_catch_all bug shape against search alone: whether a plain text search for a catch-all match arm can tell which one belongs to the union you are about to change, compared with the `glyph_variants` MCP tool asked about that union directly (`impact-before-edit/measure.py` writes its own `results/<timestamp>.json`).
+
 Results are written to `results/<timestamp>.json` and checked into git so the trajectory is visible. The synthesized findings are in `FINDINGS.md`.
 
 ## The first three functions (Phase 0)

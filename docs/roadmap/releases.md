@@ -4706,17 +4706,36 @@ generator already knows the answer).
 - Nothing else ships beside it, because it is the one item here that can change what existing code reports
 
 **0.1.106 — Next · The exhaustiveness relation, and the tool reading it**
-- R4: retain the checker's arm-to-variant edges with a per-site exhaustive or catch-all flag (G139, G141, G142, G143, G148)
-- `glyph_variants`: for a type, every match site and which variants each one covers
-- Read the same edges forward: "if I add a variant, what must change" is the impact query
-- `CALLS` distinct from `REFERENCES`, and what a declaration was generated from, each answer carrying provenance
-- R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
-- R8's wider query surface stays out until the tick ledger shows the workload
+- Give a match site an identity, since `walk_decl` takes a bare `&Decl` and nothing names the declaration a site sits in
+- Thread a `DeclKey` out of `required_variants`, which returns a display string today and the corpus holds 11 unrelated `Command`s
+- Make `check_patterns_exhaustive` form the per-arm relation it currently discards
+- Retain it: a site record with four states, `mentions` edges, the catch-all arm's ordinal
+- `match_coverage(db, file)` plus a project fold, so the value backdates for its consumers; the query itself still re-executes on any edit
+- `glyph_variants`: for a type, every match site and which variants each one names, with unindexable sites named rather than counted
 
-**0.1.106 — The loop closes: an agent repairs an error without searching**
-- Diagnostics carry structured semantic context: what is missing, why, and where the definition lives
-- Queries chain, so following type to fields to callers to usages does not re-derive between hops
+**0.1.107 — Impact before the edit, and the loop that uses it**
+- Read the same edges forward: "add `Suspended` to `UserStatus`, show me every site that must change"
+- The answer is exhaustive or it says which sites it could not index; a partial list is worse than none
+- Diagnostics carry entity IDs and structured context, so an agent gets from an error into the graph without re-parsing
 - Repair the five-times bug shape end to end, measured against the same task done by search alone
+
+**0.1.108 — Provenance, and the boundary as a node kind**
+- R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
+- `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
+- R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
+- G170: the playground emits what `glyph build` emits, or the page says plainly that it does not
+
+**0.1.109 — The incremental debt, in the order it actually binds**
+- `type_map`'s span keying first, because coverage edges, the overlay and the rekey all sit downstream of it
+- Then rekey the five position-keyed per-declaration queries to `DeclKey`, which has no user-visible effect on its own
+- Move the content-difference guard into `glyph-db` behind `set_file_text`, and make raw `set_text` non-public
+- G171: measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded
+
+**0.1.110 — The language server stops running a second compiler**
+- An overlay: disk text by default, editor buffer for open files, so the server consumes the model instead of re-running it
+- Measured today at 15.4ms per keystroke for diagnostics alone and 61.2ms for an editor burst on a 2,205-line file, growing about n^1.6
+- Database lifetime is the real question underneath it: `glyph build` throws its database away and only the MCP server keeps one
+- Depends on 0.1.109 landing first; an overlay on a span-keyed map buys nothing
 
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps
 
@@ -5061,8 +5080,128 @@ calls them, so the churn does not reach the edge set today; a per-declaration
 coverage query added later for incrementality would reintroduce exactly the
 renumbering `DeclKey` shipped to remove.
 
+#### What an adversarial review of this plan found
+
+Review 61, saved locally. It re-measured every figure and found four of ten wrong, two structural
+claims wrong in the plan's favour, and one contradiction between this plan and its own rule.
+Corrected here rather than left for whoever implements it.
+
+**The numbers were high, systematically.** The corpus has **2,725** match sites and **6,502**
+arms, not 2,734 and 6,520. Sites with an ordinal above zero: **1,285 of 2,725 (47.16%)**, not
+1,289. Sites at depth one or more: **796**, not 802, with the depth-1 and depth-2 buckets each
+wrong. Head-bearing sites: **1,138**, not 1,143. Every error was small and positive, which is the
+signature of a tool counting some sites once per visit rather than once per node, and the review
+anchored its own count on a token partition that sums with no remainder so the ceiling is provable.
+
+**The review disclosed something worth keeping.** Its own first two walkers reproduced the plan's
+figures to the digit, ten of them, and it could not reproduce those runs afterwards. It reported
+the partition-anchored numbers because the partition is provable and a walker is not. So two
+independently written tools share a defect, which is a better reason to distrust the figures than
+any single disagreement.
+
+**Also struck: "corroborating an earlier count to within one site."** The two pairs differ
+deterministically, by the JSX `<match>` element and its four `<case>` children, and both pairs
+were high. Presenting a deterministic difference as measurement tolerance is the sentence to
+delete.
+
+**The figure 792 was used for two different populations and was correct for neither.** Prelude and
+stdlib together cover **791 of 1,138** head-bearing sites. The `nested`-only trap covers
+**1,058 sites and 1,772 arms**, and it has a third bucket the plan missed: a single payload that is
+a value-testing object pattern is recorded in neither `covered` nor `nested`, so an extraction
+reading both still drops those arms, and they are exactly what the declined state is for.
+
+**"Two of four producers are mechanical" is wrong: none of them can construct a `DeclKey`.**
+`ModuleId` is issued by a project-level interner inside `project_decl_keys`, and `Assigner` holds
+no module id at all, verified as zero occurrences of `ModuleId` in `assign.rs`. So the plan's
+second bullet cannot be done as written. The work is to return a type reference distinguishing
+local, imported and builtin, and mint the key at the `glyph-db` boundary where the interner lives,
+which crosses a crate seam the plan did not mention. There is also a fourth caller the plan's
+"every caller" omitted, `check_arm_reachability`.
+
+**One claim in the review is itself wrong, and it made the problem look harder than it is.** It
+states that 129 of 175 corpus files carry no `module` declaration, so "for three quarters of the
+corpus the typechecker cannot name its own module even as a string." Measured: **all 175 files
+declare their module.** The field is `Option<ModulePath>` so it can be absent in principle, and
+the typechecker never reads it, but the string is available on the `Module` the Assigner already
+holds. That makes the type end easier than the review argues while leaving its conclusion intact:
+the string comes from the typechecker, the `DeclKey` is minted in `glyph-db`.
+
+**The prelude reason is better than the plan's.** Stdlib and prelude types are not nameless:
+`StdlibStubs` publishes `std/result::Result`, `std/option::Option` and `std/fs::ErrorKind`. What
+they lack is a project declaration, and minting an id for them is unsafe rather than merely
+unhelpful, because `ModuleId` is an index into the interner that issued it and an in-range id from
+another interner names the wrong module rather than answering nothing. That is the exact-or-absent
+invariant, not a limitation, and it is the argument for a sum type at the type end.
+
+**The site ordinal contradicts this plan's own rule, and that has to be reconciled.** The rule says
+no query producing edges may be keyed by a position; the plan then keys the site half of every edge
+by an ordinal. The arm ordinal is defensible because order is semantic there and first match wins.
+Nothing makes "the third match in `bind`" meaningful, so for a site the ordinal is enumeration
+order, which is the shape 0.1.104 was spent removing one level up.
+
+The cost was also mis-stated. 47.16% is the fraction of sites that *could* move, not churn that
+happens, and nothing in the compiler holds a site identity across revisions: storage is per-file
+and re-executes on any edit anyway. The only holder is an agent that received "site 3 of `bind`"
+from a tool call and edited before asking again. So the cost is a stale cross-call reference in a
+conversation, which is far smaller than the number sounds.
+
+**And the review measured a scheme this plan never considered.** `DeclKey` plus the scrutinee's
+normalised source spelling, with an ordinal only among same-spelling sites in that declaration,
+leaves **106 sites (3.89%)** needing a disambiguator instead of 1,285. It is stable under
+inserting a match on a different scrutinee, which is the common edit, legible in a tool answer
+("the second `match on stack` in `step`"), and fails only on a local rename, which is what
+`DeclKey` itself fails on. Not free: 1,939 of 2,724 scrutinees are compound expressions, so the
+key is sometimes long. This is a live fork and it is the orchestrator's to settle.
+
+**The ordinal rule is under-specified either way.** "Pre-order" does not pin it, because
+`Expr::Match` walks the scrutinee, then checks itself, then walks the arms, so a scrutinee-nested
+match is checked before its parent while a pre-order over nodes visits the parent first. Two
+implementers would assign opposite ordinals. No corpus site has a match inside a scrutinee, so
+nothing decides it today and the first program to write one gets whatever the code happened to do.
+
+**The most consequential finding is about the shape, and it is not the one the plan argues.** A
+site's state is not decided by a predicate. It is an ordered dispatch in
+`check_match_exhaustiveness`: reachability, prelude-array, bool with literal-arm recovery,
+string-literal union, number and string with the same recovery, imported union gated on the union
+base, the refutable-object check, and only then `check_patterns_exhaustive`. On top of that the
+`Expr::Match` handler mutates the type map before any of it runs, writing a recovered union back at
+the scrutinee's span. **So a separate query that re-walks and asks `required_variants` per site
+would classify some sites differently from the diagnostics unless it reproduced the whole
+dispatch, which would make it a third copy of the logic this release exists to stop duplicating.**
+The way out is that the three shapes are not alternatives: extract the classifier and have the
+existing dispatch, which already knows the answer, accumulate into a sink.
+
+**Two smaller corrections.** There are six entries into the coverage core, not five, and the
+omitted one is the imported side's recursion, which needs the same ordinal threading. The
+slice-element change touches nine places, not three, and two of them are in
+`check_imported_union_coverage`, which the plan treats as out of scope; threading one and not the
+other gives the duplicated pair a second divergence, which is what 0.1.105 was spent removing.
+Only two of the three coverage functions duplicate the collection logic; the string-literal one
+collects values rather than heads and already receives arm indices for free.
+
+**A better argument for building the nested case than the plan's.** The plan justified it as cheap.
+The real argument is that the five bug shapes this instruments, G139, G141, G142, G143 and G148,
+are all nested-payload failures, and `examples/apps/zipper/main.glyph:205` is the exact shape of the
+class. Declining those thirteen arms would leave the instrument blind precisely where the five bugs
+lived.
+
+**Not addressed by the plan, and each of these is something an implementer hits.** `@example`
+bodies are compiled in a shadow project with synthesised declarations, so a match inside one is a
+site in a second project whose module keys name paths that do not exist, and the corpus already
+has one. A site inside a closure has no identity of its own, so 89 of them inherit the enclosing
+declaration's key and are told apart only by ordinal. The JSX site cannot produce two of the four
+states, bypasses `check_match_exhaustiveness` entirely, and ignores an `<else>` child, which also
+means a JSX match over an imported or string-literal union is unchecked today. And `match_span` is
+the only handle the coverage functions have on a site, so the identity and the diagnostic span are
+two values that must travel together with neither derivable from the other.
+
+**Four figures remain unverified** because they need an instrumented build: the 128
+scrutinee-unresolved sites, the 1,699 non-union-shaped sites, the count of string-literal union
+sites, and the 71.6% deferred top-level edges. That last one is the naming argument for `mentions`
+over `covers`, so it deserves a measurement of its own before the name is defended on it.
+
 *Reviewed against 0.1.105.* Re-checked after the unification changed this code:
-`is_catch_all_pattern` is one definition with nine call sites, the last
+`is_catch_all_pattern` is one definition with eight call sites, the last
 hand-rolled uppercase test is gone, `glyph-db` retains no coverage of any kind,
 and `walk_decl` still takes a bare `&Decl`. The corpus figures are carried from
 the design pass and were measured with an instrumented build over 175 files.

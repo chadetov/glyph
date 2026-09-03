@@ -293,6 +293,11 @@ footer a:hover { color: var(--text); }
 .rel-ver { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; color: var(--text); }
 .rel-tag { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border-2); color: var(--muted); }
 .rel-tag.latest { color: var(--green); border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
+/* A release that rejects code an earlier version accepted. Established by running
+   both versions, never inferred from the note's wording. */
+.rel-tag.breaking { color: var(--red, #f87171); border-color: rgba(248,113,113,0.45); background: rgba(248,113,113,0.09); }
+.breaking-note { border-left: 3px solid rgba(248,113,113,0.5); padding: 0.8rem 1.1rem; margin: 1.4rem 0 2rem; font-size: 0.92rem; line-height: 1.6; color: var(--muted); }
+.breaking-note strong { color: var(--fg); font-weight: 600; }
 .rel-date { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
 .rel-body h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; margin: 0 0 14px; color: var(--text); }
 .changelist { list-style: none; padding: 0; margin: 0; }

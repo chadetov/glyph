@@ -77,7 +77,12 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
                 let path_text =
                     imp.path.segments.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join("/");
                 let new_text = format!("import {} {{ {} }}", path_text, kept.join(", "));
-                edits.push((imp.span.start, imp.span.end, new_text));
+                // Replace the decl's own text and nothing else. `imp.span.end`
+                // sits PAST the newline terminating the import (see
+                // `decl_text_end`), so splicing over the raw span consumes that
+                // newline and welds the rewritten import onto what follows.
+                let decl_end = decl_text_end(&source, imp.span.start, imp.span.end);
+                edits.push((imp.span.start, decl_end, new_text));
                 report.removed_imports += dead_count;
             }
         }
@@ -86,6 +91,17 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
         }
 
         let new_source = apply_edits(&source, edits);
+        // A tool that edits source is held to a higher bar than one that only
+        // reports. Re-parse what is about to be written and refuse to write it
+        // if the rewrite broke the file, so a bad fix fails loudly instead of
+        // reporting success over a tree it corrupted.
+        if glyph_parser::parse(&new_source).is_err() {
+            return Err(format!(
+                "{}: the rewritten file does not parse, so nothing was written. \
+                 This is a bug in `glyph fix`; please report it with the file.",
+                f.display()
+            ));
+        }
         std::fs::write(&f, &new_source).map_err(|e| format!("{}: {e}", f.display()))?;
         report.changed.push(f);
     }
@@ -110,15 +126,31 @@ fn full_line_span(source: &str, start: u32, end: u32) -> (u32, u32) {
     // Walk back over the newline the span already covers before looking for
     // the end of the line, so `end` lands inside the decl's own line whatever
     // the parser handed us.
-    let mut scan = end as usize;
-    while scan > start as usize && source.as_bytes().get(scan - 1) == Some(&b'\n') {
-        scan -= 1;
-    }
+    let scan = decl_text_end(source, start, end) as usize;
     let line_end = match source[scan..].find('\n') {
         Some(i) => (scan + i) as u32 + 1,
         None => source.len() as u32,
     };
     (line_start, line_end)
+}
+
+/// The end of a decl's own text, with the line terminator it sits on excluded.
+///
+/// An import decl's span already ends PAST its own newline: the parser takes
+/// the end from `peek_span()` while the peeked token is the `Newline`, so `end`
+/// is the first byte of the following line. Any caller that wants "the decl
+/// itself" has to walk that back. Removing a whole import does so through
+/// `full_line_span`; the partial-prune path added in 0.1.99 did not, and
+/// spliced a rewritten import over a range that included the newline, joining
+/// it to the next line and leaving the file unparseable.
+fn decl_text_end(source: &str, start: u32, end: u32) -> u32 {
+    let mut scan = end as usize;
+    while scan > start as usize
+        && matches!(source.as_bytes().get(scan - 1), Some(&b'\n') | Some(&b'\r'))
+    {
+        scan -= 1;
+    }
+    scan as u32
 }
 
 /// Splice a set of `(start, end, replacement)` byte-range edits into `source`
@@ -190,6 +222,58 @@ mod tests {
         );
         assert!(!after.contains("import std/string"), "dead import gone:\n{after}");
         assert!(after.contains("import std/io"), "live import kept:\n{after}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Pruning SOME names out of an import must not eat the newline that
+    /// terminates it. The whole-import path learned this once (see
+    /// `removing_an_import_does_not_eat_the_line_below_it`); the partial-prune
+    /// path shipped in 0.1.99 spliced over the raw span and welded the
+    /// rewritten import onto the next line, so `glyph fix` reported success and
+    /// left a file that would not parse. Both shapes below are ordinary Glyph.
+    #[test]
+    fn partial_prune_keeps_the_newline_before_the_next_declaration() {
+        let src = "module m\nimport std/result { Result, Ok, Err }\nfn main() -> void {\n  let _ = Ok(1)\n}\n";
+        let dir = std::env::temp_dir().join(format!("glyph_fix_pp_decl_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("m.glyph");
+        std::fs::write(&file, src).unwrap();
+
+        fix_project(&dir).unwrap();
+        let after = std::fs::read_to_string(&file).unwrap();
+        assert!(
+            glyph_parser::parse(&after).is_ok(),
+            "the rewritten file must still parse:\n{after}"
+        );
+        assert!(
+            after.contains("}\nfn main() -> void {"),
+            "the newline terminating the import must survive:\n{after}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The same defect with an import on the following line rather than a
+    /// declaration: consecutive imports are at least as common.
+    #[test]
+    fn partial_prune_keeps_the_newline_before_the_next_import() {
+        let src = "module m\nimport std/result { Result, Ok, Err }\nimport std/io\nfn main() -> void {\n  io.println(\"hi\")\n  let _ = Ok(1)\n}\n";
+        let dir = std::env::temp_dir().join(format!("glyph_fix_pp_imp_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("m.glyph");
+        std::fs::write(&file, src).unwrap();
+
+        fix_project(&dir).unwrap();
+        let after = std::fs::read_to_string(&file).unwrap();
+        assert!(
+            glyph_parser::parse(&after).is_ok(),
+            "the rewritten file must still parse:\n{after}"
+        );
+        assert!(
+            after.contains("import std/io"),
+            "the import on the next line must survive:\n{after}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -61,8 +61,53 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.110</span>
+            <span class="rel-ver">0.1.112</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Ask what one change breaks, across every relation that carries it</h3>
+            <p><code>glyph_impact</code> takes an entity and a change, not just an entity. That is the design: a verdict is a fact about an edit, and with no edit named every answer degrades into a list of things that mention something.</p>
+            <div class="code">
+              <span class="cap">glyph_impact { entity: "value::Value", change: { kind: "add_variant", variant: "Blob" } }</span>
+<pre><span class="del">WILL_FAIL</span>  value::render         value.glyph:18     E0200
+<span class="del">WILL_FAIL</span>  value::key            value.glyph:32     E0200
+<span class="del">WILL_FAIL</span>  bind::literal_kind    bind.glyph:148     E0200
+<span class="add">ABSORBS</span>    exec::total           exec.glyph:130
+<span class="add">ABSORBS</span>    render::literal_text  render.glyph:128
+<span class="dim">8 WILL_FAIL, 2 ABSORBS, across 4 files</span></pre>
+            </div>
+            <p>That is the set the compiler reports when the case is actually added, and a committed benchmark checks the two against each other on every run.</p>
+            <h3>What it refuses to say</h3>
+            <p>Six change kinds, each mapped to the one relation that carries it. The mapping was measured rather than chosen: seven change kinds were probed and every diagnostic landed at a site naming the changed entity, none a hop further, because Glyph never infers a declaration's type from its body. A request for a second hop is answered with the exact first-hop result and a <code>next_query</code> naming the question that would also be exact.</p>
+            <p>Changing a parameter's type returns nothing but <code>NOT_INDEXED</code>. Passing a declared union where a <code>string</code> is expected produces no diagnostic, where passing a <code>bool</code> does, because the checker reports only a mismatch it can prove. Those call sites are neither broken nor safe, and claiming either would be asserting something the compiler never established.</p>
+            <p class="rel-note">Building the gate for this found a live defect. <code>UNDETERMINED</code> was returned for any match site with an arm the checker does not model, on the reasoning that the unread arm might absorb the new case. It cannot: such an arm never counts as covering anything, so a case no arm names is missing regardless. Those sites fail to compile and now say so. A verdict meaning "I could not decide" is useful only while it stays rare, and it had begun collecting cases the compiler decides plainly.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.111</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The loop is proven, not asserted</h3>
+            <p>An agent adds a case to a union, the compiler names what broke, a query names a site the compiler never mentioned because it keeps compiling, and the tree goes green after the named sites are fixed. That had been walked once by hand and tested nowhere. It is six tests now, over the real process.</p>
+            <p>The loop test was the one easy to write dishonestly, so the honesty is structural rather than a promise. Its fixture hands back paths and counts and nothing else, so a test cannot spell the union, its module, or the variant: those names are not in scope. They also carry a per-run suffix, so a hard-coded one fails instead of passing quietly. Each hop is fed from the previous answer.</p>
+            <p>Three deliberate breakages prove it bites. The one that matters: repair only the sites the compiler reported, and the tree still goes green, but the test fails because the edits did not go where the answer pointed. A test asserting only that the build passes would have missed it, and that silent site is the entire reason for this work.</p>
+            <h3>The surface an agent talks to, tested for the first time</h3>
+            <p>Every test called the server in process, so the transport was never exercised. The <code>instructions</code> string shipped in 0.1.107 appeared in no assertion at all, which was checked by deleting it and watching 1312 tests pass. The handshake is now exercised as an ordered exchange over a spawned process, and three kinds of line that are not requests get no answer while the server stays up.</p>
+            <p class="rel-note">The demonstration is a committed benchmark rather than a story. On a CSV query engine in this repository, eleven files, adding one case to the union at its centre: ten match sites across four files, eight that fail and two that absorb, and the compiler afterwards reporting exactly those eight. A text search asked the same question finds twenty catch-all arms, two of them relevant, and says nothing about the eight that break.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.110</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

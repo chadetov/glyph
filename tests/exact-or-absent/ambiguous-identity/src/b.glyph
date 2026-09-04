@@ -1,0 +1,12 @@
+module b
+
+pub type Status =
+  | Yes
+  | No
+
+pub fn lb(s: Status) -> string {
+  return match s {
+    Yes => "y",
+    No => "n",
+  }
+}

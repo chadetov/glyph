@@ -46,6 +46,7 @@ GATES = [
     ("check_site", "links resolve, sub-nav and sitemap complete"),
     ("check_apps_are_glyph", "no TypeScript under examples/apps"),
     ("check_catches", "the paired demos still catch what they claim"),
+    ("check_exact_or_absent", "no impact edge is manufactured under degeneracy"),
     ("check_scaffold_docs", "what `glyph init` writes still builds"),
     ("check_docs_compile", "every documented program compiles"),
     ("check_doc_claims", "test counts and promises match reality"),

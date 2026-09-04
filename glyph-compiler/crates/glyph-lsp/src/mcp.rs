@@ -410,7 +410,7 @@ fn tool_specs() -> Value {
     let file = json!({ "type": "string", "description": "Path to a .glyph file, relative to the project root or absolute." });
     let line = json!({ "type": "integer", "description": "0-based line number." });
     let character = json!({ "type": "integer", "description": "0-based character offset (UTF-16 code units)." });
-    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position. A record field is addressed as `Record.field` (`User.email`), with the record named the way the file at `path` names it: a bare field name is not an address, since two records in one module can each declare a field of that name. The field form answers `{ entity, sites, unkeyed, not_indexed }` rather than the relation split, because it reads a different relation: `sites` are the field's own declaration and every member access the checker resolved onto that record, each with `access` (`declaration`, `read`, `write`, `redact`) and a range covering the field's name alone, so a rename can write from it; `unkeyed` holds sites that spell the field on an object whose type never resolved to a field set, which the compiler never joined to any record and which are named rather than dropped; `not_indexed` names the classes of site the relation does not hold at all, and a record literal constructing the record is one of them." });
+    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position. A record field is addressed as `Record.field` (`User.email`), with the record named the way the file at `path` names it: a bare field name is not an address, since two records in one module can each declare a field of that name. The field form answers `{ entity, sites, unkeyed, unindexed, not_indexed }` rather than the relation split, because it reads a different relation: `sites` are the field's own declaration and every member access the checker resolved onto that record, each with `access` (`declaration`, `read`, `write`, `redact`) and a range covering the field's name alone, so a rename can write from it; `unkeyed` holds sites that spell the field on an object whose type never resolved to a field set, which the compiler never joined to any record and which are named rather than dropped; `unindexed` names the project files the sweep could not read, one by one, since a file that does not parse holds field sites this answer cannot see; and `not_indexed` names the classes of site the relation does not hold at all, of which a record literal constructing the record is one." });
     let type_name = json!({ "type": "string", "description": "Name of a tagged union, as the file at `path` names it: one it declares, one it imports, or a prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`). The module the name resolves to is what picks out one declaration when several modules declare the same name." });
     let relation = json!({
         "type": ["string", "array"],
@@ -4278,6 +4278,52 @@ mod tests {
             kinds.iter().filter(|(_, a)| a == "read").count(),
             2,
             "the two reads of `a.owner` are not both here: {kinds:?}"
+        );
+    }
+
+    /// A project file the sweep cannot read is named in the field answer.
+    ///
+    /// The relation holds nothing for a file that does not parse, so its field
+    /// sites are invisible here. Leaving it out would make a list of the files
+    /// that did parse read as the whole project, which is the partial list
+    /// shaped like a complete one.
+    #[test]
+    fn a_file_the_sweep_cannot_read_is_named_in_a_field_answer() {
+        let root = tmp_root();
+        write(
+            &root,
+            "types.glyph",
+            "module types\npub type User = {\n  name: string,\n  email: string,\n}\n",
+        );
+        write(
+            &root,
+            "app.glyph",
+            "module app\n\
+             import types { User }\n\
+             pub fn greet(u: User) -> string {\n  return u.email\n}\n",
+        );
+        write(&root, "broken.glyph", "module broken\npub fn oops( {\n");
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let unindexed = value["unindexed"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `unindexed` in {value}"));
+        let named: Vec<&str> = unindexed
+            .iter()
+            .filter_map(|u| u["path"].as_str())
+            .collect();
+        assert_eq!(named, vec!["broken.glyph"], "{value}");
+        assert!(
+            unindexed[0]["why"].as_str().unwrap_or_default().contains("field site"),
+            "the file is named with no reason for it: {}",
+            unindexed[0]
+        );
+        // The readable file's site is still there, so the coverage statement is
+        // an addition to the answer rather than a replacement for it.
+        let kinds = field_kinds(&value, "sites");
+        assert!(
+            kinds.contains(&("app::greet".to_string(), "read".to_string())),
+            "the readable file's site was lost: {kinds:?}"
         );
     }
 

@@ -455,14 +455,16 @@ def case_field_entity() -> tuple[bool, str]:
     one function reads `email` off an `extern_ts` value the checker sees nothing
     behind, and one constructs a `User` with a record literal.
 
-    Four things have to hold at once, and three of them are about absence.
+    Five things have to hold at once, and four of them are about absence.
     The proven site is keyed to the record that declares it, so the other
     record's read stays out. The opaque site is over a type that never resolved
     to a field set, so it is neither promoted into the proven list (a claimed
     edge the compiler never made) nor dropped (which would say the site does
-    not exist). And the record literal is a class of site this relation does
+    not exist). The record literal is a class of site this relation does
     not hold at all, so the answer says so rather than letting a list of member
-    accesses read as the whole impact set.
+    accesses read as the whole impact set. And coverage is stated per file, so a
+    project file the sweep could not read is named rather than left out of a
+    list that would then read as complete.
     """
     root = CORPUS / "field-entity"
     a = references(root, "src/model.glyph", "User.email")
@@ -491,6 +493,15 @@ def case_field_entity() -> tuple[bool, str]:
     if unexplained:
         return False, f"an unkeyed site with no reason for it: {unexplained}"
 
+    coverage = a.get("unindexed")
+    if coverage is None:
+        return False, (
+            "the answer states no per-file coverage, so a file the sweep could not "
+            "read would be missing from it with nothing said"
+        )
+    if coverage:
+        return False, f"named a file as unreadable that this corpus parses: {coverage}"
+
     classes = a.get("not_indexed")
     if not classes:
         return False, (
@@ -505,7 +516,10 @@ def case_field_entity() -> tuple[bool, str]:
     bare = references(root, "src/model.glyph", "email")
     if "error" not in bare:
         return False, f"answered a bare field name as if it were an address: {bare}"
-    return True, "keyed to its own record; the opaque site named, the literal class stated"
+    return True, (
+        "keyed to its own record; the opaque site named, the coverage and the "
+        "literal class both stated"
+    )
 
 
 HARD = [

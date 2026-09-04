@@ -709,7 +709,13 @@ impl CoverageWriter {
 /// `CoverageTypeName` gives: a `DeclKey` carries a `ModuleId`, those are issued
 /// by the project-level interner in `glyph-db`, and one minted anywhere else is
 /// an in-range id for some *other* module. This crate holds no interner, so it
-/// hands out strings and the project-wide consumer mints the key.
+/// hands out strings.
+///
+/// Unlike `CoverageTypeName`, nothing mints these into keys yet. The one
+/// consumer keys a field by comparing `(module, name)` against the identity the
+/// address resolved to, which is what the reference tool already does for a
+/// symbol. A relation read by a surface that merges several of them wants the
+/// minted form instead, and that is where the fold belongs when there is one.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FieldOwner {
     /// A record declared in a project module, under the module key that

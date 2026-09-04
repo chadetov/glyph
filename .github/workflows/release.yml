@@ -61,6 +61,10 @@ on:
 # published, on a runner it was never going to be assigned. A `timeout-minutes`
 # cannot help: GitHub does not count queued time against it.
 #
+# The label was retired, not scarce, which is why no wait ever ended. That is
+# fixed at the matrix below; this grouping stays because the hazard it covers
+# is any unfinished job, not that one.
+#
 # Keying the group by tag keeps the property that matters, since the hazard is
 # two runs publishing the SAME version concurrently, and a re-run of one tag
 # still serialises against itself. Two different tags racing is not the danger:
@@ -195,14 +199,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # darwin-x64 cross-compiles on Apple Silicon: GitHub's Intel macOS
-          # runner (macos-13) is scarce and queues indefinitely, while macos-14
-          # builds both Apple targets from one image.
+          # Both Apple targets build from one image, with darwin-x64
+          # cross-compiled. This said macos-14 until macos-14 was deprecated
+          # with a stated end of support of 2 November 2026; on that date a
+          # stale label stops being assigned a runner, which is precisely how
+          # the retired macos-13 failed in the smoke job below.
           - key: darwin-arm64
-            os: macos-14
+            os: macos-15
             target: aarch64-apple-darwin
           - key: darwin-x64
-            os: macos-14
+            os: macos-15
             target: x86_64-apple-darwin
           - key: linux-x64
             os: ubuntu-latest
@@ -265,20 +271,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # darwin-x64 is absent on purpose. macos-14 is arm64, so running an
-          # x64 binary needs Rosetta, which is not guaranteed on the image, and
-          # spending a macOS runner on the mode check alone buys nothing: the
-          # publish and release jobs both assert it again on ubuntu.
+          # darwin-x64 runs here on a real Intel runner. It used to be absent,
+          # on the reasoning that Rosetta was not guaranteed and that `macos-13`
+          # in the smoke job covered it. The second half was false: that job
+          # never once got a runner, so the binary was executed nowhere and the
+          # only thing behind it was that it compiled.
           #
-          # So darwin-x64 is executed nowhere in CI. Today it is still covered,
-          # because the maintainer's machine is an Intel Mac and the manual npx
-          # smoke test runs there. That is coverage by accident of hardware, and
-          # it inverts the moment they move to Apple Silicon: darwin-arm64 would
-          # keep its CI coverage below and darwin-x64 would have none at all.
-          # macos-13 is the real fix and the reason it is avoided for building
-          # (the runner queues) weighs much less on a ten-second verify job.
+          # It belongs in `verify` rather than only in `smoke` because `smoke`
+          # needs `publish`, and this file's own rule is that everything
+          # checkable is checked before the irreversible step. An x64 binary
+          # proven only after the version is burned onto npm cannot stop
+          # anything.
+          - key: darwin-x64
+            os: macos-15-intel
+            runnable: true
           - key: darwin-arm64
-            os: macos-14
+            os: macos-15
             runnable: true
           - key: linux-x64
             os: ubuntu-latest
@@ -476,6 +484,8 @@ jobs:
     # release concurrency group. On 0.1.102, the first release to include
     # `macos-13`, that job was never assigned a runner and held the group for
     # 6h29m until someone cancelled it, with 0.1.103's publish queued behind it.
+    # The label had been retired since December 2025, so no runner was ever
+    # coming; the bound below is still right for a job that starts and stalls.
     #
     # Ten minutes bounds this job once it has a runner, which is not what the
     # 0.1.102 job spent, so the scarce-runner exposure is unchanged and the fix
@@ -494,13 +504,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-13 is the Intel runner and macos-14 is Apple Silicon. Both are
-        # here because the two darwin binaries are different artifacts: without
-        # macos-13, `darwin-x64` was built on every release and executed on
-        # none, so the only thing standing behind it was that it compiled.
-        # An arm64 pass says nothing about the x64 package a user on an Intel
-        # Mac actually downloads.
-        os: [ubuntu-latest, macos-13, macos-14, windows-latest]
+        # macos-15-intel is the Intel runner and macos-15 is Apple Silicon.
+        # Both are here because the two darwin binaries are different
+        # artifacts: an arm64 pass says nothing about the x64 package a user on
+        # an Intel Mac actually downloads.
+        #
+        # This said `macos-13` from 0.1.102 to 0.1.107, and the label was
+        # retired in December 2025, nine months before it was written here. It
+        # is absent from actions/runner-images entirely. The job was never
+        # assigned a runner on any release: `runner_name` is empty on every one
+        # of them, so it queued until somebody cancelled it by hand, and the
+        # comment here explained that as a scarce runner. It was not scarce, it
+        # did not exist, and `darwin-x64` shipped six releases with nothing but
+        # a successful compile behind it while a job that claimed to execute it
+        # sat unschedulable.
+        os: [ubuntu-latest, macos-15-intel, macos-15, windows-latest]
     steps:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

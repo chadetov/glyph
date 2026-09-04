@@ -61,8 +61,43 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.107</span>
+            <span class="rel-ver">0.1.108</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The JSON surface stopped saying a broken project was fine</h3>
+            <p><code>glyph check --json</code> ran no <code>@example</code> gate at all. The same project, the same flags, two answers:</p>
+            <div class="code">
+              <span class="cap">0.1.107</span>
+<pre>glyph check src --no-tsc          <span class="del">example failed: main::add example #1</span>   exit 1
+glyph check src --no-tsc --json   <span class="add">{"ok": true, "errors": 0}</span>            exit 0</pre>
+            </div>
+            <p>The gate ran on the path a person reads and not on the path a tool reads. <code>glyph check</code>'s promise is that it cannot report a clean tree that <code>build</code> would fail, and under <code>--json</code> it did exactly that. This is why the release is marked breaking: a project whose example was failing silently now fails out loud, so a green build can go red on upgrade. That is the fix working.</p>
+            <p>Two more holes of the same shape went with it. A project whose augmented copy would not compile reported "1 example(s) passed" and exited 0. A malformed <code>@example</code> was reported as a missing <code>tsx</code> install. Failures now carry structure rather than prose: a code, the declaration they belong to, and the detail, taken from values the compiler already had instead of parsed back out of its own output.</p>
+            <h3>One declaration, one spelling</h3>
+            <p>0.1.107 gave every diagnostic the declaration it sits in, and gave it three spellings, because three surfaces measured the module half from three different roots. On the layout <code>glyph init</code> writes:</p>
+            <div class="code">
+              <span class="cap">before</span>
+<pre>glyph check --json   <span class="del">a::f</span>
+glyph_diagnostics    <span class="del">src/a::f</span></pre>
+              <span class="cap">after</span>
+<pre>glyph check --json   <span class="add">a::f</span>
+glyph_diagnostics    <span class="add">a::f</span></pre>
+            </div>
+            <p>The rule now lives in one place: a declaration's module half is measured from its project, and from its own directory when no project marks it. Neither answer changes with where you ran the tool from, which was the whole defect. The fallbacks disagreed too, and a comment claimed they could not.</p>
+            <h3>A diagnostic the compiler could place no longer says it cannot</h3>
+            <p>An annotation's text sits in the gap before a declaration starts, so the walk that assigns a declaration found nothing for an unknown-annotation error and reported none. But the checker raises that error while holding the declaration. It carries the name now, from where it was already known. Absence of an answer is supposed to mean there is no answer, not that we computed one and dropped it.</p>
+            <p class="rel-note">The example gate also left a copy of your project in the temp directory on every run, since it removed that copy only on the way in and never on the way out. Four thousand had built up on one machine. It surfaced as a flaky test: with that many orphans around, the operating system reuses a process id and a new run collides with a directory left days earlier.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.107</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

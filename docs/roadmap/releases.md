@@ -5051,6 +5051,69 @@ its envelope:
 - The test for all of this is not that the field is present. It is that an agent handed one result, with no reply around it and no memory of the question, can still say why it is holding that result
 
 **0.1.112 — Next · `glyph_impact`, generalized over every relation**
+
+**The two questions are decided, and this is the answer.**
+
+*Graph reachability is not impact.* `A -> B -> C` says a relationship exists. It
+does not say the consequence travels along it. `PaymentResult` gains a variant,
+`billing::settle` matches on it exhaustively and stops compiling, and
+`api::checkout` calls `settle`. Whether `checkout` is impacted does not depend on
+the edge between them. It depends on whether `settle`'s signature changed, which
+is a fact about the change and not about the graph.
+
+So transitivity is a property of **(change kind, relation kind)**, never of
+topology:
+
+| change | relation | propagates |
+|---|---|---|
+| add variant | `MENTIONS` | yes |
+| add variant | `CALLS` | no |
+| rename field | `FIELD_ACCESS` | yes |
+| rename field | `CALLS` | no |
+| change signature | `CALLS` | yes |
+| change signature | `REFERENCES` | must be established per case |
+
+**Every cell is a claim about the compiler and gets a program.** None of it ships
+on reasoning. A cell that cannot be demonstrated with a real program, checked
+both ways, means the traversal does not generalize over that relation yet.
+
+This separates two things that were being conflated:
+
+```
+       relation traversal      finds candidates
+              |
+              v
+    change propagation rule    decides impact
+              |
+              v
+        impacted nodes
+```
+
+Traversal finds candidates. Propagation decides impact. Keeping them apart is
+what stops reachability from quietly becoming semantic truth, and keeps the
+meaning in the compiler rather than inferred from a generic graph. It is also
+what lets an agent ask what a specific change breaks rather than what is
+connected to something.
+
+*Coverage belongs to the relation and never floats above the answer.* A single
+`coverage: COMPLETE` over a heterogeneous edge list is unanswerable: complete for
+which relation? So:
+
+```
+{ entity: "payments::PaymentResult",
+  relations: [
+    { kind: "MENTIONS", coverage: "COMPLETE", edges: [...] },
+    { kind: "CALLS",    coverage: "PARTIAL",  not_indexed: [...], edges: [...] } ] }
+```
+
+Every edge is governed by the coverage statement immediately above it. An agent
+can then rely on "this is the complete set of `CALLS` edges" instead of "Glyph
+returned some related things and called the answer complete". Relations added
+later, `GENERATED_FROM`, `FIELD_ACCESS`, `IMPORTS`, each get their own boundary
+rather than diluting a shared one.
+
+**Both are hard gates.** If the propagation table cannot be answered precisely
+with concrete programs, `glyph_impact` does not generalize yet.
 - One entity in, nodes and labelled edges out, with a verdict per node from a closed set, never a similarity score and never "possibly related"
 - **This is the release most likely to go wrong, and the failure has a shape: a specific semantic question turns into generic graph infrastructure, "impact" comes to mean everything, and Glyph becomes a graph database with a compiler attached.** The defence is that every edge stays compiler-derived. If the checker did not already compute it, it is not an edge
 - **Transitivity is a hard gate, settled and written down before any code.** `A -> B -> C` has to mean one thing. Direct semantic consequence, transitive dependency, compilation consequence and runtime consequence are four different relations, and "potentially affected" is not a member of the set at all. A caller of a function that stopped compiling is impacted only if that function's signature changed, so transitivity is a property of the change kind rather than of the graph

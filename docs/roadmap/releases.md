@@ -21,6 +21,55 @@ compiler you just built and correcting what changed, then moving the
 `*Reviewed against X.Y.Z.*` stamp. Moving the stamp without reading defeats it
 entirely and is the one thing no gate can catch.
 
+## The question the whole roadmap answers
+
+**Can an agent make a non-trivial semantic change to a Glyph program without
+rediscovering the compiler's reasoning?**
+
+Every release below is measured against that sentence or it does not belong
+here. The gap numbers are bookkeeping; they are not the goal, and a release that
+closes eight of them while moving that sentence nowhere has not earned its
+number.
+
+The progression, read as one story rather than seven:
+
+```
+0.1.109  the stdlib is complete enough that an agent writes ordinary code
+0.1.110  prove the repair loop, on a real application, measured
+0.1.111  make relationships traversable, with a vocabulary
+0.1.112  generalize impact, without becoming a graph database
+0.1.113  make semantic facts identical across every surface that emits
+0.1.114  make identities stable under incremental edits
+0.1.115  make the same knowledge fast enough for a human in an editor
+```
+
+**The success criterion changes at 0.1.110, and this is deliberate.** Until now
+the honest measure has been defects closed against a compiler that keeps moving.
+From 0.1.110 the measure is a task an agent either completes or does not:
+
+```
+Task: add `Cancelled` to OrderState.
+
+                          ordinary TypeScript agent      Glyph
+  files searched                              ?            0
+  compiler queries                            ?            1
+  semantic sites missed                       ?            0
+  incorrect edits                             ?            ?
+  repair iterations                           ?            ?
+  time to green                               ?            ?
+```
+
+Those question marks are the point. They are not filled in, because filling them
+in before running the experiment is how a benchmark becomes marketing. The
+instrument is defined before the result is seen, the same agent and the same
+prompt run on both sides, and the losing run is published.
+`benchmarks/impact-before-edit/` is the seed of this, and today it measures the
+prediction rather than the task.
+
+**The rule that outranks everything below.** Never return an inferred
+relationship as if it were a compiler-proven one. `tests/exact-or-absent/` is
+the gate, and it grows a case per relation as each one lands.
+
 ## Shipped
 
 - **0.1.0–0.1.2** — first public preview: the language + Rust compiler, the
@@ -4745,7 +4794,7 @@ generator already knows the answer).
 - The one part nothing had measured, the nested-payload shape, is measured and holds: see the 0.1.109 section below for the numbers
 - No release was cut for it because no compiler behaviour changed; a version that ships an identical binary is a version number, not a release
 
-**0.1.109 — Next · The folds you write by hand**
+**0.1.109 — Landed on main · The folds you write by hand**
 - G100: `std/array` has no `max`, `min`, `max_by`, `min_by` or `sum`, so argmax is a four-line `match acc` fold at every search, ranking and scheduler
 - Re-reproduced against 0.1.108 rather than carried forward: every name is still `[E0105] not exported by std/array`
 - Not a soundness fix: the hand-written forms are correct, just long, and long is what an agent gets wrong
@@ -4805,7 +4854,9 @@ counted. None of the three gaps above touch it. So that case ships first, as the
 first instance of the primitive rather than as another bespoke tool, and the
 generalization follows once the remaining relations can carry the same promise.
 
-**0.1.110 — Next after 0.1.109 · "What breaks if I add this variant?"**
+**0.1.110 — Next · "What breaks if I add this variant?"**
+- **The flagship, and larger than the releases around it on purpose.** It carries nine entries, and an earlier reading of this file called that overloaded. It is not: they are one thing said in four parts. The capability (ask as a change, answer with a consequence), the invariant that keeps the answer honest, the tests that prove the loop closes, and the artifact that lets someone else run it. Ship any three without the fourth and the release is a claim rather than a demonstration
+- The order within it is capability, gate, tests, artifact. The gate comes second rather than last because an answer that manufactures a relation is worse than no answer, and the tests come before the artifact because a demo of an untested loop is a transcript
 - G187: the question can only be asked as a lookup today. `glyph_impact { entity: "payments::PaymentResult", add_variant: "Pending" }` asks it as the change it is
 - G188: the answer states a consequence, not a state: FAILS for a site that stops compiling, SILENTLY ABSORBS `Pending` for a site whose catch-all takes it, and the union's own variants so the caller can render what it is changing
 - Rejects a proposed name that already exists, which the lookup form cannot check because the name never reaches it
@@ -4985,24 +5036,39 @@ its envelope:
 - The test for all of this is not that the field is present. It is that an agent handed one result, with no reply around it and no memory of the question, can still say why it is holding that result
 
 **0.1.112 — `glyph_impact`, generalized over every relation**
-- One entity in, nodes and labelled edges out, with a verdict per node: breaks, compiles silently, or unaffected
-- Transitivity is the open question and is settled before implementation: whether a caller of a broken function is itself impacted depends on the change kind, and guessing produces either noise or omissions
+- One entity in, nodes and labelled edges out, with a verdict per node from a closed set, never a similarity score and never "possibly related"
+- **This is the release most likely to go wrong, and the failure has a shape: a specific semantic question turns into generic graph infrastructure, "impact" comes to mean everything, and Glyph becomes a graph database with a compiler attached.** The defence is that every edge stays compiler-derived. If the checker did not already compute it, it is not an edge
+- **Transitivity is a hard gate, settled and written down before any code.** `A -> B -> C` has to mean one thing. Direct semantic consequence, transitive dependency, compilation consequence and runtime consequence are four different relations, and "potentially affected" is not a member of the set at all. A caller of a function that stopped compiling is impacted only if that function's signature changed, so transitivity is a property of the change kind rather than of the graph
+- The verdict vocabulary is closed and each member means one thing:
+
+  | verdict | meaning |
+  |---|---|
+  | `WILL_FAIL` | this site stops compiling when the change lands |
+  | `ABSORBS` | this site keeps compiling and silently takes the new case |
+  | `SAFE` | reached, examined, and unaffected by this specific change |
+  | `REFERENCES` | names the entity without a compilation consequence |
+  | `GENERATED_FROM` | derived artifact, with the source and content hash |
+  | `NOT_INDEXED` | the compiler could not key this, named rather than counted |
+
 - Measured against search alone on a real codebase, same agent and prompt on both sides, the losing run published
 
 **0.1.113 — Provenance, and the boundary as a node kind**
+- **G170 is the non-negotiable one and it is worse than a playground bug.** Two surfaces that emit TypeScript from the same Glyph must emit the same TypeScript. Today the CLI and the WASM playground assemble the front end separately and the playground emits with an empty `EmitContext`, so a program with a cross-module import can compile to different output depending on which one you asked. For a language that is not a rendering difference, it is two languages with one name
 - R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - G170: the playground emits what `glyph build` emits, or the page says plainly that it does not
 
 **0.1.114 — The incremental debt, in the order it actually binds**
-- `type_map`'s span keying first, because coverage edges, the overlay and the rekey all sit downstream of it
-- Then rekey the five position-keyed per-declaration queries to `DeclKey`, which has no user-visible effect on its own
-- Move the content-difference guard into `glyph-db` behind `set_file_text`, and make raw `set_text` non-public
-- G171: measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded
+- **Each item earns its place against the question at the top of this file or it waits until after 1.0.** This is the release where engineering elegance is most likely to be mistaken for product value, and "this architecture would be cleaner" is not a reason to ship anything
+- `type_map`'s span keying: **earns it.** A span-keyed map means an identity moves when unrelated lines above it move, and every relation the agent work depends on sits downstream of that
+- Rekeying the five position-keyed per-declaration queries to `DeclKey`: **earns it, barely.** No user-visible effect on its own, and it is the precondition for an identity that survives an edit, which is the whole first clause of the question
+- The content-difference guard behind `set_file_text`: **earns it.** Raw `set_text` being public is how a byte-identical write forces re-execution, which is a correctness edge in the incremental layer rather than a tidiness one
+- G171: measure what fraction of diagnostics land inside a function body, before committing to a local-level graph. Measuring first is the point, and if the fraction is small the local work does not happen at all
 
 **0.1.115 — The language server stops running a second compiler**
-- An overlay: disk text by default, editor buffer for open files, so the server consumes the model instead of re-running it
+- **What this is not: routing the language server through the semantic graph.** The graph and the language server are peers, each a projection of the compiler's model, and neither is built on the other. The graph reads disk truth and answers an agent; the server reads buffer truth and answers an editor. Collapsing them would make an editor's unsaved keystroke a question for a disk-backed database, which is the wrong abstraction in the most expensive possible place
+- What it is: the incremental analysis path for the server, with an overlay between disk state and unsaved editor state, so the server stops re-running an analysis the compiler already did
 - Measured today at 15.4ms per keystroke for diagnostics alone and 61.2ms for an editor burst on a 2,205-line file, growing about n^1.6
 - Database lifetime is the real question underneath it: `glyph build` throws its database away and only the MCP server keeps one
 - Depends on 0.1.109 landing first; an overlay on a span-keyed map buys nothing
@@ -5347,7 +5413,50 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
-### 0.1.109 — Next · The folds you write by hand
+### 0.1.110 — Next · "What breaks if I add this variant?"
+
+The flagship. Everything from 0.1.104 onward has been building the parts; this
+is the release where they answer a question somebody would actually ask.
+
+**One capability, said four ways, and shipping three of them is a claim rather
+than a demonstration.**
+
+*The capability.* The question can be asked as a change rather than a lookup:
+`glyph_impact { entity: "payments::PaymentResult", add_variant: "Pending" }`. The
+answer states a consequence per site, not a state the caller has to interpret,
+and it lists the union's own variants so the caller can render what it is
+changing. A proposed name that already exists is rejected, which the lookup form
+cannot check because the name never reaches it (G187, G188).
+
+*The invariant.* `tests/exact-or-absent/` already gates five degenerate
+conditions and records two known failures. Both close here: a record answered
+with an empty site list, shaped identically to a union with no matches (G190),
+and `glyph check --no-tsc` reporting no diagnostics on a program importing a
+module that does not exist while the impact surface correctly answers
+`scrutinee_unresolved` for the same file (G189).
+
+*The tests.* The loop has been walked once, by hand. Nothing asserts that it
+closes, and nothing tests the surface an agent actually talks to: every MCP test
+calls the dispatcher in process, and the `instructions` string 0.1.107 shipped
+appears in no assertion at all, so deleting it keeps the suite green (G196,
+G197). The diagnostic also has to carry the entities it concerns as fields, since
+today the union's name reaches the next query only through a regex over a
+sentence (G195).
+
+*The artifact.* The demonstration runs today and exists as a transcript.
+`examples/apps/csvql`, eleven files, one variant added to the `Value` union at
+its centre: ten match sites across four files, eight that fail and two that keep
+compiling and absorb it, and the compiler afterwards reports exactly those
+eight. It is not committed, not scripted, and not runnable by a reader (G198,
+G199).
+
+**What this release is measured by.** Not gaps closed. The table at the top of
+this file: files searched, compiler queries, semantic sites missed, incorrect
+edits, repair iterations, time to green, against an ordinary TypeScript agent
+doing the same task. Those cells are empty on purpose and stay empty until the
+experiment runs.
+
+### 0.1.109 — Landed on main · The folds you write by hand
 
 Two `std/array` gaps that an outside app found and that nothing has closed. Both
 were re-reproduced against 0.1.108 rather than carried forward on their old

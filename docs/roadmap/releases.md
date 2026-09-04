@@ -5050,7 +5050,7 @@ its envelope:
 - **`source` stays a relocation hint and never becomes a key.** 0.1.106 settled that a match site gets no durable identity, since an ordinal moves when a match is inserted above it and a spelling changes when the scrutinee is edited. A result says where the site was when asked, so an agent goes and looks rather than dereferencing an address that may have gone stale. Provenance that has to be re-derivable follows from that decision rather than working around it
 - The test for all of this is not that the field is present. It is that an agent handed one result, with no reply around it and no memory of the question, can still say why it is holding that result
 
-**0.1.112 — Next · `glyph_impact`, generalized over every relation**
+**0.1.112 — Landed on main · `glyph_impact`, generalized over every relation**
 
 **The two questions are decided, and this is the answer.**
 
@@ -5203,7 +5203,7 @@ with concrete programs, `glyph_impact` does not generalize yet.
 
 - Measured against search alone on a real codebase, same agent and prompt on both sides, the losing run published
 
-**0.1.113 — Provenance, and the boundary as a node kind**
+**0.1.113 — Next · Provenance, and the boundary as a node kind**
 - **G170 is the non-negotiable one and it is worse than a playground bug.** Two surfaces that emit TypeScript from the same Glyph must emit the same TypeScript. Today the CLI and the WASM playground assemble the front end separately and the playground emits with an empty `EmitContext`, so a program with a cross-module import can compile to different output depending on which one you asked. For a language that is not a rendering difference, it is two languages with one name
 - R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it

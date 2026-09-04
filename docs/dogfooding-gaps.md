@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-179 entries, 139 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-21 are open. G144, the D28 boundary cast that never reached the returns a
+182 entries, 140 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+23 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6967,3 +6967,82 @@ and is the owner's to confirm.
   modules into `dist/.glyph-runtime/std/` (`io`, `option`, `result`) out of the
   37 the compiler ships. An outside author independently counted 13 where 0.1.95
   emitted all of them.*
+
+- **G180. One declaration identity has three spellings, and two of them ship in
+  the same release.** 0.1.107 added an `entity` field naming the declaration a
+  diagnostic sits in. Three code paths derive the module half from three
+  different roots: `glyph check --json` strips the project src root
+  (`derive_module_path`), `glyph_variants` uses `project_root_for`, and
+  `glyph_diagnostics` uses the server workspace root (`display_path`).
+
+  On the layout `glyph init` generates, two of them disagree:
+
+  ```
+  glyph check --json   ->  a::f
+  glyph_diagnostics    ->  src/a::f
+  ```
+
+  Both doc comments assert the opposite, each claiming the spelling
+  `glyph_variants` reports. The tests missed it by construction: they write into
+  a bare temp dir with no `package.json`, where all three roots are the same
+  directory and the derivations coincide.
+
+  This is the shape 0.1.56 and 0.1.57 were spent removing, arriving from a new
+  direction. A design where the spelling can matter was settled as wrong on
+  arrival, and the impact query planned next names this field as a prerequisite,
+  so an ambiguous identity would produce a confident wrong list rather than an
+  incomplete one.
+
+  Related and unfixed: a monorepo builds several projects in one run and
+  concatenates their diagnostics with no project qualifier, so two projects each
+  holding `src/util.glyph` both report module `util`.
+
+  *Reproduced against 0.1.107 by running both surfaces on a project whose
+  package.json carries `"glyph": {"src": "src"}` with the file at `src/a.glyph`,
+  the layout `glyph init` writes.*
+
+- **G181. Diagnostics the checker could attribute report no declaration.** An
+  annotation's text sits in a gap between declaration spans, because
+  `parse_annotations` runs before the keyword and a `Decl` span starts at the
+  keyword. The span-containment walk that assigns `entity` therefore finds
+  nothing for `UnknownAnnotation` and `RedactUnknownField`, both of which are
+  emitted from `check_annotations(&mut self, decl: &Decl)` while the checker is
+  holding the declaration by reference.
+
+  Absence of an entity is supposed to mean the relation does not exist. Here the
+  relation was computed and discarded, which is the one thing the exact-or-absent
+  rule forbids.
+
+  Two neighbours of the same shape: `tsc`-remapped diagnostics set no entity on
+  the stated grounds that no declaration table is available, while `ModuleMap`
+  carries the Glyph source that would answer it; and `@example` failures are
+  emitted as free prose with no code, file, range or entity at all, which makes
+  the most declaration-specific failure the compiler produces the least
+  structured thing on the wire.
+
+  *Reproduced against 0.1.107; being confirmed case by case before any fix.*
+
+- **G182. [FIXED] The release workflow named a runner label that had been
+  retired for nine months.** `Smoke macos-13` was added in 0.1.102 to execute
+  the `darwin-x64` binary, since every other job only compiled it. The label was
+  retired in December 2025 and is absent from `actions/runner-images` entirely,
+  so the job was never assigned a runner on any release: `runner_name` is empty
+  on every one of them.
+
+  It queued until cancelled by hand each time, and on 0.1.102 and 0.1.103 it
+  held the global concurrency group for 6h29m and 4h36m with the next release's
+  publish behind it. The workflow comments explained all of this as a scarce
+  runner, which is a false explanation for a true symptom, and one of them named
+  the retired label as "the real fix".
+
+  The consequence is not the hang. It is that `darwin-x64` shipped six releases
+  with nothing behind it but a successful compile, while a job whose stated
+  purpose was to execute it sat unschedulable. A second consequence blocks
+  unattended releases: every Release run since 0.1.103 concludes `cancelled`, so
+  a release that published correctly reports as failed.
+
+  *Fixed by moving to `macos-15-intel`, a current Intel runner, and by adding
+  `darwin-x64` to the `verify` job so it is executed BEFORE publish rather than
+  only after, which is this workflow's own stated rule. `macos-14` was
+  simultaneously deprecated with support ending 2 November 2026 and would have
+  failed the same way; both darwin targets now build on `macos-15`.*

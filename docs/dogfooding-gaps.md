@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-200 entries, 141 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-40 are open. G144, the D28 boundary cast that never reached the returns a
+200 entries, 145 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+36 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3809,7 +3809,7 @@ hand-written adapter") now has an app behind it rather than only a guide.
   catch a malformed link and it never will. The fix is documentation: say which
   argument the failure comes from. `feeds` carries the case as an `@example` so
   the behaviour is pinned rather than assumed.
-  *Reproduced against 0.1.103: `url.join("https://x.test/feed.xml", ":::")` is `Ok(https://x.test/:::)`, and only an invalid base fails, giving `Err(cannot resolve "/p" against "not a url at all")`: `url.join("https://x.test/feed.xml", ":::")` is
+  *Reproduced against 0.1.109: `url.join("https://x.test/feed.xml", ":::")` still returns `Ok`, formatting to `https://x.test/:::`, and only an invalid base fails, giving `ERR: cannot resolve "/x" against "not a base"`. Previously, against 0.1.103: `url.join("https://x.test/feed.xml", ":::")` is `Ok(https://x.test/:::)`, and only an invalid base fails, giving `Err(cannot resolve "/p" against "not a url at all")`: `url.join("https://x.test/feed.xml", ":::")` is
   still `Ok`, formatting to `https://x.test/:::`, while
   `url.join("not a base", "/x")` is still
   `Err(cannot resolve "/x" against "not a base")`. The `Err` arm remains
@@ -3851,7 +3851,7 @@ G103 was the case where nothing was said at all.
   descriptor that only checks presence, or be skipped with its dependent fields
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
-  *Reproduced against 0.1.103: there is still no `.d.ts` reader source handling classes or TypeScript utility types; the generator's module set has no class-declaration path at all, marked 18.0.11: `gen dts marked --out src/.types
+  *Reproduced against 0.1.109 on a `.d.ts` carrying one of each group, a class, an `Omit`, and a `RegExp`: `gen dts` writes `type Doc = { lexer: Lexer, opts: Trimmed, pattern: RegExp }`, references to three names it never wrote, and checking the result gives six diagnostics. It now emits a note naming each unresolved reference rather than passing silently, which narrows the entry without closing it. Previously, against 0.1.103: there is still no `.d.ts` reader source handling classes or TypeScript utility types; the generator's module set has no class-declaration path at all, marked 18.0.11: `gen dts marked --out src/.types
   --rename Tokens.List=ListToken` writes 49 types and exits 0 with 40 notes, and
   building the result is 14 `[E0103]`s across eight names, still in the same
   three groups: classes (`Lexer`, `Parser`, `Renderer`, `Tokenizer`, `Hooks`),
@@ -6968,7 +6968,7 @@ and is the owner's to confirm.
   37 the compiler ships. An outside author independently counted 13 where 0.1.95
   emitted all of them.*
 
-- **G180. One declaration identity has three spellings, and two of them ship in
+- **G180. [FIXED] One declaration identity has three spellings, and two of them ship in
   the same release.** 0.1.107 added an `entity` field naming the declaration a
   diagnostic sits in. Three code paths derive the module half from three
   different roots: `glyph check --json` strips the project src root
@@ -7000,8 +7000,13 @@ and is the owner's to confirm.
   *Reproduced against 0.1.107 by running both surfaces on a project whose
   package.json carries `"glyph": {"src": "src"}` with the file at `src/a.glyph`,
   the layout `glyph init` writes.*
+  *Closed in 0.1.108. One derivation, measured from the project and from the
+  file's own directory when nothing marks one, used by all three surfaces.
+  Verified by running both on the layout `glyph init` writes: `glyph check
+  --json` and `glyph_diagnostics` now both answer `a::f` where they answered
+  `a::f` and `src/a::f`.*
 
-- **G181. Diagnostics the checker could attribute report no declaration.** An
+- **G181. [FIXED] Diagnostics the checker could attribute report no declaration.** An
   annotation's text sits in a gap between declaration spans, because
   `parse_annotations` runs before the keyword and a `Decl` span starts at the
   keyword. The span-containment walk that assigns `entity` therefore finds
@@ -7021,6 +7026,11 @@ and is the owner's to confirm.
   structured thing on the wire.
 
   *Reproduced against 0.1.107; being confirmed case by case before any fix.*
+  *Closed in 0.1.108. The two annotation errors carry the declaration name from
+  the emission sites that already hold it, and the consumers prefer it over the
+  span walk. Verified against the negative corpus: E0221 now reports
+  `unknown_annotation::f` and E0219 reports `redact_unknown_field::Account`,
+  where both reported nothing.*
 
 - **G182. [FIXED] The release workflow named a runner label that had been
   retired for nine months.** `Smoke macos-13` was added in 0.1.102 to execute
@@ -7047,7 +7057,7 @@ and is the owner's to confirm.
   simultaneously deprecated with support ending 2 November 2026 and would have
   failed the same way; both darwin targets now build on `macos-15`.*
 
-- **G183. `glyph check --json` reports a clean tree on a program `glyph check`
+- **G183. [FIXED] `glyph check --json` reports a clean tree on a program `glyph check`
   fails.** The `@example` gate runs on the text path and not on the JSON one.
   `emit_check_json` exits the process before `report_examples_for` is reached, so
   the JSON object has no `examples` key, a failing example does not appear in
@@ -7070,8 +7080,12 @@ and is the owner's to confirm.
   *Reproduced against 0.1.107 with a two-line program whose `@example add(2, 2)
   == 5` is false: the text path exits 1 naming the failure, the JSON path exits 0
   with `ok: true`.*
+  *Closed in 0.1.108, and the release is marked breaking because of it. The
+  same project now exits 1 from both paths, and the JSON carries a structured
+  failure: code E0400, entity `main::add`, the detail. Established against the
+  published 0.1.107, which exits 0 on it.*
 
-- **G184. A diagnostic's absent entity is spelled two different ways.**
+- **G184. [FIXED] A diagnostic's absent entity is spelled two different ways.**
   `glyph check --json` omits the `entity` key entirely, via
   `skip_serializing_if`, while the MCP tool emits an explicit `"entity": null`.
   A consumer reading both cannot use one test for "no declaration", which is the
@@ -7079,6 +7093,10 @@ and is the owner's to confirm.
   representation.
 
   *Reproduced against 0.1.107 alongside G180.*
+  *Closed in 0.1.108. Both surfaces emit an explicit null, so one test answers
+  "no declaration" on either. Verified by running `glyph check --json` on a
+  parse error: the `entity` key is present with a null value, where it was
+  previously omitted.*
 
 - **G185. [FIXED] Every `glyph check` on a project with an `@example` left a
   copy of that project in the temp directory.** The gate copies the project,

@@ -47,6 +47,41 @@
         </p>
       </header>
 
+      <!-- ============ THE SEVEN CASES ============ -->
+      <section>
+        <h2 class="group-head">Seven bugs that pass <code>tsc --strict</code></h2>
+        <p class="group-sub">
+          Each is two files: a <code>.ts</code> that type-checks clean under
+          <code>tsc --strict</code>, and the same program in Glyph that does not
+          compile. A build gate re-runs all seven and fails if either half stops
+          behaving, so a guarantee that quietly disappears takes the build with it.
+        </p>
+        <div class="code" style="margin-bottom:28px">
+          <span class="cap">python3 scripts/check_catches.py</span>
+<pre>catches: 7/7 verified both ways (greppability: 1, verifiability: 6).</pre>
+        </div>
+        <table class="catches-table">
+          <thead><tr><th>Glyph says</th><th>What TypeScript let through</th><th>Files</th></tr></thead>
+          <tbody>
+            <tr><td><code>E0200</code></td><td>A case added to a union, and one place that forgot it</td><td><code>catches/non-exhaustive-match/</code></td></tr>
+            <tr><td><code>E0200</code></td><td>A union imported from another module, and a case that got away</td><td><code>catches/imported-union-exhaustiveness/</code></td></tr>
+            <tr><td><code>E0210</code></td><td>A typo'd field on a record that came from another module</td><td><code>catches/imported-record-field-typo/</code></td></tr>
+            <tr><td><code>E0224</code></td><td>A typo'd key on a map, read as if it were there</td><td><code>catches/absent-map-key/</code></td></tr>
+            <tr><td><code>E0304</code></td><td>A validator that reports success for a field it never checked</td><td><code>catches/unverifiable-parse/</code></td></tr>
+            <tr><td><code>E0110</code></td><td>A local type named Array, quietly taking the name for the rest of the module</td><td><code>catches/shadowed-array-type/</code></td></tr>
+            <tr><td><code>TS18046</code></td><td>A field read off a value that was never checked</td><td><code>catches/unvalidated-boundary-read/</code></td></tr>
+          </tbody>
+        </table>
+        <p class="group-sub" style="margin-top:24px">
+          The last one is the odd member and the most instructive. Its rejection comes
+          from the <code>tsc</code> back end rather than a Glyph code, because
+          TypeScript accepts the program: <code>JSON.parse</code> hands back
+          <code>any</code> and an annotation launders it. Glyph has no <code>any</code>
+          and no cast, so the boundary value stays <code>unknown</code>, and there is no
+          spelling that gets past it.
+        </p>
+      </section>
+
       <!-- ============ THE LOOP ============ -->
       <section>
         <h2 class="group-head">The adversarial loop</h2>

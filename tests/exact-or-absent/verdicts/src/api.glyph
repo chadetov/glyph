@@ -1,0 +1,29 @@
+module api
+
+// A function whose parameter list a change could alter.
+pub fn width(n: number) -> number {
+  return n * 2
+}
+
+// The call site. It applies `width` to an argument list, so a parameter added
+// or dropped is E0213 here.
+pub fn called() -> number {
+  return width(3)
+}
+
+// The same function read as a value rather than applied. Glyph never compares
+// a function value's arity against the type its use context expects, so
+// nothing about this site is checked: `width` gaining a parameter leaves this
+// annotation and this file alone.
+pub const sizer: fn(number) -> number = width
+
+// The G201 shape. `takes_string` declares a primitive, and the checker reports
+// only a provable mismatch, so a call passing a named type draws no conclusion
+// at all where a `bool` would be E0211.
+pub fn takes_string(s: string) -> string {
+  return s
+}
+
+pub fn calls_it() -> string {
+  return takes_string("x")
+}

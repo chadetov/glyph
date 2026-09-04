@@ -1,0 +1,17 @@
+module cells
+
+// The union the direct verdicts are read from.
+pub type Cell =
+  | Text({ text: string })
+  | Flag({ on: bool })
+  | Blank
+
+// A union reached one level down, inside `A`'s payload, so a site over `Wrap`
+// can name a variant of this one without matching on it.
+pub type Inner =
+  | X
+  | Y
+
+pub type Wrap =
+  | A(Inner)
+  | B

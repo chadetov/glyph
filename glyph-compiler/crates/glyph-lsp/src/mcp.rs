@@ -3,10 +3,10 @@
 //! newline-delimited messages (the MCP stdio transport), and reuses the pure
 //! `crate::analysis` queries (hover, go-to-definition, workspace references,
 //! symbol search, diagnostics) so the agent surface is a thin adapter over the
-//! same semantics the editor path uses, not a second implementation. One tool,
-//! `glyph_variants`, has no editor counterpart: it answers from the salsa
-//! match-coverage relation, which is a project-wide query rather than a
-//! position in a buffer.
+//! same semantics the editor path uses, not a second implementation. Two
+//! tools have no editor counterpart: `glyph_variants` and `glyph_impact`, both
+//! answering from project-wide relations the checker writes as it types each
+//! file rather than from a position in a buffer.
 //!
 //! Unlike the language server, this one keeps a salsa database per project
 //! (see `Server`), so a repeated whole-project query costs a directory walk
@@ -387,13 +387,16 @@ fn initialize_result() -> Value {
             "This server answers from the compiler's own analysis, so prefer it ",
             "over grep for any semantic question: grep finds text that matches, ",
             "the compiler resolved every name to emit the program.\n\n",
-            "Before adding a variant to a tagged union, call `glyph_variants` ",
-            "with `proposed_variant` set to the name you are adding. It answers ",
-            "per match site: `WILL_FAIL` (the site stops compiling and the ",
-            "compiler points at it), `ABSORBS` (a catch-all takes the new ",
-            "variant silently, which is the dangerous one because nothing ",
-            "fails), `UNDETERMINED`, `NOT_INDEXED`. Without `proposed_variant` ",
-            "it lists the sites and what each one does today.\n\n",
+            "Before changing a declaration, call `glyph_impact` with the ",
+            "entity's `module::name` and the change you are about to make ",
+            "(`add_variant`, `remove_variant`, `rename`, `change_arity`, ",
+            "`change_signature_type`, `remove`). It answers per site: ",
+            "`WILL_FAIL` (proved to stop compiling), `ABSORBS` (proved to be ",
+            "taken silently, which is the dangerous one because nothing ",
+            "fails), `SAFE` (proved still correct), `UNDETERMINED` (looked and ",
+            "could not decide), `NOT_INDEXED` (the class is not modelled, so ",
+            "check it yourself). `glyph_variants` with `proposed_variant` is ",
+            "the same question narrowed to one union's match sites.\n\n",
             "Run `glyph llms` for the full language reference. It works offline ",
             "and is the same document the compiler ships. Read it before writing ",
             "Glyph rather than inferring the syntax from the TypeScript it ",
@@ -410,13 +413,45 @@ fn tool_specs() -> Value {
     let file = json!({ "type": "string", "description": "Path to a .glyph file, relative to the project root or absolute." });
     let line = json!({ "type": "integer", "description": "0-based line number." });
     let character = json!({ "type": "integer", "description": "0-based character offset (UTF-16 code units)." });
-    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position. A record field is addressed as `Record.field` (`User.email`), with the record named the way the file at `path` names it: a bare field name is not an address, since two records in one module can each declare a field of that name. The field form answers `{ entity, sites, unkeyed, unindexed, not_indexed }` rather than the relation split, because it reads a different relation: `sites` are the field's own declaration and every member access the checker resolved onto that record, each with `access` (`declaration`, `read`, `write`, `redact`) and a range covering the field's name alone, so a rename can write from it; `unkeyed` holds sites that spell the field on an object whose type never resolved to a field set, which the compiler never joined to any record and which are named rather than dropped; `unindexed` names the project files the sweep could not read, one by one, since a file that does not parse holds field sites this answer cannot see; and `not_indexed` names the classes of site the relation does not hold at all, of which a record literal constructing the record is one." });
+    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position. A record field is addressed as `Record.field` (`User.email`), with the record named the way the file at `path` names it: a bare field name is not an address, since two records in one module can each declare a field of that name. The field form answers `{ entity, relation, sites, unkeyed, unindexed, not_indexed }` rather than the relation split, because it reads a different relation, `FIELD_ACCESS`, named on the answer and on every site it keyed: `sites` are the field's own declaration and every member access the checker resolved onto that record, each with `access` (`declaration`, `read`, `write`, `redact`) and a range covering the field's name alone, so a rename can write from it; `unkeyed` holds sites that spell the field on an object whose type never resolved to a field set, which the compiler never joined to any record and which are named rather than dropped, each with `relation` null and `relation_absent` saying so, since a site in no relation must not carry one; `unindexed` names the project files the sweep could not read, one by one, since a file that does not parse holds field sites this answer cannot see; and `not_indexed` names the classes of site the relation does not hold at all, of which a record literal constructing the record is one." });
     let type_name = json!({ "type": "string", "description": "Name of a tagged union, as the file at `path` names it: one it declares, one it imports, or a prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`). The module the name resolves to is what picks out one declaration when several modules declare the same name." });
+    // One vocabulary, spelled the same way in a request, in a reply and in a
+    // coverage statement, and shared by every tool here that names a relation.
+    // Which of them a call can ask for depends on the surface and on the
+    // address: a symbol reads `CALLS` and `REFERENCES`, a `Record.field`
+    // address reads `FIELD_ACCESS`, and `glyph_variants` reads `MATCH_SITES`.
+    // Built from the vocabulary rather than written out, so the spellings have
+    // one source. A schema that listed them itself would be a second set again,
+    // silently, the first time one of them changed.
+    let vocabulary_enum: Vec<&str> = Relation::all().map(|r| r.wire()).to_vec();
+    const VOCABULARY: &str = "The vocabulary is closed and holds five names, each spelled the same way in a request, in a reply, and in a coverage statement. `CALLS`: the site applies the entity to an argument list. `REFERENCES`: the site names the entity without applying it. `MATCH_SITES`: a `match` whose scrutinee is the entity, answered by `glyph_variants`. `FIELD_ACCESS`: a read or a write of a record field, answered by `glyph_references` when `name` is a `Record.field` address. `GENERATED_FROM`: a derived artifact and the source it came from, which no tool answers yet. A name outside the set is an error rather than an ignored key, and so is a name in the set that this answer does not hold: an empty list would read as `no such edges exist`.";
     let relation = json!({
         "type": ["string", "array"],
-        "items": { "type": "string", "enum": ["CALLS", "REFERENCES"] },
-        "description": "Optional. Which relations to answer, as a name or an array of names. The vocabulary is closed and holds exactly two: `CALLS`, the sites that apply the symbol to an argument list, and `REFERENCES`, every other occurrence. Leave it out to get both. A name outside the vocabulary is an error rather than an ignored key."
+        "items": { "type": "string", "enum": vocabulary_enum },
+        "description": format!("Optional. Which relations to answer, as a name or an array of names. This tool answers `CALLS` and `REFERENCES` for a symbol address, and `FIELD_ACCESS` for a `Record.field` one. Leave it out to get every relation the address form holds. {VOCABULARY}")
     });
+    let impact_relations = json!({
+        "type": ["string", "array"],
+        "items": { "type": "string", "enum": vocabulary_enum },
+        "description": format!("Optional. Narrows the answer to some of the relations this change carries along, as a name or an array of names. Leave it out for every one of them. A relation the change does not carry along is an error rather than an empty list, since an empty list would say the relationship does not hold. {VOCABULARY}")
+    });
+    let match_relation = json!({
+        "type": ["string", "array"],
+        "items": { "type": "string", "enum": vocabulary_enum },
+        "description": format!("Optional. This tool answers one relation, `MATCH_SITES`, and naming it here is the same word the answer comes back under. Leave it out for the same result. {VOCABULARY}")
+    });
+    let entity = json!({ "type": "string", "description": "The `module::name` identity of the declaration you are about to change (`payments::PaymentResult`), with the module written the way an `import` spells it (`db/catalog::Row`). A record field is `module::Record.field` (`model::User.email`). This is the identity a diagnostic and `glyph_references` already report, so an answer can be chained into this call without re-deriving anything. A position is deliberately not an address here: the question is about a declaration rather than about a cursor, and a line number moves under any edit above it." });
+    let change = json!({
+        "type": "object",
+        "properties": {
+            "kind": { "type": "string", "enum": CHANGE_KINDS.to_vec(), "description": "The edit. `add_variant` and `remove_variant` take `variant` beside them; the rest take `kind` alone." },
+            "variant": { "type": "string", "description": "The variant being added or removed. Required by `add_variant` and `remove_variant`, and taken by no other kind." }
+        },
+        "required": ["kind"],
+        "description": "The edit this answer is about. Required: a verdict is a fact about an edit, and with none named every entry would be a reference rather than a consequence. A field the kind does not take is an error rather than an ignored key, because an argument read and dropped answers a question the caller did not ask."
+    });
+    let depth = json!({ "type": "integer", "description": "Optional, counting hops from the entity, default 1. Every carrier here is exact at hop 1 and empty at hop 2, so 2 or more is answered rather than refused: the hop-1 answer comes back with `next_query` naming the question that would be exact." });
+    let impact_path = json!({ "type": "string", "description": "Optional. A file in the project the entity belongs to, which is only needed when the server was started above more than one project, since a bare `module::name` names a different declaration in each. With one project under the root it is worked out from the root itself." });
     let proposed_variant = json!({ "type": "string", "description": "Optional. The name of a variant you are about to add to this union. Sending it makes the answer about that edit: every site carries a `consequence` beside its state, and a name the union already has is refused rather than answered." });
     json!([
         {
@@ -436,13 +471,18 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_references",
-            "description": "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. The vocabulary is closed at two. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, so `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer.",
+            "description": "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. Relation names come from one closed vocabulary shared by every tool here, and this tool answers two of them for a symbol address. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, so `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer.",
             "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character, "name": name, "relation": relation }, "required": ["path"] }
         },
         {
             "name": "glyph_variants",
-            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see.",
-            "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name, "proposed_variant": proposed_variant }, "required": ["path", "name"] }
+            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. The answer names its relation, `MATCH_SITES`, on the envelope and on every site it keyed, so an entry lifted out of the reply still says what put it there; a site under `unkeyed` carries `relation` null and `relation_absent` instead, because this project never joined it to the type and an edge it never made must not be claimed. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see.",
+            "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name, "relation": match_relation, "proposed_variant": proposed_variant }, "required": ["path", "name"] }
+        },
+        {
+            "name": "glyph_impact",
+            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` ships entirely `NOT_INDEXED`, and the reason is stated on the search: the checker reports only a provable mismatch, so a named union passed where a `string` is declared raises nothing where a `bool` raises E0211 (G201). A function read as a value rather than applied is `NOT_INDEXED` under `change_arity` for the same shape of reason. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it.",
+            "inputSchema": { "type": "object", "properties": { "entity": entity, "change": change, "relations": impact_relations, "depth": depth, "path": impact_path }, "required": ["entity", "change"] }
         },
         {
             "name": "glyph_symbols",
@@ -471,6 +511,7 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
         "glyph_definition" => tool_definition(&args, &root),
         "glyph_references" => tool_references(&args, server),
         "glyph_variants" => tool_variants(&args, server),
+        "glyph_impact" => tool_impact(&args, server),
         "glyph_symbols" => tool_symbols(&args, &root),
         other => Err(format!("unknown tool: {other}")),
     }
@@ -713,28 +754,81 @@ fn unresolvable(
 /// practice; the `module` header is the other position that can hold one.
 const MODULE_LEVEL: &str = "the occurrence is at module level, inside no declaration";
 
+/// The relations `glyph_references` answers for a symbol address, which
+/// partition every occurrence of it.
+const SYMBOL_RELATIONS: &[Relation] = &[Relation::Calls, Relation::References];
+
+/// The relation `glyph_references` answers for a `Record.field` address. A
+/// field is a different entity read from a different relation, so the address
+/// form decides which one the call is about.
+const FIELD_RELATIONS: &[Relation] = &[Relation::FieldAccess];
+
+/// The relation `glyph_variants` answers.
+const MATCH_RELATIONS: &[Relation] = &[Relation::MatchSites];
+
+/// Where one relation is answered, or `None` when nothing answers it yet.
+///
+/// The vocabulary is one set and the surfaces are several, so a caller can name
+/// a relation this call does not answer without having misspelled anything.
+/// That is a different refusal from a word outside the set, and merging the two
+/// would send a caller hunting for a typo it did not make.
+///
+/// The address form is part of the answer, not just the tool: `glyph_references`
+/// reads the occurrence scan for a symbol and the field-use relation for a
+/// `Record.field`, so naming the tool alone would tell a caller holding a field
+/// address to call the tool it just called.
+fn answered_by(relation: Relation) -> Option<&'static str> {
+    match relation {
+        Relation::Calls | Relation::References => {
+            Some("`glyph_references` with a symbol address")
+        }
+        Relation::FieldAccess => Some("`glyph_references` with a `Record.field` address"),
+        Relation::MatchSites => Some("`glyph_variants`"),
+        Relation::GeneratedFrom => None,
+    }
+}
+
 /// Which relations one call asked for, in answer order.
 ///
-/// Absent means every relation, which is what a caller from before the argument
-/// existed was asking for: the two lists together are the flat occurrence list
-/// this tool used to return, so an old call keeps every location it had and
-/// gains the label on each one.
+/// `answers` is what this surface can answer for the address it was given.
+/// Absent means all of them, which is what a caller from before the argument
+/// existed was asking for, so an old call keeps every location it had and gains
+/// the label on each one.
 ///
-/// A name outside the vocabulary is an error. The vocabulary is closed, so a
-/// misspelled relation is a question this tool cannot answer, and a silently
-/// dropped one would come back as an empty list that reads as "no such edges
+/// Three refusals, and they are three different facts. A word outside the set
+/// is not a relation. A relation another surface answers names that surface. A
+/// relation nothing computes yet says so. All three are refusals rather than
+/// empty lists, because absence of an edge means absence of a relation: a
+/// silently dropped request would come back shaped exactly like "no such edges
 /// exist".
-fn read_relations(args: &Value) -> Result<Vec<Relation>, String> {
-    let vocabulary = || Relation::all().map(|r| r.wire()).join(", ");
-    let asked: Vec<String> = match args.get("relation") {
-        None | Some(Value::Null) => return Ok(Relation::all().to_vec()),
+fn read_relations(args: &Value, answers: &[Relation]) -> Result<Vec<Relation>, String> {
+    read_relations_under(args, "relation", answers)
+}
+
+/// The same, under a named key, so a surface taking several relations at once
+/// can spell the argument `relations` without a second reader beside this one.
+/// Two readers is how two vocabularies start.
+fn read_relations_under(
+    args: &Value,
+    key: &str,
+    answers: &[Relation],
+) -> Result<Vec<Relation>, String> {
+    let answerable = || {
+        answers
+            .iter()
+            .map(|r| r.wire())
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let asked: Vec<String> = match args.get(key) {
+        None | Some(Value::Null) => return Ok(answers.to_vec()),
         Some(Value::String(s)) => vec![s.clone()],
         Some(Value::Array(items)) => {
             if items.is_empty() {
                 return Err(format!(
-                    "`relation` is an empty array, which asks for nothing. Leave it out to \
-                     ask for every relation ({}).",
-                    vocabulary()
+                    "`{key}` is an empty array, which asks for nothing. Leave it out to \
+                     ask for every relation this answers ({}).",
+                    answerable()
                 ));
             }
             let mut out = Vec::new();
@@ -743,7 +837,7 @@ fn read_relations(args: &Value) -> Result<Vec<Relation>, String> {
                     Some(s) => out.push(s.to_string()),
                     None => {
                         return Err(format!(
-                            "`relation` takes a relation name or an array of them; the array \
+                            "`{key}` takes a relation name or an array of them; the array \
                              holds `{item}`."
                         ))
                     }
@@ -753,7 +847,7 @@ fn read_relations(args: &Value) -> Result<Vec<Relation>, String> {
         }
         Some(other) => {
             return Err(format!(
-                "`relation` takes a relation name or an array of them, got `{other}`."
+                "`{key}` takes a relation name or an array of them, got `{other}`."
             ))
         }
     };
@@ -762,9 +856,25 @@ fn read_relations(args: &Value) -> Result<Vec<Relation>, String> {
         let Some(relation) = Relation::from_wire(wire) else {
             return Err(format!(
                 "`{wire}` is not a relation. The vocabulary is closed and holds {}.",
-                vocabulary()
+                Relation::vocabulary()
             ));
         };
+        if !answers.contains(&relation) {
+            return Err(match answered_by(relation) {
+                Some(where_) => format!(
+                    "`{wire}` is a relation and this answer does not hold it: {where_} \
+                     answers it. This one answers {}.",
+                    answerable()
+                ),
+                None => format!(
+                    "`{wire}` is a relation and no surface answers it yet, so there is \
+                     nothing to return for it. An empty list here would say the \
+                     relationship does not hold, which nothing in the compiler \
+                     establishes. This answer holds {}.",
+                    answerable()
+                ),
+            });
+        }
         wanted.push(relation);
     }
     // Answer order is the vocabulary's, not the request's, so one question gets
@@ -1075,7 +1185,20 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
     let address = read_address(args)?;
-    let wanted = read_relations(args)?;
+    // A record field is addressed through its record, so the address resolves
+    // in two steps and the answer is a different relation: FIELD_ACCESS, the
+    // relation the member-access check writes, rather than the occurrence scan.
+    // Read before the relations, because the address form is what decides which
+    // relations this call can answer at all.
+    let field = address.name().map(FieldAddress::parse).transpose()?.flatten();
+    let wanted = read_relations(
+        args,
+        if field.is_some() {
+            FIELD_RELATIONS
+        } else {
+            SYMBOL_RELATIONS
+        },
+    )?;
     // Module paths, and so the search for other files naming this symbol, are
     // scoped to the file's own project (D41): another project's `import lib`
     // names its own `lib`, not this one. That is also why each project gets its
@@ -1097,11 +1220,9 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     };
     let (resolved, _errs) = resolve_module(&module, symbols, &build_prelude());
 
-    // A record field is addressed through its record, so the address resolves
-    // in two steps and the answer is a different relation: the field-use
-    // relation rather than the occurrence scan. Only a dotted name reaches
-    // here, and a dotted name is never a top-level declaration.
-    if let Some(field) = address.name().map(FieldAddress::parse).transpose()?.flatten() {
+    // Only a dotted name reaches here, and a dotted name is never a top-level
+    // declaration.
+    if let Some(field) = field {
         let record = named_target(&resolved, &field.record, &this_module).ok_or_else(|| {
             format!(
                 "`{}` names no record in module `{this_module}`, so there is no \
@@ -1360,11 +1481,64 @@ fn field_references(
         ));
     }
     let entity = format!("{module}::{name}.{}", address.field);
-    let owner = FieldOwner::Declared {
-        module: module.clone(),
-        name: name.clone(),
-    };
+    let found = field_sites(project, &root, &module, &name, &address.field);
 
+    // The declaration is a site of its own, so its absence says the record does
+    // not declare this field. Answering `[]` there would read as "nothing uses
+    // it", which is a different and much more expensive claim.
+    if !found.declared {
+        return Err(field_not_declared(server, path, project_root, &module, &name, address));
+    }
+
+    // The answer names one relation and every coverage statement under it is
+    // that relation's own. `sites` are its edges; `unkeyed`, `unindexed` and
+    // `not_indexed` are what it could not reach, stated beside the edges rather
+    // than above the answer.
+    Ok(to_json(&json!({
+        "entity": entity,
+        "relation": Relation::FieldAccess.wire(),
+        "sites": found.sites,
+        "unkeyed": found.unkeyed,
+        "unindexed": found.unindexed,
+        "not_indexed": FIELD_NOT_INDEXED,
+    })))
+}
+
+/// One sweep of the field-use relation, before either surface renders it.
+///
+/// Held apart from `field_references` because `glyph_impact` reads the same
+/// relation to a different shape, and a second sweep beside this one is how two
+/// answers about one field start to disagree.
+struct FieldSearch {
+    /// Sites the compiler joined to this declaration.
+    sites: Vec<Value>,
+    /// Sites that spell the field on an object whose type never resolved to a
+    /// field set. The compiler never decided which record they name, and one of
+    /// them may well be over this one.
+    unkeyed: Vec<Value>,
+    /// Files the sweep could not read, named one by one.
+    unindexed: Vec<Value>,
+    /// Whether the record declares the field at all.
+    declared: bool,
+}
+
+/// Every site naming one record field, across one project.
+///
+/// The relation is the one the member-access check writes while it types each
+/// file: a site is here because the checker resolved the object's field set and
+/// found this field on it. Nothing here re-walks the members, and nothing here
+/// infers a site from a spelling.
+fn field_sites(
+    project: &Project,
+    root: &Path,
+    module: &str,
+    name: &str,
+    field: &str,
+) -> FieldSearch {
+    let owner = FieldOwner::Declared {
+        module: module.to_string(),
+        name: name.to_string(),
+    };
     let db = &project.db;
     let mut sites: Vec<Value> = Vec::new();
     let mut unkeyed: Vec<Value> = Vec::new();
@@ -1378,14 +1552,14 @@ fn field_references(
         let parsed = glyph_db::parse_module(db, entry.file);
         if parsed.module().is_none() {
             unindexed.push(json!({
-                "path": display_path(&root, fpath),
+                "path": display_path(root, fpath),
                 "why": "the file does not parse, so no field site in it was read",
             }));
             continue;
         }
         if glyph_db::resolve(db, entry.file).resolved().is_none() {
             unindexed.push(json!({
-                "path": display_path(&root, fpath),
+                "path": display_path(root, fpath),
                 "why": "the file does not resolve, so no field site in it was read",
             }));
             continue;
@@ -1396,9 +1570,9 @@ fn field_references(
         // one of them is work whose answer is thrown away.
         let mut rendered: Option<(LineIndex, Vec<OutlineSymbol>)> = None;
         let ftext = entry.file.text(db);
-        let file = FileCtx { path: fpath, root: &root, text: ftext };
+        let file = FileCtx { path: fpath, root, text: ftext };
         for site in uses.sites() {
-            if site.field() != address.field {
+            if site.field() != field {
                 continue;
             }
             let unresolved = match site.owner() {
@@ -1433,21 +1607,7 @@ fn field_references(
             }
         }
     }
-
-    // The declaration is a site of its own, so its absence says the record does
-    // not declare this field. Answering `[]` there would read as "nothing uses
-    // it", which is a different and much more expensive claim.
-    if !declared {
-        return Err(field_not_declared(server, path, project_root, &module, &name, address));
-    }
-
-    Ok(to_json(&json!({
-        "entity": entity,
-        "sites": sites,
-        "unkeyed": unkeyed,
-        "unindexed": unindexed,
-        "not_indexed": FIELD_NOT_INDEXED,
-    })))
+    FieldSearch { sites, unkeyed, unindexed, declared }
 }
 
 /// One field site as the answer carries it: where it is, which declaration it
@@ -1488,6 +1648,17 @@ fn field_site_value(
             .map(|s| format!("{module}::{}", s.name)),
     };
     let mut out = serde_json::Map::new();
+    // The relation is on the entry and not only on the envelope, so an entry
+    // lifted out of the answer still says what put it there. A site the
+    // compiler never joined to a record stands in no relation, and naming one
+    // on it would claim the edge `unkeyed` exists to say does not hold.
+    out.insert(
+        "relation".to_string(),
+        match unresolved {
+            None => json!(Relation::FieldAccess.wire()),
+            Some(_) => Value::Null,
+        },
+    );
     out.insert("path".to_string(), json!(display_path(file.root, file.path)));
     out.insert(
         "range".to_string(),
@@ -1507,6 +1678,14 @@ fn field_site_value(
         }
         Some(display) => {
             out.insert("indexed".to_string(), json!(false));
+            out.insert(
+                "relation_absent".to_string(),
+                json!(format!(
+                    "no {} edge holds for this site: the compiler never joined it \
+                     to a record.",
+                    Relation::FieldAccess.wire()
+                )),
+            );
             out.insert(
                 "not_indexed".to_string(),
                 json!(format!(
@@ -1601,6 +1780,11 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
     let name = type_name_arg(args)?;
+    // One relation, selectable by the same name it comes back under. A
+    // vocabulary that can only be read is half a vocabulary, and a caller that
+    // names `CALLS` here is told which surface answers it rather than handed
+    // match sites.
+    read_relations(args, MATCH_RELATIONS)?;
     // The name of a variant that does not exist yet. With it, the call is a
     // question about a change rather than about what is there.
     let proposed = proposed_variant_arg(args)?;
@@ -1752,8 +1936,17 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
             let mut value = render.value(site);
             value["type"] = type_end_value(decls, &site.scrutinee_type);
             // The relation never joined this site to the type being asked
-            // about, so there is no consequence to state for it. Naming it is
-            // the point: leaving it out would say no such site exists.
+            // about, so there is no consequence to state for it, and no edge
+            // either. Naming it is the point: leaving it out would say no such
+            // site exists, and stamping the relation on it would claim the edge
+            // this list exists to say does not hold.
+            value["relation"] = Value::Null;
+            value["relation_absent"] = json!(format!(
+                "no {} edge holds for this site: this project never joined it to \
+                 `{}`.",
+                Relation::MatchSites.wire(),
+                render_type_end(decls, &end),
+            ));
             if proposed.is_some() {
                 value["consequence"] = json!("NOT_INDEXED");
             }
@@ -1788,8 +1981,12 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
         &render_type_end(decls, &end),
     );
 
+    // One relation, named where the caller can read it, with every coverage
+    // statement under it belonging to that relation: `sites` and `nested` are
+    // its edges, `unkeyed` and `unindexed` are what it could not reach.
     let mut answer = json!({
         "type": type_block(decls, &end, &shape),
+        "relation": Relation::MatchSites.wire(),
         "summary": summary,
         "sites": sites,
         "unindexed": unindexed,
@@ -1944,51 +2141,16 @@ fn type_block(decls: &DeclIndex, end: &CoverageTypeRef, shape: &UnionShape) -> V
 /// What one site does once the proposed variant exists, read off the site's
 /// own edges rather than off its summary state.
 ///
-/// The state summarises the site as it stands and the two questions come
-/// apart: a site already short a variant reads `declined`, and adding another
-/// one still leaves it failing to compile, which is a decided answer rather
-/// than an undetermined one.
+/// One function behind both surfaces. `glyph_variants` and `glyph_impact` ask
+/// the same question about the same site, and two answers to one question is
+/// the failure this release line exists to remove.
 fn consequence(d: &CoverageSiteRef) -> &'static str {
-    // Nothing was ever counted here, so nothing follows from adding to the
-    // set it was not counted against.
-    if d.state == CoverageState::ScrutineeUnresolved {
-        return "UNDETERMINED";
-    }
-    // A catch-all settles the compile question whatever else the site does:
-    // the new variant reaches an arm and no diagnostic is raised, which is
-    // the case nothing will tell you about.
-    if d.catch_alls.iter().any(|c| c.depth == 0) {
-        return "ABSORBS";
-    }
-    // An arm the checker read nothing from may or may not take the new
-    // variant, and which it is decides whether this site still compiles.
-    if d.declines.iter().any(|x| x.depth == 0) {
-        return "UNDETERMINED";
-    }
-    // Every arm names a variant, none absorbs, so the new one is named by no
-    // arm: E0200 against this site.
-    "WILL_FAIL"
+    add_variant_verdict(d).0.wire()
 }
 
 /// The same question for a site that reaches the type through a payload.
-///
-/// Stricter, because a coverage edge carries the depth it was written at and
-/// not the union it belongs to. A catch-all one level down may sit in the
-/// scope the new variant lands in or in a sibling payload, and the relation
-/// cannot tell those apart, so it is reported undetermined rather than
-/// guessed either way. A catch-all at depth 0 needs no guess: it takes every
-/// value the scrutinee can hold, payloads included.
 fn nested_consequence(d: &CoverageSiteRef) -> &'static str {
-    if d.state == CoverageState::ScrutineeUnresolved {
-        return "UNDETERMINED";
-    }
-    if d.catch_alls.iter().any(|c| c.depth == 0) {
-        return "ABSORBS";
-    }
-    if !d.catch_alls.is_empty() || !d.declines.is_empty() {
-        return "UNDETERMINED";
-    }
-    "WILL_FAIL"
+    nested_add_variant_verdict(d).0.wire()
 }
 
 /// The buckets a change answer splits its sites into, each with the prose one
@@ -2651,6 +2813,14 @@ impl SiteRender<'_> {
     fn descriptor(&mut self, site: &ProjectCoverageSite) -> serde_json::Map<String, Value> {
         let d = &site.site;
         let mut out = serde_json::Map::new();
+        // On the entry as well as on the envelope, so an entry lifted out of
+        // the answer still says which relation put it there. The unkeyed list
+        // overwrites it, because a site the project never joined to the type
+        // stands in no relation at all.
+        out.insert(
+            "relation".to_string(),
+            json!(Relation::MatchSites.wire()),
+        );
         out.insert("module".to_string(), json!(d.module));
         match self.locate(&d.module, d.scrutinee_span.start, d.scrutinee_span.end) {
             Some(w) => {
@@ -2835,6 +3005,1582 @@ fn union_name(union: &CoverageTypeName) -> &str {
     match union {
         CoverageTypeName::Declared { name, .. } | CoverageTypeName::Builtin { name } => name,
     }
+}
+
+// ============================================================================
+// glyph_impact: one entity, one named change, a verdict per site
+// ============================================================================
+
+/// What Glyph claims about one site under one named change.
+///
+/// Closed, and each member is a different statement about the boundary between
+/// what the compiler knows and what it does not. That boundary is the thing
+/// this answer is for: a caller can act on "I could not decide this" and on "I
+/// never modelled this", and it cannot act on either if they arrive as one
+/// word.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Verdict {
+    /// The compiler has enough to prove this site stops compiling.
+    WillFail,
+    /// The compiler can prove the change is absorbed here, silently. The
+    /// dangerous one: the site keeps compiling and stops being right.
+    Absorbs,
+    /// The compiler can prove this site is still correct under this change.
+    Safe,
+    /// It indexed the relationship, looked at this site, and cannot establish
+    /// the consequence. **Reached and undecidable**, which is a fact about
+    /// this site.
+    Undetermined,
+    /// It does not index the semantic class the question needs, so no site of
+    /// this shape can ever be decided. **Never askable**, which is a fact
+    /// about the model rather than about this site.
+    NotIndexed,
+}
+
+impl Verdict {
+    fn wire(self) -> &'static str {
+        match self {
+            Verdict::WillFail => "WILL_FAIL",
+            Verdict::Absorbs => "ABSORBS",
+            Verdict::Safe => "SAFE",
+            Verdict::Undetermined => "UNDETERMINED",
+            Verdict::NotIndexed => "NOT_INDEXED",
+        }
+    }
+}
+
+/// The edit an impact answer is about.
+///
+/// **A consequence is a fact about an edit.** Without one named, no entry can
+/// carry `WILL_FAIL`, `ABSORBS` or `SAFE`, because there is nothing for them
+/// to be true of, and the answer collapses into the lookup `glyph_references`
+/// already gives. So `change` is required and the kinds are closed from the
+/// start: a kind nobody has worked out the carrier for is a question this
+/// cannot answer, not a gap to fill in with a guess.
+enum Change {
+    AddVariant { variant: String },
+    RemoveVariant { variant: String },
+    Rename,
+    /// The wire name is `change_arity`; the variant drops the prefix the enum
+    /// already carries.
+    Arity,
+    /// The wire name is `change_signature_type`.
+    SignatureType,
+    Remove,
+}
+
+impl Change {
+    fn kind(&self) -> &'static str {
+        match self {
+            Change::AddVariant { .. } => "add_variant",
+            Change::RemoveVariant { .. } => "remove_variant",
+            Change::Rename => "rename",
+            Change::Arity => "change_arity",
+            Change::SignatureType => "change_signature_type",
+            Change::Remove => "remove",
+        }
+    }
+
+    /// The change as the answer echoes it, so an entry read beside it still
+    /// says which edit it is a consequence of.
+    fn value(&self) -> Value {
+        let mut out = json!({ "kind": self.kind() });
+        if let Change::AddVariant { variant } | Change::RemoveVariant { variant } = self {
+            out["variant"] = json!(variant);
+        }
+        out
+    }
+}
+
+/// The closed set, in the order the schema lists them.
+const CHANGE_KINDS: &[&str] = &[
+    "add_variant",
+    "remove_variant",
+    "rename",
+    "change_arity",
+    "change_signature_type",
+    "remove",
+];
+
+/// Read the `change` argument.
+///
+/// Every refusal here is a malformed request rather than a change that turned
+/// out to have no consequences, and the two must not arrive looking alike. A
+/// key the kind does not take is refused rather than ignored, for the reason
+/// the whole tool exists: an argument read and dropped is an answer to a
+/// question the caller did not ask.
+fn read_change(args: &Value) -> Result<Change, String> {
+    let kinds = CHANGE_KINDS.join(", ");
+    let change = match args.get("change") {
+        None | Some(Value::Null) => {
+            return Err(format!(
+                "`change` is required. A verdict is a fact about an edit, so without one \
+                 named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true \
+                 of and every entry would come back a reference. The kinds are closed: \
+                 {kinds}."
+            ))
+        }
+        Some(Value::Object(map)) => map,
+        Some(other) => {
+            return Err(format!(
+                "`change` is an object naming the edit, got `{other}`. It takes a `kind` \
+                 from {kinds}, and `add_variant` and `remove_variant` take a `variant` \
+                 beside it."
+            ))
+        }
+    };
+    let kind = match change.get("kind").and_then(|v| v.as_str()) {
+        Some(kind) => kind,
+        None => {
+            return Err(format!(
+                "`change.kind` is required and names the edit. The set is closed: {kinds}."
+            ))
+        }
+    };
+    if !CHANGE_KINDS.contains(&kind) {
+        return Err(format!(
+            "`{kind}` is not a change this answers about. The set is closed and holds \
+             {kinds}. A kind outside it is a question whose carrier relation nobody has \
+             worked out, so answering it would mean guessing which sites it reaches."
+        ));
+    }
+    let takes_variant = matches!(kind, "add_variant" | "remove_variant");
+    for key in change.keys() {
+        let known = key == "kind" || (takes_variant && key == "variant");
+        if !known {
+            let takes = if takes_variant {
+                "`kind` and `variant`"
+            } else {
+                "`kind` alone"
+            };
+            return Err(format!(
+                "`change.{key}` is not a field `{kind}` takes; it takes {takes}. Reading \
+                 it and dropping it would answer a different question from the one asked. \
+                 A `rename` in particular takes no new name: every site naming the old one \
+                 stops resolving whatever you rename it to, so the new spelling changes no \
+                 verdict here."
+            ));
+        }
+    }
+    let variant = || -> Result<String, String> {
+        match change.get("variant") {
+            Some(Value::String(s)) if is_variant_name(s) => Ok(s.clone()),
+            Some(Value::String(s)) => Err(format!(
+                "`change.variant` is `{s}`, which cannot be written as a variant name. A \
+                 variant is an identifier, so this is a malformed request rather than a \
+                 variant that does not exist."
+            )),
+            None | Some(Value::Null) => Err(format!(
+                "`{kind}` needs the variant it is about, as `change.variant`."
+            )),
+            Some(other) => Err(format!("`change.variant` must be a string, got `{other}`")),
+        }
+    };
+    Ok(match kind {
+        "add_variant" => Change::AddVariant { variant: variant()? },
+        "remove_variant" => Change::RemoveVariant { variant: variant()? },
+        "rename" => Change::Rename,
+        "change_arity" => Change::Arity,
+        "change_signature_type" => Change::SignatureType,
+        _ => Change::Remove,
+    })
+}
+
+/// How deep the caller asked to go.
+///
+/// One hop is the whole answer for every change kind here, and the reason is a
+/// property of the language rather than of the graph: Glyph never infers a
+/// declaration's type from its body, so a callee's type cannot reach a
+/// caller's signature and a change to X can only invalidate expressions that
+/// name X. A request past hop 1 is still a well-formed question, so it gets the
+/// exact hop-1 answer and the question that would be exact, as a field.
+fn read_depth(args: &Value) -> Result<u32, String> {
+    match args.get("depth") {
+        None | Some(Value::Null) => Ok(1),
+        Some(Value::Number(n)) => match n.as_u64() {
+            Some(d) if d >= 1 => Ok(d.min(u32::MAX as u64) as u32),
+            _ => Err(format!(
+                "`depth` counts hops from the entity and starts at 1, got `{n}`."
+            )),
+        },
+        Some(other) => Err(format!("`depth` must be an integer, got `{other}`.")),
+    }
+}
+
+/// What the entity is, which decides which changes it can carry and which
+/// relations those changes travel along.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EntityKind {
+    Function,
+    Component,
+    Type,
+    Const,
+    Variant,
+    Field,
+}
+
+impl EntityKind {
+    fn wire(self) -> &'static str {
+        match self {
+            EntityKind::Function => "function",
+            EntityKind::Component => "component",
+            EntityKind::Type => "type",
+            EntityKind::Const => "const",
+            EntityKind::Variant => "variant",
+            EntityKind::Field => "field",
+        }
+    }
+}
+
+/// One entity, resolved against the project that declares it.
+struct Subject {
+    module: String,
+    /// The declaration's own name: the record for a `Record.field` address,
+    /// the variant for a variant.
+    name: String,
+    field: Option<String>,
+    kind: EntityKind,
+    /// The union a variant belongs to, for a variant address.
+    owner: Option<String>,
+    /// The span of the declaration the edit is made in, inside its own file.
+    /// This is what tells the occurrence that **is** the edit from the ones it
+    /// breaks.
+    decl_span: (u32, u32),
+}
+
+impl Subject {
+    /// The identity an answer names it by.
+    fn entity(&self) -> String {
+        match &self.field {
+            Some(field) => format!("{}::{}.{field}", self.module, self.name),
+            None => format!("{}::{}", self.module, self.name),
+        }
+    }
+}
+
+/// Read the `entity` argument into a module, a name, and a field.
+///
+/// `module::name`, the identity every other answer here publishes, and
+/// `module::Record.field` for a field, the form `glyph_references` already
+/// takes. A position is deliberately not an address: this tool is asked about
+/// a declaration rather than about a cursor, and a line number moves under any
+/// edit above it.
+fn read_entity(args: &Value) -> Result<(String, String, Option<String>), String> {
+    let raw = match args.get("entity") {
+        Some(Value::String(s)) if !s.is_empty() => s.clone(),
+        None | Some(Value::Null) => {
+            return Err(
+                "`entity` is required: the `module::name` identity of the declaration you \
+                 are about to change (`payments::PaymentResult`), or `module::Record.field` \
+                 for a record field (`model::User.email`)."
+                    .to_string(),
+            )
+        }
+        Some(other) => return Err(format!("`entity` must be a string, got `{other}`")),
+    };
+    let Some((module, rest)) = raw.rsplit_once("::") else {
+        return Err(format!(
+            "`{raw}` is not an entity identity. An entity is `module::name`, the same \
+             identity `glyph_references` and a diagnostic report, with the module written \
+             the way an `import` spells it (`db/catalog::Row`)."
+        ));
+    };
+    if module.is_empty() || rest.is_empty() {
+        return Err(format!(
+            "`{raw}` is missing one half of an identity. An entity is `module::name`."
+        ));
+    }
+    match rest.split_once('.') {
+        None => Ok((module.to_string(), rest.to_string(), None)),
+        Some((record, field)) if !record.is_empty() && !field.is_empty() && !field.contains('.') => {
+            Ok((module.to_string(), record.to_string(), Some(field.to_string())))
+        }
+        Some(_) => Err(format!(
+            "`{raw}` is not an entity identity. A record field is \
+             `module::Record.field` (`model::User.email`), with exactly one dot."
+        )),
+    }
+}
+
+/// The project an entity is counted in, when the call named no file.
+///
+/// A `module::name` identity is counted from a resolution root (D41), and that
+/// root is found by walking up from a file. This tool is addressed by identity
+/// rather than by file, so the root is derived from the project's own members:
+/// every `.glyph` file under the server root, put through the same rule every
+/// other tool uses. One root is an answer. Several means the server was started
+/// above more than one project, where a bare `module::name` names a different
+/// declaration in each, and that is refused rather than resolved against
+/// whichever came first.
+fn impact_root(root: &Path) -> Result<PathBuf, String> {
+    let mut files = Vec::new();
+    collect_glyph_files(root, &mut files);
+    let mut roots: BTreeSet<PathBuf> = BTreeSet::new();
+    for file in &files {
+        roots.insert(crate::module_root_for(file, root));
+    }
+    let mut roots: Vec<PathBuf> = roots.into_iter().collect();
+    match roots.len() {
+        1 => Ok(roots.pop().expect("length checked")),
+        0 => Err(format!(
+            "no `.glyph` file under {}, so there is no project to count a `module::name` \
+             identity in.",
+            root.display()
+        )),
+        _ => Err(format!(
+            "{} holds more than one project ({}), and a bare `module::name` names a \
+             different declaration in each of them. Send `path` naming a file in the one \
+             you mean, or start the server on that project.",
+            root.display(),
+            roots
+                .iter()
+                .map(|r| display_path(root, r))
+                .collect::<Vec<_>>()
+                .join(", "),
+        )),
+    }
+}
+
+/// Resolve `module::name` against the project, into the kind of thing it is
+/// and where its declaration sits.
+fn resolve_subject(
+    project: &Project,
+    module: &str,
+    name: &str,
+    field: Option<&str>,
+) -> Result<Subject, String> {
+    let db = &project.db;
+    let Some(entry) = project.files.values().find(|f| f.module_path == module) else {
+        let held: Vec<&str> = project
+            .files
+            .values()
+            .map(|f| f.module_path.as_str())
+            .collect();
+        return Err(format!(
+            "no file of this project is module `{module}`, so `{module}::{name}` names no \
+             declaration here. The project holds {}.",
+            if held.is_empty() {
+                "no modules".to_string()
+            } else {
+                held.join(", ")
+            }
+        ));
+    };
+    let symbols = glyph_db::module_symbols(db, entry.file);
+    let Some(table) = symbols.symbols() else {
+        return Err(format!(
+            "module `{module}` does not resolve, so nothing in it can be keyed and no \
+             relation holds any of its sites."
+        ));
+    };
+    let Some(sym) = table.by_name.get(name).and_then(|id| table.table.get(*id)) else {
+        return Err(format!(
+            "module `{module}` declares no top-level name `{name}`, so `{module}::{name}` \
+             is not an entity of this project. An answer of no edges would say nothing \
+             names it, which is a different and much stronger claim."
+        ));
+    };
+    let (kind, decl_idx) = match &sym.kind {
+        SymbolKind::Function { decl_idx } => (EntityKind::Function, *decl_idx),
+        SymbolKind::Component { decl_idx } => (EntityKind::Component, *decl_idx),
+        SymbolKind::Type { decl_idx } => (EntityKind::Type, *decl_idx),
+        SymbolKind::Const { decl_idx } => (EntityKind::Const, *decl_idx),
+        SymbolKind::Variant { decl_idx } => (EntityKind::Variant, *decl_idx),
+        // An import binds another module's declaration locally; the entity is
+        // the declaration, under the module that declares it.
+        _ => {
+            return Err(format!(
+                "`{name}` in module `{module}` is an import binding rather than a \
+                 declaration. An entity is where the thing is declared, so ask about it \
+                 under the module that declares it."
+            ))
+        }
+    };
+    let owner = if kind == EntityKind::Variant {
+        glyph_db::parse_module(db, entry.file)
+            .module()
+            .and_then(|m| m.items.get(decl_idx as usize).cloned())
+            .and_then(|d| match d {
+                glyph_ast::Decl::Type(t) => Some(t.name.to_string()),
+                _ => None,
+            })
+    } else {
+        None
+    };
+    let mut subject = Subject {
+        module: module.to_string(),
+        name: name.to_string(),
+        field: None,
+        kind,
+        owner,
+        decl_span: (sym.span.start, sym.span.end),
+    };
+    if let Some(field) = field {
+        if kind != EntityKind::Type {
+            return Err(format!(
+                "`{module}::{name}` is a {}, and a field belongs to a type declaration.",
+                kind.wire()
+            ));
+        }
+        subject.field = Some(field.to_string());
+        subject.kind = EntityKind::Field;
+    }
+    Ok(subject)
+}
+
+/// One search: one relation, run once, from one subject.
+///
+/// **Coverage binds here and nowhere above.** A single statement over a
+/// heterogeneous edge list cannot be answered, because two relations read
+/// different tables and fail to reach different things. So each search states
+/// what it is exact about, the files it could not read, and the classes of
+/// site it does not hold, and an entry names the searches it came out of. An
+/// entry's guarantee is the conjunction along that chain.
+struct SearchRun {
+    relation: Relation,
+    subject: String,
+    guarantee: String,
+    unindexed: Vec<Value>,
+    not_indexed: Vec<String>,
+    /// The occurrence that **is** the edit rather than a consequence of it:
+    /// the declaration's own name. Named rather than dropped, because a site
+    /// missing from a list means no such site exists.
+    excluded: Vec<Value>,
+}
+
+impl SearchRun {
+    fn id(&self) -> String {
+        format!("{}:{}", self.relation.wire(), self.subject)
+    }
+
+    fn value(&self) -> Value {
+        json!({
+            "id": self.id(),
+            "relation": self.relation.wire(),
+            "subject": self.subject,
+            "guarantee": self.guarantee,
+            "unindexed": self.unindexed,
+            "not_indexed": self.not_indexed,
+            "excluded": self.excluded,
+        })
+    }
+}
+
+/// The searches one change runs, and the subject each one runs from.
+///
+/// **One change kind, one carrier, exact at hop 1 and empty at hop 2.** Seven
+/// change kinds were probed through the compiler and every diagnostic landed at
+/// a site that lexically names the changed entity; not one landed at depth 2,
+/// including on a three-deep call chain. That is the language's doing rather
+/// than the graph's: Glyph never infers a declaration's type from its body, so
+/// a signature is a firewall and a change to X reaches exactly the expressions
+/// naming X.
+///
+/// Widening this table is how the tool would turn into a graph database with a
+/// compiler attached. A relation is here because the checker already computes
+/// the consequence along it, not because an edge exists.
+struct Plan {
+    match_sites: Option<MatchPlan>,
+    occurrences: Option<OccurrencePlan>,
+    field: Option<FieldPlan>,
+}
+
+/// The union whose match sites carry the change, and the variant it is about.
+struct MatchPlan {
+    module: String,
+    union: String,
+    variant: String,
+    /// Whether the edit takes the variant away (removed, or renamed, which
+    /// takes the old spelling away the same way) rather than adds it.
+    gone: bool,
+}
+
+/// The name whose occurrences carry the change, with the span of the
+/// declaration the edit is made in.
+struct OccurrencePlan {
+    module: String,
+    name: String,
+    decl_span: (u32, u32),
+}
+
+/// The field whose accesses carry the change.
+struct FieldPlan {
+    module: String,
+    record: String,
+    field: String,
+}
+
+impl Plan {
+    /// The relations this plan runs, in the vocabulary's order.
+    fn relations(&self) -> Vec<Relation> {
+        let mut out = Vec::new();
+        if self.occurrences.is_some() {
+            out.push(Relation::Calls);
+            out.push(Relation::References);
+        }
+        if self.match_sites.is_some() {
+            out.push(Relation::MatchSites);
+        }
+        if self.field.is_some() {
+            out.push(Relation::FieldAccess);
+        }
+        Relation::all()
+            .into_iter()
+            .filter(|r| out.contains(r))
+            .collect()
+    }
+}
+
+/// The union's own variants, read from its declaration.
+///
+/// One reader, because whether the union holds the variant decides both which
+/// searches run and whether the request is a change at all, and two readers is
+/// how one of them ends up answering about a union the other refused.
+fn union_variants_of(project: &Project, module: &str, name: &str) -> Result<Vec<String>, String> {
+    let db = &project.db;
+    let cov = project_match_coverage(db, db.project_files_input());
+    let decls = cov.decls();
+    let Some(key) = decls.key_of(module, name) else {
+        return Err(format!(
+            "`{module}::{name}` is not a declaration this project keys, so the \
+             match-coverage relation holds no site over it."
+        ));
+    };
+    match union_shape(db, decls, &project.files, &CoverageTypeRef::Decl(key)) {
+        UnionShape::Variants(names) => Ok(names),
+        UnionShape::NotAUnion(what) => Err(format!(
+            "`{module}::{name}` is {what}, not a tagged union, so no match site is ever \
+             filed over it and there is no variant set to change. That is a different \
+             answer from an empty site list, which says a union exists and nothing matches \
+             on it."
+        )),
+        UnionShape::Unread(why) => Err(format!(
+            "cannot state a consequence for a change to `{module}::{name}`: {why}. Without \
+             the current variant list there is no way to tell whether the variant named is \
+             already there, and a consequence stated for an edit that turns out not to be \
+             one would be a guess."
+        )),
+    }
+}
+
+fn plan_for(project: &Project, change: &Change, subject: &Subject) -> Result<Plan, String> {
+    let entity = subject.entity();
+    let occurrences = |s: &Subject| OccurrencePlan {
+        module: s.module.clone(),
+        name: s.name.clone(),
+        decl_span: s.decl_span,
+    };
+    match change {
+        Change::AddVariant { variant } | Change::RemoveVariant { variant } => {
+            if subject.kind != EntityKind::Type {
+                return Err(format!(
+                    "`{entity}` names a {}, and a variant is added to or removed from a \
+                     tagged union. Address the union and name the variant in \
+                     `change.variant`.",
+                    subject.kind.wire()
+                ));
+            }
+            let gone = matches!(change, Change::RemoveVariant { .. });
+            let existing = union_variants_of(project, &subject.module, &subject.name)?;
+            let holds = existing.iter().any(|v| v == variant);
+            if gone && !holds {
+                return Err(format!(
+                    "`{variant}` is not a variant of `{entity}`, whose variants are {}. An \
+                     edit that removes or renames a name the union does not have is not the \
+                     change this answers about.",
+                    existing.join(", ")
+                ));
+            }
+            if !gone && holds {
+                return Err(format!(
+                    "`{variant}` is already a variant of `{entity}`, whose variants are {}. \
+                     Adding a name the union already has is not the change this answers \
+                     about.",
+                    existing.join(", ")
+                ));
+            }
+            let match_sites = Some(MatchPlan {
+                module: subject.module.clone(),
+                union: subject.name.clone(),
+                variant: variant.clone(),
+                gone,
+            });
+            // Removing a variant takes its name out of scope as well as out of
+            // the union's variant set, so the sites spelling that name are a
+            // second search from a second subject.
+            let occ = if gone {
+                let v = resolve_subject(project, &subject.module, variant, None)?;
+                if v.kind != EntityKind::Variant {
+                    return Err(format!(
+                        "`{}::{variant}` is a {}, not a variant of `{entity}`.",
+                        subject.module,
+                        v.kind.wire()
+                    ));
+                }
+                Some(occurrences(&v))
+            } else {
+                None
+            };
+            Ok(Plan { match_sites, occurrences: occ, field: None })
+        }
+        Change::Rename => match subject.kind {
+            EntityKind::Field => Ok(Plan {
+                match_sites: None,
+                occurrences: None,
+                field: Some(FieldPlan {
+                    module: subject.module.clone(),
+                    record: subject.name.clone(),
+                    field: subject.field.clone().unwrap_or_default(),
+                }),
+            }),
+            // Renaming a variant does two things at once. The old name stops
+            // resolving at every site naming it, and the union gains a name no
+            // arm mentions, so a site short of it is E0200 whether or not it
+            // named the old one.
+            EntityKind::Variant => {
+                let owner = subject.owner.as_ref().ok_or_else(|| {
+                    format!("`{entity}` is a variant of a union this project cannot read")
+                })?;
+                Ok(Plan {
+                    match_sites: Some(MatchPlan {
+                        module: subject.module.clone(),
+                        union: owner.clone(),
+                        variant: subject.name.clone(),
+                        gone: true,
+                    }),
+                    occurrences: Some(occurrences(subject)),
+                    field: None,
+                })
+            }
+            _ => Ok(Plan {
+                match_sites: None,
+                occurrences: Some(occurrences(subject)),
+                field: None,
+            }),
+        },
+        Change::Remove => match subject.kind {
+            EntityKind::Field => Ok(Plan {
+                match_sites: None,
+                occurrences: None,
+                field: Some(FieldPlan {
+                    module: subject.module.clone(),
+                    record: subject.name.clone(),
+                    field: subject.field.clone().unwrap_or_default(),
+                }),
+            }),
+            EntityKind::Variant => Err(format!(
+                "`{entity}` is a variant, and removing one is `remove_variant` on the union \
+                 it belongs to: entity `{}::{}` with `change.variant` set to `{}`. The \
+                 union's own match sites are part of that answer and are not part of this \
+                 one.",
+                subject.module,
+                subject.owner.as_deref().unwrap_or("<union>"),
+                subject.name,
+            )),
+            _ => Ok(Plan {
+                match_sites: None,
+                occurrences: Some(occurrences(subject)),
+                field: None,
+            }),
+        },
+        Change::Arity | Change::SignatureType => {
+            if !matches!(subject.kind, EntityKind::Function | EntityKind::Component) {
+                return Err(format!(
+                    "`{entity}` names a {}, and `{}` is a change to a signature, which a \
+                     `fn` or a `component` has.",
+                    subject.kind.wire(),
+                    change.kind()
+                ));
+            }
+            Ok(Plan {
+                match_sites: None,
+                occurrences: Some(occurrences(subject)),
+                field: None,
+            })
+        }
+    }
+}
+
+/// What one match site does once the proposed variant exists.
+///
+/// **Declines do not enter into it, and that is a correction.** The rule used
+/// to answer `UNDETERMINED` for a site with an arm the checker read nothing
+/// from, on the grounds that the unread arm might take the new variant. It
+/// cannot. `check_patterns_exhaustive` neither inserts a declined arm into
+/// `covered` nor lets it set `has_catch_all`, so a variant no arm mentions is
+/// missing whatever else the site does, and E0200 fires. Run against the
+/// compiler on all three declining shapes: a value-testing payload
+/// (`Text({ text: "yes" })`), an `is` guard naming no variant, and a record
+/// destructure over a union scrutinee. Every one of them reports E0200 for the
+/// added variant.
+///
+/// So the site's own arms decide it, and only two things can be true: a
+/// catch-all at depth 0 takes the new variant, or nothing does.
+fn add_variant_verdict(d: &CoverageSiteRef) -> (Verdict, &'static str) {
+    if d.state == CoverageState::ScrutineeUnresolved {
+        return (
+            Verdict::Undetermined,
+            "the scrutinee's type never resolved, so this site was never counted against \
+             a variant set and adding to that set concludes nothing here",
+        );
+    }
+    if d.catch_alls.iter().any(|c| c.depth == 0) {
+        return (
+            Verdict::Absorbs,
+            "an arm of this site absorbs every value the earlier arms did not name, so the \
+             new variant reaches it and no diagnostic is raised",
+        );
+    }
+    (
+        Verdict::WillFail,
+        "no arm of this site absorbs, so the new variant is named by no arm and the \
+         exhaustiveness check reports it",
+    )
+}
+
+/// The same question for a site reaching the union through a payload.
+///
+/// Stricter, and the strictness is the relation's limit rather than caution: a
+/// coverage edge carries the depth it was written at and not the union it
+/// belongs to, so a catch-all one level down may sit in the scope the new
+/// variant lands in or in a sibling payload. A catch-all at depth 0 needs no
+/// guess, since it takes every value the scrutinee can hold.
+fn nested_add_variant_verdict(d: &CoverageSiteRef) -> (Verdict, &'static str) {
+    if d.state == CoverageState::ScrutineeUnresolved {
+        return (
+            Verdict::Undetermined,
+            "the scrutinee's type never resolved, so this site was never counted against \
+             a variant set and adding to that set concludes nothing here",
+        );
+    }
+    if d.catch_alls.iter().any(|c| c.depth == 0) {
+        return (
+            Verdict::Absorbs,
+            "an arm of this site absorbs every value the scrutinee can hold, payloads \
+             included, so the new variant reaches it and no diagnostic is raised",
+        );
+    }
+    if !d.catch_alls.is_empty() || !d.declines.is_empty() {
+        return (
+            Verdict::Undetermined,
+            "this site reaches the union through a payload and has an arm one level down \
+             that the relation records by depth rather than by the union it belongs to, so \
+             it may be the scope the new variant lands in or a sibling payload",
+        );
+    }
+    (
+        Verdict::WillFail,
+        "every arm of the payload scope names a variant and none absorbs, so the new \
+         variant is named by no arm and the exhaustiveness check reports it",
+    )
+}
+
+/// What one match site does once a variant it may name is gone: removed
+/// outright, or renamed, which takes the old spelling away the same way.
+///
+/// Run against the compiler before it was written. Removing `Blank` from a
+/// union reports E0103 and E0220 at every arm naming it in the declaring
+/// module, and E0105 at an importing module's `import` line; a catch-all site
+/// that names no arm the edit touches reports nothing at all and keeps
+/// meaning what it meant, which is the one place `SAFE` comes from here.
+fn variant_gone_verdict(d: &CoverageSiteRef, variant: &str) -> (Verdict, String) {
+    if d.state == CoverageState::ScrutineeUnresolved {
+        return (
+            Verdict::Undetermined,
+            "the scrutinee's type never resolved, so nothing about this site is checked \
+             today and nothing follows from the edit"
+                .to_string(),
+        );
+    }
+    if let Some(m) = d
+        .mentions
+        .iter()
+        .find(|m| m.depth == 0 && m.variant == variant)
+    {
+        return (
+            Verdict::WillFail,
+            format!(
+                "arm {} names `{variant}`, and the edit takes that name out of the union \
+                 and out of scope, so the pattern no longer resolves",
+                m.arm
+            ),
+        );
+    }
+    if let Some(x) = d
+        .declines
+        .iter()
+        .find(|x| x.depth == 0 && x.variant.as_deref() == Some(variant))
+    {
+        return (
+            Verdict::WillFail,
+            format!(
+                "arm {} names `{variant}` and tests its payload, and the edit takes that \
+                 name away",
+                x.arm
+            ),
+        );
+    }
+    if let Some(x) = d
+        .declines
+        .iter()
+        .find(|x| x.depth == 0 && x.variant.is_none())
+    {
+        return (
+            Verdict::Undetermined,
+            format!(
+                "arm {} is a shape the checker read nothing from, so the relation does not \
+                 record whether it names `{variant}`",
+                x.arm
+            ),
+        );
+    }
+    if d.gaps.iter().any(|g| g.depth == 0) {
+        return (
+            Verdict::Undetermined,
+            "this site does not compile today, since the exhaustiveness check already \
+             reports variants no arm names, so what the edit leaves behind is not a \
+             consequence this can state"
+                .to_string(),
+        );
+    }
+    (
+        Verdict::Safe,
+        format!(
+            "no arm of this site names `{variant}`, so nothing here spells a name the edit \
+             removes, and the values it still dispatches on are unchanged"
+        ),
+    )
+}
+
+/// The same question one level down, where the relation records a catch-all by
+/// depth rather than by the union it belongs to.
+fn nested_variant_gone_verdict(d: &CoverageSiteRef, variant: &str) -> (Verdict, String) {
+    if let Some(m) = d.mentions.iter().find(|m| m.depth > 0 && m.variant == variant) {
+        return (
+            Verdict::WillFail,
+            format!(
+                "arm {} names `{variant}` inside a payload, and the edit takes that name \
+                 away",
+                m.arm
+            ),
+        );
+    }
+    (
+        Verdict::Undetermined,
+        format!(
+            "this site reaches the union through a payload and names no arm `{variant}` at \
+             any depth the relation recorded, and the relation does not record which union \
+             a deeper arm belongs to"
+        ),
+    )
+}
+
+/// The diagnostic a verdict names, or an explicit absence with the reason.
+///
+/// A single code is stated only where the carrier raises exactly one. Where
+/// more than one is possible (a removed name is E0103 in its own module and
+/// E0105 at an importing one) the field is null and says so, because naming
+/// the likelier of two codes is a guess wearing a fact's shape.
+fn diagnostic_fields(code: Option<&str>, absent: &str, out: &mut serde_json::Map<String, Value>) {
+    match code {
+        Some(code) => {
+            out.insert("diagnostic".to_string(), json!(code));
+            out.insert("diagnostic_absent".to_string(), Value::Null);
+        }
+        None => {
+            out.insert("diagnostic".to_string(), Value::Null);
+            out.insert("diagnostic_absent".to_string(), json!(absent));
+        }
+    }
+}
+
+/// One impact entry: the site, the verdict, and what the verdict rests on.
+///
+/// `entity` is on the entry and not only on the envelope, because an entry
+/// lifted out of a reply with no memory of the question still has to say what
+/// it is about. `searches` is the other half of that: the guarantee an entry
+/// carries is the conjunction along the searches that produced it, so an entry
+/// that named no search would be a claim with no coverage behind it.
+fn impact_entry(
+    mut out: serde_json::Map<String, Value>,
+    relation: Relation,
+    verdict: Verdict,
+    because: &str,
+    diagnostic: Option<&str>,
+    diagnostic_absent: &str,
+    search: &SearchRun,
+) -> Value {
+    out.insert("relation".to_string(), json!(relation.wire()));
+    out.insert("verdict".to_string(), json!(verdict.wire()));
+    out.insert("because".to_string(), json!(because));
+    diagnostic_fields(diagnostic, diagnostic_absent, &mut out);
+    out.insert("searches".to_string(), json!([search.id()]));
+    Value::Object(out)
+}
+
+/// The `MATCH_SITES` search: every site the checker keyed to this union, with
+/// what the edit does to each.
+fn impact_match_sites(
+    project: &Project,
+    root: &Path,
+    plan: &MatchPlan,
+) -> Result<(SearchRun, Vec<Value>), String> {
+    let db = &project.db;
+    let cov = project_match_coverage(db, db.project_files_input());
+    let decls = cov.decls();
+    let Some(key) = decls.key_of(&plan.module, &plan.union) else {
+        return Err(format!(
+            "`{}::{}` is not a declaration this project keys, so the match-coverage \
+             relation holds no site over it.",
+            plan.module, plan.union
+        ));
+    };
+    let end = CoverageTypeRef::Decl(key);
+    // That the union holds (or does not hold) the variant is settled in
+    // `plan_for`, before any search runs, because it decides which searches
+    // run at all.
+    let subject = format!("{}::{}", plan.module, plan.union);
+    let mut search = SearchRun {
+        relation: Relation::MatchSites,
+        subject: subject.clone(),
+        guarantee: if plan.gone {
+            format!(
+                "every `match` the checker keyed to `{subject}`, with the arms each one \
+                 names, read against the variant this edit takes away. Exact where the \
+                 scrutinee resolved: a site is here because the exhaustiveness check \
+                 concluded about it while typing the file, not because a spelling matched."
+            )
+        } else {
+            format!(
+                "every `match` the checker keyed to `{subject}`, with the arms each one \
+                 names. Exact where the scrutinee resolved: a site is here because the \
+                 exhaustiveness check concluded about it while typing the file, not because \
+                 a spelling matched. `ABSORBS` is a verdict here and not a gap."
+            )
+        },
+        unindexed: Vec::new(),
+        not_indexed: Vec::new(),
+        excluded: Vec::new(),
+    };
+    // A match site is never the declaration it is about, so this search has no
+    // edit site to hold out.
+    for (fpath, entry) in project.searched() {
+        let why = if glyph_db::parse_module(db, entry.file).module().is_none() {
+            "the file does not parse, so no match site in it was read"
+        } else if glyph_db::resolve(db, entry.file).resolved().is_none() {
+            "the file does not resolve, so no match site in it was read"
+        } else {
+            continue;
+        };
+        search
+            .unindexed
+            .push(json!({ "path": display_path(root, fpath), "why": why }));
+    }
+
+    let by_module: BTreeMap<&str, (&Path, SourceFile)> = project
+        .files
+        .iter()
+        .map(|(p, f)| (f.module_path.as_str(), (p.as_path(), f.file)))
+        .collect();
+    let mut render = SiteRender {
+        db,
+        root,
+        decls,
+        by_module,
+        files: BTreeMap::new(),
+    };
+
+    let mut entries: Vec<Value> = Vec::new();
+    for site in cov.sites_over(&end) {
+        let (verdict, because) = if plan.gone {
+            variant_gone_verdict(&site.site, &plan.variant)
+        } else {
+            let (v, why) = add_variant_verdict(&site.site);
+            (v, why.to_string())
+        };
+        let (code, absent) = match (verdict, plan.gone) {
+            (Verdict::WillFail, false) => (Some("E0200"), ""),
+            (Verdict::WillFail, true) => (
+                None,
+                "a name the edit takes away stops resolving as E0103 and E0220 in the \
+                 module that declares the union, and as E0105 at an importing module's \
+                 `import` line, so which code lands here depends on where the site is",
+            ),
+            _ => (None, "no diagnostic is raised: nothing here stops compiling"),
+        };
+        entries.push(impact_entry(
+            site_entry(&mut render, site, false, &end, &plan.union),
+            Relation::MatchSites,
+            verdict,
+            &because,
+            code,
+            absent,
+            &search,
+        ));
+    }
+    // Sites that name a variant of this union through a payload rather than as
+    // their own scrutinee. The relation files them under the type they match
+    // on, so the list above cannot hold them, and they change for the same
+    // reason, so they are named here rather than left out.
+    for site in cov.sites() {
+        if render.nested_value(site, &end, &plan.union).is_none() {
+            continue;
+        }
+        let (verdict, because) = if plan.gone {
+            nested_variant_gone_verdict(&site.site, &plan.variant)
+        } else {
+            let (v, why) = nested_add_variant_verdict(&site.site);
+            (v, why.to_string())
+        };
+        let code = matches!((verdict, plan.gone), (Verdict::WillFail, false)).then_some("E0200");
+        entries.push(impact_entry(
+            site_entry(&mut render, site, true, &end, &plan.union),
+            Relation::MatchSites,
+            verdict,
+            &because,
+            code,
+            "no single diagnostic follows: this site reaches the union through a payload, \
+             and what the checker reports depends on the scope the arm sits in",
+            &search,
+        ));
+    }
+    // Sites over a same-named type this project could not key. They are not the
+    // answer and they are not absent from it either: absence in this relation
+    // means no relation exists, and one of these may well be over the union
+    // that was asked about, with the module string that would have joined them
+    // naming nothing this project holds.
+    let mut unkeyed = 0usize;
+    for site in cov.sites() {
+        if site.scrutinee_type == end || !unkeyed_namesake(&site.scrutinee_type, &plan.union) {
+            continue;
+        }
+        unkeyed += 1;
+        let mut out = render.descriptor(site);
+        out.insert("type".to_string(), type_end_value(decls, &site.scrutinee_type));
+        // The relation never joined this site to the union being changed, so
+        // there is no edge here and no consequence to state. Stamping the
+        // relation on it would claim the edge this entry exists to deny.
+        out.insert("relation".to_string(), Value::Null);
+        out.insert(
+            "relation_absent".to_string(),
+            json!(format!(
+                "no {} edge holds for this site: this project never joined it to `{subject}`.",
+                Relation::MatchSites.wire()
+            )),
+        );
+        let entity = out.remove("declaration").unwrap_or(Value::Null);
+        out.insert("entity".to_string(), entity);
+        out.insert("verdict".to_string(), json!(Verdict::NotIndexed.wire()));
+        out.insert(
+            "because".to_string(),
+            json!(
+                "this project never keyed the type this site matches on, so the \
+                 match-coverage relation holds no edge between it and the union being \
+                 changed and there is nothing to conclude from"
+            ),
+        );
+        diagnostic_fields(
+            None,
+            "no diagnostic follows from an edge the compiler never made",
+            &mut out,
+        );
+        out.insert("searches".to_string(), json!([search.id()]));
+        entries.push(Value::Object(out));
+    }
+    if unkeyed > 0 {
+        search.not_indexed.push(format!(
+            "a `match` over a type named `{}` that this project could not key to a \
+             declaration. Those sites are in the answer, each carrying no relation and a \
+             verdict of {}.",
+            plan.union,
+            Verdict::NotIndexed.wire()
+        ));
+    }
+    Ok((search, entries))
+}
+
+/// One match site as an impact entry carries it: the site descriptor with its
+/// declaration promoted to `entity`, which is the identity the rest of the
+/// answer is keyed by.
+fn site_entry(
+    render: &mut SiteRender<'_>,
+    site: &ProjectCoverageSite,
+    nested: bool,
+    end: &CoverageTypeRef,
+    name: &str,
+) -> serde_json::Map<String, Value> {
+    let value = if nested {
+        render
+            .nested_value(site, end, name)
+            .unwrap_or_else(|| render.value(site))
+    } else {
+        render.value(site)
+    };
+    let mut out = match value {
+        Value::Object(map) => map,
+        _ => serde_json::Map::new(),
+    };
+    let entity = out.remove("declaration").unwrap_or(Value::Null);
+    let absent = entity.is_null().then_some(
+        "the site is at module level, inside no declaration, or the relation files it \
+         under a module this project's file list no longer holds",
+    );
+    out.insert("entity".to_string(), entity);
+    out.insert("entity_absent".to_string(), json!(absent));
+    if nested {
+        out.insert("via".to_string(), json!("payload"));
+    }
+    out
+}
+
+/// The `CALLS` and `REFERENCES` searches: every occurrence of the name across
+/// the project, with what the edit does to each.
+///
+/// One sweep, two searches. The occurrence scan classifies each site as it
+/// goes, so splitting the pair into two passes would read the same resolution
+/// table twice to reach the same answer.
+///
+/// The two relations are not interchangeable under every change. A parameter
+/// added to a `fn` is E0213 at a site that applies it and nothing at all at a
+/// site that reads it as a value, because Glyph never compares a function
+/// value's arity against the type its use context expects; a caller therefore
+/// gets `WILL_FAIL` for one and `NOT_INDEXED` for the other, and the split is
+/// the answer rather than a formatting choice.
+fn impact_occurrences(
+    project: &Project,
+    root: &Path,
+    plan: &OccurrencePlan,
+    change: &Change,
+    wanted: &[Relation],
+) -> (Vec<SearchRun>, Vec<Value>) {
+    let db = &project.db;
+    let subject = format!("{}::{}", plan.module, plan.name);
+    let mut searches: Vec<SearchRun> = Vec::new();
+    for relation in [Relation::Calls, Relation::References] {
+        if !wanted.contains(&relation) {
+            continue;
+        }
+        let guarantee = match relation {
+            Relation::Calls => format!(
+                "every site that applies `{subject}` to an argument list, across the \
+                 project. Exact: the callee has to be the name itself, so a call through a \
+                 local alias or a member (`io.println()`) applies something else and is \
+                 reported under {}.",
+                Relation::References.wire()
+            ),
+            _ => format!(
+                "every occurrence of `{subject}` that does not apply it: the declaration's \
+                 own name, an import binding, a type annotation, a value read, the name \
+                 passed as an argument, a `match` pattern naming a variant, a JSX element. \
+                 Together with {} this is every occurrence, so asking for one loses no site.",
+                Relation::Calls.wire()
+            ),
+        };
+        let mut search = SearchRun {
+            relation,
+            subject: subject.clone(),
+            guarantee,
+            unindexed: Vec::new(),
+            not_indexed: Vec::new(),
+            excluded: Vec::new(),
+        };
+        if matches!(change, Change::SignatureType) {
+            search.not_indexed.push(
+                "whether a site still type-checks against the new signature. The checker \
+                 reports only a provable mismatch and is silent on an undecidable one: a \
+                 named union passed where a `string` is declared raises nothing, where a \
+                 `bool` raises E0211. So no site here can be called safe, and every one of \
+                 them is reported as unchecked (G201)."
+                    .to_string(),
+            );
+        }
+        if matches!(change, Change::Arity) && relation == Relation::References {
+            search.not_indexed.push(
+                "whether a function value still fits the type its use context expects. \
+                 Glyph does not compare a function value's arity against an annotated `fn` \
+                 type or a parameter's, so a two-parameter function assigned to a \
+                 `fn(number) -> number` raises nothing here; `tsc` is what reports it on \
+                 the emitted TypeScript."
+                    .to_string(),
+            );
+        }
+        searches.push(search);
+    }
+
+    let mut entries: Vec<Value> = Vec::new();
+    // The occurrence that **is** the edit rather than a consequence of it. The
+    // declaration's own name is inside its own span and comes first there,
+    // because a declaration's name precedes its body in every form the grammar
+    // has, so the earliest occurrence inside that span is the name itself.
+    let mut edit_site: Option<(u32, Value, Relation)> = None;
+    for (fpath, entry) in project.searched() {
+        let ftext = entry.file.text(db);
+        let fparsed = glyph_db::parse_module(db, entry.file);
+        let fresolved = glyph_db::resolve(db, entry.file);
+        let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
+            let why = match fparsed.module() {
+                None => "the file does not parse, so no occurrence in it was read",
+                Some(_) => "the file does not resolve, so no occurrence in it was read",
+            };
+            for search in &mut searches {
+                search
+                    .unindexed
+                    .push(json!({ "path": display_path(root, fpath), "why": why }));
+            }
+            continue;
+        };
+        let spans = global_relations_in(
+            fmodule,
+            fresolved,
+            &entry.module_path,
+            &plan.module,
+            &plan.name,
+            ftext,
+            true,
+        );
+        if spans.is_empty() {
+            continue;
+        }
+        let index = LineIndex::new(ftext);
+        for span in spans {
+            let mut out = serde_json::Map::new();
+            let from = enclosing_decl_name(fmodule, span.start)
+                .map(|d| format!("{}::{d}", entry.module_path));
+            out.insert("entity".to_string(), json!(from));
+            out.insert(
+                "entity_absent".to_string(),
+                json!(from.is_none().then_some(MODULE_LEVEL)),
+            );
+            out.insert("path".to_string(), json!(display_path(root, fpath)));
+            let (line, _) = index.position(ftext, span.start as usize);
+            out.insert("line".to_string(), json!(line));
+            out.insert(
+                "range".to_string(),
+                range_json(&index, ftext, span.start, span.end),
+            );
+            let is_edit_site = entry.module_path == plan.module
+                && span.start >= plan.decl_span.0
+                && span.end <= plan.decl_span.1;
+            if is_edit_site {
+                let mut held = out.clone();
+                held.insert(
+                    "why".to_string(),
+                    json!(
+                        "this is the declaration's own name, which is where the edit is \
+                         made rather than a site the edit breaks"
+                    ),
+                );
+                match &edit_site {
+                    Some((start, _, _)) if *start <= span.start => {}
+                    _ => edit_site = Some((span.start, Value::Object(held), span.relation)),
+                }
+                continue;
+            }
+            let Some(search) = searches.iter().find(|s| s.relation == span.relation) else {
+                continue;
+            };
+            let (verdict, because, code, absent) = occurrence_verdict(change, span.relation);
+            entries.push(impact_entry(
+                out,
+                span.relation,
+                verdict,
+                because,
+                code,
+                absent,
+                search,
+            ));
+        }
+    }
+    if let Some((_, held, relation)) = edit_site {
+        if let Some(search) = searches.iter_mut().find(|s| s.relation == relation) {
+            search.excluded.push(held);
+        }
+    }
+    (searches, entries)
+}
+
+/// What one occurrence does under one change.
+///
+/// Every arm was run against the compiler rather than reasoned about. A name
+/// that goes away is E0103 at each site that spells it; a parameter added to a
+/// `fn` is E0213 where it is applied and nothing where it is read as a value;
+/// a parameter type changed to a named type raises nothing anywhere, where the
+/// same change to a `bool` raises E0211.
+fn occurrence_verdict(
+    change: &Change,
+    relation: Relation,
+) -> (Verdict, &'static str, Option<&'static str>, &'static str) {
+    const NAME_GONE: &str = "this site spells a name the edit takes away, so it no longer \
+                             resolves to anything";
+    const CODES: &str = "a name the edit takes away stops resolving as E0103 in a module \
+                         that names it directly and as E0105 at an importing module's \
+                         `import` line, so which code lands here depends on where the site \
+                         is";
+    match change {
+        Change::Rename | Change::Remove | Change::RemoveVariant { .. } => {
+            (Verdict::WillFail, NAME_GONE, None, CODES)
+        }
+        // Not reachable: adding a variant introduces a name nothing can be
+        // spelling yet, so no occurrence search is planned for it.
+        Change::AddVariant { .. } => (
+            Verdict::Undetermined,
+            "a variant that does not exist yet has no occurrences to read",
+            None,
+            "no diagnostic follows from a name nothing spells",
+        ),
+        Change::Arity => match relation {
+            Relation::Calls => (
+                Verdict::WillFail,
+                "this site applies the name to an argument list, and every parameter of a \
+                 Glyph `fn` is required, so a list of a different length is counted against \
+                 the new one",
+                Some("E0213"),
+                "",
+            ),
+            _ => (
+                Verdict::NotIndexed,
+                "this site reads the name rather than applying it, and Glyph does not \
+                 compare a function value's arity against the type its use context expects, \
+                 so the compiler concludes nothing here either way",
+                None,
+                "Glyph raises none; `tsc` is what reports a function value that does not \
+                 fit its expected type, on the emitted TypeScript",
+            ),
+        },
+        Change::SignatureType => (
+            Verdict::NotIndexed,
+            "the checker reports only a provable type mismatch and is silent on an \
+             undecidable one, so a signature type changed to or from a named type draws no \
+             conclusion at this site and it cannot be called safe (G201)",
+            None,
+            "Glyph raises none where a named type is on either side, which is the reason \
+             this site is unchecked rather than safe",
+        ),
+    }
+}
+
+/// Put the range's own line beside it, so every entry of one answer is located
+/// the same way whichever relation produced it. A reader that has to find the
+/// line in a different place per relation is reading two answers.
+fn with_line(out: &mut serde_json::Map<String, Value>) {
+    let line = out
+        .get("range")
+        .and_then(|r| r.get("start"))
+        .and_then(|s| s.get("line"))
+        .cloned()
+        .unwrap_or(Value::Null);
+    out.insert("line".to_string(), line);
+}
+
+/// The `FIELD_ACCESS` search: every read or write of the field the checker
+/// resolved onto this record.
+fn impact_field(
+    project: &Project,
+    root: &Path,
+    plan: &FieldPlan,
+) -> Result<(SearchRun, Vec<Value>), String> {
+    let found = field_sites(project, root, &plan.module, &plan.record, &plan.field);
+    if !found.declared {
+        return Err(format!(
+            "`{}::{}` declares no field `{}`, so there is no entity to change. An answer of \
+             no sites would read as `nothing uses it`, which is a different and much \
+             stronger claim.",
+            plan.module, plan.record, plan.field
+        ));
+    }
+    let subject = format!("{}::{}.{}", plan.module, plan.record, plan.field);
+    let mut search = SearchRun {
+        relation: Relation::FieldAccess,
+        subject: subject.clone(),
+        guarantee: format!(
+            "every member access the checker resolved onto `{}::{}` and found `{}` on. \
+             Exact for member accesses: a site is here because a field set resolved, not \
+             because a spelling matched.",
+            plan.module, plan.record, plan.field
+        ),
+        unindexed: found.unindexed,
+        not_indexed: FIELD_NOT_INDEXED.iter().map(|s| s.to_string()).collect(),
+        excluded: Vec::new(),
+    };
+    let mut entries: Vec<Value> = Vec::new();
+    for site in found.sites {
+        let Value::Object(mut out) = site else { continue };
+        let entity = out.remove("declaration").unwrap_or(Value::Null);
+        let declaration = out.get("access").and_then(|a| a.as_str()) == Some("declaration");
+        out.insert("entity".to_string(), entity);
+        with_line(&mut out);
+        if declaration {
+            out.insert(
+                "why".to_string(),
+                json!(
+                    "this is the field's own declaration, which is where the edit is made \
+                     rather than a site the edit breaks"
+                ),
+            );
+            search.excluded.push(Value::Object(out));
+            continue;
+        }
+        entries.push(impact_entry(
+            out,
+            Relation::FieldAccess,
+            Verdict::WillFail,
+            "the checker resolved this access onto the record that declares the field, so \
+             the edit leaves it naming a field the type no longer has",
+            Some("E0210"),
+            "",
+            &search,
+        ));
+    }
+    for site in found.unkeyed {
+        let Value::Object(mut out) = site else { continue };
+        let entity = out.remove("declaration").unwrap_or(Value::Null);
+        out.insert("entity".to_string(), entity);
+        with_line(&mut out);
+        out.insert("relation".to_string(), Value::Null);
+        out.insert(
+            "relation_absent".to_string(),
+            json!(format!(
+                "no {} edge holds for this site: the object it names never resolved to a \
+                 field set, so the compiler never joined it to `{subject}` or to any other \
+                 record.",
+                Relation::FieldAccess.wire()
+            )),
+        );
+        out.insert("verdict".to_string(), json!(Verdict::NotIndexed.wire()));
+        out.insert(
+            "because".to_string(),
+            json!(
+                "this site spells the field on an object whose type never resolved, so the \
+                 relation holds no edge between it and this declaration and there is nothing \
+                 to conclude from. It may well be over this record."
+            ),
+        );
+        diagnostic_fields(
+            None,
+            "no diagnostic follows from an edge the compiler never made",
+            &mut out,
+        );
+        out.insert("searches".to_string(), json!([search.id()]));
+        entries.push(Value::Object(out));
+    }
+    Ok((search, entries))
+}
+
+/// What breaks if I make this change to this entity.
+///
+/// One entity in, one named change beside it, and a verdict per site out of a
+/// closed set. The answer is rooted: every entry is a site that names the
+/// entity, and the guarantee it carries is the conjunction of the searches
+/// that produced it.
+///
+/// **`A -> B -> C` gets no answer here, and that is a decision rather than a
+/// missing feature.** Whether a caller of a function that stopped compiling
+/// needs changing depends on how that function is repaired, and the repair
+/// does not exist until somebody makes it. Widening the first answer to cover
+/// it would report a consequence of an edit nobody has made as
+/// compiler-proven, which is the one thing this surface must never do.
+fn tool_impact(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let change = read_change(args)?;
+    let (module, name, field) = read_entity(args)?;
+    let depth = read_depth(args)?;
+
+    // Addressed by identity, with a file accepted as a way of naming which
+    // project to count that identity in.
+    let (project_root, target) = match args.get("path") {
+        None | Some(Value::Null) => {
+            let found = impact_root(&root)?;
+            (found.clone(), found)
+        }
+        Some(_) => {
+            let (path, _) = read_file(args, &root)?;
+            (crate::module_root_for(&path, &root), path)
+        }
+    };
+    let project = server.project(&project_root, &target);
+    let subject = resolve_subject(project, &module, &name, field.as_deref())?;
+    let plan = plan_for(project, &change, &subject)?;
+    let wanted = read_relations_under(args, "relations", &plan.relations())?;
+
+    let mut searches: Vec<Value> = Vec::new();
+    let mut impact: Vec<Value> = Vec::new();
+    if let Some(occurrences) = &plan.occurrences {
+        let (runs, entries) =
+            impact_occurrences(project, &root, occurrences, &change, &wanted);
+        searches.extend(runs.iter().map(SearchRun::value));
+        impact.extend(entries);
+    }
+    if let Some(match_sites) = &plan.match_sites {
+        if wanted.contains(&Relation::MatchSites) {
+            let (run, entries) = impact_match_sites(project, &root, match_sites)?;
+            searches.push(run.value());
+            impact.extend(entries);
+        }
+    }
+    if let Some(field) = &plan.field {
+        if wanted.contains(&Relation::FieldAccess) {
+            let (run, entries) = impact_field(project, &root, field)?;
+            searches.push(run.value());
+            impact.extend(entries);
+        }
+    }
+
+    let mut answer = json!({
+        "entity": subject.entity(),
+        "entity_kind": subject.kind.wire(),
+        "change": change.value(),
+        "depth_requested": depth,
+        "depth_answered": 1u32,
+        "searches": searches,
+        "impact": impact,
+    });
+    if depth > 1 {
+        answer["next_query"] = next_query(&answer, &change);
+    }
+    Ok(to_json(&answer))
+}
+
+/// The question a hop past the first would have to ask to be exact.
+///
+/// A request for depth 2 is answered rather than refused. An error is louder
+/// and a field is composable, and the consumer here is a program deciding what
+/// to ask next rather than a person reading a message. What it gets is the
+/// exact hop-1 answer plus the shape of the next question, because the next
+/// question is a different question about a different root: it does not exist
+/// until somebody decides how to repair one of these sites, and what breaks
+/// after that depends on the repair rather than on the edge that led here.
+fn next_query(answer: &Value, change: &Change) -> Value {
+    let mut roots: Vec<&str> = answer["impact"]
+        .as_array()
+        .map(|entries| {
+            entries
+                .iter()
+                .filter(|e| e["verdict"] == Verdict::WillFail.wire())
+                .filter_map(|e| e["entity"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    roots.sort_unstable();
+    roots.dedup();
+    json!({
+        "why": format!(
+            "the carrier for `{}` is exact at hop 1 and empty at hop 2. Glyph never infers \
+             a declaration's type from its body, so a callee's type cannot reach a caller's \
+             signature and a change to this entity can only invalidate expressions that \
+             name it. What a second hop would be about is a different edit: the repair one \
+             of these sites gets, which does not exist yet.",
+            change.kind()
+        ),
+        "tool": "glyph_impact",
+        "arguments_template": {
+            "entity": "<the site you repaired, as module::name>",
+            "change": "<the change your repair makes to that declaration's own signature, \
+                       or none if the repair leaves it unchanged, in which case nothing \
+                       downstream of it moves>",
+            "depth": 1
+        },
+        "roots": roots,
+    })
 }
 
 /// Search the whole server root's top-level declarations.
@@ -3604,6 +5350,214 @@ mod tests {
             message.contains("MENTIONS") && message.contains("CALLS"),
             "the error must name the vocabulary: {message}"
         );
+    }
+
+    /// One vocabulary, and every relation in it is spelled the same way
+    /// wherever it appears.
+    ///
+    /// The tree held two sets that never overlapped (G193). `glyph_references`
+    /// spelled `CALLS` and `REFERENCES` in a request, in a reply and in its
+    /// coverage statements; `glyph_variants` named no relation anywhere, and
+    /// its site kinds were the positional keys `sites`, `nested` and
+    /// `unkeyed`, so position was what told them apart. Neither set could be
+    /// selected from, because there was no set.
+    #[test]
+    fn the_relation_vocabulary_is_one_closed_set() {
+        assert_eq!(
+            Relation::all().map(|r| r.wire()).to_vec(),
+            vec![
+                "CALLS",
+                "REFERENCES",
+                "MATCH_SITES",
+                "FIELD_ACCESS",
+                "GENERATED_FROM",
+            ],
+        );
+        for relation in Relation::all() {
+            assert_eq!(Relation::from_wire(relation.wire()), Some(relation));
+        }
+        // A word the set does not hold is not a relation, whatever an earlier
+        // design called it. `mentions` with a depth was measured at 29%
+        // precision at the first hop and does not ship.
+        for outside in ["MENTIONS", "calls", "DEPENDENTS", "DECLARED_IN"] {
+            assert_eq!(Relation::from_wire(outside), None, "`{outside}` parsed");
+        }
+    }
+
+    /// `glyph_variants` answers one relation and names it, in the envelope and
+    /// on every site it keyed. An entry lifted out of the reply says which
+    /// relation put it there rather than relying on the key it sat under.
+    #[test]
+    fn a_match_site_answer_names_its_relation() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_variants",
+            json!({ "path": "a.glyph", "name": "Command" }),
+        );
+        assert!(!is_error, "{answer}");
+        assert_eq!(answer["relation"], "MATCH_SITES", "{answer}");
+        let sites = answer["sites"].as_array().expect("sites");
+        assert!(!sites.is_empty(), "{answer}");
+        for site in sites {
+            assert_eq!(site["relation"], "MATCH_SITES", "{answer}");
+        }
+    }
+
+    /// A site the project never joined to the type stands in no relation, so
+    /// it names none. `unkeyed` is a coverage statement rather than a list of
+    /// edges, and stamping the relation onto an entry there would claim the
+    /// edge the bucket exists to say does not hold.
+    #[test]
+    fn an_unkeyed_match_site_names_no_relation() {
+        let root = tmp_root();
+        write(
+            &root,
+            "models.glyph",
+            &COMMAND_A.replace("module a", "module app/models"),
+        );
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_variants",
+            json!({ "path": "models.glyph", "name": "Command" }),
+        );
+        assert!(!is_error, "{answer}");
+        let unkeyed = answer["unkeyed"].as_array().expect("unkeyed");
+        assert_eq!(unkeyed.len(), 1, "{answer}");
+        assert_eq!(unkeyed[0]["relation"], Value::Null, "{answer}");
+        assert!(
+            unkeyed[0]["relation_absent"].is_string(),
+            "an unkeyed site has to say why it stands in no relation: {answer}"
+        );
+    }
+
+    /// The field form of `glyph_references` reads a different relation from
+    /// the occurrence scan, and says which one.
+    #[test]
+    fn a_field_answer_names_its_relation() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        assert_eq!(value["relation"], "FIELD_ACCESS", "{value}");
+        let sites = value["sites"].as_array().expect("sites");
+        assert!(!sites.is_empty(), "{value}");
+        for site in sites {
+            assert_eq!(site["relation"], "FIELD_ACCESS", "{value}");
+        }
+    }
+
+    /// A name the vocabulary holds and this tool does not answer is a
+    /// different refusal from a name that is not a relation at all. The first
+    /// names the tool that does answer it; the second says the word is not in
+    /// the set. Collapsing them sends a caller hunting for a typo it did not
+    /// make.
+    #[test]
+    fn a_relation_this_tool_does_not_answer_names_the_one_that_does() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge", "relation": "MATCH_SITES" }),
+        );
+        assert!(
+            is_error,
+            "a relation this tool cannot answer was answered: {message}"
+        );
+        assert!(
+            message.contains("MATCH_SITES") && message.contains("glyph_variants"),
+            "the refusal must name the tool that answers it: {message}"
+        );
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge", "relation": "MENTIONS" }),
+        );
+        assert!(is_error, "{message}");
+        assert!(
+            !message.contains("glyph_variants"),
+            "a word outside the vocabulary is not a relation some other tool \
+             answers: {message}"
+        );
+    }
+
+    /// `GENERATED_FROM` is in the vocabulary and no surface answers it yet.
+    /// An empty edge list for it would say no derived artifact comes from this
+    /// entity, which is a claim nothing in the compiler establishes.
+    #[test]
+    fn a_relation_no_surface_answers_is_refused_rather_than_emptied() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        let mut server = Server::new(root.clone());
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge", "relation": "GENERATED_FROM" }),
+        );
+        assert!(is_error, "answered a relation nothing computes: {message}");
+        assert!(
+            message.contains("GENERATED_FROM"),
+            "the refusal must name the relation: {message}"
+        );
+        assert!(
+            !message.contains("is not a relation"),
+            "`GENERATED_FROM` is in the vocabulary; the refusal is that nothing \
+             answers it yet, not that the caller misspelled something: {message}"
+        );
+    }
+
+    /// The spelling that comes back in a reply is the spelling that goes out
+    /// in a request. A vocabulary that can only be read is half a vocabulary.
+    #[test]
+    fn every_relation_is_selectable_where_it_is_answerable() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_variants",
+            json!({ "path": "a.glyph", "name": "Command", "relation": "MATCH_SITES" }),
+        );
+        assert!(!is_error, "{answer}");
+        assert_eq!(answer["relation"], "MATCH_SITES", "{answer}");
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_variants",
+            json!({ "path": "a.glyph", "name": "Command", "relation": "CALLS" }),
+        );
+        assert!(is_error, "{message}");
+        assert!(
+            message.contains("CALLS") && message.contains("glyph_references"),
+            "{message}"
+        );
+
+        let mut server = Server::new(field_project());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "types.glyph", "name": "User.email", "relation": "FIELD_ACCESS" }),
+        );
+        assert!(!is_error, "{answer}");
+        assert_eq!(answer["relation"], "FIELD_ACCESS", "{answer}");
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "types.glyph", "name": "User.email", "relation": "CALLS" }),
+        );
+        assert!(
+            is_error,
+            "a field address answered the occurrence relation: {message}"
+        );
+        assert!(message.contains("FIELD_ACCESS"), "{message}");
     }
 
     /// One symbol, one project, two spellings of the consumer's import. The
@@ -5508,12 +7462,25 @@ mod tests {
         assert_eq!(sites[0]["consequence"], "WILL_FAIL", "{answer}");
     }
 
-    /// A site with an arm the checker read nothing from has no consequence
-    /// the compiler can state: the unread arm may or may not take the new
-    /// variant. Reported as undetermined rather than folded into one of the
-    /// two decided answers.
+    /// A site with an arm the checker read nothing from is decided, and it was
+    /// answered `UNDETERMINED` until this was run against the compiler.
+    ///
+    /// The old rule said an unread arm may or may not take the new variant.
+    /// It cannot. `check_patterns_exhaustive` neither inserts a declined arm
+    /// into `covered` nor lets it set `has_catch_all`, so a variant no arm
+    /// mentions is missing whatever else the site does. Adding `Left` to this
+    /// exact fixture and running `glyph check --no-tsc` reports
+    /// `[E0200] non-exhaustive match on `Command`: missing variants `Left``,
+    /// and the same holds for the other two declining shapes: a value-testing
+    /// payload (`Text({ text: "yes" })`) and a record destructure over a union
+    /// scrutinee.
+    ///
+    /// `UNDETERMINED` is not the comfortable answer for anything awkward. A
+    /// site that could be decided and comes back undetermined teaches a caller
+    /// to read the word as "probably safe", which is the inversion of what it
+    /// means.
     #[test]
-    fn a_site_with_an_unread_arm_is_undetermined() {
+    fn a_site_with_an_unread_arm_is_still_decided() {
         let root = tmp_root();
         write(&root, "a.glyph", COMMAND_IS_GUARD);
         let mut server = Server::new(root.clone());
@@ -5522,7 +7489,26 @@ mod tests {
         let sites = answer["sites"].as_array().unwrap();
         assert_eq!(sites.len(), 1, "{answer}");
         assert_eq!(sites[0]["state"], "declined", "{answer}");
-        assert_eq!(sites[0]["consequence"], "UNDETERMINED", "{answer}");
+        assert_eq!(sites[0]["declined"][0]["variant"], Value::Null, "{answer}");
+        assert_eq!(sites[0]["consequence"], "WILL_FAIL", "{answer}");
+    }
+
+    /// The one thing a declined arm can still change, and the boundary the
+    /// verdict rests on: a catch-all decides the site whatever else it holds.
+    #[test]
+    fn a_declined_arm_beside_a_catch_all_still_absorbs() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub type Command =\n  | Up\n  | Down\npub fn run(c: Command) -> number {\n  return match c {\n    is string => 0,\n    Up => 1,\n    else => 2,\n  }\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Left");
+        let sites = answer["sites"].as_array().unwrap();
+        assert_eq!(sites.len(), 1, "{answer}");
+        assert_eq!(sites[0]["consequence"], "ABSORBS", "{answer}");
     }
 
     /// A site the project cannot key is NOT_INDEXED. The compiler never
@@ -5997,4 +7983,514 @@ mod tests {
         assert!(entity.is_null(), "{diags}");
     }
 
+    // ------------------------------------------------------------------
+    // glyph_impact
+    // ------------------------------------------------------------------
+
+    /// One union, four sites over it, and every verdict the match carrier can
+    /// reach. Written to be read against the compiler: `sites.glyph` compiles
+    /// as it stands, adding `Dash` reports E0200 at `exhaustive` and
+    /// `declining` and nothing at `absorbing`, and removing `Blank` leaves
+    /// `absorbing` alone.
+    const IMPACT_CELLS: &str =
+        "module cells\npub type Cell =\n  | Text({ text: string })\n  | Flag({ on: bool })\n  | Blank\n";
+    const IMPACT_SITES: &str = "module sites\nimport cells { Cell, Text, Flag, Blank }\n\
+        pub fn exhaustive(c: Cell) -> string {\n  return match c {\n    Text({ text }) => text,\n    Flag({ on }) => \"f\",\n    Blank => \"z\",\n  }\n}\n\
+        pub fn absorbing(c: Cell) -> string {\n  return match c {\n    Text({ text }) => text,\n    else => \"other\",\n  }\n}\n";
+
+    /// Call `glyph_impact` and parse. A tool error is prose, so an unexpected
+    /// refusal prints its text rather than the word `null`.
+    fn impact(server: &mut Server, args: Value) -> Value {
+        let (text, is_error) = call_raw(server, "glyph_impact", args);
+        assert!(!is_error, "{text}");
+        serde_json::from_str(&text).unwrap_or(Value::Null)
+    }
+
+    /// The same call where the refusal is the answer under test.
+    fn impact_refused(server: &mut Server, args: Value) -> String {
+        let (text, is_error) = call_raw(server, "glyph_impact", args);
+        assert!(is_error, "the call answered instead of refusing: {text}");
+        text
+    }
+
+    /// The impact list as `{entity: verdict}`, for an answer with one entry
+    /// per declaration.
+    fn verdicts(answer: &Value) -> BTreeMap<String, String> {
+        answer["impact"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+            .iter()
+            .map(|e| {
+                (
+                    e["entity"].as_str().unwrap_or("<none>").to_string(),
+                    e["verdict"].as_str().unwrap_or_default().to_string(),
+                )
+            })
+            .collect()
+    }
+
+    fn impact_root_with(cells: &str, sites: &str) -> PathBuf {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(&root, "cells.glyph", cells);
+        write(&root, "sites.glyph", sites);
+        root
+    }
+
+    /// The flagship shape: an entity, an edit, and a verdict per site.
+    #[test]
+    fn adding_a_variant_names_the_sites_that_fail_and_the_one_that_absorbs() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "add_variant", "variant": "Dash" } }),
+        );
+        assert_eq!(answer["entity"], "cells::Cell", "{answer}");
+        assert_eq!(answer["entity_kind"], "type", "{answer}");
+        assert_eq!(
+            verdicts(&answer),
+            BTreeMap::from([
+                ("sites::exhaustive".to_string(), "WILL_FAIL".to_string()),
+                ("sites::absorbing".to_string(), "ABSORBS".to_string()),
+            ]),
+            "{answer}"
+        );
+        // The relation is on every entry, not only on the envelope, so an
+        // entry lifted out of the reply still says what put it there.
+        for entry in answer["impact"].as_array().unwrap() {
+            assert_eq!(entry["relation"], "MATCH_SITES", "{entry}");
+            assert_eq!(entry["searches"], json!(["MATCH_SITES:cells::Cell"]), "{entry}");
+            assert!(entry["because"].as_str().is_some_and(|w| !w.is_empty()), "{entry}");
+        }
+    }
+
+    /// Coverage binds to a search and not to the answer. Two relations read
+    /// different tables and fail to reach different things, so one sentence
+    /// over a mixed edge list cannot be true of both halves.
+    #[test]
+    fn every_search_states_its_own_coverage() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "remove_variant", "variant": "Blank" } }),
+        );
+        let searches = answer["searches"].as_array().unwrap();
+        let ids: Vec<&str> = searches.iter().filter_map(|s| s["id"].as_str()).collect();
+        assert_eq!(
+            ids,
+            vec![
+                "CALLS:cells::Blank",
+                "REFERENCES:cells::Blank",
+                "MATCH_SITES:cells::Cell",
+            ],
+            "{answer}"
+        );
+        for search in searches {
+            for field in ["guarantee", "unindexed", "not_indexed", "excluded"] {
+                assert!(!search[field].is_null(), "`{field}` missing from {search}");
+            }
+        }
+        // No coverage statement above the list: the answer states what it
+        // reached per search and takes no position over the whole of it.
+        for field in ["guarantee", "unindexed", "not_indexed", "coverage", "summary"] {
+            assert!(answer.get(field).is_none(), "`{field}` is on the envelope: {answer}");
+        }
+    }
+
+    /// The declaration's own name is where the edit is made, not a site the
+    /// edit breaks. It is held out of the impact list and named in the search
+    /// that would otherwise have carried it, because a site missing from a
+    /// list means no such site exists.
+    #[test]
+    fn the_edit_site_is_excluded_and_named() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "sites::exhaustive", "change": { "kind": "rename" } }),
+        );
+        assert!(
+            !verdicts(&answer).contains_key("sites::exhaustive"),
+            "the declaration reports itself as broken by its own rename: {answer}"
+        );
+        let held: Vec<&Value> = answer["searches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|s| s["excluded"].as_array().unwrap().iter())
+            .collect();
+        assert_eq!(held.len(), 1, "{answer}");
+        assert!(
+            held[0]["why"].as_str().unwrap_or_default().contains("where the edit is made"),
+            "{}",
+            held[0]
+        );
+    }
+
+    /// `change_arity` splits the two occurrence relations, and the split is
+    /// the answer. A site that applies the name is E0213; a site that reads it
+    /// as a value is a class Glyph does not check at all.
+    #[test]
+    fn arity_is_proved_where_it_is_applied_and_unchecked_where_it_is_read() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(
+            &root,
+            "api.glyph",
+            "module api\npub fn width(n: number) -> number {\n  return n * 2\n}\n\
+             pub fn called() -> number {\n  return width(3)\n}\n\
+             pub const sizer: fn(number) -> number = width\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "api::width", "change": { "kind": "change_arity" } }),
+        );
+        assert_eq!(
+            verdicts(&answer),
+            BTreeMap::from([
+                ("api::called".to_string(), "WILL_FAIL".to_string()),
+                ("api::sizer".to_string(), "NOT_INDEXED".to_string()),
+            ]),
+            "{answer}"
+        );
+        let applied = answer["impact"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["entity"] == "api::called")
+            .unwrap();
+        assert_eq!(applied["diagnostic"], "E0213", "{applied}");
+        // The class is named on the search as well as on the entry, so a
+        // caller reading the coverage sees the hole without reading the list.
+        let references = answer["searches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| s["relation"] == "REFERENCES")
+            .unwrap();
+        assert!(
+            !references["not_indexed"].as_array().unwrap().is_empty(),
+            "{references}"
+        );
+    }
+
+    /// G201 ships as a class rather than as a silence. A signature type is a
+    /// change the checker draws no conclusion from when a named type is on
+    /// either side, so every site comes back unchecked and none comes back
+    /// safe.
+    #[test]
+    fn a_signature_type_change_is_not_indexed_rather_than_safe() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(
+            &root,
+            "api.glyph",
+            "module api\npub fn takes_string(s: string) -> string {\n  return s\n}\n\
+             pub fn calls_it() -> string {\n  return takes_string(\"x\")\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "api::takes_string", "change": { "kind": "change_signature_type" } }),
+        );
+        let seen: BTreeSet<&str> = answer["impact"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|e| e["verdict"].as_str())
+            .collect();
+        assert_eq!(seen, BTreeSet::from(["NOT_INDEXED"]), "{answer}");
+        assert!(
+            answer["searches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|s| s["not_indexed"].to_string().contains("G201")),
+            "the gap this class comes from is unnamed: {answer}"
+        );
+    }
+
+    /// A hop past the first is answered, not refused. The carrier is exact at
+    /// hop 1 and empty at hop 2, so the answer is the hop-1 answer plus the
+    /// question that would be exact, as a field a program can read.
+    #[test]
+    fn a_deeper_request_is_answered_with_the_next_question() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let args = json!({ "entity": "cells::Cell", "change": { "kind": "add_variant", "variant": "Dash" } });
+        let one = impact(&mut server, args.clone());
+        let mut deeper = args;
+        deeper["depth"] = json!(2);
+        let two = impact(&mut server, deeper);
+
+        assert_eq!(two["impact"], one["impact"], "the deeper answer is a different answer");
+        assert_eq!(two["depth_requested"], 2, "{two}");
+        assert_eq!(two["depth_answered"], 1, "{two}");
+        assert!(one.get("next_query").is_none(), "hop 1 names a next question: {one}");
+        assert_eq!(two["next_query"]["tool"], "glyph_impact", "{two}");
+        assert_eq!(two["next_query"]["roots"], json!(["sites::exhaustive"]), "{two}");
+        assert!(
+            two["next_query"]["why"].as_str().unwrap_or_default().contains("hop 2"),
+            "{two}"
+        );
+    }
+
+    /// No edit named, no verdict. Without one the answer would be a lookup
+    /// wearing a new name, and the refusal says so rather than returning every
+    /// site as a bare reference.
+    #[test]
+    fn a_consequence_needs_an_edit_and_the_kinds_are_closed() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let missing = impact_refused(&mut server, json!({ "entity": "cells::Cell" }));
+        assert!(missing.contains("`change` is required"), "{missing}");
+        for kind in [
+            "add_variant",
+            "remove_variant",
+            "rename",
+            "change_arity",
+            "change_signature_type",
+            "remove",
+        ] {
+            assert!(missing.contains(kind), "`{kind}` is unlisted: {missing}");
+        }
+
+        let unknown = impact_refused(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "reticulate" } }),
+        );
+        assert!(unknown.contains("closed"), "{unknown}");
+
+        // A field the kind does not take is a malformed request, not an
+        // ignored key: an argument read and dropped answers a different
+        // question from the one asked.
+        let extra = impact_refused(
+            &mut server,
+            json!({ "entity": "sites::exhaustive", "change": { "kind": "rename", "to": "renamed" } }),
+        );
+        assert!(extra.contains("`change.to`"), "{extra}");
+    }
+
+    /// The change has to fit the entity. A variant belongs to a union, and a
+    /// signature belongs to something that has one.
+    #[test]
+    fn a_change_the_entity_cannot_carry_is_refused() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let not_a_union = impact_refused(
+            &mut server,
+            json!({ "entity": "sites::exhaustive", "change": { "kind": "add_variant", "variant": "Dash" } }),
+        );
+        assert!(not_a_union.contains("tagged union"), "{not_a_union}");
+
+        let no_signature = impact_refused(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "change_arity" } }),
+        );
+        assert!(no_signature.contains("signature"), "{no_signature}");
+
+        // A name the union already has is not the edit it looks like.
+        let already = impact_refused(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "add_variant", "variant": "Blank" } }),
+        );
+        assert!(already.contains("already a variant"), "{already}");
+
+        // And a name it does not have cannot be removed from it.
+        let absent = impact_refused(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "remove_variant", "variant": "Dash" } }),
+        );
+        assert!(absent.contains("not a variant"), "{absent}");
+    }
+
+    /// An entity the project does not declare is refused rather than answered
+    /// with an empty list, which would say nothing names it.
+    #[test]
+    fn an_entity_this_project_does_not_declare_is_refused() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let no_module = impact_refused(
+            &mut server,
+            json!({ "entity": "nowhere::Cell", "change": { "kind": "rename" } }),
+        );
+        assert!(no_module.contains("no file of this project"), "{no_module}");
+
+        let no_name = impact_refused(
+            &mut server,
+            json!({ "entity": "cells::Missing", "change": { "kind": "rename" } }),
+        );
+        assert!(no_name.contains("declares no top-level name"), "{no_name}");
+
+        let not_an_identity = impact_refused(
+            &mut server,
+            json!({ "entity": "Cell", "change": { "kind": "rename" } }),
+        );
+        assert!(not_an_identity.contains("module::name"), "{not_an_identity}");
+    }
+
+    /// `relations` narrows the answer to part of the carrier, and a relation
+    /// the change does not carry along is an error rather than an empty list:
+    /// an empty list would say the relationship does not hold.
+    #[test]
+    fn relations_narrows_the_carrier_and_refuses_what_it_does_not_hold() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let narrowed = impact(
+            &mut server,
+            json!({
+                "entity": "cells::Cell",
+                "change": { "kind": "remove_variant", "variant": "Blank" },
+                "relations": ["MATCH_SITES"]
+            }),
+        );
+        let ids: Vec<&str> = narrowed["searches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|s| s["id"].as_str())
+            .collect();
+        assert_eq!(ids, vec!["MATCH_SITES:cells::Cell"], "{narrowed}");
+
+        let refused = impact_refused(
+            &mut server,
+            json!({
+                "entity": "cells::Cell",
+                "change": { "kind": "add_variant", "variant": "Dash" },
+                "relations": ["FIELD_ACCESS"]
+            }),
+        );
+        assert!(refused.contains("FIELD_ACCESS"), "{refused}");
+
+        let outside = impact_refused(
+            &mut server,
+            json!({
+                "entity": "cells::Cell",
+                "change": { "kind": "add_variant", "variant": "Dash" },
+                "relations": ["MENTIONS"]
+            }),
+        );
+        assert!(outside.contains("is not a relation"), "{outside}");
+    }
+
+    /// Removing a variant runs two searches from two subjects, and the same
+    /// declaration can appear under both. The entry says which search put it
+    /// there, so the two are not one claim counted twice.
+    #[test]
+    fn removing_a_variant_reads_the_union_and_the_name_apart() {
+        let root = impact_root_with(IMPACT_CELLS, IMPACT_SITES);
+        let mut server = Server::new(root.clone());
+
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "cells::Cell", "change": { "kind": "remove_variant", "variant": "Blank" } }),
+        );
+        let mut seen: Vec<(&str, &str, &str)> = answer["impact"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| {
+                (
+                    e["entity"].as_str().unwrap_or("<module level>"),
+                    e["relation"].as_str().unwrap_or("<none>"),
+                    e["verdict"].as_str().unwrap_or_default(),
+                )
+            })
+            .collect();
+        seen.sort_unstable();
+        assert_eq!(
+            seen,
+            vec![
+                ("<module level>", "REFERENCES", "WILL_FAIL"),
+                ("sites::absorbing", "MATCH_SITES", "SAFE"),
+                ("sites::exhaustive", "MATCH_SITES", "WILL_FAIL"),
+                ("sites::exhaustive", "REFERENCES", "WILL_FAIL"),
+            ],
+            "{answer}"
+        );
+        // Two codes are possible for a name that goes away, so none is
+        // claimed: E0103 in a module that names it directly, E0105 at an
+        // importing module's import line.
+        let gone = answer["impact"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["relation"] == "REFERENCES")
+            .unwrap();
+        assert!(gone["diagnostic"].is_null(), "{gone}");
+        assert!(
+            gone["diagnostic_absent"].as_str().unwrap_or_default().contains("E0105"),
+            "{gone}"
+        );
+    }
+
+    /// The description is the only thing a caller reads before it acts on a
+    /// verdict, so every word the answer can carry has to be in it.
+    #[test]
+    fn the_impact_tool_says_what_its_verdicts_mean() {
+        let mut server = Server::new(tmp_root());
+        let list = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }),
+            &mut server,
+        )
+        .unwrap();
+        let spec = list["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["name"] == "glyph_impact")
+            .expect("missing glyph_impact")
+            .clone();
+        assert_eq!(spec["inputSchema"]["required"], json!(["entity", "change"]), "{spec}");
+        let described = spec["description"].as_str().unwrap();
+        for word in [
+            "WILL_FAIL",
+            "ABSORBS",
+            "SAFE",
+            "UNDETERMINED",
+            "NOT_INDEXED",
+            "add_variant",
+            "remove_variant",
+            "rename",
+            "change_arity",
+            "change_signature_type",
+            "remove",
+            "next_query",
+            "G201",
+        ] {
+            assert!(described.contains(word), "`{word}` is undescribed: {described}");
+        }
+        // Coverage is per search, and the description has to say so, or a
+        // caller looks for a total that deliberately is not there.
+        assert!(described.contains("per search"), "{described}");
+    }
+    /// The new tool has to be in the field that reaches a model before it has
+    /// listed anything. A tool nothing points at is a tool an agent finds
+    /// after it has already edited.
+    #[test]
+    fn the_instructions_name_the_impact_tool() {
+        let mut server = Server::new(tmp_root());
+        let init = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {} }),
+            &mut server,
+        )
+        .unwrap();
+        let instructions = init["result"]["instructions"].as_str().unwrap_or_default();
+        for word in ["glyph_impact", "WILL_FAIL", "ABSORBS", "SAFE", "NOT_INDEXED"] {
+            assert!(instructions.contains(word), "`{word}` is missing: {instructions}");
+        }
+    }
 }

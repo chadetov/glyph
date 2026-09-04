@@ -1,0 +1,41 @@
+module sites
+
+import cells { Cell, Text, Flag, Blank, X, Wrap, A, B }
+
+// Every variant named and no catch-all. A variant added to `Cell` is named by
+// no arm here, which is E0200; removing `Blank` leaves an arm naming a variant
+// that no longer exists, which is E0103 and E0220.
+pub fn exhaustive(c: Cell) -> string {
+  return match c {
+    Text({ text }) => text,
+    Flag({ on }) => "f",
+    Blank => "z",
+  }
+}
+
+// An arm the checker reads nothing from: a payload sub-pattern testing a
+// field's value can fail, so it neither covers `Text` nor absorbs anything.
+// The site still names every variant through its later arms and has no
+// catch-all, so a variant added to `Cell` is named by no arm and E0200 lands
+// here as well.
+pub fn declining(c: Cell) -> string {
+  return match c {
+    Text({ text: "yes" }) => "y",
+    Text({ text }) => text,
+    Flag({ on }) => "f",
+    Blank => "z",
+  }
+}
+
+// A site reaching `Inner` through `A`'s payload, with a catch-all one level
+// down. `A(rest)` absorbs whatever `A(X)` did not name, so a variant added to
+// `Inner` may leave this site compiling; the relation records the catch-all
+// with a depth and not with the union it belongs to, so it could equally sit
+// in a sibling payload.
+pub fn nested(w: Wrap) -> number {
+  return match w {
+    A(X) => 1,
+    A(rest) => 3,
+    B => 2,
+  }
+}

@@ -409,6 +409,11 @@ array.any<T>(xs, predicate) -> bool
 array.contains<T>(xs, value) -> bool
 array.sort<T>(xs, compare) -> Array<T>
 array.fold<T, A>(xs, init, f) -> A          // f is (acc, x); no index
+array.max(xs: Array<number>) -> Option<number>          // None on []
+array.min(xs: Array<number>) -> Option<number>          // None on []
+array.sum(xs: Array<number>) -> number                  // 0 on []
+array.max_by<T>(xs, key: fn(T) -> number) -> Option<T>  // ties: first element wins
+array.min_by<T>(xs, key: fn(T) -> number) -> Option<T>  // ties: first element wins
 array.index_of<T>(xs, value) -> Option<number>
 array.flat_map<T, U>(xs, f) -> Array<U>     // flattens one level
 array.range(count) -> Array<number>            // [0, 1, ..., count-1]

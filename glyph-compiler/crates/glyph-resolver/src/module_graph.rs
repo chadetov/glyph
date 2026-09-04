@@ -100,7 +100,8 @@ impl StdlibStubs {
             "std/array",
             &[
                 "map", "filter", "find", "zip", "len", "get", "push", "concat", "reverse", "slice", "any",
-                "contains", "sort", "fold", "index_of", "flat_map", "range", "range_from",
+                "contains", "sort", "fold", "index_of", "flat_map", "range", "range_from", "max",
+                "min", "sum", "max_by", "min_by",
             ],
         );
         s.add(

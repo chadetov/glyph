@@ -5182,6 +5182,117 @@ fn array_fold_index_of_and_flat_map() {
 }
 
 #[test]
+fn array_reductions_return_option_on_empty_and_first_on_ties() {
+    // G100: argmax over an array is what every search, ranking and scheduler
+    // does, and until these five landed it was a four-line `match acc` fold at
+    // every site. One outside app wrote it five times in one file. Every one of
+    // those folds type-checks whether or not the seed and the comparison
+    // direction are right, so the compiler could not catch a mistake in them.
+    //
+    // Two things are pinned here that a caller cannot re-derive from the
+    // signature: the empty array is `None` for the four that pick a value (not
+    // 0, not -Infinity) while `sum([])` is 0, and a tie goes to the *first*
+    // element that achieves the extreme. Both moves are `max_by(moves, score)`
+    // over two 7s and `min_by` over two 2s, so a comparison that flipped to
+    // `>=`/`<=` fails this test rather than shipping.
+    if !js_toolchain_available() {
+        eprintln!("skipping array reductions run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("arrreduce");
+    let prog = "module main\n\
+         import std/array { max, min, sum, max_by, min_by }\n\
+         import std/option { Some, None }\n\
+         \n\
+         type Move = { name: string, score: number }\n\
+         \n\
+         fn or_else(o: Option<number>, fallback: number) -> number {\n\
+         \x20 return match o {\n\
+         \x20\x20\x20 Some(n) => n,\n\
+         \x20\x20\x20 None => fallback,\n\
+         \x20 }\n\
+         }\n\
+         \n\
+         fn name_or(o: Option<Move>, fallback: string) -> string {\n\
+         \x20 return match o {\n\
+         \x20\x20\x20 Some(m) => m.name,\n\
+         \x20\x20\x20 None => fallback,\n\
+         \x20 }\n\
+         }\n\
+         \n\
+         fn score(m: Move) -> number {\n\
+         \x20 return m.score\n\
+         }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let nums: Array<number> = [3, 9, 4, 9, 1]\n\
+         \x20 let none: Array<number> = []\n\
+         \x20 // Two 7s and two 2s, so both extremes are ties.\n\
+         \x20 let moves: Array<Move> = [\n\
+         \x20\x20\x20 { name: \"a\", score: 2 },\n\
+         \x20\x20\x20 { name: \"b\", score: 7 },\n\
+         \x20\x20\x20 { name: \"c\", score: 7 },\n\
+         \x20\x20\x20 { name: \"d\", score: 2 },\n\
+         \x20 ]\n\
+         \x20 let no_moves: Array<Move> = []\n\
+         \x20 let scalars = or_else(max(nums), 0 - 1) == 9\n\
+         \x20\x20\x20 && or_else(min(nums), 0 - 1) == 1\n\
+         \x20\x20\x20 && sum(nums) == 26\n\
+         \x20 let empties = or_else(max(none), 0 - 1) == 0 - 1\n\
+         \x20\x20\x20 && or_else(min(none), 0 - 1) == 0 - 1\n\
+         \x20\x20\x20 && sum(none) == 0\n\
+         \x20\x20\x20 && name_or(max_by(no_moves, score), \"none\") == \"none\"\n\
+         \x20\x20\x20 && name_or(min_by(no_moves, score), \"none\") == \"none\"\n\
+         \x20 let ties = name_or(max_by(moves, score), \"none\") == \"b\"\n\
+         \x20\x20\x20 && name_or(min_by(moves, score), \"none\") == \"a\"\n\
+         \x20 let single = or_else(max([5]), 0) == 5 && or_else(min([5]), 0) == 5\n\
+         \x20 return match scalars {\n\
+         \x20\x20\x20 false => 1,\n\
+         \x20\x20\x20 true => match empties {\n\
+         \x20\x20\x20\x20\x20 false => 2,\n\
+         \x20\x20\x20\x20\x20 true => match ties {\n\
+         \x20\x20\x20\x20\x20\x20\x20 false => 3,\n\
+         \x20\x20\x20\x20\x20\x20\x20 true => match single {\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 false => 4,\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 true => 0,\n\
+         \x20\x20\x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20 },\n\
+         \x20 }\n\
+         }\n";
+    write_file(&root, "reduce.glyph", prog);
+    let file_glyph = root.join("reduce.glyph");
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "1 = max/min/sum over a non-empty array; 2 = the empty cases \
+                 (None, None, 0); 3 = a tie went to the later element; \
+                 4 = a one-element array"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping array reductions run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("program has a main; got NoMain: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check");
+        }
+    }
+}
+
+#[test]
 fn a_two_binding_for_over_a_match_result_binds_a_numeric_index() {
     // G37: `record.get` -> `match` -> two-binding `for` took the record
     // (`Object.entries`) lowering, so `i` bound the string `"0"` and the loop

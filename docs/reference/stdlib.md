@@ -79,6 +79,11 @@ array.any<T>(xs, predicate: fn(T) -> bool) -> bool
 array.contains<T>(xs, value: T) -> bool
 array.sort<T>(xs, compare: fn(T, T) -> number) -> Array<T>
 array.fold<T, A>(xs, init: A, f: fn(A, T) -> A) -> A
+array.max(xs: Array<number>) -> Option<number>          // None on an empty array
+array.min(xs: Array<number>) -> Option<number>          // None on an empty array
+array.sum(xs: Array<number>) -> number                  // 0 on an empty array
+array.max_by<T>(xs, key: fn(T) -> number) -> Option<T>  // ties go to the first element
+array.min_by<T>(xs, key: fn(T) -> number) -> Option<T>  // ties go to the first element
 array.index_of<T>(xs, value: T) -> Option<number>
 array.flat_map<T, U>(xs, f: fn(T) -> Array<U>) -> Array<U>
 array.range(count: number) -> Array<number>                    // [0, 1, ..., count-1]
@@ -86,11 +91,30 @@ array.range_from(start: number, end: number) -> Array<number>  // [start, ..., e
 ```
 
 `fold` takes the callback last, so it reads like the rest of the module; the
-callback gets `(acc, x)` and no index. `index_of` compares with `===`, like
-`contains`, so for records use `find` with an explicit comparison, and it returns
-an `Option` whose missing-`None`-arm case Glyph does not yet catch (see the note
-at the end of `std/string`). `flat_map` flattens one level. `range`/`range_from`
-are the counted loop `for` has no other source for (`for i in array.range(n)`).
+callback gets `(acc, x)` and no index.
+
+`max`, `min`, `max_by` and `min_by` are the reductions `fold` makes you spell
+out. Picking the highest-scoring element of an array is what every search,
+ranking and scheduler does, and written by hand it is four lines of `match acc`
+that type-check whether or not the seed and the comparison direction are right,
+so the compiler cannot catch a mistake in them. `max_by` and `min_by` take a key
+function, which is the general shape; `max`, `min` and `sum` over
+`Array<number>` are the cases where the key is the element.
+
+All four return an `Option` because an empty array has no maximum. Returning 0,
+or -Infinity, would be a stand-in for an answer that does not exist, and the
+caller who forgets to check gets a wrong number rather than a diagnostic; the
+`None` arm is the compiler asking what the empty case means. `sum` returns a bare
+number because the sum of no numbers is 0, which is a real answer. On ties,
+`max_by` and `min_by` return the first element that achieves the extreme, so
+input order decides and a caller can rely on it. `key` is called once per
+element, left to right.
+
+`index_of` compares with `===`, like `contains`, so for records use `find` with
+an explicit comparison, and it returns an `Option` whose missing-`None`-arm case
+Glyph does not yet catch (see the note at the end of `std/string`). `flat_map`
+flattens one level. `range`/`range_from` are the counted loop `for` has no other
+source for (`for i in array.range(n)`).
 `range` clamps its count the way `string.repeat` does, so a negative count gives
 `[]` and a fractional one truncates. `range_from`'s second argument is an
 exclusive end bound, the same reading `array.slice` and `string.slice` give a

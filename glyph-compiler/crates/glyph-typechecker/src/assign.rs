@@ -2309,6 +2309,31 @@ impl Assigner<'_> {
                     acc,
                 )
             }
+            // The five reductions (G100). `max`/`min`/`max_by`/`min_by` are
+            // `Option`-returning because an empty array has no maximum, so
+            // modeling them is what turns the empty case into a `None` arm the
+            // exhaustiveness checker requires instead of something the caller
+            // can forget. `sum` is a plain `number`: the sum of no numbers is 0.
+            //
+            // `max_by`/`min_by` take the element type from parameter 0 the way
+            // `find` does, so the `Some(x)` binding is the array's element and
+            // not `Unknown`, and the key callback is a synchronous `fn(T) ->
+            // number` for the same reason `map`'s is (see the note above).
+            "sum" => (
+                vec![of(self.stdlib_array_ty(Ty::Prim(Primitive::Number))?)],
+                Ty::Prim(Primitive::Number),
+            ),
+            "max" | "min" => (
+                vec![of(self.stdlib_array_ty(Ty::Prim(Primitive::Number))?)],
+                self.stdlib_option_ty(Ty::Prim(Primitive::Number))?,
+            ),
+            "max_by" | "min_by" => (
+                vec![
+                    of(xs.clone()),
+                    of(mapper(elem(), Ty::Prim(Primitive::Number))),
+                ],
+                self.stdlib_option_ty(elem())?,
+            ),
             _ => return None,
         };
         Some(Ty::Fn {
@@ -8607,6 +8632,102 @@ fn label(s: Status) -> string {
             "got {:?}",
             tm.get(first_let_value_span_anywhere(&m))
         );
+    }
+
+    #[test]
+    fn array_max_and_min_type_as_an_option_of_number() {
+        // G100. The `Option` is the point: an empty array has no maximum, so
+        // the empty case becomes a `None` arm the exhaustiveness checker asks
+        // for rather than a 0 the caller has to remember to distrust. Left
+        // unmodeled the call types `Unknown` and that `match` goes unchecked.
+        for call in ["array.max(xs)", "array.min(xs)"] {
+            let (m, _, tm) = type_map_of(&format!(
+                "module x\nimport std/array\nfn f(xs: Array<number>) -> void {{\n  let best = {call}\n  return void\n}}\n"
+            ));
+            let ty = tm.get(first_let_value_span_anywhere(&m));
+            assert!(
+                matches!(ty, Ty::App { base, args }
+                    if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Option"))
+                        && args.first() == Some(&Ty::Prim(Primitive::Number))),
+                "{call}: got {:?}",
+                tm.get(first_let_value_span_anywhere(&m))
+            );
+        }
+    }
+
+    #[test]
+    fn array_sum_types_as_a_bare_number() {
+        // The one reduction of the five with nothing to unwrap: the sum of no
+        // numbers is 0, which is an answer rather than a stand-in for one.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/array\nfn f(xs: Array<number>) -> void {\n  let total = array.sum(xs)\n  return void\n}\n",
+        );
+        assert!(
+            matches!(
+                tm.get(first_let_value_span_anywhere(&m)),
+                Ty::Prim(Primitive::Number)
+            ),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn array_max_by_and_min_by_carry_the_element_type_through() {
+        // The element rides on parameter 0 the way `find`'s does, so the
+        // `Some(x)` binding of a `match` over `max_by` is the array's element
+        // and a field typo on it is E0210 here instead of a `tsc` error later.
+        for call in ["array.max_by(names, size)", "array.min_by(names, size)"] {
+            let (m, _, tm) = type_map_of(&format!(
+                "module x\nimport std/array\nfn size(s: string) -> number {{ return 1 }}\n\
+                 fn f(names: Array<string>) -> void {{\n  let best = {call}\n  return void\n}}\n"
+            ));
+            let ty = tm.get(first_let_value_span_anywhere(&m));
+            assert!(
+                matches!(ty, Ty::App { base, args }
+                    if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Option"))
+                        && args.first() == Some(&Ty::Prim(Primitive::String))),
+                "{call}: got {:?}",
+                tm.get(first_let_value_span_anywhere(&m))
+            );
+        }
+    }
+
+    #[test]
+    fn an_async_key_to_an_array_reduction_is_a_glyph_error() {
+        // Same reason the predicate-taking array functions model a synchronous
+        // callback (G99). An `async fn` key returns a `Promise<number>`, every
+        // `>` against it is false, and `max_by` would hand back the first
+        // element out of a build `tsc --strict` passed.
+        for call in ["array.max_by(names, slow)", "array.min_by(names, slow)"] {
+            let errs = errors_of(&format!(
+                "module x\nimport std/array\n\
+                 async fn slow(s: string) -> number {{ return 1 }}\n\
+                 fn f(names: Array<string>) -> void {{\n  let out = {call}\n  return void\n}}\n"
+            ));
+            assert!(
+                errs.iter()
+                    .any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+                "{call} should be an argument-type mismatch: {errs:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_reduction_called_with_the_wrong_arity_errors() {
+        // `sum` takes the array and nothing else; `max_by` takes the array and
+        // a key. Modeling the arity is what makes a stray second argument
+        // E0213 at the call rather than a `tsc` message about the emitted TS.
+        for call in ["array.sum(xs, 1)", "array.max(xs, 1)", "array.max_by(xs)"] {
+            let errs = errors_of(&format!(
+                "module x\nimport std/array\nfn f(xs: Array<number>) -> void {{\n  let out = {call}\n  return void\n}}\n"
+            ));
+            assert!(
+                errs.iter()
+                    .any(|e| matches!(e, TypeError::ArgumentCountMismatch { .. })),
+                "{call} should be an argument-count mismatch: {errs:?}"
+            );
+        }
     }
 
     #[test]

@@ -91,6 +91,89 @@ export function fold<T, A>(xs: ReadonlyArray<T>, init: A, f: (acc: A, x: T) => A
   return xs.reduce(f, init);
 }
 
+// The five reductions. `max`, `min`, `max_by` and `min_by` return an `Option`
+// because an empty array has no maximum: handing back 0, or -Infinity, is a
+// stand-in for an answer that does not exist, and a caller who forgets to check
+// gets a wrong number instead of a diagnostic. `sum` returns a bare number
+// because the sum of no numbers is 0, which is a real answer rather than a
+// stand-in.
+//
+// `max_by` and `min_by` return the *first* element that achieves the extreme, so
+// ties are broken by input order and a caller can rely on that.
+
+export function max(xs: ReadonlyArray<number>): Option<number> {
+  if (xs.length === 0) {
+    return None;
+  }
+  let best = xs[0] as number;
+  for (let i = 1; i < xs.length; i++) {
+    const x = xs[i] as number;
+    if (x > best) {
+      best = x;
+    }
+  }
+  return Some(best);
+}
+
+export function min(xs: ReadonlyArray<number>): Option<number> {
+  if (xs.length === 0) {
+    return None;
+  }
+  let best = xs[0] as number;
+  for (let i = 1; i < xs.length; i++) {
+    const x = xs[i] as number;
+    if (x < best) {
+      best = x;
+    }
+  }
+  return Some(best);
+}
+
+export function sum(xs: ReadonlyArray<number>): number {
+  let total = 0;
+  for (const x of xs) {
+    total += x;
+  }
+  return total;
+}
+
+// `key` is called once per element, left to right.
+export function max_by<T>(xs: ReadonlyArray<T>, key: (x: T) => number): Option<T> {
+  if (xs.length === 0) {
+    return None;
+  }
+  let best = xs[0] as T;
+  let bestKey = key(best);
+  for (let i = 1; i < xs.length; i++) {
+    const x = xs[i] as T;
+    const k = key(x);
+    // Strictly greater, so an equal key leaves the earlier element in place.
+    if (k > bestKey) {
+      best = x;
+      bestKey = k;
+    }
+  }
+  return Some(best);
+}
+
+export function min_by<T>(xs: ReadonlyArray<T>, key: (x: T) => number): Option<T> {
+  if (xs.length === 0) {
+    return None;
+  }
+  let best = xs[0] as T;
+  let bestKey = key(best);
+  for (let i = 1; i < xs.length; i++) {
+    const x = xs[i] as T;
+    const k = key(x);
+    // Strictly less, so an equal key leaves the earlier element in place.
+    if (k < bestKey) {
+      best = x;
+      bestKey = k;
+    }
+  }
+  return Some(best);
+}
+
 // `index_of` uses primitive value equality (`===`), like `contains`; for
 // records, prefer `find`/`any` with an explicit comparison. It returns the
 // prelude `Option` rather than TS's `-1` sentinel.

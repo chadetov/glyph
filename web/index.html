@@ -924,14 +924,14 @@
       <header class="hero">
         <div>
           <a class="pill" href="/versions/" title="See what's new"><span class="dot"></span>v0.1.108 · early preview →</a>
-          <h1>TypeScript your agents can't <span class="accent">quietly break</span>.</h1>
+          <h1>Ask the compiler what your change <span class="accent">breaks</span>.</h1>
           <p class="sub">
-            Glyph compiles to clean TypeScript and reads almost identically, so
-            you can adopt it one file at a time. The difference is what it won't
-            let through: no <code>any</code> and no casts you can write, a
-            <code>match</code> that must handle every case, and record types that
-            validate themselves at runtime. The footguns an agent ships that
-            <code>tsc --strict</code> waves past don't compile here.
+            Glyph compiles to TypeScript you can read, so you adopt it one file
+            at a time and keep node, npm and everything you already deploy. What
+            it adds is a compiler that answers questions about your program
+            instead of leaving an agent to rediscover them with grep. Add a case
+            to a union and it names every match that will fail, and every match
+            that will keep compiling while silently swallowing it.
           </p>
           <div class="cta">
             <a class="btn primary" href="/start/">Start Here →</a>
@@ -965,6 +965,64 @@
       <span><b>Exhaustiveness</b> enforced</span>
     </div>
 
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">One change, on a real application</h2>
+        <p class="friction-intro">
+          <code>examples/apps/csvql</code> is a CSV query engine in this
+          repository, eleven files, with a <code>Value</code> union at its
+          centre. Here is what happens when you add a case to it.
+        </p>
+        <div class="code">
+          <span class="cap">before touching anything: glyph_variants { name: "Value" }</span>
+<pre>10 match sites across 4 files
+ <span class="del">8 will fail compilation</span>
+ <span class="add">2 contain a catch-all and will silently absorb it</span>
+
+<span class="del">FAILS  </span> value.glyph:18    value::render
+<span class="del">FAILS  </span> value.glyph:32    value::key
+<span class="del">FAILS  </span> bind.glyph:148    bind::literal_kind
+<span class="add">ABSORBS</span> exec.glyph:130    exec::total
+<span class="add">ABSORBS</span> render.glyph:128  render::literal_text
+<span class="dim">...</span></pre>
+          <span class="cap">then add the case for real, and run glyph check</span>
+<pre>8 errors, E0200 non-exhaustive match.
+The same eight.
+
+The two catch-all sites report <span class="add">nothing at all</span>.</pre>
+        </div>
+        <p class="friction-intro" style="margin-top:28px">
+          The prediction was exact, eight of eight. The interesting number is the
+          other one. <code>exec::total</code> and <code>render::literal_text</code>
+          keep compiling and route the new case wherever their catch-all points.
+          No build, no test and no type error will ever mention them. An agent
+          that fixes the eight failures and stops has a green tree and two live
+          bugs, and this is the part a language server cannot tell it.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Seven bugs that pass <code>tsc --strict</code></h2>
+        <p class="friction-intro">
+          Every claim on this site has a pair of files behind it: a
+          <code>.ts</code> that type-checks clean under <code>tsc --strict</code>,
+          and the same program in Glyph that does not compile, with the error code
+          named. A build gate re-runs all of them and fails if either half stops
+          behaving, so a guarantee that quietly disappears takes the build with
+          it.
+        </p>
+        <div class="code">
+          <span class="cap">scripts/check_catches.py</span>
+<pre>catches: 7/7 verified both ways (greppability: 1, verifiability: 6).</pre>
+        </div>
+        <p class="friction-intro" style="margin-top:22px">
+          <a class="card-more" href="/hardening/">See the seven cases &rarr;</a>
+        </p>
+      </div>
+    </section>
     <section>
       <div class="wrap">
         <h2 class="section-head">If you know TypeScript, you know most of this</h2>

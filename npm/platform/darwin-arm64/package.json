@@ -1,6 +1,6 @@
 {
   "name": "@glyphlang/darwin-arm64",
-  "version": "0.1.109",
+  "version": "0.1.110",
   "description": "Prebuilt glyph compiler binary for macOS (Apple Silicon).",
   "os": [
     "darwin"

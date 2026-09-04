@@ -1,5 +1,7 @@
 module main
 
+import std/result { Result, Ok, Err }
+
 // The has_catch_all bug shape: a union gains a variant, the exhaustive match
 // over it fails loudly, and the catch-all match over the *same* union stays
 // green and silently routes the new variant wherever `else` points.
@@ -30,5 +32,19 @@ pub fn describe_direction(d: Direction) -> string {
     match d {
         North => "north",
         else => "other",
+    }
+}
+
+// A fourth site that reaches `UserStatus` through a payload rather than as its
+// own scrutinee. This is the shape the compiler got wrong five times (G139,
+// G141, G142, G143, G148), and the one a text search is worst at: the arms
+// name `Active` and `Inactive`, never `UserStatus`, so finding this site by
+// searching for the union's name depends entirely on the signature happening
+// to mention it.
+pub fn describe_nested(r: Result<UserStatus, string>) -> string {
+    match r {
+        Ok(Active) => "ok-active",
+        Ok(Inactive) => "ok-inactive",
+        Err(e) => e,
     }
 }

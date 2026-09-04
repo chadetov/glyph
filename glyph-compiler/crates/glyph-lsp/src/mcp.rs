@@ -1101,9 +1101,16 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     // in two steps and the answer is a different relation: the field-use
     // relation rather than the occurrence scan. Only a dotted name reaches
     // here, and a dotted name is never a top-level declaration.
-    if let Some(field) = address.name().and_then(FieldAddress::parse) {
-        let record = named_target(&resolved, &field.record, &this_module)
-            .ok_or_else(|| not_declared(&field.record, &this_module, &resolved))?;
+    if let Some(field) = address.name().map(FieldAddress::parse).transpose()?.flatten() {
+        let record = named_target(&resolved, &field.record, &this_module).ok_or_else(|| {
+            format!(
+                "`{}` names no record in module `{this_module}`, so there is no \
+                 `{}` to address. {}",
+                field.record,
+                field.field,
+                not_declared(&field.record, &this_module, &resolved)
+            )
+        })?;
         return field_references(&field, record, server, &path, &project_root);
     }
 
@@ -1257,21 +1264,39 @@ struct FieldAddress {
 }
 
 impl FieldAddress {
-    /// Read a `Type.field` name, or `None` when the name is a plain one.
+    /// Read a `Type.field` name. `Ok(None)` for a plain name, which is a
+    /// declaration and goes down the occurrence path.
     ///
-    /// Exactly one dot. A namespaced record (`import types`, then
-    /// `types.User`) would need two, and the namespace form names a module
-    /// rather than a symbol, which `named_target` reports no identity for; a
-    /// caller holding one asks from a file that imports the record by name.
-    fn parse(name: &str) -> Option<FieldAddress> {
-        let (record, field) = name.split_once('.')?;
+    /// Exactly one dot, and anything else is a malformed address rather than a
+    /// name to try resolving. No declaration, variant or import binding this
+    /// tool ever accepted has a dot in it, so a dotted name is always an
+    /// attempt at a field, and falling through with one would answer "module
+    /// `m` declares no top-level name `types.User.email`", which is true and
+    /// tells the caller nothing about the form that would have worked.
+    ///
+    /// A namespaced record (`import types`, then `types.User`) is the two-dot
+    /// case and is refused. The namespace names a module rather than a symbol,
+    /// so `named_target` has no identity to return for it, which is the same
+    /// limit `glyph_variants` has; the message says where to ask instead.
+    fn parse(name: &str) -> Result<Option<FieldAddress>, String> {
+        let Some((record, field)) = name.split_once('.') else {
+            return Ok(None);
+        };
         if record.is_empty() || field.is_empty() || field.contains('.') {
-            return None;
+            return Err(format!(
+                "`{name}` is not an address. A record field is `Record.field` \
+                 (`User.email`), with the record named the way the file you are \
+                 asking from names it. A record reached through a namespace \
+                 import (`import types`, then `types.User`) cannot be addressed \
+                 this way, because the namespace names a module and not a \
+                 symbol: ask from the module that declares the record, or from \
+                 one that imports it by name."
+            ));
         }
-        Some(FieldAddress {
+        Ok(Some(FieldAddress {
             record: record.to_string(),
             field: field.to_string(),
-        })
+        }))
     }
 }
 
@@ -1343,8 +1368,28 @@ fn field_references(
     let db = &project.db;
     let mut sites: Vec<Value> = Vec::new();
     let mut unkeyed: Vec<Value> = Vec::new();
+    // What the sweep could not read, named rather than skipped. The relation
+    // holds nothing for a file that does not parse or does not resolve, so its
+    // field sites are invisible here, and dropping it silently is what makes a
+    // partial list look like a complete one. Coverage is stated per relation.
+    let mut unindexed: Vec<Value> = Vec::new();
     let mut declared = false;
     for (fpath, entry) in project.searched() {
+        let parsed = glyph_db::parse_module(db, entry.file);
+        if parsed.module().is_none() {
+            unindexed.push(json!({
+                "path": display_path(&root, fpath),
+                "why": "the file does not parse, so no field site in it was read",
+            }));
+            continue;
+        }
+        if glyph_db::resolve(db, entry.file).resolved().is_none() {
+            unindexed.push(json!({
+                "path": display_path(&root, fpath),
+                "why": "the file does not resolve, so no field site in it was read",
+            }));
+            continue;
+        }
         let uses = glyph_db::field_uses(db, entry.file);
         // Built on the first matching site rather than per file. Most files in
         // a project name no site of any one field, and a line index over every
@@ -1369,7 +1414,6 @@ fn field_references(
                 declared = true;
             }
             let (index, outline) = rendered.get_or_insert_with(|| {
-                let parsed = glyph_db::parse_module(db, entry.file);
                 (
                     LineIndex::new(ftext),
                     parsed.module().map(module_outline).unwrap_or_default(),
@@ -1401,6 +1445,7 @@ fn field_references(
         "entity": entity,
         "sites": sites,
         "unkeyed": unkeyed,
+        "unindexed": unindexed,
         "not_indexed": FIELD_NOT_INDEXED,
     })))
 }
@@ -4233,6 +4278,49 @@ mod tests {
             kinds.iter().filter(|(_, a)| a == "read").count(),
             2,
             "the two reads of `a.owner` are not both here: {kinds:?}"
+        );
+    }
+
+    /// A record reached only through a namespace import cannot have its fields
+    /// addressed, and the refusal says which spelling would work.
+    ///
+    /// Falling through to the declaration path answered "module `ns` declares
+    /// no top-level name `types.User.email`", which is true and says nothing
+    /// about the form. The limit itself is the one `named_target` has for a
+    /// namespace: it names a module, not a symbol, so there is no identity to
+    /// key a field to.
+    #[test]
+    fn a_namespaced_record_is_refused_with_the_spelling_that_works() {
+        let root = tmp_root();
+        write(
+            &root,
+            "types.glyph",
+            "module types\npub type User = {\n  name: string,\n  email: string,\n}\n",
+        );
+        write(
+            &root,
+            "ns.glyph",
+            "module ns\n\
+             import types\n\
+             pub fn greet(u: types.User) -> string {\n  return u.email\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let (text, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "ns.glyph", "name": "types.User.email" }),
+        );
+        assert!(is_error, "answered a namespaced field address: {text}");
+        assert!(text.contains("`Record.field`"), "{text}");
+        assert!(text.contains("namespace"), "{text}");
+
+        // The read in that file is still a site of the field; the answer is
+        // asked for from a module that can name the record.
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let kinds = field_kinds(&value, "sites");
+        assert!(
+            kinds.contains(&("ns::greet".to_string(), "read".to_string())),
+            "a read through a namespace-imported record is not a site: {kinds:?}"
         );
     }
 

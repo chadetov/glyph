@@ -61,8 +61,40 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.109</span>
+            <span class="rel-ver">0.1.110</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Ask what a change breaks, before you make it</h3>
+            <p>Until now you could ask which match sites exist over a union. You can now ask what happens if you add a case to it, which is the question anyone actually has.</p>
+            <div class="code">
+              <span class="cap">glyph_variants { name: "PaymentResult", proposed_variant: "Pending" }</span>
+<pre>PaymentResult
+  |-- Success
+  |-- Failed
+  `-- Pending   <span class="add">&lt;- new</span>
+
+<span class="del">WILL_FAIL</span>    billing::settle    src/billing.glyph:5
+<span class="add">ABSORBS</span>      billing::audit     src/billing.glyph:12
+<span class="del">WILL_FAIL</span>    billing::report    src/billing.glyph:20</pre>
+            </div>
+            <p>The second line is the one that matters. <code>billing::audit</code> has a catch-all, so it keeps compiling and routes <code>Pending</code> wherever that arm points. No build, no test and no type error will mention it. Fix the two failures and stop, and you have a green tree and a live bug.</p>
+            <p>Four words, each meaning one thing. <code>WILL_FAIL</code>, <code>ABSORBS</code>, <code>NOT_INDEXED</code> for a site the compiler could not key, and <code>UNDETERMINED</code> for one it keyed but drew no conclusion about. That last word was not in the original design and it earns its place: a site with an arm the checker read nothing from is keyed, so calling it not-indexed would state something false.</p>
+            <h3>The answer stays honest when the program is not</h3>
+            <p>A diagnostic now carries the union it is about and the variants it leaves unmentioned as fields, beside the prose rather than instead of it. Getting from an error to the next question no longer means running a regex over an error message.</p>
+            <p>Asking about a record used to answer with an empty site list, which is shaped exactly like a union nothing matches on. "The question does not apply" and "nothing is affected" were spelled the same way. And <code>glyph check --no-tsc</code> reported no diagnostics on a program importing a module that does not exist, while the impact surface, asked about the same file, correctly said it could not resolve the type. One unresolvable name, two surfaces, one admitting it did not know and one saying everything was fine.</p>
+            <h3>Relations that answer the same way whichever way you spell the question</h3>
+            <p><code>glyph_references</code> dropped a namespace-qualified call: <code>import render { label }</code> found three sites, <code>import render</code> with <code>render.label(s)</code> found one. Not an empty answer, which would have been visibly wrong, but a short one that looked complete. <code>CALLS</code> is now distinct from <code>REFERENCES</code>, an edge the compiler proved is kept apart from one a <code>.d.ts</code> asserted, and a record field is addressable as <code>module::Type.field</code> so renaming a field has an impact set.</p>
+            <p class="rel-note">The exact-or-absent gate went from five invariants with two known failures to thirteen with none. It fails when a known failure starts passing, so neither of those could be fixed without promoting its case to a hard assertion in the same change. What is not here: the tests that prove the repair loop closes, and the demonstration as something you can run rather than read. Both move to the next release.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.109</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

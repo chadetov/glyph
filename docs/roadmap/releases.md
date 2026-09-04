@@ -4854,7 +4854,7 @@ counted. None of the three gaps above touch it. So that case ships first, as the
 first instance of the primitive rather than as another bespoke tool, and the
 generalization follows once the remaining relations can carry the same promise.
 
-**0.1.110 — Next · "What breaks if I add this variant?"**
+**0.1.110 — Landed on main · "What breaks if I add this variant?"**
 - **The flagship, and larger than the releases around it on purpose.** It carries nine entries, and an earlier reading of this file called that overloaded. It is not: they are one thing said in four parts. The capability (ask as a change, answer with a consequence), the invariant that keeps the answer honest, the tests that prove the loop closes, and the artifact that lets someone else run it. Ship any three without the fourth and the release is a claim rather than a demonstration
 - The order within it is capability, gate, tests, artifact. The gate comes second rather than last because an answer that manufactures a relation is worse than no answer, and the tests come before the artifact because a demo of an untested loop is a transcript
 - G187: the question can only be asked as a lookup today. `glyph_impact { entity: "payments::PaymentResult", add_variant: "Pending" }` asks it as the change it is
@@ -4980,7 +4980,7 @@ Both are already answerable and the site answers neither:
 - The impact and repair capability appears zero times on the homepage. Not the ten sites across four files, not the eight that fail against the two that silently absorb, not that the prediction was exact on a real application in this repository
 - The rebuild leads with the demonstration and keeps the language comparison as supporting material, because "here is a bug your current toolchain ships" is an argument and "here is different syntax" is a preference
 
-**0.1.111 — Relations whole enough to traverse**
+**0.1.111 — Next · The proof, and what the relations still owe**
 - G186: one answer for a symbol's references whichever way the consumer spelled its import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
 - Record fields become addressable entities, so a field rename has an impact set rather than a grep. **Landed on main.** `glyph_references` takes `Record.field` (`User.email`, the record named the way the querying file names it) and answers `{ entity, sites, unkeyed, not_indexed }` from a new field-use relation the member-access check writes while it types each file, alongside the match-coverage one. `sites` holds the field's own declaration, every member read, every write (`mut u.email = v`), and a `@redact fields: [...]` name, each keyed to the record the checker resolved the access against and ranged over the field's name alone so a rename can write from it. Two records in one module with the same field name are two entities; a read through a cross-module alias keys to the record the chain ends at, not the name the use site reached it by; a read of a payload binding (`Loaded(u) => u.email`) is a proven site. `tests/exact-or-absent/field-entity/` gates it
@@ -5428,7 +5428,7 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
-### 0.1.110 — Next · "What breaks if I add this variant?"
+### 0.1.110 — Landed on main · "What breaks if I add this variant?"
 
 The flagship. Everything from 0.1.104 onward has been building the parts; this
 is the release where they answer a question somebody would actually ask.

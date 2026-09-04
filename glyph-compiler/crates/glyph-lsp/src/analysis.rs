@@ -833,13 +833,26 @@ pub fn global_occurrences_in(
 // Relations
 // ============================================================================
 
-/// Which relation one occurrence of a symbol stands in.
+/// A relationship the compiler computed between one entity and one site.
 ///
-/// The vocabulary is closed at two members and every occurrence is exactly one
-/// of them, so the two lists together are the flat occurrence list
-/// [`global_occurrences_in`] returns. Asking for one relation loses no site; it
-/// only stops the answer from saying that a type annotation and a call site are
-/// the same fact.
+/// **One set, one spelling.** Every surface that names a relation names it from
+/// here, and the name is identical in a request, in a reply, and in a coverage
+/// statement. Before this existed the tree held two sets that never overlapped:
+/// `glyph_references` spelled `CALLS` and `REFERENCES` on the wire, and
+/// `glyph_variants` named no relation at all, carrying its site kinds as the
+/// positional keys `sites`, `nested` and `unkeyed` so that position was the
+/// only thing telling them apart. Two sets that never meet cannot be selected
+/// from and cannot be named in a reply (G193).
+///
+/// The set is closed. A member is here because the checker already computes
+/// it, and a name outside it is a question no surface can answer rather than a
+/// relation nobody has got round to.
+///
+/// Membership is not the same as being answerable today. A relation the tree
+/// holds a name for and no surface computes is refused when it is asked for,
+/// because an empty edge list for it would say the relationship does not hold.
+/// Which surface answers which relation is the MCP layer's own knowledge and
+/// lives there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Relation {
     /// The occurrence is the callee name of a call or a `new`: the site applies
@@ -852,26 +865,55 @@ pub enum Relation {
     /// read and something else is applied, so the call is not a call *of* it,
     /// and the site is still reported under [`Relation::References`].
     Calls,
-    /// Every other occurrence: the declaration's own name, an `import` binding,
-    /// a type annotation naming the symbol, a value read, the symbol passed as
-    /// an argument rather than applied to one, a `match` pattern naming a
-    /// variant, a JSX element naming a component.
+    /// The site names the entity without applying it: the declaration's own
+    /// name, an `import` binding, a type annotation naming the symbol, a value
+    /// read, the symbol passed as an argument rather than applied to one, a
+    /// `match` pattern naming a variant, a JSX element naming a component.
+    ///
+    /// [`Relation::Calls`] and this one partition the occurrences of a symbol,
+    /// so the two lists together are the flat occurrence list
+    /// [`global_occurrences_in`] returns and asking for one loses no site.
     References,
+    /// A `match` whose scrutinee is the entity, and which variants each of its
+    /// arms names. This is the relation the match-coverage check writes while
+    /// it types each file, and it is what a variant being added or removed
+    /// travels along.
+    MatchSites,
+    /// A read or a write of a record field, keyed to the record the checker
+    /// resolved the access against. Written by the member-access check as it
+    /// types each file, which is why a site is here because a field set
+    /// resolved rather than because a spelling matched.
+    FieldAccess,
+    /// A derived artifact, with the source it was derived from. No surface
+    /// computes this yet; the name is in the set because a relation cannot be
+    /// named in a reply before the set holds it, and adding it later would be
+    /// a second vocabulary again.
+    GeneratedFrom,
 }
 
 impl Relation {
-    /// The name this relation is called on the wire. The vocabulary is closed,
-    /// so the two spellings exist here and nowhere else.
+    /// The name this relation is called on the wire. The set is closed, so the
+    /// spellings exist here and nowhere else: a surface that wants to name a
+    /// relation asks for it rather than writing the word out.
     pub fn wire(self) -> &'static str {
         match self {
             Relation::Calls => "CALLS",
             Relation::References => "REFERENCES",
+            Relation::MatchSites => "MATCH_SITES",
+            Relation::FieldAccess => "FIELD_ACCESS",
+            Relation::GeneratedFrom => "GENERATED_FROM",
         }
     }
 
     /// Every relation, in the order an answer lists them.
-    pub fn all() -> [Relation; 2] {
-        [Relation::Calls, Relation::References]
+    pub fn all() -> [Relation; 5] {
+        [
+            Relation::Calls,
+            Relation::References,
+            Relation::MatchSites,
+            Relation::FieldAccess,
+            Relation::GeneratedFrom,
+        ]
     }
 
     /// The relation `wire` spells, or `None` when it names none of them. A
@@ -881,6 +923,12 @@ impl Relation {
     /// empty list that reads as "no such edges exist".
     pub fn from_wire(wire: &str) -> Option<Relation> {
         Relation::all().into_iter().find(|r| r.wire() == wire)
+    }
+
+    /// The vocabulary as one comma-separated list, for a message that has to
+    /// state what the closed set holds.
+    pub fn vocabulary() -> String {
+        Relation::all().map(|r| r.wire()).join(", ")
     }
 }
 

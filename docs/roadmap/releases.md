@@ -5428,6 +5428,48 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
+### 0.1.111 — Next · The proof, and what the relations still owe
+
+0.1.110 shipped the capability and the invariant. It did not ship the proof, and
+the distinction is the whole point: a release that can answer the question is a
+claim, and a release somebody else can run is a demonstration.
+
+**The tests that were planned for 0.1.110 and never built.** The repair loop has
+been walked once, by hand, on one union. Nothing asserts that it closes (G196).
+And nothing tests the surface an agent actually talks to: every MCP test calls
+the dispatcher in process, so framing, the handshake as an ordered exchange, and
+behaviour on a malformed line are unexercised. The `instructions` string 0.1.107
+shipped appears in no assertion at all, so deleting it keeps the suite green
+(G197).
+
+The test that matters most is also the easiest to write dishonestly. It has to
+assert that each hop's input came out of the previous hop's answer as a field. A
+loop that closes because the harness supplied the union's name from its own
+fixture proves that the fixture agrees with itself.
+
+**The answer takes no position on its own totals** (G198). Ten sites come back
+with consequences and no count, so the three lines a reader wants are arithmetic
+the caller performs. Any total states what it could not count, because a number
+reads as authoritative in a way a list does not.
+
+**The demonstration is a transcript** (G199). `examples/apps/csvql`, eleven
+files, one variant added to the `Value` union at its centre: ten match sites
+across four files, eight that fail and two that keep compiling and absorb it, and
+the compiler afterwards reporting exactly those eight. Every number measured.
+None of it committed, scripted or runnable by anyone else.
+
+*Reviewed against 0.1.110.* Each claim re-run against the binary this release
+builds. `instructions` appears twice in `mcp.rs`, in a doc comment and in the
+value, and in zero assertions. No test walks the repair loop. An answer's
+top-level keys are `proposed_variant`, `sites` and `type`, with no count, total
+or summary among them. The demonstration is still a transcript.
+
+**What the relations still owe.** 0.1.110 landed one answer per symbol across
+import spellings, `CALLS` apart from `REFERENCES`, proved apart from asserted,
+and fields addressable as `module::Type.field`. What has not been done is reading
+them together: one entity in, a bounded traversal out, over more than one
+relation at a time, with the transitivity question settled in writing first.
+
 ### 0.1.110 — Landed on main · "What breaks if I add this variant?"
 
 The flagship. Everything from 0.1.104 onward has been building the parts; this

@@ -23,11 +23,13 @@ pub struct GlyphDiagnostic {
     pub message: String,
     /// The stable diagnostic code (e.g. `E0204`).
     pub code: String,
-    /// The bare name of the top-level declaration this diagnostic's span
-    /// sits inside, when one is known (see `enclosing_decl_name`). `None`
-    /// for a diagnostic with no enclosing declaration to name: a parse
-    /// failure (no AST exists yet), or a span on the `module` line or an
-    /// import. This tool has no project index to qualify the name with a
+    /// The bare name of the top-level declaration this diagnostic belongs to,
+    /// when one is known: the name the checker put on the error if it had the
+    /// declaration in hand (`TypeError::decl_name`), otherwise the declaration
+    /// whose span contains the diagnostic (see `enclosing_decl_name`). `None`
+    /// for a diagnostic with no declaration to name: a parse failure (no AST
+    /// exists yet), or a span on the `module` line or an import. This tool has
+    /// no project index to qualify the name with a
     /// module path — the caller (`glyph_diagnostics`), which does know the
     /// file's own path, assembles the qualified `module::name` form the same
     /// way `glyph_variants` addresses a declaration site.
@@ -87,7 +89,13 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
             end: e.span().end,
             message: with_help(format!("{e}"), e.help()),
             code: e.code().to_string(),
-            decl_name: enclosing_decl_name(&module, e.span().start),
+            // An error the checker raised while holding a declaration names it
+            // itself; an annotation's span sits before the keyword the
+            // declaration's span starts at, so the walk cannot find it.
+            decl_name: e
+                .decl_name()
+                .map(str::to_string)
+                .or_else(|| enclosing_decl_name(&module, e.span().start)),
         });
     }
 
@@ -1000,7 +1008,13 @@ fn with_help(message: String, help: Option<&str>) -> String {
 /// or `None` when no top-level declaration contains it (an offset on the
 /// `module` line itself, or inside an import, which re-binds another
 /// module's name rather than declaring one of its own).
-fn enclosing_decl_name(module: &Module, offset: u32) -> Option<String> {
+///
+/// This is the only copy of the attribution rule. `glyph check --json` walks
+/// the same AST for the same answer (`glyph-cli`'s `diagnostic::entity_id`),
+/// and when the walk lived in two places the two surfaces drifted (G180). The
+/// name comes back bare: the module half is the caller's, because each caller
+/// counts it from a root only it knows.
+pub fn enclosing_decl_name(module: &Module, offset: u32) -> Option<String> {
     module.items.iter().find_map(|item| {
         let span = item.span();
         if span.start <= offset && offset < span.end {
@@ -1324,5 +1338,20 @@ mod tests {
         let idx = LineIndex::new(text);
         // byte offset of 'b' is 1 (a) + 4 (😀) = 5; expect character 3 (1 + 2).
         assert_eq!(idx.position(text, 5), (0, 3));
+    }
+
+    /// G181: the annotation sits before the keyword the declaration's span
+    /// starts at, so the containment walk finds nothing for it. The checker
+    /// knew the declaration when it raised the error; the LSP diagnostic must
+    /// carry that name rather than report the site as belonging to nothing.
+    #[test]
+    fn decl_name_names_the_declaration_an_annotation_decorates() {
+        let text = "module x\n\n@puer\nfn f() -> number {\n  return 1\n}\n";
+        let diags = analyze(text);
+        let d = diags
+            .iter()
+            .find(|d| d.code == "E0221")
+            .expect("E0221 emitted");
+        assert_eq!(d.decl_name.as_deref(), Some("f"));
     }
 }

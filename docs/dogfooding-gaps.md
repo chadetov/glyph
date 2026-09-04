@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-200 entries, 146 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-35 are open. G144, the D28 boundary cast that never reached the returns a
+200 entries, 147 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+34 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6256,7 +6256,7 @@ two-binding form is `E0200` on a missing literal and clean on an exhaustive one,
 an `@example`-only module draws no `E0112`, and an import used only by an
 example draws no `E0106` while a genuinely unused one still does.*
 
-- **G156. Two structurally identical named records are not interchangeable at a
+- **G156. [FIXED] Two structurally identical named records are not interchangeable at a
   call site, and are interchangeable through a `let`.** The guarantee holds
   where it is checked and evaporates one line away:
 
@@ -6298,6 +6298,10 @@ example draws no `E0106` while a genuinely unused one still does.*
   *Reproduced against 0.1.104: `let p: Paid = d` where `d` is a `Draft` and both are `{ id: string }` still type-checks, the only diagnostic being an unused-variable lint on `p`: `direct` is `E0211`, `laundered` reports no
   diagnostics, and the hand-written TypeScript equivalent of the first passes
   `tsc --strict` with exit 0.*
+
+  *Closed by 0.1.110. Both halves now report `E0211 argument type mismatch:
+  expected `Final`, found `Draft``, the direct call and the one through a `let`.
+  The entry's claim was that the second path accepted it, and it no longer does.*
 
 - **G157. [FIXED] `docs/language/spec.md` D44 still describes G143 as open.** G143, the
   imported union's nested payload going unchecked, closed in 0.1.97 and holds in
@@ -6688,7 +6692,7 @@ and is the owner's to confirm.
   which is the minimum. Whether the socket wait itself is wrong is a separate
   question the deadline would give evidence for.
 
-  *Reproduced against 0.1.104 during release verification: `ps -eo etime,pid`
+  *Reproduced against 0.1.110: `net_carries_a_split_character_and_reports_a_bind_failure` still carries no timeout of its own. Previously, against 0.1.104:  during release verification: `ps -eo etime,pid`
   shows the three processes above, and the run that spawned them had already
   exited. Two independent verification passes hit the same test in the same way
   under concurrent load.*
@@ -6790,7 +6794,7 @@ and is the owner's to confirm.
   not merely outside salsa; it depends on a second symbol table maintained by
   hand.
 
-  *Reproduced against 0.1.104 by reading both call sites. The divergence is
+  *Reproduced against 0.1.110 by reading both emit call sites: `glyph-wasm/src/lib.rs:124` still passes `EmitContext::single()`, whose six tables are all empty, while `glyph-cli/src/build.rs:822` constructs a populated one. Two surfaces, one language, different TypeScript for anything crossing a module boundary. Previously, against 0.1.104:  by reading both call sites. The divergence is
   structural rather than a bug in either path: the wasm build cannot construct
   the tables because it has one module.*
 
@@ -6813,7 +6817,7 @@ and is the owner's to confirm.
   wearing an exclusion's colour, which is a mistake this project has made once
   already and corrected.
 
-  *Reproduced against 0.1.104: `glyph_references` on a local takes the
+  *Reproduced against 0.1.110: still unmeasured. The roadmap names the measurement in two places and no run has produced a number, which is the entry's whole point. Previously, against 0.1.104: `glyph_references` on a local takes the
   `SymbolTarget::Local` arm and answers file-scoped occurrences rather than a
   project-wide identity, confirmed by reading the arm and by the tool's own
   behaviour. What is not measured, and is the whole question, is the fraction of

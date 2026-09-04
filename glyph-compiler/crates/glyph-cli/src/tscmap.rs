@@ -179,6 +179,10 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                     },
                     stage: "tsc".to_string(),
                     entity: None,
+                    // No union either: a `tsc` error that was never mapped
+                    // onto Glyph source is not about a Glyph declaration.
+                    union: None,
+                    missing_variants: None,
                     help: None,
                     note: None,
                 });

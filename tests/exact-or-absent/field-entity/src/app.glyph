@@ -1,0 +1,26 @@
+module app
+
+import model { User, Contact }
+
+pub fn greet(u: User) -> string {
+  return u.email
+}
+
+pub fn reach(c: Contact) -> string {
+  return c.email
+}
+
+// The checker sees nothing behind `extern_ts`, so this access resolves to no
+// field set at all. It may be over `model::User.email` and it may not, and the
+// answer has to say so rather than pick.
+pub fn opaque() -> string {
+  let handle = extern_ts("globalThis.user")
+  return handle.email
+}
+
+// A record literal constructing `User`. An object literal gets no expected
+// type from the checker, so no key in one is ever joined to a field of a
+// declaration; renaming `email` breaks this and the relation does not hold it.
+pub fn make() -> User {
+  return { name: "a", email: "b", }
+}

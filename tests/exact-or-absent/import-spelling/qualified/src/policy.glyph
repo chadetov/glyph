@@ -1,0 +1,7 @@
+module policy
+
+import render
+
+pub fn describe(s: string) -> string {
+  return render.label(s)
+}

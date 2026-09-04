@@ -79,7 +79,8 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types_with_coverage, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
+    assign_types_with_relations, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
+    FieldSite, FileFieldUses,
     FileMatchCoverage, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
 };
 
@@ -1007,15 +1008,17 @@ impl_wrapper_salsa_value!(DeclIndex);
 struct TypedFile {
     types: Types,
     coverage: MatchCoverage,
+    fields: FieldUses,
 }
 
 impl TypedFile {
-    /// Neither half, for a file that does not parse: there is no module line
-    /// to read and no expression to type.
+    /// None of the three, for a file that does not parse: there is no module
+    /// line to read and no expression to type.
     fn empty() -> Self {
         Self {
             types: Types::empty(),
             coverage: MatchCoverage::empty(),
+            fields: FieldUses::empty(),
         }
     }
 }
@@ -1086,6 +1089,58 @@ impl MatchCoverage {
 }
 
 impl_wrapper_salsa_value!(MatchCoverage);
+
+/// One file's field-use relation: every site that names a record field, with
+/// the record the checker joined it to.
+///
+/// **The value is file-local and every identity in it is a string**, for the
+/// reason [`MatchCoverage`] gives: a per-file query that reached the
+/// project-level module interner would depend on the project's file list, so
+/// adding any file would re-execute and change every file's answer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldUses {
+    inner: Arc<FieldUsesInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FieldUsesInner {
+    module: String,
+    uses: FileFieldUses,
+}
+
+impl FieldUses {
+    pub fn new(module: String, uses: FileFieldUses) -> Self {
+        Self {
+            inner: Arc::new(FieldUsesInner { module, uses }),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(String::new(), FileFieldUses::default())
+    }
+
+    /// The module key this file declares itself under, or the empty string when
+    /// it declares no `module` line. The same string [`MatchCoverage::module`]
+    /// reports, read the same way.
+    pub fn module(&self) -> &str {
+        &self.inner.module
+    }
+
+    /// Every site in the file, in source order.
+    pub fn sites(&self) -> &[FieldSite] {
+        self.inner.uses.sites()
+    }
+
+    pub fn len(&self) -> usize {
+        self.sites().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sites().is_empty()
+    }
+}
+
+impl_wrapper_salsa_value!(FieldUses);
 
 /// The type end of a match site, keyed where this project declares it.
 ///
@@ -1595,8 +1650,21 @@ pub fn match_coverage(db: &dyn Db, file: SourceFile) -> MatchCoverage {
     typed_file(db, file).coverage
 }
 
-/// Run the assigner once and keep both halves of what it produced. See
-/// [`TypedFile`].
+/// The file's field-use relation: every site that names a record field, and the
+/// record the member-access check joined it to.
+///
+/// A projection of [`typed_file`], so the relation costs no second walk, and a
+/// separate query for the same reason coverage is one: field uses are a small
+/// flat thing beside a span-keyed `TypeMap`, so an edit that moves every span
+/// and changes no field use produces an equal value, salsa backdates it, and
+/// this query's consumers skip.
+#[salsa::tracked(returns(clone))]
+pub fn field_uses(db: &dyn Db, file: SourceFile) -> FieldUses {
+    typed_file(db, file).fields
+}
+
+/// Run the assigner once and keep all three projections of what it produced.
+/// See [`TypedFile`].
 #[salsa::tracked(returns(clone))]
 fn typed_file(db: &dyn Db, file: SourceFile) -> TypedFile {
     let parsed = parse_module(db, file);
@@ -1610,11 +1678,12 @@ fn typed_file(db: &dyn Db, file: SourceFile) -> TypedFile {
     let Some(resolved_module) = resolved.resolved() else {
         return TypedFile {
             types: Types::empty(),
-            coverage: MatchCoverage::new(module_key, FileMatchCoverage::default()),
+            coverage: MatchCoverage::new(module_key.clone(), FileMatchCoverage::default()),
+            fields: FieldUses::new(module_key, FileFieldUses::default()),
         };
     };
     let decl_ty_resolver = SalsaDeclTy { db, file };
-    let (tm, ty_errs, coverage) = assign_types_with_coverage(
+    let (tm, ty_errs, coverage, fields) = assign_types_with_relations(
         module,
         resolved_module,
         db.prelude(),
@@ -1622,7 +1691,8 @@ fn typed_file(db: &dyn Db, file: SourceFile) -> TypedFile {
     );
     TypedFile {
         types: Types::new(tm, ty_errs),
-        coverage: MatchCoverage::new(module_key, coverage),
+        coverage: MatchCoverage::new(module_key.clone(), coverage),
+        fields: FieldUses::new(module_key, fields),
     }
 }
 

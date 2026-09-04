@@ -1,0 +1,15 @@
+module app
+
+import lib { charge }
+
+fn apply(f: fn(number) -> number) -> number {
+  return f(1)
+}
+
+pub fn bill() -> number {
+  return charge(1)
+}
+
+pub fn handler() -> number {
+  return apply(charge)
+}

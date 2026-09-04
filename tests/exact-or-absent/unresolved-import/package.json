@@ -1,1 +1,6 @@
-{ "name": "unresolved-import", "version": "0.0.1", "glyph": { "src": "src" } }
+{
+  "name": "unresolved-import",
+  "version": "0.0.1",
+  "glyph": { "src": "src" },
+  "dependencies": { "tinylog": "^1.0.0" }
+}

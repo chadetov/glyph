@@ -29,7 +29,7 @@ use crate::ty::{
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::TypeMap;
-use crate::TypeError;
+use crate::{DiagnosticUnion, TypeError};
 
 /// How the innermost enclosing callable's declared return type relates to
 /// the `?` operator's requirement (D + week-3 task 2). Pushed onto
@@ -265,9 +265,31 @@ pub fn assign_types_with_coverage(
     prelude: &Prelude,
     decl_ty_resolver: &dyn DeclTyResolver,
 ) -> (TypeMap, Vec<TypeError>, FileMatchCoverage) {
+    let (tm, errors, coverage, _fields) =
+        assign_types_with_relations(module, resolved, prelude, decl_ty_resolver);
+    (tm, errors, coverage)
+}
+
+/// Same as `assign_types_with_coverage`, and additionally the field-use
+/// relation the member-access check filled while it ran.
+///
+/// The second side channel, written the same way and for the same reason. Every
+/// edge is recorded where `walk_expr`'s `Expr::Member` arm already resolved the
+/// object's field set, so there is nothing to keep in step: a query that walked
+/// the members again would have to reproduce the whole `record_fields_of`
+/// dispatch (structural records, local `type` aliases, structural interfaces,
+/// the stdlib table, imported declarations, generic applications) and would be a
+/// second copy of it that drifts.
+pub fn assign_types_with_relations(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    decl_ty_resolver: &dyn DeclTyResolver,
+) -> (TypeMap, Vec<TypeError>, FileMatchCoverage, FileFieldUses) {
     let mut tm = TypeMap::new();
     let mut errors: Vec<TypeError> = Vec::new();
     let mut coverage = FileMatchCoverage::default();
+    let mut field_uses = FileFieldUses::default();
     {
         let mut assigner = Assigner {
             module,
@@ -276,12 +298,15 @@ pub fn assign_types_with_coverage(
             tm: &mut tm,
             errors: &mut errors,
             coverage: &mut coverage,
+            field_uses: &mut field_uses,
+            assign_target: None,
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
+            assigner.declare_record_fields(decl);
             assigner.walk_decl(decl);
         }
     }
@@ -291,7 +316,7 @@ pub fn assign_types_with_coverage(
     // map rather than interleaved with it.
     errors.extend(crate::owned::check_owned(module, resolved, prelude, &tm));
     errors.extend(crate::concurrency::check_await_straddle(module));
-    (tm, errors, coverage)
+    (tm, errors, coverage, field_uses)
 }
 
 // ============================================================================
@@ -341,6 +366,53 @@ impl From<&UnionRef> for CoverageTypeName {
                 name: name.clone(),
             },
         }
+    }
+}
+
+impl From<&UnionRef> for DiagnosticUnion {
+    /// The diagnostic view of the same union resolution the coverage edge is
+    /// keyed by, derived rather than resolved a second time for the reason
+    /// given on `CoverageTypeName`'s conversion above.
+    ///
+    /// The one difference between the two views is the local module. A
+    /// coverage edge is keyed inside this crate and takes the file's own
+    /// `module` header; a diagnostic is qualified by the surface that renders
+    /// it, from the root that surface counts modules from, which is the root
+    /// its `entity` is already counted from.
+    fn from(union: &UnionRef) -> Self {
+        match union {
+            UnionRef::Local { name, .. } => DiagnosticUnion::Local {
+                name: name.clone(),
+            },
+            UnionRef::Imported { module, name } => DiagnosticUnion::Imported {
+                module: module.clone(),
+                name: name.clone(),
+            },
+            UnionRef::Builtin { name } => DiagnosticUnion::Builtin {
+                name: name.clone(),
+            },
+        }
+    }
+}
+
+/// The coverage view of a union a diagnostic named, given the module key the
+/// file being checked is known by inside this crate.
+///
+/// The inverse direction of the pair above, and it exists for the same reason:
+/// the string-literal checker resolves its union once, and both the edge it
+/// writes and the error it raises are derived from that one answer instead of
+/// walking the type a second time.
+fn coverage_name(union: &DiagnosticUnion, own_module: &str) -> CoverageTypeName {
+    match union {
+        DiagnosticUnion::Local { name } => CoverageTypeName::Declared {
+            module: own_module.to_string(),
+            name: name.clone(),
+        },
+        DiagnosticUnion::Imported { module, name } => CoverageTypeName::Declared {
+            module: module.clone(),
+            name: name.clone(),
+        },
+        DiagnosticUnion::Builtin { name } => CoverageTypeName::Builtin { name: name.clone() },
     }
 }
 
@@ -627,6 +699,148 @@ impl CoverageWriter {
     }
 }
 
+// ============================================================================
+// Field uses: the side channel the member-access check fills
+// ============================================================================
+
+/// The record a field site was joined to, as far as one file can name it.
+///
+/// A module string plus a name, never a `DeclKey`, for the reason
+/// `CoverageTypeName` gives: a `DeclKey` carries a `ModuleId`, those are issued
+/// by the project-level interner in `glyph-db`, and one minted anywhere else is
+/// an in-range id for some *other* module. This crate holds no interner, so it
+/// hands out strings and the project-wide consumer mints the key.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum FieldOwner {
+    /// A record declared in a project module, under the module key that
+    /// declaration is reachable by: this file's own module path for a record
+    /// declared here, the source module's key for an imported one. Empty for a
+    /// file that declares no `module` line, which nothing can key.
+    Declared { module: String, name: String },
+    /// A field set with no project declaration behind it: an inline
+    /// `{ a: string }` annotation, a variant's record payload, or a stdlib type
+    /// whose field table the runtime ships (`fs.FileInfo`). Renaming a field of
+    /// one is not a change a project module can make, so there is no
+    /// declaration to address. `display` is the name a diagnostic prints.
+    Undeclared { display: String },
+    /// The object's type never resolved to a field set, so nothing joined this
+    /// site to a record. `display` is the type the object was named by, which is
+    /// all that was known.
+    ///
+    /// Recorded rather than skipped, and this is the whole reason the variant
+    /// exists. A site like this may well be over the record being asked about,
+    /// with a type that stopped resolving for an unrelated reason, and absence
+    /// in this relation is reserved for meaning that no relation exists.
+    Unresolved { display: String },
+}
+
+/// What one site does with the field.
+///
+/// Four kinds and not one flag, because a caller renaming a field has to edit
+/// all four and they do not read alike. Nothing here is a judgement about
+/// safety: every one of them stops compiling when the field's name changes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum FieldAccess {
+    /// The field's own declaration inside its record body.
+    Declaration,
+    /// `u.email` read in value position.
+    Read,
+    /// `mut u.email = v`: the member expression is the assignment's target.
+    Write,
+    /// A `@redact fields: [email]` annotation naming the field (D24).
+    Redact,
+}
+
+impl FieldAccess {
+    /// The word an answer prints for this kind.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            FieldAccess::Declaration => "declaration",
+            FieldAccess::Read => "read",
+            FieldAccess::Write => "write",
+            FieldAccess::Redact => "redact",
+        }
+    }
+}
+
+/// One site naming one field of one record.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FieldSite {
+    owner: FieldOwner,
+    field: String,
+    span: Span,
+    access: FieldAccess,
+}
+
+impl FieldSite {
+    /// The record the checker joined this site to.
+    pub fn owner(&self) -> &FieldOwner {
+        &self.owner
+    }
+
+    /// The field as the site spells it. For every access kind but
+    /// `Declaration` this is the spelling the source used, which is the same
+    /// string as the declaration's when the site resolved.
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    /// The site's span: the whole member expression for a read or a write, the
+    /// field's own name for a declaration, the `@redact` annotation for a
+    /// redaction. A location, not an identity: it moves with the file and is
+    /// never compared across revisions.
+    pub fn span(&self) -> Span {
+        self.span
+    }
+
+    pub fn access(&self) -> FieldAccess {
+        self.access
+    }
+}
+
+/// One file's field-use relation: every site that names a record field, in the
+/// order the walk reached them, which is source order.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct FileFieldUses {
+    sites: Vec<FieldSite>,
+}
+
+impl FileFieldUses {
+    pub fn sites(&self) -> &[FieldSite] {
+        &self.sites
+    }
+
+    pub fn len(&self) -> usize {
+        self.sites.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sites.is_empty()
+    }
+
+    fn record(&mut self, owner: FieldOwner, field: String, span: Span, access: FieldAccess) {
+        self.sites.push(FieldSite {
+            owner,
+            field,
+            span,
+            access,
+        });
+    }
+}
+
+/// A field set the checker could read, and the record it came from.
+///
+/// The pair travels together because separating them is how they drift: the
+/// field a member access resolves against and the declaration an answer keys
+/// that access to have to describe the same record, and the way they stop doing
+/// that is two functions walking the same six paths in an order kept in step by
+/// hand.
+#[derive(Debug, Clone)]
+pub(crate) struct RecordShape {
+    pub(crate) owner: FieldOwner,
+    pub(crate) fields: Vec<RecordField>,
+}
+
 /// Every arm's pattern paired with its ordinal. The ordinal is half the arm's
 /// identity (the site is the other half), and it is not incidental: `match` is
 /// first-match-wins (D9), so an arm's position is part of what it means.
@@ -659,6 +873,14 @@ struct Assigner<'a> {
     /// where the checkers already know what an arm named, so the answer costs
     /// one push per edge and cannot drift from the diagnostics beside it.
     coverage: &'a mut FileMatchCoverage,
+    field_uses: &'a mut FileFieldUses,
+    /// The span of the member expression currently standing as an assignment's
+    /// lvalue, so the one `Expr::Member` arm can tell a write from a read.
+    ///
+    /// A span and not a flag: `mut a.b = f(c.d)` walks the value with the
+    /// target's span still set, and a flag would call `c.d` a write. The arm
+    /// compares its own span, so only the target itself matches.
+    assign_target: Option<Span>,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
     /// the Assigner doesn't keep a local `decl_ty` map any more.
@@ -766,6 +988,71 @@ impl Assigner<'_> {
                 self.return_stack.pop();
             }
             Decl::Const(c) => self.walk_expr(&c.value),
+        }
+    }
+
+    /// Record a member access nothing joined to a record.
+    ///
+    /// The object's type did not resolve to a field set, so the compiler never
+    /// decided which record this names, and it may well be the one being asked
+    /// about. Absence in this relation means no relation exists, so a site the
+    /// walk reached and could not key is named here instead of dropped.
+    fn unresolved_field_use(&mut self, obj_ty: &Ty, field: &Ident, span: Span, access: FieldAccess) {
+        self.field_uses.record(
+            FieldOwner::Unresolved {
+                display: ty_display(obj_ty),
+            },
+            field.to_string(),
+            span,
+            access,
+        );
+    }
+
+    /// Record each field a record declaration declares, plus each field a
+    /// `@redact` annotation on it names.
+    ///
+    /// The declaration is a site like any other: renaming a field means editing
+    /// it, so an impact set that left it out would be missing the one edit the
+    /// caller definitely has to make. The span is the field's own name rather
+    /// than the whole declaration, because that is what gets rewritten.
+    ///
+    /// Only a `type` whose body is written as a record inline. An alias
+    /// (`type Rows = Sheet`) declares no field of its own, and a field reached
+    /// through it is a site over the record the alias names.
+    fn declare_record_fields(&mut self, decl: &Decl) {
+        let Decl::Type(t) = decl else { return };
+        let owner = FieldOwner::Declared {
+            module: self.own_module_key(),
+            name: t.name.to_string(),
+        };
+        if let TypeExpr::Record { fields, .. } = &t.body {
+            for f in fields {
+                self.field_uses.record(
+                    owner.clone(),
+                    f.name.to_string(),
+                    f.span,
+                    FieldAccess::Declaration,
+                );
+            }
+        }
+        // A `@redact fields: [email]` names the field in a second place, and it
+        // is validated against the same record body (E0219), so it is keyed
+        // exactly. The span is the annotation's: `redact_fields` parses the
+        // names out of the list and the names carry no span of their own.
+        let Some(redacted) = glyph_ast::redact_fields(&t.annotations) else {
+            return;
+        };
+        let Some(span) = t
+            .annotations
+            .iter()
+            .find(|a| a.name.as_ref() == "redact")
+            .map(|a| a.span)
+        else {
+            return;
+        };
+        for f in redacted {
+            self.field_uses
+                .record(owner.clone(), f, span, FieldAccess::Redact);
         }
     }
 
@@ -912,7 +1199,15 @@ impl Assigner<'_> {
                             // Only the E0224 judgement is skipped.
                             self.tm.insert(*span, Ty::Unknown);
                         }
-                        other => self.walk_expr(other),
+                        other => {
+                            // `mut u.email = v` writes the field. The member
+                            // arm is the one place that resolves it, so what
+                            // makes this a write rather than a read is which
+                            // node it is, and that is what travels down.
+                            let outer = self.assign_target.replace(other.span());
+                            self.walk_expr(other);
+                            self.assign_target = outer;
+                        }
                     }
                     self.walk_expr(value);
                     if let Expr::Match { arms, .. } = value {
@@ -1023,14 +1318,37 @@ impl Assigner<'_> {
             Expr::Member { object, field, span, .. } => {
                 self.walk_expr(object);
                 let obj_ty = self.tm.get(object.span()).clone();
+                let access = if self.assign_target == Some(*span) {
+                    FieldAccess::Write
+                } else {
+                    FieldAccess::Read
+                };
                 // When the object's type is decidably a record, the field must
                 // exist; report a typo'd/renamed field and propagate the field's
                 // type so chained accesses keep checking. A non-record or
                 // undecidable object type is left unchecked (no false positive).
-                let member_ty = match self.record_fields_of(&obj_ty) {
-                    Some(fields) => match fields.iter().find(|f| &f.name == field) {
-                        Some(f) => f.ty.clone(),
+                let member_ty = match self.record_shape_of(&obj_ty) {
+                    Some(shape) => match shape.fields.iter().find(|f| &f.name == field) {
+                        Some(f) => {
+                            // The one place the field-use edge is written, and
+                            // it is written from the resolution that just
+                            // decided the access is legal. There is no second
+                            // walk to keep in step and no way for the edge to
+                            // name a record the check did not use.
+                            self.field_uses.record(
+                                shape.owner,
+                                field.to_string(),
+                                *span,
+                                access,
+                            );
+                            f.ty.clone()
+                        }
                         None => {
+                            // Deliberately no edge. The checker resolved the
+                            // record and the record does not declare this
+                            // field, so there is no relation here: E0210 says
+                            // so, and recording one would put a site in the
+                            // impact set of a field it provably does not name.
                             self.errors.push(TypeError::UnknownField {
                                 field: field.to_string(),
                                 type_name: ty_display(&obj_ty),
@@ -1053,6 +1371,11 @@ impl Assigner<'_> {
                     // "undefined". `record.get` is the same lookup with the
                     // absent case in the type.
                     None if self.resolves_to_map(&obj_ty) => {
+                        // A map key is not a record field, so there is no
+                        // record to join this to. Named all the same: the
+                        // spelling is the one being asked about, and a caller
+                        // has to see that this site was reached and not keyed.
+                        self.unresolved_field_use(&obj_ty, field, *span, access);
                         self.errors.push(TypeError::MapFieldAccess {
                             field: field.to_string(),
                             type_name: ty_display(&obj_ty),
@@ -1060,10 +1383,12 @@ impl Assigner<'_> {
                         });
                         Ty::Unknown
                     }
-                    None => self
-                        .stdlib_member_ty(object, field)
-                        .or_else(|| self.descriptor_member_ty(object, field))
-                        .unwrap_or(Ty::Unknown),
+                    None => {
+                        self.unresolved_field_use(&obj_ty, field, *span, access);
+                        self.stdlib_member_ty(object, field)
+                            .or_else(|| self.descriptor_member_ty(object, field))
+                            .unwrap_or(Ty::Unknown)
+                    }
                 };
                 self.tm.insert(*span, member_ty);
             }
@@ -2721,20 +3046,22 @@ impl Assigner<'_> {
         );
     }
 
-    /// The type end of a string-literal-union site, resolved the way
-    /// `string_literal_union_values` resolved the values: the alias declared
-    /// here, the alias imported from a sibling, or nothing at all for a
-    /// literal set written inline, which has no declaration to key a site to.
-    fn string_literal_union_type_name(&self, ty: &Ty) -> Option<CoverageTypeName> {
+    /// The declaration a string-literal-union site was reached through,
+    /// resolved the way `string_literal_union_values` resolved the values: the
+    /// alias declared here, the alias imported from a sibling, or nothing at
+    /// all for a literal set written inline, which is declared nowhere.
+    ///
+    /// Answers in the diagnostic view because that is the one that keeps local
+    /// and imported apart; `coverage_name` derives the edge's key from it.
+    fn string_literal_union_ref(&self, ty: &Ty) -> Option<DiagnosticUnion> {
         match ty {
-            Ty::Imported { module, name } => Some(CoverageTypeName::Declared {
+            Ty::Imported { module, name } => Some(DiagnosticUnion::Imported {
                 module: module.as_str().to_string(),
                 name: name.to_string(),
             }),
             Ty::Named { symbol, .. } => {
                 let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-                Some(CoverageTypeName::Declared {
-                    module: self.own_module_key(),
+                Some(DiagnosticUnion::Local {
                     name: sym.name.to_string(),
                 })
             }
@@ -3205,6 +3532,11 @@ impl Assigner<'_> {
                     .map(|v| format!("`{v}`"))
                     .collect::<Vec<_>>()
                     .join(", "),
+                union: Some(DiagnosticUnion::Imported {
+                    module: module.as_str().to_string(),
+                    name: type_name.to_string(),
+                }),
+                missing_variants: missing.iter().map(|v| (*v).to_string()).collect(),
                 span: match_span,
             });
         }
@@ -3303,7 +3635,10 @@ impl Assigner<'_> {
         // The type end is the alias the literal set was reached through. A set
         // written inline into a signature has no declaration, so it has
         // nothing to key a site to and gets none.
-        let union = self.string_literal_union_type_name(scrutinee_ty);
+        let union_ref = self.string_literal_union_ref(scrutinee_ty);
+        let union = union_ref
+            .as_ref()
+            .map(|u| coverage_name(u, &self.own_module_key()));
         let cov = self.cover_enter(at, union, match_span);
         // A string-literal union is a bounded set of *values*, not a set of
         // variants: `Scrutinee::Opaque`, so a PascalCase head stays the tag
@@ -3360,6 +3695,8 @@ impl Assigner<'_> {
                     .map(|v| format!("\"{v}\""))
                     .collect::<Vec<_>>()
                     .join(", "),
+                union: union_ref,
+                missing_variants: missing.iter().map(|v| (*v).clone()).collect(),
                 span: match_span,
             });
         }
@@ -3751,6 +4088,8 @@ impl Assigner<'_> {
         self.errors.push(TypeError::NonExhaustiveMatch {
             type_name,
             missing: missing_str,
+            union: Some(DiagnosticUnion::from(&union)),
+            missing_variants: missing.iter().map(|n| n.to_string()).collect(),
             span: match_span,
         });
     }
@@ -4061,33 +4400,148 @@ impl Assigner<'_> {
     }
 
     fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
+        self.record_shape_of(ty).map(|s| s.fields)
+    }
+
+    /// `record_fields_of`, and additionally the record the fields came from.
+    ///
+    /// The dispatch lives here and `record_fields_of` is the projection, so the
+    /// field set a member access is checked against and the declaration the
+    /// field-use relation keys that access to are one answer rather than two.
+    fn record_shape_of(&self, ty: &Ty) -> Option<RecordShape> {
+        let undeclared = |fields: Vec<RecordField>| RecordShape {
+            owner: FieldOwner::Undeclared {
+                display: ty_display(ty),
+            },
+            fields,
+        };
         match ty {
-            Ty::Record { fields } => Some(fields.clone()),
+            // A structural record: an inline `{ a: string }` annotation or a
+            // variant's record payload. It has a field set and no name, so
+            // there is no declaration for a rename to land on.
+            Ty::Record { fields } => Some(undeclared(fields.clone())),
             // A `Ty::Named` is a `type` record alias, a structural interface, or
             // a stdlib type the runtime ships (`fs.FsError`); all three expose a
             // member/field set for access and assignability. The stdlib table
             // goes first: its types carry a sentinel symbol that resolves to
             // nothing, so the resolver-backed paths below can never see them.
-            Ty::Named { .. } => stdlib_type_fields(self, ty)
-                .or_else(|| self.named_record_fields(ty, &[]))
-                .or_else(|| self.interface_member_fields(ty)),
+            //
+            // The stdlib table's types are `Undeclared`: `fs.FileInfo` has a
+            // fixed field set behind a name and no project module declares it.
+            // The other two resolve to a declaration in *this* file, so the
+            // owner is this file's own module key, which is the same rule a
+            // locally declared union's coverage edge uses.
+            Ty::Named { .. } => match stdlib_type_fields(self, ty) {
+                Some(fields) => Some(undeclared(fields)),
+                None => self
+                    .named_record_shape(ty, &[])
+                    .or_else(|| self.interface_member_shape(ty)),
+            },
             // A type declared in a sibling module. Resolving it here, rather
             // than at lowering, is what keeps the representation free of cycle
             // guards: nothing expands until a field set is actually asked for.
             Ty::Imported { module, name } => {
-                self.imported_record_fields(module.as_str(), name, &[])
+                self.imported_record_shape(module.as_str(), name, &[])
             }
             // Dispatch on the base so a generic sibling record
             // (`type Box<T> = { value: T }` used as `Box<string>`) substitutes
             // its arguments the same way a local one does.
             Ty::App { base, args } => match base.as_ref() {
                 Ty::Imported { module, name } => {
-                    self.imported_record_fields(module.as_str(), name, args)
+                    self.imported_record_shape(module.as_str(), name, args)
                 }
-                _ => self.named_record_fields(base, args),
+                _ => self.named_record_shape(base, args),
             },
             _ => None,
         }
+    }
+
+    /// `named_record_fields` with the declaration it read them from. A record
+    /// declared in this file, so the owning module is this file's own key.
+    fn named_record_shape(&self, ty: &Ty, args: &[Ty]) -> Option<RecordShape> {
+        let fields = self.named_record_fields(ty, args)?;
+        Some(RecordShape {
+            owner: self.local_owner(ty)?,
+            fields,
+        })
+    }
+
+    /// `interface_member_fields` with the declaration it read them from.
+    fn interface_member_shape(&self, ty: &Ty) -> Option<RecordShape> {
+        let fields = self.interface_member_fields(ty)?;
+        Some(RecordShape {
+            owner: self.local_owner(ty)?,
+            fields,
+        })
+    }
+
+    /// The owner of a `Ty::Named` this file declares: this file's module key
+    /// and the declaration's own name.
+    ///
+    /// The name comes from the resolved symbol rather than from the type's
+    /// lexical path, because the path is what the *use site* wrote and the
+    /// symbol is what the declaration is called. The two paths that reach here
+    /// have both already required them to match, so this is the same string
+    /// either way; reading it off the declaration keeps it that way if one ever
+    /// stops.
+    fn local_owner(&self, ty: &Ty) -> Option<FieldOwner> {
+        let Ty::Named { symbol, .. } = ty else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        Some(FieldOwner::Declared {
+            module: self.own_module_key(),
+            name: sym.name.to_string(),
+        })
+    }
+
+    /// `imported_record_fields` with the declaration it read them from.
+    ///
+    /// The owner is the record the alias chain *ends* at, not the name the use
+    /// site reached it by. `pub type Rows = Sheet` re-exported from a third
+    /// module gives `Rows` no fields of its own, so a site reading `r.header`
+    /// through it is a site over `catalog::Sheet.header`, and keying it under
+    /// `Rows` would put it in the impact set of a rename that cannot touch it.
+    fn imported_record_shape(
+        &self,
+        module: &str,
+        name: &str,
+        args: &[Ty],
+    ) -> Option<RecordShape> {
+        let mut seen: HashSet<(String, String)> = HashSet::new();
+        let (owner_module, owner_name) = self.imported_record_decl(module, name, &mut seen)?;
+        let fields = self.imported_record_fields(&owner_module, &owner_name, args)?;
+        Some(RecordShape {
+            owner: FieldOwner::Declared {
+                module: owner_module,
+                name: owner_name,
+            },
+            fields,
+        })
+    }
+
+    /// Follow a cross-module alias chain to the module and name the record is
+    /// actually declared under. The same walk `imported_type_body` does, and it
+    /// reuses it: the chain is followed once and this reports where it stopped.
+    fn imported_record_decl(
+        &self,
+        module: &str,
+        name: &str,
+        seen: &mut HashSet<(String, String)>,
+    ) -> Option<(String, String)> {
+        let decl = self.decl_ty_resolver.imported_type_decl(module, name)?;
+        if let Ty::Imported {
+            module: next_module,
+            name: next_name,
+        } = &decl.body
+        {
+            let (next_module, next_name) = (next_module.as_str().to_string(), next_name.to_string());
+            if !seen.insert((next_module.clone(), next_name.clone())) {
+                return None;
+            }
+            return self.imported_record_decl(&next_module, &next_name, seen);
+        }
+        Some((module.to_string(), name.to_string()))
     }
 
     /// The field set of an imported record type, with the declaration's generic
@@ -9498,6 +9952,7 @@ component View(s: Status) -> Component {
         let mut tm = TypeMap::new();
         let mut errors = Vec::new();
         let mut coverage = FileMatchCoverage::default();
+        let mut field_uses = FileFieldUses::default();
         let assigner = Assigner {
             module: &m,
             lowerer: Lowerer::with_imports(&resolved, &prelude, resolver),
@@ -9505,6 +9960,8 @@ component View(s: Status) -> Component {
             tm: &mut tm,
             errors: &mut errors,
             coverage: &mut coverage,
+            field_uses: &mut field_uses,
+            assign_target: None,
             decl_ty_resolver: resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -9683,5 +10140,162 @@ fn run(c: Command) -> string {
                 name: "Result".to_string(),
             }
         );
+    }
+
+    // ---- G195: the union and the missing variants come off the error ----
+
+    /// The repair loop is grep-free at every hop except the one that starts
+    /// it. An agent that gets E0200 needs the union's name to make the next
+    /// query and the variant names to write the arms, and until now both
+    /// lived only in the message, in backticks. A message is meant to be
+    /// rewritten; pinning a machine contract to its wording makes every
+    /// improvement to a sentence a breaking change nobody notices.
+    #[test]
+    fn a_non_exhaustive_match_carries_its_union_and_its_missing_variants() {
+        let errs = errors_of(
+            "module billing\n\
+             type PaymentResult =\n  | Settled\n  | Failed\n  | Pending\n\
+             fn settle(r: PaymentResult) -> string {\n\
+             \x20 return match r {\n    Settled => \"s\",\n    Failed => \"f\",\n  }\n\
+             }\n",
+        );
+        let e = errs
+            .iter()
+            .find(|e| e.code() == "E0200")
+            .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
+        assert_eq!(
+            e.union(),
+            Some(&DiagnosticUnion::Local {
+                name: "PaymentResult".to_string()
+            }),
+            "errs: {errs:?}"
+        );
+        assert_eq!(
+            e.missing_variants(),
+            Some(["Pending".to_string()].as_slice()),
+            "errs: {errs:?}"
+        );
+        // The prose is unchanged: this adds fields beside the message, it does
+        // not move anything out of it.
+        assert_eq!(
+            format!("{e}"),
+            "non-exhaustive match on `PaymentResult`: missing variants `Pending`"
+        );
+    }
+
+    /// A union declared in another module keeps that module on the error, so
+    /// the identity addresses the declaration rather than this file.
+    #[test]
+    fn an_imported_unions_gap_names_the_module_it_is_declared_in() {
+        let src = r#"module app
+import model { Answer, Yes, No }
+fn f(a: Answer) -> number {
+  return match a {
+    Yes => 1,
+  }
+}
+"#;
+        let (_cov, errs) = imported_coverage_and_errors(src);
+        let e = errs
+            .iter()
+            .find(|e| e.code() == "E0200")
+            .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
+        assert_eq!(
+            e.union(),
+            Some(&DiagnosticUnion::Imported {
+                module: "model".to_string(),
+                name: "Answer".to_string(),
+            }),
+            "errs: {errs:?}"
+        );
+        assert_eq!(e.missing_variants(), Some(["No".to_string()].as_slice()));
+    }
+
+    /// A prelude union has a fixed variant table and no declaration anywhere,
+    /// so it is a builtin rather than a declaration under an invented module.
+    #[test]
+    fn a_prelude_unions_gap_is_a_builtin_with_no_declaration() {
+        let errs = errors_of(
+            "module app\n\
+             import std/result { Ok, Err }\n\
+             fn f(r: Result<number, string>) -> number {\n\
+             \x20 return match r {\n    Ok(n) => n,\n  }\n\
+             }\n",
+        );
+        let e = errs
+            .iter()
+            .find(|e| e.code() == "E0200")
+            .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
+        assert_eq!(
+            e.union(),
+            Some(&DiagnosticUnion::Builtin {
+                name: "Result".to_string()
+            }),
+            "errs: {errs:?}"
+        );
+        assert_eq!(e.missing_variants(), Some(["Err".to_string()].as_slice()));
+    }
+
+    /// A string-literal union's members are values rather than tags, and the
+    /// list carries them unquoted, the same way the coverage relation records
+    /// them. The alias it was reached through is the declaration.
+    #[test]
+    fn a_string_literal_unions_gap_names_the_alias_and_the_missing_values() {
+        let errs = errors_of(
+            "module app\n\
+             type Tier = \"free\" | \"pro\" | \"team\"\n\
+             fn label(t: Tier) -> string {\n\
+             \x20 return match t {\n    \"free\" => \"F\",\n    \"pro\" => \"P\",\n  }\n\
+             }\n",
+        );
+        let e = errs
+            .iter()
+            .find(|e| e.code() == "E0200")
+            .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
+        assert_eq!(
+            e.union(),
+            Some(&DiagnosticUnion::Local {
+                name: "Tier".to_string()
+            }),
+            "errs: {errs:?}"
+        );
+        assert_eq!(e.missing_variants(), Some(["team".to_string()].as_slice()));
+    }
+
+    /// A literal set written inline into a signature is declared nowhere, so
+    /// there is no union to name. Absent, not guessed: the missing values are
+    /// still known and still reported.
+    #[test]
+    fn an_inline_literal_sets_gap_has_no_union_and_still_lists_its_values() {
+        let errs = errors_of(
+            "module app\n\
+             fn label(t: \"free\" | \"pro\" | \"team\") -> string {\n\
+             \x20 return match t {\n    \"free\" => \"F\",\n    \"pro\" => \"P\",\n  }\n\
+             }\n",
+        );
+        let e = errs
+            .iter()
+            .find(|e| e.code() == "E0200")
+            .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
+        assert_eq!(e.union(), None, "errs: {errs:?}");
+        assert_eq!(e.missing_variants(), Some(["team".to_string()].as_slice()));
+    }
+
+    /// Absence means absence of a relation. An error that is not about a
+    /// union's variants answers nothing for either field rather than an empty
+    /// list, which would read as "no variants are missing".
+    #[test]
+    fn an_error_that_is_not_about_a_union_carries_neither_field() {
+        let errs = errors_of(
+            "module app\n\
+             type Account = { email: string }\n\
+             fn f(a: Account) -> string {\n  return a.emial\n}\n",
+        );
+        let e = errs
+            .iter()
+            .find(|e| e.code() == "E0210")
+            .unwrap_or_else(|| panic!("expected E0210: {errs:?}"));
+        assert_eq!(e.union(), None);
+        assert_eq!(e.missing_variants(), None);
     }
 }

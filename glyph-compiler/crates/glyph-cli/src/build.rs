@@ -683,17 +683,7 @@ fn build_project_inner_with(
             let local_import_errors = glyph_resolver::verify_local_imports(
                 ast,
                 &src.display().to_string(),
-                &|path: &str| {
-                    if project_modules.contains(path)
-                        || is_external_module(&external_modules.names, path)
-                    {
-                        glyph_resolver::ModuleResolution::Resolved
-                    } else if external_modules.saw_installed_packages {
-                        glyph_resolver::ModuleResolution::Unresolved
-                    } else {
-                        glyph_resolver::ModuleResolution::Unknown
-                    }
-                },
+                &|path: &str| module_resolution(path, &project_modules, &external_modules),
                 &|path: &str| locate_module_site(src, &files, other_projects, path),
             );
             for e in &local_import_errors {
@@ -1343,8 +1333,68 @@ struct ExternalModules {
     names: std::collections::BTreeSet<String>,
     /// Whether a `node_modules` was found within the project. When none was, an
     /// unknown name may be a dependency that is not installed yet (or one
-    /// hoisted above a package boundary), and the check says nothing about it.
+    /// hoisted above a package boundary), and `declared` below is what decides.
     saw_installed_packages: bool,
+    /// Every package name a `package.json` between the source directory and the
+    /// project root declares a dependency on, plus each of those manifests' own
+    /// names (a package can import itself through its `exports` field).
+    declared: std::collections::BTreeSet<String>,
+    /// Whether any of those manifests parsed. Without one the build has no view
+    /// of what the project depends on at all.
+    saw_manifest: bool,
+}
+
+/// The dependency-declaring fields of `package.json`. A name in any of them is
+/// a package this project depends on, whether or not it is on disk yet.
+///
+/// `bundleDependencies` is not read: it is a list of names that must already
+/// appear in `dependencies`, so it can add nothing.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ManifestDeps {
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    dependencies: std::collections::BTreeMap<String, serde::de::IgnoredAny>,
+    #[serde(default)]
+    dev_dependencies: std::collections::BTreeMap<String, serde::de::IgnoredAny>,
+    #[serde(default)]
+    peer_dependencies: std::collections::BTreeMap<String, serde::de::IgnoredAny>,
+    #[serde(default)]
+    optional_dependencies: std::collections::BTreeMap<String, serde::de::IgnoredAny>,
+}
+
+/// What the build can prove about one import path, for `verify_local_imports`.
+///
+/// The order of the tests is the point. A name the build can reach is
+/// `Resolved` and nothing else is asked. Failing that, an installed-package
+/// view is the strongest evidence there is, and it decides. Failing *that*, the
+/// project's manifests decide: a declared dependency is an npm package waiting
+/// on `npm install`, and a name no manifest declares is a local module that
+/// does not exist, because no install could ever produce it. With neither view
+/// the build knows nothing and says nothing.
+fn module_resolution(
+    path: &str,
+    project_modules: &std::collections::BTreeSet<String>,
+    external: &ExternalModules,
+) -> glyph_resolver::ModuleResolution {
+    use glyph_resolver::ModuleResolution;
+    if project_modules.contains(path) || is_external_module(&external.names, path) {
+        return ModuleResolution::Resolved;
+    }
+    if external.saw_installed_packages {
+        return ModuleResolution::Unresolved;
+    }
+    if is_external_module(&external.declared, path) {
+        // Declared but nothing is installed, so this tree has not had `npm
+        // install` run in it. Reporting every dependency of a fresh clone is
+        // noise, and the name is not a missing local module either way.
+        return ModuleResolution::Resolved;
+    }
+    if external.saw_manifest {
+        return ModuleResolution::Unresolved;
+    }
+    ModuleResolution::Unknown
 }
 
 fn external_module_names(src: &Path) -> ExternalModules {
@@ -1372,13 +1422,23 @@ fn external_module_names(src: &Path) -> ExternalModules {
     // while an inner one exists, and node's own resolution walks up the same
     // way. Over-collecting only makes the check quieter, which is the safe
     // direction.
+    //
+    // The same walk reads each directory's `package.json` for what the project
+    // *depends on*. That is the view that survives a tree with nothing
+    // installed: an import naming a package no manifest declares cannot be
+    // fixed by `npm install`, so it is a local module that does not exist.
     let mut saw_installed_packages = false;
+    let mut declared = std::collections::BTreeSet::new();
+    let mut saw_manifest = false;
     let mut dir = src.canonicalize().unwrap_or_else(|_| src.to_path_buf());
     loop {
         let candidate = dir.join("node_modules");
         if candidate.is_dir() {
             saw_installed_packages = true;
             installed_package_names(&candidate, &mut names);
+        }
+        if declared_dependency_names(&dir, &mut declared) {
+            saw_manifest = true;
         }
         // The project root. Climbing past it reaches an unrelated ancestor's
         // dependencies (a stray `node_modules` in `$HOME` is common), which is
@@ -1397,7 +1457,35 @@ fn external_module_names(src: &Path) -> ExternalModules {
     ExternalModules {
         names,
         saw_installed_packages,
+        declared,
+        saw_manifest,
     }
+}
+
+/// Read `<dir>/package.json` and add every package name it declares a
+/// dependency on, plus its own name, to `out`. Returns whether a manifest was
+/// there and parsed.
+///
+/// A manifest that is present but malformed returns false. It is not a view of
+/// anything, and treating it as one would report a correct import because a
+/// trailing comma made the dependency list unreadable.
+fn declared_dependency_names(dir: &Path, out: &mut std::collections::BTreeSet<String>) -> bool {
+    let Ok(text) = std::fs::read_to_string(dir.join("package.json")) else {
+        return false;
+    };
+    let Ok(manifest) = serde_json::from_str::<ManifestDeps>(&text) else {
+        return false;
+    };
+    out.extend(manifest.name);
+    for map in [
+        manifest.dependencies,
+        manifest.dev_dependencies,
+        manifest.peer_dependencies,
+        manifest.optional_dependencies,
+    ] {
+        out.extend(map.into_keys());
+    }
+    true
 }
 
 /// Collect every `declare module "X"` name in an ambient `.d.ts`.
@@ -1708,6 +1796,141 @@ mod tests {
             fp1, fp2,
             "a non-.ts file under extern/ must not bust the fingerprint"
         );
+    }
+
+
+    /// Names the temporary trees the manifest tests below build, one per run.
+    static MANIFEST_ROOT_N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+    /// A throwaway project: `<root>/package.json` with `manifest` as its body
+    /// (or no manifest at all when `manifest` is `None`), and `<root>/src`
+    /// holding one module that imports `nowhere`.
+    fn manifest_fixture(tag: &str, manifest: Option<&str>) -> PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "glyph_manifest_{tag}_{}_{}",
+            std::process::id(),
+            MANIFEST_ROOT_N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).unwrap();
+        if let Some(m) = manifest {
+            std::fs::write(root.join("package.json"), m).unwrap();
+        }
+        std::fs::write(
+            src.join("m.glyph"),
+            "module m\nimport nowhere { Status }\npub fn use_it(s: Status) -> Status {\n  return s\n}\n",
+        )
+        .unwrap();
+        root
+    }
+
+    fn e0104_messages(root: &Path) -> Vec<String> {
+        let report = build_project_inner(&root.join("src"), &root.join("dist"), false)
+            .expect("the build runs");
+        report
+            .structured
+            .iter()
+            .filter(|d| d.code == "E0104")
+            .map(|d| d.message.clone())
+            .collect()
+    }
+
+    /// G189. A manifest that declares no dependency named `nowhere` is a view of
+    /// what the project depends on, and it settles the question `node_modules`
+    /// would otherwise have to: no `npm install` can make this name resolve, so
+    /// it is a local module that does not exist.
+    ///
+    /// Before this, a project with no `node_modules` said nothing at all here.
+    /// `glyph check --no-tsc` reported "no diagnostics" and exited 0 on a file
+    /// importing a module that cannot exist, while the impact surface asked
+    /// about the same file correctly answered `scrutinee_unresolved`.
+    #[test]
+    fn a_manifest_declaring_no_such_dependency_makes_the_import_unresolvable() {
+        let root = manifest_fixture("nodeps", Some(r#"{"name":"p","glyph":{"src":"src"}}"#));
+        let msgs = e0104_messages(&root);
+        let _ = std::fs::remove_dir_all(&root);
+        assert_eq!(msgs.len(), 1, "{msgs:?}");
+        assert!(msgs[0].contains("`nowhere`"), "{}", msgs[0]);
+    }
+
+    /// The false positive that matters more than the gap. A dependency the
+    /// project declares is an npm package, not a missing local module, and a
+    /// tree that has not been installed yet must not turn every import of it
+    /// into an error.
+    #[test]
+    fn a_declared_dependency_is_not_reported_before_it_is_installed() {
+        let root = manifest_fixture(
+            "declared",
+            Some(r#"{"name":"p","glyph":{"src":"src"},"dependencies":{"nowhere":"^1.0.0"}}"#),
+        );
+        let msgs = e0104_messages(&root);
+        let _ = std::fs::remove_dir_all(&root);
+        assert!(msgs.is_empty(), "{msgs:?}");
+    }
+
+    /// The same for the other three places npm lets a dependency be declared.
+    #[test]
+    fn dev_peer_and_optional_dependencies_count_as_declared() {
+        for (tag, field) in [
+            ("dev", "devDependencies"),
+            ("peer", "peerDependencies"),
+            ("opt", "optionalDependencies"),
+        ] {
+            let root = manifest_fixture(
+                tag,
+                Some(&format!(
+                    r#"{{"name":"p","glyph":{{"src":"src"}},"{field}":{{"nowhere":"^1.0.0"}}}}"#
+                )),
+            );
+            let msgs = e0104_messages(&root);
+            let _ = std::fs::remove_dir_all(&root);
+            assert!(msgs.is_empty(), "{field}: {msgs:?}");
+        }
+    }
+
+    /// A subpath and a scoped package resolve through the declared package
+    /// name, exactly as they do through an installed one.
+    #[test]
+    fn a_subpath_or_scope_of_a_declared_dependency_is_not_reported() {
+        for (tag, dep, import) in [
+            ("subpath", "\"date-fns\":\"^3.0.0\"", "date-fns/format"),
+            ("scope", "\"@scope/pkg\":\"^1.0.0\"", "@scope/pkg/sub"),
+        ] {
+            let root = std::env::temp_dir().join(format!(
+                "glyph_manifest_{tag}_{}_{}",
+                std::process::id(),
+                MANIFEST_ROOT_N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            ));
+            let _ = std::fs::remove_dir_all(&root);
+            let src = root.join("src");
+            std::fs::create_dir_all(&src).unwrap();
+            std::fs::write(
+                root.join("package.json"),
+                format!(r#"{{"name":"p","glyph":{{"src":"src"}},"dependencies":{{{dep}}}}}"#),
+            )
+            .unwrap();
+            std::fs::write(
+                src.join("m.glyph"),
+                format!("module m\nimport {import} {{ thing }}\npub fn go() -> void {{\n  thing()\n}}\n"),
+            )
+            .unwrap();
+            let msgs = e0104_messages(&root);
+            let _ = std::fs::remove_dir_all(&root);
+            assert!(msgs.is_empty(), "{tag}: {msgs:?}");
+        }
+    }
+
+    /// No manifest anywhere between the sources and the project root is no view
+    /// at all, and an unknown name stays unreported. This is the case
+    /// `glyph build <bare directory>` is: a typo and an uninstalled dependency
+    /// are indistinguishable, and the check says nothing rather than guess.
+    #[test]
+    fn without_a_manifest_the_check_still_says_nothing() {
+        let root = manifest_fixture("nomanifest", None);
+        let msgs = e0104_messages(&root);
+        let _ = std::fs::remove_dir_all(&root);
+        assert!(msgs.is_empty(), "{msgs:?}");
     }
 
     #[cfg(unix)]

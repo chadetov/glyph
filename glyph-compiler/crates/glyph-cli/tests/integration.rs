@@ -9593,10 +9593,15 @@ fn build_root_and_nested_beta(tag: &str) -> (PathBuf, PathBuf, glyph_cli::build:
 
     let beta = root.join("beta");
     std::fs::create_dir_all(&beta).expect("create beta");
+    // `totally-not-installed` is declared and never installed, which is how a
+    // tsc-only import error is spelled: Glyph reports an import no manifest
+    // declares (E0104), so a name that IS declared stays its business alone and
+    // reaches `tsc` as TS2307.
     write_file(
         &beta,
         "package.json",
-        "{ \"name\": \"beta\", \"private\": true, \"glyph\": {} }\n",
+        "{ \"name\": \"beta\", \"private\": true, \"glyph\": {}, \
+         \"dependencies\": { \"totally-not-installed\": \"^1.0.0\" } }\n",
     );
     write_file(
         &beta,

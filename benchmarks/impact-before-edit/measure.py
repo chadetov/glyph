@@ -133,16 +133,25 @@ def main() -> int:
     finally:
         shutil.rmtree(before_dir, ignore_errors=True)
 
+    # `sites` holds matches whose own scrutinee is the union. `nested` holds
+    # matches that reach it through a payload (`Ok(Active)` on a
+    # `Result<UserStatus, _>`). Both break the same way when a variant is added,
+    # so an impact answer that reads only the first is incomplete in exactly the
+    # direction this benchmark exists to measure. The compiler failed the nested
+    # shape five separate times (G139, G141, G142, G143, G148).
+    all_sites = list(variants.get("sites", [])) + list(variants.get("nested", []))
     tool_catch_all = [
-        s["declaration"] for s in variants.get("sites", []) if s.get("state") == "has_catch_all"
+        s["declaration"] for s in all_sites if s.get("state") == "has_catch_all"
     ]
     tool_exhaustive = [
-        s["declaration"] for s in variants.get("sites", []) if s.get("state") == "exhaustive"
+        s["declaration"] for s in all_sites if s.get("state") == "exhaustive"
     ]
     findings["glyph_variants"] = {
         "method": 'tools/call glyph_variants {"path": "main.glyph", "name": "UserStatus"}',
         "catch_all_sites_found": tool_catch_all,
         "exhaustive_sites_found": tool_exhaustive,
+        "nested_sites_found": [s["declaration"] for s in variants.get("nested", [])],
+        "unkeyed_sites": [s.get("declaration") for s in variants.get("unkeyed", [])],
     }
 
     # Ground truth, by construction of the fixture: exactly one UserStatus
@@ -188,12 +197,21 @@ def main() -> int:
     catchall_mentioned = any("describe_catchall" in d.get("message", "") for d in after_report.get("diagnostics", []))
     findings["after_edit_diagnostics"] = {
         "e0200_count": len(e0200),
-        "e0200_entity": e0200[0].get("entity") if e0200 else None,
+        "e0200_entities": sorted(d.get("entity") for d in e0200),
         "describe_catchall_mentioned_anywhere": catchall_mentioned,
     }
 
-    if len(e0200) != 1 or e0200[0].get("entity") != "main::describe_exhaustive":
-        print("FAIL: the exhaustive-site diagnostic no longer carries the expected entity", file=sys.stderr)
+    # Ground truth after the edit: both exhaustive sites break, the direct one
+    # and the nested one, and each names the declaration it is in. The catch-all
+    # site stays silent, which is the half of the shape that makes this worth
+    # measuring at all.
+    broke = sorted(d.get("entity") for d in e0200)
+    expected_broke = ["main::describe_exhaustive", "main::describe_nested"]
+    if broke != expected_broke:
+        print(
+            f"FAIL: expected {expected_broke} to break, got {broke}",
+            file=sys.stderr,
+        )
         ok = False
     if catchall_mentioned:
         print("FAIL: describe_catchall now appears in diagnostics; the silent half of the bug shape no longer reproduces", file=sys.stderr)

@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-201 entries, 149 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-33 are open. G144, the D28 boundary cast that never reached the returns a
+201 entries, 153 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+27 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6422,7 +6422,7 @@ and is the owner's to confirm.
   compared before and after rather than assumed equal. The gate that stops it
   recurring is the deliverable; the reformat is the easy half.
 
-  *Reproduced against 0.1.106: 123 of 285 tracked `.glyph` files disagree with `glyph fmt --check`, up from 121 of 284 as the corpus grew: `glyph fmt --check` over every tracked `.glyph`
+  *Reproduced against 0.1.112: `glyph fmt --check examples/apps` reports 30 would reformat, 83 already formatted. Previously, against 0.1.106: 123 of 285 tracked `.glyph` files disagree with `glyph fmt --check`, up from 121 of 284 as the corpus grew: `glyph fmt --check` over every tracked `.glyph`
   reports 121 of 284 not clean. Found while checking whether an edit to
   `examples/apps/feeds/main.glyph` had broken formatting. It had not: that file
   was already unformatted on main, and so were 120 others.*
@@ -6448,7 +6448,7 @@ and is the owner's to confirm.
   rejected and both `.ts` cases accepted by `tsc --strict`. The stale numbers are
   the committed JSON under `benchmarks/results/`, last measured 2026-06-15.
 
-  *Reproduced against 0.1.106: of the three benchmark fixtures only `parse_user.glyph` compiles; the other two still fail: each fixture copied into its own project and
+  *Reproduced against 0.1.112 by checking the directory as one project rather than each file alone, which pulls the whole project in and reports the same error three times: `slugify` is `[E0003] unexpected token: Slash`, `load_feed` is `[E0203]`, and `parse_user` carries only an unrelated `[E0112]`. Previously, against 0.1.106: of the three benchmark fixtures only `parse_user.glyph` compiles; the other two still fail: each fixture copied into its own project and
   built. `check.sh` run against the same binary to confirm the public claim is
   unaffected.*
 
@@ -6846,7 +6846,7 @@ and is the owner's to confirm.
   and a disagreeing header is a diagnostic. Picking silently is what produced
   two spellings in the first place.
 
-  *Reproduced against 0.1.106 by the fold's own `Unkeyed` case, which fires on
+  *Reproduced against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
   this configuration and is covered by a test naming it.*
 
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
@@ -6885,7 +6885,7 @@ and is the owner's to confirm.
   restored bug, and they fail through the re-parse guard rather than the content
   assertion, which is the guard doing its job.*
 
-- **G174. The two ways to discover an undocumented stdlib module's signatures
+- **G174. [FIXED] The two ways to discover an undocumented stdlib module's signatures
   are themselves undocumented, and 0.1.106 narrowed one of them.** An outside
   author who needed `std/random` found its API two ways, neither written down:
   importing a name that does not exist and reading `[E0105] ... (exports: Rng,
@@ -6902,7 +6902,11 @@ and is the owner's to confirm.
   down nowhere, and G179 confirms that route now shows only modules already
   imported.*
 
-- **G175. The bootstrap's `std/random` block hides that `bool`'s argument is
+  *Closed by 0.1.107, confirmed against 0.1.112: the bootstrap documents both the
+  E0105 export listing and the emitted runtime dump, including that the dump holds
+  only the modules a project imports.*
+
+- **G175. [FIXED] The bootstrap's `std/random` block hides that `bool`'s argument is
   optional.** 0.1.106 gave `Rng.bool` a real `= 0.5` default, so `r.bool()`
   compiles and runs. The new signature block writes
   `rng.bool(probability: number)` with no `?`, so a reader still cannot tell the
@@ -6914,7 +6918,10 @@ and is the owner's to confirm.
   `rng.bool(probability: number) -> bool` with no `?`, while the runtime accepts
   `r.bool()`.*
 
-- **G176. The bootstrap's two statements about `mut` contradict each other, and
+  *Closed by 0.1.107, confirmed against 0.1.112: `glyph llms` prints
+  `rng.bool(probability?: number)`.*
+
+- **G176. [FIXED] The bootstrap's two statements about `mut` contradict each other, and
   the wrong reading costs an architecture.** The syntax section lists
   `mut x.field = e` as legal. The gotchas section says `mut` "only enables
   reassignment and mutating method calls; there is no `mut` parameter, field, or
@@ -6933,7 +6940,10 @@ and is the owner's to confirm.
   exactly four forms — `mut x = e`, `mut x.field = e`,` and `there is no `mut`
   parameter, field, or other position.`*
 
-- **G177. A sibling module is imported by bare name, and E0101's fix text implies
+  *Closed by 0.1.107, confirmed against 0.1.112: the contradicting gotcha is gone
+  and the bootstrap says a parameter's fields are mutable in place.*
+
+- **G177. [HALF FIXED] A sibling module is imported by bare name, and E0101's fix text implies
   otherwise.** The fix text reads "Use an absolute module path (`std/io`,
   `myapp/x`)", and `myapp/x` implies a project module needs a package-name
   prefix. It does not: a sibling in the same `src/` is `import world`. The author
@@ -6949,7 +6959,13 @@ and is the owner's to confirm.
   whose `src/main.glyph` says `import helper` for its sibling `src/helper.glyph`
   compiles with exit 0.*
 
-- **G178. Eleven stdlib modules are shipped and importable with no documented
+  *Half closed by 0.1.107, confirmed against 0.1.112. The bootstrap now states the
+  rule: "A sibling module in the same source directory is imported by its bare
+  module name." E0101's own help still reads "Use an absolute module path (e.g.
+  `std/io` or `myapp/feature`)", so the diagnostic that sends someone looking is
+  still the one implying a prefix.*
+
+- **G178. [HALF FIXED] Eleven stdlib modules are shipped and importable with no documented
   signatures.** `glyph llms` lists them under "Not detailed below, but shipped
   and importable". `std/random` got a signature block in 0.1.106; the other
   eleven are unverified. For anything simulation-shaped the RNG was not a
@@ -6961,7 +6977,10 @@ and is the owner's to confirm.
   `std/random` is among them despite now carrying a `seeded(seed: number) -> Rng`
   block, so the list is itself stale.*
 
-- **G179. Runtime pruning changed what `glyph build` writes, and nothing says
+  *Half closed. `std/random` gained its signatures in 0.1.107 and left the list.
+  Confirmed against 0.1.112: eleven modules remain under "Not detailed below".*
+
+- **G179. [FIXED] Runtime pruning changed what `glyph build` writes, and nothing says
   so.** 0.1.106 emits only the std modules a project imports. Good for output
   size, found by counting rather than read anywhere, and it is the mechanism
   behind G174's narrowing. A behaviour change to what lands in a user's `out`
@@ -6971,6 +6990,9 @@ and is the owner's to confirm.
   modules into `dist/.glyph-runtime/std/` (`io`, `option`, `result`) out of the
   37 the compiler ships. An outside author independently counted 13 where 0.1.95
   emitted all of them.*
+
+  *Closed by 0.1.107, confirmed against 0.1.112: the bootstrap says the emitted
+  runtime holds only the modules a project imports.*
 
 - **G180. [FIXED] One declaration identity has three spellings, and two of them ship in
   the same release.** 0.1.107 added an `entity` field naming the declaration a

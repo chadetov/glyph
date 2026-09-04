@@ -5,9 +5,9 @@ Every edge is exact or absent, and absence of an edge means absence of a
 relation, never "analysis did not reach here."
 
 A rule stated in a document is a rule until somebody is in a hurry. This drives
-the impact surface against five deliberately degenerate projects and asserts
-that none of them produces a manufactured answer. The failure it exists to catch
-is not a crash. It is a confident, well-formed reply that reads as a fact and is
+the impact surface against a corpus of deliberately degenerate projects and
+asserts that none of them produces a manufactured answer. The failure it exists
+to catch is not a crash. It is a confident, well-formed reply that reads as a fact and is
 not one: a site claimed as proven when the compiler could not key it, a partial
 list shaped exactly like a complete one, an empty result standing in for a
 question that does not apply.
@@ -522,6 +522,130 @@ def case_field_entity() -> tuple[bool, str]:
     )
 
 
+def summary_arithmetic(a: dict, buckets_key: str) -> str:
+    """Why `a`'s summary is not arithmetic over the list beside it, or "".
+
+    The point of a summary is that two callers reading one answer reach the
+    same figures. That only holds if the figures are computed from the very
+    objects the answer carries, so every total here is checked back against
+    the list rather than against a second expectation.
+    """
+    s = a.get("summary")
+    if s is None:
+        return "the answer carries no summary, so the totals are the caller's arithmetic again"
+    listed = a.get("sites", [])
+    if s.get("sites") != len(listed):
+        return f"the site total disagrees with the list it summarises: {s.get('sites')} vs {len(listed)}"
+    paths = {x.get("path") for x in listed if x.get("path") is not None}
+    if s.get("files") != len(paths):
+        return f"the file total disagrees with the sites' own paths: {s.get('files')} vs {len(paths)}"
+    buckets = s.get(buckets_key)
+    if buckets is None:
+        return f"no `{buckets_key}` breakdown in the summary: {s}"
+    if sum(buckets.values()) != s["sites"]:
+        return f"the breakdown does not partition the total: {buckets} against {s['sites']} sites"
+    if s.get("not_counted") is None:
+        return (
+            "the summary states no exclusions at all, so a total that covers everything "
+            "and a total that quietly left something out are spelled the same way"
+        )
+    # One line for the total, one per bucket that has sites in it, one per
+    # exclusion. A caller who prints `lines` and acts on them has to see the
+    # caveat there and not only in the object.
+    want = 1 + sum(1 for n in buckets.values() if n) + len(s["not_counted"])
+    if len(s.get("lines", [])) != want:
+        return f"the rendered lines do not carry every count and exclusion: {s.get('lines')}"
+    return ""
+
+
+def case_summary_states_what_it_could_not_count() -> tuple[bool, str]:
+    """Was G198. A total says what it could not count, or it is a partial list
+    with an authoritative figure in front of it.
+
+    The corpus holds three sites the relation keyed across two files, one site
+    it could not key (a file whose module line disagrees with its path,
+    declaring a namesake `Kind`), and one file that does not parse. "3 match
+    sites across 2 files" is true of the first group and, said on its own, is
+    the partial-list-as-complete failure in its most persuasive form: a number
+    reads as authoritative in a way a list does not, and nothing in it tells
+    the caller that a fourth site and an entire file sit outside it.
+
+    Rounding away is what is being tested, so both directions are asserted.
+    The unkeyable site must not be folded into the total, which would claim an
+    edge this project never made, and it must not be dropped from the summary
+    either, which would let the total read as complete.
+
+    Both forms are checked. `proposed_variant` splits the sites by
+    consequence, the lookup form splits them by state, and a summary that
+    stated its exclusions in one and not the other would leave a caller
+    reading the other one exactly as misinformed.
+    """
+    root = CORPUS / "summary-totals"
+    for label, proposed, key in [
+        ("as a change", "Pending", "consequences"),
+        ("as a lookup", "", "states"),
+    ]:
+        a = ask(root, "src/kinds.glyph", "Kind", proposed=proposed)
+        if "error" in a:
+            return False, f"{label}: refused: {a['error'][:120]}"
+        wrong = summary_arithmetic(a, key)
+        if wrong:
+            return False, f"{label}: {wrong}"
+
+        s = a["summary"]
+        excluded = {e.get("what"): e for e in s["not_counted"]}
+
+        # The site this project could not key. In the total it would be a
+        # claimed edge; missing from the exclusions it would be a site the
+        # caller never learns about.
+        unkeyed = a.get("unkeyed", [])
+        if len(unkeyed) != 1:
+            return False, f"{label}: the corpus is meant to hold one unkeyable site: {unkeyed}"
+        if any(site.get("declaration") == "stray::spell" for site in a["sites"]):
+            return False, f"{label}: counted a site it could not key as one it did"
+        if "unkeyed" not in excluded:
+            return False, (
+                f"{label}: rounded the unkeyable site away: the total says "
+                f"{s['sites']} sites and says nothing about the one under `unkeyed`"
+            )
+        if excluded["unkeyed"].get("sites") != len(unkeyed):
+            return False, f"{label}: the exclusion miscounts it: {excluded['unkeyed']}"
+
+        # The file the sweep never opened. Its site count is unknown, and
+        # `null` is the only honest figure for it: zero would be a number this
+        # answer does not have.
+        unread = a.get("unindexed")
+        if unread is None:
+            return False, f"{label}: the answer names no file the sweep could not read"
+        if [u.get("path") for u in unread] != ["src/unreadable.glyph"]:
+            return False, f"{label}: the unreadable file is not named: {unread}"
+        if "unindexed" not in excluded:
+            return False, (
+                f"{label}: the total counts only the files it could read and says so nowhere"
+            )
+        if excluded["unindexed"].get("sites") is not None:
+            return False, (
+                f"{label}: put a site count on a file nothing was read from: "
+                f"{excluded['unindexed']}"
+            )
+        if excluded["unindexed"].get("files") != len(unread):
+            return False, f"{label}: the exclusion miscounts the files: {excluded['unindexed']}"
+
+    # A summary with nothing to exclude states that too, explicitly. An absent
+    # field would spell "nothing was left out" and "exclusions were never
+    # worked out" the same way, which is the ambiguity an empty site list used
+    # to carry.
+    clean = ask(CORPUS / "unsupported-entity", "src/m.glyph", "Status")
+    if "error" in clean:
+        return False, f"a union with no sites refused: {clean['error'][:120]}"
+    if clean.get("summary", {}).get("not_counted") != []:
+        return False, (
+            "a summary with nothing to exclude omits the field rather than emptying it: "
+            f"{clean.get('summary')}"
+        )
+    return True, "the unkeyable site and the unread file are both stated beside the total"
+
+
 HARD = [
     ("missing identity", case_missing_identity),
     ("ambiguous identity", case_ambiguous_identity),
@@ -537,6 +661,7 @@ HARD = [
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),
     ("a record field is an entity, with its limits", case_field_entity),
+    ("a total states what it could not count", case_summary_states_what_it_could_not_count),
 ]
 
 KNOWN: list[tuple[str, object, str]] = []

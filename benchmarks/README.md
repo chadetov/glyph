@@ -16,6 +16,8 @@ A companion **verifiability** demo lives in `verifiability/`: paired programs wh
 
 A third demo, **impact-before-edit** (`impact-before-edit/`), measures the has_catch_all bug shape against search alone: whether a plain text search for a catch-all match arm can tell which one belongs to the union you are about to change, compared with the `glyph_variants` MCP tool asked about that union directly (`impact-before-edit/measure.py` writes its own `results/<timestamp>.json`).
 
+A fourth, **impact-on-csvql** (`impact-on-csvql/`), runs the same question on a real application instead of a fixture: `examples/apps/csvql`, eleven files, one variant added to the `Value` union at its centre. It asks `glyph_variants` what the change will break before making it, then makes it and requires the compiler's E0200 entities to be exactly the sites predicted to fail, with the sites predicted to absorb it silently appearing nowhere in the output. The app is copied to a temporary directory; nothing under `examples/apps/` is edited.
+
 Results are written to `results/<timestamp>.json` and checked into git so the trajectory is visible. The synthesized findings are in `FINDINGS.md`.
 
 ## The first three functions (Phase 0)

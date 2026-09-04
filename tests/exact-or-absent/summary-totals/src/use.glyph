@@ -1,0 +1,10 @@
+module use
+
+import kinds { Kind }
+
+pub fn code(k: Kind) -> number {
+  return match k {
+    Open => 1,
+    Closed => 0,
+  }
+}

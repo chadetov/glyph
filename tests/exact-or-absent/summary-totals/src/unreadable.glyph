@@ -1,0 +1,6 @@
+// Does not parse, so the coverage sweep read no site in it. Whatever this file
+// matches on is invisible to the total, which is why the total has to say the
+// file was never read instead of counting what it could reach and stopping.
+module unreadable
+
+pub fn (

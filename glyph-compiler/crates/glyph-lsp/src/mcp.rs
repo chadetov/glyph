@@ -441,7 +441,7 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_variants",
-            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like.",
+            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see.",
             "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name, "proposed_variant": proposed_variant }, "required": ["path", "name"] }
         },
         {
@@ -1761,9 +1761,38 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
         })
         .collect();
 
+    // What the sweep could not read, named rather than skipped. The coverage
+    // relation holds nothing for a file that does not parse or does not
+    // resolve, so whatever that file matches on is invisible here. Stating it
+    // matters more once a total exists than it did beside a bare list: a
+    // number that counted the readable files and said nothing about the rest
+    // is a partial list with an authoritative figure in front of it.
+    let mut unindexed: Vec<Value> = Vec::new();
+    for (fpath, entry) in project.searched() {
+        let why = if glyph_db::parse_module(db, entry.file).module().is_none() {
+            "the file does not parse, so no match site in it was read"
+        } else if glyph_db::resolve(db, entry.file).resolved().is_none() {
+            "the file does not resolve, so no match site in it was read"
+        } else {
+            continue;
+        };
+        unindexed.push(json!({ "path": display_path(&root, fpath), "why": why }));
+    }
+
+    let summary = variant_summary(
+        &sites,
+        &nested,
+        &unkeyed,
+        &unindexed,
+        proposed.as_deref(),
+        &render_type_end(decls, &end),
+    );
+
     let mut answer = json!({
         "type": type_block(decls, &end, &shape),
+        "summary": summary,
         "sites": sites,
+        "unindexed": unindexed,
     });
     if let Some(proposed) = &proposed {
         answer["proposed_variant"] = json!(proposed);
@@ -1960,6 +1989,269 @@ fn nested_consequence(d: &CoverageSiteRef) -> &'static str {
         return "UNDETERMINED";
     }
     "WILL_FAIL"
+}
+
+/// The buckets a change answer splits its sites into, each with the prose one
+/// line of the summary reads as: `(bucket, one site, several sites)`.
+///
+/// The count and the sentence live in one table because they are one fact. A
+/// renderer kept beside the bucket list is a renderer that eventually reports
+/// a count under the wrong sentence.
+const CONSEQUENCE_BUCKETS: &[(&str, &str, &str)] = &[
+    (
+        "WILL_FAIL",
+        "will fail compilation",
+        "will fail compilation",
+    ),
+    (
+        "ABSORBS",
+        "contains a catch-all and will silently absorb it",
+        "contain a catch-all and will silently absorb it",
+    ),
+    (
+        "UNDETERMINED",
+        "the compiler cannot decide either way",
+        "the compiler cannot decide either way",
+    ),
+];
+
+/// The same, for the lookup form, where a site has a state rather than a
+/// consequence because no change was proposed to have one about.
+const STATE_BUCKETS: &[(&str, &str, &str)] = &[
+    ("exhaustive", "names every variant", "name every variant"),
+    (
+        "has_catch_all",
+        "contains a catch-all",
+        "contain a catch-all",
+    ),
+    (
+        "declined",
+        "the checker declined: an arm it does not model, or a variant no arm names",
+        "the checker declined: an arm it does not model, or a variant no arm names",
+    ),
+    (
+        "scrutinee_unresolved",
+        "has a scrutinee whose type never resolved",
+        "have a scrutinee whose type never resolved",
+    ),
+];
+
+/// The arithmetic a caller would otherwise do over the site list, and, beside
+/// it, everything that arithmetic does not cover.
+///
+/// The counts are read back off the rendered sites rather than recomputed from
+/// the relation. That is what makes the summary checkable: it is arithmetic
+/// over exactly the objects this answer carries, so it cannot come to a
+/// different figure than a reader counting the list by hand.
+///
+/// **Every total states what it could not count.** A number reads as
+/// authoritative in a way a list does not, so a total that quietly dropped the
+/// sites this project could not key, the sites that reach the type through a
+/// payload, or a file the sweep never opened would be a partial list wearing a
+/// figure that says it is complete. `not_counted` is therefore always present,
+/// explicitly empty when nothing was left out: an absent field spells "nothing
+/// was excluded" and "exclusions were never worked out" the same way, which is
+/// the ambiguity an empty site list used to carry.
+///
+/// The exclusions are in the same object as the totals and in `lines` as well,
+/// because a caller who prints the three lines and acts on them must not have
+/// to go looking for the caveat.
+fn variant_summary(
+    sites: &[Value],
+    nested: &[Value],
+    unkeyed: &[Value],
+    unindexed: &[Value],
+    proposed: Option<&str>,
+    type_name: &str,
+) -> Value {
+    // Which question the breakdown is over. With a proposed variant the sites
+    // carry what an edit does to them, without one they carry what they are
+    // today, and the two are different columns rather than two names for one.
+    let (field, buckets, group) = match proposed {
+        Some(_) => ("consequence", CONSEQUENCE_BUCKETS, "consequences"),
+        None => ("state", STATE_BUCKETS, "states"),
+    };
+
+    // `(count, the rest of the line)`. The count leads every line so they read
+    // as a column once padded.
+    let mut rows: Vec<(usize, String)> = Vec::new();
+    let files: BTreeSet<&str> = sites
+        .iter()
+        .filter_map(|s| s.get("path").and_then(Value::as_str))
+        .collect();
+    rows.push((
+        sites.len(),
+        format!(
+            "match {} across {} {}",
+            plural(sites.len(), "site", "sites"),
+            files.len(),
+            plural(files.len(), "file", "files"),
+        ),
+    ));
+
+    let mut counts = serde_json::Map::new();
+    let mut bucketed = 0usize;
+    for (bucket, one, many) in buckets {
+        let n = sites
+            .iter()
+            .filter(|s| s.get(field).and_then(Value::as_str) == Some(*bucket))
+            .count();
+        bucketed += n;
+        // Every bucket is stated, zero included, because a bucket the answer
+        // omits and a bucket that came back empty are not the same claim. Only
+        // a bucket with sites in it gets a line, since "0 will fail
+        // compilation" is noise in prose and a fact in the object.
+        counts.insert(bucket.to_string(), json!(n));
+        if n > 0 {
+            rows.push((n, plural(n, one, many).to_string()));
+        }
+    }
+
+    let mut not_counted: Vec<Value> = Vec::new();
+
+    // A site the breakdown has no bucket for. Unreachable as the tables stand,
+    // and recorded rather than assumed away: this is the one arithmetic error
+    // the summary could make on its own, and it would make the buckets read as
+    // a partition of the total when they were short of it.
+    if bucketed < sites.len() {
+        let n = sites.len() - bucketed;
+        not_counted.push(json!({
+            "what": "unbucketed",
+            "sites": n,
+            "why": format!(
+                "these sites carry a `{field}` this summary has no bucket for, so the \
+                 breakdown is short of the site total by that many."
+            ),
+        }));
+        rows.push((
+            n,
+            format!(
+                "counted {} fall in no bucket above",
+                plural(n, "site", "sites")
+            ),
+        ));
+    }
+
+    // Counted in the site total, absent from the file total: the relation
+    // files these under a module the project's file list no longer holds, so
+    // there is no path to attribute them to.
+    let unlocated = sites
+        .iter()
+        .filter(|s| s.get("path").map(Value::is_null).unwrap_or(true))
+        .count();
+    if unlocated > 0 {
+        not_counted.push(json!({
+            "what": "unlocated",
+            "sites": unlocated,
+            "why": "the relation files these sites under a module the project's file list \
+                    no longer holds, so they are in the site total and the file total \
+                    cannot include them.",
+        }));
+        rows.push((
+            unlocated,
+            format!(
+                "counted {} {} in no file this project's list holds, so the file count leaves {} out",
+                plural(unlocated, "site", "sites"),
+                plural(unlocated, "sits", "sit"),
+                plural(unlocated, "it", "them"),
+            ),
+        ));
+    }
+
+    if !nested.is_empty() {
+        not_counted.push(json!({
+            "what": "nested",
+            "sites": nested.len(),
+            "why": format!(
+                "these sites match on another type and name a variant of `{type_name}` \
+                 through a payload, so they are counted on their own under `nested` \
+                 rather than folded into a total over this type's own scrutinees. They \
+                 break the same way when a variant is added, so read both."
+            ),
+        }));
+        rows.push((
+            nested.len(),
+            format!(
+                "further {} {} `{type_name}` through a payload, counted separately under `nested`",
+                plural(nested.len(), "site", "sites"),
+                plural(nested.len(), "reaches", "reach"),
+            ),
+        ));
+    }
+
+    if !unkeyed.is_empty() {
+        not_counted.push(json!({
+            "what": "unkeyed",
+            "sites": unkeyed.len(),
+            "why": format!(
+                "this project never joined these sites to `{type_name}`: each matches on a \
+                 same-named type whose module names nothing this project holds. One of them \
+                 may well be over the type that was asked about, so folding them into the \
+                 total would claim an edge that was never made and dropping them from it \
+                 without a word would make the total read as complete."
+            ),
+        }));
+        rows.push((
+            unkeyed.len(),
+            format!(
+                "further {} this project could not key to `{type_name}`, in no count above, listed under `unkeyed`",
+                plural(unkeyed.len(), "site", "sites"),
+            ),
+        ));
+    }
+
+    if !unindexed.is_empty() {
+        not_counted.push(json!({
+            "what": "unindexed",
+            // Not zero. How many sites an unread file holds is not a number
+            // this answer has, and writing one would be the manufactured
+            // figure the whole rule is about.
+            "sites": Value::Null,
+            "files": unindexed.len(),
+            "why": "the coverage sweep read no site in these files, so how many they hold \
+                    is unknown and no count above includes them. They are named one by one \
+                    under `unindexed`.",
+        }));
+        rows.push((
+            unindexed.len(),
+            format!(
+                "project {} {} never read, so any match site in {} is in no count above",
+                plural(unindexed.len(), "file", "files"),
+                plural(unindexed.len(), "was", "were"),
+                plural(unindexed.len(), "it", "them"),
+            ),
+        ));
+    }
+
+    let width = rows
+        .iter()
+        .map(|(n, _)| n.to_string().len())
+        .max()
+        .unwrap_or(1);
+    let lines: Vec<String> = rows
+        .iter()
+        .map(|(n, text)| format!("{n:>width$} {text}"))
+        .collect();
+
+    let mut out = serde_json::Map::new();
+    out.insert("sites".to_string(), json!(sites.len()));
+    out.insert("files".to_string(), json!(files.len()));
+    out.insert(group.to_string(), Value::Object(counts));
+    out.insert("not_counted".to_string(), json!(not_counted));
+    out.insert("lines".to_string(), json!(lines));
+    Value::Object(out)
+}
+
+/// One of two words, by count.
+///
+/// Written as a pair rather than as a suffix because half the pairs here are
+/// not plural-by-`s`: `was`/`were`, `sits`/`sit`, `it`/`them`.
+fn plural<'a>(n: usize, one: &'a str, many: &'a str) -> &'a str {
+    if n == 1 {
+        one
+    } else {
+        many
+    }
 }
 
 /// The required `name` argument: the type one call is asking about.
@@ -5273,6 +5565,209 @@ mod tests {
         assert_eq!(nested[0]["consequence"], "WILL_FAIL", "{answer}");
     }
 
+    // ---- the summary: the arithmetic, and what it could not count ----
+
+    /// G198: the answer takes a position on its own totals.
+    ///
+    /// It used to hand back a list and stop, so the three lines a reader
+    /// wants were arithmetic the caller did outside the compiler. Two callers
+    /// could tally one reply differently and neither was wrong.
+    ///
+    /// The figures are checked against the list in the same answer, because
+    /// that is the property: a summary that could disagree with the sites
+    /// beside it is a second opinion rather than a total.
+    #[test]
+    fn the_answer_carries_the_arithmetic_over_its_own_site_list() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        write(&root, "b.glyph", COMMAND_B);
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Left");
+        let summary = &answer["summary"];
+        assert_eq!(summary["sites"], 2, "{answer}");
+        assert_eq!(summary["files"], 2, "{answer}");
+        assert_eq!(
+            summary["consequences"],
+            json!({ "WILL_FAIL": 1, "ABSORBS": 1, "UNDETERMINED": 0 }),
+            "{answer}"
+        );
+        // Nothing was left out here, and the answer says that rather than
+        // leaving the field off: an absent list spells "nothing was excluded"
+        // and "exclusions were never worked out" the same way.
+        assert_eq!(summary["not_counted"], json!([]), "{answer}");
+        assert_eq!(
+            summary["lines"],
+            json!([
+                "2 match sites across 2 files",
+                "1 will fail compilation",
+                "1 contains a catch-all and will silently absorb it",
+            ]),
+            "{answer}"
+        );
+
+        // Without a proposed variant there is no consequence to count, so the
+        // breakdown is over what the sites are today.
+        let lookup = variants(&mut server, "a.glyph", "Command");
+        assert!(lookup["summary"]["consequences"].is_null(), "{lookup}");
+        assert_eq!(
+            lookup["summary"]["states"],
+            json!({
+                "exhaustive": 1,
+                "has_catch_all": 1,
+                "declined": 0,
+                "scrutinee_unresolved": 0,
+            }),
+            "{lookup}"
+        );
+        assert_eq!(
+            lookup["summary"]["lines"],
+            json!([
+                "2 match sites across 2 files",
+                "1 names every variant",
+                "1 contains a catch-all",
+            ]),
+            "{lookup}"
+        );
+    }
+
+    /// The counts line up as a column, which is only visible once one of them
+    /// is wider than the others.
+    #[test]
+    fn the_lines_pad_their_counts_to_one_width() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        // Ten more exhaustive sites, so the total is two digits and the
+        // catch-all count is one.
+        for i in 0..10 {
+            write(
+                &root,
+                &format!("c{i}.glyph"),
+                &format!("module c{i}\nimport a {{ Command, Up, Down }}\npub fn f(c: Command) -> number {{\n  return match c {{\n    Up => 1,\n    Down => 0,\n  }}\n}}\n"),
+            );
+        }
+        write(&root, "b.glyph", COMMAND_B);
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Left");
+        assert_eq!(
+            answer["summary"]["lines"],
+            json!([
+                "12 match sites across 12 files",
+                "11 will fail compilation",
+                " 1 contains a catch-all and will silently absorb it",
+            ]),
+            "{answer}"
+        );
+    }
+
+    /// A total states what it could not count, in the same object.
+    ///
+    /// `models.glyph` declares its module as `app/models` while sitting at the
+    /// root, so nothing it declares can be keyed and its match site is filed
+    /// under `unkeyed`. The site total is 0 and the answer has to say a site
+    /// exists outside it: a number reads as authoritative in a way a list
+    /// does not, so "0 match sites" alone is the partial-list-as-complete
+    /// failure in its most persuasive form.
+    #[test]
+    fn a_total_names_the_sites_this_project_could_not_key() {
+        let root = tmp_root();
+        write(
+            &root,
+            "models.glyph",
+            "module app/models\npub type Command =\n  | Up\n  | Down\npub fn label(c: Command) -> string {\n  return match c {\n    Up => \"u\",\n    Down => \"d\",\n  }\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "models.glyph", "Command", "Left");
+        let summary = &answer["summary"];
+        assert_eq!(summary["sites"], 0, "{answer}");
+        assert_eq!(answer["unkeyed"].as_array().unwrap().len(), 1, "{answer}");
+
+        let excluded = summary["not_counted"].as_array().unwrap();
+        assert_eq!(excluded.len(), 1, "{answer}");
+        assert_eq!(excluded[0]["what"], "unkeyed", "{answer}");
+        assert_eq!(excluded[0]["sites"], 1, "{answer}");
+
+        // And in the rendered lines too. A caller who prints those and acts on
+        // them must not have to go looking for the caveat.
+        let lines = summary["lines"].as_array().unwrap();
+        assert_eq!(lines.len(), 2, "{answer}");
+        assert!(
+            lines[1].as_str().unwrap().contains("could not key"),
+            "the exclusion is in the object and not in the lines: {answer}"
+        );
+    }
+
+    /// A file the sweep could not read holds match sites this answer never
+    /// saw, so the count of files it did read is not a count of the project.
+    /// The site count for such a file is `null` rather than 0, which is the
+    /// distinction the whole rule turns on: unknown is not zero.
+    #[test]
+    fn a_total_names_the_files_it_never_read() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        write(&root, "broken.glyph", "module broken\npub fn (\n");
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Left");
+        assert_eq!(
+            answer["unindexed"],
+            json!([{
+                "path": "broken.glyph",
+                "why": "the file does not parse, so no match site in it was read",
+            }]),
+            "{answer}"
+        );
+
+        let excluded = answer["summary"]["not_counted"].as_array().unwrap();
+        assert_eq!(excluded.len(), 1, "{answer}");
+        assert_eq!(excluded[0]["what"], "unindexed", "{answer}");
+        assert_eq!(excluded[0]["files"], 1, "{answer}");
+        assert!(excluded[0]["sites"].is_null(), "unknown is not zero: {answer}");
+        assert!(
+            answer["summary"]["lines"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|l| l.as_str().unwrap().contains("never read")),
+            "{answer}"
+        );
+    }
+
+    /// A payload site breaks when a variant is added and is not a site over
+    /// this type's own scrutinees, so it is counted on its own rather than
+    /// folded into the total. Both halves are said: the count exists, and the
+    /// total says it is not in it.
+    #[test]
+    fn a_total_counts_payload_sites_separately_and_says_so() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub type Inner =\n  | X\n  | Y\npub type Outer =\n  | A(Inner)\n  | B\npub fn f(o: Outer) -> number {\n  return match o {\n    A(X) => 1,\n    A(Y) => 3,\n    B => 2,\n  }\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Inner", "Z");
+        let summary = &answer["summary"];
+        assert_eq!(summary["sites"], 0, "{answer}");
+        assert_eq!(answer["nested"].as_array().unwrap().len(), 1, "{answer}");
+
+        let excluded = summary["not_counted"].as_array().unwrap();
+        assert_eq!(excluded.len(), 1, "{answer}");
+        assert_eq!(excluded[0]["what"], "nested", "{answer}");
+        assert_eq!(excluded[0]["sites"], 1, "{answer}");
+        assert!(
+            summary["lines"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|l| l.as_str().unwrap().contains("through a payload")),
+            "{answer}"
+        );
+    }
+
     /// Without a proposed variant nothing changes: no consequence is stated,
     /// because with no proposed change there is no consequence to state.
     #[test]
@@ -5412,6 +5907,11 @@ mod tests {
             assert!(described.contains(word), "`{word}` is undescribed: {described}");
         }
         assert!(described.contains("proposed_variant"), "{described}");
+        // A total nobody knows the limits of is worse than no total, so the
+        // description that sells the summary has to carry them too.
+        for word in ["summary", "not_counted", "unindexed"] {
+            assert!(described.contains(word), "`{word}` is undescribed: {described}");
+        }
     }
 
     /// `COMMAND_A` with one declaration that does not type-check, so a single

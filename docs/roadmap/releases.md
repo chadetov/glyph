@@ -5061,56 +5061,56 @@ does not say the consequence travels along it. `PaymentResult` gains a variant,
 the edge between them. It depends on whether `settle`'s signature changed, which
 is a fact about the change and not about the graph.
 
-So transitivity is a property of **(change kind, relation kind)**, never of
-topology:
+**Transitivity does not depend on the change kind either.** That was the first
+answer and the compiler contradicted it. Seven change kinds were probed through
+the language server with the buffer supplied in `didOpen`, so nothing touched
+disk: add a variant, rename a variant, rename a type, rename a field, rename a
+function, add a parameter, change a return type. Every diagnostic in every probe
+landed at a site that lexically names the changed entity. Not one landed at
+depth 2, including on a three-deep call chain.
 
-| change | relation | propagates |
-|---|---|---|
-| add variant | `MENTIONS` | yes |
-| add variant | `CALLS` | no |
-| rename field | `FIELD_ACCESS` | yes |
-| rename field | `CALLS` | no |
-| change signature | `CALLS` | yes |
-| change signature | `REFERENCES` | must be established per case |
+The reason is structural and it is a language property rather than a graph one.
+**Glyph never infers a declaration's type from its body.** A `fn` with no `->`
+types as `void` and its caller gets E0204; an unannotated lambda behaves the
+same. A callee's type therefore cannot reach a caller's signature, so a change to
+X can only invalidate expressions that name X. The signature is a firewall, and
+that is what bounds propagation, not the kind of edit.
 
-**Every cell is a claim about the compiler and gets a program.** None of it ships
-on reasoning. A cell that cannot be demonstrated with a real program, checked
-both ways, means the traversal does not generalize over that relation yet.
+What looked like transitivity is direct membership. `render::literal_text` is in
+the impact set because it matches on `Value` at line 128, not because it calls
+`value.render` at line 131.
 
-This separates two things that were being conflated:
+**So each change kind names one carrier relation, exact at hop 1 and empty at
+hop 2:**
 
-```
-       relation traversal      finds candidates
-              |
-              v
-    change propagation rule    decides impact
-              |
-              v
-        impacted nodes
-```
+| change | carrier | diagnostic | coverage |
+|---|---|---|---|
+| add union variant | `match_sites` | E0200 | exact where the scrutinee resolved; `ABSORBS` is a verdict, not a gap |
+| rename union variant | `match_sites` + `references` | E0103, E0220, E0200 | exact |
+| rename record field | `field_access` | E0210 | exact for member accesses; record literals and object patterns `NOT_INDEXED` by name |
+| rename declaration | `references` + `calls` | E0103 | exact |
+| change arity | `references` + `calls` | E0213 | exact |
+| change a signature type | `references` + `calls` | none when a named type is on either side | **`NOT_INDEXED`, never `SAFE`** |
 
-Traversal finds candidates. Propagation decides impact. Keeping them apart is
-what stops reachability from quietly becoming semantic truth, and keeps the
-meaning in the compiler rather than inferred from a generic graph. It is also
-what lets an agent ask what a specific change breaks rather than what is
-connected to something.
+That last row is the one worth reading twice. `takes_string(r)` with `r` a named
+union produces no diagnostic, where `takes_string(b)` with `b: bool` produces
+E0211. The checker reports only a provable mismatch and is silent on an
+undecidable one, so an impact answer cannot call those call sites safe. It has to
+say it did not check them (G201).
 
-*Coverage belongs to the relation and never floats above the answer.* A single
-`coverage: COMPLETE` over a heterogeneous edge list is unanswerable: complete for
-which relation? So:
+**The measured cost of getting this wrong.** Expanding `MENTIONS` from
+`value::Value` in csvql, against the 8 declarations the compiler proves break:
+depth 1 reaches 28 declarations (29% precision), depth 2 reaches 38 (21%), depth
+3 reaches 48 (17%) and includes `main::main`. A `mentions` traversal three hops
+from a cell type reaches the program entry point, and the compiler has proved
+that 40 of those 48 do not break. That is what "everything connected to X" costs.
 
-```
-{ entity: "payments::PaymentResult",
-  relations: [
-    { kind: "MENTIONS", coverage: "COMPLETE", edges: [...] },
-    { kind: "CALLS",    coverage: "PARTIAL",  not_indexed: [...], edges: [...] } ] }
-```
-
-Every edge is governed by the coverage statement immediately above it. An agent
-can then rely on "this is the complete set of `CALLS` edges" instead of "Glyph
-returned some related things and called the answer complete". Relations added
-later, `GENERATED_FROM`, `FIELD_ACCESS`, `IMPORTS`, each get their own boundary
-rather than diluting a shared one.
+**`A -> B -> C` therefore gets no answer at all.** An impact answer is rooted at
+one entity and one named change, and every edge runs from that root to a site
+naming it. Whether `checkout` needs changing after `settle` is repaired is a
+different question about a different root, and it does not exist until someone
+decides how to repair `settle`. Widening the first answer to cover it would
+report a consequence of an edit nobody has made as compiler-proven.
 
 **Both are hard gates.** If the propagation table cannot be answered precisely
 with concrete programs, `glyph_impact` does not generalize yet.

@@ -4714,7 +4714,7 @@ generator already knows the answer).
 - `match_coverage(db, file)` plus a project fold, so the value backdates for its consumers; the query itself still re-executes on any edit
 - `glyph_variants`: for a type, every match site and which variants each one names, with unindexable sites named rather than counted
 
-**0.1.107 — Landed on main · The autofix stops reporting success over a file it broke, and the tool says how to update itself**
+**0.1.107 — Shipped · The autofix stops reporting success over a file it broke, and the tool says how to update itself**
 - G173: `glyph fix` welded a pruned import onto the next line and exited 0; live since 0.1.99, not the 0.1.106 regression it was reported as
 - Both prune paths share one `decl_text_end`, and `fix` re-parses every file before writing it, so a broken rewrite fails loudly instead of quietly
 - The MCP server sends an `instructions` string for the first time: an agent learns `glyph --update` (the tool) and `glyph upgrade` (a project's pin) without opening a file
@@ -4729,25 +4729,33 @@ generator already knows the answer).
 - A diagnostic carries the declaration it sits in as `module::name`, on `glyph check --json` and `glyph_diagnostics`, so an error leads into the graph without a re-parse
 - Not the forward-impact query: that stays 0.1.108, which is what this release's prerequisites were clearing the way for
 
-**0.1.108 — Next · Impact before the edit, and the loop that uses it**
+**0.1.108 — Next · One identity, one spelling**
+- G180: three surfaces derive a declaration's module half from three different roots, and two of them disagree on the layout `glyph init` writes
+- One derivation and one attribution function, rather than the two byte-identical copies and three roots shipped in 0.1.107
+- G181: attribute a diagnostic from the declaration the checker is standing in, since an annotation's span sits in the gap before a decl's span starts
+- The same for `tsc`-remapped diagnostics, whose Glyph source is already in `ModuleMap`, and for `@example` failures, which carry no structure at all
+- G182 is closed: the release workflow named a runner retired nine months earlier, so `darwin-x64` was executed nowhere and every Release run concluded `cancelled`
+- Ahead of the impact query on purpose: that query names this field as a prerequisite, and an ambiguous identity makes it confidently wrong rather than incomplete
+
+**0.1.109 — Impact before the edit, and the loop that uses it**
 - Read the same edges forward: "add `Suspended` to `UserStatus`, show me every site that must change"
 - The answer is exhaustive or it says which sites it could not index; a partial list is worse than none
-- Diagnostics carry entity IDs and structured context, so an agent gets from an error into the graph without re-parsing
 - Repair the five-times bug shape end to end, measured against the same task done by search alone
+- The fixture and measurement script are already committed, so the instrument was defined before the result
 
-**0.1.109 — Provenance, and the boundary as a node kind**
+**0.1.110 — Provenance, and the boundary as a node kind**
 - R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - G170: the playground emits what `glyph build` emits, or the page says plainly that it does not
 
-**0.1.110 — The incremental debt, in the order it actually binds**
+**0.1.111 — The incremental debt, in the order it actually binds**
 - `type_map`'s span keying first, because coverage edges, the overlay and the rekey all sit downstream of it
 - Then rekey the five position-keyed per-declaration queries to `DeclKey`, which has no user-visible effect on its own
 - Move the content-difference guard into `glyph-db` behind `set_file_text`, and make raw `set_text` non-public
 - G171: measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded
 
-**0.1.111 — The language server stops running a second compiler**
+**0.1.112 — The language server stops running a second compiler**
 - An overlay: disk text by default, editor buffer for open files, so the server consumes the model instead of re-running it
 - Measured today at 15.4ms per keystroke for diagnostics alone and 61.2ms for an editor burst on a 2,205-line file, growing about n^1.6
 - Database lifetime is the real question underneath it: `glyph build` throws its database away and only the MCP server keeps one
@@ -5046,7 +5054,54 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.108 — Next · Impact before the edit, and the loop that uses it
+### 0.1.108 — Next · One identity, one spelling
+
+0.1.107 gave every diagnostic the declaration it sits in, and gave it three
+spellings. `glyph check --json` strips the project src root, `glyph_variants`
+resolves through `project_root_for`, and `glyph_diagnostics` uses the server
+workspace root. On the layout `glyph init` writes, the first reports `a::f` and
+the last reports `src/a::f` for the same declaration. Both doc comments claim
+they agree.
+
+**This is 0.1.56 and 0.1.57 arriving from a new direction.** Those two releases
+were spent removing a guarantee that changed with how a type was imported, and
+the conclusion recorded then was that a design where the spelling can matter is
+wrong on arrival. Nothing about that conclusion was specific to imports.
+
+The tests could not have caught it. They write into a bare temp directory with
+no `package.json`, where the server root and the project src root are the same
+directory and all three derivations agree by accident of the fixture. The
+harness for a marked project already exists in the same file and was not pointed
+at the new field.
+
+**Why this outranks the impact query it was supposed to enable.** The roadmap
+names the entity field as a prerequisite of reading the edges forward, and it
+also says a partial list is worse than none. An impact query keyed on an
+identity with three spellings does not return a short list, it returns a
+confident wrong one, which is the failure the exact-or-absent rule exists to
+make impossible. So the query waits one release.
+
+**The second half is a real violation of that rule, not a gap in it.** An
+annotation's text sits in the gap between two declaration spans, because
+`parse_annotations` runs before the keyword while a `Decl` span begins at it. So
+the span walk finds no declaration for an unknown-annotation error, and reports
+no entity. But the checker emits that error from inside
+`check_annotations(&mut self, decl: &Decl)`, holding the declaration by
+reference. The relation was computed and thrown away, and its absence then reads
+as "there is no relation here". `tsc`-remapped diagnostics say the same thing
+for a similar reason, with the Glyph source they would need already sitting in
+`ModuleMap`.
+
+**Also closed here, from the same review.** The release workflow ran a
+`Smoke macos-13` job whose label had been retired nine months before it was
+written, so it was never assigned a runner on any release and `darwin-x64` was
+executed nowhere while a job claiming to execute it was cancelled by hand each
+time. It now runs on `macos-15-intel`, and in `verify` rather than only in
+`smoke`, so an x64 binary is exercised before the irreversible publish instead
+of after it. `macos-14` was deprecated with support ending 2 November 2026 and
+would have failed identically; both darwin targets build on `macos-15`.
+
+### 0.1.109 — Impact before the edit, and the loop that uses it
 
 0.1.106 retained the relation and put a tool on it. `glyph_variants` answers
 "which sites name this variant". This release answers the question an agent

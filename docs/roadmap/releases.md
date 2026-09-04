@@ -5112,6 +5112,47 @@ different question about a different root, and it does not exist until someone
 decides how to repair `settle`. Widening the first answer to cover it would
 report a consequence of an edit nobody has made as compiler-proven.
 
+#### Six decisions the design phase surfaced, settled
+
+**1. The request names the change, not just the entity.** `glyph_impact { entity,
+relations, depth }` cannot assign `WILL_FAIL`, `ABSORBS` or `SAFE` to anything,
+because those are consequences of an edit and no edit is named. Every entry would
+come back `REFERENCES` and the release would be a lookup wearing a new name. The
+shape is `glyph_impact { entity, change, relations, depth }`, with `change`
+required for any answer carrying a consequence, and the change kinds closed from
+the start: `add_variant`, `remove_variant`, `rename`, `change_arity`,
+`change_signature_type`, `remove`.
+
+**2. Verdicts are about consequence only.** `REFERENCES` was both a relation and
+a verdict, so an entry could read `{"relation": "CALLS", "verdict":
+"REFERENCES"}`, which is two facts wearing one word. `REFERENCES` and
+`GENERATED_FROM` leave the verdict set; they were relations all along. The verdict
+vocabulary is now `WILL_FAIL`, `ABSORBS`, `SAFE`, `UNDETERMINED`, `NOT_INDEXED`,
+and the relation is a separate field. This also keeps relation names identical
+across tools, which is what 0.1.113 is for.
+
+**3. G201 is not fixed here.** Making `definitely_incompatible` decide named
+against primitive would make the signature-type change exact and `SAFE` sayable.
+It is also a new diagnostic on programs that compile today, so it is a breaking
+change, and it turns this release into a checker release. The class ships
+`NOT_INDEXED` and the gap is filed, the same way the object-literal class was
+handled in 0.1.111. One change kind ships partial and says so.
+
+**4. `mentions` with a depth does not ship.** Measured at 29% precision at hop 1,
+21% at hop 2 and 17% at hop 3, where hop 3 reaches `main::main`. A relation that
+returns candidates rather than consequences is a dump, and no caller has asked
+for one. It waits for a caller who wants candidates and knows it.
+
+**5. A hop-2 request is answered, not rejected.** The answer carries a
+`next_query` naming the question that would be exact, rather than raising a tool
+error. An error is louder and a field is composable, and the consumer here is a
+program deciding what to ask next rather than a person reading a message.
+
+**6. The relation vocabulary is reconciled before any of this is built.** G193
+says a relation cannot be named in a reply until the set exists, and there are
+currently two non-overlapping sets in the tree. One set, one spelling, fixed
+first.
+
 **Both are hard gates.** If the propagation table cannot be answered precisely
 with concrete programs, `glyph_impact` does not generalize yet.
 - One entity in, nodes and labelled edges out, with a verdict per node from a closed set, never a similarity score and never "possibly related"

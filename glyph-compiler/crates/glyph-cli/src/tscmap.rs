@@ -12,6 +12,8 @@
 //! unparseable line, a trailing "Found N errors." summary) pass through
 //! verbatim, so nothing is ever dropped.
 
+use std::collections::HashMap;
+
 use glyph_ast::Span;
 
 use crate::diagnostic::{Diagnostic, Pos, Range};
@@ -124,29 +126,43 @@ pub fn remap_tsc_output(raw: &str, maps: &[ModuleMap], with_color: bool) -> Stri
 /// an unmappable one keeps its `.ts` location so nothing is dropped.
 pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic> {
     let mut out = Vec::new();
+    // A remapped error lands on a Glyph span, so the declaration containing it
+    // is the same relation every other stage reports; the module's own source
+    // is right here, so it is a parse away rather than unknowable. Parse each
+    // module at most once, and only when an error actually lands in it.
+    let mut parsed: HashMap<usize, Option<glyph_ast::Module>> = HashMap::new();
     for line in raw.lines() {
         let Some(err) = parse_tsc_line(line) else {
             continue;
         };
-        match find_module(maps, err.path)
-            .and_then(|m| m.span_for(err.line, err.col).map(|s| (m, s)))
+        match find_module_index(maps, err.path)
+            .and_then(|i| maps[i].span_for(err.line, err.col).map(|s| (i, s)))
         {
-            // No `entity`: a `tsc`-remapped diagnostic is keyed off the
-            // emitted TS source map rather than a parsed Glyph module, and
-            // there is no declaration table here to look one up in.
-            Some((m, span)) => out.push(Diagnostic::new(
-                &m.glyph_path,
-                &m.glyph_source,
-                span,
-                err.code,
-                "error",
-                "tsc",
-                err.message.to_string(),
-                None,
-                is_narrowing_note(err.code, &m.glyph_source, span),
-                None,
-            )),
+            Some((i, span)) => {
+                let m = &maps[i];
+                let entity = parsed
+                    .entry(i)
+                    .or_insert_with(|| glyph_parser::parse(&m.glyph_source).ok())
+                    .as_ref()
+                    .and_then(|module| {
+                        crate::diagnostic::entity_id(&m.glyph_path, module, span.start)
+                    });
+                out.push(Diagnostic::new(
+                    &m.glyph_path,
+                    &m.glyph_source,
+                    span,
+                    err.code,
+                    "error",
+                    "tsc",
+                    err.message.to_string(),
+                    None,
+                    is_narrowing_note(err.code, &m.glyph_source, span),
+                    entity,
+                ))
+            }
             None => {
+                // No `entity`: this error was never mapped onto Glyph source,
+                // so there is no span for a declaration to contain.
                 let at = Pos {
                     line: err.line as u32,
                     col: err.col as u32,
@@ -215,14 +231,20 @@ fn parse_tsc_line(line: &str) -> Option<TscError<'_>> {
 /// key is a more specific claim on the path, so it outranks a shorter one;
 /// among equally long matches the first still wins, keeping the result stable.
 fn find_module<'a>(maps: &'a [ModuleMap], tsc_path: &str) -> Option<&'a ModuleMap> {
+    find_module_index(maps, tsc_path).map(|i| &maps[i])
+}
+
+/// The same match as [`find_module`], by index, for the caller that also needs
+/// to key a per-module cache off it.
+fn find_module_index(maps: &[ModuleMap], tsc_path: &str) -> Option<usize> {
     let norm = tsc_path.replace('\\', "/");
-    let mut best: Option<&'a ModuleMap> = None;
-    for m in maps {
+    let mut best: Option<usize> = None;
+    for (i, m) in maps.iter().enumerate() {
         if norm != m.ts_rel && !norm.ends_with(&format!("/{}", m.ts_rel)) {
             continue;
         }
-        if best.is_none_or(|b| m.ts_rel.len() > b.ts_rel.len()) {
-            best = Some(m);
+        if best.is_none_or(|b| m.ts_rel.len() > maps[b].ts_rel.len()) {
+            best = Some(i);
         }
     }
     best
@@ -376,6 +398,47 @@ mod tests {
         assert!(
             out.contains("Found 1 error."),
             "summary passes through: {out}"
+        );
+    }
+
+    /// G181, the `tsc` half. A remapped `tsc` error already carries a Glyph
+    /// span (the source-map checkpoint it was rendered against), and the
+    /// module's own source is right here in `ModuleMap`, so the enclosing
+    /// declaration is a parse away rather than unknowable. An unmappable
+    /// error still names nothing, because for that one there is no Glyph
+    /// span to be inside of.
+    #[test]
+    fn remapped_tsc_diagnostics_name_the_enclosing_declaration() {
+        let glyph =
+            "module main\n\nfn a() -> number {\n  return 1\n}\n\nfn bad() -> string {\n  return 2\n}\n";
+        let a_start = glyph.find("fn a").unwrap() as u32;
+        let bad_start = glyph.find("fn bad").unwrap() as u32;
+        let ts = "line0\nline1\nline2 with the error here\n";
+        let m = ModuleMap {
+            ts_rel: "main.ts".to_string(),
+            // `build.rs` puts the module path here, which is the spelling
+            // `from_type_error` qualifies an entity with.
+            glyph_path: "main".to_string(),
+            glyph_source: glyph.to_string(),
+            ts_source: ts.to_string(),
+            source_map: vec![
+                (0, span(a_start, bad_start - 1)),
+                (12, span(bad_start, glyph.len() as u32)),
+            ],
+        };
+        // ts line 3 starts at offset 12, so the error maps to `bad`.
+        let raw = "out/main.ts(3,7): error TS2322: Type 'number' is not assignable to type 'string'.\n\
+            std/http.ts(4,2): error TS1005: ';' expected.\n";
+        let diags = remap_tsc_to_diagnostics(raw, std::slice::from_ref(&m));
+        assert_eq!(diags.len(), 2, "{diags:?}");
+        assert_eq!(
+            diags[0].entity.as_deref(),
+            Some("main::bad"),
+            "the remapped error names the declaration its span sits in"
+        );
+        assert_eq!(
+            diags[1].entity, None,
+            "an unmappable error has no Glyph span, so it names nothing"
         );
     }
 }

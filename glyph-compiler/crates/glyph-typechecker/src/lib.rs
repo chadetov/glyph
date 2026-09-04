@@ -337,6 +337,10 @@ pub enum TypeError {
     RedactUnknownField {
         field: String,
         type_name: String,
+        /// The declaration this error is about (see `decl_name`). Carried
+        /// separately from `type_name`, which is part of the message and
+        /// answers a different question: which type lacks the field.
+        decl: String,
         span: Span,
     },
 
@@ -345,7 +349,12 @@ pub enum TypeError {
     /// would otherwise carry no meaning while looking like it did. The recognized
     /// v1 set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public`.
     #[error("unknown annotation `@{name}`")]
-    UnknownAnnotation { name: String, span: Span },
+    UnknownAnnotation {
+        name: String,
+        /// The declaration the annotation decorates (see `decl_name`).
+        decl: String,
+        span: Span,
+    },
 
     /// A `component` declared with more than one parameter. A component lowers to
     /// a React function component, which is called with a single props object, so
@@ -625,6 +634,26 @@ impl TypeError {
             TypeError::MatchArmProducesNoValue { .. } => Some(
                 "A value-position arm lowers to `case X: { break; }` when it yields nothing, so the value would be `undefined` at run time.",
             ),
+            _ => None,
+        }
+    }
+
+    /// The top-level declaration this error is *about*, when the checker knew
+    /// it at the point it raised the error and the error's own span cannot be
+    /// used to find it again.
+    ///
+    /// Both annotation errors are that shape. An annotation's text sits in the
+    /// gap between two declaration spans: annotations are parsed before the
+    /// keyword, and a `Decl` span starts at the keyword, so a containment walk
+    /// over top-level items matches nothing for an offset inside `@puer`.
+    /// The checker had the declaration by reference either way, so the name is
+    /// carried on the error rather than re-derived from a position that cannot
+    /// yield it. Consumers prefer this over their own span walk; `None` means
+    /// the walk is the answer, not that there is no declaration.
+    pub fn decl_name(&self) -> Option<&str> {
+        match self {
+            TypeError::UnknownAnnotation { decl, .. } => Some(decl),
+            TypeError::RedactUnknownField { decl, .. } => Some(decl),
             _ => None,
         }
     }

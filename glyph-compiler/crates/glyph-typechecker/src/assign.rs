@@ -698,18 +698,23 @@ impl Assigner<'_> {
     /// D27: reject any annotation the compiler does not recognize. Runs for every
     /// top-level declaration before its own checks.
     fn check_annotations(&mut self, decl: &Decl) {
-        let annotations = match decl {
-            Decl::Fn(f) => &f.annotations,
-            Decl::Type(t) => &t.annotations,
-            Decl::Const(c) => &c.annotations,
-            Decl::Component(c) => &c.annotations,
-            Decl::Interface(i) => &i.annotations,
+        // The declaration's name travels with the error: `a.span` covers the
+        // annotation, which sits *before* the keyword every `Decl` span starts
+        // at, so nothing downstream can recover the declaration from the span
+        // it is reported at. An `import` has no annotations and no name.
+        let (decl_name, annotations) = match decl {
+            Decl::Fn(f) => (f.name.as_ref(), &f.annotations),
+            Decl::Type(t) => (t.name.as_ref(), &t.annotations),
+            Decl::Const(c) => (c.name.as_ref(), &c.annotations),
+            Decl::Component(c) => (c.name.as_ref(), &c.annotations),
+            Decl::Interface(i) => (i.name.as_ref(), &i.annotations),
             Decl::Import(_) => return,
         };
         for a in annotations {
             if !RECOGNIZED_ANNOTATIONS.contains(&a.name.as_ref()) {
                 self.errors.push(TypeError::UnknownAnnotation {
                     name: a.name.to_string(),
+                    decl: decl_name.to_string(),
                     span: a.span,
                 });
             }
@@ -789,6 +794,10 @@ impl Assigner<'_> {
                 self.errors.push(TypeError::RedactUnknownField {
                     field: f.clone(),
                     type_name: t.name.to_string(),
+                    // The span is the `@redact` annotation's, which sits
+                    // before the `type` keyword the declaration's span starts
+                    // at; carry the name so it survives the emission site.
+                    decl: t.name.to_string(),
                     span,
                 });
             }

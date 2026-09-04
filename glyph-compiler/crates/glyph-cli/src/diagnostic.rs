@@ -24,7 +24,7 @@ use glyph_ast::Span;
 use glyph_emit::EmitError;
 use glyph_parser::ParseError;
 use glyph_resolver::ResolveError;
-use glyph_typechecker::{Severity, TypeError};
+use glyph_typechecker::{DiagnosticUnion, Severity, TypeError};
 
 /// One structured diagnostic.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,10 +50,62 @@ pub struct Diagnostic {
     /// existed readable.
     #[serde(default)]
     pub entity: Option<String>,
+    /// The union this diagnostic is about, when it is about one: the
+    /// exhaustiveness errors, which name a union and a set of its variants in
+    /// their message. An agent repairing a non-exhaustive match needs the
+    /// union's name to ask which other sites match on it, and reading that
+    /// back out of the sentence is a regex over prose the compiler is free to
+    /// rewrite (G195).
+    ///
+    /// Always present, as an explicit `null` when the diagnostic is about no
+    /// union, for the same reason `entity` is (G184): one spelling of absence.
+    #[serde(default)]
+    pub union: Option<UnionEntity>,
+    /// The variants the match leaves unmentioned, in declaration order and
+    /// unquoted. Explicit `null` on a diagnostic that reports no such set,
+    /// never an empty list, which would say "none are missing".
+    #[serde(default)]
+    pub missing_variants: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub help: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+}
+
+/// The union a diagnostic concerns, addressed rather than described.
+///
+/// `name` is what `glyph_variants` takes; `declaration` is the `module::name`
+/// identity that tool reports back for the same declaration, so an answer and
+/// a diagnostic can be cross-referenced. The shape is the one the MCP tools
+/// already report a match-coverage type end under.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UnionEntity {
+    /// `"declaration"` for a union declared in a project module,
+    /// `"builtin"` for a prelude or stdlib one.
+    pub kind: String,
+    /// The module the union is declared in, counted from the same root the
+    /// diagnostic's `entity` is counted from, so one declaration has one
+    /// spelling within a diagnostic. `null` for a builtin.
+    pub module: Option<String>,
+    pub name: String,
+    /// `module::name`. `null` for a builtin: a key invented for `Result`
+    /// would name a module no project has.
+    pub declaration: Option<String>,
+}
+
+impl UnionEntity {
+    /// Qualify a union the checker named, given `this_module`: the module half
+    /// of the file the diagnostic is on. A union declared in that file carries
+    /// no module of its own on the error, precisely so this is the string that
+    /// fills it in.
+    pub fn new(union: &DiagnosticUnion, this_module: &str) -> Self {
+        UnionEntity {
+            kind: union.kind().to_string(),
+            module: union.module(this_module).map(str::to_string),
+            name: union.name().to_string(),
+            declaration: union.declaration(this_module),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,9 +149,25 @@ impl Diagnostic {
             },
             stage: stage.to_string(),
             entity,
+            union: None,
+            missing_variants: None,
             help: help.map(str::to_string),
             note: note.map(str::to_string),
         }
+    }
+
+    /// Attach the union this diagnostic concerns and the variants it reports
+    /// unmentioned. Separate from `new` because most diagnostics are about no
+    /// union at all, and because an argument list this long is already the
+    /// wrong shape to add two more to.
+    fn about_union(
+        mut self,
+        union: Option<UnionEntity>,
+        missing_variants: Option<Vec<String>>,
+    ) -> Self {
+        self.union = union;
+        self.missing_variants = missing_variants;
+        self
     }
 }
 
@@ -192,6 +260,14 @@ pub fn from_type_error(
         err.decl_name()
             .map(|name| format!("{file}::{name}"))
             .or_else(|| entity_id(file, module, err.span().start)),
+    )
+    // The other entity an exhaustiveness error concerns: the union itself,
+    // and the variants it leaves unmentioned. Qualified with `file`, the same
+    // module string `entity` above is qualified with, so one declaration has
+    // one spelling inside one diagnostic.
+    .about_union(
+        err.union().map(|u| UnionEntity::new(u, file)),
+        err.missing_variants().map(<[String]>::to_vec),
     )
 }
 
@@ -377,5 +453,120 @@ mod tests {
             Some("main::Account"),
             "a bad `@redact` field belongs to the type it decorates"
         );
+    }
+
+    /// G195: the loop that repairs a non-exhaustive match is grep-free at
+    /// every hop but the first. An agent gets E0200, and to ask which other
+    /// sites match on the same union it needs the union's name and the
+    /// variants it is missing. Both were in the sentence and nowhere else, so
+    /// the only way out was a regex over prose the compiler is free to
+    /// rewrite. Both are fields now, and the sentence is untouched.
+    #[test]
+    fn a_non_exhaustive_match_carries_its_union_and_its_missing_variants() {
+        let src = "module billing\n\n\
+            type PaymentResult =\n  | Settled\n  | Failed\n  | Pending\n\n\
+            fn settle(r: PaymentResult) -> string {\n\
+            \x20 return match r {\n    Settled => \"s\",\n    Failed => \"f\",\n  }\n\
+            }\n";
+        let d = e0200_of("billing", src);
+
+        let union = d.union.as_ref().expect("E0200 names a union");
+        assert_eq!(union.kind, "declaration");
+        assert_eq!(union.name, "PaymentResult");
+        assert_eq!(union.module.as_deref(), Some("billing"));
+        assert_eq!(union.declaration.as_deref(), Some("billing::PaymentResult"));
+        assert_eq!(d.missing_variants.as_deref(), Some(["Pending".to_string()].as_slice()));
+
+        // The message is what it always was. This adds fields beside it.
+        assert_eq!(
+            d.message,
+            "non-exhaustive match on `PaymentResult`: missing variants `Pending`"
+        );
+    }
+
+    /// One declaration, one spelling. The union's module half and the
+    /// enclosing declaration's are counted from the same root inside one
+    /// diagnostic, which is the whole point of leaving the local module to the
+    /// surface rather than taking the file's own `module` header (G172).
+    #[test]
+    fn the_union_and_the_entity_are_counted_from_the_same_root() {
+        let src = "module billing\n\n\
+            type PaymentResult =\n  | Settled\n  | Pending\n\n\
+            fn settle(r: PaymentResult) -> string {\n\
+            \x20 return match r {\n    Settled => \"s\",\n  }\n\
+            }\n";
+        // The module half `glyph build` passes is the project-relative path,
+        // not the file's own header, and both halves of the diagnostic have to
+        // use it.
+        let d = e0200_of("app/billing", src);
+        assert_eq!(d.entity.as_deref(), Some("app/billing::settle"));
+        assert_eq!(
+            d.union.as_ref().unwrap().declaration.as_deref(),
+            Some("app/billing::PaymentResult")
+        );
+    }
+
+    /// A prelude union has a fixed variant table and no declaration in any
+    /// project module, so there is nothing to address. `builtin` says that;
+    /// a `module::name` invented for `Result` would name a module no project
+    /// has.
+    #[test]
+    fn a_prelude_unions_gap_is_a_builtin_with_no_declaration() {
+        let src = "module app\n\n\
+            import std/result { Ok, Err }\n\n\
+            fn f(r: Result<number, string>) -> number {\n\
+            \x20 return match r {\n    Ok(n) => n,\n  }\n\
+            }\n";
+        let d = e0200_of("app", src);
+        let union = d.union.as_ref().expect("E0200 names a union");
+        assert_eq!(union.kind, "builtin");
+        assert_eq!(union.name, "Result");
+        assert_eq!(union.module, None);
+        assert_eq!(union.declaration, None);
+        assert_eq!(d.missing_variants.as_deref(), Some(["Err".to_string()].as_slice()));
+    }
+
+    /// Absence has one spelling, and it means absence of a relation rather
+    /// than "the analysis stopped here". A diagnostic about no union carries
+    /// an explicit null for both fields, so a consumer reads them the same way
+    /// it reads `entity` (G184), and a cache written before the keys existed
+    /// still loads.
+    #[test]
+    fn a_diagnostic_about_no_union_says_so_explicitly() {
+        let d = Diagnostic::new(
+            "main.glyph",
+            "module main\n",
+            Span::new(0, 6),
+            "E0210",
+            "error",
+            "typecheck",
+            "boom".to_string(),
+            None,
+            None,
+            None,
+        );
+        let json = serde_json::to_string(&d).unwrap();
+        assert!(json.contains("\"union\":null"), "{json}");
+        assert!(json.contains("\"missing_variants\":null"), "{json}");
+
+        let old = r#"{"code":"E0200","severity":"error","message":"boom","file":"main.glyph","range":{"start":{"line":1,"col":1,"offset":0},"end":{"line":1,"col":7,"offset":6}},"stage":"typecheck","entity":null}"#;
+        let parsed: Diagnostic = serde_json::from_str(old).unwrap();
+        assert_eq!(parsed.union, None);
+        assert_eq!(parsed.missing_variants, None);
+    }
+
+    /// The first E0200 a source produces, as `glyph check --json` would report
+    /// it under the module path `module_path`.
+    fn e0200_of(module_path: &str, src: &str) -> Diagnostic {
+        let module = glyph_parser::parse(src).expect("fixture parses");
+        let symbols = glyph_resolver::collect_module_symbols(&module).expect("symbols collect");
+        let prelude = glyph_resolver::build_prelude();
+        let (resolved, _) = glyph_resolver::resolve_module(&module, symbols, &prelude);
+        let (_types, errors) = glyph_typechecker::assign_types(&module, &resolved, &prelude);
+        let err = errors
+            .iter()
+            .find(|e| e.code() == "E0200")
+            .unwrap_or_else(|| panic!("expected E0200: {errors:?}"));
+        from_type_error(module_path, src, err, &module)
     }
 }

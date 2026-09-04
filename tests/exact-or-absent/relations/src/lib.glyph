@@ -1,0 +1,5 @@
+module lib
+
+pub fn charge(m: number) -> number {
+  return m
+}

@@ -1,0 +1,12 @@
+module model
+
+pub type User = {
+  name: string,
+  email: string,
+}
+
+// The same spelling on a different record. `email` alone names both, which is
+// why a field is addressed through the record that declares it.
+pub type Contact = {
+  email: string,
+}

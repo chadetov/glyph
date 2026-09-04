@@ -259,7 +259,7 @@ impl ResolveError {
             ResolveError::UnresolvedModule { .. } => {
                 "A local import resolves from the project root: the nearest directory holding a `package.json` with a `\"glyph\"` key, else the directory passed to `glyph build`/`glyph run` (D41). \
                  Spell the import path as it reads from that root, or give the module's own project a `\"glyph\"` marker. \
-                 If this is an npm package, install it or declare it in `<root>/.types/*.d.ts`."
+                 If this is an npm package, add it to your `package.json` dependencies, or declare it in `<root>/.types/*.d.ts`."
             }
             ResolveError::UnknownExportedName { .. } => {
                 "Check the spelling, and that the module actually exports this name."

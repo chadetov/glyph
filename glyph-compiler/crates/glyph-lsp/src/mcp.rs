@@ -33,14 +33,17 @@ use glyph_db::{
     ProjectCoverageSite, Setter, SourceFile,
 };
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, resolve_module, DeclKey, Prelude, ResolvedModule,
-    StdlibStubs, SymbolKind,
+    build_prelude, collect_module_symbols, resolve_module, DeclKey, ModuleGraph, Prelude,
+    ResolvedModule, StdlibStubs, SymbolKind,
 };
-use glyph_typechecker::{CoverageSiteRef, CoverageState, CoverageTypeName};
+use glyph_typechecker::{
+    CoverageSiteRef, CoverageState, CoverageTypeName, FieldAccess, FieldOwner, FieldSite,
+};
 
 use crate::analysis::{
-    analyze, analyze_full, global_occurrences_in, module_outline, outline_of, references_at,
-    symbol_target_at, Definition, LineIndex, OutlineKind, OutlineSymbol, SymbolTarget,
+    analyze, analyze_full, enclosing_decl_name, global_relations_in, module_outline, outline_of,
+    relations_at, symbol_target_at, Definition, LineIndex, OutlineKind, OutlineSymbol,
+    RelatedSpan, Relation, SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
@@ -384,11 +387,13 @@ fn initialize_result() -> Value {
             "This server answers from the compiler's own analysis, so prefer it ",
             "over grep for any semantic question: grep finds text that matches, ",
             "the compiler resolved every name to emit the program.\n\n",
-            "Before adding or removing a variant of a tagged union, call ",
-            "`glyph_variants`. It lists every match site over that type and what ",
-            "each one does. Sites it reports as `has_catch_all` keep compiling ",
-            "when you add a variant and silently route the new one into `else`, ",
-            "which is the dangerous case precisely because nothing fails.\n\n",
+            "Before adding a variant to a tagged union, call `glyph_variants` ",
+            "with `proposed_variant` set to the name you are adding. It answers ",
+            "per match site: `WILL_FAIL` (the site stops compiling and the ",
+            "compiler points at it), `ABSORBS` (a catch-all takes the new ",
+            "variant silently, which is the dangerous one because nothing ",
+            "fails), `UNDETERMINED`, `NOT_INDEXED`. Without `proposed_variant` ",
+            "it lists the sites and what each one does today.\n\n",
             "Run `glyph llms` for the full language reference. It works offline ",
             "and is the same document the compiler ships. Read it before writing ",
             "Glyph rather than inferring the syntax from the TypeScript it ",
@@ -405,8 +410,14 @@ fn tool_specs() -> Value {
     let file = json!({ "type": "string", "description": "Path to a .glyph file, relative to the project root or absolute." });
     let line = json!({ "type": "integer", "description": "0-based line number." });
     let character = json!({ "type": "integer", "description": "0-based character offset (UTF-16 code units)." });
-    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position." });
+    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position. A record field is addressed as `Record.field` (`User.email`), with the record named the way the file at `path` names it: a bare field name is not an address, since two records in one module can each declare a field of that name. The field form answers `{ entity, sites, unkeyed, not_indexed }` rather than the relation split, because it reads a different relation: `sites` are the field's own declaration and every member access the checker resolved onto that record, each with `access` (`declaration`, `read`, `write`, `redact`) and a range covering the field's name alone, so a rename can write from it; `unkeyed` holds sites that spell the field on an object whose type never resolved to a field set, which the compiler never joined to any record and which are named rather than dropped; `not_indexed` names the classes of site the relation does not hold at all, and a record literal constructing the record is one of them." });
     let type_name = json!({ "type": "string", "description": "Name of a tagged union, as the file at `path` names it: one it declares, one it imports, or a prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`). The module the name resolves to is what picks out one declaration when several modules declare the same name." });
+    let relation = json!({
+        "type": ["string", "array"],
+        "items": { "type": "string", "enum": ["CALLS", "REFERENCES"] },
+        "description": "Optional. Which relations to answer, as a name or an array of names. The vocabulary is closed and holds exactly two: `CALLS`, the sites that apply the symbol to an argument list, and `REFERENCES`, every other occurrence. Leave it out to get both. A name outside the vocabulary is an error rather than an ignored key."
+    });
+    let proposed_variant = json!({ "type": "string", "description": "Optional. The name of a variant you are about to add to this union. Sending it makes the answer about that edit: every site carries a `consequence` beside its state, and a name the union already has is refused rather than answered." });
     json!([
         {
             "name": "glyph_diagnostics",
@@ -425,13 +436,13 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_references",
-            "description": "Every reference to a symbol across the whole project: the declaration, all uses, and each importing module's import binding. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position.",
-            "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character, "name": name }, "required": ["path"] }
+            "description": "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. The vocabulary is closed at two. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, so `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer.",
+            "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character, "name": name, "relation": relation }, "required": ["path"] }
         },
         {
             "name": "glyph_variants",
-            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer.",
-            "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name }, "required": ["path", "name"] }
+            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like.",
+            "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name, "proposed_variant": proposed_variant }, "required": ["path", "name"] }
         },
         {
             "name": "glyph_symbols",
@@ -672,14 +683,369 @@ fn resolve_address(
 /// empty answer is honest and is what this tool has always given. A name is a
 /// different claim: the caller named a symbol, and `[]` would read as "that
 /// symbol has no references" when the truth is that we could not look.
-fn unresolvable(address: &Address, this_module: &str, why: &str) -> Result<String, String> {
+fn unresolvable(
+    address: &Address,
+    this_module: &str,
+    why: &str,
+    wanted: &[Relation],
+) -> Result<String, String> {
     match address.name() {
-        None => Ok("[]".to_string()),
+        None => Ok(relations_answer(
+            None,
+            Some(&format!("{why}, so the position addresses no symbol")),
+            &Provenance::Undetermined(format!(
+                "{why}, so there is no far end to have proved or asserted"
+            )),
+            wanted,
+            BTreeMap::new(),
+            &[],
+        )),
         Some(name) => Err(format!(
             "cannot look up `{name}` in module `{this_module}`: {why}. \
              Run glyph_diagnostics on the file."
         )),
     }
+}
+
+
+/// The one reason an edge has no `from`: the occurrence sits at module level,
+/// outside every declaration. An `import` binding is the case that happens in
+/// practice; the `module` header is the other position that can hold one.
+const MODULE_LEVEL: &str = "the occurrence is at module level, inside no declaration";
+
+/// Which relations one call asked for, in answer order.
+///
+/// Absent means every relation, which is what a caller from before the argument
+/// existed was asking for: the two lists together are the flat occurrence list
+/// this tool used to return, so an old call keeps every location it had and
+/// gains the label on each one.
+///
+/// A name outside the vocabulary is an error. The vocabulary is closed, so a
+/// misspelled relation is a question this tool cannot answer, and a silently
+/// dropped one would come back as an empty list that reads as "no such edges
+/// exist".
+fn read_relations(args: &Value) -> Result<Vec<Relation>, String> {
+    let vocabulary = || Relation::all().map(|r| r.wire()).join(", ");
+    let asked: Vec<String> = match args.get("relation") {
+        None | Some(Value::Null) => return Ok(Relation::all().to_vec()),
+        Some(Value::String(s)) => vec![s.clone()],
+        Some(Value::Array(items)) => {
+            if items.is_empty() {
+                return Err(format!(
+                    "`relation` is an empty array, which asks for nothing. Leave it out to \
+                     ask for every relation ({}).",
+                    vocabulary()
+                ));
+            }
+            let mut out = Vec::new();
+            for item in items {
+                match item.as_str() {
+                    Some(s) => out.push(s.to_string()),
+                    None => {
+                        return Err(format!(
+                            "`relation` takes a relation name or an array of them; the array \
+                             holds `{item}`."
+                        ))
+                    }
+                }
+            }
+            out
+        }
+        Some(other) => {
+            return Err(format!(
+                "`relation` takes a relation name or an array of them, got `{other}`."
+            ))
+        }
+    };
+    let mut wanted = Vec::new();
+    for wire in &asked {
+        let Some(relation) = Relation::from_wire(wire) else {
+            return Err(format!(
+                "`{wire}` is not a relation. The vocabulary is closed and holds {}.",
+                vocabulary()
+            ));
+        };
+        wanted.push(relation);
+    }
+    // Answer order is the vocabulary's, not the request's, so one question gets
+    // one answer however the caller happened to list it.
+    Ok(Relation::all()
+        .into_iter()
+        .filter(|r| wanted.contains(r))
+        .collect())
+}
+
+/// What stands behind the far end of an edge, and so whether the edge is
+/// something the compiler established or something a TypeScript declaration
+/// claimed.
+///
+/// The two are different facts wearing the same shape. An edge into a `.glyph`
+/// declaration this project holds was checked by Glyph's own resolver against a
+/// declaration it parsed. An edge into a name a `.d.ts` declares was checked by
+/// `tsc` against a file no Glyph pass ever read, so the far end exists because
+/// a declaration says it does. Merged into one list they are indistinguishable,
+/// and a caller acting on the list cannot tell which half a rename is safe in.
+///
+/// The third member is not a hedge. It is the case where neither holds, and the
+/// honest answer is to say what was checked instead of rounding to the nearer
+/// of the two.
+enum Provenance {
+    Proved(String),
+    Asserted(String),
+    Undetermined(String),
+}
+
+impl Provenance {
+    fn wire(&self) -> &'static str {
+        match self {
+            Provenance::Proved(_) => "PROVED",
+            Provenance::Asserted(_) => "ASSERTED",
+            Provenance::Undetermined(_) => "UNDETERMINED",
+        }
+    }
+
+    fn detail(&self) -> &str {
+        match self {
+            Provenance::Proved(d) | Provenance::Asserted(d) | Provenance::Undetermined(d) => d,
+        }
+    }
+}
+
+/// Whether the far end of an edge into `sym_module::name` was proved by the
+/// compiler, asserted by a declaration file, or is neither.
+///
+/// The tests run in order of what they can establish. A `.glyph` member of this
+/// project is the strongest: the module is a file on disk that the walk reached
+/// and the pipeline parsed and resolved. The compiler's own stdlib surface is
+/// next, and it is checked against the export list rather than assumed, so a
+/// stdlib module asked for a name it does not export is reported as
+/// undetermined rather than proved. Only then does a declaration file decide,
+/// and the answer names the evidence.
+fn symbol_provenance(
+    project: &Project,
+    root: &Path,
+    sym_module: &str,
+    name: &str,
+) -> Provenance {
+    if let Some((fpath, _)) = project
+        .searched()
+        .into_iter()
+        .find(|(_, f)| f.module_path == sym_module)
+    {
+        return Provenance::Proved(format!(
+            "`{sym_module}` is {}, a Glyph module this project holds; the compiler parsed and \
+             resolved the declaration this edge points at",
+            display_path(root, fpath)
+        ));
+    }
+    // The stdlib's surface is the compiler's own, which is why it is not a
+    // declaration-file claim: the resolver holds the export list and the
+    // emitter writes the implementation.
+    let stdlib = StdlibStubs::new();
+    if let Some(exports) = stdlib.exports_of(&module_path_from_key(sym_module)) {
+        return if exports.contains(name) {
+            Provenance::Proved(format!(
+                "`{sym_module}` is a stdlib module the compiler carries, and it exports `{name}`"
+            ))
+        } else {
+            Provenance::Undetermined(format!(
+                "`{sym_module}` is a stdlib module the compiler carries and it does not export \
+                 `{name}`, so this import does not resolve and there is no declaration at the \
+                 far end to have proved or asserted"
+            ))
+        };
+    }
+    match asserting_declaration(&project.root, sym_module) {
+        Some(evidence) => Provenance::Asserted(format!(
+            "no Glyph module in this project is named `{sym_module}`; {evidence} declares it, so \
+             `{name}` exists because a TypeScript declaration says so and `tsc` is what checks \
+             it. Glyph's resolver never read the declaration"
+        )),
+        None => Provenance::Undetermined(format!(
+            "`{sym_module}` is not a Glyph module this project holds, not a stdlib module the \
+             compiler carries, and nothing under {} declares it: no `declare module` in a \
+             `.d.ts` and no installed package of that name. What `{name}` is cannot be \
+             established from this project",
+            display_path(root, &project.root)
+        )),
+    }
+}
+
+/// `sym_module` as a `ModulePath`, for asking the stdlib surface about it.
+///
+/// The span is a placeholder: `exports_of` keys on the segments alone, and this
+/// path is a lookup key rather than something any diagnostic points at.
+fn module_path_from_key(sym_module: &str) -> glyph_ast::ModulePath {
+    glyph_ast::ModulePath {
+        segments: sym_module
+            .split('/')
+            .map(|s| std::sync::Arc::from(s) as glyph_ast::Ident)
+            .collect(),
+        span: glyph_lexer::Span::new(0, 0),
+    }
+}
+
+/// The TypeScript declaration that claims module `name`, named so an answer can
+/// point at its evidence, or `None` when nothing under the project does.
+///
+/// Two forms count, and they are the two ways a Glyph import reaches something
+/// no Glyph file declares: an ambient `declare module "name"` in a `.d.ts` the
+/// project carries (the `.types` directory), and an installed package of that
+/// name. `node_modules` is looked for from the project root upward, the way
+/// node's own resolution walks, and stops at a `.git` so a stray install in a
+/// home directory cannot answer for a project.
+///
+/// This runs only when the symbol's module is neither a `.glyph` member nor a
+/// stdlib module, so the common question never pays for the walk.
+fn asserting_declaration(project_root: &Path, name: &str) -> Option<String> {
+    let mut declaration_files = Vec::new();
+    collect_dts_files(project_root, 0, &mut declaration_files);
+    for file in &declaration_files {
+        let Ok(text) = std::fs::read_to_string(file) else {
+            continue;
+        };
+        if declares_module(&text, name) {
+            return Some(display_path(project_root, file));
+        }
+    }
+    let mut dir = project_root.to_path_buf();
+    loop {
+        let installed = dir.join("node_modules").join(name);
+        if installed.is_dir() {
+            return Some(format!("the installed package `{name}`"));
+        }
+        if dir.join(".git").exists() {
+            break;
+        }
+        let Some(parent) = dir.parent() else { break };
+        dir = parent.to_path_buf();
+    }
+    None
+}
+
+/// Every `*.d.ts` under `dir`, skipping the directories that are not the
+/// project's own source: an installed dependency answers through
+/// `node_modules` rather than through its files, and build output is a copy of
+/// something already read.
+///
+/// Dot directories are descended into, unlike the `.glyph` walk, because
+/// `.types` is where a project keeps the declarations it wrote by hand.
+fn collect_dts_files(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
+    /// Deep enough for a project's own `.types` tree, shallow enough that a
+    /// symlink loop cannot spend a call.
+    const MAX_DEPTH: usize = 8;
+    if depth > MAX_DEPTH {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if path.is_dir() {
+            if name == "node_modules" || name == "target" || name == ".git" {
+                continue;
+            }
+            collect_dts_files(&path, depth + 1, out);
+        } else if name.ends_with(".d.ts") {
+            out.push(path);
+        }
+    }
+}
+
+/// Whether `text` carries an ambient `declare module "name"` block.
+fn declares_module(text: &str, name: &str) -> bool {
+    const KEYWORD: &str = "declare module";
+    let mut rest = text;
+    while let Some(at) = rest.find(KEYWORD) {
+        rest = &rest[at + KEYWORD.len()..];
+        let body = rest.trim_start();
+        let Some(quote) = body.chars().next() else {
+            return false;
+        };
+        if quote != '"' && quote != '\'' {
+            continue;
+        }
+        let after = &body[1..];
+        let Some(close) = after.find(quote) else {
+            return false;
+        };
+        if &after[..close] == name {
+            return true;
+        }
+        rest = &after[close + 1..];
+    }
+    false
+}
+
+/// One edge, complete enough to be read on its own.
+///
+/// `relation` and the two ends are on the entry rather than only in the
+/// envelope, because an entry lifted out of its reply has to still say what it
+/// is about. The moment two relations appear in one answer, entries from each
+/// are the same shape and position is all that tells them apart.
+#[allow(clippy::too_many_arguments)]
+fn edge_value(
+    file: FileCtx<'_>,
+    index: &LineIndex,
+    span: &RelatedSpan,
+    from: Option<String>,
+    to: Option<&str>,
+    provenance: &Provenance,
+) -> Value {
+    json!({
+        "relation": span.relation.wire(),
+        "from": from,
+        "from_absent": from.is_none().then_some(MODULE_LEVEL),
+        "to": to,
+        "provenance": provenance.wire(),
+        "path": display_path(file.root, file.path),
+        "range": range_json(index, file.text, span.start, span.end),
+    })
+}
+
+/// The answer one `glyph_references` call returns.
+///
+/// The envelope exists because coverage binds per relation. A flat list of
+/// locations cannot say what it could not index, so a project with one
+/// unreadable file used to return a list shaped exactly like a complete one.
+/// Each relation states its own edges and its own gaps, and a relation the
+/// caller did not ask for is absent rather than empty.
+fn relations_answer(
+    entity: Option<&str>,
+    entity_absent: Option<&str>,
+    provenance: &Provenance,
+    wanted: &[Relation],
+    mut edges: BTreeMap<Relation, Vec<Value>>,
+    unindexed: &[Value],
+) -> String {
+    let mut relations = serde_json::Map::new();
+    for relation in wanted {
+        relations.insert(
+            relation.wire().to_string(),
+            json!({
+                "edges": edges.remove(relation).unwrap_or_default(),
+                "unindexed": unindexed,
+            }),
+        );
+    }
+    to_json(&json!({
+        "entity": entity,
+        "entity_absent": entity_absent,
+        "provenance": provenance.wire(),
+        "provenance_detail": provenance.detail(),
+        "relations": Value::Object(relations),
+    }))
+}
+
+/// Group classified spans into the per-relation lists an answer carries.
+fn group_by_relation(edges: Vec<(Relation, Value)>) -> BTreeMap<Relation, Vec<Value>> {
+    let mut out: BTreeMap<Relation, Vec<Value>> = BTreeMap::new();
+    for (relation, value) in edges {
+        out.entry(relation).or_default().push(value);
+    }
+    out
 }
 
 /// Every reference to one symbol, across the file's own project.
@@ -709,6 +1075,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
     let address = read_address(args)?;
+    let wanted = read_relations(args)?;
     // Module paths, and so the search for other files naming this symbol, are
     // scoped to the file's own project (D41): another project's `import lib`
     // names its own `lib`, not this one. That is also why each project gets its
@@ -723,12 +1090,22 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     // database runs (`parse_module` → `module_symbols` → `resolve`), on one
     // file, and it costs a fraction of a millisecond.
     let Ok(module) = glyph_parser::parse(&text) else {
-        return unresolvable(&address, &this_module, "the file does not parse");
+        return unresolvable(&address, &this_module, "the file does not parse", &wanted);
     };
     let Ok(symbols) = collect_module_symbols(&module) else {
-        return unresolvable(&address, &this_module, "the file does not resolve");
+        return unresolvable(&address, &this_module, "the file does not resolve", &wanted);
     };
     let (resolved, _errs) = resolve_module(&module, symbols, &build_prelude());
+
+    // A record field is addressed through its record, so the address resolves
+    // in two steps and the answer is a different relation: the field-use
+    // relation rather than the occurrence scan. Only a dotted name reaches
+    // here, and a dotted name is never a top-level declaration.
+    if let Some(field) = address.name().and_then(FieldAddress::parse) {
+        let record = named_target(&resolved, &field.record, &this_module)
+            .ok_or_else(|| not_declared(&field.record, &this_module, &resolved))?;
+        return field_references(&field, record, server, &path, &project_root);
+    }
 
     let target = resolve_address(&address, &module, &resolved, &index, &text, &this_module)?;
     let (sym_module, name) = match target {
@@ -740,31 +1117,95 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
         // top-level table, and a `let` has no entry there, so a name never
         // resolves to a local.
         Some(SymbolTarget::Local) => {
+            // A local has no `module::name` identity, so the answer names no
+            // entity. That is a fact about locals rather than a lookup that
+            // failed, and `entity_absent` is what keeps the two apart.
+            let absent = "a local binding has no `module::name` identity; it is file-scoped and \
+                          addressable only by position";
+            let provenance = Provenance::Proved(
+                "the binding is a `let`, parameter, or pattern binding in this file, which the \
+                 compiler resolved against its own tree"
+                    .to_string(),
+            );
             let Some((line, character)) = address.position() else {
-                return Ok("[]".to_string());
+                return Ok(relations_answer(
+                    None,
+                    Some(absent),
+                    &provenance,
+                    &wanted,
+                    BTreeMap::new(),
+                    &[],
+                ));
             };
             let offset = index.offset(&text, line, character);
             let file = FileCtx { path: &path, root: &root, text: &text };
-            let out: Vec<Value> = references_at(&module, &resolved, offset, &text, true)
+            let edges: Vec<(Relation, Value)> = relations_at(&module, &resolved, offset, &text, true)
                 .into_iter()
-                .map(|(s, e)| location_value(file, &index, s, e))
+                .map(|span| {
+                    let from = enclosing_decl_name(&module, span.start)
+                        .map(|d| format!("{this_module}::{d}"));
+                    (
+                        span.relation,
+                        edge_value(file, &index, &span, from, None, &provenance),
+                    )
+                })
                 .collect();
-            return Ok(to_json(&out));
+            // One file, and it parsed, or this arm was never reached: there is
+            // nothing the answer could have failed to index.
+            return Ok(relations_answer(
+                None,
+                Some(absent),
+                &provenance,
+                &wanted,
+                group_by_relation(edges),
+                &[],
+            ));
         }
-        None => return Ok("[]".to_string()),
+        // The position is on no resolvable name at all. There is no subject, so
+        // there are no edges, and `entity_absent` says which of the two an
+        // empty answer is: not "this symbol is unused".
+        None => {
+            let (line, character) = address.position().unwrap_or((0, 0));
+            return Ok(relations_answer(
+                None,
+                Some(&format!(
+                    "line {line}, character {character} is on no resolvable name, so there is no \
+                     symbol to report relations for"
+                )),
+                &Provenance::Undetermined(
+                    "the address names no symbol, so there is no far end".to_string(),
+                ),
+                &wanted,
+                BTreeMap::new(),
+                &[],
+            ));
+        }
     };
 
     let project = server.project(&project_root, &path);
+    let entity = format!("{sym_module}::{name}");
+    let provenance = symbol_provenance(project, &root, &sym_module, &name);
     let db = &project.db;
-    let mut out: Vec<Value> = Vec::new();
+    let mut edges: Vec<(Relation, Value)> = Vec::new();
+    // What the sweep could not read, named rather than skipped. A file that
+    // does not parse holds occurrences this answer cannot see, and dropping it
+    // silently is what makes a partial list look like a complete one.
+    let mut unindexed: Vec<Value> = Vec::new();
     for (fpath, entry) in project.searched() {
         let ftext = entry.file.text(db);
         let fparsed = glyph_db::parse_module(db, entry.file);
         let fresolved = glyph_db::resolve(db, entry.file);
         let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
+            unindexed.push(json!({
+                "path": display_path(&root, fpath),
+                "why": match fparsed.module() {
+                    None => "the file does not parse, so no occurrence in it was read",
+                    Some(_) => "the file does not resolve, so no occurrence in it was read",
+                },
+            }));
             continue;
         };
-        let spans = global_occurrences_in(
+        let spans = global_relations_in(
             fmodule,
             fresolved,
             &entry.module_path,
@@ -778,11 +1219,320 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
         }
         let index = LineIndex::new(ftext);
         let file = FileCtx { path: fpath, root: &root, text: ftext };
-        for (s, e) in spans {
-            out.push(location_value(file, &index, s, e));
+        for span in spans {
+            let from = enclosing_decl_name(fmodule, span.start)
+                .map(|d| format!("{}::{d}", entry.module_path));
+            edges.push((
+                span.relation,
+                edge_value(file, &index, &span, from, Some(&entity), &provenance),
+            ));
         }
     }
-    Ok(to_json(&out))
+    // Both relations are read off the same parse and the same resolution table,
+    // so a file that defeated one defeated the other. Stating it under each is
+    // not duplication for its own sake: coverage is a property of a relation,
+    // and a relation that later reads something else needs somewhere to say so.
+    Ok(relations_answer(
+        Some(&entity),
+        None,
+        &provenance,
+        &wanted,
+        group_by_relation(edges),
+        &unindexed,
+    ))
+}
+
+/// A record field, addressed as the record and then the field.
+///
+/// `User.email`, resolved in the module namespace of the file the call names,
+/// the same rule `glyph_variants` uses for a type. A field is not a top-level
+/// declaration, so a bare `email` is not an address: two records in one module
+/// can each declare a field of that name, and answering about whichever one
+/// came first would merge two entities under one spelling.
+struct FieldAddress {
+    /// The record as the querying file names it: one it declares or one it
+    /// imports.
+    record: String,
+    field: String,
+}
+
+impl FieldAddress {
+    /// Read a `Type.field` name, or `None` when the name is a plain one.
+    ///
+    /// Exactly one dot. A namespaced record (`import types`, then
+    /// `types.User`) would need two, and the namespace form names a module
+    /// rather than a symbol, which `named_target` reports no identity for; a
+    /// caller holding one asks from a file that imports the record by name.
+    fn parse(name: &str) -> Option<FieldAddress> {
+        let (record, field) = name.split_once('.')?;
+        if record.is_empty() || field.is_empty() || field.contains('.') {
+            return None;
+        }
+        Some(FieldAddress {
+            record: record.to_string(),
+            field: field.to_string(),
+        })
+    }
+}
+
+/// The classes of site this relation does not hold, named rather than left to
+/// be discovered.
+///
+/// Absence in an impact answer means absence of a relation, so a class the
+/// compiler never computes has to be said out loud. Both of these are places
+/// where Glyph's own checker draws no conclusion and `tsc` catches the mistake
+/// on the emitted TypeScript, which is exactly why a caller cannot infer them
+/// from the sites that are here.
+const FIELD_NOT_INDEXED: &[&str] = &[
+    "a record literal that constructs this record. An object literal gets no \
+     expected type from the checker, so no key in one is ever joined to a field \
+     of a declaration; renaming the field breaks the literal, and `tsc` is what \
+     reports it.",
+    "an object pattern that destructures this record (`Loaded({ email })`). The \
+     pattern binder resolves fields against a structural payload record only, so \
+     a named record reached through one has no field resolved.",
+];
+
+/// Every site naming one record field, across the file's own project.
+///
+/// The relation is the one the member-access check writes while it types each
+/// file: a site is here because the checker resolved the object's field set and
+/// found this field on it. Nothing here re-walks the members, and nothing here
+/// infers a site from a spelling.
+///
+/// Three lists, and the split is the whole point. `sites` are proven: the
+/// compiler joined each one to this declaration. `unkeyed` are sites that spell
+/// the field on an object whose type never resolved to a field set, so the
+/// compiler never decided which record they name and one of them may well be
+/// over this one. `not_indexed` names the classes of site the relation does not
+/// model at all.
+fn field_references(
+    address: &FieldAddress,
+    target: SymbolTarget,
+    server: &mut Server,
+    path: &Path,
+    project_root: &Path,
+) -> Result<String, String> {
+    let SymbolTarget::Global { module, name } = target else {
+        return Err(format!(
+            "`{}` is a local binding, and a local has no fields to address: a \
+             record field belongs to a type declaration.",
+            address.record
+        ));
+    };
+    let root = server.root.clone();
+    let project = server.project(project_root, path);
+    // A file the walk skips is not a member, so the relation holds none of its
+    // sites, and an answer keyed from its namespace would be missing every one
+    // of them. The same rule `glyph_variants` applies.
+    if !project.files.contains_key(path) {
+        return Err(format!(
+            "{} is not a member of the project at {}, so the field-use relation \
+             holds none of its sites and an answer keyed from it would be missing \
+             them. Ask about a file the project walk reaches.",
+            display_path(&root, path),
+            display_path(&root, project_root),
+        ));
+    }
+    let entity = format!("{module}::{name}.{}", address.field);
+    let owner = FieldOwner::Declared {
+        module: module.clone(),
+        name: name.clone(),
+    };
+
+    let db = &project.db;
+    let mut sites: Vec<Value> = Vec::new();
+    let mut unkeyed: Vec<Value> = Vec::new();
+    let mut declared = false;
+    for (fpath, entry) in project.searched() {
+        let uses = glyph_db::field_uses(db, entry.file);
+        // Built on the first matching site rather than per file. Most files in
+        // a project name no site of any one field, and a line index over every
+        // one of them is work whose answer is thrown away.
+        let mut rendered: Option<(LineIndex, Vec<OutlineSymbol>)> = None;
+        let ftext = entry.file.text(db);
+        let file = FileCtx { path: fpath, root: &root, text: ftext };
+        for site in uses.sites() {
+            if site.field() != address.field {
+                continue;
+            }
+            let unresolved = match site.owner() {
+                FieldOwner::Declared { .. } if site.owner() != &owner => continue,
+                FieldOwner::Declared { .. } => None,
+                // A field set with no declaration behind it is a different
+                // record, decided: an inline annotation or a stdlib type is
+                // never this declaration.
+                FieldOwner::Undeclared { .. } => continue,
+                FieldOwner::Unresolved { display } => Some(display.clone()),
+            };
+            if site.access() == FieldAccess::Declaration && unresolved.is_none() {
+                declared = true;
+            }
+            let (index, outline) = rendered.get_or_insert_with(|| {
+                let parsed = glyph_db::parse_module(db, entry.file);
+                (
+                    LineIndex::new(ftext),
+                    parsed.module().map(module_outline).unwrap_or_default(),
+                )
+            });
+            let value = field_site_value(
+                file,
+                index,
+                outline,
+                &entry.module_path,
+                site,
+                unresolved.as_deref(),
+            );
+            match unresolved {
+                None => sites.push(value),
+                Some(_) => unkeyed.push(value),
+            }
+        }
+    }
+
+    // The declaration is a site of its own, so its absence says the record does
+    // not declare this field. Answering `[]` there would read as "nothing uses
+    // it", which is a different and much more expensive claim.
+    if !declared {
+        return Err(field_not_declared(server, path, project_root, &module, &name, address));
+    }
+
+    Ok(to_json(&json!({
+        "entity": entity,
+        "sites": sites,
+        "unkeyed": unkeyed,
+        "not_indexed": FIELD_NOT_INDEXED,
+    })))
+}
+
+/// One field site as the answer carries it: where it is, which declaration it
+/// sits in, and what it does with the field.
+///
+/// The range is narrowed to the field's own name inside the site's span,
+/// because this relation is what a rename writes its edits from and a span
+/// covering `u.email` would rewrite the object along with the field. The
+/// narrowing is a search for the spelling inside the span the checker recorded,
+/// so it is a relocation hint rather than a key; a span it cannot narrow is
+/// reported whole rather than dropped.
+fn field_site_value(
+    file: FileCtx<'_>,
+    index: &LineIndex,
+    outline: &[OutlineSymbol],
+    module: &str,
+    site: &FieldSite,
+    unresolved: Option<&str>,
+) -> Value {
+    let span = site.span();
+    let (start, end) = narrow_to_name(file.text, span.start, span.end, site.field());
+    // The declaration a site sits in. For a read or a write that is whichever
+    // top-level declaration contains it; for the field's own declaration and
+    // for a `@redact` name it is the record, and the record is what the
+    // relation already keyed the site to.
+    //
+    // The record has to be named rather than looked up, because a `@redact`
+    // annotation sits *before* the `type` keyword the declaration's span starts
+    // at, so the containment search finds nothing and the site came back with
+    // no declaration at all.
+    let declaration = match (site.access(), site.owner()) {
+        (FieldAccess::Declaration | FieldAccess::Redact, FieldOwner::Declared { module, name }) => {
+            Some(format!("{module}::{name}"))
+        }
+        _ => outline
+            .iter()
+            .find(|s| s.span.0 <= span.start && span.start < s.span.1)
+            .map(|s| format!("{module}::{}", s.name)),
+    };
+    let mut out = serde_json::Map::new();
+    out.insert("path".to_string(), json!(display_path(file.root, file.path)));
+    out.insert(
+        "range".to_string(),
+        range_json(index, file.text, start, end),
+    );
+    out.insert(
+        "declaration".to_string(),
+        match declaration {
+            Some(d) => json!(d),
+            None => Value::Null,
+        },
+    );
+    out.insert("access".to_string(), json!(site.access().as_str()));
+    match unresolved {
+        None => {
+            out.insert("indexed".to_string(), json!(true));
+        }
+        Some(display) => {
+            out.insert("indexed".to_string(), json!(false));
+            out.insert(
+                "not_indexed".to_string(),
+                json!(format!(
+                    "the object's type is `{display}`, which never resolved to a \
+                     field set, so the compiler never joined this site to a record. \
+                     It may be over this one."
+                )),
+            );
+        }
+    }
+    Value::Object(out)
+}
+
+/// The last occurrence of `name` inside `[start, end)`, or the whole span when
+/// it holds no such text.
+fn narrow_to_name(text: &str, start: u32, end: u32, name: &str) -> (u32, u32) {
+    let Some(slice) = text.get(start as usize..end as usize) else {
+        return (start, end);
+    };
+    match slice.rfind(name) {
+        Some(at) => {
+            let s = start + at as u32;
+            (s, s + name.len() as u32)
+        }
+        None => (start, end),
+    }
+}
+
+/// The error for a field the record does not declare.
+///
+/// It lists the record's own fields, for the same reason `not_declared` lists a
+/// module's names: a caller reaching this holds a field name that has been
+/// renamed or moved, and the current list is the useful next step. A record the
+/// answer cannot read the fields of says that instead of listing nothing.
+fn field_not_declared(
+    server: &mut Server,
+    path: &Path,
+    project_root: &Path,
+    module: &str,
+    name: &str,
+    address: &FieldAddress,
+) -> String {
+    let project = server.project(project_root, path);
+    let db = &project.db;
+    let owner = FieldOwner::Declared {
+        module: module.to_string(),
+        name: name.to_string(),
+    };
+    let mut fields: Vec<String> = Vec::new();
+    for (_, entry) in project.searched() {
+        for site in glyph_db::field_uses(db, entry.file).sites() {
+            if site.access() == FieldAccess::Declaration && site.owner() == &owner {
+                fields.push(site.field().to_string());
+            }
+        }
+    }
+    match fields.is_empty() {
+        true => format!(
+            "`{module}::{name}` declares no fields this project can read, so it has \
+             no field `{}` to address. A `type` whose body is not written as a \
+             record inline (an alias, a union, a generic application) declares no \
+             field of its own; a field reached through one belongs to the record \
+             the declaration names.",
+            address.field
+        ),
+        false => format!(
+            "`{module}::{name}` has no field `{}`. It declares: {}.",
+            address.field,
+            fields.join(", ")
+        ),
+    }
 }
 
 /// Every match site in the project over one type, and which variants each
@@ -806,6 +1556,9 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
     let name = type_name_arg(args)?;
+    // The name of a variant that does not exist yet. With it, the call is a
+    // question about a change rather than about what is there.
+    let proposed = proposed_variant_arg(args)?;
     let project_root = crate::module_root_for(&path, &root);
     let this_module =
         module_path_of(&project_root, &path).ok_or("the file is not under the project root")?;
@@ -862,6 +1615,43 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
         None => derive_type_end(decls, &want, &this_module, &resolved, &prelude)?,
     };
 
+    // What the union itself declares. A caller asking about a change needs it
+    // twice over: to see what it is changing, and because a proposed name the
+    // union already has is not the edit it looks like.
+    let shape = union_shape(db, decls, &project.files, &end);
+    if let UnionShape::NotAUnion(what) = &shape {
+        return Err(format!(
+            "`{name}` is {what}, not a tagged union. `{}` has no variants, so no \
+             match site is ever filed over it and there is nothing here to add a \
+             variant to. That is a different answer from an empty site list, which \
+             says a union exists and nothing matches on it.",
+            render_type_end(decls, &end),
+        ));
+    }
+    if let Some(proposed) = &proposed {
+        match &shape {
+            UnionShape::Variants(existing) if existing.iter().any(|v| v == proposed) => {
+                return Err(format!(
+                    "`{proposed}` is already a variant of `{}`, whose variants are {}. \
+                     Adding a name the union already has is not the change this answers \
+                     about.",
+                    render_type_end(decls, &end),
+                    existing.join(", "),
+                ));
+            }
+            UnionShape::Unread(why) => {
+                return Err(format!(
+                    "cannot answer for a `proposed_variant` of `{name}`: {why}. Without \
+                     the current variant list there is no way to tell whether \
+                     `{proposed}` already exists, and a consequence stated for an edit \
+                     that turns out not to be one would be a guess. Ask again without \
+                     `proposed_variant` for the sites and what each does today."
+                ));
+            }
+            _ => {}
+        }
+    }
+
     let by_module: BTreeMap<&str, (&Path, SourceFile)> = project
         .files
         .iter()
@@ -877,7 +1667,13 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
 
     let sites: Vec<Value> = cov
         .sites_over(&end)
-        .map(|site| render.value(site))
+        .map(|site| {
+            let mut value = render.value(site);
+            if proposed.is_some() {
+                value["consequence"] = json!(consequence(&site.site));
+            }
+            value
+        })
         .collect();
     // Sites that name a variant of this type through a payload rather than as
     // their own scrutinee. `match r { Ok(Some(n)) => ... }` over a
@@ -890,7 +1686,13 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     let nested: Vec<Value> = cov
         .sites()
         .iter()
-        .filter_map(|site| render.nested_value(site, &end, &name))
+        .filter_map(|site| {
+            let mut value = render.nested_value(site, &end, &name)?;
+            if proposed.is_some() {
+                value["consequence"] = json!(nested_consequence(&site.site));
+            }
+            Some(value)
+        })
         .collect();
     // Sites over a same-named type this project could not key. They are not
     // the answer and they are not absent from it either: absence in this
@@ -904,14 +1706,23 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
         .map(|site| {
             let mut value = render.value(site);
             value["type"] = type_end_value(decls, &site.scrutinee_type);
+            // The relation never joined this site to the type being asked
+            // about, so there is no consequence to state for it. Naming it is
+            // the point: leaving it out would say no such site exists.
+            if proposed.is_some() {
+                value["consequence"] = json!("NOT_INDEXED");
+            }
             value
         })
         .collect();
 
     let mut answer = json!({
-        "type": type_end_value(decls, &end),
+        "type": type_block(decls, &end, &shape),
         "sites": sites,
     });
+    if let Some(proposed) = &proposed {
+        answer["proposed_variant"] = json!(proposed);
+    }
     if !nested.is_empty() {
         answer["nested"] = json!(nested);
     }
@@ -919,6 +1730,191 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
         answer["unkeyed"] = json!(unkeyed);
     }
     Ok(to_json(&answer))
+}
+
+/// The optional `proposed_variant` argument: the name a caller is about to add
+/// to the union, which turns the lookup into a question about a change.
+///
+/// A malformed one is a malformed call, for the same reason `name` is checked:
+/// a consequence reported for `Pendign` reads exactly like one reported for
+/// the variant that was meant.
+fn proposed_variant_arg(args: &Value) -> Result<Option<String>, String> {
+    match args.get("proposed_variant") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(s)) if is_variant_name(s) => Ok(Some(s.clone())),
+        Some(Value::String(s)) => Err(format!(
+            "`proposed_variant` is `{s}`, which cannot be written as a variant name. \
+             A variant is an identifier, so this is a malformed request rather than a \
+             variant that does not exist yet."
+        )),
+        Some(other) => Err(format!(
+            "`proposed_variant` must be a string, got `{other}`"
+        )),
+    }
+}
+
+/// Whether a string could be written as a variant name in a union declaration.
+fn is_variant_name(s: &str) -> bool {
+    let mut chars = s.chars();
+    matches!(chars.next(), Some(c) if c.is_alphabetic() || c == '_')
+        && chars.all(|c| c.is_alphanumeric() || c == '_')
+}
+
+/// What the declaration behind a type end turns out to be.
+enum UnionShape {
+    /// A tagged union, and these are its variants in declaration order.
+    Variants(Vec<String>),
+    /// A declaration that is not a tagged union, so the match-coverage
+    /// relation does not reach it and the question does not apply. The string
+    /// names what it is instead.
+    NotAUnion(&'static str),
+    /// A type end whose variants this answer cannot read, and why.
+    Unread(String),
+}
+
+/// The variants of the type one call is about, read from the declaration.
+///
+/// Read from the declaration rather than gathered from the relation. The
+/// relation holds the variants sites name, and a variant no site has ever
+/// named is exactly the one somebody is most likely to be adding beside. The
+/// declaring file is already parsed by the time this runs, so the parse is a
+/// memo hit.
+fn union_shape(
+    db: &CompilerDb,
+    decls: &DeclIndex,
+    files: &BTreeMap<PathBuf, ProjectFile>,
+    end: &CoverageTypeRef,
+) -> UnionShape {
+    let (module, name) = match end {
+        CoverageTypeRef::Decl(key) => match decls.module_path(key.module()) {
+            Some(module) => (module, key.name()),
+            // Only reachable for a key from another interner, which this
+            // index cannot produce; see `render_key`.
+            None => {
+                return UnionShape::Unread(
+                    "the declaration's module is not one this project keys".to_string(),
+                )
+            }
+        },
+        CoverageTypeRef::Builtin { name } => {
+            return UnionShape::Unread(format!(
+                "`{name}` has a fixed variant table in the compiler and no declaration \
+                 in this project, so there is nothing here to read it from"
+            ))
+        }
+        CoverageTypeRef::Unkeyed { module, name } => {
+            return UnionShape::Unread(format!(
+                "no file of this project declares `{name}` under module `{module}`"
+            ))
+        }
+    };
+    let Some(file) = files.values().find(|f| f.module_path == module) else {
+        return UnionShape::Unread(format!(
+            "module `{module}` is not a file this project holds"
+        ));
+    };
+    let parsed = glyph_db::parse_module(db, file.file);
+    let Some(parsed) = parsed.module() else {
+        return UnionShape::Unread(format!("module `{module}` does not parse"));
+    };
+    let decl = parsed.items.iter().find_map(|d| match d {
+        glyph_ast::Decl::Type(t) if t.name.as_ref() == name => Some(t),
+        _ => None,
+    });
+    let Some(decl) = decl else {
+        return UnionShape::Unread(format!("module `{module}` declares no type `{name}`"));
+    };
+    match &decl.body {
+        glyph_ast::TypeExpr::Union { variants, .. } => {
+            UnionShape::Variants(variants.iter().map(|v| v.name.to_string()).collect())
+        }
+        glyph_ast::TypeExpr::Record { .. } => UnionShape::NotAUnion("a record"),
+        glyph_ast::TypeExpr::Fn { .. } => UnionShape::NotAUnion("a function type"),
+        // Its members are values rather than named constructors, and the
+        // exhaustiveness checkers count tags, so no match site is ever filed
+        // over one of these either.
+        glyph_ast::TypeExpr::StringLiteralUnion { .. } => {
+            UnionShape::NotAUnion("a union of string literals")
+        }
+        // An alias, a generic application, `extern_ts`, or `typeof`. Whatever
+        // variants the type has belong to the declaration this one names, and
+        // chasing that here would be a second resolution running beside the
+        // one the checker already did.
+        _ => UnionShape::Unread(format!(
+            "`{name}` is declared as another type rather than as a variant list, so its \
+             variants belong to whatever that names"
+        )),
+    }
+}
+
+/// The type end as an answer names it, with the union's own variants.
+///
+/// `variants` is a list, or an explicit `null` beside the reason it could not
+/// be read. Leaving the field out for a type whose declaration this answer
+/// cannot reach would spell "has no variants" and "not read" the same way,
+/// which is the confusion an empty site list used to carry.
+fn type_block(decls: &DeclIndex, end: &CoverageTypeRef, shape: &UnionShape) -> Value {
+    let mut out = type_end_value(decls, end);
+    match shape {
+        UnionShape::Variants(names) => out["variants"] = json!(names),
+        UnionShape::Unread(why) => {
+            out["variants"] = Value::Null;
+            out["variants_unavailable"] = json!(why);
+        }
+        // Refused before this runs.
+        UnionShape::NotAUnion(_) => {}
+    }
+    out
+}
+
+/// What one site does once the proposed variant exists, read off the site's
+/// own edges rather than off its summary state.
+///
+/// The state summarises the site as it stands and the two questions come
+/// apart: a site already short a variant reads `declined`, and adding another
+/// one still leaves it failing to compile, which is a decided answer rather
+/// than an undetermined one.
+fn consequence(d: &CoverageSiteRef) -> &'static str {
+    // Nothing was ever counted here, so nothing follows from adding to the
+    // set it was not counted against.
+    if d.state == CoverageState::ScrutineeUnresolved {
+        return "UNDETERMINED";
+    }
+    // A catch-all settles the compile question whatever else the site does:
+    // the new variant reaches an arm and no diagnostic is raised, which is
+    // the case nothing will tell you about.
+    if d.catch_alls.iter().any(|c| c.depth == 0) {
+        return "ABSORBS";
+    }
+    // An arm the checker read nothing from may or may not take the new
+    // variant, and which it is decides whether this site still compiles.
+    if d.declines.iter().any(|x| x.depth == 0) {
+        return "UNDETERMINED";
+    }
+    // Every arm names a variant, none absorbs, so the new one is named by no
+    // arm: E0200 against this site.
+    "WILL_FAIL"
+}
+
+/// The same question for a site that reaches the type through a payload.
+///
+/// Stricter, because a coverage edge carries the depth it was written at and
+/// not the union it belongs to. A catch-all one level down may sit in the
+/// scope the new variant lands in or in a sibling payload, and the relation
+/// cannot tell those apart, so it is reported undetermined rather than
+/// guessed either way. A catch-all at depth 0 needs no guess: it takes every
+/// value the scrutinee can hold, payloads included.
+fn nested_consequence(d: &CoverageSiteRef) -> &'static str {
+    if d.state == CoverageState::ScrutineeUnresolved {
+        return "UNDETERMINED";
+    }
+    if d.catch_alls.iter().any(|c| c.depth == 0) {
+        return "ABSORBS";
+    }
+    if !d.catch_alls.is_empty() || !d.declines.is_empty() {
+        return "UNDETERMINED";
+    }
+    "WILL_FAIL"
 }
 
 /// The required `name` argument: the type one call is asking about.
@@ -1835,6 +2831,31 @@ mod tests {
         call_on(&mut Server::new(root.to_path_buf()), name, args)
     }
 
+    /// Every edge of an answer, whatever relation it stands in, back in
+    /// document order.
+    ///
+    /// The answer is split by relation, and a test about *where* a symbol is
+    /// used is not about which relation each site stands in. Flattening here
+    /// keeps those tests asking their own question, and sorting restores the
+    /// order the flat list had before relations existed.
+    fn flat_edges(value: &Value) -> Vec<Value> {
+        let relations = value["relations"]
+            .as_object()
+            .unwrap_or_else(|| panic!("no `relations` in {value}"));
+        let mut out: Vec<Value> = relations
+            .values()
+            .flat_map(|r| r["edges"].as_array().cloned().unwrap_or_default())
+            .collect();
+        out.sort_by_key(|e| {
+            (
+                e["path"].as_str().unwrap_or_default().to_string(),
+                e["range"]["start"]["line"].as_u64().unwrap_or_default(),
+                e["range"]["start"]["character"].as_u64().unwrap_or_default(),
+            )
+        });
+        out
+    }
+
     /// The reference locations for a position, as `(path, start line)` pairs.
     fn refs_at(server: &mut Server, path: &str, line: u32, character: u32) -> Vec<(String, u64)> {
         let (value, is_error) = call_on(
@@ -1843,9 +2864,7 @@ mod tests {
             json!({ "path": path, "line": line, "character": character }),
         );
         assert!(!is_error, "{value}");
-        value
-            .as_array()
-            .unwrap()
+        flat_edges(&value)
             .iter()
             .map(|l| {
                 (
@@ -1864,9 +2883,7 @@ mod tests {
         let (value, is_error) = call_on(server, "glyph_references", args);
         assert!(!is_error, "{value}");
         let root = std::fs::canonicalize(root).unwrap();
-        value
-            .as_array()
-            .unwrap()
+        flat_edges(&value)
             .iter()
             .map(|loc| {
                 let file = root.join(loc["path"].as_str().unwrap());
@@ -2023,11 +3040,307 @@ mod tests {
             json!({ "path": "a.glyph", "line": 1, "character": 3 }),
         );
         assert!(!is_error);
-        let locs = value.as_array().unwrap();
+        let locs = flat_edges(&value);
         // Declaration in a, import binding + one use in b = 3 across two files.
         assert_eq!(locs.len(), 3, "{value}");
         let paths: Vec<&str> = locs.iter().map(|l| l["path"].as_str().unwrap()).collect();
         assert!(paths.contains(&"a.glyph") && paths.contains(&"b.glyph"), "{paths:?}");
+    }
+
+    /// The relations of one answer, as `(relation, from)` pairs in the order
+    /// the answer lists them. `from` is the declaration the site sits in, and
+    /// a site at module level (an `import` binding) has none.
+    fn relation_pairs(value: &Value, relation: &str) -> Vec<(String, String)> {
+        value["relations"][relation]["edges"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `{relation}` edges in {value}"))
+            .iter()
+            .map(|e| {
+                (
+                    e["relation"].as_str().unwrap_or("<missing>").to_string(),
+                    match e["from"].as_str() {
+                        Some(from) => from.to_string(),
+                        None => "<module level>".to_string(),
+                    },
+                )
+            })
+            .collect()
+    }
+
+    /// `charge` is applied to an argument list once, and named three other
+    /// times: its own declaration, the import binding, and the argument in
+    /// `apply(charge)`. Only the first breaks when the signature changes, and
+    /// one flat list of four says nothing about which.
+    #[test]
+    fn calls_are_a_separate_relation_from_references() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub fn charge(m: number) -> number {\n  return m\n}\n",
+        );
+        write(
+            &root,
+            "b.glyph",
+            "module b\n\
+             import a { charge }\n\
+             fn apply(f: fn(number) -> number) -> number {\n  return f(1)\n}\n\
+             pub fn bill() -> number {\n  return charge(1)\n}\n\
+             pub fn handler() -> number {\n  return apply(charge)\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let (value, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge" }),
+        );
+        assert!(!is_error, "{value}");
+
+        assert_eq!(
+            relation_pairs(&value, "CALLS"),
+            vec![("CALLS".to_string(), "b::bill".to_string())],
+            "{value}"
+        );
+        assert_eq!(
+            relation_pairs(&value, "REFERENCES"),
+            vec![
+                ("REFERENCES".to_string(), "a::charge".to_string()),
+                ("REFERENCES".to_string(), "<module level>".to_string()),
+                ("REFERENCES".to_string(), "b::handler".to_string()),
+            ],
+            "{value}"
+        );
+    }
+
+    /// A file the sweep could not read is named, not skipped.
+    ///
+    /// The answer used to `continue` past a file that does not parse, so a
+    /// project with one broken module returned a list shaped exactly like a
+    /// complete one. Coverage binds per relation, so each relation says what it
+    /// could not index and names the file rather than counting it.
+    #[test]
+    fn a_file_the_sweep_cannot_read_is_named_under_every_relation() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        write(&root, "broken.glyph", "module c\npub fn (\n");
+        let mut server = Server::new(root.clone());
+        let (value, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge" }),
+        );
+        assert!(!is_error, "{value}");
+
+        for relation in ["CALLS", "REFERENCES"] {
+            let unindexed = value["relations"][relation]["unindexed"]
+                .as_array()
+                .unwrap_or_else(|| panic!("no `unindexed` on {relation}: {value}"));
+            let named: Vec<&str> = unindexed
+                .iter()
+                .map(|u| u["path"].as_str().unwrap_or("<no path>"))
+                .collect();
+            assert_eq!(named, ["broken.glyph"], "{relation}: {value}");
+            assert!(
+                unindexed[0]["why"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("does not parse"),
+                "{relation}: {value}"
+            );
+        }
+        // The rest of the project still answered, so the gap is a gap and not a
+        // failure: the call site in `b` is there, under CALLS.
+        assert_eq!(
+            relation_pairs(&value, "CALLS"),
+            vec![("CALLS".to_string(), "b::bill".to_string())],
+            "{value}"
+        );
+    }
+
+    /// An edge the compiler proved and an edge a declaration file claimed are
+    /// different facts, and the answer says which.
+    ///
+    /// `charge` is declared in a `.glyph` module this project holds, so the
+    /// resolver checked the far end against a declaration it parsed. `log`
+    /// comes from a module no Glyph file declares and a `.d.ts` does, so `tsc`
+    /// checks it and Glyph's resolver never read it. `thing` comes from a
+    /// module nothing declares at all, and that is neither: saying `ASSERTED`
+    /// there would claim a declaration file that does not exist.
+    #[test]
+    fn provenance_separates_what_the_compiler_proved_from_what_a_dts_asserts() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
+        std::fs::create_dir_all(root.join(".types")).unwrap();
+        std::fs::write(
+            root.join(".types").join("ext.d.ts"),
+            "declare module \"tinylog\" { export function log(m: string): void; }\n",
+        )
+        .unwrap();
+        write(&root, "a.glyph", CHARGE);
+        write(
+            &root,
+            "b.glyph",
+            "module b\n\
+             import a { charge }\n\
+             import tinylog { log }\n\
+             import nowhere { thing }\n\
+             import std/io { println }\n\
+             pub fn bill() -> number {\n\
+             \u{20} log(\"x\")\n\
+             \u{20} println(\"y\")\n\
+             \u{20} thing()\n\
+             \u{20} return charge(1)\n\
+             }\n",
+        );
+        let mut server = Server::new(root.clone());
+        let ask = |server: &mut Server, name: &str| {
+            let (value, is_error) = call_on(
+                server,
+                "glyph_references",
+                json!({ "path": "b.glyph", "name": name }),
+            );
+            assert!(!is_error, "asked about `{name}`: {value}");
+            value
+        };
+
+        let proved = ask(&mut server, "charge");
+        assert_eq!(proved["provenance"], "PROVED", "{proved}");
+        let stdlib = ask(&mut server, "println");
+        assert_eq!(stdlib["provenance"], "PROVED", "{stdlib}");
+
+        let asserted = ask(&mut server, "log");
+        assert_eq!(asserted["provenance"], "ASSERTED", "{asserted}");
+        assert!(
+            asserted["provenance_detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains(".types/ext.d.ts"),
+            "the answer must name the declaration that asserts it: {asserted}"
+        );
+
+        let unknown = ask(&mut server, "thing");
+        assert_eq!(unknown["provenance"], "UNDETERMINED", "{unknown}");
+
+        // Every edge carries the value too, so an entry read on its own still
+        // says whether it is a proof or a claim.
+        for value in [&proved, &asserted, &unknown] {
+            let want = value["provenance"].as_str().unwrap();
+            for relation in ["CALLS", "REFERENCES"] {
+                for edge in value["relations"][relation]["edges"].as_array().unwrap() {
+                    assert_eq!(edge["provenance"], want, "{value}");
+                }
+            }
+        }
+    }
+
+    /// The relation argument selects from a closed vocabulary. A relation the
+    /// caller did not ask for is absent from the answer rather than empty, and
+    /// a name outside the vocabulary is an error: answering `[]` to a
+    /// misspelled relation would read as "no such edges exist".
+    #[test]
+    fn a_relation_outside_the_vocabulary_is_refused() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        let (only_calls, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge", "relation": "CALLS" }),
+        );
+        assert!(!is_error, "{only_calls}");
+        assert!(only_calls["relations"]["CALLS"].is_object(), "{only_calls}");
+        assert!(
+            only_calls["relations"]["REFERENCES"].is_null(),
+            "a relation nobody asked for must be absent, not empty: {only_calls}"
+        );
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge", "relation": "MENTIONS" }),
+        );
+        assert!(is_error, "an unknown relation answered: {message}");
+        assert!(
+            message.contains("MENTIONS") && message.contains("CALLS"),
+            "the error must name the vocabulary: {message}"
+        );
+    }
+
+    /// One symbol, one project, two spellings of the consumer's import. The
+    /// answer names the same use site either way.
+    ///
+    /// A namespace-qualified read is a reference to the same symbol as a
+    /// named-import read. When the qualified one was dropped the answer was
+    /// not "no references", which would be wrong but visible. It was the
+    /// declaration alone, shaped exactly like a complete answer for a symbol
+    /// nobody calls, with the calling module absent from it entirely (G186).
+    ///
+    /// Three things are asserted, and dropping any of them lets the defect
+    /// back in a different shape. Both spellings report the use. The covered
+    /// text is the name and not the whole `render.label`, because this
+    /// relation is what workspace rename writes its edits from. And the set is
+    /// the same asked from the use as asked from the declaration.
+    #[test]
+    fn a_namespace_qualified_call_is_the_same_reference_as_a_named_one() {
+        const RENDER: &str = "module render\npub fn label(s: string) -> string {\n  return s\n}\n";
+        const NAMED: &str = "module policy\nimport render { label }\npub fn run(s: string) -> string {\n  return label(s)\n}\n";
+        const QUALIFIED: &str = "module policy\nimport render\npub fn run(s: string) -> string {\n  return render.label(s)\n}\n";
+
+        let build = |consumer: &str| {
+            let root = tmp_root();
+            write(&root, "render.glyph", RENDER);
+            write(&root, "policy.glyph", consumer);
+            root
+        };
+        // Every reported site as `(file, line, the source text it covers)`.
+        let ask = |root: &Path, path: &str, line: u32, character: u32| -> Vec<(String, u64, String)> {
+            let mut server = Server::new(root.to_path_buf());
+            let args = json!({ "path": path, "line": line, "character": character });
+            let sites = refs_at(&mut server, path, line, character);
+            let names = ref_names(&mut server, root, args);
+            assert_eq!(sites.len(), names.len());
+            sites.into_iter().zip(names).map(|((p, l), n)| (p, l, n)).collect()
+        };
+
+        // `label` in its declaration: render.glyph line 1, character 7.
+        let named = ask(&build(NAMED), "render.glyph", 1, 7);
+        let qualified_root = build(QUALIFIED);
+        let qualified = ask(&qualified_root, "render.glyph", 1, 7);
+
+        // The use in the consumer, which is the half that must not depend on
+        // the spelling: same file, same line, and the covered text is the name
+        // rather than the qualified path.
+        let use_site = ("policy.glyph".to_string(), 3, "label".to_string());
+        assert!(named.contains(&use_site), "named spelling lost the call: {named:?}");
+        assert!(
+            qualified.contains(&use_site),
+            "the namespace spelling dropped the call: {qualified:?}"
+        );
+
+        // Every file that names the symbol, either way.
+        let files = |v: &[(String, u64, String)]| {
+            let mut f: Vec<String> = v.iter().map(|(p, _, _)| p.clone()).collect();
+            f.sort();
+            f.dedup();
+            f
+        };
+        assert_eq!(files(&named), files(&qualified), "{named:?} vs {qualified:?}");
+
+        // The one difference the two answers are allowed. `import render { label }`
+        // has a `label` token to point at; `import render` has none, and the
+        // `render` token is a reference to the module, not to `label`.
+        assert_eq!(named.len(), 3, "{named:?}");
+        assert_eq!(qualified.len(), 2, "{qualified:?}");
+
+        // The same set asked from the qualified use itself: `label` in
+        // `render.label` at policy.glyph line 3, character 16. A cursor there
+        // addressed nothing, so the tool answered `[]` for a symbol with at
+        // least the reference under the cursor.
+        let from_the_use = ask(&qualified_root, "policy.glyph", 3, 16);
+        assert_eq!(from_the_use, qualified, "{from_the_use:?} vs {qualified:?}");
     }
 
     #[test]
@@ -2725,6 +4038,411 @@ mod tests {
         }
     }
 
+    // ---- addressing a record field ----
+
+    /// A project whose `types` module declares two records that each have a
+    /// `name` field, plus a union carrying one of them as a payload. Every
+    /// field case this addressing has to survive is reachable from it.
+    fn field_project() -> PathBuf {
+        let root = tmp_root();
+        write(
+            &root,
+            "types.glyph",
+            "module types\n\
+             pub type User = {\n  name: string,\n  email: string,\n}\n\
+             pub type Company = {\n  name: string,\n}\n\
+             pub type Load = Loaded(User) | Empty\n",
+        );
+        write(
+            &root,
+            "app.glyph",
+            "module app\n\
+             import types { User, Company, Load, Loaded, Empty }\n\
+             pub fn greet(u: User) -> string {\n  return u.email\n}\n\
+             pub fn label(u: User) -> string {\n  return u.name\n}\n\
+             pub fn org(c: Company) -> string {\n  return c.name\n}\n\
+             pub fn from_payload(l: Load) -> string {\n  return match l {\n\
+             \u{20}   Loaded(u) => u.email,\n    Empty => \"none\",\n  }\n}\n",
+        );
+        root
+    }
+
+    /// Ask `glyph_references` about a field and return the parsed answer. The
+    /// raw text is read first so a refusal shows its own words rather than the
+    /// `null` a failed parse leaves behind.
+    fn field_answer(server: &mut Server, path: &str, name: &str) -> Value {
+        let (text, is_error) = call_raw(
+            server,
+            "glyph_references",
+            json!({ "path": path, "name": name }),
+        );
+        assert!(!is_error, "asked about `{name}`: {text}");
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("not JSON ({e}): {text}"))
+    }
+
+    /// `email` on its own is not an address: the module declares no such
+    /// top-level name, and two records in the same module could each declare a
+    /// field of that name. The address is the record and the field.
+    #[test]
+    fn a_field_is_addressed_through_its_record() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        assert_eq!(value["entity"], json!("types::User.email"), "{value}");
+        let sites: Vec<String> = value["sites"]
+            .as_array()
+            .expect("sites")
+            .iter()
+            .map(|s| format!("{} {}", s["declaration"], s["access"]))
+            .collect();
+        assert!(
+            sites.iter().any(|s| s.contains("app::greet") && s.contains("read")),
+            "the direct member access is missing: {sites:?}"
+        );
+        assert!(
+            sites.iter().any(|s| s.contains("app::from_payload")),
+            "the access through a payload binding is missing: {sites:?}"
+        );
+    }
+
+    /// Two records in one module, each with a `name` field. They are two
+    /// entities, and an answer about one must not carry the other's site.
+    #[test]
+    fn same_named_fields_on_two_records_are_two_entities() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "Company.name");
+        assert_eq!(value["entity"], json!("types::Company.name"), "{value}");
+        let decls: Vec<String> = value["sites"]
+            .as_array()
+            .expect("sites")
+            .iter()
+            .map(|s| s["declaration"].as_str().unwrap_or_default().to_string())
+            .collect();
+        assert!(
+            decls.iter().any(|d| d == "app::org"),
+            "the Company.name read is missing: {decls:?}"
+        );
+        // `app::label` reads `User.name`, the same spelling on the other
+        // record, and `types::User` declares it. Both are sites of a `name`
+        // field and neither is a site of this one, so a filter on the spelling
+        // alone would carry them here.
+        assert!(
+            !decls.iter().any(|d| d == "app::label"),
+            "the same-named field on the other record was merged in: {decls:?}"
+        );
+        assert!(
+            !decls.iter().any(|d| d == "types::User"),
+            "the other record's declaration of `name` was merged in: {decls:?}"
+        );
+
+        // And the other way round, so the answer is not simply narrow.
+        let other = field_answer(&mut server, "types.glyph", "User.name");
+        let decls: Vec<String> = other["sites"]
+            .as_array()
+            .expect("sites")
+            .iter()
+            .map(|s| s["declaration"].as_str().unwrap_or_default().to_string())
+            .collect();
+        assert!(
+            decls.iter().any(|d| d == "app::label") && !decls.iter().any(|d| d == "app::org"),
+            "`User.name` did not resolve to its own record's site: {decls:?}"
+        );
+    }
+
+    /// The site kinds, as `(declaration, access)` pairs.
+    fn field_kinds(value: &Value, key: &str) -> Vec<(String, String)> {
+        value[key]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `{key}` in {value}"))
+            .iter()
+            .map(|s| {
+                (
+                    s["declaration"].as_str().unwrap_or_default().to_string(),
+                    s["access"].as_str().unwrap_or_default().to_string(),
+                )
+            })
+            .collect()
+    }
+
+    /// The declaration is a site, and so is a write. A rename has to edit both,
+    /// so an impact set that held only the reads would be missing the two edits
+    /// the caller is most certain to need.
+    #[test]
+    fn a_field_answer_holds_the_declaration_the_reads_and_the_writes() {
+        let root = tmp_root();
+        write(
+            &root,
+            "types.glyph",
+            "module types\n\
+             pub type User = {\n  name: string,\n  email: string,\n}\n\
+             pub type Account = {\n  owner: User,\n}\n",
+        );
+        write(
+            &root,
+            "app.glyph",
+            "module app\n\
+             import types { User, Account }\n\
+             pub fn rename(u: User, from: User) -> string {\n\
+             \u{20} mut u.email = from.email\n  return u.email\n}\n\
+             pub fn adopt(a: Account, from: User) -> string {\n\
+             \u{20} mut a.owner.email = from.email\n  return a.owner.email\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let kinds = field_kinds(&value, "sites");
+        assert!(
+            kinds.contains(&("types::User".to_string(), "declaration".to_string())),
+            "the declaration is not a site: {kinds:?}"
+        );
+        assert!(
+            kinds.contains(&("app::rename".to_string(), "write".to_string())),
+            "the assignment target is not reported as a write: {kinds:?}"
+        );
+        assert!(
+            kinds.contains(&("app::rename".to_string(), "read".to_string())),
+            "the read after the write is missing: {kinds:?}"
+        );
+        // `mut u.email = from.email` reads the same field on the right of the
+        // same statement, and `mut a.owner.email = from.email` writes it
+        // through a chain. Two writes and four reads across the two functions,
+        // and the reads are the ones a coarser answer gets wrong.
+        assert_eq!(
+            kinds.iter().filter(|(_, a)| a == "write").count(),
+            2,
+            "the value side of an assignment was called a write: {kinds:?}"
+        );
+        assert_eq!(
+            kinds.iter().filter(|(_, a)| a == "read").count(),
+            4,
+            "the reads are not all here: {kinds:?}"
+        );
+
+        // The other half of the chained lvalue. `a.owner` inside
+        // `mut a.owner.email = ...` is read to reach the field being written,
+        // and it is not itself written: what travels into the member arm is the
+        // target's own span, so only the outermost member of the chain matches
+        // it. A flag set for the statement would call this a write too.
+        let owner = field_answer(&mut server, "types.glyph", "Account.owner");
+        let kinds = field_kinds(&owner, "sites");
+        assert!(
+            !kinds.contains(&("app::adopt".to_string(), "write".to_string())),
+            "an inner member of a chained lvalue was called a write: {kinds:?}"
+        );
+        assert_eq!(
+            kinds.iter().filter(|(_, a)| a == "read").count(),
+            2,
+            "the two reads of `a.owner` are not both here: {kinds:?}"
+        );
+    }
+
+    /// A `@redact fields: [...]` name is a site, keyed to the record it decorates.
+    ///
+    /// The annotation is validated against the same record body (E0219), so it
+    /// is exact, and renaming the field means editing it or the redaction
+    /// silently stops masking anything. Its span sits before the `type` keyword
+    /// the declaration's span starts at, so the site's declaration comes from
+    /// the record the relation keyed it to rather than from a containment
+    /// search, which finds nothing there.
+    #[test]
+    fn a_redact_annotation_naming_the_field_is_a_site_on_the_record() {
+        let root = tmp_root();
+        write(
+            &root,
+            "types.glyph",
+            "module types\n\
+             @redact fields: [email]\n\
+             pub type User = {\n  name: string,\n  email: string,\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let kinds = field_kinds(&value, "sites");
+        assert!(
+            kinds.contains(&("types::User".to_string(), "redact".to_string())),
+            "the redaction is not a site on the record: {kinds:?}"
+        );
+        // And the field's own declaration names the record too, not `null`.
+        assert!(
+            kinds.contains(&("types::User".to_string(), "declaration".to_string())),
+            "the declaration site does not name its record: {kinds:?}"
+        );
+    }
+
+    /// A range covers the field's name and nothing else, because this is what a
+    /// rename writes its edits from: a span over `u.email` would rewrite the
+    /// binding along with the field.
+    #[test]
+    fn a_field_site_covers_the_name_and_not_the_access() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let root = std::fs::canonicalize(&root).unwrap();
+        let covered: Vec<String> = value["sites"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|loc| {
+                let text = std::fs::read_to_string(root.join(loc["path"].as_str().unwrap())).unwrap();
+                let index = LineIndex::new(&text);
+                let at = |end: &str| {
+                    let p = &loc["range"][end];
+                    index.offset(
+                        &text,
+                        p["line"].as_u64().unwrap() as u32,
+                        p["character"].as_u64().unwrap() as u32,
+                    )
+                };
+                text[at("start")..at("end")].to_string()
+            })
+            .collect();
+        let wide: Vec<&String> = covered.iter().filter(|t| *t != "email").collect();
+        assert!(wide.is_empty(), "a span wider than the name: {wide:?}");
+    }
+
+    /// A site the compiler could not join to any record is named, and it is not
+    /// in `sites`.
+    ///
+    /// `extern_ts` is opaque to Glyph's checker, so `handle.email` resolves to
+    /// no field set at all. The site may be over `User.email` and may not, and
+    /// the answer has to say that rather than pick: promoting it would claim a
+    /// proven edge, and dropping it would say the site does not exist.
+    #[test]
+    fn a_site_over_a_type_that_never_resolved_is_named_and_not_proven() {
+        let root = tmp_root();
+        write(
+            &root,
+            "types.glyph",
+            "module types\npub type User = {\n  name: string,\n  email: string,\n}\n",
+        );
+        write(
+            &root,
+            "app.glyph",
+            "module app\n\
+             pub fn opaque() -> string {\n\
+             \u{20} let handle = extern_ts(\"globalThis.user\")\n\
+             \u{20} return handle.email\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let proven = field_kinds(&value, "sites");
+        assert!(
+            !proven.iter().any(|(d, _)| d == "app::opaque"),
+            "claimed a proven edge for a site it could not key: {proven:?}"
+        );
+        let unkeyed = field_kinds(&value, "unkeyed");
+        assert!(
+            unkeyed.iter().any(|(d, _)| d == "app::opaque"),
+            "dropped the site instead of naming it: {unkeyed:?}"
+        );
+        let entry = &value["unkeyed"][0];
+        assert_eq!(entry["indexed"], json!(false), "{entry}");
+        assert!(
+            entry["not_indexed"].as_str().unwrap_or_default().contains("never resolved"),
+            "an unkeyed site with no reason for it: {entry}"
+        );
+    }
+
+    /// The classes of site this relation does not hold are named in the answer.
+    ///
+    /// A record literal that constructs the record breaks when the field is
+    /// renamed, and the checker gives an object literal no expected type, so no
+    /// site is ever joined to a field of one. Leaving that unsaid would make a
+    /// list of member accesses read as the whole impact set.
+    #[test]
+    fn a_field_answer_says_which_site_classes_it_does_not_hold() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "types.glyph", "User.email");
+        let classes: Vec<String> = value["not_indexed"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `not_indexed` in {value}"))
+            .iter()
+            .map(|c| c.as_str().unwrap_or_default().to_string())
+            .collect();
+        assert!(
+            classes.iter().any(|c| c.contains("record literal")),
+            "the construction class is unstated: {classes:?}"
+        );
+        assert!(
+            classes.iter().any(|c| c.contains("object pattern")),
+            "the destructure class is unstated: {classes:?}"
+        );
+    }
+
+    /// A field the record does not declare is refused, with the record's own
+    /// fields listed. An empty site list would read as a field nothing uses.
+    #[test]
+    fn a_field_the_record_does_not_declare_is_refused() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let (text, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "types.glyph", "name": "User.emial" }),
+        );
+        assert!(is_error, "answered about a field the record has not got: {text}");
+        assert!(text.contains("has no field `emial`"), "{text}");
+        assert!(text.contains("name, email"), "{text}");
+    }
+
+    /// A record reached through a cross-module alias keys to the record the
+    /// chain ends at.
+    ///
+    /// `view::Row` is `store::Sheet`, which declares the field. Keying a read
+    /// through `Row` under `view::Row.header` would put it in the impact set of
+    /// a rename that cannot reach it, and leave it out of the one that can.
+    #[test]
+    fn a_field_reached_through_an_alias_keys_to_the_record_that_declares_it() {
+        let root = tmp_root();
+        write(
+            &root,
+            "store.glyph",
+            "module store\npub type Sheet = {\n  header: string,\n}\n",
+        );
+        write(
+            &root,
+            "view.glyph",
+            "module view\nimport store { Sheet }\npub type Row = Sheet\n",
+        );
+        write(
+            &root,
+            "app.glyph",
+            "module app\n\
+             import view { Row }\n\
+             pub fn head(r: Row) -> string {\n  return r.header\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let value = field_answer(&mut server, "store.glyph", "Sheet.header");
+        let kinds = field_kinds(&value, "sites");
+        assert_eq!(value["entity"], json!("store::Sheet.header"), "{value}");
+        assert!(
+            kinds.contains(&("app::head".to_string(), "read".to_string())),
+            "the read through the alias is not keyed to the declaring record: {kinds:?}"
+        );
+
+        // The alias itself declares no field, so it has none to address.
+        let (text, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "view.glyph", "name": "Row.header" }),
+        );
+        assert!(is_error, "answered about a field an alias does not declare: {text}");
+        assert!(text.contains("declares no fields"), "{text}");
+    }
+
+    /// The record can be addressed the way the querying file names it, so a
+    /// consumer that imported it asks about the same entity as the module that
+    /// declares it.
+    #[test]
+    fn an_imported_record_addresses_the_same_field() {
+        let root = field_project();
+        let mut server = Server::new(root.clone());
+        let from_decl = field_answer(&mut server, "types.glyph", "User.email");
+        let from_use = field_answer(&mut server, "app.glyph", "User.email");
+        assert_eq!(from_decl["entity"], from_use["entity"], "{from_use}");
+        assert_eq!(from_decl["sites"], from_use["sites"], "{from_use}");
+    }
+
     // ---- glyph_variants: the match-coverage relation, one type at a time ----
     //
     // An agent about to add a variant to a union needs the sites that will
@@ -3248,6 +4966,318 @@ mod tests {
                 "the description must say what `{phrase}` holds: {described}"
             );
         }
+    }
+
+    // ---- glyph_variants as a change, not a lookup ----
+    //
+    // The lookup form answers what is there. An agent adding `Pending` to
+    // `PaymentResult` is asking what its edit does, and three things the
+    // compiler already knows only reach it once the proposed name is in the
+    // request: whether that name already exists, which sites the new variant
+    // reaches, and what each of them then does.
+
+    /// A union with three variants where one site is short of the third, so
+    /// the checker declines the site over a gap rather than over an arm.
+    const COMMAND_SHORT: &str = "module a\npub type Command =\n  | Up\n  | Down\n  | Left\npub fn run(c: Command) -> number {\n  return match c {\n    Up => 1,\n    Down => 0,\n  }\n}\n";
+    /// The same union with an `is` guard that names no variant of it. The
+    /// checker reads nothing from that arm, so the site's mentions are not a
+    /// complete accounting of what it handles.
+    const COMMAND_IS_GUARD: &str = "module a\npub type Command =\n  | Up\n  | Down\npub fn run(c: Command) -> number {\n  return match c {\n    is string => 0,\n    Up => 1,\n    Down => 2,\n  }\n}\n";
+
+    /// Call `glyph_variants` with a proposed variant. A tool error is prose,
+    /// so an unexpected refusal prints its text rather than the word `null`.
+    fn proposing(server: &mut Server, path: &str, name: &str, proposed: &str) -> Value {
+        let (text, is_error) = call_raw(
+            server,
+            "glyph_variants",
+            json!({ "path": path, "name": name, "proposed_variant": proposed }),
+        );
+        assert!(!is_error, "{text}");
+        serde_json::from_str(&text).unwrap_or(Value::Null)
+    }
+
+    /// The same call where the refusal is the answer under test.
+    fn proposing_refused(server: &mut Server, path: &str, name: &str, proposed: &str) -> String {
+        let (text, is_error) = call_raw(
+            server,
+            "glyph_variants",
+            json!({ "path": path, "name": name, "proposed_variant": proposed }),
+        );
+        assert!(is_error, "the call answered instead of refusing: {text}");
+        text
+    }
+
+    /// G187, G188: the answer states what happens to each site, rather than a
+    /// state the caller has to map to a consequence out of knowledge it does
+    /// not have.
+    #[test]
+    fn a_proposed_variant_answers_a_consequence_per_site() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        write(&root, "b.glyph", COMMAND_B);
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Left");
+        assert_eq!(answer["proposed_variant"], "Left", "{answer}");
+
+        let sites = answer["sites"].as_array().unwrap();
+        assert_eq!(sites.len(), 2, "{answer}");
+        assert_eq!(sites[0]["declaration"], "a::run", "{answer}");
+        assert_eq!(sites[0]["consequence"], "WILL_FAIL", "{answer}");
+        assert_eq!(sites[1]["declaration"], "b::label", "{answer}");
+        assert_eq!(sites[1]["consequence"], "ABSORBS", "{answer}");
+
+        // The state stays beside it. The consequence is the added half, not a
+        // rename of what was already there.
+        assert_eq!(sites[0]["state"], "exhaustive", "{answer}");
+        assert_eq!(sites[1]["state"], "has_catch_all", "{answer}");
+    }
+
+    /// G188: the union's own variants, so a caller can render what it is
+    /// changing without asking a second time.
+    #[test]
+    fn the_answer_lists_the_unions_own_variants() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        let mut server = Server::new(root.clone());
+
+        let answer = variants(&mut server, "a.glyph", "Command");
+        assert_eq!(answer["type"]["variants"], json!(["Up", "Down"]), "{answer}");
+        assert!(answer["type"]["variants_unavailable"].is_null(), "{answer}");
+    }
+
+    /// G187: the name reaches the tool now, so the collision is checkable.
+    /// A name the union already has is not a change, and the lookup form
+    /// could never have caught it.
+    #[test]
+    fn a_proposed_variant_that_already_exists_is_refused() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        let mut server = Server::new(root.clone());
+
+        let message = proposing_refused(&mut server, "a.glyph", "Command", "Up");
+        assert!(message.contains("Up"), "{message}");
+        assert!(
+            message.contains("Down"),
+            "the existing variants must be named: {message}"
+        );
+        assert!(message.contains("a::Command"), "{message}");
+    }
+
+    /// The consequence comes off the site's own edges, not off its summary
+    /// state. A site already short a variant is `declined`, and adding
+    /// another one still leaves it failing to compile, which is a decided
+    /// answer rather than an undetermined one.
+    #[test]
+    fn a_site_declined_over_a_gap_still_fails() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_SHORT);
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Right");
+        let sites = answer["sites"].as_array().unwrap();
+        assert_eq!(sites.len(), 1, "{answer}");
+        assert_eq!(sites[0]["state"], "declined", "{answer}");
+        assert_eq!(sites[0]["missing"], json!(["Left"]), "{answer}");
+        assert_eq!(sites[0]["consequence"], "WILL_FAIL", "{answer}");
+    }
+
+    /// A site with an arm the checker read nothing from has no consequence
+    /// the compiler can state: the unread arm may or may not take the new
+    /// variant. Reported as undetermined rather than folded into one of the
+    /// two decided answers.
+    #[test]
+    fn a_site_with_an_unread_arm_is_undetermined() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_IS_GUARD);
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Command", "Left");
+        let sites = answer["sites"].as_array().unwrap();
+        assert_eq!(sites.len(), 1, "{answer}");
+        assert_eq!(sites[0]["state"], "declined", "{answer}");
+        assert_eq!(sites[0]["consequence"], "UNDETERMINED", "{answer}");
+    }
+
+    /// A site the project cannot key is NOT_INDEXED. The compiler never
+    /// joined it to this type, so it has no consequence to state, and
+    /// leaving it out would say no such site exists.
+    #[test]
+    fn an_unkeyable_site_is_not_indexed() {
+        let root = tmp_root();
+        write(
+            &root,
+            "models.glyph",
+            &COMMAND_A.replace("module a", "module app/models"),
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "models.glyph", "Command", "Left");
+        assert_eq!(answer["sites"], json!([]), "{answer}");
+        let unkeyed = answer["unkeyed"].as_array().unwrap();
+        assert_eq!(unkeyed.len(), 1, "{answer}");
+        assert_eq!(unkeyed[0]["consequence"], "NOT_INDEXED", "{answer}");
+    }
+
+    /// A payload site breaks the same way a direct one does, so it carries
+    /// the same consequence.
+    #[test]
+    fn a_nested_site_carries_a_consequence_too() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub type Inner =\n  | X\n  | Y\npub type Outer =\n  | A(Inner)\n  | B\npub fn f(o: Outer) -> number {\n  return match o {\n    A(X) => 1,\n    A(Y) => 3,\n    B => 2,\n  }\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Inner", "Z");
+        assert_eq!(answer["type"]["variants"], json!(["X", "Y"]), "{answer}");
+        let nested = answer["nested"].as_array().unwrap();
+        assert_eq!(nested.len(), 1, "{answer}");
+        assert_eq!(nested[0]["declaration"], "a::f", "{answer}");
+        assert_eq!(nested[0]["consequence"], "WILL_FAIL", "{answer}");
+    }
+
+    /// Without a proposed variant nothing changes: no consequence is stated,
+    /// because with no proposed change there is no consequence to state.
+    #[test]
+    fn the_lookup_form_states_no_consequence() {
+        let root = tmp_root();
+        write(&root, "a.glyph", COMMAND_A);
+        write(&root, "b.glyph", COMMAND_B);
+        let mut server = Server::new(root.clone());
+
+        let answer = variants(&mut server, "a.glyph", "Command");
+        assert!(answer["proposed_variant"].is_null(), "{answer}");
+        for site in answer["sites"].as_array().unwrap() {
+            assert!(site["consequence"].is_null(), "{answer}");
+        }
+    }
+
+    /// A union with no declaration in this project has no variant list to
+    /// read here, and the answer says so instead of leaving the field out.
+    /// Asked as a change it refuses, because without the variants there is no
+    /// way to tell whether the proposed name already exists.
+    #[test]
+    fn a_union_whose_variants_cannot_be_read_says_so_and_refuses_a_proposal() {
+        let root = tmp_root();
+        write(&root, "a.glyph", RESULT_MATCH);
+        let mut server = Server::new(root.clone());
+
+        let answer = variants(&mut server, "a.glyph", "Result");
+        assert!(answer["type"]["variants"].is_null(), "{answer}");
+        assert!(
+            answer["type"]["variants_unavailable"].is_string(),
+            "an unreadable variant list must say why: {answer}"
+        );
+
+        let message = proposing_refused(&mut server, "a.glyph", "Result", "Pending");
+        assert!(message.contains("Result"), "{message}");
+        assert!(
+            message.contains("proposed_variant"),
+            "the refusal must point back at the lookup form: {message}"
+        );
+    }
+
+    /// G190: a record has no variants, so the question does not apply to it.
+    /// `{"sites": []}` is the answer for a union nothing matches on, and
+    /// spelling both the same way makes an empty list unreadable.
+    #[test]
+    fn a_record_is_refused_rather_than_answered_with_no_sites() {
+        let root = tmp_root();
+        write(
+            &root,
+            "m.glyph",
+            "module m\npub type User = {\n  name: string,\n  email: string,\n}\npub fn greet(u: User) -> string {\n  return u.name\n}\n",
+        );
+        write(
+            &root,
+            "u.glyph",
+            "module u\npub type Command =\n  | Up\n  | Down\npub fn keep(c: Command) -> Command {\n  return c\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_variants",
+            json!({ "path": "m.glyph", "name": "User" }),
+        );
+        assert!(is_error, "a record answered with a site list: {message}");
+        assert!(
+            message.contains("User") && message.contains("record"),
+            "{message}"
+        );
+
+        // The other side of the distinction: a union nothing matches on is a
+        // real answer and still answers.
+        let answer = variants(&mut server, "u.glyph", "Command");
+        assert_eq!(answer["sites"], json!([]), "{answer}");
+        assert_eq!(answer["type"]["variants"], json!(["Up", "Down"]), "{answer}");
+    }
+
+
+    /// A payload site whose scope has a catch-all one level down is not the
+    /// same question as a direct site with no catch-all at all.
+    ///
+    /// `A(rest)` absorbs whatever `A(X)` did not name, so adding `Z` to
+    /// `Inner` may leave this site compiling. The relation records that
+    /// catch-all with a depth and not with the union it belongs to, so it
+    /// could equally sit in a sibling payload, and the answer says it does not
+    /// know rather than picking. The site's own state is `exhaustive`, which
+    /// is exactly what a rule reading the summary state would report
+    /// `WILL_FAIL` from.
+    #[test]
+    fn a_payload_catch_all_leaves_a_nested_site_undetermined() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub type Inner =\n  | X\n  | Y\npub type Outer =\n  | A(Inner)\n  | B\npub fn f(o: Outer) -> number {\n  return match o {\n    A(X) => 1,\n    A(rest) => 3,\n    B => 2,\n  }\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let answer = proposing(&mut server, "a.glyph", "Inner", "Z");
+        let nested = answer["nested"].as_array().unwrap();
+        assert_eq!(nested.len(), 1, "{answer}");
+        assert_eq!(nested[0]["state"], "exhaustive", "{answer}");
+        assert_eq!(nested[0]["consequence"], "UNDETERMINED", "{answer}");
+    }
+
+    /// The description is the only thing a caller reads before it acts on a
+    /// consequence, so every word the answer can carry has to be in it, and
+    /// the optional argument has to be discoverable from the schema.
+    #[test]
+    fn the_variants_tool_says_what_a_proposed_variant_answers() {
+        let mut server = Server::new(tmp_root());
+        let list = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }),
+            &mut server,
+        )
+        .unwrap();
+        let spec = list["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["name"] == "glyph_variants")
+            .expect("missing glyph_variants")
+            .clone();
+
+        assert!(
+            spec["inputSchema"]["properties"]["proposed_variant"].is_object(),
+            "{spec}"
+        );
+        // Optional: the lookup form is still a whole question.
+        assert_eq!(
+            spec["inputSchema"]["required"],
+            json!(["path", "name"]),
+            "{spec}"
+        );
+        let described = spec["description"].as_str().unwrap();
+        for word in ["WILL_FAIL", "ABSORBS", "UNDETERMINED", "NOT_INDEXED"] {
+            assert!(described.contains(word), "`{word}` is undescribed: {described}");
+        }
+        assert!(described.contains("proposed_variant"), "{described}");
     }
 
     /// `COMMAND_A` with one declaration that does not type-check, so a single

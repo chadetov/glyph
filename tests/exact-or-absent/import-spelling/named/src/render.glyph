@@ -1,0 +1,5 @@
+module render
+
+pub fn label(s: string) -> string {
+  return s
+}

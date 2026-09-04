@@ -5,6 +5,16 @@ pub type User = {
   email: string,
 }
 
+// A tagged union nothing matches on. Its answer is an empty site list, and
+// that has to be readable as a different answer from the record above.
+pub type Status =
+  | Open
+  | Closed
+
 pub fn greet(u: User) -> string {
   return "hi ${u.name}"
+}
+
+pub fn keep(s: Status) -> Status {
+  return s
 }

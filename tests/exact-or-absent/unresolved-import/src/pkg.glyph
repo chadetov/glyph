@@ -1,0 +1,7 @@
+module pkg
+
+import tinylog { log }
+
+pub fn note(m: string) -> void {
+  log(m)
+}

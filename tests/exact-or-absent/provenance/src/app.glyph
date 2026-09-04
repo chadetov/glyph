@@ -1,0 +1,11 @@
+module app
+
+import lib { charge }
+import tinylog { log }
+import nowhere { audit }
+
+pub fn bill() -> number {
+  log("billing")
+  audit()
+  return charge(1)
+}

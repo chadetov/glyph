@@ -152,9 +152,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             When a `.glyph` file whose module path ends in the import exists \
             somewhere under the root, the message says where.\n\n\
             An npm package is not this error: a module declared in \
-            `<root>/.types/*.d.ts` or installed in the project's `node_modules` \
-            is resolved, even when a local file shares its name. If the package \
-            is neither, install it or declare it.",
+            `<root>/.types/*.d.ts`, installed in the project's `node_modules`, \
+            or listed in a `package.json` dependency field is resolved, even \
+            when a local file shares its name. If the package is none of those, \
+            add it to your dependencies or declare it.",
         "E0105" => "E0105: unknown exported name\n\n\
             The module exists but does not export the name you imported. A name \
             is exported only if it is declared `pub`.\n\n\

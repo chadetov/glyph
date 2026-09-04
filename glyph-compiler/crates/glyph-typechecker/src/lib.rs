@@ -35,9 +35,10 @@ pub mod ty;
 pub mod type_map;
 
 pub use assign::{
-    assign_types, assign_types_with_coverage, assign_types_with_resolver, CoverageCatchAll,
-    CoverageDecline, CoverageGap, CoverageMention, CoverageSite, CoverageSiteRef, CoverageState,
-    CoverageTypeName, DeclTyResolver, FileMatchCoverage, LocalDeclTy,
+    assign_types, assign_types_with_coverage, assign_types_with_relations,
+    assign_types_with_resolver, CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention,
+    CoverageSite, CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess,
+    FieldOwner, FieldSite, FileFieldUses, FileMatchCoverage, LocalDeclTy,
 };
 pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
 pub use ty::{
@@ -112,6 +113,81 @@ pub fn display_ty(ty: &Ty) -> String {
     }
 }
 
+/// The union a diagnostic is about, as an identity rather than as the name
+/// its message happens to print.
+///
+/// E0200 names the union and the variants it is missing inside one English
+/// sentence, in backticks. An agent repairing the match needs both to make the
+/// next call, and a regex over a message is a contract on prose the compiler
+/// is free to rewrite: every improvement to a sentence then breaks a consumer
+/// silently. This is `entity` (0.1.107) one field along. The message is
+/// unchanged; the fields sit beside it.
+///
+/// Three cases, because a consumer acts on the difference: only the first two
+/// have a declaration to go to at all, and only the second already knows which
+/// module that is.
+///
+/// `Local` carries no module on purpose. The module half of a declaration in
+/// the file being checked is counted from a root only the surface knows: the
+/// project src root for `glyph check --json`, the file's own project for the
+/// MCP tools. That is the same reason `decl_name` hands back a bare name and
+/// lets its caller qualify it, and it is what keeps the union's identity and
+/// the enclosing declaration's identity in one diagnostic spelled the same
+/// way. The alternative, the file's own `module` header, is a second spelling
+/// of the same address whenever the header and the path disagree (G172).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DiagnosticUnion {
+    /// Declared in the file the diagnostic is on. The module half is the
+    /// caller's; see the type's own note.
+    Local { name: String },
+    /// Declared in another project module, under the module key imports name
+    /// it by, which is the key the project already resolves it through.
+    Imported { module: String, name: String },
+    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`): a fixed
+    /// variant table behind a name, with no declaration in any project module
+    /// to address.
+    Builtin { name: String },
+}
+
+impl DiagnosticUnion {
+    /// The union's own name, which is what `glyph_variants` is called with.
+    pub fn name(&self) -> &str {
+        match self {
+            DiagnosticUnion::Local { name }
+            | DiagnosticUnion::Imported { name, .. }
+            | DiagnosticUnion::Builtin { name } => name,
+        }
+    }
+
+    /// The module the union is declared in, given `this_module`: the module
+    /// half of the file the diagnostic is on, as the calling surface counts
+    /// it. `None` for a builtin, which is declared in no project module.
+    pub fn module<'a>(&'a self, this_module: &'a str) -> Option<&'a str> {
+        match self {
+            DiagnosticUnion::Local { .. } => Some(this_module),
+            DiagnosticUnion::Imported { module, .. } => Some(module),
+            DiagnosticUnion::Builtin { .. } => None,
+        }
+    }
+
+    /// `module::name`, the identity `glyph_variants` reports for the same
+    /// declaration. `None` for a builtin: a key invented for `Result` would
+    /// name a module no project has.
+    pub fn declaration(&self, this_module: &str) -> Option<String> {
+        self.module(this_module)
+            .map(|module| format!("{module}::{}", self.name()))
+    }
+
+    /// `"declaration"` or `"builtin"`, matching the `kind` the MCP tools
+    /// report for the same distinction on a match-coverage type end.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            DiagnosticUnion::Local { .. } | DiagnosticUnion::Imported { .. } => "declaration",
+            DiagnosticUnion::Builtin { .. } => "builtin",
+        }
+    }
+}
+
 /// Errors emitted by the typechecker. Day-14 surfaces the first real
 /// variant: `NonExhaustiveMatch`, emitted when a `match` over a
 /// tagged-union scrutinee fails to cover every variant (D9). Further
@@ -123,10 +199,28 @@ pub enum TypeError {
     /// have no covering arm and no wildcard / `else` catches the rest.
     /// `missing` is a comma-separated list of variant names in
     /// declaration order (so the diagnostic is reproducible).
+    ///
+    /// `union` and `missing_variants` are the same two facts as structure, for
+    /// a consumer that has to act on them rather than read them (G195). They
+    /// are carried beside the message, not lifted out of it: `type_name` and
+    /// `missing` still render exactly the sentence they always did, including
+    /// the quoting, which differs between a tagged union's backticked variants
+    /// and a string-literal union's double-quoted values.
+    ///
+    /// `union` is `None` for a literal set written inline into a signature,
+    /// which is declared nowhere and has nothing to address. The missing
+    /// members are still known and still listed.
     #[error("non-exhaustive match on `{type_name}`: missing variants {missing}")]
     NonExhaustiveMatch {
         type_name: String,
         missing: String,
+        /// The union the match is over, when it has a declaration or a builtin
+        /// name to give.
+        union: Option<DiagnosticUnion>,
+        /// The unmentioned variants in declaration order, unquoted. For a
+        /// string-literal union, whose members are values rather than tags,
+        /// these are the values, the same way a coverage gap records them.
+        missing_variants: Vec<String>,
         span: Span,
     },
 
@@ -654,6 +748,34 @@ impl TypeError {
         match self {
             TypeError::UnknownAnnotation { decl, .. } => Some(decl),
             TypeError::RedactUnknownField { decl, .. } => Some(decl),
+            _ => None,
+        }
+    }
+
+    /// The union this error is about, when it is about one.
+    ///
+    /// `None` is absence of a relation, not "the checker did not look": an
+    /// error that concerns no union answers nothing here, and so does a match
+    /// over a literal set with no declaration behind it. An identity guessed
+    /// from a message would be worse than either.
+    pub fn union(&self) -> Option<&DiagnosticUnion> {
+        match self {
+            TypeError::NonExhaustiveMatch { union, .. } => union.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// The variants this error reports unmentioned, in declaration order and
+    /// unquoted, when it reports any.
+    ///
+    /// `None` rather than an empty list for every other error: an empty list
+    /// would read as "nothing is missing", which is a claim, and this is the
+    /// absence of one.
+    pub fn missing_variants(&self) -> Option<&[String]> {
+        match self {
+            TypeError::NonExhaustiveMatch {
+                missing_variants, ..
+            } => Some(missing_variants),
             _ => None,
         }
     }

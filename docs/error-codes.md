@@ -105,9 +105,16 @@ names it can resolve without a `.glyph` file: every `declare module "X"` in
 `<root>/.types/**/*.d.ts` and in the bundled Node shim, plus every package in a
 `node_modules` within the project. A name on that list is never reported, so a
 declared or installed package is safe even when a local file happens to share its
-basename. When the project has no `node_modules` at all the build cannot tell an
-uninstalled dependency from a misspelling, and it reports only what it can prove:
-an import some `.glyph` file under the root answers to.
+basename.
+
+When the project has no `node_modules` at all, what the `package.json` files
+between the sources and the project root declare decides instead. A name any of
+them lists under `dependencies`, `devDependencies`, `peerDependencies` or
+`optionalDependencies` is a package waiting on `npm install`, and is not
+reported. A name none of them lists cannot be produced by any install, so it is
+a local module that does not exist and the build says so without waiting for
+`tsc`. With no manifest anywhere the build has no view of either, and reports
+only what it can prove: an import some `.glyph` file under the root answers to.
 
 ### Typechecker — `E02xx`
 

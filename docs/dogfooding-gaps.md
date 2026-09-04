@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-185 entries, 141 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-25 are open. G144, the D28 boundary cast that never reached the returns a
+200 entries, 141 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+40 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7102,3 +7102,392 @@ and is the owner's to confirm.
   because every path through the runner can return early through `?` and cleanup
   at the bottom would leak on exactly the error paths that matter most. Verified
   as zero directories created on both the passing and failing paths.*
+
+- **G186. `glyph_references` omits a namespace-qualified call, silently.** The
+  tool's own contract says "every reference to a symbol across the whole
+  project". It delivers that when the consumer names the symbol in its import,
+  and drops the call when the consumer imports the module and qualifies the name.
+
+  One project, one symbol, two spellings of the consumer's import:
+
+  ```
+  import render { label }   label(s)         -> import binding, call, declaration
+  import render             render.label(s)  -> declaration only
+  ```
+
+  The second answer is not "no references found", which would be wrong but
+  visible. It reports the declaration and stops, so the answer looks like a
+  complete result that happens to have one entry.
+
+  This is the third appearance of a shape this project has already twice decided
+  is wrong on arrival: a guarantee that changes with how something is spelled.
+  0.1.56 and 0.1.57 were spent removing it for imported type identity, G75
+  settled that an imported record keeps one identity across spellings, and
+  0.1.108 removed it for a declaration's module half. The rule was never about
+  imports specifically.
+
+  **It blocks the generic impact primitive rather than merely degrading it.** An
+  impact query that traverses references to answer "what does changing this
+  affect" inherits this omission and returns a confidently short list, and a
+  short list presented as complete is the failure the exact-or-absent rule exists
+  to prevent. Fixing the relation comes before building anything that reads it.
+
+  *Reproduced against 0.1.108 on a three-module project: `render` declares
+  `label`, `policy` calls it, and `glyph_references` on `label` returns three
+  sites under a named import and one under a namespace import, with the calling
+  module absent from the second answer entirely.*
+
+- **G187. The exhaustiveness question can only be asked as a lookup, never as a
+  change.** `glyph_variants` takes a type and reports its sites. The question an
+  agent actually has is "what breaks if I add `Pending` to `PaymentResult`", and
+  there is no way to ask it. The proposed variant never enters the request, so
+  three things the compiler could answer go unanswered: whether the name already
+  collides with an existing variant, which sites the specific new variant would
+  reach, and what each site would then do.
+
+  The lookup form makes the caller do the reasoning. It is handed
+  `state: "has_catch_all"` and has to know, from outside the answer, that this
+  means the site keeps compiling and routes the new variant into `else`. That
+  mapping is exactly the knowledge an agent asking the question does not have.
+
+  *Reproduced against 0.1.108: `glyph_variants` accepts only `path` and `name`,
+  and its schema has no field for a proposed variant.*
+
+- **G188. The answer reports a state, not a consequence, and omits the union's
+  own variants.** For a union with three match sites the answer gives
+  `exhaustive`, `has_catch_all`, `exhaustive` and the arms each site names. It
+  does not say that the first and third fail to compile while the second keeps
+  compiling and silently absorbs. It also never lists `Success` and `Failed`,
+  the union's own variants, so a caller cannot even render what it is changing
+  without a second lookup.
+
+  The wanted shape, for `type PaymentResult = Success | Failed` and a proposed
+  `Pending`:
+
+  ```
+  PaymentResult
+   ├── Success
+   ├── Failed
+   └── Pending   <- new
+
+  billing::settle   Success Failed          FAILS: non-exhaustive
+  billing::audit    Success Failed  _       SILENTLY ABSORBS Pending
+  billing::report   Success Failed          FAILS: non-exhaustive
+  ```
+
+  Every fact in that rendering exists in the compiler today. The gap is that the
+  answer stops one step short of the thing that was asked, and the missing step
+  is the one carrying the value: a site that fails is a task, and a site that
+  absorbs is a bug nobody will be told about.
+
+  *Reproduced against 0.1.108 on a three-site union: the `type` block returns
+  declaration, kind, module and name, and no variant list; each site returns a
+  state and its arms, and no verdict.*
+
+- **G189. `glyph check --no-tsc` reports no diagnostics on a program that
+  imports a module which does not exist.** A file importing `nowhere` and
+  matching on a type it claims to export type-checks clean and exits 0. So does
+  one importing `alsomissing` and calling `alsomissing.g()`. Only `tsc` catches
+  it, as `Cannot find module 'nowhere'`, so the check that is documented as the
+  read-only half of `build` passes a program that cannot exist whenever the
+  TypeScript pass is skipped.
+
+  The impact surface is honest about this and the compiler is not. Asked about
+  the type from that file, `glyph_variants` answers `scrutinee_unresolved`,
+  which is the correct "I could not resolve this" and exactly what the
+  exact-or-absent rule requires. `glyph check --no-tsc` on the same file says
+  "no diagnostics", which is a positive claim of correctness it cannot support.
+
+  Two surfaces looking at one unresolvable name, one saying it does not know and
+  one saying everything is fine.
+
+  *Reproduced against 0.1.108: `import nowhere { Status, Open, Closed }` with a
+  match on `Status` gives "1 module(s) checked, no diagnostics" and exit 0 under
+  `--no-tsc`, and `[TS2307] Cannot find module 'nowhere'` with exit 1 when tsc
+  runs.*
+
+- **G190. Asking about a record returns an empty site list, which reads as "no
+  impact" rather than "wrong question".** `glyph_variants` on a record type
+  returns `{"sites": [], "type": {...}}`. That is byte-identical in shape to the
+  answer for a tagged union that genuinely has no match sites, so a caller
+  cannot tell "nothing matches on this union" from "this entity has no variants
+  and the question does not apply to it".
+
+  The tool refuses well elsewhere and the contrast is the point: asked about a
+  field it says the module declares no such top-level name and lists what it
+  does declare; asked about a file that does not parse it says so and points at
+  `glyph_diagnostics`. Asked about a record it manufactures a clean empty
+  answer.
+
+  An empty list is a claim. It says the relation was computed and found nothing,
+  and here the relation does not apply at all.
+
+  *Reproduced against 0.1.108: `pub type User = { name: string, email: string }`
+  queried by name returns `{"sites":[],"type":{"declaration":"m::User",...}}`
+  with no field distinguishing it from a union with no sites.*
+
+- **G191. The relation an entity appeared through is never named in the answer.**
+  0.1.106 chose the name `mentions` over `covers` deliberately, because for most
+  arms the compiler knows the arm names a variant without concluding it handles
+  every value that variant can hold. That distinction was the release's central
+  claim, and the word appears nowhere in a reply. It lives in release notes.
+
+  What a caller gets instead is position: an entity is in `sites`, or in
+  `nested`, or in `unkeyed`. Those are shapes of answer, not kinds of edge. A
+  reader has to know, from outside the reply, that landing in `nested` means the
+  match reached the type through a payload. Nothing in the JSON says so.
+
+  The consequence is that an agent cannot say why an entity is in front of it.
+  It can see `billing::settle` and a state, and it cannot see that the path was
+  `PaymentResult --mentions--> match site --declared_in--> billing.glyph`. When
+  a second and third relation join the answer, position stops being able to
+  carry the distinction at all.
+
+  *Reproduced against 0.1.108: a `glyph_variants` reply carries the keys
+  `sites`, `nested`, `unkeyed` and `type`, and no key on any entry names a
+  relation.*
+
+- **G192. Traversal has no controls, so it cannot be asked a bounded question.**
+  There is no way to request a depth, and no way to select which relation kinds
+  to follow. The reply's breadth is whatever the implementation happens to walk.
+
+  `depth` is the sharp illustration: it is already computed and already on the
+  wire, reported per arm on a nested entry (`{"arm": 0, "depth": 1, "variant":
+  "Some"}`). So the traversal knows how far it went, tells the caller after the
+  fact, and offers no way to say how far to go. That is a report, not a
+  parameter.
+
+  This is the difference between a query and a dump. "Everything connected to X"
+  stops being useful at the second hop, and an answer whose breadth the caller
+  cannot state is one the caller cannot check.
+
+  *Reproduced against 0.1.108: `glyph_variants`'s input schema accepts `path`
+  and `name` only, and `depth` appears in replies but in no request.*
+
+- **G193. There is no relation vocabulary, so there is nothing to select from.**
+  The wanted set is small and closed: `mentions`, `declarations`, `match_sites`,
+  `dependents`, `variants`, `declared_in`. Today `mentions` exists as an
+  unnamed implementation, `match_sites` is the whole tool rather than one
+  relation within it, and the rest do not exist.
+
+  A vocabulary is the precondition for the other two entries rather than a
+  presentation concern. A relation cannot be named in a reply (G191) or selected
+  in a request (G192) before the set of relations has been decided and written
+  down. It is also the precondition for the answer staying honest as it grows:
+  exact-or-absent has to hold per relation, since a traversal that resolved
+  `mentions` completely and `dependents` partially, and reported one list, would
+  be exactly the partial-list-presented-as-complete failure the rule forbids.
+
+  *Reproduced against 0.1.108: no relation name reaches any tool's request or
+  reply; `docs/roadmap/releases.md` records the R1 through R8 requirements and
+  none of them fixes a vocabulary.*
+
+- **G194. A result cannot say what it is about once it leaves the reply.** An
+  entry names the entity it found and where, and never names the entity the
+  question was about. That subject lives once, in the reply's envelope:
+
+  ```
+  { "declaration": "billing::settle", "line": 5, "path": "src/billing.glyph",
+    "scrutinee": "r", "state": "exhaustive", "arms": [...] }
+  ```
+
+  Nothing in there says `PaymentResult`. Lift the entry out of its reply, put it
+  in a list beside results from a second query, or hand it to another agent, and
+  it no longer answers "why am I looking at this". The envelope carried the
+  meaning and the envelope is gone.
+
+  This is survivable while one reply answers one question about one entity. It
+  stops being survivable the moment an answer merges relations, which is the
+  direction the traversal work is going: entries from `mentions` and from
+  `dependents` are the same shape, and only their position in the reply
+  distinguishes them (G191).
+
+  The wanted record is self-contained, every field on every result:
+
+  ```
+  { "entity":   "payments::PaymentResult",
+    "relation": "mentions",
+    "target":   "payments::handle",
+    "source":   "payments.glyph:42",
+    "state":    "fails_on_new_variant" }
+  ```
+
+  Three of those five exist today. `target`, `source` and `state` are on the
+  entry, though `state` reports a state rather than a consequence (G188).
+  `entity` and `relation` are the missing ones, and they are the two that make a
+  result stand on its own.
+
+  **`source` stays a relocation hint, not a key, and that is deliberate.**
+  0.1.106 settled that a match site gets no durable identity, because a bare
+  ordinal moves when a match is inserted above it and a scrutinee spelling
+  changes when the scrutinee is edited. A result therefore says where the site
+  was when the question was asked, so an agent can go and look, and re-asks
+  rather than dereferencing a stale address. Provenance that must be
+  re-derivable is a consequence of that decision, not a shortcoming of it.
+
+  *Reproduced against 0.1.108: every entry in a `glyph_variants` reply carries
+  declaration, line, module, path, scrutinee, state and arms, and no entry
+  carries the queried type.*
+
+- **G195. The loop needs no grep except at one hop, where it needs a regex over
+  a sentence.** Walking it by hand on a three-site union: an agent adds
+  `Pending`, `glyph check --json` returns two `E0200`s each carrying
+  `entity: "billing::settle"` and `entity: "billing::report"`, and
+  `glyph_variants` called with the file the diagnostic already named returns all
+  three sites including `billing::audit`, the one that keeps compiling and
+  silently absorbs the new variant. Every hop lands. Nothing was searched.
+
+  Except that to make the graph query at all, the agent needs the name of the
+  union, and the diagnostic carries it only here:
+
+  ```
+  "message": "non-exhaustive match on `PaymentResult`: missing variants `Pending`"
+  ```
+
+  A diagnostic's fields are `code`, `entity`, `file`, `help`, `message`, `note`,
+  `range`, `severity`, `stage`. The type is in none of them. Neither is the
+  missing variant. Both are in the sentence, in backticks, and the only way out
+  is a regex over prose the compiler is free to rewrite.
+
+  So the loop is grep-free everywhere except the step that starts it, and the
+  grep it needs is over our own output rather than the user's source. That is a
+  worse dependency, not a lesser one: a message is meant to be readable and
+  changeable, and pinning a machine contract to its wording makes every
+  improvement to a sentence a breaking change nobody will notice.
+
+  The fix is small and the shape already exists. `entity` was added in 0.1.107
+  for exactly this reason, and this is the same argument one field along: a
+  diagnostic should carry the entities it concerns, not describe them.
+
+  *Reproduced against 0.1.108: the loop closes end to end on a three-site union
+  with no search, and the type name and missing variants appear in no structured
+  field of the diagnostic.*
+
+- **G196. Nothing tests that the loop closes.** It has been walked by hand,
+  once, on one union, with the result recorded above. There is no committed
+  test that an edit produces a diagnostic, that the diagnostic reaches a query
+  without a search, that the query names a site the diagnostic did not, and that
+  fixing the named sites returns the tree to green.
+
+  `benchmarks/impact-before-edit/` measures the half before the edit: which
+  sites a change would affect, compared against search. The half after it, the
+  repair, has no counterpart. So the claim that an agent can go from error to
+  exact target without searching rests on one manual walk, and a manual walk is
+  evidence of a run rather than of a property.
+
+  What the test has to assert is narrower than "the loop works" and harder to
+  fake: at each hop, that the information needed for the next call was present
+  in the previous answer as a field. A loop that closes because the harness knew
+  the type name in advance proves nothing, which is the exact way this test
+  would be written by accident.
+
+  *Reproduced against 0.1.108 by walking the loop manually; no automated
+  counterpart exists under `tests/` or `benchmarks/`.*
+
+- **G197. Nothing tests the surface an agent actually talks to.** Every MCP test
+  calls `handle(&req, server)` in process. That covers the request and response
+  shapes, and it stops at the dispatcher. No test starts `glyph mcp`, writes a
+  line to its stdin and reads one back, which is the only thing a real client
+  ever does. Forty-five integration tests spawn the binary for other commands;
+  none spawns it for this one.
+
+  What that leaves uncovered is the whole transport: newline framing, the
+  initialize handshake as an ordered exchange rather than one call, behaviour on
+  a malformed line, and whether the process starts at all under a client's
+  environment.
+
+  The clearest instance is the `instructions` string 0.1.107 added, which exists
+  so a client puts Glyph's own guidance in an agent's context without the agent
+  reading a file. It appears twice in the source: once in a doc comment, once in
+  the value. It appears in no assertion. `initialize_and_tools_list` checks
+  `protocolVersion` and `serverInfo.name` and stops. Delete the field and the
+  suite stays green.
+
+  That field only ever mattered on the wire, and the wire is exactly what is not
+  tested. It was verified once, by hand, by piping JSON into the published
+  binary during the release that shipped it.
+
+  *Reproduced against 0.1.108: `grep -c instructions` over `mcp.rs` returns 2,
+  both in the definition; no test spawns `glyph mcp`.*
+
+- **G198. The answer is a list; the summary is the caller's problem.** Asked
+  about a union with ten match sites, the reply is ten entries each carrying a
+  state. There is no count, no breakdown, and no ordering by consequence. The
+  line an agent or a reader actually wants is arithmetic the caller has to do:
+
+  ```
+  10 match sites across 4 files
+   8 will fail compilation
+   2 contain catch-alls and will silently absorb it
+  ```
+
+  Every number there was computed outside Glyph, by a script written for the
+  occasion, from a flat list. Which means two callers can tally the same reply
+  differently, and neither is wrong, because the reply takes no position on what
+  the totals are.
+
+  The counting is not the hard part and that is the point: the compiler already
+  holds every fact, and stops one step before the sentence that makes them
+  usable. A summary is also where the honest edges have to appear, since a count
+  that silently excludes sites the graph could not key would be the exact
+  partial-list-as-complete failure the invariant forbids. Any total has to be
+  accompanied by what it could not count.
+
+  *Reproduced against 0.1.108 on `examples/apps/csvql`: `glyph_variants` on
+  `Value` returns ten entries with states and no aggregate of any kind.*
+
+- **G199. The demonstration exists as a transcript, not as an artifact.** Run by
+  hand against `examples/apps/csvql`, an eleven-file CSV query engine, on
+  0.1.108:
+
+  ```
+  before the edit, Glyph predicts:
+    10 match sites across 4 files
+     8 will fail compilation
+     2 contain catch-alls and will silently absorb it
+       bind.glyph:148  exec.glyph:130  render.glyph:128  value.glyph:18 ...
+
+  after adding `Blob` for real:
+    the compiler reports 8 E0200 failures, and they are the 8 predicted.
+    the 2 catch-all sites report nothing. they compile, and absorb it.
+  ```
+
+  The prediction was exact: eight of eight, and two of two silent. Nothing in it
+  is staged. It is a real application in this repository, a union at its centre,
+  and a change anyone would plausibly make.
+
+  What does not exist is any of that as something a reader can run. It is not
+  committed, not scripted, not on the website, and not in the test suite, so it
+  is a claim about a session rather than a property of the compiler. The same
+  discipline the impact benchmark carries applies: the instrument is defined
+  before the result is seen, the run is reproducible, and a run that goes against
+  us is published rather than retried.
+
+  *Reproduced against 0.1.108 by copying `examples/apps/csvql` and adding one
+  variant; both halves recorded above are verbatim tool and compiler output.*
+
+- **G200. The site argues about syntax and buries the evidence.** The homepage
+  opens with "TypeScript your agents can't quietly break" and a side-by-side of
+  Glyph and its emitted TypeScript. That is a language pitch: it asks a reader to
+  compare spellings, which is the least interesting thing about this project and
+  the easiest to dismiss.
+
+  Two things that are hard to dismiss are already built and are not on the front
+  page. `catches/` holds seven paired demos, each a `ts.ts` that passes
+  `tsc --strict` beside a `glyph.glyph` that fails with a named code, and
+  `scripts/check_catches.py` fails the build if either half stops behaving. That
+  is a mechanically enforced answer to "show me a bug TypeScript cannot express".
+  The homepage mentions it once, in passing.
+
+  The impact and repair capability appears zero times. Not the ten sites across
+  four files, not the eight that fail and the two that silently absorb, not the
+  fact that the prediction was exact on a real application in this repository.
+  The one capability that is not available anywhere else is absent from the page
+  that exists to explain the project.
+
+  A reader arriving today is asked to evaluate a dialect. What the project can
+  actually do is two clicks away and phrased as a footnote.
+
+  *Reproduced against 0.1.108: `grep -c` over `web/index.html` returns 1 for the
+  catches evidence and 0 for anything about impact analysis, and
+  `check_catches.py` reports 7 of 7 verified both ways.*

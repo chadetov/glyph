@@ -4729,7 +4729,7 @@ generator already knows the answer).
 - A diagnostic carries the declaration it sits in as `module::name`, on `glyph check --json` and `glyph_diagnostics`, so an error leads into the graph without a re-parse
 - Not the forward-impact query: that stays 0.1.108, which is what this release's prerequisites were clearing the way for
 
-**0.1.108 — Landed on main · One identity, one spelling**
+**0.1.108 — Shipped · One identity, one spelling**
 - G180: three surfaces derive a declaration's module half from three different roots, and two of them disagree on the layout `glyph init` writes
 - One derivation and one attribution function, rather than the two byte-identical copies and three roots shipped in 0.1.107
 - G181: attribute a diagnostic from the declaration the checker is standing in, since an annotation's span sits in the gap before a decl's span starts
@@ -4740,25 +4740,268 @@ generator already knows the answer).
 - G184: absence of an entity was spelled two ways, omitted on one surface and explicit null on the other
 - G185: the example gate leaked a copy of the project into the temp directory on every run, which was also manufacturing a flaky test through pid reuse
 
-**0.1.109 — Next · Impact before the edit, and the loop that uses it**
-- Read the same edges forward: "add `Suspended` to `UserStatus`, show me every site that must change"
-- The answer is exhaustive or it says which sites it could not index; a partial list is worse than none
-- Repair the five-times bug shape end to end, measured against the same task done by search alone
-- The fixture and measurement script are already committed, so the instrument was defined before the result
+**Impact before the edit — Delivered across 0.1.106 to 0.1.108, no version of its own**
+- Reading the edges forward shipped in 0.1.106; diagnostics carrying the declaration shipped in 0.1.107 and were made consistent in 0.1.108
+- The one part nothing had measured, the nested-payload shape, is measured and holds: see the 0.1.109 section below for the numbers
+- No release was cut for it because no compiler behaviour changed; a version that ships an identical binary is a version number, not a release
 
-**0.1.110 — Provenance, and the boundary as a node kind**
+**0.1.109 — Next · The folds you write by hand**
+- G100: `std/array` has no `max`, `min`, `max_by`, `min_by` or `sum`, so argmax is a four-line `match acc` fold at every search, ranking and scheduler
+- Re-reproduced against 0.1.108 rather than carried forward: every name is still `[E0105] not exported by std/array`
+- Not a soundness fix: the hand-written forms are correct, just long, and long is what an agent gets wrong
+- G101 is deliberately NOT here. An early-exit fold needs a continue-or-stop type, and whether that is a new `Step<A>` export or a reuse of `Result` is a surface commitment, not a mechanical addition. It goes to review first.
+
+**The target, stated as one sentence.** An agent can make a semantic change, ask
+Glyph what that change affects, and get an exact, actionable impact set without
+grep. Everything from 0.1.104 onward is that sentence taken apart: an identity
+that survives an edit, a relation retained rather than recomputed, one spelling
+per identity, diagnostics that name the entity they concern. What is missing is
+the traversal itself, and the relations it would traverse.
+
+**One primitive, not another bespoke query.** The shape:
+
+```
+glyph_impact { entity: "payments::PaymentResult" }
+```
+
+Addressed by entity, which 0.1.108 made possible by giving a declaration one
+spelling. It returns nodes and labelled edges rather than a shape invented per
+question: each affected entity, the relation that connects it, and a verdict.
+The verdict is the part that carries the value, and `glyph_variants` already
+proved the distinction is real: a site that fails to compile is a task, and a
+site that keeps compiling while silently absorbing the change is a bug nobody is
+going to be told about. An impact set that does not separate those two is a
+list of files.
+
+Three properties it must hold, all inherited rather than new:
+
+- **Exact or named.** Anything the graph could not resolve is listed, never
+  dropped and never counted. A short list presented as complete is worse than no
+  list, because an agent edits believing it has seen the whole surface.
+- **One identity.** Entities in the answer are addressable by the same
+  `module::name` the diagnostics carry, so following a thread does not re-derive
+  the world between hops.
+- **Relation-labelled.** "Affected" is not a fact. Affected *how* is.
+
+**Why it is not next.** The primitive is only as honest as the relations under
+it, and they are not ready:
+
+- G186: `glyph_references` silently drops a namespace-qualified call. The same
+  symbol answers differently depending on how the consumer spelled its import,
+  which is the shape this project has twice decided is wrong on arrival.
+- There is no `CALLS` relation distinct from `REFERENCES`, so "what calls this"
+  and "what mentions this" are the same answer today.
+- A record field is not addressable at all. `glyph_references` handles top-level
+  names, so "rename `User.email`, what breaks" has no answer and an agent has to
+  grep, which is the exact thing the sentence above forbids.
+
+Building the *general* traversal on those would produce an impact set that looks
+exact and is not, which is worse than having no traversal.
+
+But one change kind does not wait, because its relation is already whole. "What
+breaks if I add this variant" rides entirely on the coverage relation retained in
+0.1.106: cross-module, four states, and sites it cannot key named rather than
+counted. None of the three gaps above touch it. So that case ships first, as the
+first instance of the primitive rather than as another bespoke tool, and the
+generalization follows once the remaining relations can carry the same promise.
+
+**0.1.110 — Next after 0.1.109 · "What breaks if I add this variant?"**
+- G187: the question can only be asked as a lookup today. `glyph_impact { entity: "payments::PaymentResult", add_variant: "Pending" }` asks it as the change it is
+- G188: the answer states a consequence, not a state: FAILS for a site that stops compiling, SILENTLY ABSORBS `Pending` for a site whose catch-all takes it, and the union's own variants so the caller can render what it is changing
+- Rejects a proposed name that already exists, which the lookup form cannot check because the name never reaches it
+- **It ships ahead of the other relations on purpose.** This one rides on the coverage relation, which is already whole: cross-module, four states, unindexable sites named rather than counted. Nothing here waits on G186 or on `CALLS`
+- The first instance of the general primitive, on the one relation that can carry it honestly today. Building it settles the answer shape before the shape has to serve four relations at once
+
+**0.1.110 also carries the rule's own enforcement.**
+- A hostile corpus that deliberately builds five degenerate conditions and asserts no impact edge is manufactured for any of them: missing identity, ambiguous identity, unsupported entity, malformed module, unresolved import
+- Probed against 0.1.108 first rather than written from the design: three already answer correctly, and two do not
+- G190: asking about a record returns `{"sites": []}`, shaped identically to a union with no matches, so "the question does not apply" is spelled the same as "nothing is affected". An empty list is a claim
+- G189: `glyph check --no-tsc` says "no diagnostics" on a program importing a module that does not exist, while the impact surface asked about the same file correctly answers `scrutinee_unresolved`. One unresolvable name, two surfaces, one saying it does not know and one saying everything is fine
+- The corpus is a gate, not a document. The rule survives only if something fails when it is broken
+
+**The repair loop, closed and tested.** The second half of the architectural
+claim. The first half asks what a change would affect; this half is what happens
+after the change lands.
+
+```
+agent edits -> glyph check -> diagnostic -> graph query -> exact target -> agent fixes -> check -> green
+```
+
+*Walked by hand against 0.1.108, and it closes.* An agent adds `Pending` to a
+three-site union, `glyph check --json` returns two `E0200`s each naming the
+declaration it is in, `glyph_variants` called with the file the diagnostic
+already named returns all three sites, and the third is `billing::audit`, which
+keeps compiling and silently routes `Pending` into its catch-all. The diagnostic
+never mentions that site. The query does. That difference is the whole argument
+for the graph, and it holds.
+
+**It needs no grep except at the hop that starts it, and there it needs a regex
+over a sentence.** To make the query, the agent needs the union's name. A
+diagnostic carries `code`, `entity`, `file`, `help`, `message`, `note`, `range`,
+`severity` and `stage`, and the union's name is in none of them. It is in the
+message text, in backticks, next to the missing variant:
+
+```
+"non-exhaustive match on `PaymentResult`: missing variants `Pending`"
+```
+
+- G195: the diagnostic carries the entities it concerns as structure rather than describing them in prose. This is the 0.1.107 `entity` argument one field along. Pinning a machine contract to a sentence makes every improvement to that sentence a silent breaking change
+- G196: the loop has been walked once, by hand, on one union. Nothing tests that it closes. `benchmarks/impact-before-edit/` covers the half before the edit and the half after it has no counterpart
+- **The test asserts something narrower than "the loop works" and harder to fake:** at every hop, that what the next call needed was a *field* in the previous answer. A loop that closes because the harness knew the type name in advance proves nothing, and that is exactly how this test gets written by accident
+- Same instrument discipline as the impact benchmark: defined before the result is seen, the losing run published, and no guarantee demonstrated that the compiler does not make
+
+**Three levels, and the one that is missing is the one that matters.** The graph
+internals are well covered and the surface an agent talks to is not.
+
+*Measured against 0.1.108.*
+
+| level | what it covers | state |
+|---|---|---|
+| Unit | edge creation, identity, state calculation | 196 tests in `assign.rs`, 53 in `glyph-db`, 44 in `mcp.rs` |
+| Integration | project, compiler, graph, MCP response shape | present, in process through `handle()` |
+| Process | `glyph mcp` over stdio, as a client speaks to it | **nothing** |
+| Golden scenario | edit, ask, fix the returned sites, check green | **nothing** |
+
+- G197: no test starts the server and exchanges a line with it. Forty-five integration tests spawn the binary for other commands and none spawns it for this one, so framing, the handshake as an ordered exchange, and behaviour on a malformed line are all unexercised
+- The sharpest instance: the `instructions` string 0.1.107 added appears twice in `mcp.rs`, in a doc comment and in the value, and in no assertion. Delete it and the suite stays green. It is a field that only ever mattered on the wire, and it was checked once, by hand, by piping JSON into the published binary
+- G196: the golden scenario. Add a variant, ask what is affected, edit the sites that came back, run check, require green. Nothing like it exists
+- **The golden scenario is worth more than the other two together, and is the easiest to write dishonestly.** It has to assert that each hop's input came out of the previous hop's answer as a field. A test that closes the loop while the harness supplies the type name from its own fixture proves that the fixture is consistent with itself
+- These levels arrive with the work rather than after it: a relation added without a case at all three is a relation nobody has checked from the outside
+
+**The demonstration, and it already runs.** One example that is hard to wave
+away, on a real application rather than a fixture built to flatter the answer.
+
+*Run against 0.1.108 on `examples/apps/csvql`, an eleven-file CSV query engine
+already in this repository, by adding one variant to the `Value` union at its
+centre.*
+
+```
+Agent: add `Blob` to Value.
+
+Glyph, before the edit:
+  10 match sites across 4 files
+   8 will fail compilation
+   2 contain catch-alls and will silently absorb it
+
+     FAILS    value.glyph:18   value::render
+     FAILS    value.glyph:32   value::key
+     FAILS    bind.glyph:148   bind::literal_kind
+     ABSORBS  exec.glyph:130   exec::total
+     ABSORBS  render.glyph:128 render::literal_text
+     ...
+
+Agent adds the variant.
+
+Compiler: 8 E0200 failures. The same eight.
+          The two catch-all sites report nothing at all.
+```
+
+**The prediction was exact. Eight of eight, and two of two silent.** The two
+sites the compiler will never mention are the reason this is not an LSP feature:
+`exec::total` and `render::literal_text` keep compiling and route a `Blob`
+wherever their `else` points, and no build, no test and no type error will say
+so. An agent that fixes the eight and stops has a green tree and two live bugs.
+
+What is missing is not the capability. It is everything around it:
+
+- G199: this exists as a transcript of one session. It is not committed, not scripted, not on the website and not in the suite, so it is a claim about a run rather than a property of the compiler
+- G198: the three summary lines were computed by a throwaway script from a flat list. Glyph returns ten entries with states and takes no position on the totals, so two callers can tally the same reply differently and neither is wrong
+- The third category the demo wants, a site already exhaustive through an existing constructor and therefore genuinely unaffected, needs the hypothetical input (G187): "unaffected by adding `Blob`" is a fact about a proposed change, not about the source text
+- **Any total states what it could not count.** A summary that silently omits sites the graph could not key is the partial-list-as-complete failure in its most persuasive form, because a number reads as authoritative in a way a list does not
+
+**The site sells the wrong thing.** Two outside readings of this project, one
+commercial and one engineering, arrive at the same instruction from opposite
+directions: stop describing the language, demonstrate the capability.
+
+The commercial reading: the interesting asset is not a nicer dialect, it is a
+compiler that already knows what an agent would otherwise rediscover by
+grepping, exposed as an API. Transpiling to TypeScript matters because it means
+nobody has to replace node, npm, tsc or their deployment to try it.
+
+The engineering reading: syntax is not evidence. Show a bug, show the same bug
+passing `tsc --strict`, show Glyph rejecting it, show an agent repairing it,
+and show that it was not contrived.
+
+Both are already answerable and the site answers neither:
+
+- G200: the homepage opens with a side-by-side of Glyph and its emitted TypeScript, which asks a reader to compare spellings
+- `catches/` holds seven paired demos, each a `ts.ts` that passes `tsc --strict` beside a `glyph.glyph` that fails with a named code, and `check_catches.py` fails the build if either half stops behaving. Seven of seven verified both ways. The homepage mentions this once, in passing
+- The impact and repair capability appears zero times on the homepage. Not the ten sites across four files, not the eight that fail against the two that silently absorb, not that the prediction was exact on a real application in this repository
+- The rebuild leads with the demonstration and keeps the language comparison as supporting material, because "here is a bug your current toolchain ships" is an argument and "here is different syntax" is a preference
+
+**0.1.111 — Relations whole enough to traverse**
+- G186: one answer for a symbol's references whichever way the consumer spelled its import
+- `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
+- Record fields become addressable entities, so a field rename has an impact set rather than a grep
+- Every relation states what it could not index, per entity, never as a count
+
+**Traversal is bounded and explicit, or it is a dump.** "Everything connected to
+X" stops being useful at the second hop. The traversal takes named relations, a
+depth, and returns, for every entity in the answer, the path that put it there.
+
+The vocabulary is small and closed, and fixing it comes before anything reads
+it: `mentions`, `declarations`, `match_sites`, `dependents`, `variants`,
+`declared_in`. A relation cannot be selected in a request or named in a reply
+until the set exists (G193).
+
+```
+glyph_impact {
+  entity:    "payments::PaymentResult",
+  relations: ["mentions", "declared_in"],
+  depth:     2,
+}
+```
+
+and every entity in the answer carries its own provenance:
+
+```
+payments::PaymentResult
+  --mentions-->    billing::settle   (match site, line 6)
+  --declared_in--> src/billing.glyph
+```
+
+- G191: the relation is never named on the wire. `mentions` was chosen over `covers` in 0.1.106 as that release's central distinction, and the word reaches no reply. Position in `sites` / `nested` / `unkeyed` carries it instead, and position cannot carry three relations
+- G192: no depth, no relation selection. `depth` is already computed and already reported per nested arm, so the traversal knows how far it went and offers no way to say how far to go. That is a report, not a parameter
+- G193: no vocabulary to select from, which is why the other two cannot be built first
+- **Exact-or-absent binds per relation, not per answer.** A traversal that resolved `mentions` completely and `dependents` partially and returned one list would be a partial list presented as complete, which is the failure the rule exists to prevent. Each relation states its own coverage, and `tests/exact-or-absent/` grows a case per relation as each lands
+
+**Every result answers "why did you give me this" on its own.** Not the boundary
+and origin provenance of R3, which stays where it is planned. This is the
+narrower obligation that every element of a traversal result stands up without
+its envelope:
+
+```
+{ "entity":   "payments::PaymentResult",
+  "relation": "mentions",
+  "target":   "payments::handle",
+  "source":   "payments.glyph:42",
+  "state":    "fails_on_new_variant" }
+```
+
+- G194: three of those five are on an entry today. `entity` and `relation` are missing, and they are exactly the two that let a result stand alone. Today the subject appears once, in the envelope, so an entry lifted out of its reply can no longer say what it is about
+- It is survivable while one reply answers one question about one entity, and stops being survivable the moment relations merge, since entries from `mentions` and from `dependents` are the same shape and only position tells them apart
+- `state` becomes a consequence rather than a state (G188): `fails_on_new_variant` is a fact about the change being asked about, where `has_catch_all` is a fact about the source text that the caller has to interpret
+- **`source` stays a relocation hint and never becomes a key.** 0.1.106 settled that a match site gets no durable identity, since an ordinal moves when a match is inserted above it and a spelling changes when the scrutinee is edited. A result says where the site was when asked, so an agent goes and looks rather than dereferencing an address that may have gone stale. Provenance that has to be re-derivable follows from that decision rather than working around it
+- The test for all of this is not that the field is present. It is that an agent handed one result, with no reply around it and no memory of the question, can still say why it is holding that result
+
+**0.1.112 — `glyph_impact`, generalized over every relation**
+- One entity in, nodes and labelled edges out, with a verdict per node: breaks, compiles silently, or unaffected
+- Transitivity is the open question and is settled before implementation: whether a caller of a broken function is itself impacted depends on the change kind, and guessing produces either noise or omissions
+- Measured against search alone on a real codebase, same agent and prompt on both sides, the losing run published
+
+**0.1.113 — Provenance, and the boundary as a node kind**
 - R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - G170: the playground emits what `glyph build` emits, or the page says plainly that it does not
 
-**0.1.111 — The incremental debt, in the order it actually binds**
+**0.1.114 — The incremental debt, in the order it actually binds**
 - `type_map`'s span keying first, because coverage edges, the overlay and the rekey all sit downstream of it
 - Then rekey the five position-keyed per-declaration queries to `DeclKey`, which has no user-visible effect on its own
 - Move the content-difference guard into `glyph-db` behind `set_file_text`, and make raw `set_text` non-public
 - G171: measure what fraction of diagnostics land inside a function body, which settles whether locals stay excluded
 
-**0.1.112 — The language server stops running a second compiler**
+**0.1.115 — The language server stops running a second compiler**
 - An overlay: disk text by default, editor buffer for open files, so the server consumes the model instead of re-running it
 - Measured today at 15.4ms per keystroke for diagnostics alone and 61.2ms for an editor burst on a 2,205-line file, growing about n^1.6
 - Database lifetime is the real question underneath it: `glyph build` throws its database away and only the MCP server keeps one
@@ -5057,7 +5300,7 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.108 — Landed on main · One identity, one spelling
+### 0.1.108 — Shipped · One identity, one spelling
 
 0.1.107 gave every diagnostic the declaration it sits in, and gave it three
 spellings. `glyph check --json` strips the project src root, `glyph_variants`
@@ -5104,7 +5347,47 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
-### 0.1.109 — Next · Impact before the edit, and the loop that uses it
+### 0.1.109 — Next · The folds you write by hand
+
+Two `std/array` gaps that an outside app found and that nothing has closed. Both
+were re-reproduced against 0.1.108 rather than carried forward on their old
+stamps: every name below is still `[E0105] not exported by std/array`.
+
+**G100, no `max`, `min`, `max_by`, `min_by` or `sum`.** `std/math` has the
+scalar `min`/`max` only. Picking the highest-scoring element of an array is the
+core operation of every search, every ranking and every scheduler, and the fold
+that does it is four lines of `match acc` ceremony each time. One app wrote it
+five times in one file.
+
+**G101 is held back on purpose, and this is the reason.** `fold` cannot stop early. Alpha-beta pruning is exactly a fold that
+stops when the window closes. It is expressible today, and correct: a pair of
+mutually recursive functions threading an index compiles and returns the
+textbook answer. But it takes four functions and an explicit cursor to say what
+one `fold_while` call says, and the version that reads naturally silently
+evaluates every branch, which for a search is the difference between pruning and
+not pruning.
+
+Closing it means giving the callback a way to say "stop, and here is the final
+value". In a language with tagged unions the natural shape is a new
+`Step<A> = Continue(A) | Stop(A)` export; the cheaper shape reuses `Result` and
+spells an ordinary early exit as an error, which it is not. That is a permanent
+addition to the standard library's surface either way, so it goes to review
+before it goes into a release, and 0.1.109 ships the half that has no such
+question in it.
+
+*Reviewed against 0.1.108.* Both premises re-run rather than carried forward.
+Importing each name and reading the answer: `max`, `min`, `max_by`, `min_by`,
+`sum`, `fold_while`, `try_fold` and `fold_until` are every one of them
+`[E0105] not exported by std/array`. The export list the error prints is
+unchanged from the one G100 recorded, so nothing has been added quietly since.
+
+**Neither is a soundness bug, and that is the argument for doing them.** The
+hand-written forms are correct, just long. Long is what an agent gets wrong, and
+a four-line fold repeated five times in one file is four opportunities to get
+the accumulator's initial value or its comparison direction backwards, none of
+which the compiler can catch because every version of them type-checks.
+
+### 0.1.109 — Impact before the edit: delivered, and what the measurement says
 
 0.1.106 retained the relation and put a tool on it. `glyph_variants` answers
 "which sites name this variant". This release answers the question an agent
@@ -5143,6 +5426,23 @@ names (G139, G141, G142, G143, G148), where the impacted match reaches the
 union through a payload rather than as its own scrutinee. `glyph_variants`
 already lists those under `nested`; nothing has measured that case end to end
 yet.
+
+*Measured against 0.1.108, and it holds.* A union with a direct exhaustive
+match, a direct catch-all match, and a match reaching it one level inside a
+`Result` payload: the tool names all three before the edit, calling the payload
+site `exhaustive` at depth 1. Adding a variant then produces exactly two
+`E0200`s, at the direct site and the payload site, each carrying the declaration
+the tool had named, and nothing at all for the catch-all, which keeps compiling
+and routes the new variant into `else`. The payload case is now part of the
+committed fixture rather than a transcript, and the measurement script reads
+`nested` alongside `sites`, which it did not before: an impact answer that reads
+only the first list is incomplete in precisely the direction this benchmark
+exists to measure.
+
+The comparison it reports is narrower than the demo framing suggests, and worth
+stating plainly. Search alone *finds* the catch-all site; it just cannot tell
+which union a catch-all belongs to, so on this fixture it also returns an
+unrelated one. That is precision 0.5 against 1.0, not a miss against a find.
 
 ### 0.1.106 — Shipped · The exhaustiveness relation, and the tool reading it
 

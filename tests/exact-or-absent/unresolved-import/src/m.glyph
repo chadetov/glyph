@@ -1,0 +1,10 @@
+module m
+
+import nowhere { Status, Open, Closed }
+
+pub fn label(s: Status) -> string {
+  return match s {
+    Open => "o",
+    Closed => "c",
+  }
+}

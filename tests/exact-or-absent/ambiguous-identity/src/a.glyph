@@ -1,0 +1,12 @@
+module a
+
+pub type Status =
+  | Open
+  | Closed
+
+pub fn la(s: Status) -> string {
+  return match s {
+    Open => "o",
+    Closed => "c",
+  }
+}

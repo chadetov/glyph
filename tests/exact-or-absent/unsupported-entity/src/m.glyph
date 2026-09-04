@@ -1,0 +1,10 @@
+module m
+
+pub type User = {
+  name: string,
+  email: string,
+}
+
+pub fn greet(u: User) -> string {
+  return "hi ${u.name}"
+}

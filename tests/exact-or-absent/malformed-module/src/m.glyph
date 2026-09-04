@@ -1,0 +1,9 @@
+module m
+
+pub type Status =
+  | Open
+  | Closed
+
+pub fn broken(s: Status) -> string {
+  return match s {
+    Open => "o"

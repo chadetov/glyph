@@ -1,0 +1,15 @@
+module absorbs
+
+import cells { Cell, Text }
+
+// A catch-all over `Cell`, naming `Text` and nothing else. A variant added to
+// `Cell` reaches `else` and nothing reports it. This module lives apart from
+// `sites` so that removing `Blank` leaves it alone: `sites` imports the name
+// and stops compiling, and this file keeps compiling and keeps meaning what it
+// meant, which is what a verdict of SAFE claims.
+pub fn absorbing(c: Cell) -> string {
+  return match c {
+    Text({ text }) => text,
+    else => "other",
+  }
+}

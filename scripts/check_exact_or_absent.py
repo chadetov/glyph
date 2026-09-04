@@ -135,6 +135,42 @@ def sites(a: dict, key: str) -> list:
     return [s.get("declaration") for s in a.get(key, [])]
 
 
+
+def impact(project: pathlib.Path, entity: str, change: dict, **rest) -> dict:
+    """One glyph_impact call. Returns {'error': str} or the answer."""
+    arguments = {"entity": entity, "change": change}
+    arguments.update(rest)
+    return call(project, "glyph_impact", arguments)
+
+
+def verdicts_of(answer: dict, relation: str = "") -> dict:
+    """The impact list as {(entity, line): verdict}, optionally one relation."""
+    out = {}
+    for entry in answer.get("impact") or []:
+        if relation and entry.get("relation") != relation:
+            continue
+        out[(entry.get("entity"), entry.get("line"))] = entry.get("verdict")
+    return out
+
+
+def by_entity(answer: dict, relation: str = "") -> dict:
+    """The same, keyed by declaration alone, for an answer with one site each."""
+    out = {}
+    for entry in answer.get("impact") or []:
+        if relation and entry.get("relation") != relation:
+            continue
+        out.setdefault(entry.get("entity"), []).append(entry.get("verdict"))
+    return out
+
+
+VERDICTS = pathlib.Path("verdicts")
+
+#: Every verdict a `glyph_impact` entry may carry. Closed, and each member is a
+#: different claim about the boundary between what Glyph knows and what it does
+#: not.
+VERDICT_SET = ["WILL_FAIL", "ABSORBS", "SAFE", "UNDETERMINED", "NOT_INDEXED"]
+
+
 def case_missing_identity() -> tuple[bool, str]:
     """A file whose module header disagrees with its path cannot be keyed.
 
@@ -645,6 +681,310 @@ def case_summary_states_what_it_could_not_count() -> tuple[bool, str]:
         )
     return True, "the unkeyable site and the unread file are both stated beside the total"
 
+#: The one closed set of relation names. Every tool that names a relation names
+#: it from here, and the spelling is the same in a request, in a reply, and in a
+#: coverage statement.
+VOCABULARY = ["CALLS", "REFERENCES", "MATCH_SITES", "FIELD_ACCESS", "GENERATED_FROM"]
+
+
+def case_one_relation_vocabulary() -> tuple[bool, str]:
+    """Was G193. One set of relation names, spelled the same way everywhere.
+
+    The tree held two sets that never overlapped. `glyph_references` spelled
+    CALLS and REFERENCES on the wire; `glyph_variants` named no relation at
+    all, and its site kinds were the positional keys `sites`, `nested` and
+    `unkeyed`, so position was the only thing telling them apart. A caller
+    could not select a relation, because there was no set to select from, and
+    could not read one off a reply either.
+
+    The exact-or-absent half is what this case is for. A relation another
+    surface answers and a relation nothing answers yet are both refused rather
+    than answered with an empty list: `[]` for GENERATED_FROM would say no
+    derived artifact comes from this entity, which nothing in the compiler
+    establishes. And a site the compiler never keyed carries no relation at
+    all, because stamping one on it would claim the edge its own list exists
+    to deny.
+    """
+    a = references(CORPUS / "relations", "src/lib.glyph", "charge")
+    if "error" in a:
+        return False, f"refused a symbol: {a['error'][:120]}"
+    named = set((a.get("relations") or {}).keys())
+    if not named or not named <= set(VOCABULARY):
+        return False, f"a reply names a relation outside the set: {sorted(named)}"
+    for key, entry in (a.get("relations") or {}).items():
+        for edge in entry.get("edges") or []:
+            if edge.get("relation") != key:
+                return False, (
+                    f"an edge under `{key}` spells its relation "
+                    f"`{edge.get('relation')}`, so the name is not one name"
+                )
+
+    v = ask(CORPUS / "summary-totals", "src/kinds.glyph", "Kind")
+    if "error" in v:
+        return False, f"refused a union: {v['error'][:120]}"
+    if v.get("relation") != "MATCH_SITES":
+        return False, f"the match answer names its relation `{v.get('relation')}`"
+    for site in v.get("sites") or []:
+        if site.get("relation") != "MATCH_SITES":
+            return False, f"a keyed match site names `{site.get('relation')}`"
+    for site in v.get("unkeyed") or []:
+        if site.get("relation") is not None:
+            return False, (
+                "a site this project never keyed claims a relation: "
+                f"{site.get('relation')}"
+            )
+        if not site.get("relation_absent"):
+            return False, "an unkeyed site does not say why it stands in no relation"
+
+    f = references(CORPUS / "field-entity", "src/model.glyph", "User.email")
+    if "error" in f:
+        return False, f"refused a field: {f['error'][:120]}"
+    if f.get("relation") != "FIELD_ACCESS":
+        return False, f"the field answer names its relation `{f.get('relation')}`"
+
+    for relation, why in [
+        ("MATCH_SITES", "another surface answers it"),
+        ("GENERATED_FROM", "no surface answers it yet"),
+    ]:
+        r = references(CORPUS / "relations", "src/lib.glyph", "charge", relation)
+        if "error" not in r:
+            return False, (
+                f"`{relation}` came back as an answer rather than a refusal "
+                f"({why}); an empty list reads as `no such edges exist`"
+            )
+        if relation not in r["error"]:
+            return False, f"the refusal for `{relation}` does not name it"
+
+    return True, (
+        "one set, spelled the same in request and reply; an unkeyed site names "
+        "none, and a relation this answer does not hold is refused"
+    )
+
+
+
+def case_verdict_will_fail() -> tuple[bool, str]:
+    """WILL_FAIL is a proof that the site stops compiling, and nothing weaker.
+
+    Two shapes reach it over one union and both were run against the compiler
+    before this was written. `sites::exhaustive` names every variant and has no
+    catch-all. `sites::declining` also has an arm the checker read nothing from,
+    which used to be answered `UNDETERMINED` on the grounds that an unread arm
+    might take the new variant. It cannot: a declined arm is neither counted in
+    `covered` nor treated as a catch-all, so E0200 fires for the new variant
+    either way. Adding `Dash` to `Cell` reports E0200 at both sites and nothing
+    at the third, which is what this asserts.
+    """
+    a = impact(CORPUS / VERDICTS, "cells::Cell", {"kind": "add_variant", "variant": "Dash"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    seen = by_entity(a, "MATCH_SITES")
+    for decl in ["sites::exhaustive", "sites::declining"]:
+        if seen.get(decl) != ["WILL_FAIL"]:
+            return False, (
+                f"`{decl}` names every variant with no catch-all and the compiler "
+                f"reports E0200 there; this answer says {seen.get(decl)}"
+            )
+    entry = next(e for e in a["impact"] if e.get("entity") == "sites::exhaustive")
+    if entry.get("diagnostic") != "E0200":
+        return False, f"a proved failure names no diagnostic: {entry}"
+    return True, "both sites the compiler fails are WILL_FAIL, and each names E0200"
+
+
+def case_verdict_absorbs() -> tuple[bool, str]:
+    """ABSORBS is a proof that the change lands here and nothing reports it.
+
+    `absorbs::absorbing` has a catch-all naming `Text` only, so `Dash` reaches
+    `else`. Run against the compiler: adding the variant produces no diagnostic
+    in that module at all. The verdict has to be its own, not WILL_FAIL and not
+    SAFE, because the site keeps compiling and stops being right.
+    """
+    a = impact(CORPUS / VERDICTS, "cells::Cell", {"kind": "add_variant", "variant": "Dash"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    seen = by_entity(a, "MATCH_SITES")
+    if seen.get("absorbs::absorbing") != ["ABSORBS"]:
+        return False, (
+            "a catch-all site takes the new variant silently and the compiler "
+            f"reports nothing there; this answer says {seen.get('absorbs::absorbing')}"
+        )
+    entry = next(e for e in a["impact"] if e.get("entity") == "absorbs::absorbing")
+    if entry.get("diagnostic") is not None:
+        return False, f"an absorbed change claims a diagnostic: {entry}"
+    if not entry.get("diagnostic_absent"):
+        return False, f"a null diagnostic does not say why it is null: {entry}"
+    return True, "the catch-all site is ABSORBS, and it claims no diagnostic"
+
+
+def case_verdict_safe() -> tuple[bool, str]:
+    """SAFE is a proof that the site is still right, not a shrug.
+
+    The same catch-all site, under a different change. Removing `Blank` leaves
+    `absorbs::absorbing` naming no arm that is gone, and the module keeps
+    compiling: run against the compiler, the only error is in `sites`, which
+    imports the name. So one site is SAFE and another over the same union is
+    WILL_FAIL under the same edit, which is what stops SAFE from being a
+    default.
+    """
+    a = impact(CORPUS / VERDICTS, "cells::Cell", {"kind": "remove_variant", "variant": "Blank"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    seen = by_entity(a, "MATCH_SITES")
+    if seen.get("absorbs::absorbing") != ["SAFE"]:
+        return False, (
+            "a site naming no arm the edit removes keeps compiling and keeps "
+            f"meaning what it meant; this answer says {seen.get('absorbs::absorbing')}"
+        )
+    if seen.get("sites::exhaustive") != ["WILL_FAIL"]:
+        return False, (
+            "a site whose arm names the removed variant stops resolving; this "
+            f"answer says {seen.get('sites::exhaustive')}"
+        )
+    return True, "SAFE and WILL_FAIL land on two sites over one union under one edit"
+
+
+def case_verdict_undetermined() -> tuple[bool, str]:
+    """UNDETERMINED means reached and not decidable, and it has to stay rare.
+
+    `sites::nested` reaches `Inner` through `A`'s payload and has a catch-all
+    one level down. The relation records that catch-all with a depth and not
+    with the union it belongs to, so it may be the scope a new `Inner` variant
+    lands in or a sibling payload, and the answer cannot tell. That is the
+    reason, and the case asserts it is the only entry carrying the verdict:
+    every other site in the corpus is decidable, and a verdict that spreads is
+    read as "probably safe", which is the inversion of what it means.
+
+    It also asserts the entry is not NOT_INDEXED. The two are different claims:
+    the relation does hold this site, and looking harder at this site is not
+    what would settle it.
+    """
+    a = impact(CORPUS / VERDICTS, "cells::Inner", {"kind": "add_variant", "variant": "Z"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    undecided = [e for e in a.get("impact") or [] if e.get("verdict") == "UNDETERMINED"]
+    if [e.get("entity") for e in undecided] != ["sites::nested"]:
+        return False, (
+            "UNDETERMINED is not confined to the site that cannot be decided: "
+            f"{[e.get('entity') for e in undecided]}"
+        )
+    entry = undecided[0]
+    if entry.get("relation") != "MATCH_SITES":
+        return False, f"an undetermined site names no relation: {entry}"
+    if not entry.get("because"):
+        return False, f"UNDETERMINED states no reason: {entry}"
+
+    # The other half: the same corpus, a change whose sites are all decidable,
+    # and none of them may land here for convenience.
+    b = impact(CORPUS / VERDICTS, "cells::Cell", {"kind": "add_variant", "variant": "Dash"})
+    if "error" in b:
+        return False, f"refused: {b['error'][:160]}"
+    stray = [e.get("entity") for e in b.get("impact") or [] if e.get("verdict") == "UNDETERMINED"]
+    if stray:
+        return False, f"a decidable site came back UNDETERMINED: {stray}"
+    return True, "one site, reached and not decidable, and no decidable site joins it"
+
+
+def case_verdict_not_indexed() -> tuple[bool, str]:
+    """NOT_INDEXED means the question was never askable, which is not a shrug
+    about one site.
+
+    Two classes, both run against the compiler. Adding a parameter to
+    `api::width` is E0213 at `api::called`, which applies it, and nothing at
+    all at `api::sizer`, which reads it as a value: Glyph never compares a
+    function value's arity against the type its use context expects. And
+    `api::takes_string` declaring a named type instead of `string` produces no
+    diagnostic at its call site, where a `bool` would be E0211 (G201).
+
+    The case asserts the two verdicts do not blur. A NOT_INDEXED entry names
+    the class the model does not hold, and no entry in either answer is
+    UNDETERMINED, because nothing here was reached and left undecided.
+    """
+    a = impact(CORPUS / VERDICTS, "api::width", {"kind": "change_arity"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    seen = by_entity(a)
+    if seen.get("api::called") != ["WILL_FAIL"]:
+        return False, f"the call site is not proved to fail: {seen.get('api::called')}"
+    if seen.get("api::sizer") != ["NOT_INDEXED"]:
+        return False, (
+            "a function read as a value is a class Glyph does not check; this "
+            f"answer says {seen.get('api::sizer')}"
+        )
+    if any(e.get("verdict") == "UNDETERMINED" for e in a.get("impact") or []):
+        return False, "a class the model does not hold was reported as undecided"
+    for entry in a["impact"]:
+        if entry.get("verdict") == "NOT_INDEXED" and not entry.get("because"):
+            return False, f"NOT_INDEXED names no class: {entry}"
+    for search in a.get("searches") or []:
+        if search["relation"] == "REFERENCES" and not search.get("not_indexed"):
+            return False, f"the search states no class it cannot answer: {search}"
+
+    b = impact(CORPUS / VERDICTS, "api::takes_string", {"kind": "change_signature_type"})
+    if "error" in b:
+        return False, f"refused: {b['error'][:160]}"
+    verdicts = {e.get("verdict") for e in b.get("impact") or []}
+    if verdicts != {"NOT_INDEXED"}:
+        return False, (
+            "a signature-type change ships one verdict and this answer carries "
+            f"{sorted(verdicts)}"
+        )
+    return True, "a class absent from the model, said as that and not as undecided"
+
+
+def case_impact_answers_a_second_hop() -> tuple[bool, str]:
+    """A request past hop 1 is answered, not refused.
+
+    The carrier is exact at hop 1 and empty at hop 2, because Glyph never
+    infers a declaration's type from its body: a change to X can only
+    invalidate expressions that name X. So the answer is the hop-1 answer,
+    plus the question that would be exact, as a field a program can read
+    rather than an error a program has to parse.
+    """
+    one = impact(CORPUS / VERDICTS, "cells::Cell", {"kind": "add_variant", "variant": "Dash"})
+    two = impact(
+        CORPUS / VERDICTS,
+        "cells::Cell",
+        {"kind": "add_variant", "variant": "Dash"},
+        depth=2,
+    )
+    if "error" in two:
+        return False, f"a hop-2 request was refused rather than answered: {two['error'][:160]}"
+    if two.get("impact") != one.get("impact"):
+        return False, "the hop-2 answer is not the hop-1 answer"
+    nxt = two.get("next_query")
+    if not isinstance(nxt, dict) or nxt.get("tool") != "glyph_impact":
+        return False, f"no next_query names the question that would be exact: {nxt}"
+    if not isinstance(nxt.get("arguments_template"), dict):
+        return False, f"next_query names no arguments to fill in: {nxt}"
+    if not nxt.get("roots"):
+        return False, f"next_query names no root to ask about: {nxt}"
+    if two.get("depth_answered") != 1:
+        return False, f"the answer does not say which hop it answered: {two}"
+    return True, "hop 1 exact, and the next question named as a field"
+
+
+def case_a_change_is_required_for_a_consequence() -> tuple[bool, str]:
+    """No edit named, no verdict. A lookup wearing a new name is the failure
+    this argument exists to prevent, so the request refuses rather than
+    answering every entry `REFERENCES`.
+
+    The change kinds are closed too: a kind outside the set is an error, and so
+    is one the entity cannot carry.
+    """
+    a = call(CORPUS / VERDICTS, "glyph_impact", {"entity": "cells::Cell"})
+    if "error" not in a:
+        return False, "an entity with no change was answered rather than refused"
+    if "change" not in a["error"]:
+        return False, f"the refusal does not name the missing field: {a['error'][:160]}"
+
+    b = impact(CORPUS / VERDICTS, "cells::Cell", {"kind": "reticulate"})
+    if "error" not in b:
+        return False, "a change kind outside the closed set was answered"
+
+    c = impact(CORPUS / VERDICTS, "api::width", {"kind": "add_variant", "variant": "Dash"})
+    if "error" not in c:
+        return False, "a variant was added to something that is not a union"
+    return True, "a consequence needs an edit, and the kinds are a closed set"
+
 
 HARD = [
     ("missing identity", case_missing_identity),
@@ -662,6 +1002,14 @@ HARD = [
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),
     ("a record field is an entity, with its limits", case_field_entity),
     ("a total states what it could not count", case_summary_states_what_it_could_not_count),
+    ("one relation vocabulary, named the same way", case_one_relation_vocabulary),
+    ("WILL_FAIL is proved, not assumed", case_verdict_will_fail),
+    ("ABSORBS is its own answer", case_verdict_absorbs),
+    ("SAFE is proved, not a default", case_verdict_safe),
+    ("UNDETERMINED is reached and rare", case_verdict_undetermined),
+    ("NOT_INDEXED is a class, not a shrug", case_verdict_not_indexed),
+    ("a hop-2 request is answered", case_impact_answers_a_second_hop),
+    ("a consequence needs a named change", case_a_change_is_required_for_a_consequence),
 ]
 
 KNOWN: list[tuple[str, object, str]] = []

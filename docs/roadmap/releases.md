@@ -4980,7 +4980,7 @@ Both are already answerable and the site answers neither:
 - The impact and repair capability appears zero times on the homepage. Not the ten sites across four files, not the eight that fail against the two that silently absorb, not that the prediction was exact on a real application in this repository
 - The rebuild leads with the demonstration and keeps the language comparison as supporting material, because "here is a bug your current toolchain ships" is an argument and "here is different syntax" is a preference
 
-**0.1.111 — Next · The proof, and what the relations still owe**
+**0.1.111 — Landed on main · The proof, and what the relations still owe**
 - G186: one answer for a symbol's references whichever way the consumer spelled its import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
 - Record fields become addressable entities, so a field rename has an impact set rather than a grep. **Landed on main.** `glyph_references` takes `Record.field` (`User.email`, the record named the way the querying file names it) and answers `{ entity, sites, unkeyed, not_indexed }` from a new field-use relation the member-access check writes while it types each file, alongside the match-coverage one. `sites` holds the field's own declaration, every member read, every write (`mut u.email = v`), and a `@redact fields: [...]` name, each keyed to the record the checker resolved the access against and ranged over the field's name alone so a rename can write from it. Two records in one module with the same field name are two entities; a read through a cross-module alias keys to the record the chain ends at, not the name the use site reached it by; a read of a payload binding (`Loaded(u) => u.email`) is a proven site. `tests/exact-or-absent/field-entity/` gates it
@@ -5050,7 +5050,7 @@ its envelope:
 - **`source` stays a relocation hint and never becomes a key.** 0.1.106 settled that a match site gets no durable identity, since an ordinal moves when a match is inserted above it and a spelling changes when the scrutinee is edited. A result says where the site was when asked, so an agent goes and looks rather than dereferencing an address that may have gone stale. Provenance that has to be re-derivable follows from that decision rather than working around it
 - The test for all of this is not that the field is present. It is that an agent handed one result, with no reply around it and no memory of the question, can still say why it is holding that result
 
-**0.1.112 — `glyph_impact`, generalized over every relation**
+**0.1.112 — Next · `glyph_impact`, generalized over every relation**
 - One entity in, nodes and labelled edges out, with a verdict per node from a closed set, never a similarity score and never "possibly related"
 - **This is the release most likely to go wrong, and the failure has a shape: a specific semantic question turns into generic graph infrastructure, "impact" comes to mean everything, and Glyph becomes a graph database with a compiler attached.** The defence is that every edge stays compiler-derived. If the checker did not already compute it, it is not an edge
 - **Transitivity is a hard gate, settled and written down before any code.** `A -> B -> C` has to mean one thing. Direct semantic consequence, transitive dependency, compilation consequence and runtime consequence are four different relations, and "potentially affected" is not a member of the set at all. A caller of a function that stopped compiling is impacted only if that function's signature changed, so transitivity is a property of the change kind rather than of the graph
@@ -5428,7 +5428,7 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
-### 0.1.111 — Next · The proof, and what the relations still owe
+### 0.1.111 — Landed on main · The proof, and what the relations still owe
 
 0.1.110 shipped the capability and the invariant. It did not ship the proof, and
 the distinction is the whole point: a release that can answer the question is a

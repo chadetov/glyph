@@ -5450,6 +5450,16 @@ compiling and absorb it, and the compiler afterwards reports exactly those
 eight. It is not committed, not scripted, and not runnable by a reader (G198,
 G199).
 
+*Reviewed against 0.1.109.* Every claim above re-run against the binary this
+release builds, rather than carried forward. `glyph_variants` still accepts only
+`path` and `name`, ignores a proposed variant, returns `exhaustive` and
+`has_catch_all` rather than consequences, and lists no variants of the union it
+was asked about. A diagnostic's fields are still code, entity, file, help,
+message, note, range, severity and stage, with the union's name reachable only
+out of `non-exhaustive match on \`PaymentResult\`: missing variants \`Pending\``.
+The two known cases in `tests/exact-or-absent/` are still failing, which is what
+that gate reports when it passes.
+
 **What this release is measured by.** Not gaps closed. The table at the top of
 this file: files searched, compiler queries, semantic sites missed, incorrect
 edits, repair iterations, time to green, against an ordinary TypeScript agent

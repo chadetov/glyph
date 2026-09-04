@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-200 entries, 149 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-32 are open. G144, the D28 boundary cast that never reached the returns a
+201 entries, 149 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+33 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7565,3 +7565,34 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108: `grep -c` over `web/index.html` returns 1 for the
   catches evidence and 0 for anything about impact analysis, and
   `check_catches.py` reports 7 of 7 verified both ways.*
+
+- **G201. A signature type change is invisible at every call site that passes a
+  named type.** The checker reports only a mismatch it can prove. Passing a
+  `bool` where a `string` is declared gives E0211; passing a value of a declared
+  union or record where a `string` is declared gives nothing at all.
+
+  ```
+  takes_string(r)   r: PaymentResult   ->  0 diagnostics
+  takes_string(b)   b: bool            ->  E0211
+  ```
+
+  `definitely_incompatible` in the checker ends in `_ => false` and has no arm
+  pairing a named type with a primitive, and E0211's own call site says so:
+  "Reports only a provable mismatch; an undecidable argument or parameter is
+  silent." Only `tsc` catches these, which means `glyph check --no-tsc` accepts
+  them.
+
+  **It is a hole in impact analysis before it is a hole in the checker.** Change a
+  function's parameter type and the call sites passing a named type are neither
+  broken nor proved safe. An impact answer that lists them as unaffected would be
+  asserting something the compiler never established, so the honest verdict for
+  that whole class is `NOT_INDEXED`, and 0.1.112's propagation table records it
+  that way.
+
+  The narrower fix is an arm pairing `Ty::Named` with `Ty::Prim`, which is
+  decidable: a declared union or record is never a `string`. The wider question,
+  how much of assignability should become decidable, is a separate decision and
+  is not owed by the release that found this.
+
+  *Reproduced against 0.1.111 on a two-call program: the named-type argument is
+  silent and the primitive control reports E0211 at `main::control`.*

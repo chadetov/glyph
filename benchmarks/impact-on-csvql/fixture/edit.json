@@ -1,0 +1,34 @@
+{
+  "app": "examples/apps/csvql",
+  "union": {
+    "path": "value.glyph",
+    "name": "Value"
+  },
+  "proposed_variant": "Blob",
+  "edit": {
+    "file": "value.glyph",
+    "after_line": "  | Null",
+    "insert": "  | Blob({ bytes: number })"
+  },
+  "expected": {
+    "files": 4,
+    "sites": 10,
+    "will_fail": [
+      "bind::literal_kind",
+      "value::is_null",
+      "value::is_num",
+      "value::key",
+      "value::num_of",
+      "value::rank",
+      "value::render",
+      "value::text_of"
+    ],
+    "absorbs": [
+      "exec::total",
+      "render::literal_text"
+    ]
+  },
+  "recorded_against": "0.1.110",
+  "first_observed_against": "0.1.108",
+  "note": "Entities, not line numbers. A line number is not an identity; it moves under any edit above the site, and `module::name` is what the tool and the diagnostics both carry. Re-derive this block by hand if csvql's match sites change, and say which release you re-derived it on."
+}

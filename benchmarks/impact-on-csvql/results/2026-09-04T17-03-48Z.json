@@ -1,0 +1,231 @@
+{
+  "timestamp": "2026-09-04T17-03-48Z",
+  "glyph_version": "glyph 0.1.110",
+  "app": "examples/apps/csvql",
+  "union": "value.glyph::Value",
+  "proposed_variant": "Blob",
+  "clean_before_the_edit": {
+    "diagnostics": 0,
+    "seconds": 0.077
+  },
+  "prediction": {
+    "call": {
+      "tool": "glyph_variants",
+      "arguments": {
+        "path": "value.glyph",
+        "name": "Value",
+        "proposed_variant": "Blob"
+      }
+    },
+    "summary": {
+      "consequences": {
+        "ABSORBS": 2,
+        "UNDETERMINED": 0,
+        "WILL_FAIL": 8
+      },
+      "files": 4,
+      "lines": [
+        "10 match sites across 4 files",
+        " 8 will fail compilation",
+        " 2 contain a catch-all and will silently absorb it"
+      ],
+      "not_counted": [],
+      "sites": 10
+    },
+    "unindexed": [],
+    "will_fail": [
+      "bind::literal_kind",
+      "value::is_null",
+      "value::is_num",
+      "value::key",
+      "value::num_of",
+      "value::rank",
+      "value::render",
+      "value::text_of"
+    ],
+    "absorbs": [
+      "exec::total",
+      "render::literal_text"
+    ],
+    "union_variants_before_the_edit": [
+      "Text",
+      "Num",
+      "Bool",
+      "Null"
+    ],
+    "seconds": 0.035,
+    "listing": [
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "bind.glyph:148",
+        "declaration": "bind::literal_kind"
+      },
+      {
+        "consequence": "ABSORBS",
+        "state": "has_catch_all",
+        "location": "exec.glyph:130",
+        "declaration": "exec::total"
+      },
+      {
+        "consequence": "ABSORBS",
+        "state": "has_catch_all",
+        "location": "render.glyph:128",
+        "declaration": "render::literal_text"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:18",
+        "declaration": "value::render"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:32",
+        "declaration": "value::key"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:44",
+        "declaration": "value::is_null"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:53",
+        "declaration": "value::is_num"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:62",
+        "declaration": "value::rank"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:71",
+        "declaration": "value::num_of"
+      },
+      {
+        "consequence": "WILL_FAIL",
+        "state": "exhaustive",
+        "location": "value.glyph:83",
+        "declaration": "value::text_of"
+      }
+    ]
+  },
+  "search_alone": {
+    "method": "grep for `else =>` / `_ =>` across the app, hit attributed to its enclosing named fn",
+    "hits": 20,
+    "hits_in_a_value_match_site": [
+      "exec.glyph:133",
+      "render.glyph:131"
+    ],
+    "precision": 0.1,
+    "listing": [
+      {
+        "declaration": "bind::resolve",
+        "location": "bind.glyph:118"
+      },
+      {
+        "declaration": "bind::is_numeric",
+        "location": "bind.glyph:142"
+      },
+      {
+        "declaration": "bind::family",
+        "location": "bind.glyph:170"
+      },
+      {
+        "declaration": "bind::agg_result_kind",
+        "location": "bind.glyph:226"
+      },
+      {
+        "declaration": "bind::needs_numbers",
+        "location": "bind.glyph:237"
+      },
+      {
+        "declaration": "csv::split_records",
+        "location": "csv.glyph:128"
+      },
+      {
+        "declaration": "exec::holds",
+        "location": "exec.glyph:63"
+      },
+      {
+        "declaration": "exec::total",
+        "location": "exec.glyph:133"
+      },
+      {
+        "declaration": "exec::aggregate",
+        "location": "exec.glyph:175"
+      },
+      {
+        "declaration": "main::parse_args",
+        "location": "main.glyph:163"
+      },
+      {
+        "declaration": "render::right_aligned",
+        "location": "render.glyph:48"
+      },
+      {
+        "declaration": "render::result_lines",
+        "location": "render.glyph:117"
+      },
+      {
+        "declaration": "render::literal_text",
+        "location": "render.glyph:131"
+      },
+      {
+        "declaration": "sql::op_text",
+        "location": "sql.glyph:137"
+      },
+      {
+        "declaration": "sql::agg_of",
+        "location": "sql.glyph:431"
+      },
+      {
+        "declaration": "sql::parse_operand",
+        "location": "sql.glyph:505"
+      },
+      {
+        "declaration": "sql::parse_op",
+        "location": "sql.glyph:535"
+      },
+      {
+        "declaration": "sql::parse",
+        "location": "sql.glyph:701"
+      },
+      {
+        "declaration": "table::parse_bool",
+        "location": "table.glyph:74"
+      },
+      {
+        "declaration": "value::cmp",
+        "location": "value.glyph:112"
+      }
+    ]
+  },
+  "after_the_edit": {
+    "edit": "value.glyph: | Blob({ bytes: number })",
+    "diagnostics": 8,
+    "e0200": 8,
+    "e0200_entities": [
+      "bind::literal_kind",
+      "value::is_null",
+      "value::is_num",
+      "value::key",
+      "value::num_of",
+      "value::rank",
+      "value::render",
+      "value::text_of"
+    ],
+    "other_diagnostics": [],
+    "absorbing_sites_mentioned_anywhere": [],
+    "seconds": 0.069
+  },
+  "failures": [],
+  "ok": true
+}

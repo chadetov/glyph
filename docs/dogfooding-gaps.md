@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-200 entries, 147 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-34 are open. G144, the D28 boundary cast that never reached the returns a
+200 entries, 149 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+32 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7399,7 +7399,7 @@ and is the owner's to confirm.
   with no search, and the type name and missing variants appear in no structured
   field of the diagnostic.*
 
-- **G196. Nothing tests that the loop closes.** It has been walked by hand,
+- **G196. [FIXED] Nothing tests that the loop closes.** It has been walked by hand,
   once, on one union, with the result recorded above. There is no committed
   test that an edit produces a diagnostic, that the diagnostic reaches a query
   without a search, that the query names a site the diagnostic did not, and that
@@ -7420,7 +7420,29 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108 by walking the loop manually; no automated
   counterpart exists under `tests/` or `benchmarks/`.*
 
-- **G197. Nothing tests the surface an agent actually talks to.** Every MCP test
+  **Closed by `crates/glyph-cli/tests/agent_loop.rs`.** Two tests, and the
+  second is the one that matters. `the_repair_loop_closes_with_every_hop_fed_from_the_previous_answer`
+  walks the whole loop over the real surfaces: the edit, `glyph check --json`,
+  the union identity and the missing variant read out of the diagnostic's
+  `union` and `missing_variants` fields, `glyph_variants` over a spawned
+  `glyph mcp`, and an arm inserted at each `path` and `line` the answer
+  returned. `repairing_only_what_the_compiler_reported_leaves_the_absorbing_site_behind`
+  is the other half: fix every diagnostic and the tree is green with one site
+  still routing the new variant into its catch-all, which is the argument for
+  the query in one assertion.
+
+  The honesty problem the entry names is handled structurally rather than by
+  intention. The fixture is a private module that hands the tests paths and
+  counts and nothing else, so a test cannot spell the union, its module, or the
+  variant: those identifiers are not in scope. The names also carry a per-run
+  suffix, so a hard-coded one fails instead of passing quietly. Checked by
+  mutation, three ways: hard-coding the union's name fails (`declares no
+  top-level name`), inserting the arm at the line the answer named instead of
+  after it fails, and repairing only the sites the compiler reported fails on
+  the assertion that the edit went where the answer pointed. That last one is
+  the important mutation, because the tree stays green through it.
+
+- **G197. [FIXED] Nothing tests the surface an agent actually talks to.** Every MCP test
   calls `handle(&req, server)` in process. That covers the request and response
   shapes, and it stops at the dispatcher. No test starts `glyph mcp`, writes a
   line to its stdin and reads one back, which is the only thing a real client
@@ -7445,6 +7467,22 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.108: `grep -c instructions` over `mcp.rs` returns 2,
   both in the definition; no test spawns `glyph mcp`.*
+
+  **Confirmed before it was fixed, and it was worse than a grep count.** The
+  field was deleted from `initialize_result` and the whole suite run: 1312
+  passed, 0 failed, exit 0. Nothing anywhere held that string.
+
+  **Closed by `crates/glyph-cli/tests/agent_loop.rs`,** which starts `glyph mcp`
+  as a process and speaks to it over a pipe. Four tests cover the transport:
+  the handshake as an ordered exchange (each line written only once the
+  previous answer is in hand, and the id checked against the request's own),
+  `initialize` carrying `instructions` that name `glyph --update`,
+  `glyph upgrade`, `glyph llms` and `glyph_variants`, one `tools/call` answered
+  from the project on disk, and three lines that are not requests (malformed
+  JSON, an empty line, a bare array) answered with nothing while the server
+  stays up. The instructions test was run against the build with the field
+  deleted and fails there, which is what says it closes the hole rather than
+  describing it.
 
 - **G198. The answer is a list; the summary is the caller's problem.** Asked
   about a union with ten match sites, the reply is ten entries each carrying a

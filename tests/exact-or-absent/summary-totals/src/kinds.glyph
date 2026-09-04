@@ -1,0 +1,21 @@
+module kinds
+
+pub type Kind =
+  | Open
+  | Closed
+
+// Names every variant, so adding one stops this site compiling.
+pub fn label(k: Kind) -> string {
+  return match k {
+    Open => "o",
+    Closed => "c",
+  }
+}
+
+// A catch-all absorbs the new variant and nothing reports it.
+pub fn is_open(k: Kind) -> bool {
+  return match k {
+    Open => true,
+    else => false,
+  }
+}

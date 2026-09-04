@@ -1,0 +1,16 @@
+// The module line disagrees with where the file sits, so nothing this file
+// declares can be keyed. Its `Kind` is a namesake of the one next door and the
+// relation never joined the two, which is what makes the site below countable
+// by nobody: it is neither part of the total nor absent from the answer.
+module elsewhere/kinds
+
+pub type Kind =
+  | Open
+  | Closed
+
+pub fn spell(k: Kind) -> string {
+  return match k {
+    Open => "open",
+    Closed => "closed",
+  }
+}

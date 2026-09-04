@@ -328,12 +328,26 @@ enum GenTarget {
 fn run_examples_across(
     tree: &glyph_cli::build::TreeReport,
 ) -> Result<glyph_cli::examples::ExampleReport, glyph_cli::examples::ExampleError> {
+    let srcs: Vec<std::path::PathBuf> = tree
+        .projects
+        .iter()
+        .map(|p| p.project.src.clone())
+        .collect();
+    run_examples_for(&srcs)
+}
+
+/// The same gate over a list of project source roots, which is the shape
+/// `glyph check` has (a `CheckReport` carries `project_srcs`, not a tree).
+/// One runner, so the two commands cannot drift apart on what the gate did.
+fn run_examples_for(
+    srcs: &[std::path::PathBuf],
+) -> Result<glyph_cli::examples::ExampleReport, glyph_cli::examples::ExampleError> {
     let mut merged = glyph_cli::examples::ExampleReport {
         ran: true,
         ..Default::default()
     };
-    for p in &tree.projects {
-        let r = glyph_cli::examples::run_examples(&p.project.src)?;
+    for src in srcs {
+        let r = glyph_cli::examples::run_examples(src)?;
         merged.total += r.total;
         merged.failures.extend(r.failures);
         merged.ran &= r.ran;
@@ -352,38 +366,45 @@ fn run_examples_across(
 /// same source, and the fast edit-run loop reported success on code whose own
 /// examples were failing. The guide says the three never disagree.
 fn report_examples_for(srcs: &[std::path::PathBuf], command: &str) -> bool {
-    let mut total = 0usize;
-    let mut failures: Vec<String> = Vec::new();
-    let mut ran = true;
-    for src in srcs {
-        match glyph_cli::examples::run_examples(src) {
-            Ok(r) => {
-                total += r.total;
-                failures.extend(r.failures);
-                ran &= r.ran;
-            }
-            Err(e) => {
-                eprintln!("glyph {command}: could not run examples: {e}");
-                return true;
-            }
+    let report = match run_examples_for(srcs) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("glyph {command}: could not run examples: {e}");
+            return true;
         }
+    };
+    // The order is `glyph build`'s, gate for gate. Two of these branches did
+    // not exist here, and each was a way for this command to sign off on a
+    // tree `build` fails: a project whose augmented copy did not compile was
+    // reported as "N example(s) passed", and a project carrying only a
+    // malformed `@example` was reported as a missing `tsx`.
+    for f in &report.failures {
+        eprintln!("glyph {command}: example failed: {}", f.message);
     }
-    if !ran {
+    if let Some(diags) = &report.build_failed {
+        for d in diags {
+            eprintln!("{d}");
+        }
+        eprintln!("glyph {command}: examples did not compile");
+        return true;
+    }
+    if !report.ran && report.total > 0 {
         eprintln!(
             "glyph {command}: `tsx` not found on PATH, so the @example tests could not run. \
              Install it (`npm install -g tsx`), or pass `--no-test`."
         );
         return true;
     }
-    for f in &failures {
-        eprintln!("glyph {command}: example failed: {f}");
-    }
-    if !failures.is_empty() {
-        eprintln!("glyph {command}: {} of {total} example(s) failed.", failures.len());
+    if !report.failures.is_empty() {
+        eprintln!(
+            "glyph {command}: {} of {} example(s) failed.",
+            report.failures.len(),
+            report.total
+        );
         return true;
     }
-    if total > 0 {
-        eprintln!("glyph {command}: {total} example(s) passed.");
+    if report.total > 0 {
+        eprintln!("glyph {command}: {} example(s) passed.", report.total);
     }
     false
 }
@@ -435,7 +456,27 @@ fn main() {
             match glyph_cli::check::check_path(&target, with_color, !no_tsc) {
                 Ok(report) => {
                     if json {
-                        emit_check_json(&report);
+                        // The `@example` gate runs *before* the JSON is
+                        // emitted, because `emit_check_json` diverges: it
+                        // exits the process, so anything below it never ran on
+                        // this path. That is how `--json` came to report
+                        // `{"ok": true, "errors": 0}` and exit 0 on the same
+                        // source, with the same flags, that the text path
+                        // exits 1 on (G183). Skipped on exactly the two
+                        // conditions that stop the text path before its own
+                        // gate: errors already found, and a `tsc` that was
+                        // asked for and is not there.
+                        let blocked = report.has_errors()
+                            || matches!(report.tsc, glyph_cli::runtime::TscOutcome::NotFound);
+                        let examples = if no_test || blocked {
+                            ExamplesOutcome::Skipped
+                        } else {
+                            match run_examples_for(&report.project_srcs) {
+                                Ok(r) => ExamplesOutcome::Ran(r),
+                                Err(e) => ExamplesOutcome::Failed(e.to_string()),
+                            }
+                        };
+                        emit_check_json(&report, &examples);
                     }
                     for notice in &report.notices {
                         eprintln!("glyph check: {notice}");
@@ -1162,7 +1203,7 @@ fn run_build_once(
             match run_examples_across(&tree) {
                 Ok(ex) => {
                     for f in &ex.failures {
-                        eprintln!("glyph build: example failed: {f}");
+                        eprintln!("glyph build: example failed: {}", f.message);
                     }
                     if let Some(diags) = &ex.build_failed {
                         for d in diags {
@@ -1300,30 +1341,47 @@ fn run_build_watch(
 /// Print a check's diagnostics as a JSON object on stdout and exit.
 ///
 /// Deliberately the same key names `glyph build --json` uses (`ok`, `errors`,
-/// `warnings`, `tsc`, `diagnostics`), minus `emitted` and `examples`, which a
+/// `warnings`, `tsc`, `diagnostics`, `examples`), minus `emitted`, which a
 /// check does not produce. One shape, so a tool that reads one reads the other.
 /// Diverges: control never returns to the text path.
-fn emit_check_json(report: &glyph_cli::check::CheckReport) -> ! {
-    let errors = report.error_count;
-    let ok = errors == 0 && !matches!(report.tsc, glyph_cli::runtime::TscOutcome::NotFound);
+///
+/// `examples` is not decoration. `glyph check`'s promise is that it cannot
+/// report a clean tree `glyph build` would fail, and this function exits the
+/// process, so the gate the text path runs below it never ran here at all: a
+/// false `@example` gave `{"ok": true, "errors": 0}` and exit 0 from the
+/// agent-facing channel and `example failed: main::add example #1` and exit 1
+/// from the human one, on one program. A failing example is an error here, in
+/// `errors`, in `ok`, and in the exit code.
+fn emit_check_json(
+    report: &glyph_cli::check::CheckReport,
+    examples: &ExamplesOutcome,
+) -> ! {
+    let (examples_json, example_errors) = examples_to_json(examples);
+    let errors = report.error_count + example_errors;
+    let tsc_unavailable = matches!(report.tsc, glyph_cli::runtime::TscOutcome::NotFound);
+    let ok = errors == 0 && !tsc_unavailable;
     let value = serde_json::json!({
         "ok": ok,
         "errors": errors,
         "warnings": report.warning_count(),
         "tsc": report.tsc_status(),
         "diagnostics": report.structured,
+        "examples": examples_json,
     });
     println!(
         "{}",
         serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
     );
-    // Mirrors the text path: errors exit 1, a stage that could not run exits 2.
-    std::process::exit(if errors > 0 {
+    // The text path's own branches, in its own order: errors exit 1, a `tsc`
+    // that was asked for and is missing exits 2, a failing gate exits 1.
+    std::process::exit(if report.error_count > 0 {
         1
-    } else if ok {
-        0
-    } else {
+    } else if tsc_unavailable {
         2
+    } else if example_errors > 0 {
+        1
+    } else {
+        0
     });
 }
 
@@ -1415,6 +1473,9 @@ fn emit_build_json(
 /// it contributes. A gate that could not run (no `tsx`) counts as an error on a
 /// project that has examples, the same way a missing `tsc` fails the build.
 fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
+    use glyph_cli::examples::{
+        ExampleFailure, E_EXAMPLES_NOT_COMPILED, E_EXAMPLES_NOT_RUN,
+    };
     match examples {
         ExamplesOutcome::Skipped => (
             serde_json::json!({
@@ -1430,21 +1491,38 @@ fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
                 "total": 0,
                 "ran": false,
                 "skipped": false,
-                "failures": [format!("failed to run examples: {msg}")],
+                "failures": [ExampleFailure::gate(
+                    E_EXAMPLES_NOT_RUN,
+                    format!("failed to run examples: {msg}"),
+                )],
             }),
             1,
         ),
         ExamplesOutcome::Ran(ex) => {
-            let mut failures: Vec<String> = ex.failures.clone();
+            // Each failure keeps the `module::name` it belongs to, so an agent
+            // reading this channel can act on it without regexing a sentence
+            // apart. The gate's own troubles (a copy that would not compile, a
+            // missing `tsx`) belong to no declaration and say so.
+            let mut failures: Vec<ExampleFailure> = ex.failures.clone();
             if let Some(diags) = &ex.build_failed {
-                failures.push("examples did not compile".to_string());
-                failures.extend(diags.iter().cloned());
+                failures.push(ExampleFailure::gate(
+                    E_EXAMPLES_NOT_COMPILED,
+                    "examples did not compile".to_string(),
+                ));
+                failures.extend(
+                    diags
+                        .iter()
+                        .map(|d| ExampleFailure::gate(E_EXAMPLES_NOT_COMPILED, d.clone())),
+                );
             }
             if !ex.ran && ex.total > 0 {
-                failures.push(format!(
-                    "{} example(s) not run: tsx was not found on PATH \
-                     (install tsx, or pass --no-test)",
-                    ex.total
+                failures.push(ExampleFailure::gate(
+                    E_EXAMPLES_NOT_RUN,
+                    format!(
+                        "{} example(s) not run: tsx was not found on PATH \
+                         (install tsx, or pass --no-test)",
+                        ex.total
+                    ),
                 ));
             }
             let count = failures.len();

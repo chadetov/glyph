@@ -29,14 +29,96 @@ pub enum ExampleError {
     },
 }
 
+/// A failed equality or a thrown example.
+pub const E_EXAMPLE_FAILED: &str = "E0400";
+/// A ` ```glyph @run ``` ` block that threw.
+pub const E_DOC_RUN_FAILED: &str = "E0401";
+/// An `@example` whose argument is not a Glyph expression.
+pub const E_EXAMPLE_MALFORMED: &str = "E0402";
+/// The augmented project carrying the tests did not compile.
+pub const E_EXAMPLES_NOT_COMPILED: &str = "E0403";
+/// The gate could not run at all (`tsx` is absent from `PATH`).
+pub const E_EXAMPLES_NOT_RUN: &str = "E0404";
+
+/// One failed test, with the declaration it belongs to kept as structure.
+///
+/// The runner has always known which declaration a failure is about:
+/// `ExampleCase::decl` plus the module path is exactly the `module::name`
+/// identity the rest of the compiler uses. It used to render that identity
+/// into a sentence and hand the caller the sentence, so every machine-facing
+/// consumer had to parse it back out of prose whose shape nothing guaranteed.
+/// The identity travels as itself now; `message` is rendered from it, so the
+/// human output is unchanged.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ExampleFailure {
+    /// Stable code for what went wrong (`E04xx`).
+    pub code: String,
+    /// The `module::name` of the declaration this test sits on, in the same
+    /// spelling a `--json` diagnostic's `entity` uses. `None` for a failure
+    /// that belongs to no single declaration (the gate itself could not run).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entity: Option<String>,
+    /// `"example"`, `"doc-run"`, or `"gate"`.
+    pub kind: String,
+    /// 1-based position among that declaration's own tests of this kind.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nth: Option<usize>,
+    /// What went wrong, carrying no identity prefix of its own.
+    pub detail: String,
+    /// The one-line rendering the text path prints.
+    pub message: String,
+}
+
+impl ExampleFailure {
+    /// A failure that belongs to no declaration: the gate itself could not run,
+    /// or the augmented project did not compile.
+    pub fn gate(code: &str, detail: String) -> Self {
+        ExampleFailure {
+            code: code.to_string(),
+            entity: None,
+            kind: "gate".to_string(),
+            nth: None,
+            message: detail.clone(),
+            detail,
+        }
+    }
+
+    fn malformed(module_path: &str, decl: &str, args: &str) -> Self {
+        let entity = qualified(module_path, decl);
+        let detail = format!("malformed @example `{args}`");
+        ExampleFailure {
+            code: E_EXAMPLE_MALFORMED.to_string(),
+            message: format!("{entity}: {detail}"),
+            entity: Some(entity),
+            kind: "example".to_string(),
+            nth: None,
+            detail,
+        }
+    }
+
+    /// A `FAIL` line the harness printed that no entry in the identity table
+    /// claims. Only reachable if the generator and the parser below disagree,
+    /// which is why the line is still reported rather than dropped.
+    fn unattributed(detail: String) -> Self {
+        ExampleFailure {
+            code: E_EXAMPLE_FAILED.to_string(),
+            entity: None,
+            kind: "example".to_string(),
+            nth: None,
+            message: detail.clone(),
+            detail,
+        }
+    }
+}
+
 /// Outcome of running a project's `@example`s.
 #[derive(Debug, Default)]
 pub struct ExampleReport {
     /// Total examples found across the project.
     pub total: usize,
-    /// Human-readable failure lines (a failed equality, a thrown example, or a
-    /// malformed `@example` that did not parse).
-    pub failures: Vec<String>,
+    /// Every failure: a failed equality, a thrown example or `@run` block, or a
+    /// malformed `@example` that did not parse.
+    pub failures: Vec<ExampleFailure>,
     /// False when execution was skipped because `tsx` is not on PATH.
     pub ran: bool,
     /// Set when the augmented project failed to compile; carries its
@@ -103,25 +185,36 @@ fn qualified(module_path: &str, decl: &str) -> String {
     format!("{module_path}::{decl}")
 }
 
-impl ExampleCase {
-    /// How a failure names this example: `orders/pricing::total example #2`.
-    fn label(&self, module_path: &str) -> String {
-        format!(
-            "{} example #{}",
-            qualified(module_path, &self.decl),
-            self.nth
-        )
-    }
+/// The identity of one test in the generated harness, in the order the harness
+/// runs them.
+///
+/// The harness reports a failure by its index into this table rather than by
+/// printing a label, so the identity crosses the process boundary as itself
+/// and is never re-parsed out of the line `tsx` printed.
+struct TestId {
+    code: &'static str,
+    /// `orders/pricing::total`.
+    entity: String,
+    /// `"example"` or `"doc-run"`.
+    kind: &'static str,
+    nth: usize,
 }
 
-impl DocRun {
-    /// How a failure names this block: `orders/pricing::total doc-run #1`.
-    fn label(&self, module_path: &str) -> String {
-        format!(
-            "{} doc-run #{}",
-            qualified(module_path, &self.decl),
-            self.nth
-        )
+impl TestId {
+    /// How a failure names this test: `orders/pricing::total example #2`.
+    fn label(&self) -> String {
+        format!("{} {} #{}", self.entity, self.kind, self.nth)
+    }
+
+    fn failure(&self, detail: String) -> ExampleFailure {
+        ExampleFailure {
+            code: self.code.to_string(),
+            entity: Some(self.entity.clone()),
+            kind: self.kind.to_string(),
+            nth: Some(self.nth),
+            message: format!("{}: {detail}", self.label()),
+            detail,
+        }
     }
 }
 
@@ -181,11 +274,9 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
     };
     for fe in &per_file {
         for m in &fe.malformed {
-            report.failures.push(format!(
-                "{}: malformed @example `{}`",
-                qualified(&fe.module_path, &m.decl),
-                m.args
-            ));
+            report
+                .failures
+                .push(ExampleFailure::malformed(&fe.module_path, &m.decl, &m.args));
         }
     }
     if total == 0 {
@@ -205,6 +296,14 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
     if root.exists() {
         remove_dir_all(&root)?;
     }
+    // Remove it again on the way out, whichever way we leave. Every path below
+    // can return early through `?`, so cleanup cannot sit at the end of the
+    // function: it has to be a drop. Without this the copy survived the run,
+    // and since the gate is on by default for `glyph check` and `glyph build`,
+    // a project with one `@example` left a full copy of itself in the temp
+    // directory on every invocation. Four thousand of them had accumulated on
+    // one machine before anybody looked.
+    let _cleanup = TempProject(root.clone());
     copy_dir(src, &tsrc)?;
     for fe in &per_file {
         if fe.cases.is_empty() && fe.runs.is_empty() {
@@ -235,8 +334,9 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
         return Ok(report);
     }
 
-    // Generate and run the harness.
-    let harness = generate_harness(&per_file);
+    // Generate and run the harness. `ids` is how a `FAIL` line maps back to
+    // the declaration it is about.
+    let (harness, ids) = generate_harness(&per_file);
     write(&tout.join("__glyph_examples.ts"), &harness)?;
     let tsconfig = tout.join("tsconfig.json");
     let entry = tout.join("__glyph_examples.ts");
@@ -249,9 +349,25 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
         Ok(out) => {
             let stdout = String::from_utf8_lossy(&out.stdout);
             for line in stdout.lines() {
-                if let Some(rest) = line.strip_prefix("FAIL ") {
-                    report.failures.push(rest.to_string());
-                }
+                let Some(rest) = line.strip_prefix("FAIL ") else {
+                    continue;
+                };
+                // `<index>\t<detail>`: the index is ours, minted alongside the
+                // harness, so the identity is looked up rather than recovered
+                // from the text. Splitting on the first tab only, because a
+                // thrown error's own message may carry one.
+                let attributed = match rest.split_once('\t') {
+                    Some((index, detail)) => index
+                        .parse::<usize>()
+                        .ok()
+                        .and_then(|i| ids.get(i))
+                        .map(|id| id.failure(detail.to_string())),
+                    None => None,
+                };
+                report.failures.push(
+                    attributed
+                        .unwrap_or_else(|| ExampleFailure::unattributed(rest.to_string())),
+                );
             }
             Ok(report)
         }
@@ -376,8 +492,9 @@ fn decl_target(d: &Decl) -> Option<(&str, &[glyph_ast::Annotation])> {
 
 /// The TypeScript harness: import each module's example functions, deep-compare
 /// the two sides, and exit non-zero on any mismatch.
-fn generate_harness(per_file: &[FileExamples]) -> String {
+fn generate_harness(per_file: &[FileExamples]) -> (String, Vec<TestId>) {
     let mut out = String::new();
+    let mut ids: Vec<TestId> = Vec::new();
     out.push_str("import \"./.glyph-runtime/glyph-bootstrap.ts\";\n");
     let with_tests: Vec<&FileExamples> = per_file
         .iter()
@@ -390,7 +507,13 @@ fn generate_harness(per_file: &[FileExamples]) -> String {
     out.push_str("let failed = 0;\nlet total = 0;\n");
     for (k, fe) in with_tests.iter().enumerate() {
         for (i, case) in fe.cases.iter().enumerate() {
-            let label = js_string(&case.label(&fe.module_path));
+            let t = ids.len();
+            ids.push(TestId {
+                code: E_EXAMPLE_FAILED,
+                entity: qualified(&fe.module_path, &case.decl),
+                kind: "example",
+                nth: case.nth,
+            });
             let detail = js_string(&format!(
                 "({}) != ({})",
                 one_line(&case.lhs),
@@ -398,22 +521,28 @@ fn generate_harness(per_file: &[FileExamples]) -> String {
             ));
             out.push_str(&format!(
                 "total++;\ntry {{\n  const __e = m{k}.__glyph_example_{i}();\n  \
-                 if (!deepEqual(__e.lhs, __e.rhs)) {{ console.log(\"FAIL \" + {label} + \": \" + {detail}); failed++; }}\n\
-                 }} catch (err) {{ console.log(\"FAIL \" + {label} + \": threw \" + String(err)); failed++; }}\n"
+                 if (!deepEqual(__e.lhs, __e.rhs)) {{ console.log(\"FAIL {t}\\t\" + {detail}); failed++; }}\n\
+                 }} catch (err) {{ console.log(\"FAIL {t}\\tthrew \" + String(err)); failed++; }}\n"
             ));
         }
         for (i, run) in fe.runs.iter().enumerate() {
-            let label = js_string(&run.label(&fe.module_path));
+            let t = ids.len();
+            ids.push(TestId {
+                code: E_DOC_RUN_FAILED,
+                entity: qualified(&fe.module_path, &run.decl),
+                kind: "doc-run",
+                nth: run.nth,
+            });
             out.push_str(&format!(
                 "total++;\ntry {{\n  m{k}.__glyph_run_{i}();\n\
-                 }} catch (err) {{ console.log(\"FAIL \" + {label} + \": \" + String(err)); failed++; }}\n"
+                 }} catch (err) {{ console.log(\"FAIL {t}\\t\" + String(err)); failed++; }}\n"
             ));
         }
     }
     out.push_str(
         "console.log(\"__GLYPH_EXAMPLES__ \" + total + \" \" + failed);\nprocess.exit(failed ? 1 : 0);\n",
     );
-    out
+    (out, ids)
 }
 
 /// A structural-equality helper used by the harness.
@@ -474,6 +603,19 @@ fn write(path: &Path, contents: &str) -> Result<(), ExampleError> {
         path: path.to_path_buf(),
         source: e,
     })
+}
+
+/// Removes the throwaway project copy when the run leaves, successfully or not.
+///
+/// A failure to clean up is deliberately silent: the run's own result is what
+/// the caller asked for, and losing it to report a temp-directory problem would
+/// trade a real answer for a janitorial one.
+struct TempProject(std::path::PathBuf);
+
+impl Drop for TempProject {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
 }
 
 fn remove_dir_all(path: &Path) -> Result<(), ExampleError> {
@@ -593,17 +735,32 @@ fn triple(n: number) -> number { return n * 3 }
         }
     }
 
-    /// Every `FAIL` line the generated harness can print, as `(label, rest of
-    /// the message)`. Assumes no test expression contains `);`.
+    /// Every `FAIL` line the generated harness can print, as `(label, the
+    /// static part of the detail)`. The label is *not* read out of the harness
+    /// any more: the harness prints an index, and the label comes from the
+    /// identity table minted beside it, which is exactly the path
+    /// `run_examples` takes. Assumes no test expression contains `);`.
     fn fail_lines(source: &str) -> Vec<(String, String)> {
-        let harness = generate_harness(&[file_examples("main", source)]);
+        let (harness, ids) = generate_harness(&[file_examples("main", source)]);
         let mut out = Vec::new();
-        for seg in harness.split("console.log(\"FAIL \" + ").skip(1) {
+        for seg in harness.split("console.log(\"FAIL ").skip(1) {
             let call = &seg[..seg.find(");").expect("a complete console.log call")];
-            // The odd-indexed pieces of a `"` split are the string literals.
-            let mut lits = call.split('"').skip(1).step_by(2);
-            let label = lits.next().expect("a label literal").to_string();
-            out.push((label, lits.collect::<Vec<_>>().join("")));
+            // The opening quote was consumed by the split, so the first piece
+            // of a `"` split is still inside the literal, and every second
+            // piece after it is another literal.
+            let mut pieces = call.split('"');
+            let head = pieces.next().expect("the FAIL literal continues");
+            let (idx, first) = head
+                .split_once("\\t")
+                .expect("the index is tab-separated from the detail");
+            let id = &ids[idx.parse::<usize>().expect("a numeric test index")];
+            let mut detail = first.to_string();
+            for (i, piece) in pieces.enumerate() {
+                if i % 2 == 1 {
+                    detail.push_str(piece);
+                }
+            }
+            out.push((id.label(), detail));
         }
         out
     }
@@ -623,6 +780,24 @@ fn triple(n: number) -> number { return n * 3 }
         labels.dedup();
         let expected = ["main::double example #1", "main::triple example #1"];
         assert_eq!(labels, expected);
+    }
+
+    /// The identity a failure carries is structure, not a sentence to parse.
+    /// `--json` consumers read `entity`/`nth`/`code` off the failure; the
+    /// prose `message` is rendered from those, not the other way round.
+    #[test]
+    fn a_failure_carries_the_declaration_as_structure() {
+        let (_harness, ids) = generate_harness(&[file_examples("orders/pricing", ONE_EACH)]);
+        let f = ids[1].failure("(triple(2)) != (7)".to_string());
+        assert_eq!(f.entity.as_deref(), Some("orders/pricing::triple"));
+        assert_eq!(f.nth, Some(1));
+        assert_eq!(f.kind, "example");
+        assert_eq!(f.code, E_EXAMPLE_FAILED);
+        assert_eq!(f.detail, "(triple(2)) != (7)");
+        assert_eq!(
+            f.message,
+            "orders/pricing::triple example #1: (triple(2)) != (7)"
+        );
     }
 
     #[test]

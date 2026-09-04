@@ -3807,8 +3807,14 @@ fn examples_run_and_report_pass_and_fail() {
         report.failures
     );
     assert!(
-        report.failures[0].contains("add(1, 1)"),
+        report.failures[0].detail.contains("add(1, 1)"),
         "failure should name the bad example: {:?}",
+        report.failures
+    );
+    assert_eq!(
+        report.failures[0].entity.as_deref(),
+        Some("calc::add"),
+        "the failure carries the declaration it is about: {:?}",
         report.failures
     );
 }
@@ -3881,8 +3887,13 @@ fn doc_run_blocks_execute_and_assert() {
         report.failures
     );
     assert!(
-        report.failures[0].contains("doc-run"),
+        report.failures[0].message.contains("doc-run"),
         "{:?}",
+        report.failures
+    );
+    assert_eq!(
+        report.failures[0].kind, "doc-run",
+        "the kind is structure, not a substring of the message: {:?}",
         report.failures
     );
 }
@@ -7143,15 +7154,101 @@ fn failing_example_is_visible_under_json() {
         .unwrap_or_else(|| panic!("examples.failures must be an array: {v}"));
     assert_eq!(failures.len(), 1, "the failure is listed: {v}");
     assert!(
-        failures[0]
+        failures[0]["detail"]
             .as_str()
             .unwrap_or_default()
             .contains("double(2)"),
         "the failure names the example: {v}"
     );
+    assert_eq!(
+        failures[0]["entity"],
+        serde_json::json!("calc::double"),
+        "the failure carries the declaration it is about: {v}"
+    );
+    assert_eq!(
+        failures[0]["code"],
+        serde_json::json!("E0400"),
+        "the failure carries a stable code: {v}"
+    );
     assert!(
         v["errors"].as_u64().unwrap_or(0) >= 1,
         "an example failure counts as an error: {v}"
+    );
+}
+
+/// G183: `glyph check --json` reported a clean tree on a program plain `glyph
+/// check` failed. `emit_check_json` diverged (it exits the process) before the
+/// `@example` gate ran, so the agent-facing channel printed `{"ok": true,
+/// "errors": 0}` and exited 0 on the same source, with the same flags, that the
+/// human path exited 1 on. The two paths are one command; they answer the same.
+///
+/// The failure also has to arrive as structure, not prose: a code, the
+/// `module::name` declaration it belongs to, and the detail. An agent that has
+/// to regex "example failed: main::add example #1" back apart is being handed
+/// the identity the runner already had and threw away.
+#[test]
+fn failing_example_is_visible_under_check_json() {
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("checkexjson");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "@example add(2, 2) == 5\n\
+         pub fn add(a: number, b: number) -> number { return a + b }\n",
+    );
+
+    // The human path fails, and this test is only meaningful while it does.
+    let (text_code, _text_out, text_err, _pid) = spawn_glyph(&[
+        "check".as_ref(),
+        src.as_os_str(),
+        "--no-tsc".as_ref(),
+    ]);
+    assert_eq!(
+        text_code, 1,
+        "the text path must fail on a false @example: {text_err}"
+    );
+
+    let (code, stdout, stderr, _pid) = spawn_glyph(&[
+        "check".as_ref(),
+        src.as_os_str(),
+        "--no-tsc".as_ref(),
+        "--json".as_ref(),
+    ]);
+    let v: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("stdout must be JSON ({e}): {stdout} / {stderr}"));
+    assert_eq!(v["ok"], serde_json::json!(false), "ok must be false: {v}");
+    assert_eq!(
+        code, text_code,
+        "--json must exit the same as the text path: {v}"
+    );
+    assert!(
+        v["errors"].as_u64().unwrap_or(0) >= 1,
+        "an example failure counts as an error: {v}"
+    );
+    let failures = v["examples"]["failures"]
+        .as_array()
+        .unwrap_or_else(|| panic!("examples.failures must be an array: {v}"));
+    assert_eq!(failures.len(), 1, "the one failure is listed: {v}");
+    assert_eq!(
+        failures[0]["entity"],
+        serde_json::json!("main::add"),
+        "the failure carries the declaration it is about: {v}"
+    );
+    assert_eq!(
+        failures[0]["code"],
+        serde_json::json!("E0400"),
+        "the failure carries a stable code: {v}"
+    );
+    assert!(
+        failures[0]["detail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("add(2, 2)"),
+        "the failure carries the detail: {v}"
     );
 }
 

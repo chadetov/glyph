@@ -1507,6 +1507,46 @@ mod tests {
         assert_eq!(derive_module_path(src, file), "main");
     }
 
+    /// G180: the canonical spelling of a declaration identity, in the layout
+    /// `glyph init` writes — a `package.json` carrying `"glyph": {"src":
+    /// "src"}` with the sources under `src/`.
+    ///
+    /// The module half is counted from the project's resolution root, so the
+    /// declaration in `src/a.glyph` is `a::handle`. It is not `src/a::handle`,
+    /// and it does not depend on the directory the command was run from: the
+    /// same declaration has to answer to the same name here, from
+    /// `glyph_diagnostics`, and from `glyph_variants`.
+    #[test]
+    fn the_entity_module_half_is_counted_from_the_project_root() {
+        let root = std::env::temp_dir().join(format!(
+            "glyph_entity_root_{}_{}",
+            std::process::id(),
+            ENTITY_ROOT_N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(
+            root.join("package.json"),
+            r#"{"name":"p","glyph":{"src":"src"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            src.join("a.glyph"),
+            "module a\npub fn handle(n: number) -> string {\n  return n\n}\n",
+        )
+        .unwrap();
+
+        let report = crate::check::check_path(&src.join("a.glyph"), false, false)
+            .expect("the check runs");
+        let entities: Vec<Option<String>> =
+            report.structured.iter().map(|d| d.entity.clone()).collect();
+        assert_eq!(entities, vec![Some("a::handle".to_string())], "{entities:?}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// Names the temporary trees the test above builds, one per run.
+    static ENTITY_ROOT_N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
     #[test]
     fn locate_matches_a_whole_segment_suffix_not_a_bare_basename() {
         let src = Path::new("/tmp/proj/src");

@@ -473,11 +473,10 @@ fn tool_diagnostics(args: &Value, root: &Path) -> Result<String, String> {
     // diagnostics by entity instead of re-deriving "which function is this"
     // from a line number that shifts under every unrelated edit above the
     // site. This tool stays off the project database (see the module docs),
-    // so the module half is this file's own path rather than a minted
-    // `ModuleId` — a pure transform of the path already given to the tool,
-    // not a database lookup.
-    let file_key = display_path(root, &path);
-    let module_str = file_key.strip_suffix(".glyph").unwrap_or(&file_key);
+    // so the module half is a pure transform of the path already given to the
+    // tool rather than a minted `ModuleId`. It is counted from the file's
+    // project, never from the server's root: see `module_key`.
+    let module_str = module_key(&path, root);
     let items: Vec<Value> = analyze(&text)
         .into_iter()
         .map(|d| {
@@ -518,9 +517,9 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
         }
         Some(Definition::InModule { module_path, name }) => {
             // The import path is counted from the *importing* file's project
-            // root (D41), which is the marked ancestor when there is one and the
-            // server's root otherwise.
-            let file = crate::project_root_for(&path, root)
+            // root (D41), which is the marked ancestor when there is one and
+            // the file's own directory otherwise (see `module_root_for`).
+            let file = crate::module_root_for(&path, root)
                 .join(&module_path)
                 .with_extension("glyph");
             let ftext = std::fs::read_to_string(&file)
@@ -714,7 +713,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     // scoped to the file's own project (D41): another project's `import lib`
     // names its own `lib`, not this one. That is also why each project gets its
     // own database rather than one database over the server's root.
-    let project_root = crate::project_root_for(&path, &root);
+    let project_root = crate::module_root_for(&path, &root);
     let this_module =
         module_path_of(&project_root, &path).ok_or("the file is not under the project root")?;
     let index = LineIndex::new(&text);
@@ -807,7 +806,7 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
     let name = type_name_arg(args)?;
-    let project_root = crate::project_root_for(&path, &root);
+    let project_root = crate::module_root_for(&path, &root);
     let this_module =
         module_path_of(&project_root, &path).ok_or("the file is not under the project root")?;
 
@@ -1576,7 +1575,7 @@ fn workspace_files(root: &Path) -> Vec<(PathBuf, String)> {
 /// Symlinks are the clearest case: `collect_glyph_files` reads directory
 /// entries without traversing links, so an aliased spelling is never a walk
 /// member and the same physical file was reported twice, once under each name.
-/// A `..` segment was worse than cosmetic: `project_root_for` resolved
+/// A `..` segment was worse than cosmetic: the project-root climb resolved
 /// `p/sub/..` to a root distinct from `p`, building a second copy of a
 /// project's memo and spending a second cache slot on it, while
 /// `p/../outside.glyph` was captured by `p`'s marker because the prefix test
@@ -1729,6 +1728,25 @@ fn range_json(index: &LineIndex, text: &str, start: u32, end: u32) -> Value {
     json!({
         "start": { "line": sl, "character": sc },
         "end": { "line": el, "character": ec },
+    })
+}
+
+/// The module half of a declaration's `module::name` identity: the file's path
+/// under its own project root (D41), extension dropped, `/`-separated.
+///
+/// Counted from the project and never from the server's root. The server root
+/// is where the tool was started, so rooting an identity on it gives one
+/// declaration a different name per session, and gave `glyph_diagnostics` a
+/// different name from `glyph_variants` and `glyph check --json` for the same
+/// declaration (G180). `module_root_for` is the shared rule, fallback and all.
+fn module_key(file: &Path, workspace: &Path) -> String {
+    let root = crate::module_root_for(file, workspace);
+    module_path_of(&root, file).unwrap_or_else(|| {
+        // Unreachable: `module_root_for` returns a marked root only when the
+        // file lies under it, and the file's own parent otherwise.
+        file.file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default()
     })
 }
 
@@ -2352,6 +2370,11 @@ mod tests {
     #[test]
     fn a_repeat_call_about_a_file_outside_the_walk_executes_no_queries() {
         let root = tmp_root();
+        // Marked, so the skipped file's project is still this root: an
+        // unmarked file's module half is counted from its own directory
+        // (G180), which would put `.hidden/c.glyph` in a project of its own
+        // and leave it nothing to be outside of.
+        std::fs::write(root.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
         write(&root, "a.glyph", DECL);
         let hidden = root.join(".hidden");
         std::fs::create_dir_all(&hidden).unwrap();
@@ -3226,4 +3249,88 @@ mod tests {
             );
         }
     }
+
+    /// `COMMAND_A` with one declaration that does not type-check, so a single
+    /// file drives both surfaces at once: `glyph_variants` keys the match site
+    /// in `run`, `glyph_diagnostics` keys the error in `handle`, and the two
+    /// have to spell the module half the same way.
+    const COMMAND_AND_BAD: &str = "module a\npub type Command =\n  | Up\n  | Down\npub fn run(c: Command) -> number {\n  return match c {\n    Up => 1,\n    Down => 0,\n  }\n}\npub fn handle(n: number) -> string {\n  return n\n}\n";
+
+    /// G180: one declaration, one identity. The module half of a
+    /// `module::name` identity is counted from the file's *project* root, in
+    /// the layout `glyph init` writes: a `package.json` carrying
+    /// `"glyph": {"src": "src"}` with the sources under `src/`.
+    ///
+    /// `glyph_diagnostics` used to count it from the server's own root, which
+    /// is where the tool was invoked rather than anything about the
+    /// declaration, so the same function was `src/a::handle` here and
+    /// `a::handle` from `glyph check --json` and `glyph_variants`.
+    #[test]
+    fn a_declarations_module_half_is_counted_from_its_project_root() {
+        let root = tmp_root();
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(
+            root.join("package.json"),
+            r#"{"name":"p","glyph":{"src":"src"}}"#,
+        )
+        .unwrap();
+        write(&src, "a.glyph", COMMAND_AND_BAD);
+
+        let mut server = Server::new(root.clone());
+        let (diags, is_error) = call_on(
+            &mut server,
+            "glyph_diagnostics",
+            json!({ "path": "src/a.glyph" }),
+        );
+        assert!(!is_error, "{diags}");
+        assert_eq!(diags[0]["entity"], "a::handle", "{diags}");
+
+        let answer = variants(&mut server, "src/a.glyph", "Command");
+        assert_eq!(answer["sites"][0]["declaration"], "a::run", "{answer}");
+        // The file path stays relative to the server root; only the module
+        // half of the identity is counted from the project.
+        assert_eq!(answer["sites"][0]["path"], "src/a.glyph", "{answer}");
+    }
+
+    /// G180, the other half: with no project marker anywhere above it, a
+    /// file's module half is counted from its own parent directory, which is
+    /// the root `glyph check <file>` uses and the only one that does not move
+    /// when the tool is invoked from somewhere else.
+    #[test]
+    fn an_unmarked_files_module_half_is_counted_from_its_own_directory() {
+        let root = tmp_root();
+        let sub = root.join("sub");
+        std::fs::create_dir_all(&sub).unwrap();
+        write(&sub, "a.glyph", COMMAND_AND_BAD);
+
+        let mut server = Server::new(root.clone());
+        let (diags, is_error) = call_on(
+            &mut server,
+            "glyph_diagnostics",
+            json!({ "path": "sub/a.glyph" }),
+        );
+        assert!(!is_error, "{diags}");
+        assert_eq!(diags[0]["entity"], "a::handle", "{diags}");
+
+        let answer = variants(&mut server, "sub/a.glyph", "Command");
+        assert_eq!(answer["sites"][0]["declaration"], "a::run", "{answer}");
+        assert_eq!(answer["sites"][0]["path"], "sub/a.glyph", "{answer}");
+    }
+
+    /// G184: absence has one spelling. A diagnostic with no enclosing
+    /// declaration carries `"entity": null` rather than dropping the key, so a
+    /// consumer reads the same field whichever surface produced it.
+    #[test]
+    fn a_diagnostic_with_no_enclosing_declaration_has_an_explicit_null_entity() {
+        let root = tmp_root();
+        write(&root, "broken.glyph", "module a\npub fn (\n");
+        let (diags, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "broken.glyph" }));
+        assert!(!is_error, "{diags}");
+        let entity = diags[0]
+            .get("entity")
+            .unwrap_or_else(|| panic!("the `entity` key must be present: {diags}"));
+        assert!(entity.is_null(), "{diags}");
+    }
+
 }

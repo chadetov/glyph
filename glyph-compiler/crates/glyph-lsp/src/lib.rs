@@ -16,6 +16,12 @@
 mod analysis;
 mod mcp;
 
+/// The span-containment walk that decides which top-level declaration a byte
+/// offset belongs to. Re-exported because `glyph-cli` attributes a `--json`
+/// diagnostic by the same rule, and two copies of it drifted apart once
+/// already (G180).
+pub use analysis::enclosing_decl_name;
+
 /// Run the Model Context Protocol server over stdio, exposing Glyph's language
 /// analysis to a coding agent as tools (see `mcp`). `root` is the project the
 /// workspace queries operate over.
@@ -598,27 +604,22 @@ pub(crate) fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// The resolution root a `.glyph` file's imports are counted from (D41): the
+/// The nearest marked project's resolution root at or above `file` (D41): the
 /// nearest ancestor holding a `package.json` with a top-level `"glyph"` key,
 /// with that key's `"src"` applied (else `src/` when it exists, else the marked
-/// directory). Falls back to `workspace`, the editor's workspace folder, which
-/// is what the server used before D41.
+/// directory). `None` when the climb finds no marker.
 ///
 /// The climb stops at the workspace folder or at a directory holding `.git`,
 /// whichever comes first, so an unrelated marker above the workspace cannot
 /// capture a file.
 ///
-/// This mirrors `glyph-cli`'s `config::project_for_file`, and the two have to
-/// agree: if they disagree, go-to-definition finds nothing in a tree `glyph
-/// build` compiles without complaint. They cannot share code today because
-/// `glyph-cli` depends on `glyph-lsp`, so the dependency cannot point back;
-/// hoisting both onto a shared crate is the follow-up.
-pub(crate) fn project_root_for(file: &Path, workspace: &Path) -> PathBuf {
+/// The two roots below differ only in what they do when this answers `None`.
+fn marked_root_for(file: &Path, workspace: &Path) -> Option<PathBuf> {
     let mut dir = file.parent();
     while let Some(d) = dir {
         if let Some(src) = marked_project_src(d) {
             if file.starts_with(&src) {
-                return src;
+                return Some(src);
             }
         }
         if d == workspace || d.join(".git").exists() {
@@ -626,7 +627,46 @@ pub(crate) fn project_root_for(file: &Path, workspace: &Path) -> PathBuf {
         }
         dir = d.parent();
     }
-    workspace.to_path_buf()
+    None
+}
+
+/// The resolution root the *editor* server counts a file's imports from: its
+/// marked project, else `workspace`, the editor's workspace folder, which is
+/// what the server used before D41.
+///
+/// This mirrors `glyph-cli`'s `config::project_for_file`, and the two have to
+/// agree: if they disagree, go-to-definition finds nothing in a tree `glyph
+/// build` compiles without complaint. They cannot share code today because
+/// `glyph-cli` depends on `glyph-lsp`, so the dependency cannot point back;
+/// hoisting both onto a shared crate is the follow-up.
+pub(crate) fn project_root_for(file: &Path, workspace: &Path) -> PathBuf {
+    marked_root_for(file, workspace).unwrap_or_else(|| workspace.to_path_buf())
+}
+
+/// The root a declaration's `module::name` identity is counted from: its marked
+/// project, else the file's **own parent directory**.
+///
+/// A declaration's identity must not change with where a tool was invoked or
+/// what the cwd was, and a workspace-root fallback makes it do exactly that.
+/// The same function answered to `tests/negative/non_exhaustive_union::handle`
+/// from an MCP server started at the repository root and to
+/// `non_exhaustive_union::handle` from `glyph check --json`, which places a
+/// file in its project with `glyph-cli`'s `config::project_for_file` and falls
+/// back to the file's own directory. The file's parent is the one root that
+/// does not vary with the invocation, so it is the one the two agree on
+/// (G180).
+///
+/// This is the root every identity-publishing surface uses. It is separate
+/// from `project_root_for` because the editor's workspace folder is a root the
+/// user opened, and narrowing it is a change to which files a workspace-wide
+/// query ranges over rather than to how a declaration is named.
+pub(crate) fn module_root_for(file: &Path, workspace: &Path) -> PathBuf {
+    marked_root_for(file, workspace).unwrap_or_else(|| {
+        file.parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf()
+    })
 }
 
 /// The resolution root declared by `dir/package.json`, or `None` when there is

@@ -61,8 +61,34 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.108</span>
+            <span class="rel-ver">0.1.109</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The folds you were writing by hand</h3>
+            <p><code>std/array</code> gains <code>max</code>, <code>min</code>, <code>sum</code>, <code>max_by</code> and <code>min_by</code>. Picking the highest-scoring element is the core operation of every search, ranking and scheduler, and until now it was a four-line fold each time. One application in this repository wrote it five times in one file.</p>
+            <div class="code">
+              <span class="cap">before</span>
+<pre>let best = array.fold(moves, None, fn(acc, m) {
+  return match acc {
+    None =&gt; Some(m),
+    Some(b) =&gt; match m.score &gt; b.score { true =&gt; Some(m), false =&gt; Some(b) },
+  }
+})</pre>
+              <span class="cap">now</span>
+<pre>let best = array.max_by(moves, fn(m) { return m.score })</pre>
+            </div>
+            <p>Four of the five return <code>Option</code>, because an empty array has no maximum and answering 0 or negative infinity is the kind of quiet wrong answer this language exists to prevent. <code>sum</code> returns a plain number: the sum of no numbers is 0, which is a real answer rather than a stand-in. On a tie, <code>max_by</code> and <code>min_by</code> return the first element, and that is documented rather than incidental.</p>
+            <p class="rel-note">The hand-written version was never wrong, just long, and long is what gets mistyped. Every one of those folds type-checks whether or not its seed and its comparison direction are right, so the compiler could not help you with the version you were writing before. Nothing that compiled on 0.1.108 stops compiling here.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.108</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

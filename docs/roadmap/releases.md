@@ -4729,15 +4729,18 @@ generator already knows the answer).
 - A diagnostic carries the declaration it sits in as `module::name`, on `glyph check --json` and `glyph_diagnostics`, so an error leads into the graph without a re-parse
 - Not the forward-impact query: that stays 0.1.108, which is what this release's prerequisites were clearing the way for
 
-**0.1.108 — Next · One identity, one spelling**
+**0.1.108 — Landed on main · One identity, one spelling**
 - G180: three surfaces derive a declaration's module half from three different roots, and two of them disagree on the layout `glyph init` writes
 - One derivation and one attribution function, rather than the two byte-identical copies and three roots shipped in 0.1.107
 - G181: attribute a diagnostic from the declaration the checker is standing in, since an annotation's span sits in the gap before a decl's span starts
 - The same for `tsc`-remapped diagnostics, whose Glyph source is already in `ModuleMap`, and for `@example` failures, which carry no structure at all
 - G182 is closed: the release workflow named a runner retired nine months earlier, so `darwin-x64` was executed nowhere and every Release run concluded `cancelled`
 - Ahead of the impact query on purpose: that query names this field as a prerequisite, and an ambiguous identity makes it confidently wrong rather than incomplete
+- G183: `glyph check --json` ran no `@example` gate at all, so the agent-facing surface reported a clean tree on a program the text path fails
+- G184: absence of an entity was spelled two ways, omitted on one surface and explicit null on the other
+- G185: the example gate leaked a copy of the project into the temp directory on every run, which was also manufacturing a flaky test through pid reuse
 
-**0.1.109 — Impact before the edit, and the loop that uses it**
+**0.1.109 — Next · Impact before the edit, and the loop that uses it**
 - Read the same edges forward: "add `Suspended` to `UserStatus`, show me every site that must change"
 - The answer is exhaustive or it says which sites it could not index; a partial list is worse than none
 - Repair the five-times bug shape end to end, measured against the same task done by search alone
@@ -5054,7 +5057,7 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.108 — Next · One identity, one spelling
+### 0.1.108 — Landed on main · One identity, one spelling
 
 0.1.107 gave every diagnostic the declaration it sits in, and gave it three
 spellings. `glyph check --json` strips the project src root, `glyph_variants`
@@ -5101,7 +5104,7 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
-### 0.1.109 — Impact before the edit, and the loop that uses it
+### 0.1.109 — Next · Impact before the edit, and the loop that uses it
 
 0.1.106 retained the relation and put a tool on it. `glyph_variants` answers
 "which sites name this variant". This release answers the question an agent

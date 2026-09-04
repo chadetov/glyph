@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-200 entries, 145 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-36 are open. G144, the D28 boundary cast that never reached the returns a
+200 entries, 146 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+35 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7202,8 +7202,8 @@ and is the owner's to confirm.
   declaration, kind, module and name, and no variant list; each site returns a
   state and its arms, and no verdict.*
 
-- **G189. `glyph check --no-tsc` reports no diagnostics on a program that
-  imports a module which does not exist.** A file importing `nowhere` and
+- **G189. [FIXED] `glyph check --no-tsc` reports no diagnostics on a program
+  that imports a module which does not exist.** A file importing `nowhere` and
   matching on a type it claims to export type-checks clean and exits 0. So does
   one importing `alsomissing` and calling `alsomissing.g()`. Only `tsc` catches
   it, as `Cannot find module 'nowhere'`, so the check that is documented as the
@@ -7223,6 +7223,20 @@ and is the owner's to confirm.
   match on `Status` gives "1 module(s) checked, no diagnostics" and exit 0 under
   `--no-tsc`, and `[TS2307] Cannot find module 'nowhere'` with exit 1 when tsc
   runs.*
+  *Closed in 0.1.109. The build already reported an unresolvable local import
+  as E0104, but only when it could see a `node_modules`: with nothing installed
+  it could not tell a typo from an uninstalled dependency, so it said nothing.
+  It now also reads what the project's `package.json` files declare, on the same
+  walk from the sources up to the project root. A name no manifest declares
+  cannot be produced by any `npm install`, so it is a local module that does not
+  exist and the resolver says so without the TypeScript pass.*
+
+  *The distinction is what makes it safe, and the corpus proves both halves in
+  one command: `tests/exact-or-absent/unresolved-import` declares `tinylog` and
+  installs nothing, and `glyph check --no-tsc` there names `nowhere` and leaves
+  `tinylog` alone. A project with no manifest at all is unchanged: no view, no
+  claim. `scripts/check_exact_or_absent.py` carries this as a hard assertion
+  now, promoted from KNOWN.*
 
 - **G190. Asking about a record returns an empty site list, which reads as "no
   impact" rather than "wrong question".** `glyph_variants` on a record type

@@ -4983,8 +4983,23 @@ Both are already answerable and the site answers neither:
 **0.1.111 — Relations whole enough to traverse**
 - G186: one answer for a symbol's references whichever way the consumer spelled its import
 - `CALLS` distinct from `REFERENCES`, each answer saying whether the compiler proved it or a `.d.ts` asserted it
-- Record fields become addressable entities, so a field rename has an impact set rather than a grep
+- Record fields become addressable entities, so a field rename has an impact set rather than a grep. **Landed on main.** `glyph_references` takes `Record.field` (`User.email`, the record named the way the querying file names it) and answers `{ entity, sites, unkeyed, not_indexed }` from a new field-use relation the member-access check writes while it types each file, alongside the match-coverage one. `sites` holds the field's own declaration, every member read, every write (`mut u.email = v`), and a `@redact fields: [...]` name, each keyed to the record the checker resolved the access against and ranged over the field's name alone so a rename can write from it. Two records in one module with the same field name are two entities; a read through a cross-module alias keys to the record the chain ends at, not the name the use site reached it by; a read of a payload binding (`Loaded(u) => u.email`) is a proven site. `tests/exact-or-absent/field-entity/` gates it
 - Every relation states what it could not index, per entity, never as a count
+
+**The field relation's two open edges, both recorded rather than papered over.**
+A construction site (`return { name: "a", email: "b", }` where a `User` is
+expected) breaks when the field is renamed and is not in the relation, because
+`Expr::Object` gets no expected type from the checker: an object literal types as
+`Unknown`, so no key in one is ever joined to a field of a declaration and `tsc`
+is what reports the mistake. An object pattern destructuring a named record
+(`Loaded({ email })`) is the same shape: the pattern binder resolves fields
+against a structural payload record only, so nothing is resolved through a named
+one, and a misspelled key there produces no Glyph diagnostic at all. Both classes
+are named in every field answer's `not_indexed`, so a caller is not handed a list
+of member accesses that reads as the whole impact set. Closing either one means
+giving `Expr::Object` and the object-pattern binder a bidirectional expectation,
+which is a language change with a new diagnostic behind it and a breaking release
+to carry it, not a graph change.
 
 **Traversal is bounded and explicit, or it is a dump.** "Everything connected to
 X" stops being useful at the second hop. The traversal takes named relations, a

@@ -5153,6 +5153,38 @@ says a relation cannot be named in a reply until the set exists, and there are
 currently two non-overlapping sets in the tree. One set, one spelling, fixed
 first.
 
+#### The verdicts, and why `UNDETERMINED` is the one to guard
+
+The strongest property of this whole direction is not the size of the graph. It
+is that **Glyph knows the boundary between what it knows and what it does not**.
+Every verdict below is a statement about that boundary, and each means one thing:
+
+| verdict | what Glyph is claiming |
+|---|---|
+| `WILL_FAIL` | it has enough semantic knowledge to prove this site stops compiling |
+| `ABSORBS` | it can prove the change is absorbed here, silently |
+| `SAFE` | it can prove this site remains correct under the change |
+| `UNDETERMINED` | it indexed the relationship, looked, and cannot establish the consequence |
+| `NOT_INDEXED` | it does not index the required semantic class at all |
+
+`UNDETERMINED` and `NOT_INDEXED` are not two shades of "don't know". The first
+means the compiler reached the site and could not decide. The second means the
+question was never askable, because the class of fact it needs is absent from the
+model. Collapsing them loses the only information a caller can act on: whether
+looking harder would help.
+
+**The failure to guard against is `UNDETERMINED` becoming a dumping ground.** It
+is the comfortable answer for anything awkward, and once a few sites land there
+for convenience an agent learns to read it as "probably safe", which is the exact
+inversion of what it means. A verdict that cannot be trusted to be rare is not a
+verdict.
+
+So it is gated rather than documented. `tests/exact-or-absent/` carries a case
+per verdict, each asserting the verdict is reached for its own stated reason and
+not reachable for another's. A site that could be decided and comes back
+`UNDETERMINED` fails the gate, in the same way a known-failing case that starts
+passing fails it today.
+
 **Both are hard gates.** If the propagation table cannot be answered precisely
 with concrete programs, `glyph_impact` does not generalize yet.
 - One entity in, nodes and labelled edges out, with a verdict per node from a closed set, never a similarity score and never "possibly related"

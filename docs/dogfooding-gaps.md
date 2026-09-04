@@ -4947,7 +4947,7 @@ which is the intended answer; the finding is that the compiler never said so.
   genuine emitter deferral and the current wording is honest for it. The two are
   currently one error, and separating them is a scope call, not a patch.
 
-  *Reproduced against 0.1.105: `Node(c, k)` over a variant whose payload is a
+  *Reproduced against 0.1.111: a `Node(c, k)` arm over a record-payload variant still gives `[E0300] emit: TS emission for a nested or multi-argument pattern in a match arm is not implemented yet`, one line after the parser calls the form nonexistent. Previously, against 0.1.105: `Node(c, k)` over a variant whose payload is a
   record reports `[E0300] emit: TS emission for a nested or multi-argument
   pattern in a match arm is not implemented yet`, with no typecheck diagnostic
   before it. This is the same shape G168 closed for literal-and-variant matches
@@ -6768,7 +6768,7 @@ and is the owner's to confirm.
   the catch-all one unified in 0.1.105, so it was deliberately left alone rather
   than folded into a release whose deliverable was an empty diagnostic diff.
 
-  *Reproduced against 0.1.105: a constructed matrix shows `Zed` over a local
+  *Reproduced against 0.1.111: an unknown PascalCase arm head over an imported union still reports `[E0103] unresolved name` rather than escalating to `E0220`, so the diagnostic names a missing binding where the truth is a variant that does not exist. Previously, against 0.1.105: a constructed matrix shows `Zed` over a local
   union reporting `E0200` and `E0220` together, while the imported spelling of
   the same union reports only the exhaustiveness error.*
 

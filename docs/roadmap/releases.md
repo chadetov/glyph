@@ -5428,6 +5428,34 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
+### 0.1.112 — Next · `glyph_impact`, generalized over every relation
+
+0.1.110 and 0.1.111 built one relation's answer and proved it closes a loop. This
+generalizes it: one entity in, nodes and labelled edges out, over more than one
+relation at a time.
+
+**This is the release most likely to go wrong, and the failure has a shape.** A
+specific semantic question turns into generic graph infrastructure, "impact"
+comes to mean everything, and Glyph becomes a graph database with a compiler
+attached. The defence is that every edge stays compiler-derived: if the checker
+did not already compute it, it is not an edge.
+
+**Transitivity is settled in writing before any code.** `A -> B -> C` has to mean
+one thing, and direct semantic consequence, transitive dependency, compilation
+consequence and runtime consequence are four different relations. "Potentially
+affected" is not a member of the set. A caller of a function that stopped
+compiling is impacted only if that function's signature changed, so transitivity
+is a property of the change kind rather than of the graph.
+
+The verdict vocabulary is closed and each member means one thing: `WILL_FAIL`,
+`ABSORBS`, `SAFE`, `UNDETERMINED`, `REFERENCES`, `GENERATED_FROM`, `NOT_INDEXED`.
+
+*Reviewed against 0.1.111.* The six tools are `glyph_diagnostics`, `glyph_hover`,
+`glyph_definition`, `glyph_references`, `glyph_variants` and `glyph_symbols`.
+There is no `glyph_impact` and no query takes more than one relation at a time,
+so nothing here has been built and the transitivity question is still owed a
+written answer rather than an implementation.
+
 ### 0.1.111 — Landed on main · The proof, and what the relations still owe
 
 0.1.110 shipped the capability and the invariant. It did not ship the proof, and

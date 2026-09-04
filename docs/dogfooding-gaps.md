@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-182 entries, 140 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-23 are open. G144, the D28 boundary cast that never reached the returns a
+185 entries, 141 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+25 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3340,7 +3340,7 @@ worth keeping.
   does it is four lines of `match acc` ceremony each time. `max_by`/`min_by`
   taking a key function is the shape that closes it; `max`/`min`/`sum` over
   `Array<number>` are the trivial cases of the same thing.
-  *Reproduced against 0.1.102: `std/array` exports find, filter, map, zip, get, len, push, concat, reverse, slice, any, contains, sort, fold, index_of, flat_map, range and range_from, and none of `max`, `min`, `max_by`, `min_by` or `sum`, and the five diagnostics are word for word what
+  *Reproduced against 0.1.108 by importing each name and reading the answer: `max`, `min`, `max_by`, `min_by` and `sum` are each `[E0105] not exported by std/array`. Previously, against 0.1.102: `std/array` exports find, filter, map, zip, get, len, push, concat, reverse, slice, any, contains, sort, fold, index_of, flat_map, range and range_from, and none of `max`, `min`, `max_by`, `min_by` or `sum`, and the five diagnostics are word for word what
   0.1.84 printed: all five are `[E0105] not exported by std/array`, `max` is
   still answered with `(did you mean `map`?)`, and the other four append the
   export list (`any, concat, contains, filter, find, flat_map, fold, get, and 10
@@ -3362,7 +3362,7 @@ worth keeping.
   and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
   stop is the missing piece. Not a soundness bug: the hand-written form is
   correct, just long.
-  *Reproduced against 0.1.102: `fold` is still `xs.reduce(f, init)` with no early exit, and there is no `try_fold`, `fold_while` or `fold_until` beside it: `fold_while` and `try_fold` are each `[E0105] not
+  *Reproduced against 0.1.108 the same way: `fold_while`, `try_fold` and `fold_until` are each `[E0105] not exported by std/array`, so there is still no early exit beside `fold`. Previously, against 0.1.102: `fold` is still `xs.reduce(f, init)` with no early exit, and there is no `try_fold`, `fold_while` or `fold_until` beside it: `fold_while` and `try_fold` are each `[E0105] not
   exported by std/array`, with the module's export list appended (`exports: any,
   concat, contains, filter, find, flat_map, fold, get, and 10 more`).
   `runtime/std/array.ts` defines `fold` and nothing that can stop early, and
@@ -3576,7 +3576,7 @@ and stopped on the same sentence: Glyph has no bytes.
   has to decide what to call it. The only expressible version of the app is
   `read_text` plus `array.sort`, which is the memory shape the round existed to
   avoid.
-  *Reproduced against 0.1.102: `std/fs` exports read_text, write_text, append_text, read_bytes, write_bytes, append_bytes, make_dir, exists, read_dir, is_dir, stat and remove, with no open, seek or line iterator, and `io.read_line` is still the only line reader: `fs.open` and `fs.read_line_at` are both `[E0105]
+  *Reproduced against 0.1.108 by importing each name: `open`, `close`, `read_at`, `read_lines` and `lines` are each `[E0105] not exported by std/fs`, so a file is still read whole. Previously, against 0.1.102: `std/fs` exports read_text, write_text, append_text, read_bytes, write_bytes, append_bytes, make_dir, exists, read_dir, is_dir, stat and remove, with no open, seek or line iterator, and `io.read_line` is still the only line reader: `fs.open` and `fs.read_line_at` are both `[E0105]
   not exported by std/fs`, the diagnostic listing `ErrorKind, FileInfo, FsError,
   append_bytes, append_text, exists, is_dir, make_dir, and 7 more`, and
   `runtime/` still contains no `asyncIterator`, `AsyncIterable`,
@@ -4558,7 +4558,7 @@ until this one.
   deadline the way `tls.connect` did (a breaking change to the two most-used
   functions in the stdlib), or whether `request` stops treating 0 as permission
   and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
-  *Reproduced against 0.1.102: `http.get(url)` still takes a URL and nothing else, and `request` still reads a zero timeout as permission not to arm the timer, on the shape the entry describes: a TCP listener
+  *Reproduced against 0.1.108 by reading `runtime/std/http.ts`: `fetch_of` returns `timeout_ms: 0` (line 89), `head` passes `timeout_ms: 0` (line 104), `request` defaults it to 0 (line 450) and arms the timer only `if (bounds.timeout_ms > 0)` (line 459), so the default path is still unbounded. Previously, against 0.1.102: `http.get(url)` still takes a URL and nothing else, and `request` still reads a zero timeout as permission not to arm the timer, on the shape the entry describes: a TCP listener
   that accepts the connection and sends nothing, dialled with `http.get`. The
   program printed `listening, dialing` and nothing else, and was still pending
   when it was killed at 50 seconds. `runtime/std/http.ts` is unchanged in the two
@@ -7046,3 +7046,59 @@ and is the owner's to confirm.
   only after, which is this workflow's own stated rule. `macos-14` was
   simultaneously deprecated with support ending 2 November 2026 and would have
   failed the same way; both darwin targets now build on `macos-15`.*
+
+- **G183. `glyph check --json` reports a clean tree on a program `glyph check`
+  fails.** The `@example` gate runs on the text path and not on the JSON one.
+  `emit_check_json` exits the process before `report_examples_for` is reached, so
+  the JSON object has no `examples` key, a failing example does not appear in
+  `diagnostics`, and it moves neither `ok` nor `errors`.
+
+  ```
+  glyph check src --no-tsc          ->  example failed: main::add example #1   exit 1
+  glyph check src --no-tsc --json   ->  ok: true, errors: 0                    exit 0
+  ```
+
+  Same program, same flags, two answers, and the wrong one is on the surface
+  built for agents and tooling. `glyph check`'s own documented promise is that it
+  "cannot report a clean tree that `build` would fail"; under `--json` it does
+  exactly that.
+
+  This is the failure the project rates worse than being wrong: a green result
+  that stands for nothing. It is worse here than in a human's terminal, because
+  the consumer is a program that has no other signal to weigh it against.
+
+  *Reproduced against 0.1.107 with a two-line program whose `@example add(2, 2)
+  == 5` is false: the text path exits 1 naming the failure, the JSON path exits 0
+  with `ok: true`.*
+
+- **G184. A diagnostic's absent entity is spelled two different ways.**
+  `glyph check --json` omits the `entity` key entirely, via
+  `skip_serializing_if`, while the MCP tool emits an explicit `"entity": null`.
+  A consumer reading both cannot use one test for "no declaration", which is the
+  same class of defect as the three spellings in G180: one fact, more than one
+  representation.
+
+  *Reproduced against 0.1.107 alongside G180.*
+
+- **G185. [FIXED] Every `glyph check` on a project with an `@example` left a
+  copy of that project in the temp directory.** The gate copies the project,
+  augments it, and builds it. It removed the directory only if one already
+  existed at the same path on the way in, never on the way out, and the gate is
+  on by default, so an ordinary `glyph check` leaked a full copy of the project
+  per invocation. 4,198 had accumulated on one machine since 23 August.
+
+  It surfaced as a flaky test rather than as a complaint. The test asserting a
+  project with no examples copies nothing keys its search on the spawned
+  compiler's pid, which is correctly isolated, but with several thousand orphaned
+  directories present the operating system reuses a pid and a new process
+  collides with a directory left by a run days earlier. The leak was manufacturing
+  the flake, and the test went green again with no change to it once the leak was
+  closed.
+
+  Not a regression from the release that found it: 0.1.106 leaks identically, and
+  a project with no examples correctly copies nothing on both.
+
+  *Fixed with a drop guard rather than a cleanup call at the end of the function,
+  because every path through the runner can return early through `?` and cleanup
+  at the bottom would leak on exactly the error paths that matter most. Verified
+  as zero directories created on both the passing and failing paths.*

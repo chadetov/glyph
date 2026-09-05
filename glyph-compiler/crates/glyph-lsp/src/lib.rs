@@ -8,6 +8,11 @@
 //! to a coding agent as tools. Reusing the analysis layer keeps the two surfaces
 //! a thin adapter apiece rather than a second implementation of the semantics.
 //!
+//! What they do not share is a database. The editor's truth is the buffer it
+//! last sent and the agent's is what is on disk, so each server holds its own
+//! (see `overlay` for the editor's, `mcp` for the agent's). They are peers over
+//! one compiler model, not one built on the other.
+//!
 //! The language server's diagnostic work happens in a synchronous call that
 //! never holds a lock or a non-`Send` value across an `await`.
 
@@ -15,6 +20,7 @@
 
 mod analysis;
 mod mcp;
+mod overlay;
 
 /// The span-containment walk that decides which top-level declaration a byte
 /// offset belongs to. Re-exported because `glyph-cli` attributes a `--json`
@@ -45,14 +51,17 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use analysis::{
-    analyze, analyze_full, base_completions, find_symbol_span, outline_of, validate_rename_name,
-    CompletionTag, Definition, LineIndex, OutlineKind, OutlineSymbol, RenameError, SymbolTarget,
+    analyze, base_completions, find_symbol_span, validate_rename_name, CompletionTag, Definition,
+    LineIndex, OutlineKind, OutlineSymbol, RenameError, SymbolTarget,
 };
+use overlay::Workspace;
 
 struct Backend {
     client: Client,
-    /// Open documents by URI (full text; the server uses FULL text sync).
-    docs: Mutex<HashMap<Url, String>>,
+    /// The editor's open buffers and the incremental model they feed (see
+    /// `overlay`). Every analysis the server does reads through this, so the
+    /// answer is always about the text the editor currently has.
+    ws: Mutex<Workspace>,
     /// The workspace root, captured at `initialize` — the tree the workspace
     /// symbol index walks for `.glyph` files.
     root: Mutex<Option<PathBuf>>,
@@ -62,20 +71,26 @@ impl Backend {
     fn new(client: Client) -> Self {
         Backend {
             client,
-            docs: Mutex::new(HashMap::new()),
+            ws: Mutex::new(Workspace::new()),
             root: Mutex::new(None),
         }
     }
 
-    /// Store the document text and publish its diagnostics. The diagnostics are
-    /// computed and the lock released before the `await`, so no guard or
-    /// non-`Send` value crosses the suspension point.
+    /// Store the document text and publish its diagnostics.
+    ///
+    /// The buffer is written before anything is analysed, so a request racing
+    /// this one cannot be answered from the text the change replaced. The
+    /// diagnostics are computed and the lock released before the `await`, so no
+    /// guard or non-`Send` value crosses the suspension point.
     async fn refresh(&self, uri: Url, text: String, version: Option<i32>) {
-        let diagnostics = to_lsp_diagnostics(&text, analyze(&text));
-        {
-            let mut docs = self.docs.lock().expect("docs mutex");
-            docs.insert(uri.clone(), text);
-        }
+        let diagnostics = {
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            ws.set_buffer(&uri, text);
+            match ws.diagnostics(&uri) {
+                Some((text, diagnostics)) => to_lsp_diagnostics(text, diagnostics),
+                None => Vec::new(),
+            }
+        };
         self.client
             .publish_diagnostics(uri, diagnostics, version)
             .await;
@@ -168,8 +183,9 @@ impl LanguageServer for Backend {
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
         {
-            let mut docs = self.docs.lock().expect("docs mutex");
-            docs.remove(&uri);
+            // Disk is the truth for this file again from here on.
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            ws.close(&uri);
         }
         // Clear the squiggles for a closed file.
         self.client.publish_diagnostics(uri, Vec::new(), None).await;
@@ -177,11 +193,7 @@ impl LanguageServer for Backend {
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri;
-        let text = {
-            let docs = self.docs.lock().expect("docs mutex");
-            docs.get(&uri).cloned()
-        };
-        let Some(text) = text else {
+        let Some(text) = self.buffer(&uri) else {
             return Ok(None);
         };
         // Mirror `glyph fmt`: never format unparseable source.
@@ -204,14 +216,12 @@ impl LanguageServer for Backend {
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let pos = params.text_document_position_params;
-        let Some(text) = self.doc_text(&pos.text_document.uri) else {
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        let Some((text, analysis)) = ws.open_view(&pos.text_document.uri) else {
             return Ok(None);
         };
-        let Some(analysis) = analyze_full(&text) else {
-            return Ok(None);
-        };
-        let index = LineIndex::new(&text);
-        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        let index = LineIndex::new(text);
+        let offset = index.offset(text, pos.position.line, pos.position.character);
         Ok(analysis.hover(offset).map(|ty| Hover {
             contents: HoverContents::Markup(MarkupContent {
                 kind: MarkupKind::Markdown,
@@ -227,38 +237,43 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoDefinitionResponse>> {
         let pos = params.text_document_position_params;
         let uri = pos.text_document.uri;
-        let Some(text) = self.doc_text(&uri) else {
-            return Ok(None);
-        };
-        let Some(analysis) = analyze_full(&text) else {
-            return Ok(None);
-        };
-        let index = LineIndex::new(&text);
-        let offset = index.offset(&text, pos.position.line, pos.position.character);
-        let location = match analysis.definition(offset) {
-            None => None,
-            Some(Definition::Here(start, end)) => Some(location_in(&uri, &text, start, end)),
-            Some(Definition::InModule { module_path, name }) => {
-                self.resolve_cross_module(&uri, &module_path, &name)
+        let here = {
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            let Some((text, analysis)) = ws.open_view(&uri) else {
+                return Ok(None);
+            };
+            let index = LineIndex::new(text);
+            let offset = index.offset(text, pos.position.line, pos.position.character);
+            match analysis.definition(offset) {
+                None => None,
+                Some(Definition::Here(start, end)) => {
+                    Some(Ok(location_in(&uri, text, start, end)))
+                }
+                // Resolved outside the lock: the other module is read through
+                // the overlay too, which needs the same lock this holds.
+                Some(Definition::InModule { module_path, name }) => Some(Err((module_path, name))),
             }
+        };
+        let location = match here {
+            None => None,
+            Some(Ok(location)) => Some(location),
+            Some(Err((module_path, name))) => self.resolve_cross_module(&uri, &module_path, &name),
         };
         Ok(location.map(GotoDefinitionResponse::Scalar))
     }
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         let uri = params.text_document.uri;
-        let Some(text) = self.doc_text(&uri) else {
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        let Some((text, analysis)) = ws.open_view(&uri) else {
             return Ok(None);
         };
-        let Some(analysis) = analyze_full(&text) else {
-            return Ok(None);
-        };
-        let index = LineIndex::new(&text);
+        let index = LineIndex::new(text);
         let hints = analysis
-            .inlay_type_hints(&text)
+            .inlay_type_hints(text)
             .into_iter()
             .map(|(offset, label)| {
-                let (line, character) = index.position(&text, offset);
+                let (line, character) = index.position(text, offset);
                 InlayHint {
                     position: Position { line, character },
                     label: InlayHintLabel::String(label),
@@ -276,15 +291,19 @@ impl LanguageServer for Backend {
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri;
-        let Some(text) = self.doc_text(&uri) else {
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        if !ws.is_open(&uri) {
+            return Ok(None);
+        }
+        let Some((text, diagnostics)) = ws.diagnostics(&uri) else {
             return Ok(None);
         };
-        let index = LineIndex::new(&text);
-        let req_start = index.offset(&text, params.range.start.line, params.range.start.character);
-        let req_end = index.offset(&text, params.range.end.line, params.range.end.character);
+        let index = LineIndex::new(text);
+        let req_start = index.offset(text, params.range.start.line, params.range.start.character);
+        let req_end = index.offset(text, params.range.end.line, params.range.end.character);
 
         let mut actions = Vec::new();
-        for d in analyze(&text) {
+        for d in diagnostics {
             // Quick-fix: remove a fully-unused import (E0106). Deletes the whole
             // import line, the same safe edit `glyph fix` applies at the CLI.
             if d.code != "E0106" {
@@ -293,9 +312,9 @@ impl LanguageServer for Backend {
             if (d.start as usize) > req_end || (d.end as usize) < req_start {
                 continue;
             }
-            let (ls, le) = line_span(&text, d.start as usize);
-            let (sl, sc) = index.position(&text, ls);
-            let (el, ec) = index.position(&text, le);
+            let (ls, le) = line_span(text, d.start as usize);
+            let (sl, sc) = index.position(text, ls);
+            let (el, ec) = index.position(text, le);
             let range = Range {
                 start: Position { line: sl, character: sc },
                 end: Position { line: el, character: ec },
@@ -325,10 +344,12 @@ impl LanguageServer for Backend {
         // Use the parsed document's full candidate set; fall back to keywords +
         // prelude when the file is unknown or does not parse (mid-edit), which
         // is exactly when completion matters most.
-        let completions = self
-            .doc_text(&uri)
-            .and_then(|text| analyze_full(&text).map(|a| a.completions()))
-            .unwrap_or_else(base_completions);
+        let completions = {
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            ws.open_view(&uri)
+                .map(|(_, a)| a.completions())
+                .unwrap_or_else(base_completions)
+        };
         let items = completions
             .into_iter()
             .map(|c| CompletionItem {
@@ -350,17 +371,16 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
-        let Some(text) = self.doc_text(&params.text_document.uri) else {
+        let uri = params.text_document.uri;
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        let Some((text, analysis)) = ws.open_view(&uri) else {
             return Ok(None);
         };
-        let Some(analysis) = analyze_full(&text) else {
-            return Ok(None);
-        };
-        let index = LineIndex::new(&text);
+        let index = LineIndex::new(text);
         let symbols = analysis
             .document_symbols()
             .iter()
-            .map(|s| outline_to_document_symbol(&index, &text, s))
+            .map(|s| outline_to_document_symbol(&index, text, s))
             .collect();
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }
@@ -374,31 +394,26 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let query = params.query.to_lowercase();
-        let mut files = Vec::new();
-        collect_glyph_files(&root, &mut files);
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        // The overlay decides each file's text: the editor's buffer for the
+        // ones it has open, disk for the rest.
+        let uris = ws.workspace_docs(&root);
 
         let mut out = Vec::new();
-        for path in files {
-            let Ok(uri) = Url::from_file_path(&path) else {
+        for uri in uris {
+            let Some((text, outline)) = ws.outline(&uri) else {
                 continue;
             };
-            // Prefer the open buffer (unsaved edits) over the on-disk text.
-            let Some(text) = self
-                .doc_text(&uri)
-                .or_else(|| std::fs::read_to_string(&path).ok())
-            else {
-                continue;
-            };
-            let index = LineIndex::new(&text);
-            for top in outline_of(&text) {
-                push_workspace_symbol(&mut out, &query, &uri, &index, &text, &top, None);
+            let index = LineIndex::new(text);
+            for top in &outline {
+                push_workspace_symbol(&mut out, &query, &uri, &index, text, top, None);
                 for child in &top.children {
                     push_workspace_symbol(
                         &mut out,
                         &query,
                         &uri,
                         &index,
-                        &text,
+                        text,
                         child,
                         Some(top.name.clone()),
                     );
@@ -411,23 +426,24 @@ impl LanguageServer for Backend {
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let pos = params.text_document_position;
         let uri = pos.text_document.uri;
-        let Some(text) = self.doc_text(&uri) else {
-            return Ok(None);
-        };
-        let Some(analysis) = analyze_full(&text) else {
-            return Ok(None);
-        };
-        let index = LineIndex::new(&text);
-        let offset = index.offset(&text, pos.position.line, pos.position.character);
         let include_decl = params.context.include_declaration;
+        // Read before the workspace lock: `file_module` takes the root lock.
+        let file_module = self.file_module(&uri);
+
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        let Some((text, analysis)) = ws.open_view(&uri) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(text);
+        let offset = index.offset(text, pos.position.line, pos.position.character);
 
         // With a workspace, a module-level symbol's references span every file.
-        if let Some((root, this_module)) = self.file_module(&uri) {
+        if let Some((root, this_module)) = file_module {
             if let Some(SymbolTarget::Global { module, name }) =
-                analysis.symbol_target(offset, &text, &this_module)
+                analysis.symbol_target(offset, text, &this_module)
             {
                 let mut locations = Vec::new();
-                for (u2, t2) in self.workspace_docs(&root) {
+                for u2 in ws.workspace_docs(&root) {
                     let Some(fm) = u2
                         .to_file_path()
                         .ok()
@@ -435,22 +451,22 @@ impl LanguageServer for Backend {
                     else {
                         continue;
                     };
-                    let Some(a2) = analyze_full(&t2) else {
+                    let Some((t2, a2)) = ws.view(&u2) else {
                         continue;
                     };
-                    for (s, e) in a2.global_occurrences(&fm, &module, &name, &t2, include_decl) {
-                        locations.push(location_in(&u2, &t2, s, e));
+                    for (s, e) in a2.global_occurrences(&fm, &module, &name, t2, include_decl) {
+                        locations.push(location_in(&u2, t2, s, e));
                     }
                 }
                 return Ok((!locations.is_empty()).then_some(locations));
             }
         }
         // A local binding, or no workspace: the open document only.
-        let spans = analysis.references(offset, &text, include_decl);
+        let spans = analysis.references(offset, text, include_decl);
         Ok((!spans.is_empty()).then(|| {
             spans
                 .into_iter()
-                .map(|(s, e)| location_in(&uri, &text, s, e))
+                .map(|(s, e)| location_in(&uri, text, s, e))
                 .collect()
         }))
     }
@@ -458,25 +474,26 @@ impl LanguageServer for Backend {
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         let pos = params.text_document_position;
         let uri = pos.text_document.uri;
-        let Some(text) = self.doc_text(&uri) else {
+        // Read before the workspace lock: `file_module` takes the root lock.
+        let file_module = self.file_module(&uri);
+
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        let Some((text, analysis)) = ws.open_view(&uri) else {
             return Ok(None);
         };
-        let Some(analysis) = analyze_full(&text) else {
-            return Ok(None);
-        };
-        let index = LineIndex::new(&text);
-        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        let index = LineIndex::new(text);
+        let offset = index.offset(text, pos.position.line, pos.position.character);
 
         // With a workspace, a module-level rename edits every file that names the
         // symbol — the declaration, its references, and each importing module's
         // import binding — so it is complete and safe.
-        if let Some((root, this_module)) = self.file_module(&uri) {
+        if let Some((root, this_module)) = file_module {
             if let Some(SymbolTarget::Global { module, name }) =
-                analysis.symbol_target(offset, &text, &this_module)
+                analysis.symbol_target(offset, text, &this_module)
             {
                 validate_rename_name(&params.new_name).map_err(rename_error)?;
                 let mut changes: HashMap<Url, Vec<TextEdit>> = HashMap::new();
-                for (u2, t2) in self.workspace_docs(&root) {
+                for u2 in ws.workspace_docs(&root) {
                     let Some(fm) = u2
                         .to_file_path()
                         .ok()
@@ -484,14 +501,14 @@ impl LanguageServer for Backend {
                     else {
                         continue;
                     };
-                    let Some(a2) = analyze_full(&t2) else {
+                    let Some((t2, a2)) = ws.view(&u2) else {
                         continue;
                     };
-                    let idx2 = LineIndex::new(&t2);
+                    let idx2 = LineIndex::new(t2);
                     let edits: Vec<TextEdit> = a2
-                        .global_occurrences(&fm, &module, &name, &t2, true)
+                        .global_occurrences(&fm, &module, &name, t2, true)
                         .into_iter()
-                        .map(|(s, e)| text_edit(&idx2, &t2, s, e, &params.new_name))
+                        .map(|(s, e)| text_edit(&idx2, t2, s, e, &params.new_name))
                         .collect();
                     if !edits.is_empty() {
                         changes.insert(u2, edits);
@@ -507,11 +524,11 @@ impl LanguageServer for Backend {
         // A local binding (or no workspace, where a module-level rename is refused
         // because its cross-file references cannot be found): edit this file only.
         let spans = analysis
-            .rename_edits(offset, &text, &params.new_name)
+            .rename_edits(offset, text, &params.new_name)
             .map_err(rename_error)?;
         let edits: Vec<TextEdit> = spans
             .into_iter()
-            .map(|(s, e)| text_edit(&index, &text, s, e, &params.new_name))
+            .map(|(s, e)| text_edit(&index, text, s, e, &params.new_name))
             .collect();
         let mut changes = HashMap::new();
         changes.insert(uri, edits);
@@ -771,9 +788,12 @@ struct ApplyEditResponse {
 }
 
 impl Backend {
-    /// The current text of an open document, if any.
-    fn doc_text(&self, uri: &Url) -> Option<String> {
-        self.docs.lock().expect("docs mutex").get(uri).cloned()
+    /// The editor's buffer for an open document, if any. A file the editor
+    /// does not have open answers `None` here even when it exists on disk:
+    /// the per-document requests are about the buffer, and the overlay's disk
+    /// half belongs to the workspace-wide ones.
+    fn buffer(&self, uri: &Url) -> Option<String> {
+        self.ws.lock().expect("workspace mutex").buffer(uri)
     }
 
     /// The open file's resolution root and its own module path, when both exist
@@ -792,36 +812,6 @@ impl Backend {
         Some((root, module))
     }
 
-    /// Every `.glyph` document in the workspace as `(uri, text)`, preferring an
-    /// open buffer (unsaved edits) over the on-disk text, and including any open
-    /// document not on disk (a new, unsaved file). The per-file input to a
-    /// workspace-wide references/rename.
-    fn workspace_docs(&self, root: &Path) -> Vec<(Url, String)> {
-        let mut files = Vec::new();
-        collect_glyph_files(root, &mut files);
-        let mut out = Vec::new();
-        let mut seen = std::collections::HashSet::new();
-        for path in files {
-            let Ok(uri) = Url::from_file_path(&path) else {
-                continue;
-            };
-            let Some(text) = self
-                .doc_text(&uri)
-                .or_else(|| std::fs::read_to_string(&path).ok())
-            else {
-                continue;
-            };
-            seen.insert(uri.clone());
-            out.push((uri, text));
-        }
-        for (uri, text) in self.docs.lock().expect("docs mutex").iter() {
-            if !seen.contains(uri) {
-                out.push((uri.clone(), text.clone()));
-            }
-        }
-        out
-    }
-
     /// Custom request `glyph/canonicalView`: return the canonical agent view
     /// (Q32) of an open document — the `glyph fmt` layout with stable `Lddd`
     /// line numbers and per-declaration content fingerprints. An agent reads
@@ -832,7 +822,7 @@ impl Backend {
         &self,
         params: TextDocumentIdentifier,
     ) -> Result<CanonicalViewResponse> {
-        let Some(text) = self.doc_text(&params.uri) else {
+        let Some(text) = self.buffer(&params.uri) else {
             return Ok(CanonicalViewResponse {
                 content: None,
                 error: Some("document not open".to_string()),
@@ -865,7 +855,7 @@ impl Backend {
     /// gate is a v1.1 enhancement (it needs the build pipeline factored into a
     /// library the server can call without the current cli→lsp dependency cycle).
     async fn apply_edit_request(&self, params: ApplyEditParams) -> Result<ApplyEditResponse> {
-        let Some(text) = self.doc_text(&params.uri) else {
+        let Some(text) = self.buffer(&params.uri) else {
             return Ok(reject("document_not_open", Vec::new()));
         };
         let candidate = match apply_text_edits(&text, &params.edits) {
@@ -902,11 +892,12 @@ impl Backend {
         };
         let file = root.join(module_path).with_extension("glyph");
         let uri = Url::from_file_path(&file).ok()?;
-        let text = self
-            .doc_text(&uri)
-            .or_else(|| std::fs::read_to_string(&file).ok())?;
-        let (start, end) = find_symbol_span(&outline_of(&text), name)?;
-        Some(location_in(&uri, &text, start, end))
+        // Through the overlay: the buffer when the editor has the other file
+        // open, disk otherwise.
+        let mut ws = self.ws.lock().expect("workspace mutex");
+        let (text, outline) = ws.outline(&uri)?;
+        let (start, end) = find_symbol_span(&outline, name)?;
+        Some(location_in(&uri, text, start, end))
     }
 }
 

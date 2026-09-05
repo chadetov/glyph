@@ -1,6 +1,15 @@
-//! Pure analysis used by the language server: run the compiler front end over a
-//! single in-memory document and collect diagnostics, plus a byte-offset →
-//! line/character index for mapping spans to LSP positions.
+//! Pure analysis used by the language server: run the compiler front end over
+//! one document and collect diagnostics, plus a byte-offset → line/character
+//! index for mapping spans to LSP positions.
+//!
+//! There are two ways in and one way through. `analyze`/`analyze_full` run the
+//! front end over a bare `&str`, for a caller that has no database (the MCP
+//! server, and the `applyEdit` gate, which asks about text no buffer holds
+//! yet). `analyze_in`/`analysis_in` read the same stages out of the
+//! incremental model, which is what the language server does. Both end in
+//! `diagnostics_of`, so the list an editor sees and the list an agent sees are
+//! assembled by one function rather than two that drift; a test holds them to
+//! it.
 //!
 //! This module holds no `tower-lsp` types, so it is unit-testable without an LSP
 //! runtime. The server (`lib.rs`) converts `GlyphDiagnostic` to the protocol
@@ -11,6 +20,7 @@ use std::collections::BTreeSet;
 use glyph_ast::{
     Block, Decl, Expr, ImportKind, JsxAttr, JsxChild, JsxElement, Module, TypeExpr,
 };
+use glyph_db::{Db, ParsedModule, Resolved, SourceFile, Types};
 use glyph_resolver::{
     build_prelude, collect_module_symbols, module_lints, resolve_module, verify_imports,
     QualifiedTypeRef, ResolvedModule, ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
@@ -69,69 +79,96 @@ pub struct GlyphDiagnostic {
 /// `std/*` import mistakes are caught; sibling/external imports are permissively
 /// skipped (a single open file has no project graph). A parse failure short-
 /// circuits — downstream phases cannot run without an AST.
+///
+/// This is the text path: it runs the whole front end on every call, which is
+/// what a caller holding a bare `&str` and no database has to do. The language
+/// server holds both, and calls [`analyze_in`] instead; the two assemble the
+/// same list through [`diagnostics_of`], so they cannot disagree about what an
+/// editor and an agent see.
 pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     let module = match glyph_parser::parse(text) {
         Ok(m) => m,
-        Err(e) => {
-            // No `decl_name`: a file that failed to parse has no AST to look
-            // an enclosing declaration up in.
-            return vec![GlyphDiagnostic {
-                start: e.span().start,
-                end: e.span().end,
-                message: with_help(format!("{e}"), e.help().as_deref()),
-                code: e.code().to_string(),
-                decl_name: None,
-                union: None,
-                missing_variants: None,
-            }]
-        }
+        Err(e) => return vec![parse_diag(&e)],
     };
-
-    let mut out = Vec::new();
 
     let symbols = match collect_module_symbols(&module) {
         Ok(s) => s,
         Err(errors) => {
             // Symbol collection failed (e.g. a duplicate declaration or a D15
             // barrel file); report those and stop — later phases need the table.
-            for e in errors {
-                out.push(resolve_diag(&e, &module));
-            }
-            return out;
+            return errors.iter().map(|e| resolve_diag(e, &module)).collect();
         }
     };
 
     let stdlib = StdlibStubs::new();
-    for e in verify_imports(&module, &stdlib) {
-        out.push(resolve_diag(&e, &module));
-    }
-
     let prelude = build_prelude();
     let (resolved, resolve_errors) = resolve_module(&module, symbols, &prelude);
-    for e in &resolve_errors {
-        out.push(resolve_diag(e, &module));
-    }
-
     let (_types, type_errors) = assign_types(&module, &resolved, &prelude);
-    for e in &type_errors {
-        out.push(GlyphDiagnostic {
-            start: e.span().start,
-            end: e.span().end,
-            message: with_help(format!("{e}"), e.help()),
-            code: e.code().to_string(),
-            // An error the checker raised while holding a declaration names it
-            // itself; an annotation's span sits before the keyword the
-            // declaration's span starts at, so the walk cannot find it.
-            decl_name: e
-                .decl_name()
-                .map(str::to_string)
-                .or_else(|| enclosing_decl_name(&module, e.span().start)),
-            // The other entity the error concerns. An exhaustiveness error
-            // names a union and a set of its variants; every other error names
-            // neither, and answers nothing rather than guessing.
-            union: e.union().cloned(),
-            missing_variants: e.missing_variants().map(<[String]>::to_vec),
-        });
+    diagnostics_of(
+        &module,
+        &resolved,
+        &resolve_errors,
+        &type_errors,
+        &stdlib,
+    )
+}
+
+/// The same diagnostics as [`analyze`], read out of the incremental model
+/// instead of recomputed: `file`'s text is whatever the overlay last put in the
+/// database, and each stage is a salsa query, so a stage whose inputs did not
+/// change is a memo read rather than a pass over the file.
+///
+/// `stdlib` is passed in because the stub graph is built once per server, not
+/// once per keystroke.
+pub fn analyze_in(db: &dyn Db, file: SourceFile, stdlib: &StdlibStubs) -> Vec<GlyphDiagnostic> {
+    let parsed = glyph_db::parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        // No `decl_name`: a file that failed to parse has no AST to look an
+        // enclosing declaration up in.
+        return parsed.error().map(parse_diag).into_iter().collect();
+    };
+    let resolved = glyph_db::resolve(db, file);
+    let Some(resolution) = resolved.resolved() else {
+        // Symbol collection failed; `resolve` carries its errors and stopped,
+        // which is the same short-circuit `analyze` takes.
+        return resolved
+            .errors()
+            .iter()
+            .map(|e| resolve_diag(e, module))
+            .collect();
+    };
+    let types = glyph_db::type_map(db, file);
+    diagnostics_of(
+        module,
+        resolution,
+        resolved.errors(),
+        types.errors(),
+        stdlib,
+    )
+}
+
+/// Assemble the diagnostic list for a file whose front end has already run.
+///
+/// The order is the order the editor shows: import verification, then
+/// resolution, then types, and the warning-tier lints only when nothing else
+/// fired. This is the single copy of that rule; both `analyze` and
+/// `analyze_in` end here.
+fn diagnostics_of(
+    module: &Module,
+    resolved: &ResolvedModule,
+    resolve_errors: &[glyph_resolver::ResolveError],
+    type_errors: &[glyph_typechecker::TypeError],
+    stdlib: &StdlibStubs,
+) -> Vec<GlyphDiagnostic> {
+    let mut out = Vec::new();
+    for e in verify_imports(module, stdlib) {
+        out.push(resolve_diag(&e, module));
+    }
+    for e in resolve_errors {
+        out.push(resolve_diag(e, module));
+    }
+    for e in type_errors {
+        out.push(type_diag(e, module));
     }
 
     // The warning-tier lints (unused import E0106, unused let E0107, unreachable
@@ -139,34 +176,99 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     // too, and the unused-import quick-fix has something to act on. They run only
     // on an otherwise error-free module, so they never mask a real error.
     if out.is_empty() {
-        for e in module_lints(&module, &resolved) {
-            out.push(resolve_diag(&e, &module));
+        for e in module_lints(module, resolved) {
+            out.push(resolve_diag(&e, module));
         }
     }
-
     out
 }
 
-/// A fully analyzed document: the resolution and type side tables. Hover and
-/// go-to-definition query these by source offset. `None` from `analyze_full`
-/// means the document did not parse. (Neither table borrows the AST — spans are
-/// plain byte offsets — so the `Module` is dropped after analysis.)
-pub struct Analysis {
-    module: Module,
-    resolved: ResolvedModule,
-    types: TypeMap,
+/// A parse failure as a diagnostic. No `decl_name`: a file that failed to parse
+/// has no AST to look an enclosing declaration up in.
+fn parse_diag(e: &glyph_parser::ParseError) -> GlyphDiagnostic {
+    GlyphDiagnostic {
+        start: e.span().start,
+        end: e.span().end,
+        message: with_help(format!("{e}"), e.help().as_deref()),
+        code: e.code().to_string(),
+        decl_name: None,
+        union: None,
+        missing_variants: None,
+    }
 }
 
+/// A type error as a diagnostic.
+fn type_diag(e: &glyph_typechecker::TypeError, module: &Module) -> GlyphDiagnostic {
+    GlyphDiagnostic {
+        start: e.span().start,
+        end: e.span().end,
+        message: with_help(format!("{e}"), e.help()),
+        code: e.code().to_string(),
+        // An error the checker raised while holding a declaration names it
+        // itself; an annotation's span sits before the keyword the
+        // declaration's span starts at, so the walk cannot find it.
+        decl_name: e
+            .decl_name()
+            .map(str::to_string)
+            .or_else(|| enclosing_decl_name(module, e.span().start)),
+        // The other entity the error concerns. An exhaustiveness error names a
+        // union and a set of its variants; every other error names neither, and
+        // answers nothing rather than guessing.
+        union: e.union().cloned(),
+        missing_variants: e.missing_variants().map(<[String]>::to_vec),
+    }
+}
+
+/// A fully analyzed document: the parse, the resolution and the type side
+/// tables. Hover and go-to-definition query these by source offset.
+///
+/// The three fields are the compiler's own result wrappers, each one an `Arc`
+/// over what a stage produced, so an `Analysis` is three refcount bumps
+/// whether it came from the database or from a bare string. Neither table
+/// borrows the AST — spans are plain byte offsets.
+///
+/// **Invariant**: an `Analysis` exists only for a document that parsed *and*
+/// resolved. Both constructors return `None` otherwise, which is what the
+/// `expect`s in the accessors below rest on.
+pub struct Analysis {
+    parsed: ParsedModule,
+    resolved: Resolved,
+    types: Types,
+}
+
+/// Why the accessors below cannot fail. See the invariant on [`Analysis`].
+const ANALYSIS_INVARIANT: &str = "an Analysis is only built for a document that parsed and resolved";
+
 /// Parse, resolve, and typecheck `text`, returning the analysis for
-/// position-based queries. `None` if the document does not parse.
+/// position-based queries. `None` if the document does not parse or its
+/// symbols do not collect.
+///
+/// The text path, for a caller with no database. The language server calls
+/// [`analysis_in`].
 pub fn analyze_full(text: &str) -> Option<Analysis> {
     let module = glyph_parser::parse(text).ok()?;
     let symbols = collect_module_symbols(&module).ok()?;
     let prelude = build_prelude();
-    let (resolved, _errs) = resolve_module(&module, symbols, &prelude);
-    let (types, _terrs) = assign_types(&module, &resolved, &prelude);
+    let (resolved, resolve_errors) = resolve_module(&module, symbols, &prelude);
+    let (types, type_errors) = assign_types(&module, &resolved, &prelude);
     Some(Analysis {
-        module,
+        parsed: ParsedModule::ok(module),
+        resolved: Resolved::new(resolved, resolve_errors),
+        types: Types::new(types, type_errors),
+    })
+}
+
+/// The same analysis as [`analyze_full`], read out of the incremental model:
+/// each stage is a salsa query keyed on `file`, so a second query over an
+/// unchanged buffer costs a memo read rather than a second front end.
+pub fn analysis_in(db: &dyn Db, file: SourceFile) -> Option<Analysis> {
+    let parsed = glyph_db::parse_module(db, file);
+    parsed.module()?;
+    let resolved = glyph_db::resolve(db, file);
+    resolved.resolved()?;
+    let types = glyph_db::type_map(db, file);
+    Some(Analysis {
+        parsed,
         resolved,
         types,
     })
@@ -1080,9 +1182,24 @@ pub fn relations_at(
 }
 
 impl Analysis {
+    /// The parsed module. See the invariant on [`Analysis`].
+    fn module(&self) -> &Module {
+        self.parsed.module().expect(ANALYSIS_INVARIANT)
+    }
+
+    /// The resolution table. See the invariant on [`Analysis`].
+    fn resolution(&self) -> &ResolvedModule {
+        self.resolved.resolved().expect(ANALYSIS_INVARIANT)
+    }
+
+    /// The span-keyed type table.
+    fn type_map(&self) -> &TypeMap {
+        self.types.type_map()
+    }
+
     /// See [`hover_at`].
     pub fn hover(&self, offset: usize) -> Option<String> {
-        hover_at(&self.types, offset)
+        hover_at(self.type_map(), offset)
     }
 
     /// Inlay type hints: for each `let` with no written type annotation, the
@@ -1092,7 +1209,7 @@ impl Analysis {
     /// skipped rather than shown as noise.
     pub fn inlay_type_hints(&self, text: &str) -> Vec<(usize, String)> {
         let mut out = Vec::new();
-        for decl in &self.module.items {
+        for decl in &self.module().items {
             let body = match decl {
                 glyph_ast::Decl::Fn(f) => Some(&f.body),
                 glyph_ast::Decl::Component(c) => Some(&c.body),
@@ -1126,7 +1243,7 @@ impl Analysis {
     /// The rendered type recorded exactly for `span` (the initializer), skipping
     /// the not-yet-inferred `?` placeholder and the uninformative `unknown`.
     fn type_of_exact(&self, span: glyph_ast::Span) -> Option<String> {
-        for (sp, ty) in self.types.iter() {
+        for (sp, ty) in self.type_map().iter() {
             if sp.start == span.start && sp.end == span.end {
                 let d = display_ty(ty);
                 if d != "?" && d != "unknown" && !d.is_empty() {
@@ -1139,12 +1256,12 @@ impl Analysis {
 
     /// See [`definition_at`].
     pub fn definition(&self, offset: usize) -> Option<Definition> {
-        definition_at(&self.resolved, offset)
+        definition_at(self.resolution(), offset)
     }
 
     /// See [`references_at`].
     pub fn references(&self, offset: usize, text: &str, include_decl: bool) -> Vec<(u32, u32)> {
-        references_at(&self.module, &self.resolved, offset, text, include_decl)
+        references_at(self.module(), self.resolution(), offset, text, include_decl)
     }
 
     /// See [`rename_edits_at`].
@@ -1154,7 +1271,7 @@ impl Analysis {
         text: &str,
         new_name: &str,
     ) -> Result<Vec<(u32, u32)>, RenameError> {
-        rename_edits_at(&self.module, &self.resolved, offset, text, new_name)
+        rename_edits_at(self.module(), self.resolution(), offset, text, new_name)
     }
 
     /// See [`symbol_target_at`].
@@ -1164,7 +1281,7 @@ impl Analysis {
         text: &str,
         this_module: &str,
     ) -> Option<SymbolTarget> {
-        symbol_target_at(&self.module, &self.resolved, offset, text, this_module)
+        symbol_target_at(self.module(), self.resolution(), offset, text, this_module)
     }
 
     /// See [`global_occurrences_in`].
@@ -1177,8 +1294,8 @@ impl Analysis {
         include_decl: bool,
     ) -> Vec<(u32, u32)> {
         global_occurrences_in(
-            &self.module,
-            &self.resolved,
+            self.module(),
+            self.resolution(),
             this_module,
             sym_module,
             name,
@@ -1191,7 +1308,7 @@ impl Analysis {
     /// union's variant constructors nested as children. Used for the editor
     /// outline, breadcrumbs, and the symbol picker.
     pub fn document_symbols(&self) -> Vec<OutlineSymbol> {
-        module_outline(&self.module)
+        module_outline(self.module())
     }
 
     /// Completion candidates: Glyph keywords, this module's top-level
@@ -1201,7 +1318,7 @@ impl Analysis {
     pub fn completions(&self) -> Vec<Completion> {
         let mut out = base_completions();
 
-        for decl in &self.module.items {
+        for decl in &self.module().items {
             match decl {
                 Decl::Fn(f) => out.push(Completion {
                     label: f.name.to_string(),

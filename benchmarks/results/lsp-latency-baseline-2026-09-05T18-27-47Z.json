@@ -1,0 +1,80 @@
+{
+  "timestamp": "2026-09-05T18:25:42.049213+00:00",
+  "label": "baseline",
+  "binary": "/private/tmp/claude-501/-Users-onurbuyukceran-Documents-Jarvis-glyph/c2c73431-6cca-4d81-92b8-ad95d1346c4a/scratchpad/baseline/glyph-compiler/target/release/glyph",
+  "binary_version": "glyph 0.1.113",
+  "commit": "6f6c81d",
+  "processes": 3,
+  "warmup": 10,
+  "measured": 100,
+  "scenarios": {
+    "keystroke": {
+      "examples/corpus/json_parser.glyph": {
+        "n": 100,
+        "median_ms": 1.93,
+        "mean_ms": 1.95,
+        "p95_ms": 2.09,
+        "min_ms": 1.84,
+        "max_ms": 2.5,
+        "lines": 536
+      },
+      "examples/apps/sheet/main.glyph": {
+        "n": 100,
+        "median_ms": 10.13,
+        "mean_ms": 10.21,
+        "p95_ms": 11.1,
+        "min_ms": 9.85,
+        "max_ms": 11.31,
+        "lines": 1653
+      },
+      "examples/apps/minilang/main.glyph": {
+        "n": 100,
+        "median_ms": 15.96,
+        "mean_ms": 16.04,
+        "p95_ms": 16.8,
+        "min_ms": 15.38,
+        "max_ms": 17.02,
+        "lines": 2206
+      }
+    },
+    "burst": {
+      "examples/corpus/json_parser.glyph": {
+        "n": 100,
+        "median_ms": 6.86,
+        "mean_ms": 6.92,
+        "p95_ms": 7.48,
+        "min_ms": 6.69,
+        "max_ms": 7.8,
+        "lines": 536
+      },
+      "examples/apps/sheet/main.glyph": {
+        "n": 100,
+        "median_ms": 38.45,
+        "mean_ms": 38.8,
+        "p95_ms": 41.69,
+        "min_ms": 36.84,
+        "max_ms": 42.61,
+        "lines": 1653
+      },
+      "examples/apps/minilang/main.glyph": {
+        "n": 100,
+        "median_ms": 64.38,
+        "mean_ms": 65.01,
+        "p95_ms": 69.81,
+        "min_ms": 61.0,
+        "max_ms": 81.3,
+        "lines": 2206
+      }
+    },
+    "references": {
+      "examples/apps/csvql": {
+        "n": 100,
+        "median_ms": 13.96,
+        "mean_ms": 13.98,
+        "p95_ms": 14.47,
+        "min_ms": 13.58,
+        "max_ms": 14.73
+      }
+    }
+  }
+}

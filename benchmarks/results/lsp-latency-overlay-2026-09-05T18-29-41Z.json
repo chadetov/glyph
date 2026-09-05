@@ -1,0 +1,80 @@
+{
+  "timestamp": "2026-09-05T18:27:48.083492+00:00",
+  "label": "overlay",
+  "binary": "/Users/onurbuyukceran/Documents/Jarvis/glyph/glyph-compiler/target/release/glyph",
+  "binary_version": "glyph 0.1.113",
+  "commit": "e40cb9c",
+  "processes": 3,
+  "warmup": 10,
+  "measured": 100,
+  "scenarios": {
+    "keystroke": {
+      "examples/corpus/json_parser.glyph": {
+        "n": 100,
+        "median_ms": 1.35,
+        "mean_ms": 1.42,
+        "p95_ms": 1.68,
+        "min_ms": 1.23,
+        "max_ms": 2.61,
+        "lines": 536
+      },
+      "examples/apps/sheet/main.glyph": {
+        "n": 100,
+        "median_ms": 8.27,
+        "mean_ms": 8.46,
+        "p95_ms": 9.25,
+        "min_ms": 7.93,
+        "max_ms": 12.28,
+        "lines": 1653
+      },
+      "examples/apps/minilang/main.glyph": {
+        "n": 100,
+        "median_ms": 13.78,
+        "mean_ms": 14.06,
+        "p95_ms": 15.35,
+        "min_ms": 13.28,
+        "max_ms": 20.75,
+        "lines": 2206
+      }
+    },
+    "burst": {
+      "examples/corpus/json_parser.glyph": {
+        "n": 100,
+        "median_ms": 1.93,
+        "mean_ms": 2.01,
+        "p95_ms": 2.44,
+        "min_ms": 1.75,
+        "max_ms": 3.23,
+        "lines": 536
+      },
+      "examples/apps/sheet/main.glyph": {
+        "n": 100,
+        "median_ms": 10.33,
+        "mean_ms": 10.71,
+        "p95_ms": 13.35,
+        "min_ms": 9.75,
+        "max_ms": 16.47,
+        "lines": 1653
+      },
+      "examples/apps/minilang/main.glyph": {
+        "n": 100,
+        "median_ms": 16.97,
+        "mean_ms": 17.37,
+        "p95_ms": 21.59,
+        "min_ms": 16.08,
+        "max_ms": 24.33,
+        "lines": 2206
+      }
+    },
+    "references": {
+      "examples/apps/csvql": {
+        "n": 100,
+        "median_ms": 1.44,
+        "mean_ms": 1.45,
+        "p95_ms": 1.61,
+        "min_ms": 1.29,
+        "max_ms": 1.82
+      }
+    }
+  }
+}

@@ -15,22 +15,37 @@
 //! front end on every request, so a hover after a keystroke re-parsed,
 //! re-resolved and re-typechecked text it had just finished analysing.
 //!
-//! **What it costs, measured rather than assumed.** A second request over an
-//! unchanged buffer stops analysing anything: on a 2,205-line file, hover after
-//! a keystroke goes from 15.6 ms to about 1 ms of protocol work, a repeated
-//! workspace-wide references over an 11-file project from 13.5 ms to 1.3 ms,
-//! and an editor burst (a keystroke, then hover, definition and document
-//! symbols) from 61.8 ms to 37.1 ms.
+//! What it costs, measured against the same server without it, on one machine
+//! in one sitting, by `benchmarks/lsp-latency/measure.py`. Medians of 100
+//! samples over the 2,205-line `examples/apps/minilang/main.glyph`:
 //!
-//! The keystroke itself got slower, from 15.6 ms to 33.4 ms on the same file,
-//! and the cause is one query rather than the design: `glyph_db::type_map`
-//! takes 21.2 ms where `assign_types` over the same text takes 4.2 ms, and
-//! 16.2 ms of that gap is the per-declaration layer `typed_file` drives
-//! (`decl_ast` clones every declaration and copies its source bytes,
-//! `resolved_decl` clones a sliced `ResolvedModule` for each). That layer earns
-//! its keep in a build, where its memos are read across files and revisions;
-//! on a keystroke it is paid in full and saves at most the 4.2 ms of assignment
-//! it wraps. Fixing it belongs in `glyph-db`, not here.
+//! | | before | after |
+//! |---|---|---|
+//! | keystroke to squiggle | 15.96 ms | 13.78 ms |
+//! | editor burst | 64.38 ms | 16.97 ms |
+//! | repeated workspace references | 13.96 ms | 1.44 ms |
+//!
+//! The burst is a keystroke and then hover, definition and document symbols
+//! over the new text; without the overlay all four ran the front end again on
+//! text it had just analysed. The references row is over `examples/apps/csvql`,
+//! eleven files, asked a second time with nothing changed in between. What
+//! makes that reuse total rather than partial is that the second request
+//! executes no query at all, which the
+//! `a_second_request_over_an_unchanged_buffer_executes_nothing` test below
+//! holds it to against a salsa event log.
+//!
+//! The keystroke was the number at risk, and it is the reason this module was
+//! written once and held. Filling the model ran a per-declaration layer that
+//! cloned a sliced `ResolvedModule` for every declaration, which cost 17.9 ms
+//! on this file and pushed the keystroke to 33.4 ms, worse than the server that
+//! re-analysed everything. That fill now costs 0.70 ms and the keystroke lands
+//! below where it started.
+//!
+//! One thing did not improve. The keystroke's growth with file size steepens
+//! from n^1.49 to n^1.64 over the 535, 1,652 and 2,205-line sweep, because the
+//! small file gains proportionally more than the large one. Every size measured
+//! is faster than before, so this is where to look first if a file well past
+//! the sweep ever feels slow.
 //!
 //! Two things this deliberately is not.
 //!

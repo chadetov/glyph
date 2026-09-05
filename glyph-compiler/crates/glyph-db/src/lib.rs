@@ -69,9 +69,9 @@ pub use salsa::{Event, EventKind, Setter};
 /// as its query name.
 pub type EventSink = Arc<dyn Fn(&salsa::Event) + Send + Sync>;
 
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use glyph_ast::{Decl, Ident, Module, ModulePath, TypeExpr};
+use glyph_ast::{Decl, Ident, Module, ModulePath};
 use glyph_parser::ParseError;
 use glyph_resolver::{
     build_prelude, collect_module_symbols, path_key, resolve_module, verify_imports, DeclKey,
@@ -621,21 +621,29 @@ impl_wrapper_salsa_value!(ExportedTypeDecl);
 // Stage 7 wrappers: DeclAst and ResolvedDecl (per-declaration input slices)
 // ============================================================================
 
-/// One top-level declaration extracted from a `ParsedModule`.
+/// One top-level declaration named inside a `ParsedModule`.
 ///
-/// The wrapper carries the original `Decl` (for downstream consumers
-/// like the Lowerer) plus a **source-byte canonical**: the bytes the
-/// decl covers in the source file. `PartialEq` compares only the
-/// canonical, not the Decl values, so two `DeclAst`s are equal when
-/// their source text is identical — even if absolute byte positions
-/// shifted because of edits to *other* decls. This lifts day-8's
-/// equal-length restriction.
+/// The wrapper points at the declaration (for downstream consumers like the
+/// Lowerer) and carries a **source-byte canonical**: the bytes the decl covers
+/// in the source file. `PartialEq` compares only the canonical, not the decl,
+/// so two `DeclAst`s are equal when their source text is identical — even if
+/// absolute byte positions shifted because of edits to *other* decls. This
+/// lifts day-8's equal-length restriction.
 ///
 /// The trade-off: comment / whitespace edits *within* this decl change
 /// the source bytes and invalidate the wrapper, even when the AST is
 /// semantically identical. Acceptable in practice since comments rarely
 /// change without surrounding code changing too; a future "strip spans
 /// and compare structural AST" implementation could go finer.
+///
+/// **The declaration is pointed at rather than copied**, because there is one
+/// of these per declaration and a file has as many as it has declarations.
+/// Cloning the `Decl` made a fill deep-copy the whole module's AST once per
+/// keystroke; holding [`ParsedModule`] (itself an `Arc`) and the index into
+/// its `items` is a refcount bump instead. The index is a position and the
+/// query key is a name deliberately: the key is what has to survive an
+/// insertion above, and the index only has to agree with the AST stored
+/// beside it, which it does because both are written in the same execution.
 #[derive(Debug, Clone)]
 pub struct DeclAst {
     inner: Arc<DeclAstInner>,
@@ -643,8 +651,10 @@ pub struct DeclAst {
 
 #[derive(Debug, Clone)]
 struct DeclAstInner {
-    decl: Option<Decl>,
-    /// Source bytes covered by `Decl`'s outer span. The fingerprint
+    /// The file's parsed AST and the position of this declaration in it, or
+    /// `None` when the file did not parse or declares no such name.
+    at: Option<(ParsedModule, usize)>,
+    /// Source bytes covered by the decl's outer span. The fingerprint
     /// salsa reads through `PartialEq` when it decides whether to
     /// backdate; comparing two `DeclAst`s is just an Arc<str> content
     /// compare.
@@ -675,18 +685,19 @@ impl DeclAst {
     pub fn empty() -> Self {
         Self {
             inner: Arc::new(DeclAstInner {
-                decl: None,
+                at: None,
                 canonical: Arc::from(""),
             }),
         }
     }
 
-    /// Construct with the decl + the canonical source bytes.
-    pub fn new(decl: Decl, source: &str, span: glyph_ast::Span) -> Self {
+    /// Construct pointing at `items[idx]` of `parsed`, with the canonical
+    /// source bytes that declaration covers.
+    pub fn new(parsed: ParsedModule, idx: usize, source: &str, span: glyph_ast::Span) -> Self {
         let bytes = canonical_bytes(source, span);
         Self {
             inner: Arc::new(DeclAstInner {
-                decl: Some(decl),
+                at: Some((parsed, idx)),
                 canonical: bytes,
             }),
         }
@@ -706,30 +717,40 @@ impl DeclAst {
     /// `TypeMap`) must NOT trust the carried spans to align with
     /// current source positions.
     pub fn decl(&self) -> Option<&Decl> {
-        self.inner.decl.as_ref()
+        let (parsed, idx) = self.inner.at.as_ref()?;
+        parsed.module()?.items.get(*idx)
     }
 }
 
 impl_wrapper_salsa_value!(DeclAst);
 
-/// The resolver output sliced to spans inside one declaration's signature.
-/// Carries a `ResolvedModule` whose `resolutions` map contains only the
-/// entries the `Lowerer` will query when typing this decl's params and
-/// return type — i.e. every `TypeExpr` path inside the signature.
+/// The resolver output, paired with one declaration's source-byte canonical.
 ///
-/// Uses the same source-byte canonical as `DeclAst` for `PartialEq`. Two
-/// `ResolvedDecl`s are equal when their decl's source bytes match —
-/// independent of any absolute-span shifts in the carried
-/// `ResolvedModule`. The (Symbol.span values inside the cloned symbol
-/// table) and (absolute spans as keys in the resolution map) become
-/// invisible to salsa's change-detection.
+/// The canonical is the whole of the `PartialEq`: two `ResolvedDecl`s are
+/// equal when the declaration's source bytes match, independent of any
+/// absolute-span shift in the carried `ResolvedModule`. `Symbol.span` values
+/// inside the symbol table and absolute spans as keys in the resolution map
+/// are invisible to salsa's change-detection, which is what lets a body edit
+/// to one declaration leave every other declaration's memo standing.
 ///
-/// Correctness rationale: when the source bytes of the decl are
-/// unchanged, the symbolic resolutions for the decl's signature are
-/// unchanged too (module structure is stable, `SymbolId` allocation is
-/// source-order, prelude is fixed). The Lowerer still queries the
-/// resolution map by absolute span, and those absolute spans match what
-/// the current revision's AST produces — so lowering still works.
+/// **The module is shared with [`resolve`]'s memo rather than sliced per
+/// declaration**, and dropping the slice changes no answer. The slice predates
+/// the canonical: it existed so that a per-declaration value would compare
+/// equal across an edit elsewhere in the file, and the canonical does that job
+/// instead and does it better (it survives a length-changing edit, which the
+/// slice did not). Once equality stopped reading the map, the slice was a copy
+/// nothing looked at: [`Lowerer`] reaches the map only through
+/// `resolutions.get(span)` at spans inside this declaration's own signature,
+/// a span is unique within a file, and the sliced map and the whole map answer
+/// those spans identically. It cost a full `ModuleSymbols` clone and a scan of
+/// every resolution in the file, per declaration, on every fill.
+///
+/// Correctness rationale for the canonical, unchanged: when the source bytes
+/// of the decl are unchanged, the symbolic resolutions for the decl's
+/// signature are unchanged too (module structure is stable, `SymbolId`
+/// allocation is source-order, prelude is fixed). The Lowerer still queries
+/// the resolution map by absolute span, and those absolute spans match the AST
+/// stored beside them in the lockstep-backdated [`DeclAst`].
 #[derive(Debug, Clone)]
 pub struct ResolvedDecl {
     inner: Arc<ResolvedDeclInner>,
@@ -737,7 +758,9 @@ pub struct ResolvedDecl {
 
 #[derive(Debug, Clone)]
 struct ResolvedDeclInner {
-    resolved: Option<ResolvedModule>,
+    /// The file's whole resolver output, or `None` when the file did not
+    /// parse, declares no such name, or failed to resolve.
+    resolved: Option<Resolved>,
     canonical: Arc<str>,
 }
 
@@ -767,7 +790,7 @@ impl ResolvedDecl {
         }
     }
 
-    pub fn new(resolved: ResolvedModule, source: &str, span: glyph_ast::Span) -> Self {
+    pub fn new(resolved: Resolved, source: &str, span: glyph_ast::Span) -> Self {
         let bytes = canonical_bytes(source, span);
         Self {
             inner: Arc::new(ResolvedDeclInner {
@@ -788,7 +811,7 @@ impl ResolvedDecl {
     /// only this resolved-module and a `Decl` from the
     /// lockstep-backdated `DeclAst`, so the keys match.
     pub fn resolved(&self) -> Option<&ResolvedModule> {
-        self.inner.resolved.as_ref()
+        self.inner.resolved.as_ref()?.resolved()
     }
 }
 
@@ -853,10 +876,17 @@ fn decl_name(d: &Decl) -> Option<&Ident> {
 /// the first is the same choice the symbol table makes, and leaving the kind
 /// out is the same choice [`DeclKey`] makes for the same reason.
 fn decl_by_name<'m>(module: &'m Module, name: &str) -> Option<&'m Decl> {
+    decl_index_by_name(module, name).map(|i| &module.items[i])
+}
+
+/// The position in `module.items` of the declaration `module` declares under
+/// `name`. Same answer as [`decl_by_name`], as an index, for the one caller
+/// that stores the module beside it and reads the declaration back out later.
+fn decl_index_by_name(module: &Module, name: &str) -> Option<usize> {
     module
         .items
         .iter()
-        .find(|d| decl_name(d).is_some_and(|n| n.as_ref() == name))
+        .position(|d| decl_name(d).is_some_and(|n| n.as_ref() == name))
 }
 
 // ============================================================================
@@ -1936,12 +1966,12 @@ pub fn decl_ast(db: &dyn Db, file: SourceFile, name: Ident) -> DeclAst {
     let Some(module) = parsed.module() else {
         return DeclAst::empty();
     };
-    let Some(decl) = decl_by_name(module, &name) else {
+    let Some(idx) = decl_index_by_name(module, &name) else {
         return DeclAst::empty();
     };
-    let span = decl_outer_span(decl);
+    let span = decl_outer_span(&module.items[idx]);
     let source = file.text(db);
-    DeclAst::new(decl.clone(), source, span)
+    DeclAst::new(parsed.clone(), idx, source, span)
 }
 
 /// Per-declaration slice of the resolver output. Contains a
@@ -1962,15 +1992,12 @@ pub fn resolved_decl(db: &dyn Db, file: SourceFile, name: Ident) -> ResolvedDecl
         return ResolvedDecl::empty();
     };
     let resolved = resolve(db, file);
-    let Some(full) = resolved.resolved() else {
+    if resolved.resolved().is_none() {
         return ResolvedDecl::empty();
-    };
-    let mut sig_spans: HashSet<(u32, u32)> = HashSet::new();
-    collect_signature_spans(decl, &mut sig_spans);
-    let sliced = full.sliced(|s| sig_spans.contains(&(s.start, s.end)));
+    }
     let span = decl_outer_span(decl);
     let source = file.text(db);
-    ResolvedDecl::new(sliced, source, span)
+    ResolvedDecl::new(resolved, source, span)
 }
 
 /// Lower the type of the declaration `file` declares under `name`.
@@ -2106,66 +2133,6 @@ pub fn exported_fn(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
     let imports = SalsaDeclTy { db, file };
     let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &imports, &module_path);
     DeclTy::new(lowerer.lower_exported_fn_signature(decl))
-}
-
-/// Collect every span the `Lowerer` will query from the resolution map
-/// while lowering `decl`'s signature: every `TypeExpr::Path` span inside
-/// param types and the return type. Used by `resolved_decl` to slice the
-/// full per-file resolution map down to per-decl scope.
-fn collect_signature_spans(decl: &Decl, out: &mut HashSet<(u32, u32)>) {
-    let (params, return_ty) = match decl {
-        Decl::Fn(f) => (f.params.as_slice(), f.return_ty.as_ref()),
-        Decl::Component(c) => (c.params.as_slice(), c.return_ty.as_ref()),
-        // Non-callable decls have no signature spans to collect; the
-        // matching `decl_ty` arm returns `Ty::Unknown` and the Lowerer is
-        // never invoked, so the slice doesn't matter.
-        Decl::Import(_) | Decl::Type(_) | Decl::Const(_) | Decl::Interface(_) => return,
-    };
-    for p in params {
-        collect_type_expr_spans(&p.ty, out);
-    }
-    if let Some(rt) = return_ty {
-        collect_type_expr_spans(rt, out);
-    }
-}
-
-fn collect_type_expr_spans(te: &TypeExpr, out: &mut HashSet<(u32, u32)>) {
-    match te {
-        TypeExpr::Path { span, .. } => {
-            out.insert((span.start, span.end));
-        }
-        TypeExpr::Generic { base, args, .. } => {
-            collect_type_expr_spans(base, out);
-            for a in args {
-                collect_type_expr_spans(a, out);
-            }
-        }
-        TypeExpr::Fn {
-            params, return_ty, ..
-        } => {
-            for p in params {
-                collect_type_expr_spans(&p.ty, out);
-            }
-            if let Some(rt) = return_ty.as_deref() {
-                collect_type_expr_spans(rt, out);
-            }
-        }
-        TypeExpr::Record { fields, .. } => {
-            for f in fields {
-                collect_type_expr_spans(&f.ty, out);
-            }
-        }
-        TypeExpr::Union { variants, .. } => {
-            for v in variants {
-                if let Some(p) = &v.payload {
-                    collect_type_expr_spans(p, out);
-                }
-            }
-        }
-        // Raw TypeScript and string literals carry no Glyph name spans; a
-        // `typeof` operand's span is the whole query, not a per-name span.
-        TypeExpr::Extern { .. } | TypeExpr::StringLiteralUnion { .. } | TypeExpr::TypeOf { .. } => {}
-    }
 }
 
 #[cfg(test)]
@@ -2434,6 +2401,101 @@ pub mod tests {
             }
             other => panic!("expected Ty::Fn, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn each_declaration_query_answers_about_the_name_it_was_asked() {
+        // `DeclAst` points into the shared AST by index rather than carrying
+        // its own copy of the declaration, so "which declaration" is now a
+        // number stored beside the module instead of the value itself. An
+        // off-by-one there is invisible to every test that asks about a
+        // one-declaration file or that counts events without reading a type,
+        // and it would hand the Lowerer the wrong signature for every
+        // declaration but the first.
+        //
+        // Three declarations with three distinguishable signatures, asked for
+        // by name in an order that is not source order.
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "three.glyph",
+            "module x\n\
+             pub fn first(a: number) -> number { return a }\n\
+             pub fn second(a: string) -> string { return a }\n\
+             pub fn third(a: bool) -> bool { return a }\n",
+        );
+
+        for (n, prim) in [
+            ("third", Primitive::Bool),
+            ("first", Primitive::Number),
+            ("second", Primitive::String),
+        ] {
+            let ast = decl_ast(&db, file, name(n));
+            let decl = ast.decl().unwrap_or_else(|| panic!("no decl for `{n}`"));
+            assert_eq!(
+                decl_name(decl).map(|i| i.to_string()),
+                Some(n.to_string()),
+                "decl_ast({n}) pointed at a different declaration"
+            );
+            match decl_ty(&db, file, name(n)).ty() {
+                Ty::Fn { params, .. } => assert!(
+                    matches!(&params[0].ty, Ty::Prim(p) if *p == prim),
+                    "decl_ty({n}) lowered another declaration's parameter: {:?}",
+                    params[0].ty
+                ),
+                other => panic!("expected Ty::Fn for `{n}`, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn the_per_declaration_memos_share_one_copy_of_the_file() {
+        // Everything the per-declaration layer copies, it copies once per
+        // declaration, so a file pays for it as many times as it has
+        // declarations. `resolved_decl` used to clone the whole symbol table
+        // and scan every resolution in the file for each one, which is what
+        // made filling the layer cost more than the assignment it wraps.
+        //
+        // Both wrappers now hold the upstream query's own output. This pins
+        // that as a property rather than as a comment: across every
+        // declaration in a file, the memos point at ONE `ParsedModule` and ONE
+        // `Resolved`, not one per declaration. A regression that reintroduces
+        // a per-declaration copy shows up here as a count equal to the number
+        // of declarations.
+        use std::collections::HashSet;
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "x.glyph",
+            "module x\n\
+             pub fn a(n: number) -> number { return n }\n\
+             pub fn b(n: number) -> number { return n }\n\
+             pub fn c(n: number) -> number { return n }\n",
+        );
+
+        let mut asts: HashSet<usize> = HashSet::new();
+        let mut resolveds: HashSet<usize> = HashSet::new();
+        for n in ["a", "b", "c"] {
+            let ast = decl_ast(&db, file, name(n));
+            let (parsed, _) = ast.inner.at.as_ref().expect("parsed");
+            asts.insert(Arc::as_ptr(&parsed.inner) as usize);
+
+            let rd = resolved_decl(&db, file, name(n));
+            let resolved = rd.inner.resolved.as_ref().expect("resolved");
+            resolveds.insert(Arc::as_ptr(&resolved.inner) as usize);
+        }
+        assert_eq!(
+            asts.len(),
+            1,
+            "three declarations pinned {} parsed modules; the AST is being copied per declaration",
+            asts.len()
+        );
+        assert_eq!(
+            resolveds.len(),
+            1,
+            "three declarations pinned {} resolver outputs; the resolve is being copied per declaration",
+            resolveds.len()
+        );
     }
 
     #[test]
@@ -3845,4 +3907,175 @@ pub fn f(r: Result<number, string>) -> number {
         assert_eq!(site.site.state, CoverageState::Exhaustive);
         assert_eq!(variants_named(site), vec!["Up".to_string(), "Down".to_string()]);
     }
+
+    // ========================================================================
+    // TEMPORARY TIMING INSTRUMENT (not for commit)
+    // ========================================================================
+
+    fn minilang_source() -> String {
+        let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../examples/apps/minilang/main.glyph");
+        std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("read {p:?}: {e}"))
+    }
+
+    /// Insert `n` spaces at the end of a line roughly in the middle of the
+    /// file, inside a function body. Shifts every span after it.
+    fn keystroke(text: &str, n: usize) -> String {
+        let lines: Vec<&str> = text.lines().collect();
+        // find an indented, non-empty line near the middle
+        let mid = lines.len() / 2;
+        let idx = lines
+            .iter()
+            .enumerate()
+            .skip(mid)
+            .find(|(_, l)| l.starts_with("  ") && !l.trim().is_empty())
+            .map(|(i, _)| i)
+            .unwrap_or(mid);
+        let mut out = String::with_capacity(text.len() + n + 8);
+        for (i, l) in lines.iter().enumerate() {
+            out.push_str(l);
+            if i == idx {
+                for _ in 0..n {
+                    out.push(' ');
+                }
+            }
+            out.push('\n');
+        }
+        out
+    }
+
+    #[test]
+    #[ignore]
+    fn timing_instrument_minilang() {
+        use std::time::Instant;
+        let text = minilang_source();
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "main.glyph", &text);
+
+        // --- raw pipeline, no database ---
+        let module = glyph_parser::parse(&text).expect("parses");
+        let n_decls = module.items.len();
+        let t = Instant::now();
+        let syms = glyph_resolver::collect_module_symbols(&module).expect("symbols");
+        let resolved = glyph_resolver::resolve_module(&module, syms.clone(), db.prelude());
+        let raw_resolve = t.elapsed();
+        let rm = resolved.0;
+        let n_res = rm.resolutions.len();
+        let n_syms = rm.symbols.table.len();
+
+        let mut raw_assign = std::time::Duration::ZERO;
+        for _ in 0..10 {
+            let m2 = glyph_parser::parse(&text).expect("parses");
+            let s2 = glyph_resolver::collect_module_symbols(&m2).expect("symbols");
+            let r2 = glyph_resolver::resolve_module(&m2, s2, db.prelude()).0;
+            let t = Instant::now();
+            let out = glyph_typechecker::assign_types(&m2, &r2, db.prelude());
+            raw_assign += t.elapsed();
+            std::hint::black_box(&out);
+        }
+        let raw_assign = raw_assign / 10;
+
+        let mut raw_parse = std::time::Duration::ZERO;
+        for _ in 0..10 {
+            let t = Instant::now();
+            let m = glyph_parser::parse(&text).expect("parses");
+            raw_parse += t.elapsed();
+            std::hint::black_box(&m);
+        }
+        let raw_parse = raw_parse / 10;
+
+        // --- warm the database ---
+        let _ = type_map(&db, file);
+        db.drain_events();
+
+        // --- keystrokes ---
+        const N: usize = 15;
+        let mut total = std::time::Duration::ZERO;
+        let mut per = Vec::new();
+        for i in 1..=N {
+            let edited = keystroke(&text, i);
+            db.set_file_text(file, edited);
+            let t = Instant::now();
+            let tm = type_map(&db, file);
+            let d = t.elapsed();
+            std::hint::black_box(&tm);
+            db.drain_events();
+            per.push(d);
+            total += d;
+        }
+        per.sort();
+        let median = per[N / 2];
+
+        // --- the same keystrokes, but only through parse + resolve ---
+        let mut db2 = CompilerDb::with_default_stdlib();
+        let file2 = new_file(&db2, "main.glyph", &text);
+        let _ = resolve(&db2, file2);
+        db2.drain_events();
+        let mut per2 = Vec::new();
+        for i in 1..=N {
+            let edited = keystroke(&text, i);
+            db2.set_file_text(file2, edited);
+            let t = Instant::now();
+            let r = resolve(&db2, file2);
+            let d = t.elapsed();
+            std::hint::black_box(&r);
+            db2.drain_events();
+            per2.push(d);
+        }
+        per2.sort();
+
+        // --- attribution: per-declaration layer ---
+        let mut db3 = CompilerDb::with_default_stdlib();
+        let file3 = new_file(&db3, "main.glyph", &text);
+        let names: Vec<Ident> = {
+            let m = parse_module(&db3, file3);
+            m.module().unwrap().items.iter().filter_map(decl_name).cloned().collect()
+        };
+        let _ = type_map(&db3, file3);
+        db3.drain_events();
+        let (mut t_parse, mut t_declast, mut t_resolve, mut t_rdecl, mut t_declty, mut t_rest) =
+            (std::time::Duration::ZERO, std::time::Duration::ZERO, std::time::Duration::ZERO,
+             std::time::Duration::ZERO, std::time::Duration::ZERO, std::time::Duration::ZERO);
+        for i in 1..=N {
+            let edited = keystroke(&text, i);
+            db3.set_file_text(file3, edited);
+            let t = Instant::now();
+            std::hint::black_box(parse_module(&db3, file3));
+            t_parse += t.elapsed();
+            let t = Instant::now();
+            for n in &names { std::hint::black_box(decl_ast(&db3, file3, Ident::clone(n))); }
+            t_declast += t.elapsed();
+            let t = Instant::now();
+            std::hint::black_box(resolve(&db3, file3));
+            t_resolve += t.elapsed();
+            let t = Instant::now();
+            for n in &names { std::hint::black_box(resolved_decl(&db3, file3, Ident::clone(n))); }
+            t_rdecl += t.elapsed();
+            let t = Instant::now();
+            for n in &names { std::hint::black_box(decl_ty(&db3, file3, Ident::clone(n))); }
+            t_declty += t.elapsed();
+            let t = Instant::now();
+            std::hint::black_box(type_map(&db3, file3));
+            t_rest += t.elapsed();
+            db3.drain_events();
+        }
+        let k = N as u32;
+
+        eprintln!("=== minilang: {} lines, {n_decls} decls, {n_res} resolutions, {n_syms} symbols ===", text.lines().count());
+        eprintln!("raw parse                 {:>8.2?}", raw_parse);
+        eprintln!("raw resolve (1 sample)    {:>8.2?}", raw_resolve);
+        eprintln!("raw assign_types          {:>8.2?}", raw_assign);
+        eprintln!("db resolve   / keystroke  {:>8.2?} (median of {N})", per2[N / 2]);
+        eprintln!("db type_map  / keystroke  {:>8.2?} (median of {N})", median);
+        eprintln!("  mean {:>8.2?}  min {:>8.2?}  max {:>8.2?}", total / N as u32, per[0], per[N - 1]);
+        eprintln!("--- attribution, per keystroke, in dependency order ---");
+        eprintln!("  parse_module            {:>8.2?}", t_parse / k);
+        eprintln!("  decl_ast   x{n_decls:<3}       {:>8.2?}", t_declast / k);
+        eprintln!("  resolve                 {:>8.2?}", t_resolve / k);
+        eprintln!("  resolved_decl x{n_decls:<3}    {:>8.2?}", t_rdecl / k);
+        eprintln!("  decl_ty    x{n_decls:<3}       {:>8.2?}", t_declty / k);
+        eprintln!("  type_map (remainder)    {:>8.2?}", t_rest / k);
+
+    }
+
 }

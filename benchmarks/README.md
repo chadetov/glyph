@@ -18,6 +18,8 @@ A third demo, **impact-before-edit** (`impact-before-edit/`), measures the has_c
 
 A fourth, **impact-on-csvql** (`impact-on-csvql/`), runs the same question on a real application instead of a fixture: `examples/apps/csvql`, eleven files, one variant added to the `Value` union at its centre. It asks `glyph_variants` what the change will break before making it, then makes it and requires the compiler's E0200 entities to be exactly the sites predicted to fail, with the sites predicted to absorb it silently appearing nowhere in the output. The app is copied to a temporary directory; nothing under `examples/apps/` is edited.
 
+A fifth, **lsp-latency** (`lsp-latency/`), measures what the language server makes a person wait for: a client speaking real LSP framing over stdio to `glyph lsp`, timing a keystroke to its squiggle, an editor burst (a keystroke, then hover, definition and document symbols), and a repeated workspace-wide find-references. It sweeps three files at 535, 1,652 and 2,205 lines and writes `results/lsp-latency-<label>-<timestamp>.json`. Point it at two binaries in one sitting to compare them; see `lsp-latency/README.md`.
+
 Results are written to `results/<timestamp>.json` and checked into git so the trajectory is visible. The synthesized findings are in `FINDINGS.md`.
 
 ## The first three functions (Phase 0)

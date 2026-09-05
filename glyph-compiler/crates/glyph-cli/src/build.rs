@@ -558,7 +558,7 @@ fn build_project_inner_with(
 
         // Cache the source text once per file; rendering may use it
         // multiple times if the file produces multiple diagnostics.
-        let source = sf.text(&db).clone();
+        let source = sf.source_text(&db).clone();
 
         let parsed = parse_module(&db, *sf);
         if let Some(err) = parsed.error() {

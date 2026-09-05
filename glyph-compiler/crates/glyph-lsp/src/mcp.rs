@@ -30,7 +30,7 @@ use serde_json::{json, Value};
 
 use glyph_db::{
     project_match_coverage, CompilerDb, CoverageTypeRef, DeclIndex, EventSink,
-    ProjectCoverageSite, Setter, SourceFile,
+    ProjectCoverageSite, SourceFile,
 };
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, DeclKey, ModuleGraph, Prelude,
@@ -129,13 +129,13 @@ impl Project {
     /// `outsider` instead, for this call only.
     ///
     /// **The comparison is the whole point.** salsa 0.28 does not backdate an
-    /// input write: `set_text` with byte-identical text still opens a new
-    /// revision and forces every dependent query to re-execute. A refresh that
-    /// wrote unconditionally would miss on every call forever while looking
-    /// exactly like a cache, and would be slower than the code it replaced,
-    /// because it would pay the reads on top of the full analysis. The same
-    /// applies to `set_project`, which is written only when the entry set
-    /// changes.
+    /// input write: writing byte-identical text still opens a new revision and
+    /// forces every dependent query to re-execute. A refresh that wrote
+    /// unconditionally would miss on every call forever while looking exactly
+    /// like a cache, and would be slower than the code it replaced, because it
+    /// would pay the reads on top of the full analysis. `CompilerDb::set_file_text`
+    /// holds that comparison now. The same applies to `set_project`, which is
+    /// written only when the entry set changes.
     fn refresh(&mut self, target: &Path) {
         let mut walked = Vec::new();
         collect_glyph_files(&self.root, &mut walked);
@@ -222,9 +222,8 @@ impl Project {
 /// Put `text` into the database under `module_path`, reusing `existing`'s salsa
 /// input when the file already had one.
 ///
-/// The inequality is load-bearing: salsa 0.28 does not backdate an input write,
-/// so `set_text` with byte-identical text still opens a new revision and forces
-/// every dependent query to re-execute.
+/// `set_file_text` is what makes a write of unchanged bytes free; the reason it
+/// has to be is on that method.
 fn load(
     db: &mut CompilerDb,
     existing: Option<ProjectFile>,
@@ -233,9 +232,7 @@ fn load(
 ) -> ProjectFile {
     match existing {
         Some(existing) => {
-            if existing.file.text(&*db) != &text {
-                existing.file.set_text(db).to(text);
-            }
+            db.set_file_text(existing.file, text);
             existing
         }
         None => {
@@ -1697,7 +1694,7 @@ fn generated_from(
         // else, which is what makes the empty answer exact rather than a gap.
         return GeneratedFrom::none();
     };
-    let text = entry.file.text(&project.db);
+    let text = entry.file.source_text(&project.db);
     let where_ = display_path(root, fpath);
     // Read off the text rather than off a parse: the record is a block of
     // comment lines, so a file too broken to parse still says what generated
@@ -2091,7 +2088,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     // silently is what makes a partial list look like a complete one.
     let mut unindexed: Vec<Value> = Vec::new();
     for (fpath, entry) in project.searched() {
-        let ftext = entry.file.text(db);
+        let ftext = entry.file.source_text(db);
         let fparsed = glyph_db::parse_module(db, entry.file);
         let fresolved = glyph_db::resolve(db, entry.file);
         let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
@@ -2367,7 +2364,7 @@ fn field_sites(
         // a project name no site of any one field, and a line index over every
         // one of them is work whose answer is thrown away.
         let mut rendered: Option<(LineIndex, Vec<OutlineSymbol>)> = None;
-        let ftext = entry.file.text(db);
+        let ftext = entry.file.source_text(db);
         let file = FileCtx { path: fpath, root, text: ftext };
         for site in uses.sites() {
             if site.field() != field {
@@ -3737,7 +3734,7 @@ impl SiteRender<'_> {
         let db = self.db;
         let decls = self.decls;
         let f = self.cached(module)?;
-        let text = f.file.text(db);
+        let text = f.file.source_text(db);
         let (line, _character) = f.index.position(text, start as usize);
         Some(SiteWhere {
             path: f.path.clone(),
@@ -3762,7 +3759,7 @@ impl SiteRender<'_> {
             // A memo hit: the relation already parsed every project file.
             let parsed = glyph_db::parse_module(self.db, file);
             let outline = parsed.module().map(module_outline).unwrap_or_default();
-            let index = LineIndex::new(file.text(self.db));
+            let index = LineIndex::new(file.source_text(self.db));
             self.files.insert(
                 module.to_string(),
                 FileRender {
@@ -5094,7 +5091,7 @@ fn impact_occurrences(
     // has, so the earliest occurrence inside that span is the name itself.
     let mut edit_site: Option<(u32, Value, Relation)> = None;
     for (fpath, entry) in project.searched() {
-        let ftext = entry.file.text(db);
+        let ftext = entry.file.source_text(db);
         let fparsed = glyph_db::parse_module(db, entry.file);
         let fresolved = glyph_db::resolve(db, entry.file);
         let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
@@ -7046,7 +7043,7 @@ mod tests {
     ///
     /// This is the test that catches the trap the whole refresh is written
     /// around: salsa 0.28 does not backdate an input write, so a refresh that
-    /// called `set_text` unconditionally would re-execute `parse_module` for
+    /// wrote every file's text unconditionally would re-execute `parse_module` for
     /// every file on every call — a cache with a permanent zero hit rate, and
     /// slower than no cache at all, while every other test here still passed.
     #[test]

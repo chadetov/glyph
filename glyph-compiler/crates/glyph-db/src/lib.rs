@@ -235,6 +235,29 @@ impl CompilerDb {
             .expect("project_files is set by `CompilerDb::new`; this should never fire")
     }
 
+    /// Put `text` into `file`, and do nothing at all when that is already what
+    /// the file holds. Returns whether the database changed.
+    ///
+    /// **The comparison is the point, and it belongs here rather than at a call
+    /// site.** salsa 0.28 does not backdate an input write: a byte-identical
+    /// `set_text` opens a new revision anyway, and the queries below the file
+    /// re-execute to discover that nothing moved. The tools that write a file
+    /// they did not change are ordinary ones: a formatter that made no edit, an
+    /// editor saving an untouched buffer, a generator re-emitting last run's
+    /// output. Each of them pays a re-parse for it.
+    ///
+    /// This is the only way in. The generated `set_text` is crate-private, so
+    /// the comparison cannot be skipped by a caller who did not know to make
+    /// it. It lived at one call site in the MCP server's file loader before,
+    /// which meant every later writer had to rediscover the reason for it.
+    pub fn set_file_text(&mut self, file: SourceFile, text: String) -> bool {
+        if file.text(&*self) == &text {
+            return false;
+        }
+        file.set_text(self).to(text);
+        true
+    }
+
     /// Replace the project's file set. Salsa-invalidates any tracked query
     /// that transitively depends on the file list — including
     /// `project_exports` and any `import_diagnostics` that consults it.
@@ -270,12 +293,26 @@ impl Db for CompilerDb {
 /// One file's source text. Carrying a virtual path (instead of a real
 /// filesystem path) keeps the test surface and the future-`glyph build`
 /// surface the same: both pass strings.
+///
+/// `text` is crate-private, and that is about the setter half of the pair
+/// salsa generates from it. Writing a file's text is the one operation in this
+/// crate that must not be reachable without the comparison in
+/// [`CompilerDb::set_file_text`], and salsa gives the getter and the setter one
+/// visibility between them. Reading is unrestricted, through
+/// [`SourceFile::source_text`].
 #[salsa::input]
 pub struct SourceFile {
     #[returns(ref)]
     pub virtual_path: String,
     #[returns(ref)]
-    pub text: String,
+    pub(crate) text: String,
+}
+
+impl SourceFile {
+    /// The text the file currently holds.
+    pub fn source_text(self, db: &dyn Db) -> &String {
+        self.text(db)
+    }
 }
 
 // ============================================================================
@@ -515,12 +552,12 @@ impl_wrapper_salsa_value!(Types);
 // Stage 6 wrapper: DeclTy (per-declaration intermediate)
 // ============================================================================
 
-/// Lowered `Ty` for a single top-level declaration, keyed by `decl_idx` into
-/// the parsed module's `items` Vec. Per-declaration granularity is what makes
+/// Lowered `Ty` for a single top-level declaration, keyed by the name the
+/// module declares it under. Per-declaration granularity is what makes
 /// "edit one fn body, don't recompute the others' types" cheap — when
-/// `decl_ty(file, k)`'s body re-runs but produces a structurally-equal Ty,
+/// `decl_ty(file, name)`'s body re-runs but produces a structurally-equal Ty,
 /// the new answer compares equal, salsa backdates the memo, and downstream
-/// queries that depend on `decl_ty(file, k)` stay cached.
+/// queries that depend on `decl_ty(file, name)` stay cached.
 ///
 /// `Fn` and `Component` lower to a `Ty::Fn`. Other declarations are
 /// `Ty::Unknown` here — `type` and `const` decls have their type information
@@ -634,7 +671,7 @@ impl Eq for DeclAst {}
 
 impl DeclAst {
     /// Construct an empty `DeclAst` (no decl, no canonical). Used on
-    /// upstream-failure paths (parse failed, decl_idx out of range).
+    /// upstream-failure paths (parse failed, no declaration of that name).
     pub fn empty() -> Self {
         Self {
             inner: Arc::new(DeclAstInner {
@@ -655,7 +692,7 @@ impl DeclAst {
         }
     }
 
-    /// `Some` if the file parsed and `decl_idx` was in range, else `None`.
+    /// `Some` if the file parsed and declares the name, else `None`.
     ///
     /// **Staleness contract**: under a backdated revision (when the
     /// decl's source bytes match cached but other parts of the file
@@ -740,7 +777,7 @@ impl ResolvedDecl {
         }
     }
 
-    /// `Some` if the file parsed and `decl_idx` was in range, else `None`.
+    /// `Some` if the file parsed and declares the name, else `None`.
     ///
     /// **Staleness contract** (same as `DeclAst::decl`): under a
     /// backdated revision, the carried `ResolvedModule`'s symbols and
@@ -792,6 +829,34 @@ fn decl_outer_span(d: &Decl) -> glyph_ast::Span {
         Decl::Component(c) => c.span,
         Decl::Interface(i) => i.span,
     }
+}
+
+/// The name a top-level declaration is declared under, or `None` for an
+/// `import`, which introduces a binding without declaring anything of its own.
+fn decl_name(d: &Decl) -> Option<&Ident> {
+    match d {
+        Decl::Import(_) => None,
+        Decl::Fn(f) => Some(&f.name),
+        Decl::Type(t) => Some(&t.name),
+        Decl::Const(c) => Some(&c.name),
+        Decl::Component(c) => Some(&c.name),
+        Decl::Interface(i) => Some(&i.name),
+    }
+}
+
+/// The declaration `module` declares under `name`, or `None` when it declares
+/// no such name.
+///
+/// First match wins, and the declaration's kind is not consulted. Glyph's
+/// module namespace is flat and single, so a second declaration of a name is
+/// already a duplicate-declaration error the resolver reports; answering about
+/// the first is the same choice the symbol table makes, and leaving the kind
+/// out is the same choice [`DeclKey`] makes for the same reason.
+fn decl_by_name<'m>(module: &'m Module, name: &str) -> Option<&'m Decl> {
+    module
+        .items
+        .iter()
+        .find(|d| decl_name(d).is_some_and(|n| n.as_ref() == name))
 }
 
 // ============================================================================
@@ -1617,9 +1682,9 @@ pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
 /// Routes per-decl signature lowering through the salsa-tracked `decl_ty`
 /// query via `SalsaDeclTy`. The Assigner's old in-call HashMap cache is
 /// gone; calls to `decl_ty_resolver.decl_ty(idx)` hit the cross-revision
-/// memo on `crate::decl_ty(db, file, idx)`. Editing any line in the file
-/// still invalidates `parse_module` and `resolve`, so `decl_ty(file, k)`
-/// re-executes for every k — but for untouched fns each re-execution
+/// memo on `crate::decl_ty(db, file, name)`. Editing any line in the file
+/// still invalidates `parse_module` and `resolve`, so `decl_ty(file, name)`
+/// re-executes for every name — but for untouched fns each re-execution
 /// returns a structurally-equal `Ty`, the two answers compare equal,
 /// and salsa backdates the revision so downstream consumers of those
 /// `decl_ty` entries skip. The day-7 win is the cache-sharing across the
@@ -1712,7 +1777,7 @@ fn own_module_key(module: &Module) -> String {
 }
 
 /// `DeclTyResolver` impl that fetches per-decl types from the salsa-tracked
-/// `decl_ty(db, file, idx)` query. Lives at the `glyph-db` ↔ `glyph-typechecker`
+/// `decl_ty(db, file, name)` query. Lives at the `glyph-db` ↔ `glyph-typechecker`
 /// boundary so the typechecker stays unaware of salsa.
 struct SalsaDeclTy<'a> {
     db: &'a dyn Db,
@@ -1720,8 +1785,20 @@ struct SalsaDeclTy<'a> {
 }
 
 impl DeclTyResolver for SalsaDeclTy<'_> {
+    /// The typechecker addresses a declaration by its position in `items`,
+    /// because that is what a `SymbolKind` carries. The translation to the
+    /// name the query is keyed by happens here, at the boundary, which is why
+    /// the memo survives an edit that moved the position and the typechecker
+    /// needed no change to get that.
     fn decl_ty(&self, decl_idx: u32) -> Ty {
-        decl_ty(self.db, self.file, decl_idx).ty().clone()
+        let parsed = parse_module(self.db, self.file);
+        let Some(module) = parsed.module() else {
+            return Ty::Unknown;
+        };
+        let Some(name) = module.items.get(decl_idx as usize).and_then(decl_name) else {
+            return Ty::Unknown;
+        };
+        decl_ty(self.db, self.file, Ident::clone(name)).ty().clone()
     }
 
     fn imported_union_of_variant(
@@ -1792,11 +1869,13 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         module_path: &str,
         type_name: &str,
     ) -> Option<ImportedTypeDecl> {
-        // Same three steps as the two per-shape queries above — find the
-        // project sibling, parse it, locate the declaration — but the answer is
-        // produced by the tracked `exported_type(db, file, idx)` query, keyed on
-        // the source declaration rather than on the consumer, so one lowering
-        // serves every consumer and every import spelling.
+        // Same lookup as the two per-shape queries above — find the project
+        // sibling — but the answer is produced by the tracked
+        // `exported_type(db, file, name)` query, keyed on the source
+        // declaration rather than on the consumer, so one lowering serves every
+        // consumer and every import spelling. The query is keyed by the same
+        // name the consumer asked for, so there is nothing to look up first:
+        // a name this module does not declare as a `type` answers `None`.
         //
         // `Decl::Interface` is not covered: an imported interface keeps today's
         // empty member set, because what an interface *is* across a file edge
@@ -1808,43 +1887,31 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
             .iter()
             .find(|(p, _)| p == module_path)
             .map(|(_, f)| *f)?;
-        let parsed = parse_module(self.db, file);
-        let module = parsed.module()?;
-        let idx = module.items.iter().position(|item| {
-            matches!(item, glyph_ast::Decl::Type(td) if td.name.as_ref() == type_name)
-        })?;
-        exported_type(self.db, file, idx as u32).decl().cloned()
+        exported_type(self.db, file, Ident::from(type_name))
+            .decl()
+            .cloned()
     }
 
     fn imported_fn_decl(&self, module_path: &str, fn_name: &str) -> Option<Ty> {
         // Same lookup shape as `imported_type_decl` just above — find the
-        // project sibling, parse it, locate the declaration by name — but the
-        // callable counterpart (G133): the answer is produced by the tracked
-        // `exported_fn(db, file, idx)` query, keyed on the source declaration
-        // rather than on the consumer, so one lowering serves every consumer
-        // and every legal import spelling (named import, namespace, alias)
-        // the same way a type's does.
+        // project sibling — but the callable counterpart (G133): the answer is
+        // produced by the tracked `exported_fn(db, file, name)` query, keyed on
+        // the source declaration rather than on the consumer, so one lowering
+        // serves every consumer and every legal import spelling (named import,
+        // namespace, alias) the same way a type's does.
         let project = self.db.project_files_input();
         let file = project
             .entries(self.db)
             .iter()
             .find(|(p, _)| p == module_path)
             .map(|(_, f)| *f)?;
-        let parsed = parse_module(self.db, file);
-        let module = parsed.module()?;
-        let idx = module.items.iter().position(|item| match item {
-            glyph_ast::Decl::Fn(f) => f.name.as_ref() == fn_name,
-            glyph_ast::Decl::Component(c) => c.name.as_ref() == fn_name,
-            _ => false,
-        })?;
-        let ty = exported_fn(self.db, file, idx as u32).ty().clone();
-        // `Ty::Unknown` is `exported_fn`'s sentinel for "no such decl" (already
-        // ruled out by the `position` above, so this only fires for a decl
-        // whose signature itself lowered to nothing decidable) as well as for
-        // "not a callable" (unreachable here, `position` only matches
-        // `Fn`/`Component`). Either way the caller's `.or_else` fallback is
-        // the right behavior, so surface it as a miss rather than a `Ty::Fn`
-        // with no real signature.
+        let ty = exported_fn(self.db, file, Ident::from(fn_name)).ty().clone();
+        // `Ty::Unknown` is `exported_fn`'s sentinel for all three misses: the
+        // module declares no such name, it declares one that is not a callable,
+        // or it declares a callable whose signature lowered to nothing
+        // decidable. The caller's `.or_else` fallback is the right behavior for
+        // each, so surface them as a miss rather than as a `Ty::Fn` with no
+        // real signature.
         if matches!(ty, Ty::Unknown) {
             None
         } else {
@@ -1853,17 +1920,23 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
     }
 }
 
-/// Extract the `decl_idx`-th top-level declaration from the parsed
+/// Extract the declaration `file` declares under `name` from the parsed
 /// module. The salsa memo gets backdated whenever the decl's source
 /// bytes are unchanged across a file edit — even when absolute byte
 /// positions shifted because of edits to other decls.
+///
+/// Keyed by the name rather than by the position in `items`, so a
+/// declaration inserted above this one leaves the question unchanged. A
+/// position key made that edit unanswerable from the memo: the same
+/// declaration became a key nobody had ever asked. The module half of the
+/// identity is `file` itself; see the note on [`decl_ty`].
 #[salsa::tracked(returns(clone))]
-pub fn decl_ast(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclAst {
+pub fn decl_ast(db: &dyn Db, file: SourceFile, name: Ident) -> DeclAst {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
         return DeclAst::empty();
     };
-    let Some(decl) = module.items.get(decl_idx as usize) else {
+    let Some(decl) = decl_by_name(module, &name) else {
         return DeclAst::empty();
     };
     let span = decl_outer_span(decl);
@@ -1873,19 +1946,19 @@ pub fn decl_ast(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclAst {
 
 /// Per-declaration slice of the resolver output. Contains a
 /// `ResolvedModule` whose `resolutions` map is restricted to spans
-/// inside `module.items[decl_idx]`'s signature (param types + return
+/// inside the named declaration's signature (param types + return
 /// type). The wrapper's PartialEq compares the decl's source bytes only
-/// (same canonical as `DeclAst`); so when fn 0's body changes length,
-/// fn 1's `ResolvedDecl` is still considered equal — the carried
+/// (same canonical as `DeclAst`); so when one fn's body changes length,
+/// another's `ResolvedDecl` is still considered equal — the carried
 /// `ResolvedModule` has different absolute spans but the bytes that
 /// produced it are unchanged.
 #[salsa::tracked(returns(clone))]
-pub fn resolved_decl(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ResolvedDecl {
+pub fn resolved_decl(db: &dyn Db, file: SourceFile, name: Ident) -> ResolvedDecl {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
         return ResolvedDecl::empty();
     };
-    let Some(decl) = module.items.get(decl_idx as usize) else {
+    let Some(decl) = decl_by_name(module, &name) else {
         return ResolvedDecl::empty();
     };
     let resolved = resolve(db, file);
@@ -1900,24 +1973,35 @@ pub fn resolved_decl(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ResolvedDe
     ResolvedDecl::new(sliced, source, span)
 }
 
-/// Lower the type of the `decl_idx`-th top-level declaration.
+/// Lower the type of the declaration `file` declares under `name`.
 ///
-/// True per-decl input granularity (day 8): depends only on
-/// `decl_ast(file, decl_idx)` and `resolved_decl(file, decl_idx)`, not on
-/// the whole-file `parse_module`/`resolve` outputs. Editing fn 5's body
-/// makes `decl_ast(file, 5)` and `resolved_decl(file, 5)` change, but for
-/// k≠5 (with stable byte positions) both per-decl slices stay
-/// content-equal — salsa backdates them, and `decl_ty(file, k)` skips
-/// re-execution entirely (zero `WillExecute` in salsa's event log).
+/// True per-decl input granularity: depends only on
+/// `decl_ast(file, name)` and `resolved_decl(file, name)`, not on
+/// the whole-file `parse_module`/`resolve` outputs. Editing one fn's body
+/// makes `decl_ast` and `resolved_decl` change for that fn, but for every
+/// other name both per-decl slices stay content-equal — salsa backdates
+/// them, and `decl_ty(file, other)` skips re-execution entirely (zero
+/// `WillExecute` in salsa's event log).
 ///
-/// Out-of-range or non-callable decls return `DeclTy::new(Ty::Unknown)`.
+/// **Why the name and not the position.** The two halves of a declaration's
+/// identity are the module it is declared in and the name it is declared
+/// under, which is what [`DeclKey`] carries. Here the module half is `file`,
+/// the salsa input, rather than a [`ModuleId`]: a `ModuleId` is issued by the
+/// project-level interner in [`project_decl_keys`], so minting one reads
+/// `ProjectFiles`, and the ids renumber when the project gains a file. Keying
+/// a per-file query on one would make every per-declaration memo depend on the
+/// project's file list and go cold whenever a file is added. [`MatchCoverage`]
+/// documents the same hazard for the same reason. `SourceFile` names the same
+/// module and is stable across both.
+///
+/// An unknown name or a non-callable decl returns `DeclTy::new(Ty::Unknown)`.
 #[salsa::tracked(returns(clone))]
-pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
-    let ast = decl_ast(db, file, decl_idx);
+pub fn decl_ty(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
+    let ast = decl_ast(db, file, Ident::clone(&name));
     let Some(decl) = ast.decl() else {
         return DeclTy::new(Ty::Unknown);
     };
-    let rd = resolved_decl(db, file, decl_idx);
+    let rd = resolved_decl(db, file, name);
     let Some(resolved_module) = rd.resolved() else {
         return DeclTy::new(Ty::Unknown);
     };
@@ -1930,7 +2014,8 @@ pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
     DeclTy::new(lowerer.lower_decl_signature(decl))
 }
 
-/// Lower the `decl_idx`-th declaration of `file` as **another module sees it**.
+/// Lower the declaration `file` declares under `name` as **another module sees
+/// it**.
 ///
 /// The lowering has to happen on the source side: `Lowerer::lower` resolves a
 /// path through `resolved.resolutions.get(span)`, and this declaration's spans
@@ -1947,12 +2032,12 @@ pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
 /// This query answers `DeclTyResolver::imported_type_decl` — same declaration,
 /// producing side.
 #[salsa::tracked(returns(clone))]
-pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTypeDecl {
+pub fn exported_type(db: &dyn Db, file: SourceFile, name: Ident) -> ExportedTypeDecl {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
         return ExportedTypeDecl::new(None);
     };
-    let Some(Decl::Type(td)) = module.items.get(decl_idx as usize) else {
+    let Some(Decl::Type(td)) = decl_by_name(module, &name) else {
         return ExportedTypeDecl::new(None);
     };
     let resolved = resolve(db, file);
@@ -1977,7 +2062,7 @@ pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTy
     ExportedTypeDecl::new(Some(lowerer.lower_exported_type(td)))
 }
 
-/// Lower the `decl_idx`-th declaration of `file` as **another module sees
+/// Lower the declaration `file` declares under `name` as **another module sees
 /// it**, when that declaration is a `fn`/`component`. The callable
 /// counterpart of `exported_type`: same three steps (find the project
 /// sibling, resolve it, lower on the export view) and the same reason the
@@ -1997,13 +2082,12 @@ pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTy
 ///
 /// This query answers `DeclTyResolver::imported_fn_decl`.
 #[salsa::tracked(returns(clone))]
-pub fn exported_fn(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
+pub fn exported_fn(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
         return DeclTy::new(Ty::Unknown);
     };
-    let Some(decl @ (Decl::Fn(_) | Decl::Component(_))) = module.items.get(decl_idx as usize)
-    else {
+    let Some(decl @ (Decl::Fn(_) | Decl::Component(_))) = decl_by_name(module, &name) else {
         return DeclTy::new(Ty::Unknown);
     };
     let resolved = resolve(db, file);
@@ -2119,6 +2203,12 @@ pub mod tests {
 
     fn new_file(db: &CompilerDb, name: &str, text: &str) -> SourceFile {
         SourceFile::new(db, name.to_string(), text.to_string())
+    }
+
+    /// The key a per-declaration query is asked with: the name the module
+    /// declares the thing under.
+    fn name(n: &str) -> Ident {
+        Ident::from(n)
     }
 
     /// Count all `WillExecute` events in a salsa event log. salsa's
@@ -2332,7 +2422,7 @@ pub mod tests {
             "ok.glyph",
             "module x\npub fn add(a: number, b: number) -> number { return a + b }\n",
         );
-        let d = decl_ty(&db, file, 0);
+        let d = decl_ty(&db, file, name("add"));
         match d.ty() {
             Ty::Fn {
                 params, return_ty, ..
@@ -2355,23 +2445,23 @@ pub mod tests {
             "module x\npub type User = { name: string }\n",
         );
         // Type decls don't produce a Fn-shaped DeclTy in this query.
-        let d = decl_ty(&db, file, 0);
+        let d = decl_ty(&db, file, name("User"));
         assert!(matches!(d.ty(), Ty::Unknown));
     }
 
     #[test]
-    fn decl_ty_unknown_for_out_of_range_idx() {
+    fn decl_ty_unknown_for_a_name_the_module_does_not_declare() {
         let db = CompilerDb::with_default_stdlib();
         let file = new_file(&db, "ok.glyph", "module x\npub fn one() {}\n");
-        let d = decl_ty(&db, file, 99);
+        let d = decl_ty(&db, file, name("nope"));
         assert!(matches!(d.ty(), Ty::Unknown));
     }
 
     #[test]
-    fn decl_ty_memoizes_per_decl_index_within_a_revision() {
+    fn decl_ty_memoizes_per_decl_name_within_a_revision() {
         // First-phase calls fill the cache; the second-phase repeat calls
         // must execute zero queries — salsa returns the memoized DeclTy for
-        // each (file, decl_idx) key without re-running any body.
+        // each (file, name) key without re-running any body.
         let db = CompilerDb::with_default_stdlib();
         let file = new_file(
             &db,
@@ -2382,8 +2472,8 @@ pub mod tests {
         // phase-1 count reflects only the decl_ty fetches.
         db.drain_events();
         // Phase 1: prime the cache.
-        let _ = decl_ty(&db, file, 0);
-        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, name("add"));
+        let _ = decl_ty(&db, file, name("ident"));
         let primed = db.drain_events();
         // The two decl_ty calls drag in parse_module, module_symbols, resolve,
         // plus decl_ty(0) and decl_ty(1) themselves — at least 4 WillExecute
@@ -2395,9 +2485,9 @@ pub mod tests {
             "phase-1 should run parse_module + module_symbols + resolve + decl_ty(0) + decl_ty(1); events: {primed:?}"
         );
         // Phase 2: repeat calls in the same revision. Should be cache hits.
-        let _ = decl_ty(&db, file, 0);
-        let _ = decl_ty(&db, file, 1);
-        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, name("add"));
+        let _ = decl_ty(&db, file, name("ident"));
+        let _ = decl_ty(&db, file, name("add"));
         let repeats = db.drain_events();
         assert_eq!(
             count_will_execute(&repeats),
@@ -2410,7 +2500,7 @@ pub mod tests {
     fn editing_one_fn_body_keeps_other_fn_decl_ty_content_equal() {
         // Day-6 acceptance: changing the body of fn #0 must produce a
         // *content-equal* DeclTy for fn #1 across the edit, so downstream
-        // consumers that depend on decl_ty(file, 1) can be backdated by
+        // consumers that depend on decl_ty(file, "ident") can be backdated by
         // salsa and skip re-execution. Salsa's backdating compares the
         // old and new answers with `PartialEq` — when our wrapper's
         // PartialEq returns true, downstream queries observe "no change."
@@ -2426,15 +2516,15 @@ fn add(a: number, b: number) -> number { return a + b }
 fn ident(x: string) -> string { return x }
 "#;
         let file = new_file(&db, "two.glyph", src_before);
-        let add_before = decl_ty(&db, file, 0);
-        let ident_before = decl_ty(&db, file, 1);
+        let add_before = decl_ty(&db, file, name("add"));
+        let ident_before = decl_ty(&db, file, name("ident"));
         let src_after = r#"module x
 fn add(a: number, b: number) -> number { return b + a }
 fn ident(x: string) -> string { return x }
 "#;
         file.set_text(&mut db).to(src_after.to_string());
-        let add_after = decl_ty(&db, file, 0);
-        let ident_after = decl_ty(&db, file, 1);
+        let add_after = decl_ty(&db, file, name("add"));
+        let ident_after = decl_ty(&db, file, name("ident"));
         assert_eq!(add_before.ty(), add_after.ty());
         assert_eq!(ident_before.ty(), ident_after.ty());
     }
@@ -2447,12 +2537,12 @@ fn ident(x: string) -> string { return x }
             "one.glyph",
             "module x\npub fn id(a: number) -> number { return a }\n",
         );
-        let before = decl_ty(&db, file, 0);
+        let before = decl_ty(&db, file, name("id"));
         // Change `a: number` to `a: string`.
         file.set_text(&mut db).to(
             "module x\npub fn id(a: string) -> number { return a }\n".to_string(),
         );
-        let after = decl_ty(&db, file, 0);
+        let after = decl_ty(&db, file, name("id"));
         assert_ne!(before.ty(), after.ty(), "signature change should change DeclTy");
         match after.ty() {
             Ty::Fn {
@@ -2474,7 +2564,7 @@ fn ident(x: string) -> string { return x }
             "comp.glyph",
             "module x\npub component Btn(label: string) -> Component { return <button></button> }\n",
         );
-        let d = decl_ty(&db, file, 0);
+        let d = decl_ty(&db, file, name("Btn"));
         match d.ty() {
             Ty::Fn { params, .. } => {
                 assert_eq!(params.len(), 1);
@@ -2488,7 +2578,7 @@ fn ident(x: string) -> string { return x }
     fn decl_ty_unknown_for_const_decl() {
         let db = CompilerDb::with_default_stdlib();
         let file = new_file(&db, "ok.glyph", "module x\npub const PI = 3.14\n");
-        let d = decl_ty(&db, file, 0);
+        let d = decl_ty(&db, file, name("PI"));
         assert!(matches!(d.ty(), Ty::Unknown));
     }
 
@@ -2496,17 +2586,17 @@ fn ident(x: string) -> string { return x }
     fn type_map_consumes_decl_ty_so_body_edit_does_not_relower_other_fns() {
         // Day-7 acceptance: `type_map` now routes per-decl Ty lookups
         // through the salsa-tracked `decl_ty` query. After editing one fn's
-        // body, re-running `type_map` causes `decl_ty(file, k)` to re-execute
+        // body, re-running `type_map` causes `decl_ty(file, name)` to re-execute
         // for every k (since parse_module/resolve are per-file inputs) — but
         // for k whose signature is unchanged, the new Ty is content-equal,
         // the old and new answers compare equal, and salsa backdates the
-        // revision counter. A later direct call to `decl_ty(file, k)` then
+        // revision counter. A later direct call to `decl_ty(file, name)` then
         // returns from the memo without re-running.
         //
         // Fixture: `use_helper` references `helper`, so type_map's walk
         // invokes `SalsaDeclTy::decl_ty(helper_idx)`. `helper` is not
         // referenced from anywhere, so `SalsaDeclTy::decl_ty(use_helper_idx)`
-        // is NOT invoked by type_map — `decl_ty(file, 1)` enters the memo
+        // is NOT invoked by type_map — `decl_ty(file, "use_helper")` enters the memo
         // only when called directly.
         let mut db = CompilerDb::with_default_stdlib();
         // Edit `helper`'s body `a + 1` → `1 + a`. Same length, same set of
@@ -2554,7 +2644,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         // After the post-edit run, calling decl_ty for the referenced helper
         // hits the memo (the resolver inside type_map already warmed it
         // AND salsa's backdating preserved its revision). Zero WillExecute.
-        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, name("helper"));
         let helper_events = db.drain_events();
         assert_eq!(
             count_will_execute(&helper_events),
@@ -2594,17 +2684,17 @@ fn use_helper(x: number) -> number { return helper(x) }
         let module = parsed.module().expect("parse should succeed");
         assert!(
             matches!(&module.items[0], glyph_ast::Decl::Fn(f) if f.name.as_ref() == "helper"),
-            "fixture invariant: decl_idx 0 must be `helper`"
+            "fixture invariant: the first declaration must be `helper`"
         );
         assert!(
             matches!(&module.items[1], glyph_ast::Decl::Fn(f) if f.name.as_ref() == "main"),
-            "fixture invariant: decl_idx 1 must be `main`"
+            "fixture invariant: the second declaration must be `main`"
         );
 
         let _ = type_map(&db, file);
         db.drain_events();
         // `helper` is referenced by `main` → its decl_ty memo should be warm.
-        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, name("helper"));
         let helper_events = db.drain_events();
         assert_eq!(
             count_will_execute(&helper_events),
@@ -2613,7 +2703,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         );
         // `main` is the entry point itself; nothing else references it →
         // its decl_ty memo should NOT have been warmed by type_map.
-        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, name("main"));
         let main_events = db.drain_events();
         assert!(
             count_will_execute(&main_events) >= 1,
@@ -2966,8 +3056,8 @@ fn other(x: number) -> number { return x }
 "#;
         let file = new_file(&db, "two.glyph", src_before);
         // Prime both decl_ty memos.
-        let _ = decl_ty(&db, file, 0);
-        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, name("helper"));
+        let _ = decl_ty(&db, file, name("other"));
         db.drain_events();
         // Length-changing edit: `return a` → `return a + 1 + 2 + 3`.
         // The original was 8 chars in the body content; the new one is
@@ -2978,11 +3068,11 @@ fn other(x: number) -> number { return x }
 "#;
         file.set_text(&mut db).to(src_after.to_string());
         db.drain_events();
-        // decl_ty for `other` (decl_idx 1) should still be served from
+        // decl_ty for `other` should still be served from
         // memo despite the absolute-span shift. The source bytes
         // covered by `other`'s outer span are byte-identical to before;
         // the canonical comparison detects that.
-        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, name("other"));
         let events = db.drain_events();
         let we = count_will_execute(&events);
         let valid = count_validated_memos(&events);
@@ -3014,13 +3104,104 @@ fn other(x: number) -> number { return x }
     }
 
     #[test]
+    fn writing_a_file_the_text_it_already_holds_costs_nothing() {
+        // salsa 0.28 does not backdate an input write. A byte-identical write
+        // opens a new revision anyway, and every query downstream of the file
+        // re-executes to discover that nothing moved. The tools that do this
+        // are ordinary ones: a formatter that made no edit, an editor saving
+        // an untouched buffer, a generator re-emitting the output it emitted
+        // last time.
+        let (mut db, log) = recording_db();
+        let src = "module x\npub fn charge(a: number) -> number { return a + 1 }\n";
+        let file = new_file(&db, "x.glyph", src);
+        db.set_project(vec![("x".to_string(), file)]);
+        let before = type_map(&db, file);
+        let _ = ran(&log);
+
+        let changed = db.set_file_text(file, src.to_string());
+        let after = type_map(&db, file);
+        let events = ran(&log);
+
+        assert!(!changed, "a byte-identical write reported a change");
+        assert_eq!(before.type_map(), after.type_map());
+        assert!(
+            events.is_empty(),
+            "a write of the text the file already held re-executed queries: {events:?}"
+        );
+    }
+
+    #[test]
+    fn writing_a_file_text_it_does_not_hold_still_lands() {
+        // The other half, and the reason the guard is a comparison rather than
+        // a skip: an actual edit has to reach the database.
+        let (mut db, log) = recording_db();
+        let before_src = "module x\npub fn charge(a: number) -> number { return a + 1 }\n";
+        let after_src = "module x\npub fn charge(a: string) -> string { return a }\n";
+        let file = new_file(&db, "x.glyph", before_src);
+        db.set_project(vec![("x".to_string(), file)]);
+        let before = decl_ty(&db, file, name("charge"));
+        let _ = ran(&log);
+
+        let changed = db.set_file_text(file, after_src.to_string());
+        let after = decl_ty(&db, file, name("charge"));
+        let events = ran(&log);
+
+        assert!(changed, "a real edit reported no change");
+        assert_ne!(
+            before.ty(),
+            after.ty(),
+            "the signature changed and the lowered type did not"
+        );
+        assert!(
+            events.iter().any(|k| k.starts_with("decl_ty")),
+            "a real edit did not re-lower the declaration it changed: {events:?}"
+        );
+    }
+
+    #[test]
+    fn inserting_a_declaration_above_leaves_the_others_type_memoized() {
+        // The identity half of the incremental story. A body edit already
+        // spares the untouched declarations (the two tests above): their
+        // source bytes do not change, and `DeclAst`/`ResolvedDecl` compare
+        // bytes rather than positions, so the memo survives. An *insertion*
+        // above them was the case that still cost a re-lowering, and it is the
+        // edit an agent makes most often: adding a declaration to a file.
+        //
+        // Under a position key the untouched declaration has to be asked for
+        // under a different key after the insert, so the answer cannot be
+        // memoized under any circumstances: nobody ever asked that key. Keyed
+        // by name it is the same question, and the memo answers it.
+        let (mut db, log) = recording_db();
+        let charge = "pub fn charge(a: number) -> number { let x = a + 1 return x }\n";
+        let before = format!("module x\n{charge}");
+        let after =
+            format!("module x\npub fn audit(n: number) -> number {{ return n }}\n{charge}");
+        let file = new_file(&db, "x.glyph", &before);
+        let before_ty = decl_ty(&db, file, name("charge"));
+        let _ = ran(&log);
+
+        file.set_text(&mut db).to(after);
+        let after_ty = decl_ty(&db, file, name("charge"));
+        let events = ran(&log);
+
+        assert_eq!(
+            before_ty, after_ty,
+            "the declaration's own bytes did not change, so neither did its type"
+        );
+        assert!(
+            !events.iter().any(|k| k.starts_with("decl_ty")),
+            "a declaration inserted above re-lowered an untouched declaration: {events:?}"
+        );
+    }
+
+    #[test]
     fn editing_one_fn_body_skips_decl_ty_for_other_fns() {
         // Day-8 acceptance: with per-decl input slicing in place
         // (decl_ast + resolved_decl), editing fn 0's body must NOT cause
-        // decl_ty(file, 1) to re-execute. The previous regime had decl_ty
-        // re-running for every k on every edit and relying on output-level
-        // backdating to spare downstream consumers. Day 8 moves the win
-        // upstream: decl_ty(file, k≠edited) doesn't even run.
+        // decl_ty for `use_helper` to re-execute. The previous regime had
+        // decl_ty re-running for every declaration on every edit and relying
+        // on output-level backdating to spare downstream consumers. The win
+        // moved upstream: decl_ty for an unedited declaration doesn't run.
         //
         // Fixture is an equal-length body edit so neither decl's spans
         // shift across the change. Without that the DeclAst Eq (which
@@ -3032,8 +3213,8 @@ fn use_helper(x: number) -> number { return helper(x) }
 "#;
         let file = new_file(&db, "two.glyph", src_before);
         // Prime decl_ty for both decls.
-        let _ = decl_ty(&db, file, 0);
-        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, name("helper"));
+        let _ = decl_ty(&db, file, name("use_helper"));
         db.drain_events();
         // Same-length body edit to `helper` only — `use_helper`'s body and
         // signature are untouched and at the same byte positions.
@@ -3043,16 +3224,16 @@ fn use_helper(x: number) -> number { return helper(x) }
 "#;
         file.set_text(&mut db).to(src_after.to_string());
         // decl_ty for the EDITED fn should fire (its decl_ast changed).
-        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, name("helper"));
         let edited_events = db.drain_events();
         assert!(
             count_will_execute(&edited_events) >= 1,
             "decl_ty(helper) should re-execute after its body changed; events: {edited_events:?}"
         );
         // decl_ty for the UNEDITED fn — the day-8 win. Salsa walks the
-        // dep graph to verify freshness: decl_ast(file, 1) and
-        // resolved_decl(file, 1) re-execute as part of validation (they
-        // cheaply return content-equal values), but `decl_ty(file, 1)`'s
+        // dep graph to verify freshness: decl_ast and resolved_decl for
+        // `use_helper` re-execute as part of validation (they
+        // cheaply return content-equal values), but that decl_ty's
         // own body does NOT re-run — salsa serves it as a memo hit. The
         // tell is a `DidValidateMemoizedValue` event, not a `WillExecute`,
         // for decl_ty's ingredient.
@@ -3061,7 +3242,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         // depend on parse_module/resolve directly would see decl_ty itself
         // re-execute (WillExecute on ingredient 5), and no
         // DidValidateMemoizedValue would fire for it.
-        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, name("use_helper"));
         let unedited_events = db.drain_events();
         let we = count_will_execute(&unedited_events);
         let valid = count_validated_memos(&unedited_events);
@@ -3072,8 +3253,8 @@ fn use_helper(x: number) -> number { return helper(x) }
         // catch the regression on its own; `valid >= 1` is what rejects
         // it. Do not drop either assertion thinking the other suffices.
         //
-        // The two re-validations counted under `we` are decl_ast(file, 1)
-        // and resolved_decl(file, 1) — both cheap (clone-a-Decl and
+        // The two re-validations counted under `we` are decl_ast and
+        // resolved_decl for `use_helper` — both cheap (clone-a-Decl and
         // filter-spans, respectively). Day-8's promise is that decl_ty's
         // body is NOT among the re-executed queries.
         assert!(

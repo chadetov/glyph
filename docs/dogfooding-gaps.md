@@ -6945,6 +6945,31 @@ and is the owner's to confirm.
   *Reproduced against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
   this configuration and is covered by a test naming it.*
 
+  **This is worse than a silent gap. It is a silent wrong answer, and it breaks
+  exact-or-absent in shipped code.** Two files in one project both declaring
+  `module models`, one of them at `src/models.glyph` so its header matches its
+  path. The project compiles with no diagnostics. Asking about `models::Kind`,
+  whose variants are `Alpha`, `Beta` and `Gamma`, returns:
+
+  ```
+  SITE  models::label   src/models.glyph  arms=[Alpha, Beta, Gamma]   correct
+  SITE  other::dir      src/other.glyph   arms=[Up, Down]             wrong file, wrong type
+  unkeyed: 0
+  ```
+
+  `other::dir` matches on an unrelated `Kind` declared in another file, and it
+  comes back as a proven `MATCH_SITES` edge with nothing in `unkeyed` and nothing
+  in `not_counted`. An agent asking what breaks if it adds a variant is told to
+  edit a site that has no relation to the type.
+
+  **Every gate case built so far tests a site the compiler could not key. None
+  tested a site keyed to the wrong entity.** The first attempt at this
+  reproduction missed it for that reason: with both files mismatching their
+  paths, both landed honestly in `unkeyed`. The defect needs one file whose
+  header agrees with its path and another claiming the same name.
+
+  *Reproduced against 0.1.114.*
+
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
   reported success.** Pruning some names out of an `import M { a, b }` spliced
   the rewritten declaration over `imp.span.end`, which sits past the newline

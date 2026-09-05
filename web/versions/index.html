@@ -61,8 +61,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.114</span>
+            <span class="rel-ver">0.1.115</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The language server stopped running a second compiler</h3>
+            <p>Every request to <code>glyph lsp</code>, a keystroke, a hover, a find-references, re-ran the whole front end on a bare string: parse, symbol collection, prelude construction, resolution, and type assignment, every time. A hover cost the same as a fresh diagnostics pass. The server now owns its own <code>CompilerDb</code>, fed by the editor's buffers rather than disk, and a second request over an unchanged buffer executes zero queries.</p>
+            <p>The server never shares the MCP server's database. Sharing would let an unsaved keystroke rewrite the input the agent's disk-truth answers are computed from, and buffer state and disk state are kept apart on purpose.</p>
+            <h3>A regression, found before anyone else could</h3>
+            <p>The first measurement of the overlay showed a keystroke getting slower, not faster: 15.60ms rose to 33.39ms. The cause was the per-declaration fill layer beneath it, <code>decl_ast</code> cloning every declaration's source bytes and <code>resolved_decl</code> cloning a sliced module per declaration, work that pays for itself across a build but was being paid in full on every keystroke. That layer was fixed; <code>resolved_decl</code> fell from about 15ms per call to 0.29ms, and the overlay shipped unchanged underneath it.</p>
+            <p>Measured back to back over the real protocol on the 2,205-line <code>minilang</code> example: the keystroke went from 15.96ms to 13.78ms, the editor burst from 64.38ms to 16.97ms, and a repeated workspace-wide references from 13.96ms to 1.44ms. The full per-file table is in <code>benchmarks/lsp-latency/README.md</code>, and the harness that produced it ships under <code>benchmarks/lsp-latency/</code> so the next measurement is a command rather than an excavation.</p>
+            <p class="rel-note">One number moved the wrong way: the keystroke's growth exponent, from n^1.49 to n^1.64, because the smallest file gains 30% and the largest gains 14%. Every measured size is faster than before; whether the exponent matters past 2,205 lines is not something this sweep can say.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.114</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

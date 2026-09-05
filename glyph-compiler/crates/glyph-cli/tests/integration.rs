@@ -869,15 +869,17 @@ fn build_flags_unknown_variant_pattern_with_suggestion() {
 }
 
 #[test]
-fn cross_module_union_typo_is_module_local_scope_only() {
-    // Pins the current scope boundary of E0220: the escalation is module-local.
-    // When the union is defined in another module, the scrutinee's type lowers to
-    // `Unknown` and coverage is checked by `check_imported_union_coverage`, which
-    // counts any PascalCase head as covering a variant with no membership check.
-    // So a cross-module typo (`Loadign`) draws NO E0220 today. The imported
-    // full-union masking is a known architecture decision (fork C); this test
-    // makes the boundary visible in code so the day it changes, it changes here
-    // deliberately rather than by surprise.
+fn cross_module_union_typo_draws_e0220_like_the_module_local_one() {
+    // G169. This test used to pin the opposite: E0220 was module-local, and a
+    // cross-module typo drew nothing, because `check_imported_union_coverage`
+    // counted any bare PascalCase head as covering a variant with no membership
+    // check. It said the day that changed it should change here deliberately
+    // rather than by surprise, and this is that change.
+    //
+    // `Loadign` over an imported `Feed` is the same mistake as `Loadign` over a
+    // local one, so it gets the same diagnostic with the same suggestion. The
+    // module-local twin is `build_flags_unknown_variant_pattern_with_suggestion`
+    // and the two programs differ only in which module declares the union.
     let root = unique_tmp("crossmoduletypo");
     let src = root.join("src");
     let out = root.join("dist");

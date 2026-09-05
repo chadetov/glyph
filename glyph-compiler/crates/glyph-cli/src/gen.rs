@@ -33,6 +33,8 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
+use glyph_lsp::generated::{content_hash, Record};
+
 #[derive(Debug, thiserror::Error)]
 pub enum GenError {
     #[error("cannot read {path}: {source}")]
@@ -156,7 +158,11 @@ pub fn openapi(
     } else {
         (String::new(), String::new())
     };
-    render_and_write(gen, schemas, module_name, source_label, regen, imports, trailer, out_dir, renames)
+    let source = SourceArtifact::of("openapi", spec_path, raw.as_bytes());
+    render_and_write(
+        gen, schemas, module_name, source_label, regen, imports, trailer, out_dir, renames,
+        &source,
+    )
 }
 
 /// Explicit `source type name -> Glyph type name` overrides, from `--rename`.
@@ -225,6 +231,52 @@ fn rename_flags(renames: &Renames) -> String {
         .collect()
 }
 
+/// The artifact one `gen` run read, and which generator read it.
+///
+/// This is what the `GENERATED_FROM` edge points at (R5), so it is the file
+/// whose bytes were actually hashed rather than the argument the user typed:
+/// `glyph gen dts stripe` reads a declaration file out of `node_modules`, and a
+/// record naming `stripe` would name something no later run could re-read and
+/// compare.
+///
+/// **What the hash covers is the artifact named here and nothing else.** For
+/// `openapi` that is the whole input. For `dts` and `zod` the helper follows
+/// references out of the entry file, and those files are not covered, so a
+/// caller reading "unchanged" learns that this artifact is unchanged and never
+/// that the generated Glyph is still what a fresh run would write.
+struct SourceArtifact {
+    /// `openapi`, `dts` or `zod`.
+    target: &'static str,
+    /// The artifact's path, as the record will spell it.
+    path: String,
+    /// [`content_hash`] of its bytes at generation time.
+    hash: String,
+}
+
+impl SourceArtifact {
+    /// For a generator that already holds the bytes it read.
+    fn of(target: &'static str, path: &Path, bytes: &[u8]) -> SourceArtifact {
+        SourceArtifact {
+            target,
+            path: path.display().to_string(),
+            hash: content_hash(bytes),
+        }
+    }
+
+    /// For a generator whose helper read the file, so the bytes have to be read
+    /// again here. A failure is reported rather than recorded as an absent
+    /// hash: a record with no hash cannot answer the question it exists for,
+    /// and writing one would put a file on disk that claims a provenance edge
+    /// nobody can check.
+    fn read(target: &'static str, path: &Path) -> Result<SourceArtifact, GenError> {
+        let bytes = std::fs::read(path).map_err(|e| GenError::Read {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+        Ok(SourceArtifact::of(target, path, &bytes))
+    }
+}
+
 /// Turn a schema map into a formatted, self-validated `.glyph` file on disk.
 /// Shared by `glyph gen openapi` and `glyph gen dts` — both reduce to a JSON
 /// Schema `definitions` map, so both flow through the one mapper. `imports` and
@@ -240,6 +292,7 @@ fn render_and_write(
     trailer: String,
     out_dir: &Path,
     renames: &Renames,
+    source: &SourceArtifact,
 ) -> Result<GenReport, GenError> {
     let module_name = &module_name;
     // The uniqueness check belongs *here*, on the names about to be written.
@@ -255,6 +308,23 @@ fn render_and_write(
     // Canonicalize + self-validate: parse the generated source and reprint it.
     let module = glyph_parser::parse(&body).map_err(|e| GenError::GeneratedInvalid {
         reason: format!("{e:?}"),
+        source_text: body.clone(),
+    })?;
+
+    // R5. Record what generated each declaration, now that there is a parse to
+    // read the declarations off. Taking the list from the emitted tree rather
+    // than from `schemas` is what keeps it exact: `--client` and `--handlers`
+    // add functions this map never held, and a record listing the types alone
+    // would report absence for a declaration this very run wrote.
+    let record = Record {
+        target: source.target.to_string(),
+        source: source.path.clone(),
+        source_hash: source.hash.clone(),
+        entities: generated_entities(&module, module_name),
+    };
+    let body = with_record(&body, &record.render())?;
+    let module = glyph_parser::parse(&body).map_err(|e| GenError::GeneratedInvalid {
+        reason: format!("the generation record did not parse back ({e:?})"),
         source_text: body.clone(),
     })?;
     let comments = glyph_lexer::comments(&body);
@@ -275,6 +345,66 @@ fn render_and_write(
         type_count: gen.type_count,
         notes: gen.notes,
     })
+}
+
+/// Every entity one `gen` run wrote, as `module::name`.
+///
+/// Top-level declarations and the variants of the tagged unions among them.
+/// A variant is separately addressable (`glyph_references` answers for
+/// `kinds::Open`), and the next run overwrites it exactly as it overwrites the
+/// declaration around it, so leaving variants out would answer "nothing
+/// generated this" about something this run generated.
+///
+/// `import` declarations are not entities: an import binds a name another
+/// module declares, and the declaration it points at is a different node.
+fn generated_entities(module: &glyph_ast::Module, module_name: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut push = |name: &str| out.push(format!("{module_name}::{name}"));
+    for decl in &module.items {
+        match decl {
+            glyph_ast::Decl::Fn(d) => push(&d.name),
+            glyph_ast::Decl::Const(d) => push(&d.name),
+            glyph_ast::Decl::Component(d) => push(&d.name),
+            glyph_ast::Decl::Interface(d) => push(&d.name),
+            glyph_ast::Decl::Type(d) => {
+                push(&d.name);
+                if let glyph_ast::TypeExpr::Union { variants, .. } = &d.body {
+                    for variant in variants {
+                        push(&variant.name);
+                    }
+                }
+            }
+            glyph_ast::Decl::Import(_) => {}
+        }
+    }
+    out
+}
+
+/// Splice the generation record into the file's header, immediately below the
+/// prose that already names the source.
+///
+/// The two belong together: one sentence for a person, the same fact in a form
+/// a program can read. The insertion point is the end of the contiguous `//`
+/// run that the prose opens, so it stays correct when the prose is reworded.
+/// A body with no prose header is a generator bug rather than a file to write
+/// without a record, because a generated file that carries no record is
+/// indistinguishable from a hand-written one.
+fn with_record(body: &str, record: &str) -> Result<String, GenError> {
+    const ANCHOR: &str = "// Generated from ";
+    let start = body.find(ANCHOR).ok_or_else(|| GenError::GeneratedInvalid {
+        reason: "internal: the generated body carries no `// Generated from` header, so there is \
+                 nowhere to record what generated it"
+            .to_string(),
+        source_text: body.to_string(),
+    })?;
+    let mut at = start;
+    for line in body[start..].split_inclusive('\n') {
+        if !line.starts_with("//") {
+            break;
+        }
+        at += line.len();
+    }
+    Ok(format!("{}{record}{}", &body[..at], &body[at..]))
 }
 
 fn stem_of(path: &Path) -> &str {
@@ -358,6 +488,7 @@ fn dts_from_file(
     })?;
 
     let warnings = helper_warnings(&doc);
+    let source = SourceArtifact::read("dts", dts_path)?;
     let mut report = render_and_write(
         Generator::default(),
         schemas,
@@ -368,6 +499,7 @@ fn dts_from_file(
         String::new(),
         out_dir,
         renames,
+        &source,
     )?;
     // Surface the reader's warnings (e.g. a same-named type in two files, which
     // first-wins would silently bind to the wrong shape) as gen notes.
@@ -623,6 +755,7 @@ fn zod_from_module(
         path: file.to_path_buf(),
     })?;
 
+    let source = SourceArtifact::read("zod", file)?;
     render_and_write(
         Generator::default(),
         schemas,
@@ -633,6 +766,7 @@ fn zod_from_module(
         String::new(),
         out_dir,
         renames,
+        &source,
     )
 }
 
@@ -2695,6 +2829,129 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// R5. A generated file records what generated it, per declaration.
+    ///
+    /// The prose header has named the source since `gen` shipped, and it is not
+    /// enough. It says one file came from one spec; it does not say which
+    /// declarations that run wrote, and it carries nothing an agent can compare
+    /// against the spec sitting on disk right now. So an agent editing
+    /// `petstore::Order` cannot tell the edit is about to be overwritten, and
+    /// nothing can answer "does this spec still generate what is committed".
+    ///
+    /// The record is one line per generated entity, sorted by entity id, under
+    /// a versioned opener and a source line carrying the content hash of the
+    /// artifact the generator read.
+    #[test]
+    fn a_generated_file_records_its_source_hash_and_every_entity_it_wrote() {
+        let dir = tmp_nm("record").parent().unwrap().to_path_buf();
+        let spec = dir.join("petstore.yaml");
+        std::fs::write(&spec, PETSTORE).unwrap();
+        let out = dir.join("src");
+        let report = openapi(&spec, &out, false, false, &Renames::new()).expect("generates");
+        let text = std::fs::read_to_string(&report.out_file).unwrap();
+
+        let block: Vec<&str> = text
+            .lines()
+            .filter(|l| l.starts_with("// glyph-graph") || l.starts_with("// @generated-from"))
+            .collect();
+        assert_eq!(
+            block.first().copied(),
+            Some("// glyph-graph 1"),
+            "the record opens with its format version; got:\n{text}"
+        );
+        let hash = content_hash(PETSTORE.as_bytes());
+        assert_eq!(
+            block.get(1).copied(),
+            Some(format!("// @generated-from source openapi {hash} {}", spec.display()).as_str()),
+            "the source line carries the target, the hash and the path; got:\n{text}"
+        );
+        assert_eq!(
+            &block[2..],
+            [
+                "// @generated-from entity petstore::Order",
+                "// @generated-from entity petstore::Pet",
+            ],
+            "one line per entity, sorted by entity id; got:\n{text}"
+        );
+        assert!(glyph_parser::parse(&text).is_ok(), "must still parse:\n{text}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// R7. Two runs over one unchanged spec write the same bytes.
+    ///
+    /// The record is committed and diffed, so a format that reorders between
+    /// runs recreates exactly the churn the formatter exists to prevent. This
+    /// is the whole acceptance test for the serialization: serialize twice,
+    /// compare bytes.
+    #[test]
+    fn two_runs_over_one_spec_write_identical_bytes() {
+        let dir = tmp_nm("stable").parent().unwrap().to_path_buf();
+        let spec = dir.join("petstore.yaml");
+        std::fs::write(&spec, PETSTORE).unwrap();
+        let out = dir.join("src");
+
+        let first = openapi(&spec, &out, false, false, &Renames::new()).expect("generates");
+        let a = std::fs::read_to_string(&first.out_file).unwrap();
+        let second = openapi(&spec, &out, false, false, &Renames::new()).expect("regenerates");
+        let b = std::fs::read_to_string(&second.out_file).unwrap();
+        assert_eq!(a, b, "regenerating unchanged input rewrote different bytes");
+
+        // The other half. An edit to the spec that changes no type still moves
+        // the recorded hash, because the question the record answers is whether
+        // the artifact is the one this file was generated from, not whether a
+        // rerun would emit the same types. Before the record existed these two
+        // runs produced identical files, which is the staleness nothing could
+        // see.
+        std::fs::write(&spec, PETSTORE.replace("title: Petstore", "title: Petstore v2")).unwrap();
+        let third = openapi(&spec, &out, false, false, &Renames::new()).expect("regenerates");
+        let c = std::fs::read_to_string(&third.out_file).unwrap();
+        assert_ne!(
+            a, c,
+            "a spec edit that changed no type left the file byte-identical, so nothing \
+             on disk records that it was generated from different bytes"
+        );
+        assert_eq!(
+            a.lines().filter(|l| !l.contains("@generated-from source")).count(),
+            c.lines().filter(|l| !l.contains("@generated-from source")).count(),
+            "only the source line moved, so the diff is one line"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Every declaration the run wrote is listed, not only the types.
+    ///
+    /// `--client` emits a function per operation, and an agent editing one of
+    /// those loses the edit on the next `regen` exactly as it would in a type.
+    /// A record covering types alone would report absence for a declaration it
+    /// generated, which is the one thing this whole file is for.
+    #[test]
+    fn a_generated_client_function_is_in_the_record_too() {
+        let dir = tmp_nm("client").parent().unwrap().to_path_buf();
+        let spec = dir.join("petstore.yaml");
+        std::fs::write(&spec, PETSTORE_WITH_PATHS).unwrap();
+        let out = dir.join("src");
+        let report = openapi(&spec, &out, true, false, &Renames::new()).expect("generates");
+        let text = std::fs::read_to_string(&report.out_file).unwrap();
+        assert!(
+            text.contains("// @generated-from entity petstore::listPets"),
+            "the client function is a generated declaration; got:\n{text}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    const PETSTORE: &str = "openapi: 3.0.0\ninfo:\n  title: Petstore\n  version: \"1.0\"\n\
+                            components:\n  schemas:\n    Order:\n      type: object\n      \
+                            required: [id, status]\n      properties:\n        id: { type: string }\n        \
+                            status: { type: string, enum: [placed, shipped] }\n    Pet:\n      \
+                            type: object\n      required: [name]\n      properties:\n        \
+                            name: { type: string }\n";
+
+    const PETSTORE_WITH_PATHS: &str = "openapi: 3.0.0\ninfo:\n  title: Petstore\n  version: \"1.0\"\n\
+                            paths:\n  /pets:\n    get:\n      operationId: listPets\n      \
+                            responses:\n        \"200\":\n          description: ok\n\
+                            components:\n  schemas:\n    Pet:\n      type: object\n      \
+                            required: [name]\n      properties:\n        name: { type: string }\n";
 }
 
 #[cfg(test)]

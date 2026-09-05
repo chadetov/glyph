@@ -1,0 +1,15 @@
+module appended
+
+// Generated from appended.yaml. Every type below is a real Glyph record
+// with a runtime descriptor, so a request or response body validates
+// through `T.parse(value)`. Regenerate with `glyph gen openapi appended.yaml --out src`.
+// glyph-graph 1
+// @generated-from source openapi fnv1a:0fff54580e6a622c appended.yaml
+// @generated-from entity appended::Row
+
+@open
+type Row = { id: string }
+
+// Added by hand, below the generated declarations. The next `glyph regen`
+// leaves it alone, because the run that wrote this file never wrote it.
+pub type Note = { text: string }

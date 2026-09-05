@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-201 entries, 153 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+202 entries, 153 are fixed, 12 are partly fixed, 10 are decided or resolved, and
 27 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -6772,31 +6772,72 @@ and is the owner's to confirm.
   union reporting `E0200` and `E0220` together, while the imported spelling of
   the same union reports only the exhaustiveness error.*
 
-- **G170. The playground emits different TypeScript from `glyph build` for anything with a cross-module import.**
-  `glyph-cli/src/build.rs:535-612` computes six project-wide tables the emitter
-  needs (`record_payload_variants`, `generic_descriptor_arities`,
-  `plain_descriptors`, `descriptorless_aliases`, `union_variant_names`,
-  `imported_module_paths`), each carrying a comment naming the bug a
-  module-local scan caused: G124, G147, the G139 family.
-  `glyph-wasm/src/lib.rs:124` emits with `EmitContext::single()`, which is all
-  six empty, and skips `module_lints`, which `analyze` runs.
+- **G170. [HALF FIXED] The playground emits different TypeScript from `glyph build` for anything with a cross-module import.**
+  `glyph-cli/src/build.rs` computed six project-wide tables the emitter needs
+  (`record_payload_variants`, `generic_descriptor_arities`, `plain_descriptors`,
+  `descriptorless_aliases`, `union_variant_names`, plus `project_modules`) and a
+  seventh, `imported_module_paths`, for the G124 reachability lint. Each carries
+  a comment naming the bug a module-local scan caused: G124, G147, the G139
+  family. `glyph-wasm/src/lib.rs` emitted with `EmitContext::single()`, which is
+  all six empty, and skipped `module_lints`, which `analyze` runs.
 
-  So the playground produces different output from the compiler for a
-  cross-module program, and reports fewer diagnostics than `glyph check`. Two
-  site pages sell it on "this is the TypeScript you get". For a single-module
-  snippet that holds, which is why it has not been noticed: it is a property of
-  the snippet rather than of the tool.
+  **The divergence, on one file, run through both surfaces.** `main.glyph` is
+  identical in each case; `palette.glyph` declares
+  `pub type Colour = "red" | "blue"` and exists only for the `glyph build` run.
 
-  The underlying shape is the finding. Those six tables answer "what does this
-  module export, and in what shape", which is `module_exports` and
-  `project_exports`'s job, and they live in the CLI because the emitter needs a
-  project-wide semantic pass the query layer does not provide. The emitter is
-  not merely outside salsa; it depends on a second symbol table maintained by
-  hand.
+  ```
+  module main
+  import palette { Colour }
 
-  *Reproduced against 0.1.110 by reading both emit call sites: `glyph-wasm/src/lib.rs:124` still passes `EmitContext::single()`, whose six tables are all empty, while `glyph-cli/src/build.rs:822` constructs a populated one. Two surfaces, one language, different TypeScript for anything crossing a module boundary. Previously, against 0.1.104:  by reading both call sites. The divergence is
-  structural rather than a bug in either path: the wasm build cannot construct
-  the tables because it has one module.*
+  pub type Row = {
+    kind: Colour,
+    label: string,
+  }
+  ```
+
+  `glyph build` writes `import { type Colour } from "./palette";` and validates
+  the field as `(value as Record<string, unknown>).kind === "red" || ... === "blue"`,
+  in both `Row.is` and `Row.parse`. The playground writes
+  `import { Colour } from "palette";` and validates the same field as
+  `(value as Record<string, unknown>).kind !== undefined`, with no `Row.parse`
+  branch for it at all. So the page showed a validator that accepts
+  `{ kind: 42, label: "x" }` for a type whose declaration forbids it, and an
+  import a type-stripper cannot link (the G114 shape).
+
+  **The emit half of this cannot be fixed by sharing code, and that is the
+  finding.** Every one of the six tables is keyed by the *source module* of an
+  imported name, so all six are read only for an import. They are a function of
+  the sibling `.glyph` files, and the playground holds one source string. The
+  blocker is not `glyph-db`: the scan is a pure pass over parsed ASTs and needs
+  no database. It is that the files are not there.
+
+  What shipped:
+
+  - The scan has one implementation. `glyph_emit::ProjectTables::from_modules`
+    computes all seven facts from the parsed modules a caller has, and
+    `emit_context(module_path)` hands back the `EmitContext`. `build.rs` and
+    `glyph-wasm` both call it, so a table the emitter grows from here reaches
+    both surfaces instead of one. It changes no emitted byte on either side.
+  - The playground names the divergence exactly where it exists. Every import
+    that is not `std/*` or `extern/*` comes back in `assumed_external_imports`,
+    and the page says that it compiled those as npm packages and what
+    `glyph build` writes instead if they are the writer's own modules. A module
+    importing only `std/*` reports an empty list and the notice does not render.
+  - The diagnostic half is fixed rather than disclosed. `module_lints` now runs
+    on the playground, gated on a clean resolve exactly as `glyph build` gates
+    it, and severity is read off each diagnostic rather than assumed, so E0106
+    and E0107 arrive as warnings instead of being missing. E0112 stays absent:
+    it asks whether another module imports this one, and there is no other
+    module to ask about.
+
+  **Still open: the emitted TypeScript for a sibling import is disclosed, not
+  identical.** Closing it means giving the playground the project, which is a
+  multi-file page rather than a compiler change. `ProjectTables::from_modules`
+  already takes many modules, so the compiler side of that is done.
+
+  *Reproduced against 0.1.112 by running both surfaces on the same `main.glyph`
+  and diffing the two emitted files; the three differences above are verbatim.
+  Previously, against 0.1.110 and 0.1.104, by reading both call sites.*
 
 - **G171. Excluding locals from the semantic graph rests on an assertion nobody has measured.**
   The recorded reason is that a reference to a local resolves to a byte offset
@@ -7618,3 +7659,20 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.111 on a two-call program: the named-type argument is
   silent and the primitive control reports E0211 at `main::control`.*
+
+- **G202. The playground cannot be built from its own instructions.**
+  `playground/README.md` and `playground/build.sh` both tell you to install
+  `wasm-bindgen-cli --version 0.2.125`, and
+  `glyph-compiler/crates/glyph-wasm/Cargo.toml` pins `wasm-bindgen = "=0.2.127"`
+  under a comment reading "Must match the installed `wasm-bindgen-cli` version
+  exactly." Following the instructions produces the mismatch the comment warns
+  about, so `playground/pkg/` cannot be regenerated and the page cannot be
+  exercised locally.
+
+  It surfaced while closing G170, where the fix could be verified in Rust and by
+  running the page's own JavaScript against stubbed input, but not in a browser.
+  A surface that cannot be built from its documented steps is one whose changes
+  are reviewed by reading rather than by running.
+
+  *Reproduced against 0.1.112: the two documents say 0.2.125, the manifest pins
+  =0.2.127.*

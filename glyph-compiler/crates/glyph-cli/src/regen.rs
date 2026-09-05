@@ -16,6 +16,8 @@
 
 use std::path::{Path, PathBuf};
 
+use glyph_lsp::generated;
+
 use crate::gen;
 
 /// One recovered, re-runnable `gen` invocation.
@@ -92,7 +94,7 @@ pub fn regen(path: &Path) -> Result<RegenReport, RegenError> {
         let Ok(source) = std::fs::read_to_string(file) else {
             continue;
         };
-        if let Some(cmd) = extract_regen_command(&source) {
+        if let Some(cmd) = generated::regen_command(&source) {
             if !raws.contains(&cmd) {
                 raws.push(cmd);
             }
@@ -126,16 +128,6 @@ fn run(cmd: &GenCommand) -> Result<gen::GenReport, gen::GenError> {
         // parse_gen_command only accepts the three known targets.
         _ => unreachable!("unknown gen target survived parsing: {}", cmd.target),
     }
-}
-
-/// Pull the backtick-quoted `glyph gen ...` command out of a generated file's
-/// header. Returns the command text without the backticks.
-fn extract_regen_command(source: &str) -> Option<String> {
-    const NEEDLE: &str = "`glyph gen ";
-    let start = source.find(NEEDLE)? + 1; // step past the opening backtick
-    let rest = &source[start..];
-    let end = rest.find('`')?;
-    Some(rest[..end].to_string())
 }
 
 /// Parse `glyph gen <target> <source> --out <dir> [--client] [--handlers]` into
@@ -232,14 +224,42 @@ mod tests {
         let src = "module api\n// Generated from spec.yaml. Regenerate with \
                    `glyph gen openapi spec.yaml --out src/api --client`.\n";
         assert_eq!(
-            extract_regen_command(src).as_deref(),
+            generated::regen_command(src).as_deref(),
             Some("glyph gen openapi spec.yaml --out src/api --client")
         );
     }
 
     #[test]
     fn extracts_nothing_from_a_hand_written_file() {
-        assert!(extract_regen_command("module m\nfn f() -> number { return 1 }\n").is_none());
+        assert!(generated::regen_command("module m\nfn f() -> number { return 1 }\n").is_none());
+    }
+
+    /// The generation record sits directly below the prose the command lives
+    /// in, so the two share a comment block and the recovery has to keep
+    /// finding the command. It does because the record's own lines carry no
+    /// backticks; a record line that quoted a command would give this a second
+    /// candidate and no way to tell which one `regen` should run.
+    #[test]
+    fn the_command_survives_the_generation_record_below_it() {
+        let record = generated::Record {
+            target: "openapi".to_string(),
+            source: "spec.yaml".to_string(),
+            source_hash: generated::content_hash(b"openapi: 3.0.0\n"),
+            entities: vec!["api::Row".to_string()],
+        };
+        let src = format!(
+            "module api\n\n// Generated from spec.yaml. Regenerate with \
+             `glyph gen openapi spec.yaml --out src/api`.\n{}\n@open\ntype Row = {{}}\n",
+            record.render()
+        );
+        assert_eq!(
+            generated::regen_command(&src).as_deref(),
+            Some("glyph gen openapi spec.yaml --out src/api")
+        );
+        assert!(
+            !record.render().contains('`'),
+            "a record line holding a backtick would give `regen` a second command to pick from"
+        );
     }
 
     #[test]

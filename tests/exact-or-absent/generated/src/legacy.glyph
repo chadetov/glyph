@@ -1,0 +1,8 @@
+module legacy
+
+// Generated from legacy.yaml. Every type below is a real Glyph record
+// with a runtime descriptor, so a request or response body validates
+// through `T.parse(value)`. Regenerate with `glyph gen openapi legacy.yaml --out src`.
+
+@open
+type Invoice = { id: string }

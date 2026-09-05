@@ -1,0 +1,12 @@
+openapi: 3.0.0
+info:
+  title: Stale
+  version: "1.0"
+components:
+  schemas:
+    Ticket:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+# Edited after generation. The types are unchanged; the bytes are not.

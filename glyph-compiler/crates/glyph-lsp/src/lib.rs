@@ -22,6 +22,13 @@ mod mcp;
 /// already (G180).
 pub use analysis::enclosing_decl_name;
 
+/// The generation record `glyph gen` writes into every file it generates, and
+/// the reader that turns it back into `GENERATED_FROM` edges. Re-exported for
+/// the same reason as `enclosing_decl_name`: `glyph-cli` writes the format and
+/// this crate reads it, and a format with two implementations is two formats
+/// the first time one of them changes.
+pub use mcp::generated;
+
 /// Run the Model Context Protocol server over stdio, exposing Glyph's language
 /// analysis to a coding agent as tools (see `mcp`). `root` is the project the
 /// workspace queries operate over.
@@ -672,7 +679,7 @@ pub(crate) fn module_root_for(file: &Path, workspace: &Path) -> PathBuf {
 /// The resolution root declared by `dir/package.json`, or `None` when there is
 /// no manifest, no `"glyph"` key, or the manifest will not parse (D41: a
 /// malformed manifest is not a marker).
-fn marked_project_src(dir: &Path) -> Option<PathBuf> {
+pub(crate) fn marked_project_src(dir: &Path) -> Option<PathBuf> {
     let text = std::fs::read_to_string(dir.join("package.json")).ok()?;
     let manifest: serde_json::Value = serde_json::from_str(&text).ok()?;
     let glyph = manifest.get("glyph")?;

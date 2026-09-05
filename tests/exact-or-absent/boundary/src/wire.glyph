@@ -1,0 +1,12 @@
+module wire
+
+// A Glyph declaration this project holds, whose definition is an `extern_ts`
+// escape. It is keyed and addressable under its own name, and the compiler
+// holds no shape for it: `tsc` is what checks every use.
+pub type Row = extern_ts("z.infer<typeof row_schema>")
+
+pub fn tag(r: Row) -> string {
+  return match r {
+    else => "row",
+  }
+}

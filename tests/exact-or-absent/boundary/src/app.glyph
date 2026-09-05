@@ -1,0 +1,9 @@
+module app
+
+// `Row` reached through a second spelling, so the same declaration is asked
+// about twice and has to come back under one key both times.
+import wire { Row, tag }
+
+pub fn label(r: Row) -> string {
+  return tag(r)
+}

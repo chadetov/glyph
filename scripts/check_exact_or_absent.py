@@ -25,8 +25,10 @@ and the entry should be promoted to a hard assertion in the same change.
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "tests" / "exact-or-absent"
@@ -484,6 +486,350 @@ def case_provenance_is_proved_or_asserted() -> tuple[bool, str]:
 
 
 
+BOUNDARY = pathlib.Path("boundary")
+
+#: Every origin a node may carry. Closed, and each member says something
+#: different about what the compiler is able to establish about the node.
+ORIGIN_SET = ["glyph", "extern", "opaque-ts"]
+
+
+def origins_in(answer: dict) -> set:
+    """Every origin stamped on an edge of `answer`, both ends."""
+    out = set()
+    for edge in edges_of(answer):
+        out.add(edge.get("to_origin"))
+        if edge.get("from") is not None:
+            out.add(edge.get("from_origin"))
+    return out
+
+
+def case_origin_is_a_node_attribute() -> tuple[bool, str]:
+    """Three origins, stamped on the node and kept out of its key.
+
+    `model::Kind` is declared in this project's Glyph source, so the compiler
+    parsed the declaration and holds its variant list. `wire::Row` is declared
+    here too and its definition is an `extern_ts` escape, so the resolver found
+    the declaration and there is no shape behind it. `wirestat::Status` is
+    declared by no Glyph module at all and exists because
+    `.types/ambient.d.ts` says it does.
+
+    `wire::Row` is why this is not provenance under a second name. Its edges
+    come back `PROVED`, and correctly: the resolver read the declaration and
+    the far end is a fact rather than a claim. What it is not is a declaration
+    anything can see into, and a caller reading `PROVED` alone concludes the
+    opposite.
+
+    The key half is asserted across a spelling change. `Row` is asked for from
+    the file that declares it and from the file that imports it, and both have
+    to come back under `wire::Row`: an identity carrying the origin would give
+    one declaration two names, which is the failure 0.1.108 spent a release
+    removing for the module half.
+
+    A fourth case keeps the three honest. `nowhere::audit` is declared by
+    nothing, and rounding it to the nearest origin would name a declaration
+    file that does not exist, so it carries no origin and says what was
+    checked.
+    """
+    root = CORPUS / BOUNDARY
+    want = {
+        ("src/model.glyph", "Kind"): ("model::Kind", "PROVED", "glyph"),
+        ("src/wire.glyph", "Row"): ("wire::Row", "PROVED", "extern"),
+        ("src/app.glyph", "Row"): ("wire::Row", "PROVED", "extern"),
+        ("src/handler.glyph", "Status"): ("wirestat::Status", "ASSERTED", "opaque-ts"),
+    }
+    answers = {}
+    for (path, name), (entity, provenance, origin) in want.items():
+        a = references(root, path, name)
+        if "error" in a:
+            return False, f"`{name}` from {path} refused: {a['error'][:120]}"
+        answers[(path, name)] = a
+        if a.get("entity") != entity:
+            return False, f"`{name}` from {path} is keyed `{a.get('entity')}`, not `{entity}`"
+        if a.get("provenance") != provenance:
+            return False, f"`{entity}` is {a.get('provenance')}, not {provenance}"
+        if a.get("origin") != origin:
+            return False, f"`{entity}` has origin {a.get('origin')!r}, not {origin!r}"
+
+    opaque = answers[("src/handler.glyph", "Status")]
+    if "ambient.d.ts" not in (opaque.get("origin_detail") or ""):
+        return False, (
+            "an `opaque-ts` node does not name the declaration it came from: "
+            f"{(opaque.get('origin_detail') or '')[:120]}"
+        )
+    ext = answers[("src/wire.glyph", "Row")]
+    if "extern_ts" not in (ext.get("origin_detail") or ""):
+        return False, (
+            "an `extern` node does not say what made it one: "
+            f"{(ext.get('origin_detail') or '')[:120]}"
+        )
+
+    # Both ends of every edge, because an edge lifted out of its reply names two
+    # nodes and has to say what each of them is.
+    for (path, name), (entity, _, origin) in want.items():
+        a = answers[(path, name)]
+        for edge in edges_of(a):
+            if "from_origin" not in edge or "to_origin" not in edge:
+                return False, f"an edge of `{entity}` states an origin for neither end or one: {edge}"
+            if edge.get("to_origin") != origin:
+                return False, f"an edge of `{entity}` disagrees with the answer: {edge['to_origin']}"
+            if edge.get("from") is not None and edge.get("from_origin") not in ORIGIN_SET:
+                return False, f"the near end of an edge of `{entity}` has no origin: {edge}"
+
+    absent = references(CORPUS / "provenance", "src/app.glyph", "audit")
+    if "error" in absent:
+        return False, f"`nowhere::audit` refused: {absent['error'][:120]}"
+    if absent.get("origin") is not None:
+        return False, (
+            "a node nothing in this project declares was rounded to an origin: "
+            f"{absent.get('origin')}"
+        )
+    if not absent.get("origin_absent"):
+        return False, "a node with no origin does not say what was checked to establish that"
+
+    # The third surface. An impact answer names a node per entry, and a verdict
+    # read without knowing what the node is is the thing this attribute exists
+    # to stop.
+    i = impact(root, "model::Kind", {"kind": "add_variant", "variant": "Void"})
+    if "error" in i:
+        return False, f"impact refused: {i['error'][:140]}"
+    if i.get("origin") != "glyph":
+        return False, f"the impact subject carries origin {i.get('origin')!r}"
+    unstamped = [e.get("entity") for e in i.get("impact") or [] if e.get("origin") is None]
+    if unstamped:
+        return False, f"an impact entry names a node with no origin: {unstamped}"
+    return True, "glyph, extern and opaque-ts on the node, one key across both spellings"
+
+
+def case_opaque_node_gets_no_inside_verdict() -> tuple[bool, str]:
+    """A node the compiler cannot read is never given a verdict reading it
+    would settle.
+
+    `handler::describe` matches on `wirestat::Status` and names two arms with
+    no catch-all. Over a Glyph union that shape is `exhaustive`, and it is
+    decidable because the declaration is there to check the arm list against.
+    Here the declaration is a `.d.ts` no Glyph pass read, so whether those two
+    arms are the whole union is not a question this project can answer, and
+    `exhaustive` would be a manufactured fact wearing the shape of a computed
+    one. The site is named `scrutinee_unresolved` instead, which is the other
+    half: dropping it would say no match site exists.
+
+    The change form is asserted too. A `proposed_variant` against a union with
+    no readable variant list has to be refused rather than answered, because
+    the consequence per site is a fact about an edit and nobody can say whether
+    this edit is one.
+
+    `model::Kind` is the control, and it carries the invariant's other half.
+    The same two-arm shape over a declaration the compiler holds is
+    `exhaustive`, so this is a rule about what cannot be established rather
+    than a surface that decides nothing.
+    """
+    root = CORPUS / BOUNDARY
+    a = ask(root, "src/handler.glyph", "Status")
+    if "error" in a:
+        return False, f"refused instead of naming the site: {a['error'][:140]}"
+    if (a.get("type") or {}).get("origin") != "opaque-ts":
+        return False, f"the node is not stamped `opaque-ts`: {a.get('type')}"
+    states = [s.get("state") for s in a.get("sites", [])]
+    if "exhaustive" in states:
+        return False, (
+            "a site over a node with no readable declaration was called exhaustive, "
+            f"which is a claim about a variant list nothing here read: {states}"
+        )
+    if states != ["scrutinee_unresolved"]:
+        return False, f"the site was dropped rather than named unresolved: {states}"
+    counted = ((a.get("summary") or {}).get("states") or {}).get("exhaustive")
+    if counted:
+        return False, f"the summary counts {counted} exhaustive sites over an unreadable node"
+
+    b = ask(root, "src/handler.glyph", "Status", proposed="Gone")
+    if "error" not in b:
+        return False, f"stated a consequence for an edit to a union it cannot read: {b}"
+
+    ext = ask(root, "src/wire.glyph", "Row")
+    if "error" in ext:
+        return False, f"the extern node refused: {ext['error'][:140]}"
+    if (ext.get("type") or {}).get("origin") != "extern":
+        return False, f"the `extern_ts` node is not stamped `extern`: {ext.get('type')}"
+    if any(s.get("state") == "exhaustive" for s in ext.get("sites", [])):
+        return False, "a site over an `extern_ts` type was called exhaustive"
+
+    control = ask(root, "src/model.glyph", "Kind")
+    if "error" in control:
+        return False, f"the control refused: {control['error'][:140]}"
+    if (control.get("type") or {}).get("origin") != "glyph":
+        return False, f"a declaration in this project's Glyph source is {control.get('type')}"
+    if [s.get("state") for s in control.get("sites", [])] != ["exhaustive"]:
+        return False, (
+            "the control site over a declaration the compiler holds is not decided: "
+            f"{[s.get('state') for s in control.get('sites', [])]}"
+        )
+    return True, "the unreadable node is named, not decided; the readable one still is"
+
+
+GENERATED = pathlib.Path("generated")
+
+
+def generated_edges(project: pathlib.Path, path: str, name: str):
+    """The GENERATED_FROM entry of one answer, or an error string."""
+    a = references(project, path, name, "GENERATED_FROM")
+    if "error" in a:
+        return None, a["error"]
+    entry = (a.get("relations") or {}).get("GENERATED_FROM")
+    if entry is None:
+        return None, "the answer does not hold the relation it was asked for"
+    return entry, None
+
+
+def case_generated_from_is_answered_from_a_record() -> tuple[bool, str]:
+    """R5. A generated declaration names the artifact it came from, and whether
+    that artifact still holds the bytes it was generated from.
+
+    Five files, and each one is a different answer rather than a different
+    shade of the same one.
+
+    `petstore.glyph` was generated and its spec is untouched, so the artifact
+    is named and the comparison comes back `UNCHANGED`. `stale.glyph` was
+    generated and its spec was edited afterwards in a way that changes no type,
+    which is the staleness nothing on disk could see before: the emitted Glyph
+    is identical and the recorded hash is not. `orphan.glyph` was generated
+    from a spec that is now gone, and that is neither `UNCHANGED` nor
+    `CHANGED`: an artifact nobody read was compared with nothing, and rounding
+    it to a difference would state a fact about content this build never saw.
+    The edge survives, because the record names the artifact whether or not the
+    artifact is there.
+
+    The two remaining files are the absences, and they are different absences.
+    `hand.glyph` carries no record and no sign of a generator, so no
+    declaration in it was generated and `[]` is exact. `legacy.glyph` carries a
+    `glyph gen` header written before records existed: it *was* generated, this
+    build cannot say from what, and `[]` there would say the opposite of the
+    truth. It is named under the relation's own coverage instead.
+
+    `appended::Note` is the sixth. It sits in a generated file, below the
+    generated declarations, and the record does not name it. The record is what
+    makes that answerable at all: without a per-entity list, "this file is
+    generated" would sweep in a declaration the generator never wrote.
+    """
+    root = CORPUS / GENERATED
+    want = {
+        ("src/petstore.glyph", "Order"): ("petstore.yaml", "UNCHANGED"),
+        ("src/stale.glyph", "Ticket"): ("stale.yaml", "CHANGED"),
+        ("src/orphan.glyph", "Ghost"): ("orphan.yaml", None),
+    }
+    for (path, name), (source, state) in want.items():
+        entry, err = generated_edges(root, path, name)
+        if err:
+            return False, f"`{name}` refused: {err[:140]}"
+        edges = entry["edges"]
+        if len(edges) != 1:
+            return False, f"`{name}` has {len(edges)} generated-from edges, not one"
+        edge = edges[0]
+        if edge.get("source") != source:
+            return False, f"`{name}` names `{edge.get('source')}`, not `{source}`"
+        if edge.get("source_state") != state:
+            return False, (
+                f"`{name}` reports source state {edge.get('source_state')!r}, not {state!r}"
+            )
+        if state is None and not edge.get("source_state_absent"):
+            return False, (
+                "a source nothing could read was left with no state and no reason, so the "
+                "answer does not say whether it was compared"
+            )
+        if state is not None and edge.get("source_hash_now") is None:
+            return False, f"`{name}` states a source state and no hash it compared against"
+        # A generator's record is a claim. PROVED would say the compiler
+        # established that this artifact produced this declaration.
+        if edge.get("provenance") != "ASSERTED":
+            return False, f"a generation record is reported {edge.get('provenance')}, not ASSERTED"
+        if edge.get("to") is not None or not edge.get("to_absent"):
+            return False, (
+                "the far end of a generated-from edge is keyed as if it were a declaration: "
+                f"{edge.get('to')!r}"
+            )
+
+    for path, name in [("src/hand.glyph", "Receipt"), ("src/appended.glyph", "Note")]:
+        entry, err = generated_edges(root, path, name)
+        if err:
+            return False, f"`{name}` refused: {err[:140]}"
+        if entry["edges"] or entry["unindexed"] or entry["not_indexed"]:
+            return False, (
+                f"`{name}` was reported generated, or reported as unreachable: "
+                f"{json.dumps(entry)[:160]}"
+            )
+
+    entry, err = generated_edges(root, "src/legacy.glyph", "Invoice")
+    if err:
+        return False, f"`Invoice` refused: {err[:140]}"
+    if entry["edges"]:
+        return False, "a file with no readable record produced an edge anyway"
+    if [u.get("path") for u in entry["unindexed"]] != ["src/legacy.glyph"]:
+        return False, (
+            "a file generated before records existed reads as hand-written, so `[]` there "
+            "says no declaration in it was generated"
+        )
+    if "before records existed" not in (entry["unindexed"][0].get("why") or ""):
+        return False, f"the coverage entry does not say why: {entry['unindexed'][0]}"
+
+    # Coverage is per relation. The sweep's unreadable file hides occurrences
+    # from CALLS and REFERENCES and hides no generation record from this one.
+    a = references(root, "src/petstore.glyph", "Order")
+    if "error" in a:
+        return False, f"the full answer refused: {a['error'][:140]}"
+    if unindexed_paths(a, "GENERATED_FROM"):
+        return False, (
+            "GENERATED_FROM borrowed the sweep's coverage, reporting a gap where the record "
+            f"it reads is one file: {unindexed_paths(a, 'GENERATED_FROM')}"
+        )
+    return True, "the artifact named, the comparison stated, and the two absences kept apart"
+
+
+def case_the_generation_record_is_byte_identical() -> tuple[bool, str]:
+    """R7. Two runs over one unchanged spec write the same bytes, and they are
+    the bytes committed here.
+
+    The record is diffed and committed along with the Glyph it annotates, so a
+    serialization that reordered between runs would recreate exactly the churn
+    the formatter exists to prevent. The check is the acceptance test as
+    written: serialize twice, compare bytes. The third comparison is against
+    the file in the corpus, which is what catches a change that is stable
+    across two runs of one build and different from what shipped.
+
+    The runs happen in a copy of the project with the same relative layout, and
+    the paths are relative, so nothing in the output depends on where the copy
+    is.
+    """
+    src = CORPUS / GENERATED
+    committed = (src / "src" / "petstore.glyph").read_text()
+    runs = []
+    with tempfile.TemporaryDirectory() as tmp:
+        work = pathlib.Path(tmp) / "generated"
+        (work / "src").mkdir(parents=True)
+        shutil.copy(src / "package.json", work / "package.json")
+        shutil.copy(src / "petstore.yaml", work / "petstore.yaml")
+        for _ in range(2):
+            proc = subprocess.run(
+                [str(BIN), "gen", "openapi", "petstore.yaml", "--out", "src"],
+                cwd=work, capture_output=True, text=True, timeout=120,
+            )
+            if proc.returncode != 0:
+                return False, f"`glyph gen openapi` failed: {proc.stderr.strip()[:160]}"
+            runs.append((work / "src" / "petstore.glyph").read_text())
+
+    if runs[0] != runs[1]:
+        return False, "two runs over one unchanged spec wrote different bytes"
+    if runs[0] != committed:
+        return False, (
+            "the committed file is not what this build generates, so the record in the "
+            "corpus is a fixture rather than an output"
+        )
+
+    lines = [l for l in committed.splitlines() if l.startswith("// @generated-from entity ")]
+    if lines != sorted(lines):
+        return False, f"the entity lines are not sorted by entity id: {lines}"
+    if not any(l.startswith("// glyph-graph ") for l in committed.splitlines()):
+        return False, "the record carries no format version, so a later format cannot be told apart"
+    return True, "identical across runs and identical to what is committed, entity lines sorted"
+
 def case_field_entity() -> tuple[bool, str]:
     """A record field is addressable, and its impact set states its own limits.
 
@@ -697,13 +1043,16 @@ def case_one_relation_vocabulary() -> tuple[bool, str]:
     could not select a relation, because there was no set to select from, and
     could not read one off a reply either.
 
-    The exact-or-absent half is what this case is for. A relation another
-    surface answers and a relation nothing answers yet are both refused rather
-    than answered with an empty list: `[]` for GENERATED_FROM would say no
-    derived artifact comes from this entity, which nothing in the compiler
-    establishes. And a site the compiler never keyed carries no relation at
-    all, because stamping one on it would claim the edge its own list exists
-    to deny.
+    The exact-or-absent half is what this case is for. A relation this answer
+    does not hold is refused rather than answered with an empty list, because
+    `[]` reads as "no such edges exist". And a site the compiler never keyed
+    carries no relation at all, because stamping one on it would claim the edge
+    its own list exists to deny.
+
+    GENERATED_FROM was in here as the relation nothing answered, refused on
+    those grounds. A surface answers it now, so the assertion flipped: it has
+    to be selectable, under the same spelling the reply comes back under, from
+    the address form that holds it.
     """
     a = references(CORPUS / "relations", "src/lib.glyph", "charge")
     if "error" in a:
@@ -742,18 +1091,24 @@ def case_one_relation_vocabulary() -> tuple[bool, str]:
     if f.get("relation") != "FIELD_ACCESS":
         return False, f"the field answer names its relation `{f.get('relation')}`"
 
-    for relation, why in [
-        ("MATCH_SITES", "another surface answers it"),
-        ("GENERATED_FROM", "no surface answers it yet"),
-    ]:
-        r = references(CORPUS / "relations", "src/lib.glyph", "charge", relation)
-        if "error" not in r:
-            return False, (
-                f"`{relation}` came back as an answer rather than a refusal "
-                f"({why}); an empty list reads as `no such edges exist`"
-            )
-        if relation not in r["error"]:
-            return False, f"the refusal for `{relation}` does not name it"
+    r = references(CORPUS / "relations", "src/lib.glyph", "charge", "MATCH_SITES")
+    if "error" not in r:
+        return False, (
+            "`MATCH_SITES` came back as an answer rather than a refusal, and another "
+            "surface is what answers it; an empty list reads as `no such edges exist`"
+        )
+    if "MATCH_SITES" not in r["error"]:
+        return False, "the refusal for `MATCH_SITES` does not name it"
+
+    # `GENERATED_FROM` used to be here, refused on the grounds that nothing
+    # answered it. A surface answers it now, so what is asserted is the
+    # opposite: it is selectable by the name the reply comes back under, from
+    # the address form that holds it.
+    g = references(CORPUS / "relations", "src/lib.glyph", "charge", "GENERATED_FROM")
+    if "error" in g:
+        return False, f"`GENERATED_FROM` is refused where it is answered: {g['error'][:120]}"
+    if "GENERATED_FROM" not in (g.get("relations") or {}):
+        return False, "asking for `GENERATED_FROM` returned an answer that does not hold it"
 
     return True, (
         "one set, spelled the same in request and reply; an unkeyed site names "
@@ -1001,6 +1356,10 @@ HARD = [
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),
     ("a record field is an entity, with its limits", case_field_entity),
+    ("origin is a node attribute, not a key", case_origin_is_a_node_attribute),
+    ("an opaque-ts node gets no inside verdict", case_opaque_node_gets_no_inside_verdict),
+    ("GENERATED_FROM is read from a record", case_generated_from_is_answered_from_a_record),
+    ("the record is byte-identical across runs", case_the_generation_record_is_byte_identical),
     ("a total states what it could not count", case_summary_states_what_it_could_not_count),
     ("one relation vocabulary, named the same way", case_one_relation_vocabulary),
     ("WILL_FAIL is proved, not assumed", case_verdict_will_fail),

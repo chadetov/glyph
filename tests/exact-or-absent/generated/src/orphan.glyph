@@ -1,0 +1,11 @@
+module orphan
+
+// Generated from orphan.yaml. Every type below is a real Glyph record
+// with a runtime descriptor, so a request or response body validates
+// through `T.parse(value)`. Regenerate with `glyph gen openapi orphan.yaml --out src`.
+// glyph-graph 1
+// @generated-from source openapi fnv1a:cd3adcdd3a48e740 orphan.yaml
+// @generated-from entity orphan::Ghost
+
+@open
+type Ghost = { id: string }

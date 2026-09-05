@@ -1,0 +1,14 @@
+module handler
+
+// A type no Glyph module declares, asserted by `.types/ambient.d.ts`. The match
+// below names two arms and no catch-all, which over a Glyph union would be a
+// list the compiler could check against the declaration. Here there is no
+// declaration to check it against.
+import wirestat { Status, Live, Dead }
+
+pub fn describe(s: Status) -> string {
+  return match s {
+    Live => "live",
+    Dead => "dead",
+  }
+}

@@ -1,0 +1,15 @@
+module petstore
+
+// Generated from petstore.yaml. Every type below is a real Glyph record
+// with a runtime descriptor, so a request or response body validates
+// through `T.parse(value)`. Regenerate with `glyph gen openapi petstore.yaml --out src`.
+// glyph-graph 1
+// @generated-from source openapi fnv1a:8550b786e0bf1e39 petstore.yaml
+// @generated-from entity petstore::Order
+// @generated-from entity petstore::Pet
+
+@open
+type Order = { id: string, status: "placed" | "shipped" }
+
+@open
+type Pet = { name: string, tag?: string }

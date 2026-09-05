@@ -46,6 +46,7 @@
 
       <section class="pane" id="pane-ts">
         <h2>TypeScript <span class="sub">compiled output</span></h2>
+        <div id="project-note" class="project-note" hidden></div>
         <pre id="ts" class="code-out"><code></code></pre>
       </section>
 
@@ -61,10 +62,16 @@
 
     <footer class="site-footer">
       <p>
-        The compiler runs entirely in your browser (WebAssembly). The
-        <code>std/*</code> imports in the emitted TypeScript resolve against the
-        Glyph runtime when you build a real project with <code>glyph build</code>;
-        here they are shown verbatim.
+        The compiler runs entirely in your browser (WebAssembly), and it compiles
+        the one module in the editor. <code>glyph build</code> compiles your whole
+        project, so anything it reads from a sibling <code>.glyph</code> file is
+        missing here: the specifier for an import of one of your own modules, and
+        the runtime check for a type one of them declares. A module that imports
+        only <code>std/*</code> compiles here to what <code>glyph build</code>
+        writes for it at your project root, with the <code>std/*</code> specifiers
+        pointing into the runtime the build bundles beside its output. This page
+        also shows the TypeScript for a module that still has errors, which
+        <code>glyph build</code> will not write.
       </p>
     </footer>
 

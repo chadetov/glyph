@@ -1789,8 +1789,14 @@ impl Assigner<'_> {
             ResolvedRef::Module(id) => {
                 let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
                 match &sym.kind {
+                    // G39. A `const` joins the two callable kinds here: its
+                    // declaration lowers to its annotation, or to `Unknown`
+                    // when it carries none, so reading it through the same
+                    // resolver states exactly what the author wrote and
+                    // nothing more.
                     SymbolKind::Function { decl_idx }
-                    | SymbolKind::Component { decl_idx } => {
+                    | SymbolKind::Component { decl_idx }
+                    | SymbolKind::Const { decl_idx } => {
                         self.decl_ty_resolver.decl_ty(*decl_idx)
                     }
                     // A named import of a modeled stdlib function (`import
@@ -3401,10 +3407,13 @@ impl Assigner<'_> {
     /// union is a sibling declaration in the same source module or itself
     /// re-imported from a third one.
     ///
-    /// Also emits `UnknownVariantPattern` for a constructor head that names no
-    /// variant of the union — that arm used to be inserted into `covered`
-    /// unexamined, so a misspelling reached `tsc` and came back as a raw
-    /// `TS2678` instead of a Glyph diagnostic pointing at the arm.
+    /// Also emits `UnknownVariantPattern` for any head that names no variant of
+    /// the union, bare (`Zed`) or constructor (`Zed(x)`). Such an arm used to be
+    /// inserted into `covered` unexamined, so a misspelling reached `tsc` and
+    /// came back as a raw `TS2678` instead of a Glyph diagnostic pointing at the
+    /// arm. The bare spelling stayed silent one release longer (G169), which
+    /// left the resolver's `unresolved name` as the only signal and sent the
+    /// author looking for a missing import rather than a missing variant.
     fn check_imported_union_coverage(
         &mut self,
         module: &ModuleKey,
@@ -3456,21 +3465,26 @@ impl Assigner<'_> {
                     nested.entry(variant.as_ref()).or_default().push((arm, sub));
                     self.cover_mention(cov.as_ref(), arm, variant.as_ref());
                 }
-                ArmCoverage::UnknownVariant { name, span, bare } => {
-                    if bare {
-                        // A bare head naming no variant of this union has
-                        // always been credited on this side, where the
-                        // module-local twin reports E0220 for it. The insert
-                        // cannot change the outcome (the name is not in
-                        // `required`, so nothing it covers can be missing) and
-                        // the diagnostic asymmetry is not this change's to
-                        // fix, so it is left exactly as it stood — and the
-                        // relation records no mention for it, because the arm
-                        // named nothing this union declares.
-                        covered.insert(name.as_ref());
-                    } else {
-                        unknown.push((name.to_string(), span));
-                    }
+                // G169. A head naming no variant of this union is a typo,
+                // whether it was written bare (`Zed`) or as a constructor
+                // (`Zed(x)`). Both spellings report E0220 here, which is what
+                // the module-local twin has always done: `is_catch_all_pattern`
+                // ruled the bare form a variant reference rather than a
+                // binding, so the only remaining reading is a variant that does
+                // not exist.
+                //
+                // The bare form used to be inserted into `covered` and
+                // otherwise ignored. That insert never changed the
+                // exhaustiveness outcome (a name absent from `required` covers
+                // nothing that could be missing), so dropping it moves no
+                // E0200; what it moves is the silence. An author whose only
+                // signal was the resolver's `unresolved name` went looking for
+                // an import, and an author who had imported the name from
+                // somewhere else got no signal at all. No mention is recorded
+                // either way, because the arm named nothing this union
+                // declares.
+                ArmCoverage::UnknownVariant { name, span } => {
+                    unknown.push((name.to_string(), span));
                 }
                 ArmCoverage::Declined { variant } => {
                     let variant = variant.map(|v| v.to_string());
@@ -3980,7 +3994,7 @@ impl Assigner<'_> {
                 // nearest-variant hint, before the arm is dropped. It is
                 // neither covered nor a catch-all, so a genuinely missing
                 // variant still surfaces as E0200 alongside it.
-                ArmCoverage::UnknownVariant { name, span, .. } => {
+                ArmCoverage::UnknownVariant { name, span } => {
                     self.errors.push(TypeError::UnknownVariantPattern {
                         union: type_name.clone(),
                         name: name.to_string(),
@@ -4291,10 +4305,67 @@ impl Assigner<'_> {
         matches!(&td.body, TypeExpr::Union { .. }).then_some((td, args))
     }
 
+    /// The module-local `type` declaration `ty` names, or `None` when this file
+    /// cannot see one: a structural type, a generic parameter, a type from
+    /// another module, a prelude or stdlib name, or a symbol whose declaration
+    /// index does not land on a `type`.
+    ///
+    /// A generic application resolves through its base, so `Tree<K>` answers
+    /// with the same declaration `Tree` does. The resolved symbol's name has to
+    /// match the type's lexical path: the prelude and the stdlib mint symbol
+    /// ids outside the module table's dense range, and without the check one of
+    /// those could index an unrelated module-local declaration and answer for
+    /// it.
+    ///
+    /// Nothing here follows an alias. The body comes back exactly as written,
+    /// which is what lets a caller distinguish "declared as a record" from
+    /// "declared as a path that might be anything".
+    fn local_type_decl(&self, ty: &Ty) -> Option<&glyph_ast::TypeDecl> {
+        let (base, _args) = split_type_app(ty);
+        let Ty::Named { symbol, path } = base else { return None };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return None;
+        }
+        let SymbolKind::Type { decl_idx } = sym.kind else { return None };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        Some(td)
+    }
+
+    /// Whether `ty` is a name for a declaration in this file whose body is a
+    /// tagged union (D8) or a record. G201: the one thing about a named type
+    /// the checker can decide against a primitive.
+    ///
+    /// Both shapes emit as a JavaScript object (`| Settled` becomes
+    /// `{ tag: "Settled" }`), so a value of one is never a `string`, a `number`
+    /// or a `bool`, whatever the declaration holds. That is the whole claim,
+    /// and it is why the body has to be read rather than assumed. What the
+    /// reading keeps out:
+    ///
+    /// - a body that is a path (`type UserId = string`) is a name for whatever
+    ///   it points at, and following it is a separate question;
+    /// - a string-literal union (`type Tier = "free" | "pro"`, D30) is a
+    ///   `string`, at run time and under Glyph's own assignability rule, so it
+    ///   has to stay silent even though it is spelled with `|`;
+    /// - an `extern_ts` or `typeof` body is opaque to this checker by design;
+    /// - an `interface`, which is not a `Decl::Type` at all, and whose empty
+    ///   form TypeScript does let a `string` satisfy.
+    ///
+    /// The judgement is the declaration's, not the value's, so an application
+    /// of a generic union (`Tree<number>`) answers the same as the bare name.
+    fn is_declared_union_or_record(&self, ty: &Ty) -> bool {
+        let Some(td) = self.local_type_decl(ty) else {
+            return false;
+        };
+        matches!(&td.body, TypeExpr::Union { .. } | TypeExpr::Record { .. })
+    }
+
     /// Whether `ty` resolves all the way to a module-local type declaration
-    /// that is concretely *not* a tagged union (most often a record). Walks
-    /// the same symbol/decl resolution as `resolve_named_union`, but answers
-    /// the opposite question: not "is this a union", but "does the compiler
+    /// that is concretely *not* a tagged union (most often a record). Reads the
+    /// declaration through `local_type_decl`, but answers the opposite question
+    /// to `resolve_named_union`: not "is this a union", but "does the compiler
     /// know for certain it has no variants at all", as distinct from a type
     /// it simply cannot see into (imported, or unresolved). G146's nested
     /// exhaustiveness recursion needs exactly that distinction: a payload the
@@ -4304,16 +4375,7 @@ impl Assigner<'_> {
     /// provably not a union and a variant-shaped pattern against it can be
     /// flagged on the spot.
     fn resolves_to_non_union_decl(&self, ty: &Ty) -> bool {
-        let (base, _args) = split_type_app(ty);
-        let Ty::Named { symbol, path } = base else { return false };
-        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
-            return false;
-        };
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return false;
-        }
-        let SymbolKind::Type { decl_idx } = sym.kind else { return false };
-        let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
+        let Some(td) = self.local_type_decl(ty) else {
             return false;
         };
         // Only a body that is structurally incapable of being a union counts.
@@ -4726,14 +4788,21 @@ impl Assigner<'_> {
         )
     }
 
-    /// True when `found` is provably not assignable to `expected`, with
-    /// structural handling of an interface on the expected side. An interface
-    /// used as an ordinary parameter or return type is satisfied by any value
-    /// carrying its members, so it is matched by member shape rather than by
-    /// the nominal `Named`-vs-`Named` name check `definitely_incompatible`
-    /// applies to `type` aliases (Q15). Non-interface expectations delegate to
-    /// `definitely_incompatible` unchanged; the recursion also reaches an
-    /// interface nested one level inside a generic application (`Array<Iface>`).
+    /// True when `found` is provably not assignable to `expected`. The whole
+    /// assignability relation as the checker actually applies it: the parts
+    /// that need to read a declaration are decided here, and everything that
+    /// can be judged from the two `Ty` values alone goes to
+    /// `definitely_incompatible`.
+    ///
+    /// Two things need a declaration. An interface used as an ordinary
+    /// parameter or return type is satisfied by any value carrying its members,
+    /// so it is matched by member shape rather than by the nominal
+    /// `Named`-vs-`Named` name check `definitely_incompatible` applies to
+    /// `type` aliases (Q15); the recursion also reaches an interface nested one
+    /// level inside a generic application (`Array<Iface>`). And a declared
+    /// union or record is never a `string`, a `number` or a `bool` (G201),
+    /// which is the one pairing of a named type with a primitive the compiler
+    /// can settle. Everything else delegates unchanged.
     fn assign_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
@@ -4758,6 +4827,30 @@ impl Assigner<'_> {
                     .iter()
                     .zip(ea.iter())
                     .any(|(f, e)| self.assign_incompatible(f, e));
+        }
+        // G201. A declared union or record where a `string`, a `number` or a
+        // `bool` is expected. `definitely_incompatible` cannot judge this on its
+        // own: it sees a `Ty::Named` and stays permissive, because a name can
+        // stand for a primitive and the free function has no way to look the
+        // declaration up. Reading the body is what makes the pair decidable, and
+        // reading it is only possible here.
+        //
+        // It was the largest silent hole in the relation. Passing a declared
+        // union where a `string` was declared produced no diagnostic at all
+        // while the same call with a `bool` produced E0211, so a signature
+        // change was invisible at exactly the call sites most likely to be
+        // wrong, and `glyph check --no-tsc` accepted the program.
+        //
+        // Only this direction, and only these three primitives. `void` is left
+        // out for the same reason the scalar-versus-record arm leaves it out.
+        // The reverse (a primitive where a declared type is expected) and the
+        // general question of how much of assignability should become decidable
+        // are separate decisions, and answering one of them wrongly rejects
+        // correct programs, which costs more than the silence did.
+        if let Ty::Prim(p) = expected {
+            if is_concrete_scalar(*p) && self.is_declared_union_or_record(found) {
+                return true;
+            }
         }
         definitely_incompatible(found, expected)
     }
@@ -5127,8 +5220,11 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 /// - two structural records are incompatible when a shared field's types are, or
 ///   when `found` lacks a required field of `expected`; extra fields in `found`
 ///   are fine (width subtyping);
-/// - a `Named` type against a differently-shaped type stays permissive — a
-///   newtype alias may resolve to that shape — as does every other pair.
+/// - a `Named` type against a differently-shaped type stays permissive (a
+///   newtype alias may resolve to that shape), as does every other pair. The
+///   one exception is decided by the caller: `assign_incompatible` reads the
+///   declaration, and a body that is a tagged union or a record is not a
+///   `string`, a `number` or a `bool` (G201).
 fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(expected, Ty::UnknownTop) {
         return false;
@@ -5669,10 +5765,10 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
 /// that used to hold a copy each.
 ///
 /// It decides and does not report. The callers keep their own diagnostics, at
-/// the points they already pushed them, and they keep the two places they
-/// disagree: the module-local checker escalates an unknown head to E0220
-/// immediately, while the imported one collects constructor heads for the same
-/// diagnostic after its loop and has always credited a bare one instead.
+/// the points they already pushed them: the module-local checker escalates an
+/// unknown head to E0220 inside its loop, the imported one collects them and
+/// reports after. Which head shapes count as unknown is decided here, once, so
+/// the two cannot drift apart on it again (G169).
 enum ArmCoverage<'p> {
     /// Absorbs every value the scrutinee can still take, so no later arm runs
     /// and no earlier gap remains.
@@ -5688,13 +5784,9 @@ enum ArmCoverage<'p> {
         sub: &'p Pattern,
     },
     /// A constructor-shaped head naming no variant of this union: a typo, or a
-    /// variant of a different union. `bare` distinguishes `Loadign` from
-    /// `Loadign(x)`, which the two callers treat differently.
-    UnknownVariant {
-        name: &'p Ident,
-        span: Span,
-        bare: bool,
-    },
+    /// variant of a different union. Both spellings, `Loadign` and
+    /// `Loadign(x)`, land here and both callers report E0220 for them.
+    UnknownVariant { name: &'p Ident, span: Span },
     /// The checker reads nothing from this arm: a payload sub-pattern that
     /// tests a field's value and can fail, or a top-level shape (literal,
     /// array, record) this check does not model.
@@ -5721,11 +5813,7 @@ fn classify_arm<'p>(pat: &'p Pattern, variants: &[Ident]) -> ArmCoverage<'p> {
             } else if variants.iter().any(|v| v == name) {
                 ArmCoverage::Mentions(name)
             } else {
-                ArmCoverage::UnknownVariant {
-                    name,
-                    span: *span,
-                    bare: true,
-                }
+                ArmCoverage::UnknownVariant { name, span: *span }
             }
         }
         Pattern::Constructor {
@@ -5745,7 +5833,6 @@ fn classify_arm<'p>(pat: &'p Pattern, variants: &[Ident]) -> ArmCoverage<'p> {
                     ArmCoverage::UnknownVariant {
                         name: variant,
                         span: *span,
-                        bare: false,
                     }
                 } else {
                     ArmCoverage::Declined { variant: None }
@@ -5950,6 +6037,77 @@ mod tests {
         let (resolved, _errs) = resolve_module(&m, syms, &prelude);
         let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
         ty_errs
+    }
+
+    /// G39. A module-level `const` carrying a type annotation is that type, so
+    /// what reads a receiver's type is checked against it. It used to be
+    /// `Ty::Unknown`, so a field typo and a wrong argument were both silent at
+    /// a `const`-rooted expression while the same program written with an
+    /// annotated `let` inside the function reported both. Which binding form
+    /// the author reached for is not allowed to decide whether a guarantee
+    /// holds.
+    ///
+    /// Exhaustiveness was already fine: the coverage check resolves a union
+    /// from the arm heads, not from the scrutinee's type, so `match M` over a
+    /// `const` of a union reported E0200 before this too.
+    #[test]
+    fn an_annotated_module_const_is_checked_like_an_annotated_let() {
+        let errs = errors_of(
+            "module x\n\
+             type Sheet = { rows: number, cols: number }\n\
+             const ORIGIN: Sheet = { rows: 0, cols: 0 }\n\
+             fn f() -> number {\n\
+             \x20 return ORIGIN.rowz\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, type_name, .. }
+                    if field == "rowz" && type_name == "Sheet"
+            )),
+            "a field typo on an annotated const is E0210: {errs:?}"
+        );
+    }
+
+    /// The same rule reaching the argument position: a `const` typed `number`
+    /// passed where a `string` is declared is E0211, which is what the
+    /// annotated-`let` spelling has always reported.
+    #[test]
+    fn an_annotated_module_const_is_checked_at_an_argument_position() {
+        let errs = errors_of(
+            "module x\n\
+             const N: number = 1\n\
+             fn g(s: string) -> string { return s }\n\
+             fn f() -> string {\n\
+             \x20 return g(N)\n\
+             }\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "a wrong-typed const argument is E0211: {errs:?}"
+        );
+    }
+
+    /// A `const` with no annotation stays `Ty::Unknown`. Inferring its type
+    /// from the initializer is a separate question, and guessing one here
+    /// would start reporting against a type the author never wrote.
+    #[test]
+    fn an_unannotated_module_const_stays_unchecked() {
+        let errs = errors_of(
+            "module x\n\
+             const ORIGIN = { rows: 0, cols: 0 }\n\
+             fn f() -> number {\n\
+             \x20 return ORIGIN.rowz\n\
+             }\n",
+        );
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "no annotation, no claim: {errs:?}"
+        );
     }
 
     #[test]
@@ -8523,6 +8681,237 @@ fn f(b: B) -> number {
         );
     }
 
+    // ----- G201: a declared union or record is never a primitive -----
+
+    #[test]
+    fn declared_union_argument_into_a_string_parameter_is_flagged() {
+        // G201. The defect: a value of a declared tagged union passed where a
+        // `string` is declared drew no diagnostic at all, while the `bool`
+        // control below drew E0211. Only `tsc` caught it, so
+        // `glyph check --no-tsc` accepted the program.
+        let src = r#"module x
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(r: PaymentResult) -> string {
+  return takes_string(r)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "string" && found == "PaymentResult"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn declared_record_argument_into_a_number_parameter_is_flagged() {
+        // The record half of the same rule. A `Ty::Record` already mismatched a
+        // primitive; a `Ty::Named` standing for a declared record did not.
+        let src = r#"module x
+type Point = { x: number, y: number }
+
+fn takes_number(n: number) -> number {
+  return n
+}
+
+fn main(p: Point) -> number {
+  return takes_number(p)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "number" && found == "Point"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn declared_union_returned_where_a_string_is_declared_is_flagged() {
+        // The same relation drives `return`, so the return position gains the
+        // diagnostic with the argument position.
+        let src = r#"module x
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn main(r: PaymentResult) -> string {
+  return r
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::TypeMismatch { expected, found, .. }
+                    if expected == "string" && found == "PaymentResult"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_primitive_alias_argument_stays_silent() {
+        // The false positive the rule must not produce. `type UserId = string`
+        // is a name for `string`, so passing one where a `string` is declared is
+        // correct code and has to keep compiling.
+        let src = r#"module x
+type UserId = string
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(u: UserId) -> string {
+  return takes_string(u)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_string_literal_union_alias_argument_stays_silent() {
+        // D30: a string-literal union behaves like `string` for assignability.
+        // It is a declared type whose body is a union of literals, which is
+        // exactly the shape a rule reading "declared union" too loosely would
+        // reject.
+        let src = r#"module x
+type Tier = "free" | "pro"
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(t: Tier) -> string {
+  return takes_string(t)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_declared_union_into_a_void_parameter_stays_silent() {
+        // `void` is excluded from the rule for the same reason it is excluded
+        // from the scalar-versus-record arm: its assignability is subtler.
+        let src = r#"module x
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn takes_void(v: void) -> number {
+  return 1
+}
+
+fn main(r: PaymentResult) -> number {
+  return takes_void(r)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_declared_union_into_a_matching_named_parameter_stays_silent() {
+        // The rule fires on the primitive expectation only. The same value
+        // passed where its own type is declared is correct and silent.
+        let src = r#"module x
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn takes_result(r: PaymentResult) -> number {
+  return 1
+}
+
+fn main(r: PaymentResult) -> number {
+  return takes_result(r)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_generic_union_application_argument_is_flagged() {
+        // A generic declared union arrives as `Ty::App` over the `Ty::Named`,
+        // and `Tree<number>` is no more a `string` than `Tree` is.
+        let src = r#"module x
+type Tree<T> =
+  | Leaf
+  | Node({ value: T })
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(t: Tree<number>) -> string {
+  return takes_string(t)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "string" && found == "Tree"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_primitive_into_a_declared_union_parameter_stays_silent_for_now() {
+        // The reverse direction is deliberately unchanged by G201. Recording it
+        // as a test keeps the boundary visible: today a `string` passed where a
+        // declared union is expected is caught only by `tsc`.
+        let src = r#"module x
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn takes_result(r: PaymentResult) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_result("Settled")
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn an_imported_union_argument_stays_silent_for_now() {
+        // A type from a sibling module lowers to `Ty::Imported`, which
+        // `ty_is_decidable` deliberately holds undecidable so that cross-module
+        // assignability stays as permissive as it was. G201 does not change
+        // that; the single-module lowering used by this test's harness produces
+        // `Ty::Unknown` for the import, which is the same silence.
+        let src = r#"module x
+import payments { PaymentResult }
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(r: PaymentResult) -> string {
+  return takes_string(r)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
     // ----- BUG-03: call arity -----
 
     #[test]
@@ -9841,6 +10230,48 @@ fn f(a: Answer) -> number {
         assert_eq!(site.catch_alls().len(), 1);
         assert_eq!(site.catch_alls()[0].arm, 1);
         assert_eq!(site.state(), CoverageState::HasCatchAll);
+    }
+
+    /// G169: a bare PascalCase arm head naming no variant of an *imported*
+    /// union is the same mistake as the module-local one, and it gets the same
+    /// diagnostic. The imported side used to credit the head as covered and say
+    /// nothing, so a typo left only the resolver's `unresolved name` behind and
+    /// sent the author looking for an import they never needed.
+    #[test]
+    fn an_unknown_bare_head_over_an_imported_union_is_e0220() {
+        let src = r#"module app
+import model { Answer, Yes, No, Zed }
+fn f(a: Answer) -> number {
+  return match a {
+    Yes => 1,
+    No => 0,
+    Zed => 2,
+  }
+}
+"#;
+        let (_cov, errs) = imported_coverage_and_errors(src);
+        let reported = errs.iter().find_map(|e| match e {
+            TypeError::UnknownVariantPattern {
+                union,
+                name,
+                suggestion,
+                ..
+            } => Some((union.clone(), name.clone(), suggestion.clone())),
+            _ => None,
+        });
+        assert_eq!(
+            reported,
+            Some(("Answer".to_string(), "Zed".to_string(), Some("Yes".to_string()))),
+            "errs: {errs:?}"
+        );
+        // The unknown head must not be credited as coverage on its way past:
+        // an arm naming nothing this union declares cannot make it exhaustive.
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
+            "every declared variant is named, so there is no gap: {errs:?}"
+        );
     }
 
     #[test]

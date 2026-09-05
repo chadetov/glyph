@@ -5240,6 +5240,45 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - The benchmark harness ships under `benchmarks/` rather than living in a scratchpad. This lane already records that the last measurement took an excavation to reproduce, and leaving the harness uncommitted is how that happens again
 - A keystroke can be timed without any harness at all: `cargo test --release -p glyph-db --lib -- --ignored --nocapture timing_instrument_minilang` breaks a `type_map` fill into parse, resolve, per-declaration fill and assignment. It is `#[ignore]`d so CI never runs it, and it exists because the alternative is another excavation
 
+**0.1.116 — Next · The checker accepts things it should not**
+- The whole group is one shape: the compiler is silent where it could speak, and every one of them costs an agent the guarantee the language is sold on
+- G201: a signature type change is invisible at every call site passing a named type. `takes_string(r)` with `r` a union is silent where `takes_string(b)` with a `bool` is E0211. This is also why `change_signature_type` ships entirely `NOT_INDEXED` in `glyph_impact`, so closing it makes a whole change kind answerable
+- G39: member access and call arguments against `Ty::Unknown` are unchecked, which is the same silence one level down
+- G169: an unknown PascalCase arm head over an imported union reports E0103 unresolved name rather than escalating to E0220, so the diagnostic names a missing binding where the truth is a variant that does not exist
+- G135: the emitter calls a positional variant pattern unimplemented one line after the parser calls it nonexistent, so a user obeying the first error hits the second
+- G172: a file's `module` header and the path the project keys it by can disagree with nothing saying so. **The decision owed is what a file's address is**, and it has been owed since 0.1.106
+- **Breaking, and it should be.** Each of these starts catching something, so somebody's green build goes red. That is the fix working, and the release marks it
+
+**0.1.117 — The seam with npm**
+- This is the 1.0 gate rather than a feature: the recorded diagnosis is that Glyph is safe on code it owns and leaky at the seam with npm, and real projects are all seam
+- G108: the `.d.ts` reader materializes interfaces and type aliases, so a package whose surface is classes and utility types is unusable through `gen dts` even when generation reports success
+- G91: an `Option<T>` field cannot be read from ordinary JSON, which is most JSON
+- G27: an unknown stdlib namespace member leaks a raw `tsc` error instead of a Glyph diagnostic
+- G147: a lowercase nullary variant of an imported payload union does not dispatch
+- Measured on a real dependency rather than a fixture, because every one of these was found that way
+
+**0.1.118 — The stdlib gaps real programs hit**
+- G101: `fold` cannot stop early. Held since 0.1.109 for a reason that still stands: an early-exit fold needs a continue-or-stop type, and whether that is a new `Step<A>` export or a reuse of `Result` is a permanent addition to the surface. **Decide it, then build it**
+- G105: a file can only be read whole and there is no async iteration, so a streaming merge cannot be written
+- G128: `std/http` bounds nothing by default, which is the shape G127 argued against one file over
+- G119: `url.join`'s `Err` branch is nearly unreachable and nothing says so
+- G178: eleven modules are shipped and importable with no documented signatures
+
+**0.1.119 — The house we live in**
+- Four entries about this repository rather than the language, and they share a failure: a thing that cannot be run is reviewed by reading
+- G202: the playground pins a `wasm-bindgen-cli` its manifest does not, so the page cannot be rebuilt from its own instructions
+- G159: two of the three token-count benchmark fixtures are not Glyph the compiler accepts, and nothing builds them
+- G158: 30 of 113 files in `examples/apps` are not what `glyph fmt` produces
+- G166: a `std/net` integration test can hang without end and leaks a `tsx` process tree when it does
+- G177: E0101's help still offers `myapp/feature`, implying a package prefix a sibling import does not need
+
+**Deferred, with the reason rather than by omission**
+- G18, G19, G20, G98: language ergonomics. `T?` sugar, nested strings inside `${...}`, `is` narrowing, formatter layout. Each is a design decision and each is forward-compatible by construction, so deferring costs nothing that adding them later would not also cost
+- G78: a multi-module app cannot be built as part of an enclosing tree. Waits on the same question G172 asks, which is what a file's address is
+- G170: the emit half needs a multi-file playground page, which is a product decision rather than a compiler one. The compiler side is done and `ProjectTables::from_modules` already takes many modules
+- G171: measured in 0.1.114 and the conclusion held on a corrected argument. It stays listed only because nothing has been built on it; there is no work owed
+
+
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps
 
 A release with no feature work in it. The query layer moves to salsa 0.28, and

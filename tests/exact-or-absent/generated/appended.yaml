@@ -1,0 +1,11 @@
+openapi: 3.0.0
+info:
+  title: Appended
+  version: "1.0"
+components:
+  schemas:
+    Row:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }

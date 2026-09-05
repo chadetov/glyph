@@ -10,6 +10,8 @@
   --green-bg: #12261a;
   --red: #f85149;
   --red-bg: #2a1416;
+  --amber: #d29922;
+  --amber-bg: #241c0e;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -155,7 +157,14 @@ body {
   cursor: pointer;
 }
 
-.gutter .ln.err::after {
+.gutter .ln.warn {
+  color: var(--amber);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gutter .ln.err::after,
+.gutter .ln.warn::after {
   content: "●";
   font-size: 0.6em;
   vertical-align: middle;
@@ -230,6 +239,19 @@ body {
   font-weight: 600;
 }
 
+.diag.warn .code {
+  color: var(--amber);
+}
+
+.diag.warn:hover,
+.diag.warn:focus-visible {
+  background: var(--amber-bg);
+}
+
+.diag.warn:focus-visible {
+  box-shadow: inset 2px 0 0 var(--amber);
+}
+
 .diag .loc {
   color: var(--muted);
 }
@@ -243,6 +265,20 @@ body {
   color: var(--green);
   font-family: var(--mono);
   font-size: 12px;
+}
+
+.project-note {
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--amber-bg);
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.project-note code {
+  font-family: var(--mono);
+  color: var(--amber);
 }
 
 .diff-caption,

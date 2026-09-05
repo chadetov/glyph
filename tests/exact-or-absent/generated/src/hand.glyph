@@ -1,0 +1,11 @@
+module hand
+
+// Written by a person. Nothing generated this file, and no `glyph gen` header
+// has ever been in it.
+
+pub type Receipt = { total: number }
+
+pub fn total() -> number {
+  let sum = 0
+  return sum
+}

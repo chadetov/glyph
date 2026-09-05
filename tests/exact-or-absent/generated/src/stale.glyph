@@ -1,0 +1,11 @@
+module stale
+
+// Generated from stale.yaml. Every type below is a real Glyph record
+// with a runtime descriptor, so a request or response body validates
+// through `T.parse(value)`. Regenerate with `glyph gen openapi stale.yaml --out src`.
+// glyph-graph 1
+// @generated-from source openapi fnv1a:b7248aeb5f2399d0 stale.yaml
+// @generated-from entity stale::Ticket
+
+@open
+type Ticket = { id: string }

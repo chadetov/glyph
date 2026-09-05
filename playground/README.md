@@ -7,10 +7,11 @@ server, no API.
 
 ## How it works
 
-`crates/glyph-wasm` exposes one function, `compile(source) -> { ts, diagnostics }`,
-that runs the exact compiler front end (parse → resolve → typecheck → emit) in
-memory. It is built to `wasm32-unknown-unknown` and wrapped with `wasm-bindgen`
-into `pkg/`. The page (`index.html` + `playground.js` + `style.css`) loads that
+`crates/glyph-wasm` exposes one function,
+`compile(source) -> { ts, diagnostics, assumed_external_imports }`, running the
+compiler front end (parse, resolve, typecheck, emit) in memory over one module.
+It is built to `wasm32-unknown-unknown` and wrapped with `wasm-bindgen` into
+`pkg/`. The page (`index.html` + `playground.js` + `style.css`) loads that
 module, compiles on every debounced keystroke, and renders the output and
 diagnostics. No framework, no build step for the page itself.
 
@@ -65,5 +66,13 @@ upload `playground/`.
 
 - The `std/*` imports in the emitted TypeScript are shown verbatim; they resolve
   against the Glyph runtime when you build a real project with `glyph build`.
-- The playground analyzes a single file (no project module graph), exactly like
-  the language server does for one open document.
+- The playground compiles one module, so it has no project module graph. That
+  changes the output as well as the analysis: six of the tables `glyph build`
+  hands the emitter are read only for an imported name, so an import of a
+  sibling module emits a bare specifier here and a presence check where
+  `glyph build` emits a relative specifier and the check the type declares. The
+  compiler reports which imports it had to assume were npm packages in
+  `assumed_external_imports`, and the page says so beside the output. See G170
+  in `docs/dogfooding-gaps.md`.
+- The project scan itself is shared with the CLI (`glyph_emit::ProjectTables`),
+  so a table the emitter grows reaches both surfaces rather than one.

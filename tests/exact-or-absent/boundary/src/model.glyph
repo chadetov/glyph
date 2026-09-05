@@ -1,0 +1,14 @@
+module model
+
+// A union declared here, in Glyph, which the compiler parsed and resolved. Its
+// variant list is a fact, so a site over it can be decided.
+pub type Kind =
+  | Draft
+  | Sent
+
+pub fn describe(k: Kind) -> string {
+  return match k {
+    Draft => "draft",
+    Sent => "sent",
+  }
+}

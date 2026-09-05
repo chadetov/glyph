@@ -507,6 +507,14 @@ pub struct EmitContext<'a> {
 impl<'a> EmitContext<'a> {
     /// Context for a standalone single-module program: no project siblings, so
     /// every import stays bare. `EMPTY` backs the borrow.
+    ///
+    /// **Only correct when the program really has no siblings**, which in
+    /// practice means a test. Anything that emits TypeScript a person will run
+    /// builds its context from [`ProjectTables`], because the six tables above
+    /// are read for imports and an empty one silently answers "this project
+    /// declares nothing" to every question about them. A surface that reached
+    /// for this constructor instead emitted a weaker runtime check and a bare
+    /// specifier for a sibling import, and looked correct doing it (G170).
     pub fn single() -> Self {
         EmitContext {
             module_path: "",
@@ -539,6 +547,133 @@ static EMPTY_ARITIES: std::sync::LazyLock<std::collections::BTreeMap<(String, St
 
 static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
+
+/// Every project-wide fact a per-module pass needs, computed once from the
+/// parsed modules of a project.
+///
+/// Six of the seven tables below back an [`EmitContext`], and each answers the
+/// same question about a *sibling* module: what does it export, and in what
+/// shape. A module-local scan cannot answer any of them, and every one of them
+/// exists because a module-local scan was tried first and emitted TypeScript
+/// that was weaker than the type declared (G124, G139, G147). The seventh,
+/// `imported_module_paths`, is the reachability fact behind G124's lint and
+/// comes off the same pass over the same ASTs.
+///
+/// **This is the only implementation of that scan.** It lives here, beside
+/// `EmitContext` and [`emits_plain_descriptor`], so a surface that emits
+/// TypeScript builds its context the same way every other surface does rather
+/// than growing a second copy that drifts. A caller supplies the modules it
+/// has; what it does not have is absent from the tables, and absent means the
+/// project does not declare it, never that the scan stopped early.
+#[derive(Debug, Default, Clone)]
+pub struct ProjectTables {
+    project_modules: std::collections::BTreeSet<String>,
+    record_payload_variants: std::collections::BTreeSet<(String, String)>,
+    generic_descriptor_arities: std::collections::BTreeMap<(String, String), usize>,
+    plain_descriptors: std::collections::BTreeSet<(String, String)>,
+    descriptorless_aliases: std::collections::BTreeMap<(String, String), TypeExpr>,
+    union_variant_names: std::collections::BTreeMap<(String, String), Vec<String>>,
+    imported_module_paths: std::collections::BTreeSet<String>,
+}
+
+impl ProjectTables {
+    /// Scan every module of a project, keyed by its module path (`sub/a`), and
+    /// collect the tables. One pass over each AST.
+    ///
+    /// A module whose AST is `None` did not parse. It still counts toward the
+    /// project's module set, because whether a path names a module of this
+    /// project is a fact about the file tree rather than about whether the file
+    /// happens to compile today: drop it and a sibling's `import b` starts
+    /// emitting a bare specifier and reporting an unresolved module, because
+    /// `b.glyph` has a syntax error. It contributes to nothing else, since
+    /// there are no declarations to read.
+    pub fn from_modules<'m, I>(modules: I) -> Self
+    where
+        I: IntoIterator<Item = (&'m str, Option<&'m Module>)>,
+    {
+        let mut t = ProjectTables::default();
+        for (module_path, ast) in modules {
+            t.project_modules.insert(module_path.to_string());
+            if let Some(ast) = ast {
+                t.scan(module_path, ast);
+            }
+        }
+        t
+    }
+
+    /// Fold one module's declarations into the tables.
+    fn scan(&mut self, module_path: &str, ast: &Module) {
+        for item in &ast.items {
+            match item {
+                Decl::Import(imp) => {
+                    // The textual fact "something in the project reaches for
+                    // this path", regardless of whether the import resolves or
+                    // the names exist: a module is reachable the moment
+                    // something reaches for it (G124).
+                    self.imported_module_paths
+                        .insert(glyph_resolver::path_key(&imp.path));
+                }
+                Decl::Type(td) => {
+                    if let TypeExpr::Union { variants, .. } = &td.body {
+                        self.union_variant_names.insert(
+                            (module_path.to_string(), td.name.to_string()),
+                            variants.iter().map(|v| v.name.to_string()).collect(),
+                        );
+                        for v in variants {
+                            if matches!(v.payload, Some(TypeExpr::Record { .. })) {
+                                self.record_payload_variants
+                                    .insert((module_path.to_string(), v.name.to_string()));
+                            }
+                        }
+                    }
+                    if !td.generics.is_empty() && matches!(&td.body, TypeExpr::Record { .. }) {
+                        self.generic_descriptor_arities.insert(
+                            (module_path.to_string(), td.name.to_string()),
+                            td.generics.len(),
+                        );
+                    }
+                    if td.is_public && td.generics.is_empty() {
+                        if emits_plain_descriptor(td) {
+                            self.plain_descriptors
+                                .insert((module_path.to_string(), td.name.to_string()));
+                        } else {
+                            self.descriptorless_aliases.insert(
+                                (module_path.to_string(), td.name.to_string()),
+                                td.body.clone(),
+                            );
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// The context for emitting the module at `module_path`.
+    pub fn emit_context<'a>(&'a self, module_path: &'a str) -> EmitContext<'a> {
+        EmitContext {
+            module_path,
+            project_modules: &self.project_modules,
+            record_payload_variants: &self.record_payload_variants,
+            generic_descriptor_arities: &self.generic_descriptor_arities,
+            plain_descriptors: &self.plain_descriptors,
+            descriptorless_aliases: &self.descriptorless_aliases,
+            union_variant_names: &self.union_variant_names,
+        }
+    }
+
+    /// Every module path scanned, which is the project's module set.
+    pub fn project_modules(&self) -> &std::collections::BTreeSet<String> {
+        &self.project_modules
+    }
+
+    /// Whether any scanned module names `module_path` in an `import`. Backs the
+    /// G124 reachability lint, which is project-wide and so cannot live inside
+    /// a module-local lint pass.
+    pub fn is_imported_anywhere(&self, module_path: &str) -> bool {
+        self.imported_module_paths.contains(module_path)
+    }
+}
 
 /// Emit a whole module to a TypeScript source string. `resolved` and `types`
 /// are the resolution and type-inference results for `module`; the emitter
@@ -7487,6 +7622,67 @@ mod tests {
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
         assert!(ts.contains("from \"./.glyph-runtime/std/io\""), "{ts}");
+    }
+
+    #[test]
+    fn project_tables_build_the_context_every_surface_emits_with() {
+        // The project scan has one implementation, so two surfaces cannot end
+        // up emitting different TypeScript from the same module. Each assert
+        // below is a fact about `palette.glyph` that `main.glyph` alone does
+        // not carry, and each was a separately hand-rolled table before.
+        let palette =
+            glyph_parser::parse("module palette\n\npub type Colour = \"red\" | \"blue\"\n")
+                .expect("parse failed");
+        let (module, resolved, types, prelude) = pipeline(
+            "module main\nimport palette { Colour }\n\npub type Row = {\n  kind: Colour,\n  label: string,\n}\n",
+        );
+        let tables =
+            ProjectTables::from_modules([("palette", Some(&palette)), ("main", Some(&module))]);
+        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
+            .expect("emit failed");
+        assert!(
+            ts.contains("import { type Colour } from \"./palette\";"),
+            "sibling import is relative, and type-only because Colour has no descriptor: {ts}"
+        );
+        assert!(
+            ts.contains("(value as Record<string, unknown>).kind === \"red\""),
+            "an imported string-literal union keeps its membership check: {ts}"
+        );
+        assert!(
+            !ts.contains("(value as Record<string, unknown>).kind !== undefined"),
+            "no presence floor for an imported literal union: {ts}"
+        );
+        assert!(
+            tables.is_imported_anywhere("palette"),
+            "the scan records that some module reaches for `palette`"
+        );
+        assert!(
+            !tables.is_imported_anywhere("main"),
+            "nothing imports `main`"
+        );
+    }
+
+    #[test]
+    fn a_module_that_did_not_parse_is_still_a_module_of_the_project() {
+        // Whether `b` is a module of this project is a fact about the file
+        // tree. Reading it off "did `b.glyph` parse" instead means a syntax
+        // error in one file silently changes the TypeScript emitted for a
+        // different file that imports it, from `./b` to a bare `b` that
+        // resolves against node_modules.
+        let (module, resolved, types, prelude) =
+            pipeline("module a\nimport b { T }\npub type Row = {\n  t: T,\n}\n");
+        let tables = ProjectTables::from_modules([("a", Some(&module)), ("b", None)]);
+        assert!(
+            tables.project_modules().contains("b"),
+            "a module that failed to parse is still in the project: {:?}",
+            tables.project_modules()
+        );
+        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("a"))
+            .expect("emit failed");
+        assert!(
+            ts.contains("from \"./b\""),
+            "the import of an unparseable sibling stays a sibling: {ts}"
+        );
     }
 
     #[test]

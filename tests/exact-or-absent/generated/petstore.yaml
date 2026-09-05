@@ -1,0 +1,18 @@
+openapi: 3.0.0
+info:
+  title: Petstore
+  version: "1.0"
+components:
+  schemas:
+    Order:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [placed, shipped] }
+    Pet:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        tag: { type: string }

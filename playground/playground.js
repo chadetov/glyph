@@ -139,7 +139,11 @@ function renderDiagnostics(diags) {
   el.innerHTML = diags
     .map((d, i) => {
       const loc = `${d.start_line + 1}:${d.start_col + 1}`;
-      return `<div class="diag" data-diag="${i}" role="button" tabindex="0" title="Jump to line ${
+      // A lint and a must-use warning are warnings in `glyph check`, so they are
+      // warnings here. Painting them red would tell you a program is broken
+      // when the compiler will build it.
+      const kind = d.severity === "warning" ? "warn" : "err";
+      return `<div class="diag ${kind}" data-diag="${i}" role="button" tabindex="0" title="Jump to line ${
         d.start_line + 1
       }"><span class="code">${escapeHtml(
         d.code
@@ -149,6 +153,35 @@ function renderDiagnostics(diags) {
     })
     .join("");
   markErrorLines();
+}
+
+// Say which imports this page could not check against a project, and what
+// `glyph build` would do differently with them. Rendered only when the compiler
+// names one: a module that imports nothing outside `std/*` compiles here to
+// what `glyph build` writes, and there is nothing to say about it.
+function renderProjectNote(paths) {
+  const el = $("project-note");
+  if (!paths || paths.length === 0) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+  const coded = paths.map((p) => `<code>${escapeHtml(p)}</code>`);
+  const names =
+    coded.length > 1
+      ? coded.slice(0, -1).join(", ") + " or " + coded[coded.length - 1]
+      : coded[0];
+  const one = paths.length === 1;
+  el.innerHTML =
+    `This page compiles the one module in the editor. It has no ${names}, so ` +
+    `${one ? "that import was" : "those imports were"} compiled as ` +
+    `${one ? "an npm package" : "npm packages"}. If ` +
+    `${one ? "it is a module" : "any of them is a module"} in your own project, ` +
+    `<code>glyph build</code> writes something different below: a relative ` +
+    `specifier, and the real runtime check for any type ` +
+    `${one ? "that module declares" : "those modules declare"} where this page ` +
+    `falls back to a presence check.`;
+  el.hidden = false;
 }
 
 // Keep the gutter's line count in step with the source and its scroll position
@@ -170,14 +203,22 @@ function syncGutterScroll() {
   $("gutter").scrollTop = $("source").scrollTop;
 }
 
-// Paint the gutter row where each diagnostic starts red (and clickable). Only
-// the start line is marked: some spans (an unterminated string, say) run to the
-// end of the file, and painting every line in between would be noise.
+// Paint the gutter row where each diagnostic starts (and make it clickable),
+// red for an error and amber for a warning. Only the start line is marked: some
+// spans (an unterminated string, say) run to the end of the file, and painting
+// every line in between would be noise. A line carrying both takes the red.
 function markErrorLines() {
   const g = $("gutter");
-  const lines = new Set(currentDiags.map((d) => d.start_line + 1));
+  const errs = new Set(
+    currentDiags.filter((d) => d.severity !== "warning").map((d) => d.start_line + 1)
+  );
+  const warns = new Set(
+    currentDiags.filter((d) => d.severity === "warning").map((d) => d.start_line + 1)
+  );
   for (const ln of g.children) {
-    ln.classList.toggle("err", lines.has(Number(ln.dataset.line)));
+    const n = Number(ln.dataset.line);
+    ln.classList.toggle("err", errs.has(n));
+    ln.classList.toggle("warn", !errs.has(n) && warns.has(n));
   }
 }
 
@@ -188,10 +229,13 @@ function compileToView() {
     out = JSON.parse(compile(src));
   } catch (e) {
     $("ts").querySelector("code").textContent = `// playground error: ${e}`;
+    // Clear the note too: it describes output that is no longer on screen.
+    renderProjectNote([]);
     return;
   }
   $("ts").querySelector("code").textContent =
     out.ts != null ? out.ts : "// (no output — fix the errors on the left)";
+  renderProjectNote(out.assumed_external_imports);
   renderDiagnostics(out.diagnostics || []);
   renderGutter();
 }

@@ -41,9 +41,9 @@ use glyph_typechecker::{
 };
 
 use crate::analysis::{
-    analyze, analyze_full, enclosing_decl_name, global_relations_in, module_outline, outline_of,
-    relations_at, symbol_target_at, Definition, LineIndex, OutlineKind, OutlineSymbol,
-    RelatedSpan, Relation, SymbolTarget,
+    analyze, analyze_full, enclosing_decl_name, extern_ts_escape, global_relations_in,
+    module_outline, outline_of, relations_at, symbol_target_at, Definition, LineIndex,
+    OutlineKind, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
@@ -424,11 +424,11 @@ fn tool_specs() -> Value {
     // one source. A schema that listed them itself would be a second set again,
     // silently, the first time one of them changed.
     let vocabulary_enum: Vec<&str> = Relation::all().map(|r| r.wire()).to_vec();
-    const VOCABULARY: &str = "The vocabulary is closed and holds five names, each spelled the same way in a request, in a reply, and in a coverage statement. `CALLS`: the site applies the entity to an argument list. `REFERENCES`: the site names the entity without applying it. `MATCH_SITES`: a `match` whose scrutinee is the entity, answered by `glyph_variants`. `FIELD_ACCESS`: a read or a write of a record field, answered by `glyph_references` when `name` is a `Record.field` address. `GENERATED_FROM`: a derived artifact and the source it came from, which no tool answers yet. A name outside the set is an error rather than an ignored key, and so is a name in the set that this answer does not hold: an empty list would read as `no such edges exist`.";
+    const VOCABULARY: &str = "The vocabulary is closed and holds five names, each spelled the same way in a request, in a reply, and in a coverage statement. `CALLS`: the site applies the entity to an argument list. `REFERENCES`: the site names the entity without applying it. `MATCH_SITES`: a `match` whose scrutinee is the entity, answered by `glyph_variants`. `FIELD_ACCESS`: a read or a write of a record field, answered by `glyph_references` when `name` is a `Record.field` address. `GENERATED_FROM`: a declaration a `glyph gen` run wrote and the source artifact it was written from, answered by `glyph_references` when `name` is a symbol. A name outside the set is an error rather than an ignored key, and so is a name in the set that this answer does not hold: an empty list would read as `no such edges exist`.";
     let relation = json!({
         "type": ["string", "array"],
         "items": { "type": "string", "enum": vocabulary_enum },
-        "description": format!("Optional. Which relations to answer, as a name or an array of names. This tool answers `CALLS` and `REFERENCES` for a symbol address, and `FIELD_ACCESS` for a `Record.field` one. Leave it out to get every relation the address form holds. {VOCABULARY}")
+        "description": format!("Optional. Which relations to answer, as a name or an array of names. This tool answers `CALLS`, `REFERENCES` and `GENERATED_FROM` for a symbol address, and `FIELD_ACCESS` for a `Record.field` one. Leave it out to get every relation the address form holds. {VOCABULARY}")
     });
     let impact_relations = json!({
         "type": ["string", "array"],
@@ -471,17 +471,17 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_references",
-            "description": "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. Relation names come from one closed vocabulary shared by every tool here, and this tool answers two of them for a symbol address. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, so `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer.",
+            "description": "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. Relation names come from one closed vocabulary shared by every tool here, and this tool answers three of them for a symbol address. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, so `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. `GENERATED_FROM`: the declaration was written by a `glyph gen` run, and the edge names the source artifact it was written from. It is read out of the generation record the generator writes into the file's header, one line per declaration that run wrote, so a declaration somebody added below the generated ones gets no edge and a variant of a generated union gets one. The edge carries `generator` (`openapi`, `dts` or `zod`), `source` (the artifact, resolved against the project root), `source_hash` (its content at generation time), `source_hash_now`, and `source_state`: `UNCHANGED` when the artifact still holds those bytes, `CHANGED` when it does not, and null with `source_state_absent` when it could not be read, which is a third answer rather than a difference. `source_state` is a fact about that one artifact's bytes: it does not say a fresh run would write this file, and for `dts` and `zod`, which follow references out of the entry file, it does not cover the files they followed into. Its `to` is null with `to_absent`, because the far end is an artifact rather than a declaration and has no `module::name` identity. Its `provenance` is `ASSERTED`: the record is the generator's own claim and nothing in the compiler re-derives it, which is why the hash is there. Coverage for this relation is its own and not the sweep's, since the record lives in the file that declares the entity: `unindexed` names that file when it was generated and its record cannot be read (written before records existed, or a format version this build does not know), and `not_indexed` names the classes a record cannot be keyed by, of which a local binding is one. An empty list under this relation means the declaring file was read and nothing records the declaration as generated. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
             "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character, "name": name, "relation": relation }, "required": ["path"] }
         },
         {
             "name": "glyph_variants",
-            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. The answer names its relation, `MATCH_SITES`, on the envelope and on every site it keyed, so an entry lifted out of the reply still says what put it there; a site under `unkeyed` carries `relation` null and `relation_absent` instead, because this project never joined it to the type and an edge it never made must not be claimed. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see.",
+            "description": "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. The answer names its relation, `MATCH_SITES`, on the envelope and on every site it keyed, so an entry lifted out of the reply still says what put it there; a site under `unkeyed` carries `relation` null and `relation_absent` instead, because this project never joined it to the type and an edge it never made must not be claimed. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it. A union whose node is `opaque-ts` or `extern` has no variant list here, so a site over it is `scrutinee_unresolved` and never `exhaustive`: whether its arms are the whole union is not a question this project can answer.",
             "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name, "relation": match_relation, "proposed_variant": proposed_variant }, "required": ["path", "name"] }
         },
         {
             "name": "glyph_impact",
-            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` ships entirely `NOT_INDEXED`, and the reason is stated on the search: the checker reports only a provable mismatch, so a named union passed where a `string` is declared raises nothing where a `bool` raises E0211 (G201). A function read as a value rather than applied is `NOT_INDEXED` under `change_arity` for the same shape of reason. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it.",
+            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` ships entirely `NOT_INDEXED`, and the reason is stated on the search: the checker reports only a provable mismatch, so a named union passed where a `string` is declared raises nothing where a `bool` raises E0211 (G201). A function read as a value rather than applied is `NOT_INDEXED` under `change_arity` for the same shape of reason. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
             "inputSchema": { "type": "object", "properties": { "entity": entity, "change": change, "relations": impact_relations, "depth": depth, "path": impact_path }, "required": ["entity", "change"] }
         },
         {
@@ -737,9 +737,15 @@ fn unresolvable(
             &Provenance::Undetermined(format!(
                 "{why}, so there is no far end to have proved or asserted"
             )),
+            None,
             wanted,
             BTreeMap::new(),
             &[],
+            // The file the address is in did not parse or did not resolve, so
+            // the address never became a subject. There is nothing for a
+            // generation record to be about, and the class says so rather than
+            // an empty list saying nothing generated a symbol nobody named.
+            &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
         )),
         Some(name) => Err(format!(
             "cannot look up `{name}` in module `{this_module}`: {why}. \
@@ -754,9 +760,17 @@ fn unresolvable(
 /// practice; the `module` header is the other position that can hold one.
 const MODULE_LEVEL: &str = "the occurrence is at module level, inside no declaration";
 
-/// The relations `glyph_references` answers for a symbol address, which
-/// partition every occurrence of it.
-const SYMBOL_RELATIONS: &[Relation] = &[Relation::Calls, Relation::References];
+/// The relations `glyph_references` answers for a symbol address.
+///
+/// `CALLS` and `REFERENCES` partition every occurrence of the symbol.
+/// `GENERATED_FROM` is a different question about the same node, read from a
+/// different place: not where the symbol is used, but whether a `glyph gen` run
+/// wrote the declaration and from what. It is answered by default because
+/// leaving it out would make "every relation the address form holds" untrue,
+/// and because the caller who needs it most is the one who does not yet know
+/// the declaration is generated.
+const SYMBOL_RELATIONS: &[Relation] =
+    &[Relation::Calls, Relation::References, Relation::GeneratedFrom];
 
 /// The relation `glyph_references` answers for a `Record.field` address. A
 /// field is a different entity read from a different relation, so the address
@@ -784,7 +798,7 @@ fn answered_by(relation: Relation) -> Option<&'static str> {
         }
         Relation::FieldAccess => Some("`glyph_references` with a `Record.field` address"),
         Relation::MatchSites => Some("`glyph_variants`"),
-        Relation::GeneratedFrom => None,
+        Relation::GeneratedFrom => Some("`glyph_references` with a symbol address"),
     }
 }
 
@@ -899,6 +913,12 @@ fn read_relations_under(
 /// The third member is not a hedge. It is the case where neither holds, and the
 /// honest answer is to say what was checked instead of rounding to the nearer
 /// of the two.
+///
+/// `Asserted` is the general word for a claim the compiler did not derive, and
+/// it has two instances. A `.d.ts` says a declaration exists and `tsc` is what
+/// checks it. A generation record says a `glyph gen` run wrote a declaration
+/// from an artifact, and a content hash is what checks it. Neither is something
+/// the compiler established, and reporting either as `Proved` would say it was.
 enum Provenance {
     Proved(String),
     Asserted(String),
@@ -979,6 +999,139 @@ fn symbol_provenance(
             display_path(root, &project.root)
         )),
     }
+}
+
+/// What a node is, as an attribute of the node and never as part of its key.
+///
+/// A relation carries `Provenance`, which says whether the compiler proved the
+/// far end of an edge or a declaration file claimed it. This says what the node
+/// at that end actually is, and the two come apart in the case that matters
+/// most. `type Row = extern_ts("z.infer<typeof s>")` is a Glyph declaration
+/// this project holds: the resolver read it, so every edge into it is `PROVED`
+/// and that is the truth. It is also a declaration with a raw TypeScript string
+/// behind the name, which nothing in Glyph reads. A caller who has only the
+/// provenance sees `PROVED` and concludes the compiler examined the thing.
+///
+/// **The origin is never part of the key.** `payments::PaymentResult` is that
+/// declaration whether it came out of Glyph source or out of a generated
+/// boundary, and an identity that encoded the difference would hand one
+/// declaration two names the moment a project imported an npm package. That is
+/// the failure 0.1.108 spent a release removing for the module half, and
+/// repeating it one level down would undo it.
+///
+/// The fourth state is absence rather than a fourth origin. A name nothing in
+/// the project declares is not `opaque-ts`, because saying so would name a
+/// declaration file that does not exist, and it is not `glyph` either. It
+/// carries no origin and says what was checked, the same way `Provenance`
+/// refuses to round an unresolvable import to the nearer of its two facts.
+enum Origin {
+    /// Declared in Glyph source the compiler read: a `.glyph` module of this
+    /// project, or the stdlib surface the compiler carries and emits.
+    Glyph(String),
+    /// A Glyph declaration of this project whose definition is an `extern_ts`
+    /// escape. Keyed, addressable, and shapeless: `tsc` checks what is inside
+    /// the string and Glyph's own checker does not.
+    Extern(String),
+    /// No Glyph module declares it. A `.d.ts` this project carries, or an
+    /// installed package of that name, asserts it, and the compiler cannot see
+    /// past the assertion.
+    OpaqueTs(String),
+}
+
+impl Origin {
+    fn wire(&self) -> &'static str {
+        match self {
+            Origin::Glyph(_) => "glyph",
+            Origin::Extern(_) => "extern",
+            Origin::OpaqueTs(_) => "opaque-ts",
+        }
+    }
+
+    fn detail(&self) -> &str {
+        match self {
+            Origin::Glyph(d) | Origin::Extern(d) | Origin::OpaqueTs(d) => d,
+        }
+    }
+
+    /// The pair an answer carries: the origin, and why it is absent when it is.
+    ///
+    /// Both keys are always present. A missing `origin` and an `origin` of
+    /// `null` read the same to a program that checks for the key, and one of
+    /// them means "this surface does not stamp origins" while the other means
+    /// "this node has none", which are opposite claims.
+    fn pair(this: Option<&Origin>) -> (Value, Value) {
+        match this {
+            Some(o) => (json!(o.wire()), Value::Null),
+            None => (Value::Null, json!(ORIGIN_ABSENT)),
+        }
+    }
+}
+
+/// What an absent origin means, said once so every surface says it the same
+/// way.
+const ORIGIN_ABSENT: &str =
+    "no Glyph module of this project declares it, the compiler's stdlib does not carry it, and \
+     no TypeScript declaration under the project asserts it. It is not `opaque-ts`, because \
+     that would name a declaration file that does not exist";
+
+/// What `sym_module::name` is, as a node.
+///
+/// The order is the order of what can be established, and it is deliberately
+/// the same order `symbol_provenance` walks so that the two answers are about
+/// the same lookup. A `.glyph` member of this project decides first, and the
+/// declaration inside it is read rather than assumed: a module this project
+/// holds can still declare the name as an `extern_ts` escape, which is a
+/// different node from an ordinary one and the whole reason this attribute is
+/// not `Provenance` spelled again.
+///
+/// A file that is a member and does not parse yields no origin. The name was
+/// never read, and stamping `glyph` on it would claim the compiler examined a
+/// declaration it never reached.
+fn symbol_origin(
+    project: &Project,
+    root: &Path,
+    sym_module: &str,
+    name: &str,
+) -> Option<Origin> {
+    if let Some((fpath, entry)) = project
+        .searched()
+        .into_iter()
+        .find(|(_, f)| f.module_path == sym_module)
+    {
+        let where_ = display_path(root, fpath);
+        let parsed = glyph_db::parse_module(&project.db, entry.file);
+        // A member that does not parse yields no origin. The declaration was
+        // never read, and `glyph` would claim the compiler examined something
+        // it never reached.
+        let module = parsed.module()?;
+        return Some(match extern_ts_escape(module, name) {
+            Some(escape) => Origin::Extern(format!(
+                "`{sym_module}::{name}` is declared in {where_}, a Glyph module this project \
+                 holds, and {}",
+                escape.describe()
+            )),
+            None => Origin::Glyph(format!(
+                "`{sym_module}::{name}` is declared in {where_}, a Glyph module this project \
+                 holds, and the compiler parsed and resolved that declaration"
+            )),
+        });
+    }
+    let stdlib = StdlibStubs::new();
+    if let Some(exports) = stdlib.exports_of(&module_path_from_key(sym_module)) {
+        return exports.contains(name).then(|| {
+            Origin::Glyph(format!(
+                "`{sym_module}` is a stdlib module the compiler carries rather than a file of \
+                 this project, and it exports `{name}`: the resolver holds the surface and the \
+                 emitter writes the implementation"
+            ))
+        });
+    }
+    asserting_declaration(&project.root, sym_module).map(|evidence| {
+        Origin::OpaqueTs(format!(
+            "no Glyph module of this project is named `{sym_module}`; {evidence} asserts it, so \
+             `{name}` is a shape a TypeScript declaration claims and nothing in Glyph read"
+        ))
+    })
 }
 
 /// `sym_module` as a `ModulePath`, for asking the stdlib surface about it.
@@ -1089,6 +1242,536 @@ fn declares_module(text: &str, name: &str) -> bool {
     false
 }
 
+/// The record `glyph gen` writes into every file it generates, and the reader
+/// that turns it back into `GENERATED_FROM` edges.
+///
+/// **Why the format lives on the reader's side.** `glyph-cli` writes it and
+/// this crate reads it, and a format with two implementations is two formats
+/// the first time one of them changes. `glyph-cli` already depends on this
+/// crate, so one copy can be shared without a new crate or a new dependency
+/// edge; the same reasoning put `enclosing_decl_name` here (G180).
+///
+/// **Why the record sits inside the generated file.** The question it exists to
+/// answer is asked by whoever is about to edit a generated declaration, and the
+/// header is the part of the file they are already looking at. A side manifest
+/// can be deleted, can be left behind when the file is copied, and is not read
+/// by anyone who did not already suspect the file was generated. `glyph regen`
+/// has recovered its command from this header since it shipped, which is the
+/// same channel working.
+///
+/// **The format is line-oriented, versioned, and sorted by entity id** (R7).
+/// The record is committed and diffed along with the Glyph it annotates, so a
+/// serialization that reordered between runs would recreate exactly the churn
+/// the formatter exists to prevent. One entity per line means a spec that gains
+/// a type adds one line.
+///
+/// ```text
+/// // glyph-graph 1
+/// // @generated-from source openapi fnv1a:1e83ba9c4e0f6a11 petstore.yaml
+/// // @generated-from entity petstore::Order
+/// // @generated-from entity petstore::Pet
+/// ```
+///
+/// The hash comes before the path because a path is the one field that can
+/// hold a space, so it is the one that has to be last.
+pub mod generated {
+    /// The format version. A file carrying a version this build does not know
+    /// is [`RecordRead::Unreadable`] rather than parsed as far as it goes: a
+    /// best-effort read of a newer format would report a subset of the entities
+    /// as the whole set, and an entity missing from that subset reads as "this
+    /// declaration was not generated", which is the one thing the record exists
+    /// to get right.
+    pub const VERSION: u32 = 1;
+
+    const OPENER: &str = "// glyph-graph ";
+    const PREFIX: &str = "// @generated-from ";
+
+    /// The needle that says a file came out of `glyph gen`, independent of
+    /// whether it carries a record. `glyph regen` recovers the whole command
+    /// from it, and the reader uses it to tell a hand-written file (no record
+    /// because nothing generated it) from one generated before records existed
+    /// (no record because this build cannot see the edge that is there).
+    const GEN_COMMAND: &str = "`glyph gen ";
+
+    /// One generation record, as written and as read back.
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Record {
+        /// `openapi`, `dts` or `zod`: which generator wrote the file. It says
+        /// what the hash covers, which differs between them.
+        pub target: String,
+        /// The source artifact, spelled the way the `gen` invocation spelled
+        /// it, so it resolves against the directory `gen` was run from. That is
+        /// the project root by the same convention `glyph regen` already
+        /// depends on.
+        pub source: String,
+        /// [`content_hash`] of the artifact's bytes at generation time.
+        pub source_hash: String,
+        /// Every top-level declaration the run wrote, as `module::name`, sorted
+        /// and deduplicated.
+        pub entities: Vec<String>,
+    }
+
+    /// What reading a file's record found. The three arms are three different
+    /// facts and collapsing any two of them loses the distinction the record is
+    /// for.
+    pub enum RecordRead {
+        /// No record, and nothing says the file came out of `glyph gen`. No
+        /// declaration in it was generated, as far as anything here records.
+        None,
+        /// A record this build can read.
+        Record(Record),
+        /// The file was generated and its record cannot be read. Carries why.
+        /// This is absence of the answer, not absence of the relation.
+        Unreadable(String),
+    }
+
+    /// FNV-1a/64, rendered as `fnv1a:` and sixteen hex digits.
+    ///
+    /// A content identifier rather than a cryptographic hash: it answers "are
+    /// these the same bytes", it is not collision-proof against someone
+    /// choosing the bytes, and nothing here treats it as a signature. The
+    /// algorithm is fixed and version-independent (unlike
+    /// `std::hash::DefaultHasher`, whose output is explicitly unstable across
+    /// Rust releases), so a hash written into a committed file stays readable
+    /// forever, and the same bytes hash the same way on every platform. The
+    /// canonical view uses the same function for the same reason.
+    pub fn content_hash(bytes: &[u8]) -> String {
+        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+        for &b in bytes {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        format!("fnv1a:{hash:016x}")
+    }
+
+    impl Record {
+        /// The record as the block of comment lines that goes into the file.
+        ///
+        /// Sorting and deduplication happen here rather than at every call
+        /// site, so byte-identity across runs is a property of the format
+        /// rather than of whoever assembled the list.
+        pub fn render(&self) -> String {
+            let mut entities: Vec<&str> = self.entities.iter().map(String::as_str).collect();
+            entities.sort_unstable();
+            entities.dedup();
+            let mut out = format!("{OPENER}{VERSION}\n");
+            out.push_str(&format!(
+                "{PREFIX}source {} {} {}\n",
+                self.target, self.source_hash, self.source
+            ));
+            for entity in entities {
+                out.push_str(&format!("{PREFIX}entity {entity}\n"));
+            }
+            out
+        }
+
+        /// Whether this record names `entity` as one of the declarations the
+        /// run wrote.
+        pub fn wrote(&self, entity: &str) -> bool {
+            self.entities.iter().any(|e| e == entity)
+        }
+    }
+
+    /// Read the record out of a generated file's text.
+    pub fn read(text: &str) -> RecordRead {
+        let mut version: Option<&str> = None;
+        let mut source: Option<(String, String, String)> = None;
+        let mut entities: Vec<String> = Vec::new();
+        for line in text.lines() {
+            let line = line.trim_end();
+            if let Some(rest) = line.strip_prefix(OPENER) {
+                version = Some(rest.trim());
+                continue;
+            }
+            let Some(rest) = line.strip_prefix(PREFIX) else {
+                continue;
+            };
+            if let Some(rest) = rest.strip_prefix("source ") {
+                // `target hash path`, and the path is the rest of the line
+                // because it is the field that can hold a space.
+                let mut parts = rest.splitn(3, ' ');
+                match (parts.next(), parts.next(), parts.next()) {
+                    (Some(target), Some(hash), Some(path)) if !path.is_empty() => {
+                        source = Some((target.to_string(), hash.to_string(), path.to_string()));
+                    }
+                    _ => {
+                        return RecordRead::Unreadable(format!(
+                            "its record carries a source line this build cannot read (`{line}`), \
+                             so the artifact it was generated from is not established"
+                        ))
+                    }
+                }
+            } else if let Some(entity) = rest.strip_prefix("entity ") {
+                entities.push(entity.trim().to_string());
+            }
+        }
+        let Some(version) = version else {
+            return match regen_command(text) {
+                Some(command) => RecordRead::Unreadable(format!(
+                    "it carries a `glyph gen` header (`{command}`) and no generation record, so it \
+                     was written before records existed; which declarations that run wrote, and \
+                     from what content, is not recorded anywhere in it"
+                )),
+                None => RecordRead::None,
+            };
+        };
+        if version != VERSION.to_string() {
+            return RecordRead::Unreadable(format!(
+                "its generation record is format version `{version}` and this build reads version \
+                 {VERSION}; reading it as far as this build understands would report part of the \
+                 entity list as all of it"
+            ));
+        }
+        let Some((target, source_hash, source)) = source else {
+            return RecordRead::Unreadable(
+                "its generation record opens a block and names no source artifact, so there is \
+                 nothing at the far end of the edge to name"
+                    .to_string(),
+            );
+        };
+        entities.sort_unstable();
+        entities.dedup();
+        RecordRead::Record(Record { target, source, source_hash, entities })
+    }
+
+    /// Pull the backtick-quoted `glyph gen ...` command out of a generated
+    /// file's header, without the backticks.
+    ///
+    /// `glyph regen` re-runs what this returns, and the reader above uses its
+    /// presence to tell "nothing generated this" from "this was generated and
+    /// the record is unreadable".
+    pub fn regen_command(text: &str) -> Option<String> {
+        let start = text.find(GEN_COMMAND)? + 1; // step past the opening backtick
+        let rest = &text[start..];
+        let end = rest.find('`')?;
+        Some(rest[..end].to_string())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn a_record_round_trips_through_its_own_rendering() {
+            let record = Record {
+                target: "openapi".to_string(),
+                source: "spec/petstore.yaml".to_string(),
+                source_hash: content_hash(b"openapi: 3.0.0\n"),
+                entities: vec!["petstore::Pet".to_string(), "petstore::Order".to_string()],
+            };
+            let text = format!("module petstore\n\n{}\ntype Order = {{}}\n", record.render());
+            match read(&text) {
+                RecordRead::Record(back) => {
+                    assert_eq!(back.target, "openapi");
+                    assert_eq!(back.source, "spec/petstore.yaml");
+                    assert_eq!(back.source_hash, record.source_hash);
+                    // Sorted on the way out, so the reader gets one order.
+                    assert_eq!(back.entities, ["petstore::Order", "petstore::Pet"]);
+                }
+                _ => panic!("a rendered record did not read back:\n{text}"),
+            }
+        }
+
+        /// A path with a space in it survives, because the path is the rest of
+        /// the line rather than a whitespace-delimited field.
+        #[test]
+        fn a_source_path_holding_a_space_reads_back_whole() {
+            let record = Record {
+                target: "dts".to_string(),
+                source: "my types/api.d.ts".to_string(),
+                source_hash: content_hash(b"x"),
+                entities: vec!["api::Row".to_string()],
+            };
+            match read(&record.render()) {
+                RecordRead::Record(back) => assert_eq!(back.source, "my types/api.d.ts"),
+                _ => panic!("a path with a space did not read back"),
+            }
+        }
+
+        #[test]
+        fn a_hand_written_file_carries_no_record_and_no_generator() {
+            assert!(matches!(
+                read("module m\n\n// Written by a person.\npub fn f() -> number {\n  return 1\n}\n"),
+                RecordRead::None
+            ));
+        }
+
+        /// The case the three-way split exists for. A file generated before
+        /// records existed is not a hand-written file, and reporting it as one
+        /// would say no declaration in it was generated.
+        #[test]
+        fn a_file_generated_before_records_existed_is_unreadable_rather_than_absent() {
+            let text = "module api\n\n// Generated from spec.yaml. Regenerate with \
+                        `glyph gen openapi spec.yaml --out src`.\n\ntype Row = {}\n";
+            match read(text) {
+                RecordRead::Unreadable(why) => {
+                    assert!(why.contains("glyph gen openapi spec.yaml --out src"), "{why}");
+                    assert!(why.contains("before records existed"), "{why}");
+                }
+                _ => panic!("a legacy generated file read as hand-written"),
+            }
+        }
+
+        /// A version this build does not know is refused whole. Reading the
+        /// entity lines it happens to understand would report a subset as the
+        /// complete list.
+        #[test]
+        fn an_unknown_format_version_is_refused_rather_than_partly_read() {
+            let text = "module api\n\n// glyph-graph 2\n// @generated-from source openapi \
+                        fnv1a:0000000000000000 spec.yaml\n// @generated-from entity api::Row\n";
+            match read(text) {
+                RecordRead::Unreadable(why) => assert!(why.contains("version"), "{why}"),
+                _ => panic!("a future format version was read as if this build knew it"),
+            }
+        }
+
+        #[test]
+        fn the_hash_is_fixed_and_moves_only_with_the_bytes() {
+            assert_eq!(content_hash(b""), "fnv1a:cbf29ce484222325");
+            assert_eq!(content_hash(b"a"), content_hash(b"a"));
+            assert_ne!(content_hash(b"a"), content_hash(b"b"));
+        }
+    }
+}
+
+/// The `GENERATED_FROM` entry of one `glyph_references` answer: its edges, and
+/// its own coverage.
+///
+/// Coverage is stated per relation and this relation reads something different
+/// from the other two, so it cannot share theirs. `CALLS` and `REFERENCES` come
+/// out of a sweep over every file in the project, and a file that does not
+/// parse holds occurrences they could not see. A generation record lives in the
+/// file that declares the entity and nowhere else, so an unreadable file
+/// elsewhere in the project hides no edge from this answer, and naming it here
+/// would report a gap that does not exist.
+struct GeneratedFrom {
+    edges: Vec<Value>,
+    /// The declaring file, when it is generated and its record cannot be read.
+    unindexed: Vec<Value>,
+    /// Classes of subject a generation record cannot name at all.
+    not_indexed: Vec<String>,
+}
+
+impl GeneratedFrom {
+    /// No edge, and nothing was in the way of finding one. Either the
+    /// declaring file carries no generation record, or it carries one that does
+    /// not name this entity, or no file of this project declares it at all: in
+    /// each case nothing here records the entity as generated, which is what an
+    /// empty list says.
+    fn none() -> GeneratedFrom {
+        GeneratedFrom { edges: Vec::new(), unindexed: Vec::new(), not_indexed: Vec::new() }
+    }
+
+    /// The file was generated and its record could not be read, so whether this
+    /// entity came out of that run is not established. Named rather than
+    /// answered `[]`, which would say nothing generated it.
+    fn unreadable(path: String, why: String) -> GeneratedFrom {
+        GeneratedFrom {
+            edges: Vec::new(),
+            unindexed: vec![json!({ "path": path, "why": why })],
+            not_indexed: Vec::new(),
+        }
+    }
+
+    /// The subject is of a kind no generation record names.
+    fn not_indexed(class: &str) -> GeneratedFrom {
+        GeneratedFrom {
+            edges: Vec::new(),
+            unindexed: Vec::new(),
+            not_indexed: vec![class.to_string()],
+        }
+    }
+
+    fn value(&self) -> Value {
+        json!({
+            "edges": self.edges,
+            "unindexed": self.unindexed,
+            "not_indexed": self.not_indexed,
+        })
+    }
+}
+
+/// A generation record is keyed by `module::name`, so a subject with no such
+/// identity is a class it cannot name rather than one it names and finds
+/// nothing for.
+const GENERATED_FROM_NEEDS_AN_ENTITY: &str =
+    "a subject with no `module::name` identity. A generation record names the declarations one \
+     `glyph gen` run wrote, keyed the way every other answer here keys them, so a local binding \
+     or a position on no name is not something it can hold an entry for. Ask about the \
+     declaration around it, which is what the run would overwrite.";
+
+/// What the far end of a `GENERATED_FROM` edge is, said the same way every
+/// time it is said.
+const GENERATED_FROM_FAR_END: &str =
+    "a `GENERATED_FROM` edge points at a source artifact rather than at a Glyph declaration, so \
+     its far end has no `module::name` identity. `source` names the artifact and `source_hash` is \
+     the content it was generated from";
+
+/// The directory a generation record's paths resolve against.
+///
+/// `gen` records the source path as the invocation spelled it, so it resolves
+/// against the directory `gen` was run from, and `glyph regen` has depended on
+/// that being the project root since it shipped: the directory holding the
+/// `package.json` that marks the project (D41). The database's root is the
+/// *module* root inside it, `src/` by default, so the two are different
+/// directories and resolving against the module root looks for the spec one
+/// level too deep.
+///
+/// A project with no manifest marker has no such directory, and the module root
+/// is what is left. Either way the answer names the path it read, so a caller
+/// can see where it looked.
+fn record_root(module_root: &Path, server_root: &Path) -> PathBuf {
+    let mut dir = Some(module_root);
+    while let Some(d) = dir {
+        if crate::marked_project_src(d).is_some() {
+            return d.to_path_buf();
+        }
+        if d == server_root || d.join(".git").exists() {
+            break;
+        }
+        dir = d.parent();
+    }
+    module_root.to_path_buf()
+}
+
+/// Whether the artifact a generated file names still holds the bytes it was
+/// generated from.
+///
+/// Two states and an absence, and the absence is not rounded to `CHANGED`: an
+/// artifact that is not there was not compared, and reporting that as a
+/// difference would manufacture a fact about content nobody read.
+fn source_state(root: &Path, from: &Path, record: &generated::Record) -> (Value, Value, String) {
+    let path = from.join(&record.source);
+    let where_ = display_path(root, &path);
+    match std::fs::read(&path) {
+        Ok(bytes) => {
+            let now = generated::content_hash(&bytes);
+            let detail = format!(
+                "`{where_}` was read and hashed, and it {} the content recorded at generation. \
+                 That is a fact about that artifact's bytes and about nothing else: it does not \
+                 say a fresh `glyph gen` run would write this file, and for a generator that \
+                 follows references out of its entry file it does not cover the files it \
+                 followed into",
+                if now == record.source_hash { "is" } else { "is not" }
+            );
+            let state = if now == record.source_hash { "UNCHANGED" } else { "CHANGED" };
+            (json!(state), json!(now), detail)
+        }
+        Err(e) => (
+            Value::Null,
+            Value::Null,
+            format!(
+                "the record names `{}` and `{where_}` could not be read ({e}), so its content \
+                 was never compared with the recorded hash. Whether the artifact still holds the \
+                 bytes this file was generated from is not established here",
+                record.source
+            ),
+        ),
+    }
+}
+
+/// The `GENERATED_FROM` edges of one symbol, read out of the file that declares
+/// it.
+///
+/// The record is the generator's own claim, written into the file it wrote, so
+/// the edge is `ASSERTED`: nothing in the compiler re-derives it, and the hash
+/// beside it is what a caller checks it against. Calling it `PROVED` would say
+/// the compiler established that this artifact produced this declaration, which
+/// it cannot: it read a line of a comment.
+fn generated_from(
+    project: &Project,
+    root: &Path,
+    sym_module: &str,
+    name: &str,
+    entity: &str,
+    origin: Option<&Origin>,
+) -> GeneratedFrom {
+    let Some((fpath, entry)) = project
+        .searched()
+        .into_iter()
+        .find(|(_, f)| f.module_path == sym_module)
+    else {
+        // No file of this project declares it, so this project holds no
+        // generation record that could name it. The record for a generated
+        // declaration is written into the file that declares it and nowhere
+        // else, which is what makes the empty answer exact rather than a gap.
+        return GeneratedFrom::none();
+    };
+    let text = entry.file.text(&project.db);
+    let where_ = display_path(root, fpath);
+    // Read off the text rather than off a parse: the record is a block of
+    // comment lines, so a file too broken to parse still says what generated
+    // it, and answering `[]` for one would be the wrong absence.
+    let record = match generated::read(text) {
+        generated::RecordRead::None => return GeneratedFrom::none(),
+        generated::RecordRead::Unreadable(why) => {
+            let why = format!("{where_} was generated, and {why}");
+            return GeneratedFrom::unreadable(where_, why);
+        }
+        generated::RecordRead::Record(record) => record,
+    };
+    if !record.wrote(entity) {
+        // The file is generated and this run did not write this declaration.
+        // Somebody added it by hand below the generated ones, and saying it was
+        // generated would be as wrong as saying the generated ones were not.
+        return GeneratedFrom::none();
+    }
+
+    let (state, now, detail) = source_state(root, &record_root(&project.root, root), &record);
+    let index = LineIndex::new(text);
+    let span = crate::analysis::find_symbol_span(&outline_of(text), name)
+        .map(|(start, end)| narrow_to_name(text, start, end, name));
+    let (from_origin, from_origin_absent) = Origin::pair(origin);
+    let mut edge = serde_json::Map::new();
+    edge.insert("relation".into(), json!(Relation::GeneratedFrom.wire()));
+    edge.insert("from".into(), json!(entity));
+    edge.insert("from_absent".into(), Value::Null);
+    edge.insert("from_origin".into(), from_origin);
+    edge.insert("from_origin_absent".into(), from_origin_absent);
+    edge.insert("to".into(), Value::Null);
+    edge.insert("to_absent".into(), json!(GENERATED_FROM_FAR_END));
+    edge.insert("to_origin".into(), Value::Null);
+    edge.insert("to_origin_absent".into(), Value::Null);
+    // The record is the generator's claim about its own output, so this edge is
+    // asserted in the same sense a `.d.ts` declaration is: read, not derived.
+    let provenance = Provenance::Asserted(format!(
+        "`glyph gen {}` wrote {where_} and recorded `{entity}` as one of the declarations it \
+         wrote. Nothing in the compiler re-derives that edge; the recorded hash is what a caller \
+         checks the claim against",
+        record.target
+    ));
+    edge.insert("provenance".into(), json!(provenance.wire()));
+    edge.insert("provenance_detail".into(), json!(provenance.detail()));
+    edge.insert("generator".into(), json!(record.target));
+    edge.insert("source".into(), json!(record.source));
+    edge.insert("source_hash".into(), json!(record.source_hash));
+    edge.insert("source_hash_now".into(), now);
+    edge.insert("source_state".into(), state.clone());
+    edge.insert(
+        "source_state_absent".into(),
+        if state.is_null() { json!(detail.clone()) } else { Value::Null },
+    );
+    edge.insert("source_state_detail".into(), json!(detail));
+    edge.insert("path".into(), json!(where_));
+    match span {
+        Some((start, end)) => {
+            edge.insert("range".into(), range_json(&index, text, start, end));
+            edge.insert("range_absent".into(), Value::Null);
+        }
+        None => {
+            edge.insert("range".into(), Value::Null);
+            edge.insert(
+                "range_absent".into(),
+                json!(format!(
+                    "the record names `{entity}` and {where_} does not parse, so the \
+                     declaration's own span was never read"
+                )),
+            );
+        }
+    }
+    GeneratedFrom { edges: vec![Value::Object(edge)], unindexed: Vec::new(), not_indexed: Vec::new() }
+}
+
 /// One edge, complete enough to be read on its own.
 ///
 /// `relation` and the two ends are on the entry rather than only in the
@@ -1101,14 +1784,36 @@ fn edge_value(
     index: &LineIndex,
     span: &RelatedSpan,
     from: Option<String>,
+    from_origin: Option<&Origin>,
     to: Option<&str>,
+    to_origin: Option<&Origin>,
     provenance: &Provenance,
 ) -> Value {
+    // An edge names two nodes, so an edge read on its own says what each of
+    // them is. The near end is stamped even though it is a declaration of this
+    // project every time it is not null, because "it is always `glyph` here" is
+    // a thing this code would be asserting rather than computing, and a module
+    // that declares the name as an `extern_ts` escape is a counterexample the
+    // day somebody writes one.
+    let (from_origin, from_origin_absent) = match &from {
+        Some(_) => Origin::pair(from_origin),
+        // No near-end node exists at all, which `from_absent` already says.
+        // Repeating the absence reason here would spell one fact two ways.
+        None => (Value::Null, Value::Null),
+    };
+    let (to_origin, to_origin_absent) = match to {
+        Some(_) => Origin::pair(to_origin),
+        None => (Value::Null, Value::Null),
+    };
     json!({
         "relation": span.relation.wire(),
         "from": from,
         "from_absent": from.is_none().then_some(MODULE_LEVEL),
+        "from_origin": from_origin,
+        "from_origin_absent": from_origin_absent,
         "to": to,
+        "to_origin": to_origin,
+        "to_origin_absent": to_origin_absent,
         "provenance": provenance.wire(),
         "path": display_path(file.root, file.path),
         "range": range_json(index, file.text, span.start, span.end),
@@ -1122,29 +1827,47 @@ fn edge_value(
 /// unreadable file used to return a list shaped exactly like a complete one.
 /// Each relation states its own edges and its own gaps, and a relation the
 /// caller did not ask for is absent rather than empty.
+#[allow(clippy::too_many_arguments)]
 fn relations_answer(
     entity: Option<&str>,
     entity_absent: Option<&str>,
     provenance: &Provenance,
+    origin: Option<&Origin>,
     wanted: &[Relation],
     mut edges: BTreeMap<Relation, Vec<Value>>,
     unindexed: &[Value],
+    generated: &GeneratedFrom,
 ) -> String {
     let mut relations = serde_json::Map::new();
     for relation in wanted {
-        relations.insert(
-            relation.wire().to_string(),
+        // `GENERATED_FROM` states its own coverage, because it reads the
+        // declaring file's record rather than the project-wide sweep the other
+        // two read. Handing it the sweep's list would name files that hold no
+        // edge it could have found.
+        let entry = if *relation == Relation::GeneratedFrom {
+            generated.value()
+        } else {
             json!({
                 "edges": edges.remove(relation).unwrap_or_default(),
                 "unindexed": unindexed,
-            }),
-        );
+            })
+        };
+        relations.insert(relation.wire().to_string(), entry);
     }
+    let (origin_wire, origin_absent) = match entity {
+        Some(_) => Origin::pair(origin),
+        // There is no node to have an origin. `entity_absent` says why, and a
+        // second sentence saying it again would read as a second fact.
+        None => (Value::Null, Value::Null),
+    };
     to_json(&json!({
         "entity": entity,
         "entity_absent": entity_absent,
         "provenance": provenance.wire(),
         "provenance_detail": provenance.detail(),
+        "origin": origin_wire,
+        "origin_absent": origin_absent,
+        "origin_detail": origin.map(Origin::detail),
         "relations": Value::Object(relations),
     }))
 }
@@ -1260,21 +1983,50 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                     None,
                     Some(absent),
                     &provenance,
+                    None,
                     &wanted,
                     BTreeMap::new(),
                     &[],
+                    &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
                 ));
             };
             let offset = index.offset(&text, line, character);
             let file = FileCtx { path: &path, root: &root, text: &text };
+            // The near end is classified out of this file's own parse, which is
+            // all a local ever needs: every occurrence of a file-scoped binding
+            // sits in a declaration of the file that was named.
+            let here = |decl: &str| {
+                Some(match extern_ts_escape(&module, decl) {
+                    Some(escape) => Origin::Extern(format!(
+                        "`{this_module}::{decl}` is declared in {}, and {}",
+                        display_path(&root, &path),
+                        escape.describe()
+                    )),
+                    None => Origin::Glyph(format!(
+                        "`{this_module}::{decl}` is declared in {}, a Glyph file the compiler \
+                         parsed and resolved",
+                        display_path(&root, &path)
+                    )),
+                })
+            };
             let edges: Vec<(Relation, Value)> = relations_at(&module, &resolved, offset, &text, true)
                 .into_iter()
                 .map(|span| {
-                    let from = enclosing_decl_name(&module, span.start)
-                        .map(|d| format!("{this_module}::{d}"));
+                    let decl = enclosing_decl_name(&module, span.start);
+                    let origin = decl.as_deref().and_then(here);
+                    let from = decl.map(|d| format!("{this_module}::{d}"));
                     (
                         span.relation,
-                        edge_value(file, &index, &span, from, None, &provenance),
+                        edge_value(
+                            file,
+                            &index,
+                            &span,
+                            from,
+                            origin.as_ref(),
+                            None,
+                            None,
+                            &provenance,
+                        ),
                     )
                 })
                 .collect();
@@ -1284,9 +2036,14 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                 None,
                 Some(absent),
                 &provenance,
+                None,
                 &wanted,
                 group_by_relation(edges),
                 &[],
+                // The binding itself is not something a generation record can
+                // name. The declaration around it is, and it may well be
+                // generated, which is why this is a named class and not `[]`.
+                &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
             ));
         }
         // The position is on no resolvable name at all. There is no subject, so
@@ -1303,9 +2060,11 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                 &Provenance::Undetermined(
                     "the address names no symbol, so there is no far end".to_string(),
                 ),
+                None,
                 &wanted,
                 BTreeMap::new(),
                 &[],
+                &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
             ));
         }
     };
@@ -1313,6 +2072,18 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     let project = server.project(&project_root, &path);
     let entity = format!("{sym_module}::{name}");
     let provenance = symbol_provenance(project, &root, &sym_module, &name);
+    let origin = symbol_origin(project, &root, &sym_module, &name);
+    // R5. Read off the file that declares the symbol, and off nothing else: a
+    // generation record is written into the file the run wrote, so this is a
+    // one-file question sitting beside a project-wide one.
+    let generated = generated_from(
+        project,
+        &root,
+        &sym_module,
+        &name,
+        &entity,
+        origin.as_ref(),
+    );
     let db = &project.db;
     let mut edges: Vec<(Relation, Value)> = Vec::new();
     // What the sweep could not read, named rather than skipped. A file that
@@ -1348,11 +2119,36 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
         let index = LineIndex::new(ftext);
         let file = FileCtx { path: fpath, root: &root, text: ftext };
         for span in spans {
-            let from = enclosing_decl_name(fmodule, span.start)
-                .map(|d| format!("{}::{d}", entry.module_path));
+            let decl = enclosing_decl_name(fmodule, span.start);
+            // The near end sits in this file, so its origin is read off the
+            // parse already in hand rather than looked up again.
+            let from_origin = decl.as_deref().map(|d| match extern_ts_escape(fmodule, d) {
+                Some(escape) => Origin::Extern(format!(
+                    "`{}::{d}` is declared in {}, and {}",
+                    entry.module_path,
+                    display_path(&root, fpath),
+                    escape.describe()
+                )),
+                None => Origin::Glyph(format!(
+                    "`{}::{d}` is declared in {}, a Glyph module this project holds, and the \
+                     compiler parsed and resolved that declaration",
+                    entry.module_path,
+                    display_path(&root, fpath)
+                )),
+            });
+            let from = decl.map(|d| format!("{}::{d}", entry.module_path));
             edges.push((
                 span.relation,
-                edge_value(file, &index, &span, from, Some(&entity), &provenance),
+                edge_value(
+                    file,
+                    &index,
+                    &span,
+                    from,
+                    from_origin.as_ref(),
+                    Some(&entity),
+                    origin.as_ref(),
+                    &provenance,
+                ),
             ));
         }
     }
@@ -1364,9 +2160,11 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
         Some(&entity),
         None,
         &provenance,
+        origin.as_ref(),
         &wanted,
         group_by_relation(edges),
         &unindexed,
+        &generated,
     ))
 }
 
@@ -1985,7 +2783,7 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     // statement under it belonging to that relation: `sites` and `nested` are
     // its edges, `unkeyed` and `unindexed` are what it could not reach.
     let mut answer = json!({
-        "type": type_block(decls, &end, &shape),
+        "type": type_block(decls, &end, &shape, type_origin(project, &root, &end).as_ref()),
         "relation": Relation::MatchSites.wire(),
         "summary": summary,
         "sites": sites,
@@ -2124,8 +2922,17 @@ fn union_shape(
 /// be read. Leaving the field out for a type whose declaration this answer
 /// cannot reach would spell "has no variants" and "not read" the same way,
 /// which is the confusion an empty site list used to carry.
-fn type_block(decls: &DeclIndex, end: &CoverageTypeRef, shape: &UnionShape) -> Value {
+fn type_block(
+    decls: &DeclIndex,
+    end: &CoverageTypeRef,
+    shape: &UnionShape,
+    origin: Option<&Origin>,
+) -> Value {
     let mut out = type_end_value(decls, end);
+    let (wire, absent) = Origin::pair(origin);
+    out["origin"] = wire;
+    out["origin_absent"] = absent;
+    out["origin_detail"] = json!(origin.map(Origin::detail));
     match shape {
         UnionShape::Variants(names) => out["variants"] = json!(names),
         UnionShape::Unread(why) => {
@@ -2665,6 +3472,41 @@ fn type_end_value(decls: &DeclIndex, end: &CoverageTypeRef) -> Value {
     }
 }
 
+/// What the type an answer is about is, as a node.
+///
+/// The three ends the relation carries do not map onto the three origins one
+/// for one, which is the point of asking rather than reading the end's `kind`.
+/// A `Decl` end is a declaration this project keys, and it is `extern` rather
+/// than `glyph` when what it keys is an `extern_ts` escape. An `Unkeyed` end is
+/// a module string the project could not key, which is `opaque-ts` when a
+/// declaration file asserts that module and no origin at all when nothing
+/// does. A `Builtin` end is the compiler's own: `Option` and `Result` have a
+/// variant table the resolver carries, so the compiler can see inside them.
+fn type_origin(project: &Project, root: &Path, end: &CoverageTypeRef) -> Option<Origin> {
+    match end {
+        CoverageTypeRef::Decl(_) | CoverageTypeRef::Unkeyed { .. } => {
+            let (module, name) = match end {
+                CoverageTypeRef::Decl(key) => {
+                    let cov = project_match_coverage(&project.db, project.db.project_files_input());
+                    let decls = cov.decls();
+                    // A key whose module the index cannot name is a key minted
+                    // by a different index, which names the wrong module rather
+                    // than nothing. There is no node to classify, so there is
+                    // no origin.
+                    (decls.module_path(key.module())?.to_string(), key.name().to_string())
+                }
+                CoverageTypeRef::Unkeyed { module, name } => (module.clone(), name.clone()),
+                CoverageTypeRef::Builtin { .. } => unreachable!(),
+            };
+            symbol_origin(project, root, &module, &name)
+        }
+        CoverageTypeRef::Builtin { name } => Some(Origin::Glyph(format!(
+            "`{name}` is a prelude type the compiler carries rather than a declaration of \
+             this project, and the resolver holds its variant table"
+        ))),
+    }
+}
+
 /// A type end as one line of prose.
 fn render_type_end(decls: &DeclIndex, end: &CoverageTypeRef) -> String {
     match end {
@@ -2830,6 +3672,7 @@ impl SiteRender<'_> {
                 );
                 out.insert("line".to_string(), json!(w.line));
                 out.insert("scrutinee".to_string(), json!(w.scrutinee));
+                let decl = w.declaration.as_ref().map(|key| key.name().to_string());
                 out.insert(
                     "declaration".to_string(),
                     match &w.declaration {
@@ -2837,18 +3680,55 @@ impl SiteRender<'_> {
                         None => Value::Null,
                     },
                 );
+                let origin = decl
+                    .as_deref()
+                    .and_then(|decl| self.declaration_origin(&d.module, decl));
+                let (wire, absent) = match &w.declaration {
+                    Some(_) => Origin::pair(origin.as_ref()),
+                    // No node, so nothing to have an origin. `declaration` is
+                    // already null and says so.
+                    None => (Value::Null, Value::Null),
+                };
+                out.insert("origin".to_string(), wire);
+                out.insert("origin_absent".to_string(), absent);
             }
             // The relation files the site under a module the project's file
             // list no longer holds. Name it rather than drop it: the site is
             // real, and absence here means no relation exists.
             None => {
-                for field in ["path", "line", "scrutinee", "declaration"] {
+                for field in ["path", "line", "scrutinee", "declaration", "origin"] {
                     out.insert(field.to_string(), Value::Null);
                 }
+                out.insert("origin_absent".to_string(), Value::Null);
             }
         }
         out.insert("state".to_string(), json!(state_str(d.state)));
         out
+    }
+
+    /// What the declaration a site sits in is, as a node.
+    ///
+    /// A `match` expression sits inside a `fn` or a `component` of a `.glyph`
+    /// member, so the answer is `glyph` every time as the language stands. It
+    /// is read out of the parse rather than assumed, because an assumption
+    /// nothing checks is how a claim survives past the day it stops being
+    /// true, and this whole attribute exists to stop exactly that.
+    fn declaration_origin(&mut self, module: &str, decl: &str) -> Option<Origin> {
+        let db = self.db;
+        let (path, file) = self.by_module.get(module).copied()?;
+        let parsed = glyph_db::parse_module(db, file);
+        let parsed = parsed.module()?;
+        let where_ = display_path(self.root, path);
+        Some(match extern_ts_escape(parsed, decl) {
+            Some(escape) => Origin::Extern(format!(
+                "`{module}::{decl}` is declared in {where_}, and {}",
+                escape.describe()
+            )),
+            None => Origin::Glyph(format!(
+                "`{module}::{decl}` is declared in {where_}, a Glyph module this project \
+                 holds, and the compiler parsed and resolved that declaration"
+            )),
+        })
     }
 
     /// Where a site's scrutinee is, and which declaration it sits in.
@@ -4244,13 +5124,39 @@ fn impact_occurrences(
         let index = LineIndex::new(ftext);
         for span in spans {
             let mut out = serde_json::Map::new();
-            let from = enclosing_decl_name(fmodule, span.start)
-                .map(|d| format!("{}::{d}", entry.module_path));
+            let decl = enclosing_decl_name(fmodule, span.start);
+            // Read off the parse already in hand. The node this entry carries a
+            // verdict about is the declaration the occurrence sits in, and a
+            // verdict is only as readable as knowing what it is a verdict
+            // about.
+            let origin = decl.as_deref().map(|d| match extern_ts_escape(fmodule, d) {
+                Some(escape) => Origin::Extern(format!(
+                    "`{}::{d}` is declared in {}, and {}",
+                    entry.module_path,
+                    display_path(root, fpath),
+                    escape.describe()
+                )),
+                None => Origin::Glyph(format!(
+                    "`{}::{d}` is declared in {}, a Glyph module this project holds, and the \
+                     compiler parsed and resolved that declaration",
+                    entry.module_path,
+                    display_path(root, fpath)
+                )),
+            });
+            let from = decl.map(|d| format!("{}::{d}", entry.module_path));
             out.insert("entity".to_string(), json!(from));
             out.insert(
                 "entity_absent".to_string(),
                 json!(from.is_none().then_some(MODULE_LEVEL)),
             );
+            let (wire, absent) = match &from {
+                Some(_) => Origin::pair(origin.as_ref()),
+                // Module level: there is no declaration node, which
+                // `entity_absent` already says.
+                None => (Value::Null, Value::Null),
+            };
+            out.insert("origin".to_string(), wire);
+            out.insert("origin_absent".to_string(), absent);
             out.insert("path".to_string(), json!(display_path(root, fpath)));
             let (line, _) = index.position(ftext, span.start as usize);
             out.insert("line".to_string(), json!(line));
@@ -4525,9 +5431,19 @@ fn tool_impact(args: &Value, server: &mut Server) -> Result<String, String> {
         }
     }
 
+    // The subject is a declaration this project holds, or `resolve_subject`
+    // refused above. It is still classified rather than stamped, because a
+    // module this project holds can declare the name as an `extern_ts` escape,
+    // and a verdict list about a declaration with no readable shape is exactly
+    // what a caller needs told.
+    let subject_origin = symbol_origin(project, &root, &module, &name);
+    let (origin_wire, origin_absent) = Origin::pair(subject_origin.as_ref());
     let mut answer = json!({
         "entity": subject.entity(),
         "entity_kind": subject.kind.wire(),
+        "origin": origin_wire,
+        "origin_absent": origin_absent,
+        "origin_detail": subject_origin.as_ref().map(Origin::detail),
         "change": change.value(),
         "depth_requested": depth,
         "depth_answered": 1u32,
@@ -5317,6 +6233,131 @@ mod tests {
         }
     }
 
+    /// What a node is, kept apart from how the edge into it was checked.
+    ///
+    /// The pair that makes the two different facts is `charge` against `Row`.
+    /// Both are declared in a `.glyph` module this project holds, so the
+    /// resolver read both declarations and every edge into either is `PROVED`.
+    /// One of them is a function with a body the compiler type-checked; the
+    /// other is `type Row = extern_ts("...")`, a name with raw TypeScript
+    /// behind it that no Glyph pass reads. A caller with only the provenance
+    /// cannot tell them apart, and the one it would guess wrong about is the
+    /// one where guessing wrong costs something.
+    ///
+    /// The origin never reaches the key. `Row` is `wire::Row` from the file
+    /// that declares it and from the file that imports it, both times, because
+    /// an identity carrying the origin would hand one declaration two names as
+    /// soon as a project imported a package.
+    #[test]
+    fn origin_says_what_a_node_is_and_stays_out_of_its_key() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
+        std::fs::create_dir_all(root.join(".types")).unwrap();
+        std::fs::write(
+            root.join(".types").join("ext.d.ts"),
+            "declare module \"tinylog\" { export function log(m: string): void; }\n",
+        )
+        .unwrap();
+        write(&root, "a.glyph", CHARGE);
+        write(
+            &root,
+            "wire.glyph",
+            "module wire\npub type Row = extern_ts(\"z.infer<typeof row_schema>\")\n",
+        );
+        write(
+            &root,
+            "b.glyph",
+            "module b\n\
+             import a { charge }\n\
+             import wire { Row }\n\
+             import tinylog { log }\n\
+             import nowhere { thing }\n\
+             pub fn bill(r: Row) -> number {\n\
+             \u{20} log(\"x\")\n\
+             \u{20} thing()\n\
+             \u{20} return charge(1)\n\
+             }\n",
+        );
+        let mut server = Server::new(root.clone());
+        let ask = |server: &mut Server, file: &str, name: &str| {
+            let (value, is_error) = call_on(
+                server,
+                "glyph_references",
+                json!({ "path": file, "name": name }),
+            );
+            assert!(!is_error, "asked about `{name}` in {file}: {value}");
+            value
+        };
+
+        let glyph = ask(&mut server, "b.glyph", "charge");
+        assert_eq!(glyph["provenance"], "PROVED", "{glyph}");
+        assert_eq!(glyph["origin"], "glyph", "{glyph}");
+
+        // Proved and shapeless at once, which is the whole reason this is not
+        // provenance spelled a second time.
+        let escape = ask(&mut server, "b.glyph", "Row");
+        assert_eq!(escape["provenance"], "PROVED", "{escape}");
+        assert_eq!(escape["origin"], "extern", "{escape}");
+        assert!(
+            escape["origin_detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("extern_ts"),
+            "an extern node must say what made it one: {escape}"
+        );
+
+        let opaque = ask(&mut server, "b.glyph", "log");
+        assert_eq!(opaque["provenance"], "ASSERTED", "{opaque}");
+        assert_eq!(opaque["origin"], "opaque-ts", "{opaque}");
+        assert!(
+            opaque["origin_detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains(".types/ext.d.ts"),
+            "an opaque-ts node must name the declaration behind it: {opaque}"
+        );
+
+        // Neither, and said as that. Rounding it to `opaque-ts` would name a
+        // declaration file that does not exist.
+        let unknown = ask(&mut server, "b.glyph", "thing");
+        assert!(unknown["origin"].is_null(), "{unknown}");
+        assert!(
+            !unknown["origin_absent"]
+                .as_str()
+                .unwrap_or_default()
+                .is_empty(),
+            "a node with no origin must say what was checked: {unknown}"
+        );
+
+        // One key, two spellings, and the origin on the node rather than in it.
+        let declared = ask(&mut server, "wire.glyph", "Row");
+        assert_eq!(declared["entity"], "wire::Row", "{declared}");
+        assert_eq!(escape["entity"], "wire::Row", "{escape}");
+        assert_eq!(declared["origin"], escape["origin"], "{declared}");
+
+        // Both ends of every edge, so an entry lifted out of the reply still
+        // says what each of the two nodes it names is. The near end is read off
+        // the file it sits in rather than stamped `glyph`, which the
+        // declaration's own-name edge is the proof of: `wire::Row` references
+        // itself, and both ends of that edge are `extern`.
+        for value in [&glyph, &escape, &opaque] {
+            let want = value["origin"].as_str().unwrap();
+            for relation in ["CALLS", "REFERENCES"] {
+                for edge in value["relations"][relation]["edges"].as_array().unwrap() {
+                    assert_eq!(edge["to_origin"], want, "{value}");
+                    if edge["from"].is_null() {
+                        continue;
+                    }
+                    let near = edge["from_origin"].as_str().unwrap_or_default();
+                    assert!(["glyph", "extern"].contains(&near), "{value}");
+                    if edge["from"] == edge["to"] {
+                        assert_eq!(edge["from_origin"], edge["to_origin"], "{value}");
+                    }
+                }
+            }
+        }
+    }
+
     /// The relation argument selects from a closed vocabulary. A relation the
     /// caller did not ask for is absent from the answer rather than empty, and
     /// a name outside the vocabulary is an error: answering `[]` to a
@@ -5488,28 +6529,301 @@ mod tests {
         );
     }
 
-    /// `GENERATED_FROM` is in the vocabulary and no surface answers it yet.
-    /// An empty edge list for it would say no derived artifact comes from this
-    /// entity, which is a claim nothing in the compiler establishes.
+    /// `GENERATED_FROM` is answered by a symbol address, and a surface that
+    /// does not answer it names the one that does.
+    ///
+    /// It used to be refused everywhere, on the grounds that nothing computed
+    /// it and an empty list would say no derived artifact comes from this
+    /// entity. Something computes it now, so the refusal that stays is the
+    /// other one: `glyph_variants` reads match sites and holds no generation
+    /// record, and it has to send the caller somewhere rather than answer.
     #[test]
-    fn a_relation_no_surface_answers_is_refused_rather_than_emptied() {
+    fn generated_from_is_answered_by_a_symbol_address() {
         let root = tmp_root();
         write(&root, "a.glyph", CHARGE);
+        write(&root, "u.glyph", COMMAND_A);
         let mut server = Server::new(root.clone());
-        let (message, is_error) = call_raw(
+        let (answer, is_error) = call_on(
             &mut server,
             "glyph_references",
             json!({ "path": "a.glyph", "name": "charge", "relation": "GENERATED_FROM" }),
         );
-        assert!(is_error, "answered a relation nothing computes: {message}");
+        assert!(!is_error, "a relation with a surface behind it was refused: {answer}");
         assert!(
-            message.contains("GENERATED_FROM"),
-            "the refusal must name the relation: {message}"
+            answer["relations"]["GENERATED_FROM"]["edges"].is_array(),
+            "the answer does not hold the relation it was asked for: {answer}"
         );
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_variants",
+            json!({ "path": "u.glyph", "name": "Command", "relation": "GENERATED_FROM" }),
+        );
+        assert!(is_error, "a tool that holds no generation record answered one: {message}");
         assert!(
-            !message.contains("is not a relation"),
-            "`GENERATED_FROM` is in the vocabulary; the refusal is that nothing \
-             answers it yet, not that the caller misspelled something: {message}"
+            message.contains("GENERATED_FROM") && message.contains("glyph_references"),
+            "the refusal must name the surface that answers it: {message}"
+        );
+    }
+
+    /// One file the generator wrote, for the tests below. `spec` is the
+    /// artifact, `entities` is what the run recorded writing.
+    fn generated_file(root: &Path, module: &str, spec: &str, body: &str, entities: &[&str]) {
+        let record = generated::Record {
+            target: "openapi".to_string(),
+            source: format!("{spec}.yaml"),
+            source_hash: generated::content_hash(
+                std::fs::read(root.join(format!("{spec}.yaml"))).unwrap_or_default().as_slice(),
+            ),
+            entities: entities.iter().map(|e| (*e).to_string()).collect(),
+        };
+        write(
+            root,
+            &format!("{module}.glyph"),
+            &format!(
+                "module {module}\n\n// Generated from {spec}.yaml. Regenerate with \
+                 `glyph gen openapi {spec}.yaml --out .`.\n{}\n{body}",
+                record.render()
+            ),
+        );
+    }
+
+    /// R5. A generated declaration says what wrote it, and whether that
+    /// artifact still holds the bytes it was written from.
+    ///
+    /// Three answers, and the third is the one that has to stay separate. The
+    /// artifact is unchanged, or it is changed, or it could not be read at all,
+    /// and the last is absence rather than a difference: an artifact nobody
+    /// read was not compared, and rounding that to `CHANGED` would manufacture
+    /// a fact about content this build never saw.
+    #[test]
+    fn a_generated_declaration_names_its_source_and_whether_it_still_matches() {
+        let root = tmp_root();
+        std::fs::write(root.join("api.yaml"), "openapi: 3.0.0\n").unwrap();
+        generated_file(&root, "api", "api", "pub type Row = { id: string }\n", &["api::Row"]);
+        let mut server = Server::new(root.clone());
+
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "api.glyph", "name": "Row" }),
+        );
+        assert!(!is_error, "{answer}");
+        let edges = answer["relations"]["GENERATED_FROM"]["edges"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        assert_eq!(edges.len(), 1, "{answer}");
+        let edge = &edges[0];
+        assert_eq!(edge["relation"], "GENERATED_FROM", "{edge}");
+        assert_eq!(edge["from"], "api::Row", "{edge}");
+        assert_eq!(edge["source"], "api.yaml", "{edge}");
+        assert_eq!(edge["generator"], "openapi", "{edge}");
+        assert_eq!(edge["source_state"], "UNCHANGED", "{edge}");
+        assert_eq!(edge["source_hash"], edge["source_hash_now"], "{edge}");
+        // The far end is an artifact, so there is no entity to key it by, and
+        // the edge says which of the two an absent `to` is.
+        assert!(edge["to"].is_null(), "{edge}");
+        assert!(
+            edge["to_absent"].as_str().unwrap_or_default().contains("source artifact"),
+            "{edge}"
+        );
+        // A generator's own record is a claim, not something the compiler
+        // re-derived. Calling it PROVED would say the compiler established that
+        // this artifact produced this declaration, and it read a comment.
+        assert_eq!(edge["provenance"], "ASSERTED", "{edge}");
+
+        // The artifact changes and the answer changes with it.
+        std::fs::write(root.join("api.yaml"), "openapi: 3.0.0\ninfo: {}\n").unwrap();
+        let (answer, _) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "api.glyph", "name": "Row", "relation": "GENERATED_FROM" }),
+        );
+        assert_eq!(
+            answer["relations"]["GENERATED_FROM"]["edges"][0]["source_state"], "CHANGED",
+            "{answer}"
+        );
+
+        // The artifact goes away and the state does not: an artifact nobody
+        // read was not compared with anything.
+        std::fs::remove_file(root.join("api.yaml")).unwrap();
+        let (answer, _) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "api.glyph", "name": "Row", "relation": "GENERATED_FROM" }),
+        );
+        let edge = &answer["relations"]["GENERATED_FROM"]["edges"][0];
+        assert!(edge["source_state"].is_null(), "{edge}");
+        assert!(edge["source_hash_now"].is_null(), "{edge}");
+        assert!(
+            edge["source_state_absent"].as_str().unwrap_or_default().contains("never compared"),
+            "{edge}"
+        );
+        // The edge itself is still there. The record names the artifact whether
+        // or not the artifact is on disk, and dropping the edge would say
+        // nothing generated this declaration.
+        assert_eq!(edge["source"], "api.yaml", "{edge}");
+    }
+
+    /// A declaration nothing generated gets an empty list, and that empty list
+    /// is exact: the file was read and carries no record.
+    #[test]
+    fn a_hand_written_declaration_has_no_generated_from_edge() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge" }),
+        );
+        assert!(!is_error, "{answer}");
+        let entry = &answer["relations"]["GENERATED_FROM"];
+        assert_eq!(entry["edges"].as_array().map(Vec::len), Some(0), "{answer}");
+        assert_eq!(entry["unindexed"].as_array().map(Vec::len), Some(0), "{answer}");
+        assert_eq!(entry["not_indexed"].as_array().map(Vec::len), Some(0), "{answer}");
+    }
+
+    /// A file `glyph gen` wrote before records existed is not a hand-written
+    /// file, and answering `[]` for it would say no declaration in it was
+    /// generated. It is named under the relation's own coverage instead.
+    #[test]
+    fn a_file_generated_before_records_existed_is_named_rather_than_emptied() {
+        let root = tmp_root();
+        write(
+            &root,
+            "old.glyph",
+            "module old\n\n// Generated from old.yaml. Regenerate with \
+             `glyph gen openapi old.yaml --out .`.\n\npub type Row = { id: string }\n",
+        );
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "old.glyph", "name": "Row", "relation": "GENERATED_FROM" }),
+        );
+        assert!(!is_error, "{answer}");
+        let entry = &answer["relations"]["GENERATED_FROM"];
+        assert_eq!(entry["edges"].as_array().map(Vec::len), Some(0), "{answer}");
+        let unindexed = entry["unindexed"].as_array().cloned().unwrap_or_default();
+        assert_eq!(unindexed.len(), 1, "{answer}");
+        assert_eq!(unindexed[0]["path"], "old.glyph", "{answer}");
+        assert!(
+            unindexed[0]["why"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("before records existed"),
+            "{answer}"
+        );
+    }
+
+    /// A declaration somebody added below the generated ones is not generated,
+    /// and the record is what says so. The file is generated, the run wrote
+    /// `Row`, and it did not write `Note`.
+    #[test]
+    fn a_declaration_the_record_does_not_name_gets_no_edge() {
+        let root = tmp_root();
+        std::fs::write(root.join("api.yaml"), "openapi: 3.0.0\n").unwrap();
+        generated_file(
+            &root,
+            "api",
+            "api",
+            "pub type Row = { id: string }\n\npub type Note = { text: string }\n",
+            &["api::Row"],
+        );
+        let mut server = Server::new(root.clone());
+        let (answer, _) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "api.glyph", "name": "Note", "relation": "GENERATED_FROM" }),
+        );
+        let entry = &answer["relations"]["GENERATED_FROM"];
+        assert_eq!(entry["edges"].as_array().map(Vec::len), Some(0), "{answer}");
+        assert_eq!(entry["unindexed"].as_array().map(Vec::len), Some(0), "{answer}");
+
+        // And the declaration beside it, in the same file, still has its edge.
+        let (answer, _) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "api.glyph", "name": "Row", "relation": "GENERATED_FROM" }),
+        );
+        assert_eq!(
+            answer["relations"]["GENERATED_FROM"]["edges"].as_array().map(Vec::len),
+            Some(1),
+            "{answer}"
+        );
+    }
+
+    /// Coverage is per relation, and this relation's is not the sweep's.
+    ///
+    /// `CALLS` and `REFERENCES` read every file in the project, so one that
+    /// does not parse hides occurrences from them. A generation record lives in
+    /// the file that declares the entity, so the same unreadable file hides
+    /// nothing from `GENERATED_FROM`, and naming it there would report a gap
+    /// that does not exist.
+    #[test]
+    fn generated_from_states_its_own_coverage_rather_than_the_sweeps() {
+        let root = tmp_root();
+        std::fs::write(root.join("api.yaml"), "openapi: 3.0.0\n").unwrap();
+        generated_file(&root, "api", "api", "pub type Row = { id: string }\n", &["api::Row"]);
+        write(&root, "broken.glyph", "module c\npub fn (\n");
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "api.glyph", "name": "Row" }),
+        );
+        assert!(!is_error, "{answer}");
+        for relation in ["CALLS", "REFERENCES"] {
+            let named: Vec<&str> = answer["relations"][relation]["unindexed"]
+                .as_array()
+                .map(|u| u.iter().filter_map(|e| e["path"].as_str()).collect())
+                .unwrap_or_default();
+            assert_eq!(named, ["broken.glyph"], "{relation}: {answer}");
+        }
+        assert_eq!(
+            answer["relations"]["GENERATED_FROM"]["unindexed"].as_array().map(Vec::len),
+            Some(0),
+            "an unreadable file elsewhere hides no generation record: {answer}"
+        );
+        assert_eq!(
+            answer["relations"]["GENERATED_FROM"]["edges"].as_array().map(Vec::len),
+            Some(1),
+            "{answer}"
+        );
+    }
+
+    /// A subject a generation record cannot be keyed by is named as that class,
+    /// not answered with an empty list.
+    ///
+    /// A record names declarations, so a local binding is not something it can
+    /// hold an entry for. `[]` would read as "nothing generated this", and the
+    /// declaration around the binding may well be generated, which is exactly
+    /// what the caller needs to know.
+    #[test]
+    fn a_local_binding_names_the_class_rather_than_claiming_nothing_generated_it() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub fn f() -> number {\n  let total = 1\n  return total\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "line": 2, "character": 6 }),
+        );
+        assert!(!is_error, "{answer}");
+        assert!(answer["entity"].is_null(), "{answer}");
+        let entry = &answer["relations"]["GENERATED_FROM"];
+        assert_eq!(entry["edges"].as_array().map(Vec::len), Some(0), "{answer}");
+        let classes = entry["not_indexed"].as_array().cloned().unwrap_or_default();
+        assert_eq!(classes.len(), 1, "{answer}");
+        assert!(
+            classes[0].as_str().unwrap_or_default().contains("`module::name`"),
+            "{answer}"
         );
     }
 

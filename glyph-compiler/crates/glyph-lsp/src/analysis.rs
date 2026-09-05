@@ -884,10 +884,11 @@ pub enum Relation {
     /// types each file, which is why a site is here because a field set
     /// resolved rather than because a spelling matched.
     FieldAccess,
-    /// A derived artifact, with the source it was derived from. No surface
-    /// computes this yet; the name is in the set because a relation cannot be
-    /// named in a reply before the set holds it, and adding it later would be
-    /// a second vocabulary again.
+    /// A declaration a `glyph gen` run wrote, and the source artifact it was
+    /// written from. Read out of the generation record the generator writes
+    /// into the file's header rather than computed from the program, which is
+    /// why every edge here is `ASSERTED`: it is the generator's claim, and the
+    /// content hash beside it is what a caller checks the claim against.
     GeneratedFrom,
 }
 
@@ -1381,6 +1382,65 @@ fn with_help(message: String, help: Option<&str>) -> String {
 /// and when the walk lived in two places the two surfaces drifted (G180). The
 /// name comes back bare: the module half is the caller's, because each caller
 /// counts it from a root only it knows.
+/// Whether the top-level declaration named `name` in `module` is an `extern_ts`
+/// escape, and which position it is written in.
+///
+/// The question is not what the declaration is called or where it lives. It is
+/// whether the compiler holds a shape for it. `type Row =
+/// extern_ts("z.infer<typeof s>")` is a declaration this project owns, keyed
+/// under its own module and resolved like any other, and behind the name there
+/// is a raw TypeScript string that no Glyph pass reads: `tsc` checks every use
+/// of it and Glyph's own checker sees `unknown` with no descriptor. The same
+/// holds for the expression form, `const handle =
+/// extern_ts("globalThis.user")`, which is the identical escape in the other
+/// position.
+///
+/// `None` means the declaration is ordinary, or that `module` declares no
+/// top-level `name` at all. The caller distinguishes those two, because it is
+/// the one that knows whether the name was supposed to be there.
+pub fn extern_ts_escape(module: &Module, name: &str) -> Option<ExternEscape> {
+    module.items.iter().find_map(|item| {
+        if item.name().map(|n| n.as_ref() != name).unwrap_or(true) {
+            return None;
+        }
+        match item {
+            Decl::Type(t) => matches!(t.body, TypeExpr::Extern { .. }).then_some(ExternEscape::Type),
+            Decl::Const(c) => {
+                matches!(c.value, Expr::Extern { .. }).then_some(ExternEscape::Value)
+            }
+            _ => None,
+        }
+    })
+}
+
+/// Which position an `extern_ts` escape is written in. Both are the same hole
+/// in the same place; they read differently in an answer, so the answer says
+/// which one it found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExternEscape {
+    /// `type X = extern_ts("<raw TypeScript type>")`, emitted verbatim as the
+    /// TypeScript type and opaque to Glyph's checker.
+    Type,
+    /// `const x = extern_ts("<raw TypeScript expression>")`, typed `unknown` at
+    /// the Glyph seam.
+    Value,
+}
+
+impl ExternEscape {
+    /// How the escape reads in an answer, as a noun phrase a sentence can
+    /// carry.
+    pub fn describe(self) -> &'static str {
+        match self {
+            ExternEscape::Type => "its definition is an `extern_ts` type escape, so the raw \
+                                   TypeScript inside it is what `tsc` checks and Glyph's own \
+                                   checker holds no shape for it",
+            ExternEscape::Value => "its value is an `extern_ts` expression escape, typed \
+                                    `unknown` at the Glyph seam, so the raw TypeScript inside \
+                                    it is what `tsc` checks",
+        }
+    }
+}
+
 pub fn enclosing_decl_name(module: &Module, offset: u32) -> Option<String> {
     module.items.iter().find_map(|item| {
         let span = item.span();

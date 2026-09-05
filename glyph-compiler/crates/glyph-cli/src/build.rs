@@ -525,102 +525,27 @@ fn build_project_inner_with(
     }
     db.set_project(entries.clone());
 
-    // The set of project module paths lets the emitter tell a sibling import
-    // (which needs a relative specifier) from a `std/*` or external one.
-    let project_modules: std::collections::BTreeSet<String> =
-        entries.iter().map(|(p, _)| p.clone()).collect();
+    // Every project-wide fact the per-module pass below needs, computed once
+    // from the parsed ASTs: the module set (so the emitter tells a sibling
+    // import from a `std/*` or external one), the six tables an `EmitContext`
+    // carries, and the reachability fact behind the G124 lint. The scan itself
+    // lives in `glyph-emit` beside `EmitContext`, so this is the same builder
+    // every other surface that emits TypeScript uses rather than a copy that
+    // can drift out of step with it.
+    let parsed_all: Vec<glyph_db::ParsedModule> =
+        entries.iter().map(|(_, sf)| parse_module(&db, *sf)).collect();
+    let tables = glyph_emit::ProjectTables::from_modules(
+        entries
+            .iter()
+            .zip(parsed_all.iter())
+            .map(|((module_path, _), parsed)| (module_path.as_str(), parsed.module())),
+    );
+    let project_modules = tables.project_modules().clone();
 
     // Module names that resolve without a `.glyph` file: ambient `declare
     // module` blocks and installed packages. Read once per build, and only used
     // by the local-import check below.
     let external_modules = external_module_names(src);
-
-    // Cross-module union shapes: `(module path, variant name)` for every variant
-    // with a record payload, across all project modules. The emitter needs this
-    // to bind a `Variant(v)` pattern correctly when the union is *imported* — a
-    // record payload binds the whole `{tag, ...fields}` object, a single-value
-    // payload binds `.value`, and an imported-union scrutinee otherwise carries
-    // no concrete type for the emitter to inspect.
-    let mut record_payload_variants: std::collections::BTreeSet<(String, String)> =
-        Default::default();
-    // Cross-module generic-descriptor arities: `(module path, type name) -> arity`
-    // for every generic record type across all project modules. The emitter needs
-    // this to thread the runtime checker argument into an *imported* generic
-    // descriptor's `Imported.parse<T>(v)` call — a module-local scan sees arity 0
-    // for the import, which would leave the required checker arg off.
-    let mut generic_descriptor_arities: std::collections::BTreeMap<(String, String), usize> =
-        Default::default();
-    // Cross-module plain descriptors: `(module path, type name)` for every
-    // exported non-generic type that emits a runtime descriptor (a record, a
-    // tagged union, or a D39 refined primitive). The emitter needs this to call
-    // an *imported* descriptor's `is`/`schema` from a field check, an `is T`
-    // narrowing, or `json.parse<T>`; a module-local scan sees nothing for the
-    // import and would fall back to a bare `!== undefined` presence check.
-    let mut plain_descriptors: std::collections::BTreeSet<(String, String)> = Default::default();
-    // The other half: exported non-generic types that emit *no* descriptor (a
-    // string-literal union, an alias to a primitive). The emitter resolves a
-    // local one through its alias chain and gives the field a real check; an
-    // imported one resolved to nothing and fell to `!== undefined`, so
-    // `kind: ColType` accepted any string once the type crossed a module.
-    let mut descriptorless_aliases: std::collections::BTreeMap<
-        (String, String),
-        glyph_ast::TypeExpr,
-    > = Default::default();
-    // Cross-module union variant lists: `(module path, type name) -> variant
-    // names`, in declaration order, for every tagged union across all project
-    // modules. The emitter needs this to tell a bare-ident payload pattern
-    // (`Err(empty)`) apart as a variant reference rather than a fresh binding
-    // when the payload union is *imported* — a module-local scan sees nothing
-    // for the import, and the name's shape alone only recognizes a PascalCase
-    // variant, so a lowercase variant of an imported union read as a binding
-    // and produced a duplicate `case "Err":` label instead of dispatching on
-    // the inner tag (G147).
-    let mut union_variant_names: std::collections::BTreeMap<(String, String), Vec<String>> =
-        Default::default();
-    // Every module path named by an `import` anywhere in the project,
-    // regardless of whether that import resolves or the imported names exist.
-    // G124's diagnostic needs only the textual fact "some sibling module
-    // names this path", not a successful resolution of it — a module is
-    // reachable the moment something in the project reaches for it.
-    let mut imported_module_paths: std::collections::BTreeSet<String> = Default::default();
-    for (module_path, sf) in &entries {
-        let parsed = parse_module(&db, *sf);
-        let Some(ast) = parsed.module() else { continue };
-        for item in &ast.items {
-            if let glyph_ast::Decl::Import(imp) = item {
-                imported_module_paths.insert(glyph_resolver::path_key(&imp.path));
-            }
-            if let glyph_ast::Decl::Type(td) = item {
-                if let glyph_ast::TypeExpr::Union { variants, .. } = &td.body {
-                    union_variant_names.insert(
-                        (module_path.clone(), td.name.to_string()),
-                        variants.iter().map(|v| v.name.to_string()).collect(),
-                    );
-                    for v in variants {
-                        if matches!(v.payload, Some(glyph_ast::TypeExpr::Record { .. })) {
-                            record_payload_variants
-                                .insert((module_path.clone(), v.name.to_string()));
-                        }
-                    }
-                }
-                if !td.generics.is_empty() && matches!(&td.body, glyph_ast::TypeExpr::Record { .. })
-                {
-                    generic_descriptor_arities.insert(
-                        (module_path.clone(), td.name.to_string()),
-                        td.generics.len(),
-                    );
-                }
-                if td.is_public && td.generics.is_empty() {
-                    if glyph_emit::emits_plain_descriptor(td) {
-                        plain_descriptors.insert((module_path.clone(), td.name.to_string()));
-                    } else {
-                        descriptorless_aliases
-                            .insert((module_path.clone(), td.name.to_string()), td.body.clone());
-                    }
-                }
-            }
-        }
-    }
 
     // Run the pipeline for each file. Collect diagnostics in the same
     // order as the file walk so the report is reproducible. Each
@@ -803,7 +728,7 @@ fn build_project_inner_with(
         // Glyph compiler and a still-in-progress module legitimately passes
         // through this state before its author adds `pub`.
         if let Some(e) =
-            glyph_resolver::no_export_surface_lint(ast, imported_module_paths.contains(module_path))
+            glyph_resolver::no_export_surface_lint(ast, tables.is_imported_anywhere(module_path))
         {
             report
                 .diagnostics
@@ -819,15 +744,7 @@ fn build_project_inner_with(
                 ));
         }
 
-        let ctx = glyph_emit::EmitContext {
-            module_path: module_path.as_str(),
-            project_modules: &project_modules,
-            record_payload_variants: &record_payload_variants,
-            generic_descriptor_arities: &generic_descriptor_arities,
-            plain_descriptors: &plain_descriptors,
-            descriptorless_aliases: &descriptorless_aliases,
-            union_variant_names: &union_variant_names,
-        };
+        let ctx = tables.emit_context(module_path.as_str());
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {
                 let rel = format!("{module_path}.ts");

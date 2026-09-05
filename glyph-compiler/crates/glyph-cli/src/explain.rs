@@ -97,6 +97,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Patterns follow the same shape: `Node({ color: c, left: l, key: k, \
             value: v, height: h, right: r }) => ...`, and an arm can name only \
             the fields it uses.\n\n\
+            The same code covers the pattern spelling of the same mistake: a \
+            match arm written positionally, `Node(c, k)`, can never bind \
+            anything under any scrutinee, since a variant has one payload \
+            whatever the scrutinee's declaration turns out to be. The parser \
+            rejects it on the rule, before typechecking runs, with a help built \
+            from your binding names rather than a declaration's field names, \
+            since a pattern only has the names you wrote: `Node({ /* field */, \
+            /* field */ })`. Naming which field is which is still yours to do.\n\n\
             The one-line help on the diagnostic itself is built from your file: \
             it names your variant and lists the types you wrote, in order, with \
             each field name left as `/* name */`. Naming the fields is the part \

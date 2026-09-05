@@ -281,7 +281,30 @@ impl<'a> Lowerer<'a> {
         match decl {
             Decl::Fn(f) => self.lower_callable_signature(&f.params, f.return_ty.as_ref(), f.is_async),
             Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
-            Decl::Import(_) | Decl::Type(_) | Decl::Const(_) | Decl::Interface(_) => Ty::Unknown,
+            // G39. An annotated `const` is its annotation, lowered through the
+            // same path a `let`'s annotation takes. Without it a module-level
+            // `const` was `Ty::Unknown`, so the checks that read a receiver's
+            // type went silent at one: `ORIGIN.rowz` drew no E0210 and `g(N)`
+            // no E0211, while the identical program written with an annotated
+            // `let` inside the function reported both. A guarantee is not
+            // allowed to depend on which binding form the author reached for.
+            //
+            // Exhaustiveness was never in that set. `match M` over a `const` of
+            // a union already reported E0200, because the coverage check
+            // resolves the union from the arm heads rather than from the
+            // scrutinee's type. That is worth stating: the silence here was
+            // narrower than "everything downstream", and a comment that claimed
+            // more than was measured would be the wrong kind of confidence.
+            //
+            // An unannotated `const` stays `Unknown` on purpose. Inferring one
+            // from the initializer is a different question with a different
+            // risk, and a guess here would report against a type nobody wrote.
+            Decl::Const(c) => c
+                .ty
+                .as_ref()
+                .map(|t| self.lower(t))
+                .unwrap_or(Ty::Unknown),
+            Decl::Import(_) | Decl::Type(_) | Decl::Interface(_) => Ty::Unknown,
         }
     }
 

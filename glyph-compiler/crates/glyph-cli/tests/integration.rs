@@ -902,9 +902,85 @@ fn cross_module_union_typo_is_module_local_scope_only() {
 
     let report = build_project(&src, &out).expect("build_project ok");
     assert!(
-        !report.diagnostics.iter().any(|d| d.contains("E0220")),
-        "E0220 is module-local only; a cross-module typo must not draw it today \
-         (see check_imported_union_coverage / fork C): {:?}",
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0220") && d.contains("did you mean `Loading`?")),
+        "a cross-module typo draws E0220 with the same suggestion as a local one: {:?}",
+        report.diagnostics
+    );
+    // The typo arm covers nothing, so the variant it was meant to be is still
+    // missing and E0200 surfaces beside it, exactly as on the local side.
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Failed")),
+        "the unnamed variant must still surface: {:?}",
+        report.diagnostics
+    );
+}
+
+/// G39. A module-level `const` carrying a type annotation is that type, so a
+/// field typo on one is E0210 naming the type and the field, rather than a raw
+/// `tsc` TS2339 pinned to the whole statement.
+///
+/// This runs through `build_project_inner` rather than the typechecker's own
+/// harness on purpose. The lowering fix alone was inert here: `decl_ty` is a
+/// salsa query whose resolver slice is built by `collect_signature_spans`, and
+/// that slice held a callable's param and return types only, so a `const`'s
+/// annotation resolved to nothing and lowered back to `Unknown` no matter what
+/// the lowerer did with it. A unit test on the local resolver passed while the
+/// compiler stayed silent.
+#[test]
+fn an_annotated_module_const_is_field_checked() {
+    let root = unique_tmp("constann");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         type Sheet = { rows: number, cols: number }\n\
+         const ORIGIN: Sheet = { rows: 0, cols: 0 }\n\
+         fn f() -> number {\n  \
+           return ORIGIN.rowz\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0210") && d.contains("rowz") && d.contains("Sheet")),
+        "expected E0210 naming the type and the field; got: {:?}",
+        report.diagnostics
+    );
+}
+
+/// The other half of the same rule, and the reason it is safe: a `const` with
+/// no annotation claims nothing. Inferring a type from the initializer is a
+/// separate decision, and reporting against a guess would reject working code.
+#[test]
+fn an_unannotated_module_const_claims_nothing() {
+    let root = unique_tmp("constnoann");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         const ORIGIN = { rows: 0, cols: 0 }\n\
+         fn f() -> number {\n  \
+           return ORIGIN.rows\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0210")),
+        "no annotation, no claim: {:?}",
         report.diagnostics
     );
 }

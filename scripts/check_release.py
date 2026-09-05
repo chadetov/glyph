@@ -40,6 +40,7 @@ GATES = [
     ("check_clippy", "lint, exactly as CI runs it"),
     ("check_binary_fresh", "the binary is the code you built"),
     ("check_gaps", "markers, counts, and evidence freshness"),
+    ("check_closed_gaps", "no entry is fixed and still listed open"),
     ("check_findings_scheduled", "every open finding is in the roadmap"),
     ("check_plans_fresh", "unshipped plans re-read, not re-stamped"),
     ("check_versions", "every version string agrees"),

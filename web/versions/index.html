@@ -61,8 +61,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.113</span>
+            <span class="rel-ver">0.1.114</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Editing one declaration no longer invalidates the others</h3>
+            <p>The compiler's per-declaration answers were keyed by position, so adding a function at the top of a file threw away what it knew about every function below it. They key by name now, and an edit above a declaration leaves that declaration's work intact.</p>
+            <p>Rewriting a file with identical bytes also cost a full rebuild. The incremental layer compares before it writes, so a tool that formats a file and changes nothing pays nothing.</p>
+            <h3>What this release deliberately does not contain</h3>
+            <p>A third change was planned and is not here. The plan said every relation the agent work depends on sits downstream of one map, so rekeying that map came first. That turned out not to be true of the current code, so the change would have moved nothing anyone can observe. It was left undone, and the wrong claim stays on the record marked wrong. A release that ships tidiness while calling it progress is worse than a smaller one.</p>
+            <h3>A measurement that changed its own argument</h3>
+            <p>Locals are excluded from the semantic model, and the recorded reason was that no question this work answers is about a <code>let</code>. That had never been checked. Measured across the real corpus: 71.7% of diagnostics land inside a function body, and code lines are 72.8% bodies, so diagnostics are not concentrated at declarations and the stated reason was failing its own test.</p>
+            <p class="rel-note">But 91% of those body diagnostics already name the declaration they sit in, and only 8.7% have a span that binds a local. The rest sit inside a body while addressing a union, a field, or a callee, all of which are already known. So the exclusion holds for a different reason than the one written down: an agent repairing a body diagnostic is told which declaration to open, and the identity it needs next is almost never the local. The conclusion survived, the argument did not.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.113</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

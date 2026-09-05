@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-202 entries, 153 are fixed, 12 are partly fixed, 10 are decided or resolved, and
-27 are open. G144, the D28 boundary cast that never reached the returns a
+202 entries, 166 are fixed, 12 are partly fixed, 10 are decided or resolved, and
+14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3330,7 +3330,7 @@ author.
 What it found is two stdlib gaps and one documentation gap, and one measurement
 worth keeping.
 
-- **G100. `std/array` has no `max`, `min`, `max_by`, `min_by`, or `sum`, so
+- **G100. [FIXED] `std/array` has no `max`, `min`, `max_by`, `min_by`, or `sum`, so
   argmax is hand-written at every search.** `std/math` has the scalar `min`/`max`
   only. This app writes the same fold five times (`src/xox.glyph` lines 219, 230,
   254, 289 and 319): once to take the maximum of the child scores, once for the
@@ -3349,6 +3349,12 @@ worth keeping.
 
   *Re-run for 0.1.96: `runtime/std/array.ts` exports none of `max`, `min`, `sum`, `max_by`, `min_by`.*
 
+  *Closed by 0.1.109, confirmed against 0.1.114: all five import cleanly. Four
+  return `Option` because an empty array has no maximum and answering 0 would be
+  the quiet wrong answer this language exists to prevent; `sum` returns a bare
+  number because the sum of no numbers is genuinely 0. Ties go to the first
+  element, verified by breaking the comparison and watching the answer move.*
+
 - **G101. `array.fold` cannot stop early, so every short-circuiting accumulation
   is hand-written index recursion.** The app's requirements ask for alpha-beta
   pruning, which is exactly a fold that stops when the window closes. Alpha-beta
@@ -3362,7 +3368,7 @@ worth keeping.
   and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
   stop is the missing piece. Not a soundness bug: the hand-written form is
   correct, just long.
-  *Reproduced against 0.1.108 the same way: `fold_while`, `try_fold` and `fold_until` are each `[E0105] not exported by std/array`, so there is still no early exit beside `fold`. Previously, against 0.1.102: `fold` is still `xs.reduce(f, init)` with no early exit, and there is no `try_fold`, `fold_while` or `fold_until` beside it: `fold_while` and `try_fold` are each `[E0105] not
+  *Reproduced against 0.1.114: `fold_while` and `try_fold` are both `[E0105] not exported by std/array`. Held back deliberately rather than overlooked: an early-exit fold needs a continue-or-stop type, and whether that is a new `Step<A>` export or a reuse of `Result` is a permanent addition to the standard library's surface. Previously, against 0.1.108:  the same way: `fold_while`, `try_fold` and `fold_until` are each `[E0105] not exported by std/array`, so there is still no early exit beside `fold`. Previously, against 0.1.102: `fold` is still `xs.reduce(f, init)` with no early exit, and there is no `try_fold`, `fold_while` or `fold_until` beside it: `fold_while` and `try_fold` are each `[E0105] not
   exported by std/array`, with the module's export list appended (`exports: any,
   concat, contains, filter, find, flat_map, fold, get, and 10 more`).
   `runtime/std/array.ts` defines `fold` and nothing that can stop early, and
@@ -3576,7 +3582,7 @@ and stopped on the same sentence: Glyph has no bytes.
   has to decide what to call it. The only expressible version of the app is
   `read_text` plus `array.sort`, which is the memory shape the round existed to
   avoid.
-  *Reproduced against 0.1.108 by importing each name: `open`, `close`, `read_at`, `read_lines` and `lines` are each `[E0105] not exported by std/fs`, so a file is still read whole. Previously, against 0.1.102: `std/fs` exports read_text, write_text, append_text, read_bytes, write_bytes, append_bytes, make_dir, exists, read_dir, is_dir, stat and remove, with no open, seek or line iterator, and `io.read_line` is still the only line reader: `fs.open` and `fs.read_line_at` are both `[E0105]
+  *Reproduced against 0.1.114: `open` and `read_lines` are both `[E0105] not exported by std/fs`, so a file is still read whole. Previously, against 0.1.108:  by importing each name: `open`, `close`, `read_at`, `read_lines` and `lines` are each `[E0105] not exported by std/fs`, so a file is still read whole. Previously, against 0.1.102: `std/fs` exports read_text, write_text, append_text, read_bytes, write_bytes, append_bytes, make_dir, exists, read_dir, is_dir, stat and remove, with no open, seek or line iterator, and `io.read_line` is still the only line reader: `fs.open` and `fs.read_line_at` are both `[E0105]
   not exported by std/fs`, the diagnostic listing `ErrorKind, FileInfo, FsError,
   append_bytes, append_text, exists, is_dir, make_dir, and 7 more`, and
   `runtime/` still contains no `asyncIterator`, `AsyncIterable`,
@@ -4558,7 +4564,7 @@ until this one.
   deadline the way `tls.connect` did (a breaking change to the two most-used
   functions in the stdlib), or whether `request` stops treating 0 as permission
   and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
-  *Reproduced against 0.1.108 by reading `runtime/std/http.ts`: `fetch_of` returns `timeout_ms: 0` (line 89), `head` passes `timeout_ms: 0` (line 104), `request` defaults it to 0 (line 450) and arms the timer only `if (bounds.timeout_ms > 0)` (line 459), so the default path is still unbounded. Previously, against 0.1.102: `http.get(url)` still takes a URL and nothing else, and `request` still reads a zero timeout as permission not to arm the timer, on the shape the entry describes: a TCP listener
+  *Reproduced against 0.1.114: `runtime/std/http.ts` still sets `timeout_ms: 0` in three places and arms the timer only above zero, so the default path is unbounded. Previously, against 0.1.108:  by reading `runtime/std/http.ts`: `fetch_of` returns `timeout_ms: 0` (line 89), `head` passes `timeout_ms: 0` (line 104), `request` defaults it to 0 (line 450) and arms the timer only `if (bounds.timeout_ms > 0)` (line 459), so the default path is still unbounded. Previously, against 0.1.102: `http.get(url)` still takes a URL and nothing else, and `request` still reads a zero timeout as permission not to arm the timer, on the shape the entry describes: a TCP listener
   that accepts the connection and sends nothing, dialled with `http.get`. The
   program printed `listening, dialing` and nothing else, and was still pending
   when it was killed at 50 seconds. `runtime/std/http.ts` is unchanged in the two
@@ -7219,7 +7225,7 @@ and is the owner's to confirm.
   at the bottom would leak on exactly the error paths that matter most. Verified
   as zero directories created on both the passing and failing paths.*
 
-- **G186. `glyph_references` omits a namespace-qualified call, silently.** The
+- **G186. [FIXED] `glyph_references` omits a namespace-qualified call, silently.** The
   tool's own contract says "every reference to a symbol across the whole
   project". It delivers that when the consumer names the symbol in its import,
   and drops the call when the consumer imports the module and qualifies the name.
@@ -7253,7 +7259,12 @@ and is the owner's to confirm.
   sites under a named import and one under a namespace import, with the calling
   module absent from the second answer entirely.*
 
-- **G187. The exhaustiveness question can only be asked as a lookup, never as a
+  *Closed by 0.1.110, confirmed against 0.1.114. The fix went into `analysis.rs`
+  rather than the tool, because the same relation feeds references, rename and the
+  MCP surface: fixing only the tool would have left rename writing workspace edits
+  that miss every qualified use, which is the same defect on a write path.*
+
+- **G187. [FIXED] The exhaustiveness question can only be asked as a lookup, never as a
   change.** `glyph_variants` takes a type and reports its sites. The question an
   agent actually has is "what breaks if I add `Pending` to `PaymentResult`", and
   there is no way to ask it. The proposed variant never enters the request, so
@@ -7269,7 +7280,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108: `glyph_variants` accepts only `path` and `name`,
   and its schema has no field for a proposed variant.*
 
-- **G188. The answer reports a state, not a consequence, and omits the union's
+  *Closed by 0.1.110, confirmed against 0.1.114: the request takes a proposed
+  variant, and a name the union already has is refused with the existing variants
+  named.*
+
+- **G188. [FIXED] The answer reports a state, not a consequence, and omits the union's
   own variants.** For a union with three match sites the answer gives
   `exhaustive`, `has_catch_all`, `exhaustive` and the arms each site names. It
   does not say that the first and third fail to compile while the second keeps
@@ -7299,6 +7314,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108 on a three-site union: the `type` block returns
   declaration, kind, module and name, and no variant list; each site returns a
   state and its arms, and no verdict.*
+
+  *Closed by 0.1.110, confirmed against 0.1.114: the answer carries
+  `['Success', 'Failed']` for the union and `WILL_FAIL`, `ABSORBS`, `WILL_FAIL`
+  per site, so the caller is told the consequence rather than a state it has to
+  interpret.*
 
 - **G189. [FIXED] `glyph check --no-tsc` reports no diagnostics on a program
   that imports a module which does not exist.** A file importing `nowhere` and
@@ -7336,7 +7356,7 @@ and is the owner's to confirm.
   claim. `scripts/check_exact_or_absent.py` carries this as a hard assertion
   now, promoted from KNOWN.*
 
-- **G190. Asking about a record returns an empty site list, which reads as "no
+- **G190. [FIXED] Asking about a record returns an empty site list, which reads as "no
   impact" rather than "wrong question".** `glyph_variants` on a record type
   returns `{"sites": [], "type": {...}}`. That is byte-identical in shape to the
   answer for a tagged union that genuinely has no match sites, so a caller
@@ -7356,7 +7376,11 @@ and is the owner's to confirm.
   queried by name returns `{"sites":[],"type":{"declaration":"m::User",...}}`
   with no field distinguishing it from a union with no sites.*
 
-- **G191. The relation an entity appeared through is never named in the answer.**
+  *Closed by 0.1.112, confirmed against 0.1.114: a record is refused with
+  "`User` is a record, not a tagged union", and a union nothing matches on still
+  answers `[]`, so the two are distinguishable in both directions.*
+
+- **G191. [FIXED] The relation an entity appeared through is never named in the answer.**
   0.1.106 chose the name `mentions` over `covers` deliberately, because for most
   arms the compiler knows the arm names a variant without concluding it handles
   every value that variant can hold. That distinction was the release's central
@@ -7377,7 +7401,11 @@ and is the owner's to confirm.
   `sites`, `nested`, `unkeyed` and `type`, and no key on any entry names a
   relation.*
 
-- **G192. Traversal has no controls, so it cannot be asked a bounded question.**
+  *Closed by 0.1.112, confirmed against 0.1.114: every entry carries
+  `relation: "MATCH_SITES"`, and an unkeyable site carries a null relation with a
+  reason rather than a name it has not earned.*
+
+- **G192. [FIXED] Traversal has no controls, so it cannot be asked a bounded question.**
   There is no way to request a depth, and no way to select which relation kinds
   to follow. The reply's breadth is whatever the implementation happens to walk.
 
@@ -7394,7 +7422,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108: `glyph_variants`'s input schema accepts `path`
   and `name` only, and `depth` appears in replies but in no request.*
 
-- **G193. There is no relation vocabulary, so there is nothing to select from.**
+  *Closed by 0.1.112, confirmed against 0.1.114: the request takes `relations`
+  and `depth`, and the answer reports `depth_requested` beside `depth_answered`
+  so a bounded question gets a bounded answer that says how bounded it was.*
+
+- **G193. [FIXED] There is no relation vocabulary, so there is nothing to select from.**
   The wanted set is small and closed: `mentions`, `declarations`, `match_sites`,
   `dependents`, `variants`, `declared_in`. Today `mentions` exists as an
   unnamed implementation, `match_sites` is the whole tool rather than one
@@ -7412,7 +7444,11 @@ and is the owner's to confirm.
   reply; `docs/roadmap/releases.md` records the R1 through R8 requirements and
   none of them fixes a vocabulary.*
 
-- **G194. A result cannot say what it is about once it leaves the reply.** An
+  *Closed by 0.1.112, confirmed against 0.1.114: one closed set of five, written
+  in exactly one place in the source with both schema enums built from it, so a
+  spelling cannot drift into a second set.*
+
+- **G194. [FIXED] A result cannot say what it is about once it leaves the reply.** An
   entry names the entity it found and where, and never names the entity the
   question was about. That subject lives once, in the reply's envelope:
 
@@ -7459,7 +7495,11 @@ and is the owner's to confirm.
   declaration, line, module, path, scrutinee, state and arms, and no entry
   carries the queried type.*
 
-- **G195. The loop needs no grep except at one hop, where it needs a regex over
+  *Closed by 0.1.112, confirmed against 0.1.114: an entry carries `entity`,
+  `relation`, `verdict`, `searches`, `path`, `line` and a `because` saying why it
+  got that verdict, so it stands up with no envelope around it.*
+
+- **G195. [FIXED] The loop needs no grep except at one hop, where it needs a regex over
   a sentence.** Walking it by hand on a three-site union: an agent adds
   `Pending`, `glyph check --json` returns two `E0200`s each carrying
   `entity: "billing::settle"` and `entity: "billing::report"`, and
@@ -7492,6 +7532,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108: the loop closes end to end on a three-site union
   with no search, and the type name and missing variants appear in no structured
   field of the diagnostic.*
+
+  *Closed by 0.1.110, confirmed against 0.1.114: a diagnostic carries `union` and
+  `missing_variants` as fields beside the prose, so the hop that starts the loop
+  reads structure instead of running a regex over a sentence the compiler is free
+  to rewrite.*
 
 - **G196. [FIXED] Nothing tests that the loop closes.** It has been walked by hand,
   once, on one union, with the result recorded above. There is no committed
@@ -7578,7 +7623,7 @@ and is the owner's to confirm.
   deleted and fails there, which is what says it closes the hole rather than
   describing it.
 
-- **G198. The answer is a list; the summary is the caller's problem.** Asked
+- **G198. [FIXED] The answer is a list; the summary is the caller's problem.** Asked
   about a union with ten match sites, the reply is ten entries each carrying a
   state. There is no count, no breakdown, and no ordering by consequence. The
   line an agent or a reader actually wants is arithmetic the caller has to do:
@@ -7604,7 +7649,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108 on `examples/apps/csvql`: `glyph_variants` on
   `Value` returns ten entries with states and no aggregate of any kind.*
 
-- **G199. The demonstration exists as a transcript, not as an artifact.** Run by
+  *Closed by 0.1.111, confirmed against 0.1.114: the answer carries its own
+  totals and states what it could not count, so a number that reads as
+  authoritative cannot quietly exclude the sites the graph failed to key.*
+
+- **G199. [FIXED] The demonstration exists as a transcript, not as an artifact.** Run by
   hand against `examples/apps/csvql`, an eleven-file CSV query engine, on
   0.1.108:
 
@@ -7634,7 +7683,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108 by copying `examples/apps/csvql` and adding one
   variant; both halves recorded above are verbatim tool and compiler output.*
 
-- **G200. The site argues about syntax and buries the evidence.** The homepage
+  *Closed by 0.1.111, confirmed against 0.1.114: `benchmarks/impact-on-csvql/`
+  holds the fixture, the measurement script and its results, and it fails if the
+  prediction and the compiler ever disagree.*
+
+- **G200. [FIXED] The site argues about syntax and buries the evidence.** The homepage
   opens with "TypeScript your agents can't quietly break" and a side-by-side of
   Glyph and its emitted TypeScript. That is a language pitch: it asks a reader to
   compare spellings, which is the least interesting thing about this project and
@@ -7659,6 +7712,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.108: `grep -c` over `web/index.html` returns 1 for the
   catches evidence and 0 for anything about impact analysis, and
   `check_catches.py` reports 7 of 7 verified both ways.*
+
+  *Closed by 0.1.112, confirmed against 0.1.114. The homepage opens with what the
+  compiler can answer rather than a side-by-side of spellings, and the first
+  section is one change on a real application in this repository: ten match
+  sites, eight that fail and two that keep compiling and absorb it. The seven
+  paired cases moved onto `/hardening/` as a table, where the homepage link
+  already promised them and did not deliver. Measured: the impact capability
+  appears twice on the homepage where it appeared zero times, the catches
+  evidence four times where it appeared once, and all seven cases are listed.*
 
 - **G201. A signature type change is invisible at every call site that passes a
   named type.** The checker reports only a mismatch it can prove. Passing a

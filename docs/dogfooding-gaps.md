@@ -6778,7 +6778,7 @@ and is the owner's to confirm.
   union reporting `E0200` and `E0220` together, while the imported spelling of
   the same union reports only the exhaustiveness error.*
 
-- **G170. [HALF FIXED] The playground emits different TypeScript from `glyph build` for anything with a cross-module import.**
+- **G170. [DECIDED] The playground emits different TypeScript from `glyph build` for anything with a cross-module import.**
   `glyph-cli/src/build.rs` computed six project-wide tables the emitter needs
   (`record_payload_variants`, `generic_descriptor_arities`, `plain_descriptors`,
   `descriptorless_aliases`, `union_variant_names`, plus `project_modules`) and a
@@ -6844,6 +6844,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.112 by running both surfaces on the same `main.glyph`
   and diffing the two emitted files; the three differences above are verbatim.
   Previously, against 0.1.110 and 0.1.104, by reading both call sites.*
+
+  **Decided, not deferred. The playground is a single-module compiler
+  demonstration, not the canonical multi-module compiler.** That settles the half
+  0.1.113 could not close by convergence. Every one of the six emit tables is
+  keyed by the source module of an imported name, so all six answer questions
+  about sibling files, and a single-module surface has none to answer with. The
+  remaining difference is not a defect to fix; it is what a one-file demonstration
+  is.
+
+  So the disclosure is the permanent answer rather than a stopgap. The page names
+  every import that is not `std` or `extern` and says what `glyph build` writes
+  instead, and stays silent when a module imports only `std`, because absence has
+  to mean absence there too. The convergence that was real still landed: one
+  `ProjectTables` scan behind both surfaces, with emitted bytes unchanged, and the
+  diagnostic half fixed outright.
+
+  What would reopen this is a multi-file playground, and that is a product
+  decision about what the page is for rather than a compiler one.
 
 - **G171. Excluding locals from the semantic graph rests on an assertion nobody has measured.**
   The recorded reason is that a reference to a local resolves to a byte offset

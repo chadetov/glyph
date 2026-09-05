@@ -173,7 +173,8 @@ function renderProjectNote(paths) {
       : coded[0];
   const one = paths.length === 1;
   el.innerHTML =
-    `This page compiles the one module in the editor. It has no ${names}, so ` +
+    `This page is a single-module demonstration: it compiles the one module in ` +
+    `the editor and has no ${names}, so ` +
     `${one ? "that import was" : "those imports were"} compiled as ` +
     `${one ? "an npm package" : "npm packages"}. If ` +
     `${one ? "it is a module" : "any of them is a module"} in your own project, ` +

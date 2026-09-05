@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-202 entries, 166 are fixed, 11 are partly fixed, 11 are decided or resolved, and
+205 entries, 169 are fixed, 11 are partly fixed, 11 are decided or resolved, and
 14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -1196,6 +1196,36 @@ One is different in kind, and it is the one fixed here.
   stdlib parameters get real scalar types — today only `Array<T>` and `T` are
   typed, so `string.len(42)` is still not an E0211. Recorded in
   `docs/roadmap/releases.md`.
+
+  **Narrowed for 0.1.116.** The one position of this entry that was a defect
+  is fixed, and it is breaking: an annotated module-level `const` now lowers
+  to its annotation instead of `Ty::Unknown`, so `ORIGIN.rowz` against
+  `const ORIGIN: Sheet = { ... }` is `E0210` and a wrong-typed argument built
+  from it is `E0211`, matching what the identical program already reported
+  with an annotated `let` inside a function. A wrong field on an annotated
+  const goes from exit 0 to exit 1 under `check --no-tsc`, the language
+  server and the playground. An unannotated `const` stays `Unknown` on
+  purpose: inferring one from the initializer is a different question with a
+  different false-positive surface.
+
+  The entry's headline surface is not a checker hole a patch closes. Member
+  access and calls on `string`, `number`, `bool` and `Array<T>`, `s.length`,
+  `n.toFixed(2)` and `xs.length` among them, all compile and pass `tsc
+  --strict`: Glyph deliberately permits raw JS members there, so there is no
+  wrongly-accepted program to reject. It is a hole only in `glyph check
+  --no-tsc`, the language server, the MCP server and the playground, the four
+  surfaces an agent reads diagnostics from without `tsc` in the loop, so it
+  still matters there. Decided: leave the position to `tsc` for now (option
+  C). Modelling the member set per primitive is the stdlib-from-`.d.ts`
+  question, Q21/Q40, and is parked in the Deferred bucket of
+  `docs/roadmap/releases.md` with that reason.
+
+  The two remaining halves of the const story are recorded as their own
+  entries: G204 (a module-level `const`'s own initializer is never checked
+  against its annotation, so `const X: number = "hi"` is silent where the
+  identical `let` is `E0204`) and G205 (an imported `const` is still
+  `Ty::Unknown`, so a field typo through a named or namespace import is
+  silent).
 
 ## Round 9 — a scheduler, and a boundary that was open the whole time
 
@@ -4925,7 +4955,7 @@ which is the intended answer; the finding is that the compiler never said so.
   and the help's contents) and
   `tests/negative/multi_field_variant_payload.glyph`.*
 
-- **G135. The emitter calls a positional variant pattern unimplemented,
+- **G135. [FIXED] The emitter calls a positional variant pattern unimplemented,
   one line after the parser calls it nonexistent.** An author who obeys E0010,
   writes the record payload, and then writes the positional pattern out of habit
   is told the tuple form is a missing feature:
@@ -4968,6 +4998,19 @@ which is the intended answer; the finding is that the compiler never said so.
   *Re-run for 0.1.99: a positional pattern over a record payload still answers
   `E0300`, the emitter's "not implemented yet", so the disagreement this entry
   records is unchanged.*
+
+  **Fixed in 0.1.116.** The decision this entry said it needed is made: a
+  multi-argument pattern can never be valid under D8, so the parser rejects it
+  on the rule, as `PositionalVariantPattern`, sharing `E0010` with the
+  declaration spelling. Its help points at the record form and invents no
+  field names, since a pattern carries only the author's binding names, not
+  the record's field names. `E0300`'s wording no longer promises the tuple
+  form is coming: what still reaches the emitter under that code is a single
+  payload sub-pattern it cannot lower (an array destructure under a
+  constructor, or a nested pattern the checker did not claim), so the message
+  now reads "a payload sub-pattern of this shape in a match arm" rather than
+  "a nested or multi-argument pattern". Not breaking: the program was
+  rejected before and is rejected now, with a diagnostic that says why.
 
 - **G136. [FIXED] A `bool` binding could not be matched, because TypeScript
   had already decided it was `false`.** Found by an app bridging a
@@ -6767,7 +6810,7 @@ and is the owner's to confirm.
   byte-identical. Every changed case is one the old code passed and then failed
   later.*
 
-- **G169. `check_imported_union_coverage` does not escalate an unknown PascalCase head to E0220 where the module-local check does.**
+- **G169. [FIXED] `check_imported_union_coverage` does not escalate an unknown PascalCase head to E0220 where the module-local check does.**
   A bare PascalCase arm naming no variant of an imported union is reported by
   the module-local `check_patterns_exhaustive` and not by the imported path.
   This is an asymmetry in "is this a known variant", a different predicate from
@@ -6777,6 +6820,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.111: an unknown PascalCase arm head over an imported union still reports `[E0103] unresolved name` rather than escalating to `E0220`, so the diagnostic names a missing binding where the truth is a variant that does not exist. Previously, against 0.1.105: a constructed matrix shows `Zed` over a local
   union reporting `E0200` and `E0220` together, while the imported spelling of
   the same union reports only the exhaustiveness error.*
+
+  **Fixed in 0.1.116.** A bare PascalCase head naming no variant of an
+  imported union now reports `E0220` the same way the module-local check
+  always has, with the same "did you mean" suggestion. The `bare`
+  discriminator on `ArmCoverage::UnknownVariant` is gone; which head shapes
+  count as unknown, bare (`Zed`) or constructor (`Zed(x)`), is decided once,
+  in `classify_arm`, so the two callers cannot drift apart on it again.
+  Breaking, established by running the published 0.1.114 and this tree on the
+  same programs: exit 0 before, exit 1 after.
 
 - **G170. [DECIDED] The playground emits different TypeScript from `glyph build` for anything with a cross-module import.**
   `glyph-cli/src/build.rs` computed six project-wide tables the emitter needs
@@ -7765,7 +7817,7 @@ and is the owner's to confirm.
   appears twice on the homepage where it appeared zero times, the catches
   evidence four times where it appeared once, and all seven cases are listed.*
 
-- **G201. A signature type change is invisible at every call site that passes a
+- **G201. [FIXED] A signature type change is invisible at every call site that passes a
   named type.** The checker reports only a mismatch it can prove. Passing a
   `bool` where a `string` is declared gives E0211; passing a value of a declared
   union or record where a `string` is declared gives nothing at all.
@@ -7796,6 +7848,21 @@ and is the owner's to confirm.
   *Reproduced against 0.1.111 on a two-call program: the named-type argument is
   silent and the primitive control reports E0211 at `main::control`.*
 
+  **Fixed in 0.1.116.** `assign_incompatible` now decides this one pairing:
+  a value of a declared tagged union or record where a `string`, `number` or
+  `bool` is expected is `definitely_incompatible`, read off the declaration's
+  body through a new `is_declared_union_or_record` / `local_type_decl` pair in
+  `glyph-typechecker/src/assign.rs`. The rule reads the body, so a primitive
+  alias, a string-literal union (D30), an `extern_ts` or `typeof` body and an
+  `interface` all stay silent as before, and `void` is excluded; the argument,
+  `return` and `let` annotation positions gain the diagnostic together, since
+  they share the relation. Breaking, established by running the published
+  0.1.114 and this tree on the same programs: exit 0 before, exit 1 after.
+  The wider question this entry also named, how much of assignability should
+  become decidable, is not owed by this fix and is unaddressed; making
+  `change_signature_type` answerable for this call-site shape in `glyph_impact`
+  is tracked as its own item in `docs/roadmap/releases.md`.
+
 - **G202. The playground cannot be built from its own instructions.**
   `playground/README.md` and `playground/build.sh` both tell you to install
   `wasm-bindgen-cli --version 0.2.125`, and
@@ -7812,3 +7879,69 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.112: the two documents say 0.2.125, the manifest pins
   =0.2.127.*
+
+- **G203. An alias of a declared type is a different nominal type, and a
+  correct program is rejected for it.** `type A = { x: number }` then
+  `type B = A`. TypeScript treats a type alias as a name and nothing more, so
+  `tsc --strict` accepts a `B` value wherever an `A` is declared. Glyph's
+  nominal check (D8/Q15's newtype answer) compares `Ty::Named` by its
+  declaration name, so `takes_a(b)` with `b: B` reports `E0211`, "expected
+  `A`, found `B`", for a program `tsc` would pass.
+
+  This is Q15's nominal-newtype answer applied exactly as specified, and it
+  predates 0.1.116: `definitely_incompatible`'s `Named`-vs-`Named` name
+  comparison has always drawn the line at the declaration site, not the
+  shape. What makes it worth recording now is the shape of the false
+  positive: it is not two independently-declared records that happen to
+  share a shape (rejecting `takes_a(c)` with a separately-declared
+  `type C = { x: number }` is the documented, intended behavior of the same
+  rule) but one declaration naming another by alias, which reads to an
+  author as "another spelling of `A`," not as a new type.
+
+  The fix this entry owes is a ruling, not a patch: is `type B = A` a new
+  nominal type distinct from `A`, or the same type under a second name?
+  Ruling "same type" means the checker has to resolve through alias chains
+  before comparing declaration names, which is a real traversal to add.
+  Ruling "distinct type" keeps the current behavior and instead owes a
+  diagnostic that says why, so an author is not left concluding `E0211` is a
+  compiler bug.
+
+  *Reproduced against 0.1.114: `takes_a(b)` with `b: B`, `type B = A`,
+  `type A = { x: number }`, `fn takes_a(a: A) -> number` reports `E0211`
+  ("expected `A`, found `B`"); the identical call built against a second,
+  independently-declared `type C = { x: number }` reports the same code by
+  design, which is not this entry's complaint.*
+
+- **G204. A module-level `const`'s own initializer is never checked against
+  its declared type.** `const X: number = "hi"` at module scope compiles with
+  no diagnostic; the identical mismatch as a `let` inside a function is
+  `E0204`. `tsc --strict` catches the const too, as `TS2322`, so
+  `glyph check --no-tsc` is the one surface that misses it.
+
+  This is a different position from the one 0.1.116 fixed. That fix
+  (G39, narrowed above) made a `const`'s annotation reachable so *other*
+  expressions could be checked against it (`ORIGIN.rowz`, `g(N)`); it says
+  nothing about whether the const's own initializer agrees with the
+  annotation it now carries, and the initializer is exactly the gap this
+  entry names.
+
+  *Reproduced against 0.1.114: `const X: number = "hi"` at module scope is
+  `0 error(s)` under `glyph check --no-tsc`; the identical assignment as
+  `let x: number = "hi"` inside a `fn` is `E0204`.*
+
+- **G205. An imported `const` is still `Ty::Unknown`.** `import lib { ORIGIN }`
+  then `ORIGIN.rowz`, where `lib` declares `pub const ORIGIN: Sheet = { ... }`
+  and `Sheet` has no `rowz` field, is silent: no `E0210`, whether the const is
+  named-imported or reached through a namespace import (`lib.ORIGIN.rowz`).
+
+  `imported_fn_decl` answers this question for a function or component
+  through a cross-module salsa query, `glyph_db::exported_fn`, that reads the
+  declaration's signature out of the defining module. There is no const
+  counterpart: an imported const's declaration index resolves, but nothing
+  reads its annotation across the module boundary, so it lowers to
+  `Ty::Unknown` exactly where a same-module const used to before 0.1.116.
+
+  *Reproduced against 0.1.114: `ORIGIN.rowz` is `0 error(s)` both through
+  `import lib { ORIGIN }` and through `import lib` plus `lib.ORIGIN.rowz`,
+  against a `lib` module declaring `pub const ORIGIN: Sheet` where `Sheet`
+  has no `rowz` field.*

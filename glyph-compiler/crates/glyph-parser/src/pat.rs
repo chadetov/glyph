@@ -139,7 +139,11 @@ fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
                 }
                 // Optional argument list `(...)`.
                 let (args, end) = if matches!(p.peek(), Token::LParen) {
-                    parse_constructor_args(p)?
+                    // The last segment names the variant: `tree.Node(..)` is a
+                    // `Node` pattern, the same reading the coverage checker
+                    // takes of the same path.
+                    let head = path.last().map(|s| s.to_string()).unwrap_or_default();
+                    parse_constructor_args(p, &head)?
                 } else {
                     (Vec::new(), last_end)
                 };
@@ -151,7 +155,7 @@ fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
             }
             // Constructor pattern if followed by `(`.
             if matches!(p.peek(), Token::LParen) {
-                let (args, end) = parse_constructor_args(p)?;
+                let (args, end) = parse_constructor_args(p, name.as_ref())?;
                 return Ok(Pattern::Constructor {
                     path: vec![name],
                     args,
@@ -222,14 +226,34 @@ fn parse_field_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
     parse_pattern(p)
 }
 
-/// Parse `( pattern, pattern, ... )` for a constructor pattern. Returns args
-/// and the end offset of the closing `)`.
-fn parse_constructor_args(p: &mut Cursor) -> Result<(Vec<Pattern>, u32), ParseError> {
+/// Parse `( pattern )` for a constructor pattern, `name` being the variant it
+/// heads (the last path segment for a dotted one). Returns the args and the
+/// end offset of the closing `)`.
+///
+/// D8 gives a variant one payload, so two or more positional arguments is a
+/// form the language does not have and this is where it is rejected (G135). It
+/// is decidable here, with no type in hand, because the rule is unconditional:
+/// there is no scrutinee under which `Node(c, k)` binds anything. Before this,
+/// the pattern parsed and the emitter reported E0300, "not implemented yet",
+/// one line after the author had been told by E0010 that the tuple form does
+/// not exist. E0300 still covers what it honestly covers: a single payload
+/// sub-pattern the emitter cannot lower yet.
+fn parse_constructor_args(p: &mut Cursor, name: &str) -> Result<(Vec<Pattern>, u32), ParseError> {
     p.expect(&Token::LParen, "`(`")?;
     let args = p.parse_comma_separated(&Token::RParen, false, |p| {
         parse_pattern(p)
     })?;
     let close = p.expect(&Token::RParen, "`)`")?;
+    if args.len() > 1 {
+        // The whole positional list, the same span the declaration spelling
+        // reports, so the two readings of one rule underline the same thing.
+        let span = args[0].span().join(args[args.len() - 1].span());
+        return Err(ParseError::PositionalVariantPattern {
+            name: name.to_string(),
+            count: args.len(),
+            span,
+        });
+    }
     Ok((args, close.end))
 }
 

@@ -66,6 +66,28 @@ pub enum ParseError {
         fields: Vec<String>,
         span: Span,
     },
+
+    /// The pattern spelling of the same rule (`Node(c, k)` in a match arm).
+    /// D8 gives a variant one payload, so a pattern destructuring two
+    /// positional fields can never bind anything, whatever the scrutinee turns
+    /// out to be. It shares `MultiFieldVariantPayload`'s code because it is the
+    /// same rule read from the other end, and it is a separate variant because
+    /// the two know different things: the declaration knows the field types and
+    /// writes them into its help, a pattern knows only the author's binding
+    /// names, which are not field names and must not be printed as if they
+    /// were.
+    ///
+    /// It used to reach the emitter instead and come back as E0300, an error
+    /// whose whole meaning is "not implemented yet". So an author who obeyed
+    /// E0010, wrote the record payload, then wrote the positional pattern out
+    /// of habit was told the tuple form was a feature on the way, one line
+    /// after being told it does not exist (G135).
+    #[error("a union variant carries one payload, but this `{name}` pattern destructures {count} positional fields")]
+    PositionalVariantPattern {
+        name: String,
+        count: usize,
+        span: Span,
+    },
 }
 
 impl ParseError {
@@ -79,7 +101,8 @@ impl ParseError {
             | ParseError::NoConditionalKeyword { span, .. }
             | ParseError::UnsupportedRangePattern { span }
             | ParseError::MissingMutOnAssignment { span }
-            | ParseError::MultiFieldVariantPayload { span, .. } => *span,
+            | ParseError::MultiFieldVariantPayload { span, .. }
+            | ParseError::PositionalVariantPattern { span, .. } => *span,
         }
     }
 
@@ -96,6 +119,11 @@ impl ParseError {
             ParseError::UnsupportedRangePattern { .. } => "E0007",
             ParseError::MissingMutOnAssignment { .. } => "E0008",
             ParseError::MultiFieldVariantPayload { .. } => "E0010",
+            // One rule, one code. The declaration spelling and the pattern
+            // spelling are the same D8 constraint read from two ends, so a
+            // reader who looked up E0010 for one has already read the answer
+            // for the other.
+            ParseError::PositionalVariantPattern { .. } => "E0010",
         }
     }
 
@@ -143,6 +171,16 @@ impl ParseError {
                     .join(", ");
                 Cow::Owned(format!(
                     "Glyph has no tuple payload. Put the fields in one record and name them: `{name}({{ {record} }})`, and destructure it by those names in a match arm."
+                ))
+            }
+            // One hole per positional field, and no invented field name. The
+            // author's binding names are the only names here and they are not
+            // the record's, so printing them back would point at a shape the
+            // declaration does not have.
+            ParseError::PositionalVariantPattern { name, count, .. } => {
+                let record = vec!["/* field */"; *count].join(", ");
+                Cow::Owned(format!(
+                    "Glyph has no tuple payload. The payload is one record, so destructure it by field name: `{name}({{ {record} }})`."
                 ))
             }
         })

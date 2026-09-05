@@ -1059,6 +1059,95 @@ fn main() {
         );
     }
 
+    /// G135. The pattern half of the D8 rule. An author who obeys E0010, writes
+    /// the record payload, and then writes the positional pattern out of habit
+    /// used to be told by the emitter that the tuple form was a feature not
+    /// built yet (E0300), one line after the parser told them it does not
+    /// exist. Two stages of the same compiler disagreeing about whether a
+    /// construct is coming is worse than either answer on its own.
+    ///
+    /// The rule is unconditional: a variant carries one payload, so a pattern
+    /// destructuring two positional fields can never bind anything, whatever
+    /// the scrutinee's type turns out to be. That makes it the parser's to
+    /// reject, under the same code as the declaration spelling.
+    #[test]
+    fn a_positional_variant_pattern_is_the_same_e0010_as_the_declaration() {
+        let src = "module x\nfn f(t: T) -> int {\n  return match t {\n    Leaf => 0,\n    Node(c, k) => k,\n  }\n}\n";
+        let err = parse(src).unwrap_err();
+        assert!(
+            matches!(&err, ParseError::PositionalVariantPattern { name, count, .. }
+                if name == "Node" && *count == 2),
+            "expected PositionalVariantPattern, got {err:?}"
+        );
+        assert_eq!(err.code(), "E0010");
+        // The span covers the whole positional list, the same as the
+        // declaration spelling's does.
+        let span = err.span();
+        assert_eq!(&src[span.start as usize..span.end as usize], "c, k");
+
+        // A dotted head names its last segment, and a prelude variant is held
+        // to the rule too: `Option` carries one payload like everything else.
+        for (src, name, count) in [
+            (
+                "module x\nfn f(t: T) -> int {\n  return match t {\n    tree.Node(c, k, v) => 1,\n  }\n}\n",
+                "Node",
+                3usize,
+            ),
+            (
+                "module x\nfn f(o: Option<int>) -> int {\n  return match o {\n    Some(a, b) => a,\n    None => 0,\n  }\n}\n",
+                "Some",
+                2usize,
+            ),
+        ] {
+            let err = parse(src).unwrap_err();
+            assert!(
+                matches!(&err, ParseError::PositionalVariantPattern { name: n, count: c, .. }
+                    if n == name && *c == count),
+                "expected PositionalVariantPattern({name}, {count}) for {src:?}, got {err:?}"
+            );
+        }
+    }
+
+    /// The forms the rule must leave alone. Every one of these is a legal
+    /// pattern today and a rule that rejects any of them is worse than the
+    /// diagnostic it fixes.
+    #[test]
+    fn a_single_payload_pattern_of_every_shape_still_parses() {
+        for src in [
+            // The record form E0010's own help points at.
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Node({ colour, key }) => key,\n  }\n}\n",
+            // One binding, one wildcard, one nested constructor, one literal,
+            // one array, one nested destructure.
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Node(n) => n,\n  }\n}\n",
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Node(_) => 0,\n  }\n}\n",
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Hold(Some(n)) => n,\n  }\n}\n",
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Hold(0) => 1,\n  }\n}\n",
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Hold([a, b]) => a,\n  }\n}\n",
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Node({ pos: { x, y } }) => x,\n  }\n}\n",
+            // A nullary constructor, bare and dotted.
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    Leaf() => 0,\n  }\n}\n",
+            "module x\nfn f(t: T) -> int {\n  return match t {\n    fs.ErrorKind.NotFound => 0,\n  }\n}\n",
+        ] {
+            parse_or_panic(src);
+        }
+    }
+
+    /// Built from what the author wrote and nothing else, the same discipline
+    /// the declaration spelling's help follows: one hole per positional field,
+    /// and no field name the parser cannot know.
+    #[test]
+    fn a_positional_variant_pattern_help_points_at_the_record_form() {
+        let src = "module x\nfn f(t: T) -> int {\n  return match t {\n    Node(c, k, v) => k,\n  }\n}\n";
+        let err = parse(src).unwrap_err();
+        let help = err.help().expect("E0010 has a help line");
+        assert!(help.contains("`Node({"), "help should name the variant: {help}");
+        assert_eq!(help.matches("/* field */").count(), 3, "{help}");
+        assert!(
+            !help.contains("colour") && !help.contains("key"),
+            "help must not invent field names from another program: {help}"
+        );
+    }
+
     #[test]
     fn invalid_escape_help_names_the_legal_spellings() {
         // The inline help on every E0001 used to say only "an invalid escape",

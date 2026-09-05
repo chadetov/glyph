@@ -3335,9 +3335,20 @@ impl<'a> Emitter<'a> {
                     | [Pattern::Ident { .. }]
                     | [Pattern::Wildcard { .. }]
                     | [Pattern::Object { .. }] => {}
+                    // What is left here is one payload sub-pattern this path
+                    // cannot lower: an array destructure under a constructor,
+                    // or a nested pattern the rewrite above did not claim
+                    // because the scrutinee's union was not resolvable. Those
+                    // are real deferrals and E0300 is the honest answer.
+                    //
+                    // The multi-argument spelling used to arrive here too and
+                    // be told the tuple form was not implemented yet, one line
+                    // after E0010 told the same author it does not exist
+                    // (G135). D8 gives a variant one payload, so the parser
+                    // rejects it on the rule now and it cannot reach this arm.
                     _ => {
                         return Err(EmitError::Unsupported {
-                            construct: "a nested or multi-argument pattern in a match arm",
+                            construct: "a payload sub-pattern of this shape in a match arm",
                             span: *span,
                         })
                     }
@@ -8577,6 +8588,30 @@ mod tests {
         ];
         assert!(!union_descriptor_name_free("S", &collide));
         assert!(union_descriptor_name_free("S", &free));
+    }
+
+    /// G135. E0300 promises a construct is coming. It has to promise that only
+    /// where it is true, and the multi-argument pattern was never coming: D8
+    /// gives a variant one payload, the parser rejects the tuple spelling with
+    /// E0010, and it can no longer reach here at all. What is left under this
+    /// error is a single payload sub-pattern the emitter cannot lower yet, and
+    /// the wording says that and nothing more.
+    #[test]
+    fn a_deferred_payload_subpattern_does_not_claim_the_tuple_form_is_coming() {
+        let err = emit_err(
+            "module x\npub type W = Hold(Array<number>) | Empty\npub fn f(w: W) -> number {\n  return match w {\n    Hold([a, b]) => a,\n    Hold(xs) => 0,\n    Empty => 1,\n  }\n}\n",
+        );
+        let EmitError::Unsupported { construct, .. } = err else {
+            panic!("expected Unsupported, got {err:?}")
+        };
+        assert!(
+            construct.contains("payload"),
+            "the message should name what it defers: {construct}"
+        );
+        assert!(
+            !construct.contains("multi-argument"),
+            "the tuple form is rejected by the parser and is not a deferral: {construct}"
+        );
     }
 
     #[test]

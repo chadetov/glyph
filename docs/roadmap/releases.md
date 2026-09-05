@@ -5242,10 +5242,12 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **0.1.116 — Next · The checker accepts things it should not**
 - The whole group is one shape: the compiler is silent where it could speak, and every one of them costs an agent the guarantee the language is sold on
-- G201: a signature type change is invisible at every call site passing a named type. `takes_string(r)` with `r` a union is silent where `takes_string(b)` with a `bool` is E0211. This is also why `change_signature_type` ships entirely `NOT_INDEXED` in `glyph_impact`, so closing it makes a whole change kind answerable
-- G39: member access and call arguments against `Ty::Unknown` are unchecked, which is the same silence one level down
-- G169: an unknown PascalCase arm head over an imported union reports E0103 unresolved name rather than escalating to E0220, so the diagnostic names a missing binding where the truth is a variant that does not exist
-- G135: the emitter calls a positional variant pattern unimplemented one line after the parser calls it nonexistent, so a user obeying the first error hits the second
+- G201: **fixed.** `assign_incompatible` now flags a value of a declared union or record where a `string`, `number` or `bool` is expected; `takes_string(r)` with `r` a union is `E0211` where it used to be silent. Breaking, 0.1.114 exit 0 to exit 1
+- G39: **narrowed, not closed.** The one defect position, an annotated module-level `const` lowering to `Ty::Unknown`, is fixed and breaking the same way (exit 0 to exit 1 under `check --no-tsc`, the LSP and the playground). The entry's headline surface, member access and calls on `string`, `number`, `bool` and `Array<T>`, is not a checker hole a patch closes: Glyph deliberately permits raw JS members there and every example compiles and passes `tsc --strict`. It is left to `tsc` for now (option C); modelling the member set per primitive is the stdlib-from-`.d.ts` question, Q21/Q40, and moves to the Deferred bucket below with that reason
+- G169: **fixed.** A bare PascalCase head naming no variant of an imported union now escalates to `E0220`, the same as the module-local check. Breaking, 0.1.114 exit 0 to exit 1
+- G135: **fixed.** The parser rejects a positional variant pattern on the rule (D8), sharing `E0010` with the declaration spelling, so the emitter's `E0300` can no longer disagree with it about whether the tuple form is coming. Not breaking: the program was rejected before and is rejected now
+- `change_signature_type` in `glyph_impact` is being made answerable per call site as the payoff of G201: a call passing a declared union or record where a primitive is now expected was `NOT_INDEXED` because the checker itself could not prove the mismatch, and that is what closing G201 unblocks
+- G204: a module-level `const`'s own initializer is never checked against its declared type (`const X: number = "hi"` is silent where the same `let` is `E0204`). In progress on this branch alongside the rest of the group
 - G172: **decided. The path is authoritative and the header is not a key.** The decision has been owed since 0.1.106 and three releases worked around it
 
   It is also worse than the entry recorded. Two files claiming one header, in a project that compiles clean, make `glyph_variants` return a match site from the wrong file over an unrelated type as a **proven** edge, with `unkeyed` empty. That is exact-or-absent broken in shipped code, on the surface a field rename is driven from. Every gate case so far tests a site the compiler could not key; none tested one keyed to the wrong entity, which is why 23 invariants missed it
@@ -5263,6 +5265,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G91: an `Option<T>` field cannot be read from ordinary JSON, which is most JSON
 - G27: an unknown stdlib namespace member leaks a raw `tsc` error instead of a Glyph diagnostic
 - G147: a lowercase nullary variant of an imported payload union does not dispatch
+- G203: needs a ruling, not a patch. `type B = A` then passing a `B` where an `A` is declared is `E0211`; `tsc --strict` accepts it, because a type alias is a name to TypeScript and Glyph's nominal check (Q15) compares by declaration name. Decide whether an alias of a declared type is a distinct nominal type or the same one, then either resolve alias chains before comparing names or make the diagnostic say why it doesn't
+- G205: an imported `const` is still `Ty::Unknown`. `imported_fn_decl` has a cross-module query (`glyph_db::exported_fn`) for a function or component's signature; a const has no counterpart, so `ORIGIN.rowz` through a named or namespace import is silent
 - Measured on a real dependency rather than a fixture, because every one of these was found that way
 
 **0.1.118 — The stdlib gaps real programs hit**
@@ -5285,6 +5289,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G78: a multi-module app cannot be built as part of an enclosing tree. Waits on the same question G172 asks, which is what a file's address is
 - G170: the emit half needs a multi-file playground page, which is a product decision rather than a compiler one. The compiler side is done and `ProjectTables::from_modules` already takes many modules
 - G171: measured in 0.1.114 and the conclusion held on a corrected argument. It stays listed only because nothing has been built on it; there is no work owed
+- G39 (member set): member access and calls on `string`, `number`, `bool` and `Array<T>` are unchecked against `Ty::Unknown` in `glyph check --no-tsc`, the LSP, the MCP server and the playground. Not a checker hole `tsc` lets through; the four surfaces just don't have `tsc` in the loop. Modelling the member set per primitive is the stdlib-from-`.d.ts` question, Q21/Q40, and waits on that architecture decision rather than growing the hand-written table further
 
 
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps

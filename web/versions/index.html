@@ -61,8 +61,33 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.112</span>
+            <span class="rel-ver">0.1.113</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The playground was showing you different TypeScript</h3>
+            <p>The compiler and the playground assembled the emit context separately, and the playground assembled an empty one. The same source file produced three differences, and one of them mattered:</p>
+            <div class="code">
+              <span class="cap">Row.is, from glyph build</span>
+<pre>(value as Record&lt;string, unknown&gt;).kind === "red" || ... === "blue"</pre>
+              <span class="cap">Row.is, from the playground</span>
+<pre><span class="del">(value as Record&lt;string, unknown&gt;).kind !== undefined</span></pre>
+            </div>
+            <p>The page was showing a validator that accepts <code>{ kind: 42 }</code> for a type whose declaration forbids it, and <code>Row.parse</code> had no rejecting branch at all. For a language, that is not a rendering difference.</p>
+            <h3>One scan, and an honest note where it cannot reach</h3>
+            <p>The scan behind the six emit tables now lives in one place and both surfaces use it. The emitted bytes are unchanged on both sides, and the compiler lost its hand-rolled copy.</p>
+            <p>That does not make the two outputs identical, and it cannot. Every one of those tables is keyed by the source module of an imported name, so all six answer questions about sibling files, and the playground holds one file. The obstacle was never the database: the scan is a pass over parsed syntax and takes none. It is that the other files are not in your browser.</p>
+            <p>So the playground names what it is assuming. Every import that is not <code>std</code> or <code>extern</code> is listed, with what <code>glyph build</code> would write instead. A module that imports only <code>std</code> lists nothing and the notice does not appear, because absence has to mean absence here too.</p>
+            <p class="rel-note">The diagnostic half is fixed outright rather than disclosed: the playground runs the same lints and reads severity from each diagnostic, so an unused import arrives as a warning the way it does from <code>glyph check</code>. Two comments that claimed the playground ran the same front end as <code>glyph build</code> now say what is actually true.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.112</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

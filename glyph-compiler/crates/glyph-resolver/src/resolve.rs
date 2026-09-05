@@ -72,42 +72,6 @@ pub struct ResolvedModule {
 }
 
 impl ResolvedModule {
-    /// Return a new `ResolvedModule` with the same symbols but the
-    /// `resolutions` map and the `qualified_type_refs` list restricted to
-    /// entries whose span passes `keep`.
-    /// Used by `glyph-db` to produce a per-declaration resolution slice —
-    /// when a file edit doesn't change a particular decl's spans, the
-    /// slice is content-equal across the edit and salsa can backdate
-    /// downstream queries that depend on it.
-    ///
-    /// **Limitation**: the cloned `symbols` table contains a `Symbol` for
-    /// every top-level decl, each with a `Symbol.span` that covers the
-    /// entire declaration (including the body for `fn`/`component`). So
-    /// any edit that *shifts byte positions* — a non-equal-length change
-    /// to an earlier decl's body, a newline insertion, etc. — changes
-    /// every later symbol's span, which makes the cloned `symbols`
-    /// compare unequal even when the slice's `resolutions` are stable.
-    /// Callers relying on the day-8 per-decl invalidation win should
-    /// either use equal-length edits or eventually move to a
-    /// span-insensitive `Symbol` equality.
-    pub fn sliced(&self, mut keep: impl FnMut(Span) -> bool) -> Self {
-        let mut out = ResolutionMap::new();
-        for (span, r) in self.resolutions.iter() {
-            if keep(span) {
-                out.insert(span, r);
-            }
-        }
-        ResolvedModule {
-            symbols: self.symbols.clone(),
-            resolutions: out,
-            qualified_type_refs: self
-                .qualified_type_refs
-                .iter()
-                .filter(|r| keep(r.span))
-                .cloned()
-                .collect(),
-        }
-    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

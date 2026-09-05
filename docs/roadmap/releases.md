@@ -5238,6 +5238,7 @@ with concrete programs, `glyph_impact` does not generalize yet.
 
 - The server owns its own `CompilerDb` and never shares the MCP server's. Sharing would let an unsaved keystroke rewrite the input the agent's disk-truth answers are computed from, which is the collapse this lane refuses arriving through the back door
 - The benchmark harness ships under `benchmarks/` rather than living in a scratchpad. This lane already records that the last measurement took an excavation to reproduce, and leaving the harness uncommitted is how that happens again
+- A keystroke can be timed without any harness at all: `cargo test --release -p glyph-db --lib -- --ignored --nocapture timing_instrument_minilang` breaks a `type_map` fill into parse, resolve, per-declaration fill and assignment. It is `#[ignore]`d so CI never runs it, and it exists because the alternative is another excavation
 
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps
 

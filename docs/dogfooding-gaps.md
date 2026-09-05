@@ -6864,6 +6864,37 @@ and is the owner's to confirm.
   behaviour. What is not measured, and is the whole question, is the fraction of
   diagnostics whose primary span sits inside a function body.*
 
+  **Measured against 0.1.112, and the conclusion survives while the reasoning
+  does not.** Across the real corpus, 33 of 46 diagnostics (71.7%) land inside a
+  function body; errors alone, 33 of 44 (75.0%). So by this entry's own stated
+  test, where the diagnostic lands, locals would matter. Two supporting counts
+  say the corpus is not lying: 38 of the 55 live error codes (69.1%) anchor
+  inside a body, and 15,476 of 21,250 code lines across the 31 applications
+  (72.8%) sit inside one. Diagnostics land in bodies at almost exactly the rate
+  the corpus is bodies, so they are not concentrated at declarations.
+
+  But landing in a body is not being about a local, and the corpus separates
+  them cleanly. 30 of the 33 body diagnostics (91%) already carry a top-level
+  `module::declaration` address in the compiler's own JSON; the three that do not
+  are emitted before resolve, when no entity exists yet. Only 4 of 46 (8.7%) have
+  a primary span that is or binds a local name. The other 29 sit inside a body
+  and address a union, a record field, a callee, or the enclosing signature,
+  every one of which is already a node.
+
+  So an agent repairing a body diagnostic is told which declaration to open, and
+  the identity it needs next is the union's or the callee's rather than the
+  `let`'s. **The exclusion stands, on a different argument than the one recorded
+  here.** It no longer rests on "no question this work answers is about a `let`",
+  which the where-it-lands number contradicts. It rests on the addressable entity
+  in a body diagnostic almost never being the local.
+
+  *Reproduced against 0.1.112 by running `glyph check --json` over
+  `tests/negative`, the seven `catches/` cases and all 31 applications, then
+  classifying each diagnostic's offset against scanned function-body ranges.
+  Cross-checked two ways: every one of the 13 non-body diagnostics read by hand,
+  and an independent indentation-based classification that differs on exactly
+  one case, in the expected direction.*
+
 - **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
   `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
   key a file by where it sits. The typechecker keys a locally declared type by

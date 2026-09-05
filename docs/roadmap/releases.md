@@ -5246,7 +5246,15 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G39: member access and call arguments against `Ty::Unknown` are unchecked, which is the same silence one level down
 - G169: an unknown PascalCase arm head over an imported union reports E0103 unresolved name rather than escalating to E0220, so the diagnostic names a missing binding where the truth is a variant that does not exist
 - G135: the emitter calls a positional variant pattern unimplemented one line after the parser calls it nonexistent, so a user obeying the first error hits the second
-- G172: a file's `module` header and the path the project keys it by can disagree with nothing saying so. **The decision owed is what a file's address is**, and it has been owed since 0.1.106
+- G172: **decided. The path is authoritative and the header is not a key.** The decision has been owed since 0.1.106 and three releases worked around it
+
+  It is also worse than the entry recorded. Two files claiming one header, in a project that compiles clean, make `glyph_variants` return a match site from the wrong file over an unrelated type as a **proven** edge, with `unkeyed` empty. That is exact-or-absent broken in shipped code, on the surface a field rename is driven from. Every gate case so far tests a site the compiler could not key; none tested one keyed to the wrong entity, which is why 23 invariants missed it
+
+  **The fix needs no migration.** The compiler already treats the path as the key everywhere it builds and emits: a header that disagrees changes no emitted byte, is not a resolution target, and only anchors a diagnostic. Local type ends take the path key, which is the rule `exported_type` and `exported_fn` already document. Nothing that compiles today stops compiling, and all three wrong answers become correct
+
+  **A disagreeing header becomes a warning, not an error, and only inside a marked project.** A hard error was refused on four verified false positives, and refusing it is the right call: the path key is invocation-dependent outside a marked project, not every path key is spellable as a module name (`module 01_validator` is E0001 and five such files exist here), the playground has no path at all, and the documentation gate would go 29 for 29 red because its harness names every snippet the same thing. Scoped to a marked project the warning fires on two files, both deliberate fixtures
+
+  **A file with no `module` line defaults to the path key rather than erroring.** The parser makes it optional, the resolver's own comment calls it legal, and a headerless project builds clean. Making it an error is a separate convention decision and does not ride along here
 - **Breaking, and it should be.** Each of these starts catching something, so somebody's green build goes red. That is the fix working, and the release marks it
 
 **0.1.117 — The seam with npm**

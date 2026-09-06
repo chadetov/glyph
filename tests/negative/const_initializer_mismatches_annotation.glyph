@@ -1,0 +1,10 @@
+module neg
+
+// An annotated module `const` has its initializer judged against the
+// annotation, the way an annotated `let` inside a function always has been.
+// Caught at the Glyph level, not just by tsc.
+const LIMIT: number = "ten"
+
+fn main() -> number {
+  return LIMIT
+}

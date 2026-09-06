@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-210 entries, 174 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+211 entries, 174 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+16 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8225,6 +8225,57 @@ and is the owner's to confirm.
   `gen_dts_module_imports_and_the_class_field_typechecks_through_new` in
   `glyph-cli/tests/gen_dts.rs`, which fails when the record's `pub` is
   dropped.
+
+- **G210. `E0304` is module-local: `Doc.parse(v)` called from a sibling that
+  imports `Doc` reports nothing.** In the module that declares a record with
+  an unverifiable field, `Doc.parse` is refused, as it should be. The same call
+  one import away is `no diagnostics`, so the refusal a boundary relies on
+  holds only where the record was written, which is the one place a wire
+  record is least likely to be parsed. It holds for the `extern_ts`-typed field
+  G108 now produces and for a plain `Array<unknown>` control, so this is the
+  check's reach, not the new anchor. Cause, from reading the emitter:
+  `unverifiable_descriptor_use` and `first_unverifiable_field` look the record
+  up in `self.module.items`, the module being emitted, and an imported `Doc`
+  is not among them. Smallest reproduction, two modules:
+
+      module w
+      pub type Lexer = extern_ts("import('marky').Lexer")
+      @open
+      pub type Doc = { lexer: Lexer, title: string }
+      pub type Bag = { items: Array<unknown>, title: string }
+
+      module u
+      import w { Doc, Bag }
+      pub fn check_doc(v: unknown) -> bool {
+        return match Doc.parse(v) { Ok(d) => true, Err(e) => false }
+      }
+      pub fn check_bag(v: unknown) -> bool {
+        return match Bag.parse(v) { Ok(b) => true, Err(e) => false }
+      }
+
+  `check --no-tsc` on the pair:
+
+      glyph check: 2 module(s) checked, no diagnostics.
+
+  The same two functions appended to `w` instead:
+
+      [E0304] Error: emit: cannot validate `Doc`: field `lexer` has type `Lexer`, which has no runtime check
+      glyph check: 1 error(s) across 2 module(s)
+
+  and `Bag` on its own in its declaring module is
+  `[E0304] Error: emit: cannot validate `Bag`: field `items` has type
+  `Array<unknown>`, which has no runtime check`, while `Bag.parse` from an
+  importer is again `no diagnostics` (the emitter stops at a module's first
+  error, which is why the pair shows one). The emitted descriptor is the same
+  in both cases and presence-checks the field, so the cross-module call runs
+  and returns `Ok` on a value nobody validated, which is the outcome E0304
+  exists to refuse. Not fixed here: the fix needs the emitter to read a
+  record's fields across the module boundary, the sibling of what G75 did for
+  the checker, and that is a decision about where imported declarations are
+  looked up rather than a local patch.
+
+  *Reproduced against 0.1.116 (this branch's build, `glyph 0.1.116`), with
+  the two modules above.*
 - **G211. A `tsc` error is mapped to the statement before the one that failed.**
   `let t = string.trim("  a  ")` on line 7 and `io.println(t.toUpperCasee())`
   on line 8: `glyph build` reports `[TS2551] Property 'toUpperCasee' does not

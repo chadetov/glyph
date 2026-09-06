@@ -1316,7 +1316,7 @@ impl<'a> Emitter<'a> {
                 // refines a record whenever `Rec` is one, exactly as the inline
                 // spelling does; it used to fall through to the refinement path
                 // and emit a working descriptor while the inline spelling was
-                // refused. D45 makes the alias and the record one type, so the
+                // refused. D46 makes the alias and the record one type, so the
                 // two spellings are not allowed to disagree.
                 if let Some(construct) = self.refused_refinement_base(t) {
                     return Err(EmitError::Unsupported {
@@ -4349,7 +4349,7 @@ impl<'a> Emitter<'a> {
     fn has_descriptor(&self, name: &str) -> bool {
         if self.module.items.iter().any(|d| matches!(d, Decl::Type(t) if t.name.as_ref() == name)) {
             // A second name has the descriptor of the declaration it names
-            // (D45): `type B = A` answers for `A`, and `emit_alias_values`
+            // (D46): `type B = A` answers for `A`, and `emit_alias_values`
             // binds the `B` value the emitted `B.is` then reads. A cycle, and
             // a chain ending at a type with no descriptor, answer false.
             return self
@@ -4457,7 +4457,7 @@ impl<'a> Emitter<'a> {
     /// module-local type `name`: with `type C = B`, `type B = A` and
     /// `type A = { .. }`, all three answer `A`. A hop is taken only through a
     /// declaration whose body is one bare name and which carries no generic
-    /// parameters and no `where`, since those are the declarations D45 reads
+    /// parameters and no `where`, since those are the declarations D46 reads
     /// as another name for a declaration rather than as a type of their own.
     /// Any other body (a record, a union, a generic application, a refinement,
     /// a prelude or imported name) ends the chain at the declaration carrying
@@ -4492,7 +4492,7 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// D45 at run time. Every module-local declaration that is a second name
+    /// D46 at run time. Every module-local declaration that is a second name
     /// for `t` (its alias chain ends at `t`) is bound to `t`'s descriptor as a
     /// value: `type B = A` emits `const B = A;`, so `B.parse`, `B.is`, `B.schema`
     /// and a field check spelled `B.is(..)` all reach `A`'s descriptor, and the
@@ -4527,7 +4527,7 @@ impl<'a> Emitter<'a> {
     /// The E0300 construct for a `where` whose base is a record or a union, or
     /// `None` when the refinement is admissible or absent. The base is judged
     /// by the shape it resolves to: written inline, or reached through a chain
-    /// of second names (D45), it is the same record, and D39 refuses it either
+    /// of second names (D46), it is the same record, and D39 refuses it either
     /// way (G207). A base the chain cannot resolve (a prelude name, an import,
     /// a cycle) is left to the refinement path, which is the existing D39 case.
     fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<&'static str> {
@@ -5174,7 +5174,7 @@ impl<'a> Emitter<'a> {
         if !seen.insert(name.to_string()) {
             return None; // recursive type: its own fields are checked once
         }
-        // The claim `B.is` makes is the claim of the record `B` names (D45), so
+        // The claim `B.is` makes is the claim of the record `B` names (D46), so
         // the fields judged are the fields of the declaration the chain ends at.
         let decl = self.alias_chain_terminal(name)?;
         if !decl.generics.is_empty() {
@@ -10314,7 +10314,7 @@ mod tests {
 
     /// G207. D39's refusal is about the shape the base resolves to, not the
     /// shape it is spelled as. `type Positive = Rec where value.x > 0` refines
-    /// a record when `Rec` is one, and the alias hop (D45) makes `Rec` and
+    /// a record when `Rec` is one, and the alias hop (D46) makes `Rec` and
     /// the base one type, so the two spellings have to agree. Before this the
     /// alias spelling fell through to the refinement path and emitted a
     /// working descriptor while the inline spelling was E0300.
@@ -10346,7 +10346,7 @@ mod tests {
         assert!(ts.contains("const PosCents = {"), "primitive through an alias: {ts}");
     }
 
-    /// D45 at run time. An alias of a type with a descriptor is a value alias
+    /// D46 at run time. An alias of a type with a descriptor is a value alias
     /// of that descriptor too, emitted right after the descriptor it names so
     /// it is initialised whatever the declaration order. `B.parse`, `B.is`
     /// and a field typed `B` all reach `A`'s descriptor through it, and the

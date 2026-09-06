@@ -2107,7 +2107,7 @@ impl Assigner<'_> {
         let Decl::Type(_) = self.module.items.get(decl_idx as usize)? else {
             return None;
         };
-        // `T.parse` is a member of the descriptor `T` names. Under D45 a second
+        // `T.parse` is a member of the descriptor `T` names. Under D46 a second
         // name names the same descriptor, so `B.parse` with `type B = A` is
         // `A.parse` and its result is checked as an `A`; the emitter binds the
         // value alias that makes the call exist at run time.
@@ -4560,7 +4560,7 @@ impl Assigner<'_> {
     /// those could index an unrelated module-local declaration and answer for
     /// it.
     ///
-    /// A second name is followed to the declaration it names (D45). `type B =
+    /// A second name is followed to the declaration it names (D46). `type B =
     /// A` declares no type of its own, so asking for `B`'s declaration answers
     /// `A`'s, through any length of chain, and the body that comes back is the
     /// one the chain ends at. What counts as a second name is decided in
@@ -4590,7 +4590,7 @@ impl Assigner<'_> {
         Some(td)
     }
 
-    /// The type `td` is a second name for, when it is one (D45): its body is a
+    /// The type `td` is a second name for, when it is one (D46): its body is a
     /// single bare name, it declares no generic parameters, and it carries no
     /// `where`. Lowering that body gives the `Ty::Named` of the declaration
     /// it names, which is the next hop. `None` for every other body, which is
@@ -5056,7 +5056,7 @@ impl Assigner<'_> {
     /// The field set of a `Ty::Named` record declaration, with any generic
     /// parameters substituted by `args`. Reads the declaration through
     /// `local_type_decl`, so it carries the collision guard and follows a
-    /// second name to the record it names (D45): a `b: B` with `type B = A`
+    /// second name to the record it names (D46): a `b: B` with `type B = A`
     /// has `A`'s fields, as it already did when both were imported.
     fn named_record_fields(&self, ty: &Ty, args: &[Ty]) -> Option<Vec<RecordField>> {
         let td = self.local_type_decl(ty)?;
@@ -5251,7 +5251,7 @@ impl Assigner<'_> {
                 }
             }
         }
-        // D45. Two names for one declaration are one type, so each side is
+        // D46. Two names for one declaration are one type, so each side is
         // rewritten to the declaration its names resolve to before the nominal
         // comparison reads them. Without this `takes_a(b)` with `type B = A`
         // was E0211 on a program `tsc --strict` accepts (G203), because
@@ -11621,7 +11621,10 @@ fn f(a: Answer) -> number {
         assert!(
             errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { found, .. } if found == "bool")),
             "{errs:?}"
-    /// D45. `type B = A` is a second name for `A`'s declaration, so a `B`
+        );
+    }
+
+    /// D46. `type B = A` is a second name for `A`'s declaration, so a `B`
     /// passes where an `A` is declared and the reverse. G203 recorded the
     /// E0211 this used to draw, on a program `tsc --strict` accepts.
     #[test]

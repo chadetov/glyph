@@ -1,0 +1,9 @@
+module ok
+
+import lib { label }
+
+// A string literal against a `string` parameter: a pairing the checker
+// compares, so a replacement primitive is E0211 here.
+pub fn probe() -> number {
+  return label("x")
+}

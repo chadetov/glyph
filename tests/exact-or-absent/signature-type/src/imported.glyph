@@ -1,0 +1,11 @@
+module imported
+
+import lib { label }
+import cells { Cell }
+
+// A cross-module union against a `string` parameter. The rule that decides a
+// declared type against a primitive reads only a declaration in the calling
+// module (G201), so this site is reached and not decided.
+pub fn probe(c: Cell) -> number {
+  return label(c)
+}

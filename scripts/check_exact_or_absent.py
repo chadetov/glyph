@@ -1242,16 +1242,19 @@ def case_verdict_not_indexed() -> tuple[bool, str]:
     """NOT_INDEXED means the question was never askable, which is not a shrug
     about one site.
 
-    Two classes, both run against the compiler. Adding a parameter to
-    `api::width` is E0213 at `api::called`, which applies it, and nothing at
-    all at `api::sizer`, which reads it as a value: Glyph never compares a
-    function value's arity against the type its use context expects. And
-    `api::takes_string` declaring a named type instead of `string` produces no
-    diagnostic at its call site, where a `bool` would be E0211 (G201).
+    One class, run against the compiler. Adding a parameter to `api::width`
+    is E0213 at `api::called`, which applies it, and nothing at all at
+    `api::sizer`, which reads it as a value: Glyph never compares a function
+    value's arity against the type its use context expects.
 
     The case asserts the two verdicts do not blur. A NOT_INDEXED entry names
-    the class the model does not hold, and no entry in either answer is
-    UNDETERMINED, because nothing here was reached and left undecided.
+    the class the model does not hold, and no entry in the answer is
+    UNDETERMINED, because nothing here was reached and left undecided. The
+    second half is the boundary from the other side: `change_signature_type`
+    used to ship every call site as NOT_INDEXED (G201), and once the checker
+    compared a declared type against a primitive the class stopped being one.
+    A call pairing a primitive with a primitive is decided, so it must not
+    come back under the verdict that means the question was never askable.
     """
     a = impact(CORPUS / VERDICTS, "api::width", {"kind": "change_arity"})
     if "error" in a:
@@ -1276,13 +1279,59 @@ def case_verdict_not_indexed() -> tuple[bool, str]:
     b = impact(CORPUS / VERDICTS, "api::takes_string", {"kind": "change_signature_type"})
     if "error" in b:
         return False, f"refused: {b['error'][:160]}"
-    verdicts = {e.get("verdict") for e in b.get("impact") or []}
-    if verdicts != {"NOT_INDEXED"}:
+    seen = by_entity(b)
+    if seen.get("api::calls_it") != ["WILL_FAIL"]:
         return False, (
-            "a signature-type change ships one verdict and this answer carries "
-            f"{sorted(verdicts)}"
+            "`takes_string(\"x\")` pairs a primitive with a primitive, which the "
+            f"checker compares; this answer says {seen.get('api::calls_it')}"
         )
+    entry = next(e for e in b["impact"] if e.get("entity") == "api::calls_it")
+    if entry.get("diagnostic") != "E0211":
+        return False, f"a proved signature failure names no diagnostic: {entry}"
+    if any(e.get("verdict") == "NOT_INDEXED" and e.get("relation") == "CALLS"
+           for e in b.get("impact") or []):
+        return False, "a call site under change_signature_type is a decided class now"
     return True, "a class absent from the model, said as that and not as undecided"
+
+
+SIGNATURE = pathlib.Path("signature-type")
+
+
+def case_signature_type_unparsed_site_is_unindexed() -> tuple[bool, str]:
+    """A call the checker cannot see is in `unindexed`, never in a verdict.
+
+    `change_signature_type` decides each call site per argument against the
+    checker's own comparison rules, so it is the kind most tempted to answer
+    for a site it never typed. `src/broken.glyph` applies `lib::label` and does
+    not parse. The answer has to name that file under the CALLS search's
+    `unindexed` and carry no entry from it, while the two sites it could read
+    each get the verdict the checker's rules give them: the literal caller is
+    WILL_FAIL with E0211, and the cross-module union caller is UNDETERMINED
+    with a `because` that names what is missing.
+    """
+    a = impact(CORPUS / SIGNATURE, "lib::label", {"kind": "change_signature_type"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    calls = next((s for s in a.get("searches") or [] if s.get("relation") == "CALLS"), None)
+    if calls is None:
+        return False, f"no CALLS search: {a}"
+    unread = [u.get("path") for u in calls.get("unindexed") or []]
+    if not any(p and p.endswith("broken.glyph") for p in unread):
+        return False, f"the file that does not parse is not named under unindexed: {unread}"
+    from_broken = [e for e in a.get("impact") or [] if (e.get("path") or "").endswith("broken.glyph")]
+    if from_broken:
+        return False, f"a site from a file that does not parse carries a verdict: {from_broken}"
+    seen = by_entity(a, "CALLS")
+    if seen.get("ok::probe") != ["WILL_FAIL"]:
+        return False, f"the literal caller is not proved to fail: {seen.get('ok::probe')}"
+    if seen.get("imported::probe") != ["UNDETERMINED"]:
+        return False, f"the cross-module caller is not UNDETERMINED: {seen.get('imported::probe')}"
+    for entry in a.get("impact") or []:
+        if entry.get("verdict") == "UNDETERMINED" and not entry.get("because"):
+            return False, f"UNDETERMINED states no reason: {entry}"
+        if entry.get("verdict") == "WILL_FAIL" and entry.get("diagnostic") != "E0211":
+            return False, f"a proved failure names no diagnostic: {entry}"
+    return True, "the unparsed file is unindexed, and the two read sites are decided"
 
 
 def case_impact_answers_a_second_hop() -> tuple[bool, str]:
@@ -1368,6 +1417,7 @@ HARD = [
     ("UNDETERMINED is reached and rare", case_verdict_undetermined),
     ("NOT_INDEXED is a class, not a shrug", case_verdict_not_indexed),
     ("a hop-2 request is answered", case_impact_answers_a_second_hop),
+    ("an unparsed call site is unindexed, not judged", case_signature_type_unparsed_site_is_unindexed),
     ("a consequence needs a named change", case_a_change_is_required_for_a_consequence),
 ]
 

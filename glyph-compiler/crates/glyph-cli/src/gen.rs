@@ -12,7 +12,7 @@
 //!
 //! Mapped faithfully: objects (`properties` + `required`) → records, primitives
 //! (`string`/`integer`/`number`/`boolean`), `array` → `Array<T>`, `$ref` →
-//! the referenced named type, `nullable`/non-required → `Option<T>` /
+//! the referenced named type, `nullable` → `Nullable<T>` (D45), non-required →
 //! `field?: T`, `additionalProperties` → `Record<string, T>`, and object
 //! `allOf` merged into one record.
 //!
@@ -1514,21 +1514,20 @@ impl Generator {
                     ));
                     continue;
                 }
-                // A `nullable` field is mapped to an optional field of the base
-                // type, not `Option<T>`: on the wire the value is the bare value
-                // or JSON `null`, whereas Glyph's `Option` has a tagged runtime
-                // shape (`{tag:"Some",...}`) that would reject the real payload.
+                // A `nullable` field is `Nullable<T>` (D45): on the wire the
+                // value is the bare value or JSON `null`, and that is exactly what
+                // the type's descriptor accepts, so no note is owed. Whether the
+                // key may be absent is the schema's `required` list, a separate
+                // fact, and it stays `?`. Before Glyph had a null-tolerant type
+                // this collapsed to an optional field of the base type, which
+                // accepted an absent key the schema required.
                 let nullable = fschema
                     .get("nullable")
                     .and_then(|n| n.as_bool())
                     .unwrap_or(false);
-                if nullable {
-                    self.note(format!(
-                        "{owner}.{fname}: `nullable` mapped to an optional field; a literal JSON `null` is treated as absent."
-                    ));
-                }
-                let optional = nullable || !required.contains(&fname.as_str());
-                let ty = self.type_ref(&format!("{owner}.{fname}"), fschema);
+                let optional = !required.contains(&fname.as_str());
+                let base = self.type_ref(&format!("{owner}.{fname}"), fschema);
+                let ty = if nullable { format!("Nullable<{base}>") } else { base };
                 fields.push((fname.clone(), ty, optional));
             }
         } else if let Some(ap) = schema.get("additionalProperties") {
@@ -1620,8 +1619,8 @@ impl Generator {
             }
             return base;
         }
-        // `nullable` is handled at the field level (as optionality); the type
-        // itself is always the base type, so its descriptor matches the wire.
+        // `nullable` is handled at the field level, where it wraps the base type
+        // in `Nullable<T>`; the type itself is always the base type.
         self.type_ref_inner(ctx, schema)
     }
 
@@ -2424,9 +2423,26 @@ mod tests {
                "Task":{"type":"object","properties":{"id":{"type":"integer"}}}}}}"##,
         );
         assert!(out.contains("items: Array<Task>"), "got:\n{out}");
-        // `nullable` maps to an optional field of the base type (not Option<T>),
-        // so the descriptor matches the wire value rather than a tagged Option.
-        assert!(out.contains("owner?: string"), "got:\n{out}");
+        // `nullable` maps to `Nullable<T>` (D45): the wire value is the bare
+        // value or JSON `null`, which is exactly what that type's descriptor
+        // accepts. `owner` is required, so the key itself must be present.
+        assert!(out.contains("owner: Nullable<string>"), "got:\n{out}");
+    }
+
+    #[test]
+    fn a_nullable_field_the_schema_does_not_require_is_optional_and_nullable() {
+        // Not required and nullable are two different facts about the wire and
+        // both survive: the key may be absent, and when present may be null.
+        let (out, notes) = gen_from(
+            r##"{"components":{"schemas":{
+               "Bag":{"type":"object",
+                 "properties":{"owner":{"type":"string","nullable":true}}}}}}"##,
+        );
+        assert!(out.contains("owner?: Nullable<string>"), "got:\n{out}");
+        assert!(
+            !notes.iter().any(|n| n.contains("nullable")),
+            "a faithful mapping owes no note: {notes:?}"
+        );
     }
 
     #[test]

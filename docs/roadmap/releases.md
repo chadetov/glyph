@@ -66,6 +66,54 @@ prompt run on both sides, and the losing run is published.
 `benchmarks/impact-before-edit/` is the seed of this, and today it measures the
 prediction rather than the task.
 
+## The next phase: teach the agent how to ask, not how to know
+
+The line from 0.1.103 to 0.1.117 built the beginnings of a compiler that can
+explain a program to an agent: identities, relations, impact, provenance,
+measured latency, and a checker that catches what it used to let through. The
+next releases do not spend that on more traversal or more checker features.
+They spend it on the surface an agent actually reads, because an LLM does not
+struggle to write text; it struggles with what is true about this codebase and
+this language right now, and a compiler can answer that deterministically.
+
+Three priorities, in order, and each is measured by a question an agent can
+put to the compiler and get a complete answer to:
+
+1. **An agent-native semantic API.** One call describes a symbol completely
+   enough to write correct Glyph against it: kind, fields with types, variants
+   with payloads, the construction syntax of each form, whether a match over it
+   must be exhaustive, callers, dependencies, assignability between two types,
+   and a compiler-verified example. Today the tools answer navigation questions
+   (where is it, what refers to it, what breaks); the description question is
+   answered in pieces or not at all. The gaps below are measured by probing the
+   tools on a real project and recording what came back.
+2. **Diagnostics as a repair protocol.** A diagnostic carries, as fields rather
+   than prose, what was expected and what was found, the symbol that caused it,
+   the related symbols (a union's variants for a coverage error), the valid
+   alternatives, and the constraints a repair must keep. The loop becomes
+   generate, prove, repair, and the agent does not need to know Glyph perfectly
+   because Glyph tells it precisely what it got wrong and what would be right.
+3. **A knowledge surface generated from the compiler.** A new language has no
+   training data. The spec, the prelude, the stdlib signatures, the diagnostic
+   codes, the canonical examples and the negative examples (a wrong program
+   paired with the diagnostic it draws and the correct form) are emitted by the
+   compiler as machine-readable files and kept true by the same gates that keep
+   the suite green, so an agent's context is manufactured rather than hoped for.
+
+What this phase does not build: an autonomous coding agent, a chat assistant, a
+retrieval layer over the docs, vector search, another code graph. The compiler
+is the intelligence layer and the agent outside it can be simple. The claim
+the phase works towards is that an agent writing Glyph is not relying only on
+what it learned about programming; it is consulting the compiler that defines
+what is valid, continuously.
+
+Two lanes sit before that work and are kept small: 0.1.119, the repository's
+own hygiene, and 0.1.120, the emitter reading the checker's facts instead of
+rediscovering them, which is a precondition for a compiler whose answers can be
+trusted as one truth. The three priorities are 0.1.121 onwards, and their
+entries are ledger findings with reproductions, not a wish list: each records
+what the tool answers today, verbatim, and what the complete answer needs.
+
 **The rule that outranks everything below.** Never return an inferred
 relationship as if it were a compiler-proven one. `tests/exact-or-absent/` is
 the gate, and it grows a case per relation as each one lands.

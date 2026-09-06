@@ -1,0 +1,5 @@
+{
+  "name": "signature-type",
+  "private": true,
+  "glyph": { "src": "src" }
+}

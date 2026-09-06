@@ -1,0 +1,7 @@
+module cells
+
+// A union declared apart from every caller, so a value of it reaching `label`
+// is a cross-module type at the call site.
+pub type Cell =
+  | Text
+  | Blank

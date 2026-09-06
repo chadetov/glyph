@@ -1,0 +1,8 @@
+module lib
+
+// The function whose parameter type a change would replace. The body does not
+// read the parameter, so the change under test breaks nothing inside this
+// declaration.
+pub fn label(s: string) -> number {
+  return 1
+}

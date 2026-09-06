@@ -1,0 +1,8 @@
+module broken
+
+import lib { label }
+
+// A call the sweep cannot see: this file does not parse, so the site below is
+// in no verdict and the file is named under `unindexed`.
+pub fn probe() -> number {
+  return label("x"

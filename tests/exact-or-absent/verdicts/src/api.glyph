@@ -17,9 +17,10 @@ pub fn called() -> number {
 // annotation and this file alone.
 pub const sizer: fn(number) -> number = width
 
-// The G201 shape. `takes_string` declares a primitive, and the checker reports
-// only a provable mismatch, so a call passing a named type draws no conclusion
-// at all where a `bool` would be E0211.
+// A primitive parameter with a primitive argument. The checker compares the
+// pair, so a replacement type the literal does not satisfy is E0211 at
+// `calls_it`. This site used to ship NOT_INDEXED under `change_signature_type`
+// (G201); it is a decided class now.
 pub fn takes_string(s: string) -> string {
   return s
 }

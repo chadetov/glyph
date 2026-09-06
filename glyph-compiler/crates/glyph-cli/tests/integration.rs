@@ -12949,3 +12949,284 @@ fn an_imported_const_carries_its_annotation_under_both_import_spellings() {
         assert!(diag.contains("rowz"), "names the field: {diag}");
     }
 }
+
+#[test]
+fn fs_line_reader_k_way_merges_three_sorted_sources() {
+    // G105: a file could only be read whole, so a merge of sorted sources that
+    // never holds more than one line per source could not be written. This is
+    // that merge: one `LineReader` per source, the head line of each in hand,
+    // recursion instead of an array of the file, and `next_line` advancing only
+    // the reader whose head was emitted. The fixtures cover the line endings a
+    // reader has to agree on: `b` is CRLF, `c` has no newline after its last
+    // line, and both still merge into eight lines in order.
+    if !js_toolchain_available() {
+        eprintln!("skipping fs line reader merge run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("fslinesmerge");
+    let a = root.join("a.txt");
+    let b = root.join("b.txt");
+    let c = root.join("c.txt");
+    std::fs::write(&a, "apple\nfig\nmango\n").expect("write a");
+    std::fs::write(&b, "banana\r\ngrape\r\n").expect("write b");
+    std::fs::write(&c, "cherry\nkiwi\npear").expect("write c");
+    let prog = r#"module prog
+
+import std/fs
+import std/io
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+
+type Pick = "a" | "b" | "c" | "done"
+
+fn before(x: string, y: Option<string>) -> bool {
+  return match y {
+    None => true,
+    Some(v) => x <= v,
+  }
+}
+
+fn pick(a: Option<string>, b: Option<string>, c: Option<string>) -> Pick {
+  return match a {
+    Some(x) => match before(x, b) && before(x, c) {
+      true => "a",
+      false => pick(None, b, c),
+    },
+    None => match b {
+      Some(y) => match before(y, c) {
+        true => "b",
+        false => "c",
+      },
+      None => match c {
+        Some(_) => "c",
+        None => "done",
+      },
+    },
+  }
+}
+
+fn emit(head: Option<string>, r: fs.LineReader) -> Result<Option<string>, fs.FsError> {
+  match head {
+    None => return Ok(None),
+    Some(line) => io.println(line),
+  }
+  return fs.next_line(r)
+}
+
+fn failed(e: fs.FsError) -> number {
+  io.println("merge failed: ${e.message}")
+  return 5
+}
+
+fn merge(
+  ra: fs.LineReader, a: Option<string>,
+  rb: fs.LineReader, b: Option<string>,
+  rc: fs.LineReader, c: Option<string>,
+  n: int,
+) -> Result<int, fs.FsError> {
+  return match pick(a, b, c) {
+    "a" => merge(ra, emit(a, ra)?, rb, b, rc, c, n + 1),
+    "b" => merge(ra, a, rb, emit(b, rb)?, rc, c, n + 1),
+    "c" => merge(ra, a, rb, b, rc, emit(c, rc)?, n + 1),
+    "done" => Ok(n),
+  }
+}
+
+fn start(ra: fs.LineReader, rb: fs.LineReader, rc: fs.LineReader) -> Result<int, fs.FsError> {
+  return merge(ra, fs.next_line(ra)?, rb, fs.next_line(rb)?, rc, fs.next_line(rc)?, 0)
+}
+
+fn main(argv: Array<string>) -> number {
+  return match fs.open_lines("__A__") {
+    Err(_) => 2,
+    Ok(ra) => match fs.open_lines("__B__") {
+      Err(_) => 3,
+      Ok(rb) => match fs.open_lines("__C__") {
+        Err(_) => 4,
+        Ok(rc) => match start(ra, rb, rc) {
+          Err(e) => failed(e),
+          Ok(n) => match n == 8 {
+            true => 0,
+            false => 1,
+          },
+        },
+      },
+    },
+  }
+}
+"#
+    .replace("__A__", &a.display().to_string())
+    .replace("__B__", &b.display().to_string())
+    .replace("__C__", &c.display().to_string());
+    write_file(&root, "prog.glyph", &prog);
+    let file = root.join("prog.glyph");
+    let (code, stdout, stderr) = spawn_run(&file);
+    assert_eq!(
+        code, 0,
+        "a non-zero code names the failing step: 2..4 open, 5 a read error, 1 the \
+         wrong line count\nstdout:\n{stdout}\nstderr:\n{stderr}"
+    );
+    assert_eq!(
+        stdout, "apple\nbanana\ncherry\nfig\ngrape\nkiwi\nmango\npear\n",
+        "the merged sequence must be every line of the three sources in order, \
+         with no `\\r` from the CRLF source and the newline-less last line of `c` \
+         present\nstderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn fs_next_line_yields_a_last_line_with_no_newline_and_then_stays_at_end() {
+    // A file whose last line has no terminator still has that line in it; the
+    // earlier `io.read_line` got this right for stdin and the reader has to as
+    // well. Past the end the reader is closed and keeps reporting end of input,
+    // and an empty file reports it on the first call.
+    if !js_toolchain_available() {
+        eprintln!("skipping fs next_line run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("fslinestail");
+    let two = root.join("two.txt");
+    let empty = root.join("empty.txt");
+    std::fs::write(&two, "one\ntwo").expect("write two");
+    std::fs::write(&empty, "").expect("write empty");
+    let prog = r#"module prog
+
+import std/fs
+import std/io
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+
+fn show(step: string, r: fs.LineReader) -> Result<void, fs.FsError> {
+  let next = fs.next_line(r)?
+  let got = match next {
+    Some(line) => "line(${line})",
+    None => "end",
+  }
+  io.println("${step}:${got}")
+  return Ok(void)
+}
+
+fn walk(two: fs.LineReader, empty: fs.LineReader) -> Result<void, fs.FsError> {
+  show("1", two)?
+  show("2", two)?
+  show("3", two)?
+  show("4", two)?
+  show("e", empty)?
+  return Ok(void)
+}
+
+fn main(argv: Array<string>) -> number {
+  return match fs.open_lines("__TWO__") {
+    Err(_) => 2,
+    Ok(two) => match fs.open_lines("__EMPTY__") {
+      Err(_) => 3,
+      Ok(empty) => match walk(two, empty) {
+        Err(_) => 4,
+        Ok(_) => 0,
+      },
+    },
+  }
+}
+"#
+    .replace("__TWO__", &two.display().to_string())
+    .replace("__EMPTY__", &empty.display().to_string());
+    write_file(&root, "prog.glyph", &prog);
+    let file = root.join("prog.glyph");
+    let (code, stdout, stderr) = spawn_run(&file);
+    assert_eq!(code, 0, "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert_eq!(
+        stdout, "1:line(one)\n2:line(two)\n3:end\n4:end\ne:end\n",
+        "stderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn fs_open_lines_reports_a_missing_path_and_a_directory_by_kind() {
+    // The two failures a line reader meets, each as a value with a named kind.
+    // A missing path fails at `open_lines`, as `read_text` does. A directory
+    // opens (POSIX allows an O_RDONLY descriptor on one) and fails on the first
+    // read, which is the case the `Result` around `next_line` exists for: were
+    // the reader to report that read error as end of input, this program would
+    // print `end` and exit 0, and a directory would be indistinguishable from an
+    // empty file. `close_lines` twice on the same reader is a no-op, and a
+    // reader closed early reports end of input rather than a stale descriptor.
+    if !js_toolchain_available() {
+        eprintln!("skipping fs open_lines error run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("fslineserr");
+    let dir = root.join("adir");
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    let some = root.join("some.txt");
+    std::fs::write(&some, "alpha\nbeta\n").expect("write some");
+    let missing = root.join("missing.txt");
+    let prog = r#"module prog
+
+import std/fs
+import std/io
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+
+fn kind_name(k: fs.ErrorKind) -> string {
+  return match k {
+    fs.ErrorKind.NotFound => "NotFound",
+    fs.ErrorKind.IsADirectory => "IsADirectory",
+    fs.ErrorKind.NotADirectory => "NotADirectory",
+    fs.ErrorKind.PermissionDenied => "PermissionDenied",
+    fs.ErrorKind.AlreadyExists => "AlreadyExists",
+    fs.ErrorKind.Other({ code }) => "Other(${code})",
+  }
+}
+
+fn describe(r: Result<Option<string>, fs.FsError>) -> string {
+  return match r {
+    Ok(Some(line)) => "line(${line})",
+    Ok(None) => "end",
+    Err(e) => "err(${kind_name(e.kind)})",
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  match fs.open_lines("__MISSING__") {
+    Ok(_) => io.println("missing:opened"),
+    Err(e) => io.println("missing:${kind_name(e.kind)}"),
+  }
+  match fs.open_lines("__DIR__") {
+    Err(e) => io.println("dir:open:${kind_name(e.kind)}"),
+    Ok(r) => io.println("dir:${describe(fs.next_line(r))}"),
+  }
+  match fs.open_lines("__SOME__") {
+    Err(e) => io.println("some:open:${kind_name(e.kind)}"),
+    Ok(r) => {
+      io.println("some:${describe(fs.next_line(r))}")
+      fs.close_lines(r)
+      fs.close_lines(r)
+      io.println("closed:${describe(fs.next_line(r))}")
+    },
+  }
+  return 0
+}
+"#
+    .replace("__MISSING__", &missing.display().to_string())
+    .replace("__DIR__", &dir.display().to_string())
+    .replace("__SOME__", &some.display().to_string());
+    write_file(&root, "prog.glyph", &prog);
+    let file = root.join("prog.glyph");
+    let (code, stdout, stderr) = spawn_run(&file);
+    assert_eq!(code, 0, "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert_eq!(
+        stdout,
+        "missing:NotFound\ndir:err(IsADirectory)\nsome:line(alpha)\nclosed:end\n",
+        "stderr:\n{stderr}"
+    );
+}
+
+/// `glyph run <file>` as a subprocess, so the program's own stdout is
+/// observable. `run_file` reports only the exit code, which is enough for a
+/// program that answers with a number and not for one whose output is the
+/// claim.
+fn spawn_run(file: &Path) -> (i32, String, String) {
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), file.as_os_str()]);
+    (code, stdout, stderr)
+}

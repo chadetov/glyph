@@ -27,6 +27,10 @@ declare module "fs" {
     length: number,
     position: number | null,
   ): number;
+  // `std/fs.open_lines` holds one descriptor per reader; these take it and
+  // give it back. Only the two-argument open the runtime makes.
+  export function openSync(path: string, flags: string): number;
+  export function closeSync(fd: number): void;
   export function writeFileSync(path: string, data: string, encoding: "utf8"): void;
   export function writeFileSync(path: string, data: Uint8Array): void;
   export function appendFileSync(path: string, data: string, encoding: "utf8"): void;

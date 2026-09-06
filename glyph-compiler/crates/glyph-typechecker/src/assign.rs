@@ -2602,6 +2602,22 @@ impl Assigner<'_> {
                 stdlib_named("fs", "FsError"),
                 false,
             ),
+            // G105. The reader is a handle, and `next_line` answers
+            // `Result<Option<string>, FsError>` rather than `Option<string>`
+            // so a read error is a value the caller has to match on and not
+            // an end of input. `close_lines` returns nothing and has no row.
+            ("std/fs", "open_lines") => (
+                1,
+                stdlib_named("fs", "LineReader"),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            ("std/fs", "next_line") => (
+                1,
+                self.stdlib_option_ty(Ty::Prim(Primitive::String))?,
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
             // Every `std/bytes` entry that can fail does so for the same reason:
             // the input is not the thing it claims to be. `from_array` over a
             // 256, `to_text` over a PNG, `from_hex` over a typo. A silent
@@ -6749,6 +6765,41 @@ mod tests {
                 TypeError::NonExhaustiveMatch { .. } | TypeError::NonExhaustiveValueMatch { .. }
             )),
             "a missing category must be reported: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_match_over_next_line_without_an_err_arm_is_non_exhaustive() {
+        // G105. `fs.next_line` answers `Result<Option<string>, FsError>` rather
+        // than `Option<string>` so that a read error at line 400,000 is a value
+        // the caller must handle and not an end of input. That only holds if the
+        // checker knows the shape: an unmodeled stdlib function types `Unknown`,
+        // its `match` is unchecked, and the two `Ok` arms alone would build.
+        let two_ok_arms = "module x\n\
+             import std/fs\n\
+             fn head(r: fs.LineReader) -> string {\n\
+             \x20 return match fs.next_line(r) {\n\
+             \x20\x20\x20 Ok(Some(line)) => line,\n\
+             \x20\x20\x20 Ok(None) => \"\",\n\
+             \x20 }\n\
+             }\n";
+        let errs = errors_of(two_ok_arms);
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
+            "a `match` over `fs.next_line` with no `Err` arm must be E0200: {errs:?}"
+        );
+
+        // With the `Err` arm the match is complete, and the reader is closed
+        // on the way out of the `Ok(None)` arm by the runtime, not the checker.
+        let with_err = two_ok_arms.replace(
+            "    Ok(None) => \"\",\n",
+            "    Ok(None) => \"\",\n    Err(e) => e.message,\n",
+        );
+        assert_ne!(two_ok_arms, with_err, "the replacement must have applied");
+        let errs = errors_of(&with_err);
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
+            "three arms cover Result<Option<string>, FsError>: {errs:?}"
         );
     }
 

@@ -12,14 +12,14 @@ The same task was implemented in Glyph, TypeScript, Python, Rust, and Go, and ea
 
 | Function     | Glyph | TypeScript | Python | Rust |  Go |
 |--------------|------:|-----------:|-------:|-----:|----:|
-| `load_feed`  |   166 |        257 |    242 |  323 | 346 |
-| `parse_user` |   125 |        174 |    152 |  168 | 131 |
-| `slugify`    |    50 |         47 |     41 |  129 |  87 |
-| **Total**    | **341** |    **478** |  **435** | **620** | **564** |
+| `load_feed ` |   237 |        257 |    242 |  323 | 346 |
+| `parse_user` |   132 |        174 |    152 |  168 | 131 |
+| `slugify   ` |    67 |         47 |     41 |  129 |  87 |
+| **Total**    | **436** |    **478** |  **435** | **620** | **564** |
 
-Across the three functions, Glyph uses about 29% fewer tokens than the equivalent TypeScript (341 vs 478), about 22% fewer than Python, about 40% fewer than Go, and about 45% fewer than Rust, while remaining fully statically typed. The ranking by density is Glyph, Python, TypeScript, Go, Rust. Python is the only language that beats TypeScript here, and it is not statically typed; among the four statically typed languages Glyph is the densest by a wide margin, and Go and Rust — the other languages with explicit, checkable error handling — are the longest.
+Across the three functions, Glyph uses about 9% fewer tokens than the equivalent TypeScript (436 vs 478), the same as Python within one token (436 vs 435), about 23% fewer than Go, and about 30% fewer than Rust. These are the 2026-09-06 numbers, measured after the three Glyph fixtures were rewritten to compile with `tsc --strict` (G159); the earlier figure of 341 was taken on two fixtures the compiler did not accept, and the working programs are longer.
 
-The advantage scales with the amount of real logic. On the two functions with actual control flow Glyph is well ahead (`load_feed` 166 vs 257, `parse_user` 125 vs 174); on the trivial `slugify` it is marginally *larger* than TypeScript and Python (50 vs 47 and 41), because its `module` declaration and `import` line are fixed overhead that a three-line function cannot amortize. Density is a property of expressing real work, not of one-liners.
+The advantage is concentrated in the function with real control flow: `parse_user` is 132 against TypeScript's 174, `load_feed` 237 against 257, and on the trivial `slugify` Glyph is longer (67 against 47) because it has no regex literal and spells the two replacements through `std/regex`.
 
 Line counts (excluding blank lines and comments) follow the same ordering on the totals: Glyph 46, TypeScript 55, Python 57, Rust 67, Go 81.
 
@@ -71,7 +71,7 @@ Together these remove the usual sources of incidental churn (reflowed lines, shi
 
 ### What it shows
 
-- For the three measured functions, Glyph is denser than the equivalent statically typed TypeScript by a real `cl100k_base` token count (~29% fewer tokens on the totals).
+- For the three measured functions, Glyph is denser than the equivalent statically typed TypeScript by a real `cl100k_base` token count (about 9% fewer tokens on the totals, measured 2026-09-06 on fixtures that compile).
 - Glyph rejects two specific, common agent mistakes (a missing union variant, an unsafe cast) that `tsc --strict` accepts. Both are reproducible via `check.sh`.
 - A one-line Glyph edit produces a one-line diff in the emitted TypeScript across the measured edits, and `glyph fmt` adds no churn. Reproducible via `diff_stability.sh`.
 

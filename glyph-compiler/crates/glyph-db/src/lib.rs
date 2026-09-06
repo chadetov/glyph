@@ -4020,7 +4020,8 @@ pub fn f(r: Result<number, string>) -> number {
     }
 
     // ========================================================================
-    // TEMPORARY TIMING INSTRUMENT (not for commit)
+    // TIMING INSTRUMENT, committed on purpose and `#[ignore]`d so CI never runs it.
+    // It exists because re-measuring a keystroke once took an excavation (0.1.115).
     // ========================================================================
 
     fn minilang_source() -> String {

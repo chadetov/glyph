@@ -1,0 +1,17 @@
+module neg
+
+// A `string` is never a value of a declared tagged union: the union emits as a
+// tagged object, so the literal cannot be one. Caught at the Glyph level, not
+// just by tsc. The forward direction (a union where a `string` is declared) is
+// G201; this is its reverse.
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn takes_result(r: PaymentResult) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_result("Settled")
+}

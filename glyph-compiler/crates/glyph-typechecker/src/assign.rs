@@ -4356,10 +4356,18 @@ impl Assigner<'_> {
     /// The judgement is the declaration's, not the value's, so an application
     /// of a generic union (`Tree<number>`) answers the same as the bare name.
     fn is_declared_union_or_record(&self, ty: &Ty) -> bool {
-        let Some(td) = self.local_type_decl(ty) else {
-            return false;
-        };
-        matches!(&td.body, TypeExpr::Union { .. } | TypeExpr::Record { .. })
+        self.declared_union_or_record_body(ty).is_some()
+    }
+
+    /// The declaration body behind `is_declared_union_or_record`, for a caller
+    /// that has to read one more thing off it: the reverse direction of G201
+    /// needs the record's field list to apply its empty-record exclusion,
+    /// while the forward direction has no exclusion and only needs the bool.
+    /// Both directions read the body through this one place, so what counts
+    /// as "declared union or record" is decided once.
+    fn declared_union_or_record_body(&self, ty: &Ty) -> Option<&TypeExpr> {
+        let td = self.local_type_decl(ty)?;
+        matches!(&td.body, TypeExpr::Union { .. } | TypeExpr::Record { .. }).then_some(&td.body)
     }
 
     /// Whether `ty` resolves all the way to a module-local type declaration
@@ -4800,9 +4808,11 @@ impl Assigner<'_> {
     /// `Named`-vs-`Named` name check `definitely_incompatible` applies to
     /// `type` aliases (Q15); the recursion also reaches an interface nested one
     /// level inside a generic application (`Array<Iface>`). And a declared
-    /// union or record is never a `string`, a `number` or a `bool` (G201),
-    /// which is the one pairing of a named type with a primitive the compiler
-    /// can settle. Everything else delegates unchanged.
+    /// union or record is never a `string`, a `number` or a `bool` (G201), nor
+    /// is one of those three ever a declared union or record (the reverse
+    /// direction, with an empty record excluded), which is the one pairing of
+    /// a named type with a primitive the compiler can settle. Everything else
+    /// delegates unchanged.
     fn assign_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
@@ -4841,15 +4851,37 @@ impl Assigner<'_> {
         // change was invisible at exactly the call sites most likely to be
         // wrong, and `glyph check --no-tsc` accepted the program.
         //
-        // Only this direction, and only these three primitives. `void` is left
-        // out for the same reason the scalar-versus-record arm leaves it out.
-        // The reverse (a primitive where a declared type is expected) and the
-        // general question of how much of assignability should become decidable
-        // are separate decisions, and answering one of them wrongly rejects
-        // correct programs, which costs more than the silence did.
+        // Only these three primitives. `void` is left out for the same reason
+        // the scalar-versus-record arm leaves it out. The general question of
+        // how much of assignability should become decidable is a separate
+        // decision, and answering it wrongly rejects correct programs, which
+        // costs more than the silence did.
         if let Ty::Prim(p) = expected {
             if is_concrete_scalar(*p) && self.is_declared_union_or_record(found) {
                 return true;
+            }
+        }
+        // The reverse direction. A `string`, a `number` or a `bool` where a
+        // declared union or record is expected: `takes_result("Settled")` was
+        // caught only by `tsc`, so `glyph check --no-tsc` accepted it. The same
+        // reading of the declaration body settles it, with the same exclusions
+        // (a primitive alias, a string-literal union, an `extern_ts` or `typeof`
+        // body, an `interface`) and one more.
+        //
+        // A record with zero fields (`type T = { }`) is excluded. TypeScript
+        // lets a `string` satisfy the empty object type, so Glyph's emitted
+        // TypeScript for such a program compiles under `tsc --strict`, and
+        // rejecting it here would make Glyph disagree with tsc on a program tsc
+        // accepts. The exclusion is one-directional: `{}` is not a `string`
+        // under tsc either, so the arm above keeps firing on the empty record.
+        if let Ty::Prim(p) = found {
+            if is_concrete_scalar(*p) {
+                if let Some(body) = self.declared_union_or_record_body(expected) {
+                    let empty_record = matches!(body, TypeExpr::Record { fields, .. } if fields.is_empty());
+                    if !empty_record {
+                        return true;
+                    }
+                }
             }
         }
         definitely_incompatible(found, expected)
@@ -5224,7 +5256,8 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 ///   newtype alias may resolve to that shape), as does every other pair. The
 ///   one exception is decided by the caller: `assign_incompatible` reads the
 ///   declaration, and a body that is a tagged union or a record is not a
-///   `string`, a `number` or a `bool` (G201).
+///   `string`, a `number` or a `bool` (G201), nor the other way round, where
+///   an empty record is excluded because tsc lets a `string` satisfy `{}`.
 fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(expected, Ty::UnknownTop) {
         return false;
@@ -8330,13 +8363,22 @@ fn run(r: Result<number, E>) -> number {
     }
 
     #[test]
-    fn return_primitive_against_named_type_is_not_flagged() {
-        // Conservative boundary: a primitive value against a named return
-        // type is not (yet) judged — assignability over named types is a
-        // later day. This locks the documented scope so a future change is
-        // a deliberate one.
+    fn return_primitive_against_declared_record_is_flagged() {
+        // This test used to pin the opposite boundary: a primitive value
+        // against a named return type was not judged, and the test existed so
+        // that a future change would be a deliberate one. This is that change.
+        // The declaration body is a record, so a `number` cannot be one, and
+        // the return position reports it under the code it has always used.
         let src = "module x\ntype U = { x: number }\nfn f() -> U { return 5 }\n";
-        assert!(ty_errors_of(src).is_empty());
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(
+                errs.as_slice(),
+                [TypeError::TypeMismatch { expected, found, .. }]
+                    if expected == "U" && found == "number"
+            ),
+            "errs: {errs:?}"
+        );
     }
 
     #[test]
@@ -8870,11 +8912,15 @@ fn main(t: Tree<number>) -> string {
         );
     }
 
+    // ----- the reverse direction: a primitive is never a declared union or
+    // record -----
+
     #[test]
-    fn a_primitive_into_a_declared_union_parameter_stays_silent_for_now() {
-        // The reverse direction is deliberately unchanged by G201. Recording it
-        // as a test keeps the boundary visible: today a `string` passed where a
-        // declared union is expected is caught only by `tsc`.
+    fn a_primitive_into_a_declared_union_parameter_is_flagged() {
+        // G201 left this direction deliberately unchanged and pinned it as
+        // silent; this is that boundary moving. A `string` passed where a
+        // declared tagged union is expected was caught only by `tsc`, so `glyph
+        // check --no-tsc` accepted `takes_result("Settled")`.
         let src = r#"module x
 type PaymentResult =
   | Settled
@@ -8886,6 +8932,227 @@ fn takes_result(r: PaymentResult) -> number {
 
 fn main() -> number {
   return takes_result("Settled")
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "PaymentResult" && found == "string"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_number_into_a_declared_record_parameter_is_flagged() {
+        // The record half of the reverse rule.
+        let src = r#"module x
+type Point = { x: number, y: number }
+
+fn takes_point(p: Point) -> number {
+  return p.x
+}
+
+fn main() -> number {
+  return takes_point(1)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "Point" && found == "number"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_bool_returned_where_a_declared_union_is_declared_is_flagged() {
+        // The return position shares the relation, so it gains the reverse
+        // direction with the argument position, under the code `return` uses.
+        let src = r#"module x
+type PaymentResult =
+  | Settled
+  | Declined
+
+fn main() -> PaymentResult {
+  return true
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::TypeMismatch { expected, found, .. }
+                    if expected == "PaymentResult" && found == "bool"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_string_bound_to_a_let_annotated_with_a_declared_record_is_flagged() {
+        // The annotated `let` position, same relation, same code as G149.
+        let src = r#"module x
+type Point = { x: number, y: number }
+
+fn main() -> number {
+  let p: Point = "origin"
+  return 1
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::TypeMismatch { expected, found, .. }
+                    if expected == "Point" && found == "string"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_primitive_into_a_generic_union_application_parameter_is_flagged() {
+        // `Tree<number>` is no more satisfied by a `string` than `Tree` is.
+        let src = r#"module x
+type Tree<T> =
+  | Leaf
+  | Node({ value: T })
+
+fn takes_tree(t: Tree<number>) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_tree("leaf")
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "Tree" && found == "string"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_primitive_into_an_empty_record_parameter_stays_silent() {
+        // The one exclusion. TypeScript lets a `string` satisfy the empty
+        // object type, so the emitted TypeScript of this program compiles under
+        // `tsc --strict`; rejecting it would make Glyph disagree with tsc on a
+        // program tsc accepts.
+        let src = r#"module x
+type Anything = { }
+
+fn takes_anything(a: Anything) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_anything("x")
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_declared_empty_record_into_a_string_parameter_is_still_flagged() {
+        // The exclusion is one-directional: `{}` is not a `string` under tsc
+        // either, so the G201 direction keeps firing on the empty record.
+        let src = r#"module x
+type Anything = { }
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(a: Anything) -> string {
+  return takes_string(a)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "string" && found == "Anything"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_string_into_a_primitive_alias_parameter_stays_silent() {
+        // `type UserId = string` names `string`; a literal fits it.
+        let src = r#"module x
+type UserId = string
+
+fn takes_id(u: UserId) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_id("u-1")
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_string_into_a_string_literal_union_parameter_stays_silent() {
+        // D30: a string-literal union is spelled with `|` but is a `string`.
+        let src = r#"module x
+type Tier = "free" | "pro"
+
+fn takes_tier(t: Tier) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_tier("free")
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_string_into_an_interface_parameter_stays_silent() {
+        // An interface is matched by member shape, not by this rule, and its
+        // empty form is one TypeScript lets a `string` satisfy.
+        let src = r#"module x
+interface Marker { }
+
+fn takes_marker(m: Marker) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_marker("x")
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_string_into_an_extern_ts_typed_parameter_stays_silent() {
+        // An `extern_ts` body is opaque to this checker by design.
+        let src = r#"module x
+type Raw = extern_ts("string | number")
+
+fn takes_raw(r: Raw) -> number {
+  return 1
+}
+
+fn main() -> number {
+  return takes_raw("x")
 }
 "#;
         assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));

@@ -2931,7 +2931,7 @@ this round, and it is why the adversarial gateway exists.
   `.types/` documentation implying ambient declarations resolve, and to say that
   in the diagnostic rather than leaving a bare E0103. Planned for 0.1.69.
 
-- **G91. [HALF FIXED] An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
+- **G91. [FIXED] An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
   this and deferred the lenient forms deliberately, on the grounds that the
   tagged encoding is "the canonical wire format". That holds while Glyph owns
   both ends. It does not survive contact with somebody else's API, which is
@@ -2952,6 +2952,24 @@ this round, and it is why the adversarial gateway exists.
   distinct boundary type that decodes *into* `Option`, which has no ambiguity
   and costs a new concept. Reopened as its own entry because the case that
   motivates it is not the case G5 was written about.
+
+  *Re-measured against 0.1.116, and the premise as written was too wide.* An
+  optional field of the base type (`s?: int`) has accepted a present `null`
+  since 0.1.68 (Round 25), so what was broken was narrower than "cannot be read
+  from ordinary JSON": `null` tolerance and a matchable `Option` could not live
+  in one field. **Fixed in 0.1.117** by the second way forward, after an
+  adversarial review refused the first (D45): loosening `Option<T>` is
+  ambiguous, since `@open type Meta = { id: int }` under `Option<Meta>` decodes
+  `{"tag": "None", "id": 7}` two ways. `Nullable<T>` is a prelude type that is
+  `T | null` in TypeScript and at run time, validated as `null` or a `T` at the
+  boundary, and its own type in Glyph: not an `Option`, no `match`, bridged by
+  `std/nullable`'s `to_option`, `from_option` and `is_null`. Measured against
+  `type Frame = { op: int, s: Nullable<int> }`: `"s": null` decodes and
+  `to_option` gives `None`, `"s": 3` gives `Some(3)`, the tagged form is
+  rejected because `int` rejects an object, and an absent `s` is still
+  `missing` (`s?:` is the spelling for that). `json.stringify` of the decoded
+  value is the wire form again. `glyph gen openapi` and `gen dts` now route a
+  `nullable` field to it instead of collapsing it to an optional field.
 
 - **G92. [FIXED] Locally bound closures cannot call each other.** `let a = fn() { b() }`
   followed by `let b = ...` is `[E0103] unresolved name b`: a `let` is in scope

@@ -39,7 +39,7 @@ A quick lookup when you know what you want in TypeScript and need the Glyph name
 | `interface` as a constraint | `interface` used as a bound (`<T: Bound>`) |
 | `enum` | tagged union, or a string-literal union (`"a" \| "b"`) |
 | `number` for an integer | `int` (validated whole number at the boundary) |
-| `T \| null` / `T \| undefined` | `Option<T>` (`Some`/`None`) |
+| `T \| null` / `T \| undefined` | `Option<T>` (`Some`/`None`) inside the program; `Nullable<T>` for a field the wire sends as `null`, converted with `nullable.to_option` |
 | `throw` / `try`/`catch` | `Result<T, E>` + `match` / `?` |
 | `if`/`else`/`switch` | `match` |
 | `x.map(f)` (method) | `array.map(x, f)` (module function) |

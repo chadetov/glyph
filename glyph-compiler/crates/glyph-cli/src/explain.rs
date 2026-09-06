@@ -118,11 +118,20 @@ pub fn explain(code: &str) -> Option<&'static str> {
             (greppability).\n\n\
             Rename one of them.",
         "E0101" => "E0101: relative import\n\n\
-            Imports must use an absolute module path. Relative paths (`./`, `../`) \
-            are not allowed (D15): they make a file's dependencies depend on where \
-            it sits, which hurts greppability and refactoring.\n\n\
+            A module is named from the source root, never from the importing file's \
+            own directory. Relative paths (`./`, `../`) are not allowed (D15): they \
+            make a file's dependencies depend on where it sits, which hurts \
+            greppability and refactoring.\n\n\
+            There are three spellings and no package-name prefix: a stdlib module by \
+            its `std/` path (`import std/io`), a sibling file in the same source \
+            directory by its bare name (`import helper`), and a file in a \
+            subdirectory by its path from that root (`import queries/report`).\n\n\
             Before:  import ./util { helper }\n\
-            After:   import myapp/util { helper }",
+            After:   import util { helper }\n\n\
+            Before:  import ../queries/report\n\
+            After:   import queries/report\n\n\
+            In practice the parser stops a leading `.` at the import site as E0002 \
+            before the resolver runs; this code covers the same rule.",
         "E0102" => "E0102: barrel file\n\n\
             This module contains only imports and no declarations. Glyph imports do \
             not re-export, so such a file does nothing — it is the barrel-file \

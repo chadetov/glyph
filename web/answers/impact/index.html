@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can the compiler tell me what a change will break before I make it? · Glyph</title>
+    <meta name="description" content="glyph_impact takes the declaration you're about to change and the edit itself, and answers with one verdict per site from a closed list, and the reason, before you touch the file." />
+    <link rel="canonical" href="https://glyphlang.io/answers/impact/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/embedding/"><span class="n">05</span> Inside your app</a>
+        <a href="/answers/typed-apis/"><span class="n">06</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">07</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">08</span> React</a>
+        <a href="/answers/state/"><span class="n">09</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">10</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">11</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">12</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
+        <a href="/answers/impact/" class="active"><span class="n">15</span> Before you edit</a>
+        <a href="/answers/debugging/"><span class="n">16</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">17</span> The language</a>
+        <a href="/answers/finance/"><span class="n">18</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">19</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">20</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">21</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">22</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">23</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">24</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">25</span> Binary data</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">15 &middot; Before you edit</p>
+      <h1 class="q-title">Can the compiler tell me what a change will break before I make it?</h1>
+
+      <p class="short-answer">
+        For six kinds of edit, yes. <code>glyph_impact</code> takes the declaration you're about
+        to change and the change itself (rename it, drop a variant, change a parameter's type,
+        change its arity, remove it), and answers with <strong>one verdict per site</strong> from
+        a closed list, each with the reason that verdict and no other.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Renaming a function, widening a union, or changing what a parameter accepts, you either
+          grep for the old name and hope you found every call, or you make the edit and read what
+          the compiler says afterward. Neither approach tells you which sites will keep compiling
+          while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when
+          you add a variant, it just starts routing the new case somewhere nobody chose. That
+          site never shows up in a build. <code>glyph_impact</code> answers before the edit, over
+          the same analysis the compiler runs.
+        </p>
+
+        <p class="block-label">What comes back</p>
+        <p>
+          The request names an entity by its <code>module::name</code> identity and a change from
+          a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>,
+          <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The
+          change is required, because a verdict is a fact about an edit; with no edit named, every
+          site would come back as a bare reference instead of a consequence. The answer names the
+          entity, the change, and an <code>impact</code> list: one entry per site, each with the
+          declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a
+          <code>because</code>, and the diagnostic code the compiler raises when there is exactly
+          one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the
+          compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the
+          change is taken here silently), <code>SAFE</code> (it can prove the site stays correct),
+          <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence),
+          and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at
+          all).
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one
+          passes a string literal, one passes a value of a union imported from another module, and
+          one reads <code>label</code> as a value and never calls it. Asking what
+          <code>change_signature_type</code> does to each gets three different verdicts, because
+          they're three different claims:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">request</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_impact",
+    "arguments": {
+      "entity": "lib::label",
+      "change": { "kind": "change_signature_type" }
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">result, trimmed to the three sites</span>
+<pre>{
+  "entity": "lib::label",
+  "impact": [
+    {
+      "entity": "literal::probe",
+      "verdict": "WILL_FAIL",
+      "diagnostic": "E0211",
+      "because": "the checker compares a primitive argument
+        against a primitive parameter, and against a tagged
+        union or a record with at least one field declared in
+        this module, so a replacement primitive a `string`
+        does not satisfy ... is E0211 here"
+    },
+    {
+      "entity": "imported::probe",
+      "verdict": "UNDETERMINED",
+      "diagnostic": null,
+      "because": "`Cell` is declared in another module, and
+        the checker's rule for a declared type against a
+        primitive reads only a declaration in the calling
+        module (G201); a cross-module type is compared
+        against nothing, so only `tsc` on a full `glyph
+        build` would report a mismatch here"
+    },
+    {
+      "entity": "reader::sizer",
+      "verdict": "NOT_INDEXED",
+      "diagnostic": null,
+      "because": "this site reads the name rather than
+        applying it, so no argument is paired with a
+        parameter here, and Glyph does not compare a
+        function value's parameter types against the type
+        its use context expects"
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Same edit, three sites, three verdicts, and the <code>because</code> on each is the
+          actual sentence the compiler produces, not a category label. This mirrors the compiler's
+          own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>
+          in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and
+          checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the
+          compiler stays silent at the other two.
+        </p>
+
+        <p class="block-label">On a real application</p>
+        <p>
+          <code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository,
+          has one tagged union, <code>Value</code>, with four variants today. Asking
+          <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match
+          sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will
+          silently absorb the new variant. Adding the variant for real, the compiler reports
+          exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing
+          at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms
+          across the same app, the thing you'd do without the tool, finds those same 2 real sites
+          buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail,
+          because it has no notion of which type a <code>match</code> scrutinizes.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Where it stops</p>
+          <p>Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument whose type is declared in another module, or one the checker holds no type for, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/tooling/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">What's the editor, debugging, and error experience?</span>
+        </a>
+        <a href="/answers/debugging/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">When it breaks in production at 3am, what does on-call see?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/impact/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

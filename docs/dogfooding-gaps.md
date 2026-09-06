@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-211 entries, 181 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-11 are open. G144, the D28 boundary cast that never reached the returns a
+212 entries, 181 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+12 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8383,3 +8383,19 @@ and is the owner's to confirm.
   it.
 
   *Reproduced against 0.1.116 (the 0.1.117 tree, version string 0.1.116): the program above, `glyph build --out dist src`, reports the error at `main:7:3` where the call is on line 8.*
+
+- **G212. A resource reached through an alias is not a resource, while D46 says
+  the alias is the declaration.** `resource type Handle = { fd: number }` and
+  `type H = Handle`: `let owned a: Handle = { fd: 1 }` is accepted and tracked,
+  and `let owned b: H = { fd: 2 }` is `E0205` saying `b` has non-resource type
+  `H`. D46 (0.1.117) made a bare-name alias a second name for its declaration
+  in `local_type_decl`, `named_record_fields` and the descriptor lookup, so
+  `H` passes where a `Handle` is declared; `named_is_resource` in
+  `glyph-typechecker/src/owned.rs` still reads the name it was handed and
+  follows no chain, so the ownership check answers by which of two names the
+  site reached the type through. That is the sentence D46's own pillar note
+  forbids. The fix is one hop: resource-ness follows the same alias chain the
+  rest of the checker follows. Found by the 0.1.118 design review before any
+  code was written.
+
+  *Reproduced against 0.1.117: the program above is `[E0205] owned requires a resource type, but b has non-resource type H`, exit 1; with `Handle` written at both sites it checks clean, exit 0.*

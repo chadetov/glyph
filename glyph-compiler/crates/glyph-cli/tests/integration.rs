@@ -12667,7 +12667,7 @@ fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
     // G207. `type Positive = Rec where value.x > 0` refines a record whenever
     // `Rec` is one, and D39 refuses a `where` on a record. The refusal used to
     // read the spelled body, so the inline spelling was E0300 while this one
-    // built clean and emitted a working descriptor. The alias hop (D45) makes
+    // built clean and emitted a working descriptor. The alias hop (D46) makes
     // `Rec` and the base one type, so the two spellings have to agree.
     let root = unique_tmp("g207where");
     let src = root.join("src");
@@ -12696,7 +12696,7 @@ fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
 #[test]
 fn a_module_local_alias_is_a_second_name_for_its_record() {
     // G203 and G206, one program. `type B = A` is a second name for `A`'s
-    // declaration (D45): a `B` passes where an `A` is declared and the
+    // declaration (D46): a `B` passes where an `A` is declared and the
     // reverse, where 0.1.115 drew E0211 on a program `tsc --strict` accepts;
     // and a field typo through `B` is E0210 naming the field, where the same
     // program checked clean unless `A` and `B` were imported from a sibling.
@@ -12730,7 +12730,7 @@ fn a_module_local_alias_is_a_second_name_for_its_record() {
 
 #[test]
 fn parse_on_a_module_local_alias_is_the_records_parse() {
-    // D45 at run time. `B.parse` is `A.parse`: the checker types the call
+    // D46 at run time. `B.parse` is `A.parse`: the checker types the call
     // through the alias (the unit test in glyph-typechecker pins the field
     // check on the parsed value), and the emitter binds `const B = A;` right
     // after `A`'s descriptor so the call exists at run time whatever order

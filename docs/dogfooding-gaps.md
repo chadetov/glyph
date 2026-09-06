@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-211 entries, 175 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-16 are open. G144, the D28 boundary cast that never reached the returns a
+211 entries, 179 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+12 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8091,7 +8091,7 @@ and is the owner's to confirm.
   independently-declared `type C = { x: number }` reports the same code by
   design, which is not this entry's complaint.*
 
-  **Fixed in 0.1.117, by ruling.** D45: a `type` whose body is a bare name is a
+  **Fixed in 0.1.117, by ruling.** D46: a `type` whose body is a bare name is a
   second name for the declaration it resolves to, not a new nominal type.
   `local_type_decl` follows the chain (with a cycle guard, since the resolver
   accepts `type A = B` beside `type B = A`) and `assign_incompatible`
@@ -8181,7 +8181,7 @@ and is the owner's to confirm.
   `E0211` on passing an `A` as a `B` and nothing on `b.naem`; the two-module
   program reports `E0210` on `b.naem` and nothing on the pass.*
 
-  **Fixed in 0.1.117, under the same ruling as G203 (D45).**
+  **Fixed in 0.1.117, under the same ruling as G203 (D46).**
   `named_record_fields` reads the record through `local_type_decl`, which
   follows the alias chain, so `b.naem` on a `b: B` is E0210 in one module as
   it already was across two, and the field-use site is keyed under the record
@@ -8213,7 +8213,7 @@ and is the owner's to confirm.
   the base resolves to, not the shape it is spelled as. The emitter's check
   moved from the two syntactic arms to one `refused_refinement_base` that
   follows a chain of bare-name aliases (`alias_chain_terminal`, the same walk
-  the D45 hop takes) to the declaration it ends at and refuses a record or a
+  the D46 hop takes) to the declaration it ends at and refuses a record or a
   union there with the E0300 the inline spelling already raised. A `where`
   over an alias of a primitive (`type Cents = int`, `type PosCents = Cents
   where value > 0`) is D39's own case and still emits its descriptor. Only

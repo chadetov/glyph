@@ -61,8 +61,57 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.115</span>
+            <span class="rel-ver">0.1.116</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The checker stops accepting five things it shouldn't</h3>
+            <p>Passing a value of a declared union or record where a <code>string</code>, <code>number</code> or <code>bool</code> is declared drew nothing from <code>glyph check --no-tsc</code>, while the same call with a <code>bool</code> argument was <code>E0211</code>. Only <code>tsc</code> caught the union:</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>type PaymentResult = | Settled | Declined
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(r: PaymentResult) -> string {
+  return takes_string(r)
+}
+<span class="del">// 0.1.115: glyph check --no-tsc says nothing. tsc catches it at build time.</span>
+<span class="add">// 0.1.116: [E0211] argument type mismatch: expected `string`, found `PaymentResult`</span></pre>
+            </div>
+            <p>The reverse direction is caught too: a <code>string</code>, <code>number</code> or <code>bool</code> passed where a locally declared union or record is expected. The one exclusion is the zero-field record <code>type T = { }</code>, which TypeScript lets a plain string satisfy, so Glyph does not disagree with a program <code>tsc --strict</code> accepts.</p>
+            <p>A bare PascalCase match arm naming a variant of the wrong imported union used to escape as a resolver error rather than a checker one:</p>
+            <div class="code">
+              <span class="cap">app.glyph, matching an Answer imported from model</span>
+<pre>match a {
+  Yes => 1,
+  No => 0,
+  Zed => 2,   // Zed is a variant of model's Mood, not of Answer
+}
+<span class="del">// 0.1.115: glyph check --no-tsc says nothing.</span>
+<span class="add">// 0.1.116: [E0220] `Zed` is not a variant of `Answer`; did you mean `Yes`?</span></pre>
+            </div>
+            <p>That is the same diagnostic the module-local check has always raised for an unknown arm head; the imported path now raises it too, with the same nearest-variant suggestion.</p>
+            <p>Two positions around module-level <code>const</code> are checked for the first time. An annotated const is typed by its annotation, so a wrong field on it is now <code>E0210</code> the way the identical program with a <code>let</code> already was. And a const's own initializer is checked against that annotation, so <code>const LIMIT: number = "ten"</code> is <code>E0204</code> instead of compiling clean and only failing under <code>tsc</code>.</p>
+            <p class="rel-note"><strong>Breaking, and deliberately so.</strong> Each of these starts catching a program the checker used to wave through, so a green build can go red on upgrade. Established by running the published 0.1.115 and this release on the same four programs, under an isolated <code>HOME</code>: the union argument, the const initializer, and the wrong-union match arm each go from exit 0 to exit 1; a fourth program using the same union correctly stays exit 0 on both.</p>
+            <h3>What a signature change breaks, for every argument</h3>
+            <p><code>glyph_impact</code>'s <code>change_signature_type</code> used to answer every call site <code>NOT_INDEXED</code>, because the checker itself drew no conclusion for a named type against a primitive. Now that the checker compares that pairing, the tool answers per argument: <code>WILL_FAIL</code> with <code>E0211</code> where the checker's own rules would reject the call, <code>UNDETERMINED</code> with a stated reason where they don't (a type declared in another module, an argument the checker holds no type for, the empty-record exclusion), and <code>NOT_INDEXED</code> only for a function read as a value rather than called. A site is the weakest of its arguments.</p>
+            <h3>What a file's address is, decided</h3>
+            <p>A file's own <code>module</code> line and the path the project keys it by could disagree with nothing saying so, and in shipped code that silently misdirected an exact-or-absent answer to the wrong file's declaration. The ruling: the path is authoritative, and a disagreeing header is not a key. The diagnostic that enforces this inside a marked project is recorded as owed work, not shipped in this release.</p>
+            <p>A positional variant pattern such as <code>Node(c, k)</code> is rejected in the parser now, sharing <code>E0010</code> with the declaration spelling, so the emitter can no longer call the same shape unimplemented one line after the parser called it nonexistent. Not breaking: the program was rejected before and is rejected now, with a diagnostic that says why.</p>
+            <p>The site gained a new answer page, <a href="/answers/impact/">what a change will break before you make it</a>, and deepened the existing one on silent breakage with the two holes this release closed.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.115</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

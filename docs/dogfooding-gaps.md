@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-208 entries, 172 are fixed, 11 are partly fixed, 11 are decided or resolved, and
+208 entries, 173 are fixed, 10 are partly fixed, 11 are decided or resolved, and
 14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -5950,7 +5950,7 @@ through an object pattern's fields.
 
   *Found by the review of the G145 fix. Reproduced against 0.1.92.*
 
-- **G147. [HALF FIXED] A lowercase nullary variant of an *imported* payload union does not
+- **G147. [FIXED] A lowercase nullary variant of an *imported* payload union does not
   dispatch; the build stops at E0305 instead.** The nested-arm rule (G145) reads
   the payload union's variant list first and falls back to the name's shape when
   that list is unreadable. Across a module boundary the list is unreadable: an
@@ -6000,6 +6000,58 @@ through an object pattern's fields.
   together rather than one at a time.
 
   *Found while verifying the G145 fix. Reproduced against 0.1.92.*
+
+  *Closed in 0.1.117, and the premise was re-checked before any code. The
+  program above has built and dispatched since 0.1.96, when the `(module,
+  union) -> variant names` registry landed for a prelude scrutinee: under the
+  published 0.1.115 it is exit 0 with no diagnostics, and it is pinned now by
+  `imported_lowercase_payload_variant_dispatches_at_run_time`, which runs it
+  under node and asserts `arm:empty`, `arm:nan:x`, `arm:ok` in that order. The
+  half the 0.1.96 note left open was the real remaining defect, and it is the
+  one fixed here: an *imported outer* union, `pub type Inner = | alpha | beta`
+  and `pub type G = | A | B(Inner)` in `tree.glyph`, matched as `A`,
+  `B(alpha)`, `B(beta)` from `main.glyph`. Under 0.1.115 that is `[E0305]
+  Error: emit: this match arm can never run: an earlier arm already matches
+  \`B\``, exit 1; under 0.1.117 it is exit 0 and prints `arm:a`,
+  `arm:b-alpha`, `arm:b-beta`. 0.1.116 was not on npm at the time of the check,
+  and the nested-arm rule is byte-identical between the v0.1.115 and v0.1.116
+  tags, so 0.1.115 is the previous release for this comparison.*
+
+  *The fix is the second registry the 0.1.96 note asked for.
+  `ProjectTables::scan` now records `union_variant_payloads`, `(module, union,
+  variant) -> (module, type)`: the declaration each payload-carrying variant's
+  payload *names*, resolved in the declaring module's own namespace (a local
+  `type`, a name from `import m { Inner }`, or `ns.Inner` through a namespace or
+  aliased import; a generic application resolves to its base). Only paths are
+  recorded, so a record or function payload leaves the table silent.
+  `nested_payload_variants` consults it when the scrutinee's base is a
+  `Ty::Imported` and lands in `union_variant_names`, so the same variant list
+  decides for every spelling of the boundary and the shape rule is left for a
+  name no module of the project declares. The mirror, a *local* outer union
+  whose payload is imported (`type Outer = | A | B(Inner)` with `Inner` from a
+  sibling), was stopping at the same E0305 for a different reason: the payload
+  path resolved to an `ImportNamed` symbol and the by-name lookup only knew
+  local declarations. It now follows the import symbol (and the `ns.Inner`
+  spelling) into the same registry. A name the registry does not know still
+  binds: `B(x)` beside `B(alpha)` emits `const x =` under one `case "B"`,
+  pinned by `a_binding_under_an_imported_outer_union_is_still_a_binding`.*
+
+  *Covered in `glyph-emit` by
+  `nested_lowercase_variant_of_an_imported_outer_union_dispatches_on_the_inner_tag`,
+  `imported_outer_union_whose_payload_is_named_imported_from_a_third_module_dispatches`,
+  `imported_outer_union_whose_payload_is_spelled_through_a_namespace_dispatches`,
+  `local_outer_union_with_an_imported_lowercase_payload_variant_dispatches` and
+  `local_outer_union_with_a_namespace_spelled_imported_payload_dispatches`, and
+  in `glyph-cli` by `imported_outer_union_lowercase_payload_variant_dispatches_at_run_time`,
+  which builds the two-module project and runs it. Ignoring the registry (the
+  `Ty::Imported` branch returning `None`) fails the three imported-outer emit
+  tests, the binding test and the run-time test with the E0305 stop; the two
+  local-outer tests pass under it because they go through the import symbol
+  rather than the payload table. G143's shallow-coverage checks
+  (`nested_payload_of_an_imported_union_is_exhaustiveness_checked`,
+  `a_local_unions_imported_payload_is_exhaustiveness_checked`) are unchanged
+  and still pass. Not breaking: the release accepts a program the previous one
+  refused and rejects nothing it accepted.*
 
 - **G148. [FIXED] A type parameter on an *imported* union switched
   exhaustiveness checking off.** The half G142 left open, closed. A `match` over

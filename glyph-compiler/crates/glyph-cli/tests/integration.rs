@@ -7219,18 +7219,17 @@ fn run_reports_every_build_diagnostic_including_on_a_cache_hit() {
         "module other\nfn broken() -> number {\n\x20 return \"nope\"\n}\n",
     );
 
+    let entry = root.join("solo.glyph");
     let run = || {
-        std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
-            .arg("run")
-            .arg(root.join("solo.glyph"))
-            .arg("--no-check")
-            .output()
-            .expect("spawn glyph run")
+        let (_code, stdout, stderr, _) = spawn_glyph(&[
+            std::ffi::OsStr::new("run"),
+            entry.as_os_str(),
+            std::ffi::OsStr::new("--no-check"),
+        ]);
+        (stdout, stderr)
     };
 
-    let first = run();
-    let out = String::from_utf8_lossy(&first.stdout).to_string();
-    let err = String::from_utf8_lossy(&first.stderr).to_string();
+    let (out, err) = run();
     assert!(out.contains("hi"), "the program still runs: stdout {out:?}");
     assert!(
         err.contains("E0204"),
@@ -7244,9 +7243,7 @@ fn run_reports_every_build_diagnostic_including_on_a_cache_hit() {
     // Second run, unchanged sources: the build is cached, so the diagnostics can
     // only come back from the cache. Reporting them once and then falling silent
     // is worse than never reporting them.
-    let second = run();
-    let out2 = String::from_utf8_lossy(&second.stdout).to_string();
-    let err2 = String::from_utf8_lossy(&second.stderr).to_string();
+    let (out2, err2) = run();
     assert!(
         out2.contains("hi"),
         "the program still runs: stdout {out2:?}"
@@ -7464,81 +7461,169 @@ fn json_parse_of_an_imported_type_uses_its_schema() {
 /// Spawn the `glyph` binary and collect (exit code, stdout, stderr, child pid).
 /// The pid matters: the example runner names its throwaway directory after the
 /// process that created it, so a unique pid proves whether one was created.
+///
+/// Every invocation is bounded by `GLYPH_DEADLINE`. A `glyph run` whose program
+/// never exited used to become the suite's own hang: G166 sat for eleven hours
+/// in three worktrees at once, and each `tsx` tree it started was still alive
+/// at PPID 1 after the test binary had been killed by hand. Past the deadline
+/// the whole process tree is killed and the test fails with its own name, the
+/// elapsed time and everything the child had written.
 fn spawn_glyph(args: &[&std::ffi::OsStr]) -> (i32, String, String, u32) {
-    let child = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
-        .args(args)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .expect("spawn glyph");
-    let pid = child.id();
-    let out = child.wait_with_output().expect("wait glyph");
-    (
-        out.status.code().unwrap_or(-1),
-        String::from_utf8_lossy(&out.stdout).to_string(),
-        String::from_utf8_lossy(&out.stderr).to_string(),
-        pid,
-    )
+    let run = run_glyph_within(args, GLYPH_DEADLINE);
+    match run.code {
+        Some(code) => (code, run.stdout, run.stderr, run.pid),
+        None => panic!("{}", run.deadline_report(args)),
+    }
 }
 
-/// Run `glyph` under a wall-clock budget, and kill it if it outlives one.
+/// The wall-clock budget for one `glyph` invocation a test spawns. The slowest
+/// honest run here is a cold `glyph run` that compiles, type-checks with `tsc`
+/// and starts `tsx`, under ten seconds alone and well under a minute with the
+/// suite running around it. Two minutes is the price of reporting a hang, and
+/// nothing that finishes needs it.
+const GLYPH_DEADLINE: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// Run `glyph` under a caller-chosen wall-clock budget, and kill it if it
+/// outlives one. `None` means the process was still alive at the deadline.
 ///
-/// `None` means the process was still alive at the deadline. Every other
-/// helper here waits forever, which is the one thing a test about a program
-/// that never exits cannot do: without a budget the hang becomes the harness's
-/// hang and the suite stops instead of failing.
+/// `spawn_glyph` has the same bound with a fixed budget and a panic; this form
+/// is for a test whose subject is the hang itself, which wants to say in its
+/// own words what a program that never exits means.
 fn spawn_glyph_bounded(
     args: &[&std::ffi::OsStr],
     budget: std::time::Duration,
 ) -> Option<(i32, String, String)> {
-    use std::io::Read;
+    let run = run_glyph_within(args, budget);
+    run.code.map(|code| (code, run.stdout, run.stderr))
+}
+
+/// What one bounded `glyph` invocation produced. `code` is `None` when the
+/// deadline killed it; `stdout` and `stderr` then hold whatever had been
+/// written by the time the tree died, which is the evidence a hang leaves.
+struct GlyphRun {
+    code: Option<i32>,
+    stdout: String,
+    stderr: String,
+    pid: u32,
+    elapsed: std::time::Duration,
+}
+
+impl GlyphRun {
+    /// The failure a test reports when its child outlived the deadline: which
+    /// test, which command, how long, and the output captured so far.
+    fn deadline_report(&self, args: &[&std::ffi::OsStr]) -> String {
+        let test = std::thread::current()
+            .name()
+            .unwrap_or("<unnamed test>")
+            .to_string();
+        let args = args
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join(" ");
+        format!(
+            "{test}: `glyph {args}` (pid {}) was still running after {:.1?}; \
+             it was killed with its whole process tree.\n\
+             --- stdout so far ---\n{}\n--- stderr so far ---\n{}",
+            self.pid, self.elapsed, self.stdout, self.stderr
+        )
+    }
+}
+
+/// Spawn `glyph`, drain both pipes, and either see it exit within `budget` or
+/// kill it and everything it started.
+///
+/// `glyph run` compiles and then spawns `tsx`, which starts an `esbuild`
+/// service; the program that hangs is two processes down from the one the test
+/// spawned, and it inherits the pipes. Killing only `glyph` would leave `tsx`
+/// holding the write end and running, so the child is given its own process
+/// group and the timeout path kills the group.
+fn run_glyph_within(args: &[&std::ffi::OsStr], budget: std::time::Duration) -> GlyphRun {
     let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"));
     command
         .args(args)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
-    // `glyph run` compiles and then spawns node, which inherits these pipes and
-    // is the process that actually hangs. Killing only `glyph` leaves node
-    // holding the write end and running, so the timeout path has to be able to
-    // reach the whole tree; its own process group is what makes that possible.
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
         command.process_group(0);
     }
     let mut child = command.spawn().expect("spawn glyph");
-    // Drained on their own threads. A child that fills a pipe buffer blocks on
-    // the write, which would look exactly like the hang under test.
-    let mut out_pipe = child.stdout.take().expect("stdout is piped");
-    let mut err_pipe = child.stderr.take().expect("stderr is piped");
-    let out_reader = std::thread::spawn(move || {
-        let mut text = String::new();
-        let _ = out_pipe.read_to_string(&mut text);
-        text
-    });
-    let err_reader = std::thread::spawn(move || {
-        let mut text = String::new();
-        let _ = err_pipe.read_to_string(&mut text);
-        text
-    });
+    let pid = child.id();
+    let out_rx = drain_pipe(child.stdout.take().expect("stdout is piped"));
+    let err_rx = drain_pipe(child.stderr.take().expect("stderr is piped"));
     let started = std::time::Instant::now();
-    loop {
+    let code = loop {
         match child.try_wait().expect("wait on glyph") {
-            Some(status) => {
-                let stdout = out_reader.join().unwrap_or_default();
-                let stderr = err_reader.join().unwrap_or_default();
-                return Some((status.code().unwrap_or(-1), stdout, stderr));
-            }
+            Some(status) => break Some(status.code().unwrap_or(-1)),
             None if started.elapsed() >= budget => {
                 kill_the_whole_tree(&mut child);
-                // The readers are left to finish on their own. Joining them here
-                // is what turned "the program hung" into "the test run hung" the
-                // first time this was written.
-                return None;
+                break None;
             }
             None => std::thread::sleep(std::time::Duration::from_millis(50)),
         }
+    };
+    let elapsed = started.elapsed();
+    // With every process in the group gone both pipes are closed and the
+    // readers finish at once. The grace is for a writer outside the group; it
+    // gets a moment, and then the test proceeds on what was captured rather
+    // than waiting on it. Joining the reader threads instead is what turned
+    // "the program hung" into "the test run hung" the first time this was
+    // written.
+    let grace = std::time::Duration::from_secs(if code.is_some() { 10 } else { 2 });
+    GlyphRun {
+        code,
+        stdout: collect_pipe(out_rx, grace),
+        stderr: collect_pipe(err_rx, grace),
+        pid,
+        elapsed,
     }
+}
+
+/// Read a child's pipe on its own thread, handing each chunk over a channel.
+/// A child that fills a pipe buffer blocks on the write, which would look
+/// exactly like the hang under test; chunks rather than one final string so a
+/// killed child's partial output survives.
+fn drain_pipe<R: std::io::Read + Send + 'static>(
+    mut pipe: R,
+) -> std::sync::mpsc::Receiver<Vec<u8>> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut buf = [0u8; 8192];
+        loop {
+            match pipe.read(&mut buf) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => {
+                    if tx.send(buf[..n].to_vec()).is_err() {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+    rx
+}
+
+/// Everything a `drain_pipe` reader has produced, waiting at most `grace` for
+/// it to reach end of stream.
+fn collect_pipe(rx: std::sync::mpsc::Receiver<Vec<u8>>, grace: std::time::Duration) -> String {
+    let deadline = std::time::Instant::now() + grace;
+    let mut bytes = Vec::new();
+    loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        match rx.recv_timeout(left) {
+            Ok(chunk) => bytes.extend(chunk),
+            // Disconnected means the reader hit end of stream; a timeout means
+            // something still holds the pipe. Either way, what is here is what
+            // the test gets.
+            Err(_) => break,
+        }
+    }
+    while let Ok(chunk) = rx.try_recv() {
+        bytes.extend(chunk);
+    }
+    String::from_utf8_lossy(&bytes).into_owned()
 }
 
 /// Kill a `glyph` process and everything it started.
@@ -11383,6 +11468,15 @@ pub fn main(argv: Array<string>) -> number {
 /// replacement characters, and the bug only shows under load or with non-ASCII
 /// input. The test sends `0xC3` at the end of one write and `0xA9` at the start
 /// of the next, and asserts the server saw `é` rather than U+FFFD.
+///
+/// The program's own exit condition has to respect the same fact. It used to
+/// count reads and exit on the second one, with a 60 ms timer between the two
+/// halves; under load the two halves reached the server in one read, or the
+/// two echoes reached the client in one, and a program waiting for a second
+/// read that could never come sat on an idle socket for eleven hours (G166).
+/// The client now sends the second half only after the first echo is back,
+/// and exits when what it has heard ends in the second echo, so neither the
+/// server's reads nor the client's depend on who else wants the CPU.
 #[test]
 fn net_carries_a_split_character_and_reports_a_bind_failure() {
     if !js_toolchain_available() {
@@ -11407,7 +11501,7 @@ import std/option {{ Some, None }}
 import std/process
 import std/result {{ Ok, Err }}
 import std/store
-import std/timers
+import std/string
 
 const PORT: int = {port}
 
@@ -11436,15 +11530,27 @@ pub async fn main() -> void {{
 
 fn drive() -> void {{
   let c = net.connect("127.0.0.1", PORT)
-  let seen = store.create<int>(0)
+  // Everything heard back so far. The exit condition is about content, not
+  // about how many reads carried it: TCP has no message boundaries.
+  let heard = store.create<string>("")
+  let sent_rest = store.create<bool>(false)
   net.on_error(c, fn(m: string) {{ io.eprintln("client: ${{m}}") }})
   net.on_text(c, fn(text: string) {{
     io.println("client=${{text}}")
-    seen.update(fn(n: int) {{ n + 1 }})
-    match seen.get() >= 2 {{
+    heard.update(fn(h: string) {{ "${{h}}${{text}}" }})
+    match string.ends_with(heard.get(), "echo:é!") {{
       true => {{
         net.close(c)
         process.exit(0)
+      }},
+      false => {{}},
+    }}
+    // The second half goes only once the first echo is back, so the server
+    // has already read "hi " and is holding the lone 0xC3 when 0xA9 arrives.
+    match string.ends_with(heard.get(), "echo:hi ") && !sent_rest.get() {{
+      true => {{
+        sent_rest.set(true)
+        net.send_bytes(c, octets([169, 33,]))
       }},
       false => {{}},
     }}
@@ -11452,7 +11558,6 @@ fn drive() -> void {{
   net.on_connect(c, fn() {{
     // "hi " then a lone 0xC3, which is the first half of "é".
     net.send_bytes(c, octets([104, 105, 32, 195,]))
-    timers.after(60, fn() {{ net.send_bytes(c, octets([169, 33,])) }})
   }})
 }}
 
@@ -11489,6 +11594,10 @@ fn octets(xs: Array<int>) -> bytes.Bytes {{
     assert!(
         stdout.contains("client=echo:hi "),
         "the echo came back: {stdout}"
+    );
+    assert!(
+        stdout.contains("client=echo:\u{e9}!"),
+        "the second echo came back whole: {stdout}"
     );
 }
 

@@ -1,0 +1,18 @@
+module main
+
+type Shape =
+  | Circle
+  | Square
+  | Tri
+
+// A second name for a union (D46) is that union: a match over `Local` must
+// cover `Shape`'s variants, so the arm set that misses `Tri` is E0200 here
+// exactly as it is over `Shape` itself.
+type Local = Shape
+
+pub fn area(s: Local) -> number {
+  return match s {
+    Circle => 1,
+    Square => 2,
+  }
+}

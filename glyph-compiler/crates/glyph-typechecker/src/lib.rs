@@ -35,10 +35,11 @@ pub mod ty;
 pub mod type_map;
 
 pub use assign::{
-    assign_types, assign_types_with_coverage, assign_types_with_relations,
-    assign_types_with_resolver, CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention,
-    CoverageSite, CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess,
-    FieldOwner, FieldSite, FileFieldUses, FileMatchCoverage, LocalDeclTy,
+    alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
+    assign_types_with_resolver, direct_type_decl, resolve_alias_chain, split_type_app,
+    CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention, CoverageSite,
+    CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,
+    FieldSite, FileFieldUses, FileMatchCoverage, LocalDeclTy,
 };
 pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
 pub use ty::{

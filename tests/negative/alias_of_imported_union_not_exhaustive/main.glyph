@@ -1,0 +1,14 @@
+module main
+import lib { Shape, Circle, Square }
+
+// A local second name for an imported union (D46) is that union: a match
+// over it is held to the same bar as a match over `Shape`, so the arm set
+// that misses `Tri` is E0200 here exactly as it is over the direct spelling.
+type Local = Shape
+
+pub fn area(s: Local) -> number {
+  return match s {
+    Circle => 1,
+    Square => 2,
+  }
+}

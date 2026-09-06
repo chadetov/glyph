@@ -888,7 +888,7 @@ fn arm_ordinal(index: usize) -> u16 {
 /// `SymbolId` numbers from 0 independently of the module table, and must not
 /// index an unrelated declaration) lives here once. Shared by the assigner and
 /// the owned checker so both read the same declaration for the same name.
-pub(crate) fn direct_type_decl<'m>(
+pub fn direct_type_decl<'m>(
     module: &'m Module,
     resolved: &ResolvedModule,
     ty: &Ty,
@@ -907,17 +907,24 @@ pub(crate) fn direct_type_decl<'m>(
 
 /// The type `td` is a second name for, when it is one (D46): its body is a
 /// single bare name, it declares no generic parameters, and it carries no
-/// `where`. Lowering that body gives the `Ty::Named` of the declaration
-/// it names, which is the next hop. `None` for every other body, which is
-/// the declaration's own type rather than another's: a record, a union, a
-/// string-literal union, an `extern_ts` or `typeof` body, a function type,
-/// a generic application (`Record<string, T>`, `Wrapper<T>`), a
-/// refinement, and a bare name that lowers to something other than a
-/// module-local declaration (a primitive, an import). No incompatibility
-/// is decided from a body not being followed; the corpus holds six
-/// `Record<string, T>` and `Array<..>` aliases, and reading those as
-/// nominal would reject programs `tsc` accepts.
-pub(crate) fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> Option<Ty> {
+/// `where`. Lowering that body gives the next hop: the `Ty::Named` of a
+/// declaration in this module, or the `Ty::Imported` of one in a sibling.
+/// The rule does not stop at a file boundary, because D46 says the
+/// guarantees on a type do not depend on which file its name was declared
+/// in: `type Local = Shape` with `Shape` imported is a second name for the
+/// sibling's declaration, and answering `Local`'s own `Ty::Named` here left
+/// a match over it unchecked (G224) and made `Local` and a second alias of
+/// the same import incompatible with each other by their spelling.
+///
+/// `None` for every other body, which is the declaration's own type rather
+/// than another's: a record, a union, a string-literal union, an
+/// `extern_ts` or `typeof` body, a function type, a generic application
+/// (`Record<string, T>`, `Wrapper<T>`), a refinement, and a bare name that
+/// lowers to a primitive (`type Id = string`). No incompatibility is decided
+/// from a body not being followed; the corpus holds six `Record<string, T>`
+/// and `Array<..>` aliases, and reading those as nominal would reject
+/// programs `tsc` accepts.
+pub fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> Option<Ty> {
     if !td.generics.is_empty() || td.refinement.is_some() {
         return None;
     }
@@ -928,7 +935,7 @@ pub(crate) fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> O
         return None;
     }
     match lowerer.lower(&td.body) {
-        named @ Ty::Named { .. } => Some(named),
+        next @ (Ty::Named { .. } | Ty::Imported { .. }) => Some(next),
         _ => None,
     }
 }
@@ -936,11 +943,13 @@ pub(crate) fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> O
 /// Follow `ty` through second names to the declaration the chain ends at
 /// (D46). This is the one chain walker: every judgement that depends on which
 /// declaration a name reaches, field lookup, descriptor lookup, and whether the
-/// declaration is `resource`-marked (G212), goes through it, so no judgement
-/// can answer by which of two names a site reached the type through. A cycle
-/// answers the type as written; anything that is not a module-local alias
-/// answers unchanged.
-pub(crate) fn resolve_alias_chain(
+/// declaration is `resource`-marked (G212), and which variants a match must
+/// cover (G224), goes through it, so no judgement can answer by which of two
+/// names a site reached the type through. A chain that leaves the module ends
+/// at the `Ty::Imported` it reaches, which every consumer reads exactly as it
+/// reads a direct import. A cycle answers the type as written; anything that
+/// is not a module-local alias answers unchanged.
+pub fn resolve_alias_chain(
     module: &Module,
     resolved: &ResolvedModule,
     lowerer: &Lowerer<'_>,
@@ -4655,10 +4664,10 @@ impl Assigner<'_> {
         None
     }
 
-    /// If `ty` is a module-local tagged-union `type X = | A | B | ...`, return
-    /// that declaration together with the type arguments it was applied to. The
-    /// shared resolution chain behind `named_union_variants` and
-    /// `union_variant_payload`.
+    /// If `ty` is a module-local tagged-union `type X = | A | B | ...`, or a
+    /// second name for one (D46), return that declaration together with the
+    /// type arguments it was applied to. The shared resolution chain behind
+    /// `named_union_variants` and `union_variant_payload`.
     ///
     /// A generic union applied via `Ty::App` (`Tree<K>`) resolves through its
     /// base and reports the arguments; an unapplied `Ty::Named` reports none.
@@ -4670,32 +4679,22 @@ impl Assigner<'_> {
     /// callers is what left `Tree<K>` with no exhaustiveness checking at all
     /// while `Tree` was checked.
     ///
-    /// The resolved symbol's name has to match the type's lexical path, the
-    /// same prelude/module symbol-id collision guard `named_record_fields` and
-    /// `interface_member_fields` carry. It matters here because of that unwrap:
-    /// a prelude `Result<T, E>` arrives as an application over a `Ty::Named`
+    /// The declaration is read through `local_type_decl`, so it carries the
+    /// prelude/module symbol-id collision guard `direct_type_decl` holds once
+    /// (a prelude `Result<T, E>` arrives as an application over a `Ty::Named`
     /// whose sentinel symbol id could otherwise index an unrelated
-    /// module-local union and answer for it, and `variant_payload` consults
-    /// this function *before* the prelude branch, so a collision would shadow
-    /// the right answer rather than merely add noise. `prelude_app` carries a
-    /// stronger form of the same guard (it checks the prelude table directly);
-    /// name-matching is what the neighbouring resolvers here do, and matching
-    /// them was the deliberate choice, at the cost of letting a module that
-    /// shadows `Result` locally answer for the prelude one.
+    /// module-local union, and `variant_payload` consults this function
+    /// *before* the prelude branch, so a collision would shadow the right
+    /// answer) and follows a second name to the union it names: `type Cmd =
+    /// Command` reads `Command`'s variants, as `named_record_fields` reads a
+    /// record's fields through the same chain. Before the hop, a match over
+    /// the alias had no variant set and was silently unchecked (G224).
     fn resolve_named_union<'t>(
         &self,
         ty: &'t Ty,
     ) -> Option<(&glyph_ast::TypeDecl, &'t [Ty])> {
-        let (base, args) = split_type_app(ty);
-        let Ty::Named { symbol, path } = base else { return None };
-        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return None;
-        }
-        let SymbolKind::Type { decl_idx } = sym.kind else { return None };
-        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
-            return None;
-        };
+        let (_base, args) = split_type_app(ty);
+        let td = self.local_type_decl(ty)?;
         matches!(&td.body, TypeExpr::Union { .. }).then_some((td, args))
     }
 
@@ -5364,9 +5363,16 @@ impl Assigner<'_> {
     /// The declaration and ordered variant list of a union declared in another
     /// module, read off the export view through the same query an imported
     /// union's payload uses. Otherwise None.
+    ///
+    /// The base is canonicalized first, so a module-local second name for the
+    /// imported union (`type Local = Shape`, D46) reads the same declaration
+    /// the direct spelling reads. Without the hop the alias lowered to a
+    /// `Ty::Named` this arm did not match, and a match over it drew nothing
+    /// where the same match over `Shape` drew E0200 (G224).
     fn imported_union_variants(&self, ty: &Ty) -> Option<(UnionRef, Vec<Ident>)> {
         let (base, _args) = split_type_app(ty);
-        let Ty::Imported { module, name } = base else { return None };
+        let canonical = self.resolve_alias_chain(base);
+        let Ty::Imported { module, name } = &canonical else { return None };
         let decl = self.decl_ty_resolver.imported_type_decl(module.as_str(), name)?;
         let Ty::Union { variants } = &decl.body else { return None };
         let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
@@ -5628,7 +5634,11 @@ impl Assigner<'_> {
     /// widening the emitter's fallback further.
     fn union_variant_payload(&self, ty: &Ty, variant_name: &Ident) -> Option<Ty> {
         let (base, args) = split_type_app(ty);
-        if let Ty::Imported { module, name } = base {
+        // The same hop `imported_union_variants` takes: a local second name
+        // for an imported union reaches the payload the way the direct
+        // spelling does, so a nested pattern under it is typed and checked.
+        let canonical = self.resolve_alias_chain(base);
+        if let Ty::Imported { module, name } = &canonical {
             let decl = self.decl_ty_resolver.imported_type_decl(module.as_str(), name)?;
             let Ty::Union { variants } = &decl.body else { return None };
             let variant = variants.iter().find(|v| &v.name == variant_name)?;
@@ -6084,7 +6094,7 @@ fn unknown_params(n: usize) -> Vec<FnParam> {
 /// one turned a compile-time error into a runtime throw for the generic
 /// spelling of a program the non-generic spelling rejected. A caller that asks
 /// this instead of matching `Ty::App` itself cannot regress that way.
-fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
+pub fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
     match ty {
         Ty::App { base, args } => (base.as_ref(), args.as_slice()),
         other => (other, &[]),
@@ -11469,6 +11479,98 @@ fn run(c: Command) -> string {
         );
         assert_eq!(variants, vec![Ident::from("Yes"), Ident::from("No")]);
         assert_eq!(union.display(), "Answer");
+    }
+
+    #[test]
+    fn a_local_alias_of_a_local_union_requires_that_unions_variants() {
+        // D46: `Cmd` is a second name for `Command`, so a match over a `Cmd`
+        // is held to `Command`'s variant set, keyed under `Command`'s own
+        // declaration. Before the hop `resolve_named_union` read `Cmd`'s body
+        // as written, found a bare name rather than a union, and the match
+        // went unchecked (G224).
+        let src = r#"module app
+type Command =
+  | Up
+  | Down
+type Cmd = Command
+fn run(c: Cmd) -> string {
+  return "x"
+}
+"#;
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| {
+            let ty = first_param_ty(a);
+            a.required_variants(&ty)
+        });
+        let (union, variants) = got.expect("an alias of a local union resolves");
+        assert_eq!(
+            union,
+            UnionRef::Local {
+                module: "app".to_string(),
+                name: "Command".to_string(),
+            }
+        );
+        assert_eq!(variants, vec![Ident::from("Up"), Ident::from("Down")]);
+    }
+
+    #[test]
+    fn a_local_alias_of_an_imported_union_requires_the_imported_variants() {
+        // The cross-module spelling of the same rule: `Local` lowers to a
+        // `Ty::Named` of this module, the chain follows its body to the
+        // `Ty::Imported` the import symbol lowers to, and the variant set is
+        // read through `imported_type_decl` exactly as it is for `Answer`
+        // spelled directly. The type end is the declaring module's, not this
+        // file's: the alias declares no union of its own.
+        let src = r#"module app
+import model { Answer }
+type Local = Answer
+fn run(a: Local) -> string {
+  return "x"
+}
+"#;
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| {
+            let ty = first_param_ty(a);
+            assert!(matches!(ty, Ty::Named { .. }), "the alias lowers to its own name: {ty:?}");
+            assert_eq!(
+                a.resolve_alias_chain(&ty),
+                Ty::Imported {
+                    module: ModuleKey::from("model"),
+                    name: Ident::from("Answer"),
+                },
+                "the chain ends at the sibling's declaration"
+            );
+            a.required_variants(&ty)
+        });
+        let (union, variants) = got.expect("an alias of an imported union resolves");
+        assert_eq!(
+            union,
+            UnionRef::Imported {
+                module: "model".to_string(),
+                name: "Answer".to_string(),
+            }
+        );
+        assert_eq!(variants, vec![Ident::from("Yes"), Ident::from("No")]);
+    }
+
+    #[test]
+    fn a_variants_payload_is_read_through_a_local_alias() {
+        // The payload side of the same hop: a nested pattern under
+        // `Circle(..)` over an `S` is typed and recursed into from `Shape`'s
+        // declaration, so the alias cannot hide a payload the direct spelling
+        // exposes.
+        let src = r#"module app
+type Shape =
+  | Circle(number)
+  | Square
+type S = Shape
+fn run(s: S) -> string {
+  return "x"
+}
+"#;
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| {
+            let ty = first_param_ty(a);
+            a.variant_payload(&ty, &Ident::from("Circle"))
+        });
+        assert_eq!(got, Some(Ty::Prim(Primitive::Number)));
     }
 
     #[test]

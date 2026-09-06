@@ -9,7 +9,7 @@ module petstore
 // @generated-from entity petstore::Pet
 
 @open
-type Order = { id: string, status: "placed" | "shipped" }
+pub type Order = { id: string, status: "placed" | "shipped" }
 
 @open
-type Pet = { name: string, tag?: string }
+pub type Pet = { name: string, tag?: string }

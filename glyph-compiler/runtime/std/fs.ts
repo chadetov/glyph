@@ -13,19 +13,32 @@
 // get E0200 rather than a run-time throw. The Glyph-side model lives in
 // `stdlib_type_fields` / `stdlib_union_variants` (glyph-typechecker); a field or
 // a kind added here has to be added there too.
+//
+// `open_lines`, `next_line` and `close_lines` read a file one line at a time
+// through a `LineReader`, holding one 64 KiB chunk per open reader rather than
+// the file. The reads are synchronous like everything else here: a `next_line`
+// that has to refill blocks the event loop until the disc answers, so the
+// reader is for a command-line program, not for one that also serves a socket
+// or an HTTP request. A reader is not tracked by the `owned` check: close it
+// with `close_lines`, or let `next_line` reach the end, which closes it.
 
 import { type Result, Ok, Err } from "./result";
+import { type Option, Some, None } from "./option";
 import { type Bytes } from "./bytes";
 import {
   appendFileSync,
+  closeSync,
   existsSync,
   mkdirSync,
+  openSync,
   readFileSync,
+  readSync,
   readdirSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
+import { StringDecoder } from "node:string_decoder";
 
 export type ErrorKind =
   | { tag: "NotFound" }
@@ -48,6 +61,30 @@ export type FileInfo = {
   readonly size: number;
   readonly modified: number;
 };
+
+/** A file open for reading line by line, from `open_lines`. Opaque: what it
+ * holds is the runtime's, and a Glyph program only hands it to `next_line` and
+ * `close_lines`. */
+export type LineReader = {
+  readonly __fs_line_reader: unique symbol;
+};
+
+// What a reader holds: the descriptor, the decoded text not yet handed out, the
+// chunk it refills from, and the decoder that keeps a multi-byte character split
+// across a chunk boundary until the next chunk completes it. One of each per
+// reader, which is what `io.read_line` cannot offer: its triple is module-level
+// and hardwired to fd 0, so it can be pointed at one stream and never at two.
+// `fd` is -1 once closed, which is what makes `close_lines` idempotent and a
+// read past the end an end of input rather than an EBADF.
+type ReaderState = {
+  fd: number;
+  pending: string;
+  eof: boolean;
+  chunk: ReturnType<typeof Buffer.alloc>;
+  decoder: StringDecoder;
+};
+
+const READER_CHUNK_BYTES = 65536;
 
 // The five kinds that carry no payload. `Other` carries a `code` and is built by
 // `to_fs_error`, so it has no constant form.
@@ -198,6 +235,95 @@ export function remove(path: string): Result<void, FsError> {
   } catch (e: unknown) {
     return Err(to_fs_error(e));
   }
+}
+
+// Open a file for reading line by line. Only the open can fail here: a path
+// that is a directory opens (POSIX allows a read-only descriptor on one) and
+// fails on the first `next_line` instead, as `IsADirectory`.
+export function open_lines(path: string): Result<LineReader, FsError> {
+  try {
+    const fd = openSync(path, "r");
+    const state: ReaderState = {
+      fd,
+      pending: "",
+      eof: false,
+      chunk: Buffer.alloc(READER_CHUNK_BYTES),
+      decoder: new StringDecoder("utf8"),
+    };
+    return Ok(state as unknown as LineReader);
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
+// The next line without its terminator: the `\n`, and a `\r` before it, so
+// CRLF input yields the same lines as LF. `Ok(None)` at end of input, once the
+// last line has been handed out; a file whose last line has no newline still
+// has that line in it.
+//
+// A read error is `Err`, never `None`. The alternative, an `Option<string>`
+// alone, would report a disc error at line 400,000 as the end of the file,
+// which is a silent truncation at exactly the boundary a `Result` exists to
+// make visible. Reaching the end or failing both close the descriptor, and a
+// closed reader reports end of input on every later call, so a caller that
+// stops early is the only one who has to close anything.
+export function next_line(r: LineReader): Result<Option<string>, FsError> {
+  const s = r as unknown as ReaderState;
+  for (;;) {
+    const nl = s.pending.indexOf("\n");
+    if (nl >= 0) {
+      const line = s.pending.slice(0, nl);
+      s.pending = s.pending.slice(nl + 1);
+      return Ok(Some(strip_cr(line)));
+    }
+    if (s.eof) {
+      if (s.pending === "") {
+        close_lines(r);
+        return Ok(None);
+      }
+      const line = strip_cr(s.pending);
+      s.pending = "";
+      return Ok(Some(line));
+    }
+    let n = 0;
+    try {
+      n = readSync(s.fd, s.chunk, 0, s.chunk.length, null);
+    } catch (e: unknown) {
+      close_lines(r);
+      return Err(to_fs_error(e));
+    }
+    if (n === 0) {
+      s.eof = true;
+      s.pending += s.decoder.end();
+    } else {
+      s.pending += s.decoder.write(s.chunk.subarray(0, n));
+    }
+  }
+}
+
+// Release a reader before it reaches the end. Idempotent: a second call, or a
+// call after `next_line` has already closed it, does nothing. Whatever the
+// reader had buffered is discarded, and `next_line` on it reports end of input.
+export function close_lines(r: LineReader): void {
+  const s = r as unknown as ReaderState;
+  if (s.fd < 0) {
+    return;
+  }
+  const fd = s.fd;
+  s.fd = -1;
+  s.eof = true;
+  s.pending = "";
+  try {
+    closeSync(fd);
+  } catch {
+    // The descriptor was read-only, so nothing buffered is lost with it, and
+    // the signature has no channel for a close that fails; the reader is
+    // closed from the program's point of view either way.
+  }
+}
+
+function strip_cr(line: string): string {
+  return line.endsWith("\r") ? line.slice(0, -1) : line;
 }
 
 // Map a node errno to a named kind. The five names cover what a filesystem

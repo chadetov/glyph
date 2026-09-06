@@ -133,7 +133,8 @@ impl StdlibStubs {
             &[
                 "read_text", "write_text", "append_text", "read_bytes", "write_bytes",
                 "append_bytes", "make_dir", "exists", "remove", "read_dir", "is_dir", "stat",
-                "ErrorKind", "FsError", "FileInfo",
+                "open_lines", "next_line", "close_lines",
+                "ErrorKind", "FsError", "FileInfo", "LineReader",
             ],
         );
         // An immutable sequence of octets, and the codecs between octets and

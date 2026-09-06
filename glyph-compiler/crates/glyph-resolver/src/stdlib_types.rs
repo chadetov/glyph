@@ -29,7 +29,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ("std/bytes", &["Bytes", "BytesError"]),
     ("std/collections", &["Deque"]),
     ("std/decimal", &["Decimal"]),
-    ("std/fs", &["FileInfo", "FsError"]),
+    ("std/fs", &["FileInfo", "FsError", "LineReader"]),
     (
         "std/http",
         &[

@@ -218,6 +218,47 @@ descriptor to call, so a field typed by one is checked for presence only. Run
 `glyph gen dts <package>` to materialize it as a real Glyph type and the field is
 validated like any other.
 
+## A field that may be null
+
+Real APIs send `null`. A Discord gateway frame carries `"s": null` in every
+HELLO, and a `nullable` OpenAPI field is the bare value or `null`. Neither is an
+`Option<T>`: that type's wire form is the tagged `{"tag": "Some", "value": 3}`,
+which nobody outside Glyph sends. `Nullable<T>` is the type for the field
+(D45). It is `T | null` in the emitted TypeScript, and its check accepts `null`
+or a `T`:
+
+```glyph
+module gateway
+
+import std/json
+import std/nullable
+
+type Frame = { op: int, s: Nullable<int> }
+
+pub fn sequence(raw: string) -> Option<int> {
+  return match json.parse(raw) {
+    Err(_) => None,
+    Ok(v) => match Frame.parse(v) {
+      Err(_) => None,
+      Ok(f) => nullable.to_option(f.s),
+    },
+  }
+}
+```
+
+`{"op": 10, "s": null}` and `{"op": 10, "s": 3}` both parse. The tagged form
+does not, because a non-null value is checked as an `int` and an object is not
+one. An absent `s` is still `field \`s\` is required`; write `s?: Nullable<int>`
+when the key may be missing too.
+
+There is no `match` on a `Nullable` and no `Some`/`None` for it. The crossing to
+`Option` is `nullable.to_option`, and back is `nullable.from_option`; `is_null`
+tests without converting. That is deliberate: `grep to_option` lists every place
+a null from the outside becomes a value the program reasons about.
+`json.stringify` of a `Nullable` is `null` or the value, so what you parsed is
+what you send back. `Nullable<Option<int>>` and `Nullable<Nullable<int>>` are
+E0227; there is nothing either could mean that the plain type does not.
+
 ## Generating DTOs from a spec
 
 You do not have to hand-write the types either. If you have an OpenAPI 3,

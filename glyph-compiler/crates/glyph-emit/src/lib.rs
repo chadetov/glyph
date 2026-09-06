@@ -455,6 +455,11 @@ enum ArmTerm {
 /// `std/*` is left bare (tsconfig-mapped) and an external npm package (e.g.
 /// `react`) is left bare too. The default (`EmitContext::single`) treats every
 /// import as non-project, which is correct for a one-module program.
+/// `(module path, union name, variant name) -> (module path, type name)`, the
+/// shape of [`EmitContext::union_variant_payloads`].
+pub type UnionVariantPayloads =
+    std::collections::BTreeMap<(String, String, String), (String, String)>;
+
 #[derive(Clone, Copy)]
 pub struct EmitContext<'a> {
     /// The importing module's own path (e.g. `sub/a`), used to compute the
@@ -502,6 +507,20 @@ pub struct EmitContext<'a> {
     /// lowercase variant of an imported union is still found by name here
     /// (G147). Empty for a single-module build (no imported unions).
     pub union_variant_names: &'a std::collections::BTreeMap<(String, String), Vec<String>>,
+    /// `(module path, union name, variant name) -> (module path, type name)`:
+    /// the declaration each payload-carrying variant's payload *names*, for
+    /// every tagged union across the project whose variant payload is a type
+    /// path (`B(Inner)`, `B(inner.Inner)`, `B(Tree<K>)`). Resolved in the
+    /// declaring module's own namespace at scan time, since that is the only
+    /// place `Inner` can be told apart from a same-named type of the consumer.
+    /// `union_variant_names` answers "which variants does this union have";
+    /// this table answers "which union is under this variant", which is the
+    /// question the nested-arm rule has to ask when the *outer* union is the
+    /// imported one and reaches the emitter as a bare `Ty::Imported` with no
+    /// payload types attached (G147, the half 0.1.96 left open). Only paths
+    /// are recorded: a record, function or literal payload has no variants to
+    /// look up. Empty for a single-module build.
+    pub union_variant_payloads: &'a UnionVariantPayloads,
 }
 
 impl<'a> EmitContext<'a> {
@@ -524,6 +543,7 @@ impl<'a> EmitContext<'a> {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
+            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
         }
     }
 }
@@ -534,6 +554,9 @@ static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, S
 static EMPTY_UNION_VARIANT_NAMES: std::sync::LazyLock<
     std::collections::BTreeMap<(String, String), Vec<String>>,
 > = std::sync::LazyLock::new(Default::default);
+
+static EMPTY_UNION_VARIANT_PAYLOADS: std::sync::LazyLock<UnionVariantPayloads> =
+    std::sync::LazyLock::new(Default::default);
 
 static EMPTY_DESCRIPTORS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
@@ -551,13 +574,13 @@ static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
 /// Every project-wide fact a per-module pass needs, computed once from the
 /// parsed modules of a project.
 ///
-/// Six of the seven tables below back an [`EmitContext`], and each answers the
-/// same question about a *sibling* module: what does it export, and in what
-/// shape. A module-local scan cannot answer any of them, and every one of them
-/// exists because a module-local scan was tried first and emitted TypeScript
-/// that was weaker than the type declared (G124, G139, G147). The seventh,
-/// `imported_module_paths`, is the reachability fact behind G124's lint and
-/// comes off the same pass over the same ASTs.
+/// Seven of the eight tables below back an [`EmitContext`], and each answers
+/// the same question about a *sibling* module: what does it export, and in
+/// what shape. A module-local scan cannot answer any of them, and every one of
+/// them exists because a module-local scan was tried first and emitted
+/// TypeScript that was weaker than the type declared (G124, G139, G147). The
+/// eighth, `imported_module_paths`, is the reachability fact behind G124's
+/// lint and comes off the same pass over the same ASTs.
 ///
 /// **This is the only implementation of that scan.** It lives here, beside
 /// `EmitContext` and [`emits_plain_descriptor`], so a surface that emits
@@ -573,7 +596,95 @@ pub struct ProjectTables {
     plain_descriptors: std::collections::BTreeSet<(String, String)>,
     descriptorless_aliases: std::collections::BTreeMap<(String, String), TypeExpr>,
     union_variant_names: std::collections::BTreeMap<(String, String), Vec<String>>,
+    union_variant_payloads: UnionVariantPayloads,
     imported_module_paths: std::collections::BTreeSet<String>,
+}
+
+/// The type names in scope inside one module, as `ProjectTables::scan` needs
+/// them: which declaration a type path written in that module refers to.
+///
+/// Three spellings are resolved and nothing else is guessed at. A bare name
+/// declared by the module itself is `(this module, name)`; a bare name brought
+/// in by `import m { Name }` is `(m, Name)`; a two-segment `ns.Name` whose head
+/// is a namespace or aliased import of `m` is `(m, Name)`. A name that is none
+/// of these (a prelude container, a primitive, a default import, a longer path)
+/// resolves to nothing, and the table stays silent about it rather than
+/// recording a guess the nested-arm rule would then act on.
+struct ModuleTypeNames<'m> {
+    module_path: &'m str,
+    local_types: std::collections::BTreeSet<&'m str>,
+    named_imports: std::collections::BTreeMap<&'m str, String>,
+    namespaces: std::collections::BTreeMap<&'m str, String>,
+}
+
+impl<'m> ModuleTypeNames<'m> {
+    fn of(module_path: &'m str, ast: &'m Module) -> Self {
+        let mut names = ModuleTypeNames {
+            module_path,
+            local_types: Default::default(),
+            named_imports: Default::default(),
+            namespaces: Default::default(),
+        };
+        for item in &ast.items {
+            match item {
+                Decl::Type(td) => {
+                    names.local_types.insert(td.name.as_ref());
+                }
+                Decl::Import(imp) => {
+                    let key = glyph_resolver::path_key(&imp.path);
+                    match &imp.kind {
+                        ImportKind::Named(items) => {
+                            for name in items {
+                                names.named_imports.insert(name.as_ref(), key.clone());
+                            }
+                        }
+                        ImportKind::Namespace => {
+                            if let Some(last) = imp.path.segments.last() {
+                                names.namespaces.insert(last.as_ref(), key);
+                            }
+                        }
+                        ImportKind::Aliased(alias) => {
+                            names.namespaces.insert(alias.as_ref(), key);
+                        }
+                        // A default import binds a value, never a type this
+                        // table could name.
+                        ImportKind::Default(_) => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+        names
+    }
+
+    /// The declaration the type path `ty` names in this module, or `None` when
+    /// `ty` is not a path this module can be seen to resolve. A generic
+    /// application (`Tree<K>`) resolves to its base, the way the checker's
+    /// `union_base` reads a payload.
+    fn decl_of(&self, ty: &TypeExpr) -> Option<(String, String)> {
+        let ty = match ty {
+            TypeExpr::Generic { base, .. } => base.as_ref(),
+            other => other,
+        };
+        let TypeExpr::Path { segments, .. } = ty else {
+            return None;
+        };
+        match segments.as_slice() {
+            [name] => {
+                let name = name.as_ref();
+                if self.local_types.contains(name) {
+                    return Some((self.module_path.to_string(), name.to_string()));
+                }
+                let module = self.named_imports.get(name)?;
+                Some((module.clone(), name.to_string()))
+            }
+            [ns, name] => {
+                let module = self.namespaces.get(ns.as_ref())?;
+                Some((module.clone(), name.as_ref().to_string()))
+            }
+            _ => None,
+        }
+    }
 }
 
 impl ProjectTables {
@@ -603,6 +714,15 @@ impl ProjectTables {
 
     /// Fold one module's declarations into the tables.
     fn scan(&mut self, module_path: &str, ast: &Module) {
+        // What each type name means *inside this module*, read off its own
+        // imports and declarations before any variant payload is looked at.
+        // A payload path is resolved here, in the declaring module's
+        // namespace, because the consumer that later matches on the union has
+        // no view of this module's imports: to it `Inner` is whatever `Inner`
+        // means at its own site, which may be a different declaration or
+        // nothing at all. Declaration order does not matter to Glyph, so this
+        // is a separate pass rather than a fold over the item list.
+        let names = ModuleTypeNames::of(module_path, ast);
         for item in &ast.items {
             match item {
                 Decl::Import(imp) => {
@@ -623,6 +743,17 @@ impl ProjectTables {
                             if matches!(v.payload, Some(TypeExpr::Record { .. })) {
                                 self.record_payload_variants
                                     .insert((module_path.to_string(), v.name.to_string()));
+                            }
+                            let decl = v.payload.as_ref().and_then(|p| names.decl_of(p));
+                            if let Some(decl) = decl {
+                                self.union_variant_payloads.insert(
+                                    (
+                                        module_path.to_string(),
+                                        td.name.to_string(),
+                                        v.name.to_string(),
+                                    ),
+                                    decl,
+                                );
                             }
                         }
                     }
@@ -659,6 +790,7 @@ impl ProjectTables {
             plain_descriptors: &self.plain_descriptors,
             descriptorless_aliases: &self.descriptorless_aliases,
             union_variant_names: &self.union_variant_names,
+            union_variant_payloads: &self.union_variant_payloads,
         }
     }
 
@@ -2831,17 +2963,83 @@ impl<'a> Emitter<'a> {
     /// the variant's own declaration (`Full(Color)`) and never becomes a `Ty`
     /// here at all.
     ///
-    /// `None` means the payload union is not readable from this module (it is
-    /// imported, the scrutinee's type did not resolve, or the payload is not a
-    /// union), which is exactly when the name's shape has to answer instead.
+    /// Across a module boundary the declaration is read from the project
+    /// registries instead: an *imported* outer union's variant payload is the
+    /// declaration `union_variant_payloads` recorded for it, and a *local*
+    /// outer union's imported payload is followed through its import symbol.
+    /// Both land in `union_variant_names`, so the same table decides for every
+    /// spelling of the boundary (G147).
+    ///
+    /// `None` means the payload union is not readable from this module (the
+    /// scrutinee's type did not resolve, the payload is not a union, or the
+    /// project holds no declaration under that name), which is exactly when
+    /// the name's shape has to answer instead.
     fn nested_payload_variants(&self, scrutinee_ty: &Ty, outer: &str) -> Option<Vec<String>> {
         if let Some(pty) = self.outer_variant_payload_ty(scrutinee_ty, outer) {
             return self.union_variant_names(&pty);
         }
-        let TypeExpr::Path { segments, .. } = self.user_variant_payload(scrutinee_ty, outer)? else {
+        let base = match scrutinee_ty {
+            Ty::App { base, .. } => base.as_ref(),
+            other => other,
+        };
+        if let Ty::Imported { module, name } = base {
+            let (payload_module, payload_name) = self.ctx.union_variant_payloads.get(&(
+                module.as_str().to_string(),
+                name.to_string(),
+                outer.to_string(),
+            ))?;
+            return self
+                .ctx
+                .union_variant_names
+                .get(&(payload_module.clone(), payload_name.clone()))
+                .cloned();
+        }
+        let payload = match self.user_variant_payload(scrutinee_ty, outer)? {
+            TypeExpr::Generic { base, .. } => base.as_ref(),
+            other => other,
+        };
+        let TypeExpr::Path { segments, .. } = payload else {
             return None;
         };
-        self.union_variant_names_of_decl(segments.last()?)
+        self.union_variant_names_of_path(segments)
+    }
+
+    /// The variant names of the union a type path written in this module
+    /// refers to: a local declaration, a named import (`import m { Inner }`)
+    /// answered from the project registry, or a namespace spelling
+    /// (`m.Inner`) answered the same way. `None` for a path that is none of
+    /// these or that names something other than a union.
+    fn union_variant_names_of_path(&self, segments: &[Ident]) -> Option<Vec<String>> {
+        match segments {
+            [name] => {
+                if let Some(vs) = self.union_variant_names_of_decl(name) {
+                    return Some(vs);
+                }
+                let sym_id = *self.resolved.symbols.by_name.get(name.as_ref())?;
+                let sym = self.resolved.symbols.table.get(sym_id)?;
+                let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+                    return None;
+                };
+                self.ctx
+                    .union_variant_names
+                    .get(&(glyph_resolver::path_key(path), original.to_string()))
+                    .cloned()
+            }
+            [ns, name] => {
+                let sym_id = *self.resolved.symbols.by_name.get(ns.as_ref())?;
+                let sym = self.resolved.symbols.table.get(sym_id)?;
+                let (SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. }) =
+                    &sym.kind
+                else {
+                    return None;
+                };
+                self.ctx
+                    .union_variant_names
+                    .get(&(glyph_resolver::path_key(path), name.to_string()))
+                    .cloned()
+            }
+            _ => None,
+        }
     }
 
     /// The declared payload type expression of `variant` in the user union
@@ -6997,6 +7195,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
+            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7027,6 +7226,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
+            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7508,6 +7708,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
+            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7629,6 +7830,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
+            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -8279,6 +8481,137 @@ mod tests {
         );
         assert!(ts.contains("case \"red\":"), "{ts}");
         assert!(!ts.contains("const red ="), "{ts}");
+    }
+
+
+    /// Emit `main_src` as module `main` beside one sibling module, so a test
+    /// can reach the tables a single-module `EmitContext::single()` leaves
+    /// empty. Returns the emit result rather than unwrapping it, because the
+    /// G147 tests below assert on both outcomes.
+    fn emit_beside(sibling: (&str, &str), main_src: &str) -> Result<String, EmitError> {
+        let sib = glyph_parser::parse(sibling.1).expect("sibling parse failed");
+        let (module, resolved, types, prelude) = pipeline(main_src);
+        let tables =
+            ProjectTables::from_modules([(sibling.0, Some(&sib)), ("main", Some(&module))]);
+        emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
+    }
+
+    fn assert_dispatches_on_b(ts: &str) {
+        assert_eq!(
+            ts.matches("case \"B\": {").count(),
+            1,
+            "one `case \"B\":` arm with an inner tag switch, not the duplicate-label stop:\n{ts}"
+        );
+        assert!(ts.contains("case \"alpha\":"), "{ts}");
+        assert!(ts.contains("case \"beta\":"), "{ts}");
+        assert!(!ts.contains("const alpha ="), "{ts}");
+    }
+
+    #[test]
+    fn nested_lowercase_variant_of_an_imported_outer_union_dispatches_on_the_inner_tag() {
+        // G147, the half 0.1.96 left open. The *outer* union is imported, so
+        // the scrutinee reaches the emitter as a bare `Ty::Imported` with no
+        // variant list and no payload types: `outer_variant_payload_ty` wants
+        // a prelude `Ty::App`, and `user_variant_payload` walks this module's
+        // AST, which never holds `tree`'s declaration. Neither route found
+        // `Inner`, so `B(alpha)` fell to the shape rule, read as a binding,
+        // and the arm pair stopped the build at E0305 on a valid program.
+        let ts = emit_beside(
+            ("tree", "module tree\npub type Inner = | alpha | beta\npub type G = | A | B(Inner)\n"),
+            "module main\nimport tree { G, A, B, alpha, beta }\npub fn label(g: G) -> string {\n  return match g {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(beta) => \"b-beta\",\n  }\n}\n",
+        )
+        .expect("a lowercase variant of an imported payload union must dispatch, not stop");
+        assert_dispatches_on_b(&ts);
+    }
+
+    #[test]
+    fn imported_outer_union_whose_payload_is_named_imported_from_a_third_module_dispatches() {
+        // The payload union lives in a third module and reaches `tree` by a
+        // named import. The registry resolves the payload path in the
+        // *declaring* module's namespace, so `Inner` here means `inner.Inner`
+        // and not a same-named type of the consumer.
+        let inner = glyph_parser::parse("module inner\npub type Inner = | alpha | beta\n")
+            .expect("inner parse failed");
+        let tree = glyph_parser::parse(
+            "module tree\nimport inner { Inner }\npub type G = | A | B(Inner)\n",
+        )
+        .expect("tree parse failed");
+        let (module, resolved, types, prelude) = pipeline(
+            "module main\nimport tree { G, A, B }\nimport inner { alpha, beta }\npub fn label(g: G) -> string {\n  return match g {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(beta) => \"b-beta\",\n  }\n}\n",
+        );
+        let tables = ProjectTables::from_modules([
+            ("inner", Some(&inner)),
+            ("tree", Some(&tree)),
+            ("main", Some(&module)),
+        ]);
+        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
+            .expect("a payload union two hops away must still dispatch");
+        assert_dispatches_on_b(&ts);
+    }
+
+    #[test]
+    fn imported_outer_union_whose_payload_is_spelled_through_a_namespace_dispatches() {
+        // Same program, with the declaring module naming its payload as
+        // `inner.Inner`. The two import spellings of the payload must resolve
+        // to the same declaration, or the spelling decides whether the
+        // program builds, which is the module-boundary rule this repo keeps.
+        let inner = glyph_parser::parse("module inner\npub type Inner = | alpha | beta\n")
+            .expect("inner parse failed");
+        let tree =
+            glyph_parser::parse("module tree\nimport inner\npub type G = | A | B(inner.Inner)\n")
+                .expect("tree parse failed");
+        let (module, resolved, types, prelude) = pipeline(
+            "module main\nimport tree { G, A, B }\nimport inner { alpha, beta }\npub fn label(g: G) -> string {\n  return match g {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(beta) => \"b-beta\",\n  }\n}\n",
+        );
+        let tables = ProjectTables::from_modules([
+            ("inner", Some(&inner)),
+            ("tree", Some(&tree)),
+            ("main", Some(&module)),
+        ]);
+        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
+            .expect("a namespace-spelled payload union must dispatch like the named one");
+        assert_dispatches_on_b(&ts);
+    }
+
+    #[test]
+    fn local_outer_union_with_an_imported_lowercase_payload_variant_dispatches() {
+        // The mirror: the outer union is declared here and only its payload is
+        // imported. `user_variant_payload` finds `Inner` as a path, but the
+        // name resolves to an `ImportNamed` symbol rather than a local `type`,
+        // so the declaration-by-name lookup answered nothing and the shape
+        // rule took over. Which side of the boundary the imported half sits on
+        // must not decide whether the arm dispatches.
+        let ts = emit_beside(
+            ("inner", "module inner\npub type Inner = | alpha | beta\n"),
+            "module main\nimport inner { Inner, alpha, beta }\ntype Outer = | A | B(Inner)\npub fn label(o: Outer) -> string {\n  return match o {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(beta) => \"b-beta\",\n  }\n}\n",
+        )
+        .expect("a local union's imported payload variants must dispatch");
+        assert_dispatches_on_b(&ts);
+    }
+
+    #[test]
+    fn local_outer_union_with_a_namespace_spelled_imported_payload_dispatches() {
+        let ts = emit_beside(
+            ("inner", "module inner\npub type Inner = | alpha | beta\n"),
+            "module main\nimport inner\ntype Outer = | A | B(inner.Inner)\npub fn label(o: Outer) -> string {\n  return match o {\n    A => \"a\",\n    B(inner.alpha) => \"b-alpha\",\n    B(inner.beta) => \"b-beta\",\n  }\n}\n",
+        )
+        .expect("a namespace-spelled payload must dispatch like the named one");
+        assert_dispatches_on_b(&ts);
+    }
+
+    #[test]
+    fn a_binding_under_an_imported_outer_union_is_still_a_binding() {
+        // The registry must only promote names the payload union declares. A
+        // lowercase name it does not know stays a binding, so `B(x)` binds the
+        // payload and the program keeps meaning what it says.
+        let ts = emit_beside(
+            ("tree", "module tree\npub type Inner = | alpha | beta\npub type G = | A | B(Inner)\n"),
+            "module main\nimport tree { G, A, B, alpha }\npub fn label(g: G) -> string {\n  return match g {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(x) => \"b-other\",\n  }\n}\n",
+        )
+        .expect("a binding beside a variant reference must build");
+        assert_eq!(ts.matches("case \"B\": {").count(), 1, "{ts}");
+        assert!(ts.contains("case \"alpha\":"), "{ts}");
+        assert!(ts.contains("const x ="), "the unknown name binds the payload: {ts}");
     }
 
     #[test]
@@ -9912,6 +10245,7 @@ mod tests {
             plain_descriptors: &descriptors,
             descriptorless_aliases: &EMPTY_ALIASES,
             union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
+            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

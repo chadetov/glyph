@@ -6177,6 +6177,104 @@ fn nested_lowercase_imported_nullary_variant_dispatches_on_the_inner_tag() {
 }
 
 #[test]
+fn imported_lowercase_payload_variant_dispatches_at_run_time() {
+    // G147, the entry's own program, run rather than read: `Err(empty)` and
+    // `Err(NotANumber(e))` through an imported `ParseError` must each reach
+    // their own arm under node. This shape has built since 0.1.96; it is
+    // pinned here as the run-time half of that fix, so a regression in the
+    // registry shows up as the wrong line printed and not only as a changed
+    // `.ts`.
+    let root = unique_tmp("g147-prelude-run");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "net.glyph",
+        "module net\npub type ParseError =\n  | empty\n  | NotANumber({ got: string })\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io { println }\n\
+         import net { ParseError, empty, NotANumber }\n\
+         import std/result { Result, Ok, Err }\n\
+         pub fn describe(r: Result<int, ParseError>) -> string {\n\
+         \x20 return match r {\n\
+         \x20\x20\x20 Err(empty) => \"arm:empty\",\n\
+         \x20\x20\x20 Err(NotANumber(e)) => \"arm:nan:\" + e.got,\n\
+         \x20\x20\x20 Ok(v) => \"arm:ok\",\n\
+         \x20 }\n\
+         }\n\
+         fn main() {\n\
+         \x20 println(describe(Err(empty)))\n\
+         \x20 println(describe(Err(NotANumber({ got: \"x\", }))))\n\
+         \x20 println(describe(Ok(1)))\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        vec!["arm:empty", "arm:nan:x", "arm:ok"],
+        "each value reaches its own arm: {stdout}"
+    );
+}
+
+#[test]
+fn imported_outer_union_lowercase_payload_variant_dispatches_at_run_time() {
+    // G147, the half 0.1.96 left open: the *outer* union is the imported one.
+    // `B(alpha)` and `B(beta)` over `tree.G` reached the emitter with no
+    // payload type to read, fell to the shape rule, and the pair stopped the
+    // build at E0305 on a valid program. The variant registry now carries the
+    // declaration each variant's payload names, so the arms dispatch, and the
+    // program is run so the dispatched arm is the evidence rather than the
+    // emitted text.
+    let root = unique_tmp("g147-outer-run");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "tree.glyph",
+        "module tree\npub type Inner =\n  | alpha\n  | beta\npub type G =\n  | A\n  | B(Inner)\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io { println }\n\
+         import tree { G, A, B, alpha, beta }\n\
+         pub fn label(g: G) -> string {\n\
+         \x20 return match g {\n\
+         \x20\x20\x20 A => \"arm:a\",\n\
+         \x20\x20\x20 B(alpha) => \"arm:b-alpha\",\n\
+         \x20\x20\x20 B(beta) => \"arm:b-beta\",\n\
+         \x20 }\n\
+         }\n\
+         fn main() {\n\
+         \x20 println(label(A))\n\
+         \x20 println(label(B(alpha)))\n\
+         \x20 println(label(B(beta)))\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "a lowercase variant of an imported outer union's payload must dispatch, not stop: {:?}",
+        report.diagnostics
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        vec!["arm:a", "arm:b-alpha", "arm:b-beta"],
+        "each value reaches its own arm: {stdout}"
+    );
+}
+
+#[test]
 fn non_exhaustive_imported_union_match_is_caught() {
     // The imported-union type-resolution pass: a match on an imported union that
     // omits a variant is now E0200, resolved cross-module by the union's real

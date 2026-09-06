@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-224 entries, 191 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-14 are open. G144, the D28 boundary cast that never reached the returns a
+224 entries, 192 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+13 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8805,7 +8805,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.118 (the 0.1.119 tree): both spellings above are `[E0002] expected module path segment, found Dot`, exit 1, with no mention of the import forms.*
 
-- **G224. A match over a local alias of an imported union is not
+- **G224. [FIXED] A match over a local alias of an imported union is not
   exhaustiveness-checked.** `import lib { Shape, Circle, Square }` with
   `type Local = Shape` in the importing module: `match s { Circle => 1, Square => 2 }`
   over `s: Local` draws nothing, while the same match over `s: Shape` and over
@@ -8821,3 +8821,28 @@ and is the owner's to confirm.
   now mirrors exactly this asymmetry instead of resolving it.
 
   *Reproduced against 0.1.118 (the 0.1.120 tree): the program above reports two `E0200`s, at the `Shape` match and the `S2` match, and none at the `Local` match; exit 1 only because of the other two.*
+
+  *Fixed in 0.1.120, change 2 of the lane. The chain walker now follows a
+  bare name across the file boundary: `alias_target` answers the
+  `Ty::Imported` an import symbol lowers to, where before it stopped and
+  answered the alias's own `Ty::Named`, so `resolve_alias_chain` ends at the
+  sibling's declaration and `resolve_named_union`, `imported_union_variants`
+  and `union_variant_payload` read through it. The same hop closes the
+  module-local spelling, which was also unchecked: `type Local = Shape` with
+  `Shape` declared in the same file exited 0 with `Tri` missing. Two negative
+  cases (`alias_of_local_union_not_exhaustive`,
+  `alias_of_imported_union_not_exhaustive`) and three checker unit tests pin
+  it. Two-binary: under 0.1.118 the three-match program reports two `E0200`s
+  and the single-file alias program exits 0 with no diagnostics; under this
+  build, three and one. Breaking in the checking direction.*
+
+  *One consequence, established by the same two binaries on a second
+  program. Canonicalizing an alias of an import to `Ty::Imported` puts it
+  under the cross-module assignability rule, which is undecidable by design
+  until G215: `let l: Local = o` with `o: Other` (a local record) was
+  `E0204` under 0.1.118 by the nominal path comparison and is silent under
+  this build (`tsc` still reports it in `glyph check` and `glyph build`), and
+  `let b: Local2 = a` with `a: Local`, both aliases of `Shape`, was a false
+  `E0204` under 0.1.118 and is silent here, which `tsc` agrees with. The
+  first is the alias spelling of G215 and closes with it; the second was a
+  program the checker rejected and `tsc` accepted.*

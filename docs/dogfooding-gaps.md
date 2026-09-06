@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-223 entries, 189 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-16 are open. G144, the D28 boundary cast that never reached the returns a
+223 entries, 190 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6722,7 +6722,7 @@ and is the owner's to confirm.
   are, for the reasons above; the 56 files still unformatted repo-wide are all
   outside `examples/`.
 
-- **G159. Two of the three token-count benchmark fixtures are not Glyph the compiler accepts.**
+- **G159. [FIXED] Two of the three token-count benchmark fixtures are not Glyph the compiler accepts.**
   `benchmarks/glyph/slugify.glyph` calls `.replace_all(/[^a-z0-9]+/, "-")`, and
   Glyph has no regex literal, so it is `[E0003] unexpected token: Slash`.
   `benchmarks/glyph/load_feed.glyph` is `[E0203]`: it `?`-propagates an
@@ -6746,6 +6746,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.118: `glyph check benchmarks/glyph` reports the same three, unchanged from 0.1.112: `slugify` is `[E0003] unexpected token: Slash`, `load_feed` is `[E0203]` (twice, one per `?` site), and `parse_user` carries only the unrelated `[E0112]`; `benchmarks/verifiability/check.sh` still exits 0 against this binary. Previously, against 0.1.112 by checking the directory as one project rather than each file alone, which pulls the whole project in and reports the same error three times: `slugify` is `[E0003] unexpected token: Slash`, `load_feed` is `[E0203]`, and `parse_user` carries only an unrelated `[E0112]`. Previously, against 0.1.106: of the three benchmark fixtures only `parse_user.glyph` compiles; the other two still fail: each fixture copied into its own project and
   built. `check.sh` run against the same binary to confirm the public claim is
   unaffected.*
+
+  **Fixed in 0.1.119.** Re-checked with each fixture in its own project:
+  `slugify` was `[E0003] Error: parse: unexpected token: Slash`, `load_feed`
+  was `[E0203]` twice, and `parse_user` passed `--no-tsc` but not `glyph
+  check` with tsc, which reports `[TS2322] Type 'Result<{ name: unknown; age:
+  unknown; }, never>' is not assignable to type 'Result<User, string>'` because
+  `is` narrows the binding it matches on and the arms re-read `input["name"]`.
+  So none of the three compiled as a program. All three were rewritten to what
+  Glyph offers: `slugify` through `string.lower` and two `regex.replace_all`
+  calls with the same patterns the TypeScript uses; `load_feed` maps
+  `HttpError` into `NetworkError` with `.map_err` before `?`, reads the body
+  with `http.to_text` and decodes it with `json.parse<Posts>`, mapping both
+  failures into the `DecodeError` variant the fixture already declared;
+  `parse_user` binds `input["name"]` and `input["age"]` before matching on
+  them. Every fixture is `pub`, as every other language's version exports its
+  function. The counts were re-taken and `benchmarks/README.md` says how far
+  they moved. `scripts/check_benchmark_fixtures.py` now checks each fixture in
+  its own project, tsc included, in `check_release.py` and CI.
 
 - **G160. [FIXED] A comment before a continuation line silently deletes an `@example` assertion, and the compiler reports the false claim as verified.**
   The same parser defect as G151. `Annotation.raw_args` is a raw source slice

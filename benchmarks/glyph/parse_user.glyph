@@ -2,19 +2,20 @@ module parse_user
 
 import std/result { Result, Ok, Err }
 
-type User = {
-  name: string,
-  age: number,
-}
+type User = { name: string, age: number }
 
-fn parse_user(input: unknown) -> Result<User, string> {
+pub fn parse_user(input: unknown) -> Result<User, string> {
   match input {
-    is Record<string, unknown> => match input["name"] {
-      is string => match input["age"] {
-        is number => Ok({ name: input["name"], age: input["age"] }),
-        else => Err("age: expected number"),
-      },
-      else => Err("name: expected string"),
+    is Record<string, unknown> => {
+      let name = input["name"]
+      let age = input["age"]
+      match name {
+        is string => match age {
+          is number => Ok({ name: name, age: age }),
+          else => Err("age: expected number"),
+        },
+        else => Err("name: expected string"),
+      }
     },
     else => Err("expected object"),
   }

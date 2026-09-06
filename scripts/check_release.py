@@ -51,6 +51,7 @@ GATES = [
     ("check_scaffold_docs", "what `glyph init` writes still builds"),
     ("check_docs_compile", "every documented program compiles"),
     ("check_fmt", "examples/ is what `glyph fmt` produces"),
+    ("check_benchmark_fixtures", "every benchmark fixture compiles"),
     ("check_doc_claims", "test counts and promises match reality"),
     ("check_runtime_against_types_node", "the runtime matches its declarations"),
 ]

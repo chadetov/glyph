@@ -444,7 +444,10 @@ pub fn dts(target: &Path, out_dir: &Path, renames: &Renames) -> Result<GenReport
             out_dir.display(),
             rename_flags(renames)
         );
-        return dts_from_file(target, module_name, source_label, regen, out_dir, renames);
+        // A file inside `node_modules/<package>/` still has a package to anchor
+        // a class to; a file anywhere else does not, and a class in it is noted.
+        let package = package_of_dts_path(target);
+        return dts_from_file(target, module_name, source_label, regen, package, out_dir, renames);
     }
 
     let pkg = target.to_string_lossy().into_owned();
@@ -456,16 +459,42 @@ pub fn dts(target: &Path, out_dir: &Path, renames: &Renames) -> Result<GenReport
         out_dir.display(),
         rename_flags(renames)
     );
-    dts_from_file(&resolved, module_name, source_label, regen, out_dir, renames)
+    dts_from_file(&resolved, module_name, source_label, regen, Some(pkg), out_dir, renames)
+}
+
+/// The package a `.d.ts` path belongs to, read off its `node_modules/<name>`
+/// (or `node_modules/@scope/<name>`) segment; `None` for a file outside any
+/// package. This is the specifier a class declared in the file is anchored
+/// with (`extern_ts("import('<name>').X")`), so it has to be the name `tsc`
+/// resolves, which is the directory under `node_modules`, not the file.
+fn package_of_dts_path(path: &Path) -> Option<String> {
+    let parts: Vec<&str> = path
+        .components()
+        .filter_map(|c| match c {
+            std::path::Component::Normal(s) => s.to_str(),
+            _ => None,
+        })
+        .collect();
+    let at = parts.iter().rposition(|p| *p == "node_modules")?;
+    let name = parts.get(at + 1)?;
+    if name.starts_with('@') {
+        let inner = parts.get(at + 2)?;
+        return Some(format!("{name}/{inner}"));
+    }
+    Some((*name).to_string())
 }
 
 /// The shared core: run the TypeScript-to-JSON-Schema helper on a resolved
-/// `.d.ts` and render the committed Glyph types.
+/// `.d.ts` and render the committed Glyph types. `package` is the specifier a
+/// class the file declares is anchored to; `None` when the file was read from
+/// outside any package.
+#[allow(clippy::too_many_arguments)]
 fn dts_from_file(
     dts_path: &Path,
     module_name: String,
     source_label: String,
     regen: String,
+    package: Option<String>,
     out_dir: &Path,
     renames: &Renames,
 ) -> Result<GenReport, GenError> {
@@ -489,8 +518,12 @@ fn dts_from_file(
 
     let warnings = helper_warnings(&doc);
     let source = SourceArtifact::read("dts", dts_path)?;
+    let generator = Generator {
+        extern_package: package,
+        ..Generator::default()
+    };
     let mut report = render_and_write(
-        Generator::default(),
+        generator,
         schemas,
         module_name,
         source_label,
@@ -886,6 +919,11 @@ struct Generator {
     /// Set when a discriminated union generated a `parse_*` dispatcher, so the
     /// module gets the `discriminant`/`Option`/`Result` imports it needs.
     needs_discriminated_imports: bool,
+    /// The npm specifier a class declared by the `.d.ts` is anchored to
+    /// (`extern_ts("import('<package>').X")`). `None` for `gen openapi`, and
+    /// for a `.d.ts` read by a path outside any package, where a class cannot
+    /// be anchored and is noted instead.
+    extern_package: Option<String>,
 }
 
 impl Generator {
@@ -897,17 +935,31 @@ impl Generator {
     /// the reference shapes the `.d.ts` reader cannot follow (aliased or
     /// `export * as` re-exports), which would otherwise emit a Glyph file that
     /// only fails later at `glyph build` with an unresolved name.
+    ///
+    /// Each note says where the reference is (`Doc.opts`, or the alias's own
+    /// name), so a reader of forty notes can find the field. `Promise` gets
+    /// the reason as well: it is not a shape the reader failed to model but a
+    /// type Glyph has no spelling for on purpose (D40).
     fn check_ref_integrity(&mut self, schemas: &[(String, Value)]) {
         let known: std::collections::HashSet<String> =
             schemas.iter().map(|(n, _)| sanitize_type(n)).collect();
-        let mut dangling: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-        for (_, schema) in schemas {
-            collect_ref_targets(schema, &known, &mut dangling);
+        let mut dangling: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
+            std::collections::BTreeMap::new();
+        for (owner, schema) in schemas {
+            collect_ref_targets(schema, &known, &mut dangling, &sanitize_type(owner));
         }
-        for name in dangling {
-            self.note(format!(
-                "reference to `{name}` could not be resolved to a materialized type (its declaration was not among the reachable files, or it is a `.d.ts` shape the reader does not model); `glyph build` will report it as an unresolved name."
-            ));
+        for (name, at) in dangling {
+            let at: Vec<String> = at.into_iter().map(|a| format!("`{a}`")).collect();
+            let at = at.join(", ");
+            if name == "Promise" {
+                self.note(format!(
+                    "reference to `Promise` (at {at}) could not be resolved to a materialized type: `Promise<T>` has no Glyph type, because an awaited value is the result of an `async fn` (D40), so a field holding a promise is not a wire shape; `glyph build` will report it as an unresolved name."
+                ));
+            } else {
+                self.note(format!(
+                    "reference to `{name}` (at {at}) could not be resolved to a materialized type (its declaration was not among the reachable files, or it is a `.d.ts` shape the reader does not model); `glyph build` will report it as an unresolved name."
+                ));
+            }
         }
     }
 
@@ -933,6 +985,10 @@ impl Generator {
         for (raw_name, schema) in &schemas {
             let name = sanitize_type(raw_name);
             let decl = self.emit_type(&name, schema);
+            if decl.is_empty() {
+                // A class with no package to anchor to: noted, not written.
+                continue;
+            }
             types_buf.push_str(&decl);
             types_buf.push('\n');
             self.type_count += 1;
@@ -1367,6 +1423,28 @@ impl Generator {
 
     /// Emit one top-level `type Name = ...` declaration.
     fn emit_type(&mut self, name: &str, schema: &Value) -> String {
+        // A class the `.d.ts` declares, or a host type with no Glyph spelling,
+        // is anchored rather than shaped: an `extern_ts` alias (D29) resolves
+        // the name and hands every member access to `tsc`, and carries no
+        // descriptor, so a record holding one is still refused `parse` (E0304).
+        // A presence-only descriptor was considered and refused: it would turn
+        // that refusal into an `Ok` on a value nobody validated.
+        if let Some(raw) = schema.get("x-extern-host").and_then(|v| v.as_str()) {
+            return format!("type {name}{} = extern_ts(\"{raw}\")\n", type_param_suffix(schema));
+        }
+        if let Some(qualified) = schema.get("x-extern-class").and_then(|v| v.as_str()) {
+            let Some(pkg) = self.extern_package.as_deref() else {
+                self.note(format!(
+                    "`{name}` is a class declared by this `.d.ts`, and a class is anchored to the package that declares it (`extern_ts(\"import('<package>').{qualified}\")`); this file was read by path, outside any package, so there is no specifier to write and the reference is left as written. Run `glyph gen dts <package>` on the installed package to anchor it, or reference the class through the package directly."
+                ));
+                return String::new();
+            };
+            let params = type_param_suffix(schema);
+            return format!(
+                "type {name}{params} = extern_ts(\"import('{pkg}').{qualified}{params}\")\n"
+            );
+        }
+
         // A discriminated `oneOf`/`anyOf` → a tagged union of the variants plus
         // a `parse_*` dispatcher on the discriminator property.
         if let Some(decl) = self.try_discriminated_union(name, schema) {
@@ -1618,28 +1696,39 @@ fn schema_is_closed(schema: &Value) -> bool {
 }
 
 /// Recursively collect the sanitized names of every `$ref` target in `schema`
-/// that is not in `known`, so a dangling reference can be reported. A
-/// type-parameter marker (`x-type-param`) is not a `$ref` and is skipped.
+/// that is not in `known`, each with the dotted location of the field that
+/// holds it (`Doc.opts`; the declaration's own name for a top-level alias), so
+/// a dangling reference can be reported where it is. A type-parameter marker
+/// (`x-type-param`) is not a `$ref` and is skipped.
 fn collect_ref_targets(
     schema: &Value,
     known: &std::collections::HashSet<String>,
-    out: &mut std::collections::BTreeSet<String>,
+    out: &mut std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
+    at: &str,
 ) {
     match schema {
         Value::Object(map) => {
             if let Some(r) = map.get("$ref").and_then(|v| v.as_str()) {
                 let name = sanitize_type(&ref_name(r));
                 if !known.contains(&name) {
-                    out.insert(name);
+                    out.entry(name).or_default().insert(at.to_string());
                 }
             }
-            for v in map.values() {
-                collect_ref_targets(v, known, out);
+            for (key, v) in map {
+                if key == "properties" {
+                    if let Value::Object(props) = v {
+                        for (field, fschema) in props {
+                            collect_ref_targets(fschema, known, out, &format!("{at}.{field}"));
+                        }
+                        continue;
+                    }
+                }
+                collect_ref_targets(v, known, out, at);
             }
         }
         Value::Array(arr) => {
             for v in arr {
-                collect_ref_targets(v, known, out);
+                collect_ref_targets(v, known, out, at);
             }
         }
         _ => {}
@@ -2143,6 +2232,20 @@ mod tests {
     }
 
     #[test]
+    fn package_of_dts_path_reads_the_node_modules_segment() {
+        let p = |s: &str| package_of_dts_path(Path::new(s));
+        assert_eq!(p("/proj/node_modules/marky/lib/marky.d.ts"), Some("marky".to_string()));
+        assert_eq!(p("/proj/node_modules/@scope/pkg/index.d.ts"), Some("@scope/pkg".to_string()));
+        // Nested installs: the innermost package is the one the file belongs to.
+        assert_eq!(
+            p("/proj/node_modules/a/node_modules/b/index.d.ts"),
+            Some("b".to_string())
+        );
+        assert_eq!(p("/proj/types/lexer.d.ts"), None);
+        assert_eq!(p("node_modules"), None);
+    }
+
+    #[test]
     fn resolve_package_dts_errors_when_no_types() {
         let nm = tmp_nm("notyped");
         let dir = nm.join("notyped");
@@ -2366,6 +2469,33 @@ mod tests {
         );
     }
 
+    /// The unresolved-reference note says where the reference is, and for
+    /// `Promise` it says why there is no Glyph type to resolve to (D40).
+    #[test]
+    fn dangling_ref_note_names_the_fields_and_says_d40_for_promise() {
+        let (_, notes) = gen_from(
+            r##"{"definitions": {
+              "Client": {"type": "object", "required": ["url", "pending"], "properties": {
+                "url": {"type": "string"},
+                "pending": {"$ref": "#/definitions/Promise", "x-type-args": [{"type": "string"}]}
+              }},
+              "Trimmed": {"$ref": "#/definitions/Omit"}
+            }}"##,
+        );
+        let promise = notes
+            .iter()
+            .find(|n| n.contains("`Promise`"))
+            .unwrap_or_else(|| panic!("no Promise note in {notes:?}"));
+        assert!(promise.contains("`Client.pending`"), "{promise}");
+        assert!(promise.contains("D40"), "{promise}");
+        let omit = notes
+            .iter()
+            .find(|n| n.contains("`Omit`"))
+            .unwrap_or_else(|| panic!("no Omit note in {notes:?}"));
+        assert!(omit.contains("`Trimmed`"), "{omit}");
+        assert!(!omit.contains("D40"), "D40 is about Promise, not every dangling name: {omit}");
+    }
+
     #[test]
     fn integer_schema_becomes_int() {
         let (out, _) = gen_from(
@@ -2585,6 +2715,140 @@ mod tests {
                 // The reason tells the user what to do instead of the record.
                 assert!(
                     dropped.iter().all(|n| n.contains("call it on a value obtained from the package")),
+                    "notes: {:?}",
+                    report.notes
+                );
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// G108. A field typed by a class the `.d.ts` declares, or by a host type
+    /// with no Glyph spelling, used to be a reference to a name never written,
+    /// and `glyph build` reported it as an unresolved name. A class now
+    /// materializes as `type X = extern_ts("import('<package>').X")` and a host
+    /// type as `type X = extern_ts("globalThis.X")`, once per name, so the
+    /// reference resolves and `tsc` checks every method call against the real
+    /// declaration, while the type keeps no descriptor. A utility type stays a
+    /// note by name, `Promise` stays unmaterializable under D40 with a note
+    /// naming the field, and a host type referenced at an arity the table does
+    /// not carry is left unresolved with a note rather than declared at a shape
+    /// `tsc` would reject.
+    #[test]
+    fn dts_materializes_a_class_and_a_host_type_as_extern_ts() {
+        let dir = std::env::temp_dir().join(format!("glyph-dts-extern-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        // Read by path from inside `node_modules/<package>/`, so the package
+        // specifier the `import(...)` anchors to is derivable from the path.
+        let pkg = dir.join("node_modules").join("marky");
+        std::fs::create_dir_all(&pkg).unwrap();
+        let src = pkg.join("index.d.ts");
+        std::fs::write(
+            &src,
+            "export interface Options { gfm: boolean; silent: boolean; }\n\
+             export type Trimmed = Omit<Options, \"silent\">;\n\
+             export declare class Lexer { constructor(options?: Options); lex(src: string): string[]; }\n\
+             export declare class Box<T> { value: T; }\n\
+             export interface Doc { lexer: Lexer; opts: Trimmed; pattern: RegExp; title: string; when: Date; \
+             index: Map<string, number>; boxed: Box<string>; bytes: Uint8Array<ArrayBuffer>; pending: Promise<string>; }\n",
+        )
+        .unwrap();
+
+        match dts(&src, &dir.join("out"), &Renames::new()) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                // A class anchors to the package that declares it.
+                assert!(text.contains("type Lexer = extern_ts(\"import('marky').Lexer\")"), "got:\n{text}");
+                assert!(text.contains("type Box<T> = extern_ts(\"import('marky').Box<T>\")"), "got:\n{text}");
+                // A host type anchors to the global, qualified so the module-local
+                // alias does not shadow it (`type RegExp = RegExp` is TS2456).
+                assert!(text.contains("type RegExp = extern_ts(\"globalThis.RegExp\")"), "got:\n{text}");
+                assert!(text.contains("type Date = extern_ts(\"globalThis.Date\")"), "got:\n{text}");
+                assert!(text.contains("type Map<K, V> = extern_ts(\"globalThis.Map<K, V>\")"), "got:\n{text}");
+                // Once per name: the record references them by name.
+                assert_eq!(text.matches("type RegExp =").count(), 1, "got:\n{text}");
+                assert!(text.contains("lexer: Lexer,"), "got:\n{text}");
+                assert!(text.contains("pattern: RegExp,"), "got:\n{text}");
+                assert!(text.contains("index: Map<string, number>,"), "got:\n{text}");
+                assert!(text.contains("boxed: Box<string>,"), "got:\n{text}");
+                // The utility type stays as written, a note by name.
+                assert!(text.contains("type Trimmed = Omit<Options, \"silent\">"), "got:\n{text}");
+                // Not materialized: Promise (D40) and a host type at an arity the
+                // table does not carry. Neither gets a declaration.
+                assert!(!text.contains("type Promise"), "got:\n{text}");
+                assert!(!text.contains("type Uint8Array"), "got:\n{text}");
+                assert!(text.contains("bytes: Uint8Array<ArrayBuffer>,"), "got:\n{text}");
+                assert!(text.contains("pending: Promise<string>,"), "got:\n{text}");
+                assert!(glyph_parser::parse(&text).is_ok());
+
+                let unresolved: Vec<&String> =
+                    report.notes.iter().filter(|n| n.contains("could not be resolved")).collect();
+                let names = |needle: &str| unresolved.iter().filter(|n| n.contains(needle)).count();
+                assert_eq!(names("`Omit`"), 1, "notes: {:?}", report.notes);
+                assert!(
+                    unresolved.iter().any(|n| n.contains("`Omit`") && n.contains("`Trimmed`")),
+                    "the note says where the reference is; notes: {:?}",
+                    report.notes
+                );
+                assert!(
+                    unresolved
+                        .iter()
+                        .any(|n| n.contains("`Promise`") && n.contains("`Doc.pending`") && n.contains("D40")),
+                    "Promise names the field and the decision; notes: {:?}",
+                    report.notes
+                );
+                assert!(
+                    report.notes.iter().any(|n| n.contains("`Uint8Array`") && n.contains("`Doc.bytes`")),
+                    "an arity the table does not carry is a note naming the field; notes: {:?}",
+                    report.notes
+                );
+                for anchored in ["`Lexer`", "`RegExp`", "`Date`", "`Map`", "`Box`"] {
+                    assert_eq!(names(anchored), 0, "{anchored} resolved; notes: {:?}", report.notes);
+                }
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A class can only be anchored to the module that declares it. When the
+    /// `.d.ts` is read by a path that is not inside a package, there is no
+    /// specifier to write, so the class is left as it was (a reference `glyph
+    /// build` reports) with a note saying how to get the anchor.
+    #[test]
+    fn dts_leaves_a_class_unanchored_when_read_outside_a_package() {
+        let dir = std::env::temp_dir().join(format!("glyph-dts-nopkg-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("lexer.d.ts");
+        std::fs::write(
+            &src,
+            "export declare class Lexer { lex(src: string): string[]; }\n\
+             export interface Doc { lexer: Lexer; pattern: RegExp; }\n",
+        )
+        .unwrap();
+
+        match dts(&src, &dir.join("out"), &Renames::new()) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(!text.contains("import("), "no specifier to anchor to; got:\n{text}");
+                assert!(text.contains("lexer: Lexer"), "the reference stays as written; got:\n{text}");
+                // The host type needs no package and still anchors.
+                assert!(text.contains("type RegExp = extern_ts(\"globalThis.RegExp\")"), "got:\n{text}");
+                assert!(
+                    report
+                        .notes
+                        .iter()
+                        .any(|n| n.contains("`Lexer`") && n.contains("glyph gen dts <package>")),
                     "notes: {:?}",
                     report.notes
                 );

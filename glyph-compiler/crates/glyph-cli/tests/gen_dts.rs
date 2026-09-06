@@ -125,3 +125,59 @@ fn gen_dts_notes_each_method_signature_it_drops() {
         "the summary line counts the notes so they cannot pass unseen: {summary}"
     );
 }
+
+/// `glyph check --no-tsc` on `dir`, as the diagnostic lines it prints (the
+/// lines opening with a bracketed code), so a test can count them the way the
+/// gap ledger's reproductions do.
+fn check_no_tsc(root: &Path, dir: &str) -> Vec<String> {
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .args(["check", "--no-tsc", dir])
+        .current_dir(root)
+        .output()
+        .expect("run glyph check");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    text.lines()
+        .filter(|l| l.starts_with("[E"))
+        .map(String::from)
+        .collect()
+}
+
+/// G108. The three-group reproduction from the ledger: a class, a utility
+/// type and a host type, each referenced from a record. Before, all three were
+/// references to names never written and `check --no-tsc` on the result was
+/// three `[E0103]`s. Now the class anchors to the package and the host type to
+/// the global, each as an `extern_ts` alias with no descriptor, and the one
+/// diagnostic left is the utility type, which `gen` names in its note.
+#[test]
+fn gen_dts_anchors_a_class_and_a_host_type_and_notes_omit_by_name() {
+    let root = project_with_package(
+        "extern",
+        "export interface Options { gfm: boolean; silent: boolean; }\n\
+         export type Trimmed = Omit<Options, \"silent\">;\n\
+         export declare class Lexer { constructor(options?: Options); lex(src: string): string[]; }\n\
+         export interface Doc { lexer: Lexer; opts: Trimmed; pattern: RegExp; title: string; }\n",
+    );
+    let Gen::Ok { notes, .. } = gen_dts(&root) else {
+        eprintln!("skipping: node/typescript not available");
+        return;
+    };
+    let text = std::fs::read_to_string(root.join("src/types/marky.glyph")).expect("generated file");
+    assert!(text.contains("type Lexer = extern_ts(\"import('marky').Lexer\")"), "got:\n{text}");
+    assert!(text.contains("type RegExp = extern_ts(\"globalThis.RegExp\")"), "got:\n{text}");
+    assert!(text.contains("type Trimmed = Omit<Options, \"silent\">"), "got:\n{text}");
+
+    let unresolved: Vec<&String> = notes.iter().filter(|n| n.contains("could not be resolved")).collect();
+    assert_eq!(unresolved.len(), 1, "only the utility type is left; notes: {notes:?}");
+    assert!(unresolved[0].contains("`Omit`"), "notes: {notes:?}");
+
+    let diags = check_no_tsc(&root, "src");
+    assert_eq!(diags.len(), 1, "exactly one diagnostic, for Omit; got: {diags:?}");
+    assert!(
+        diags[0].contains("[E0103]") && diags[0].contains("`Omit`"),
+        "got: {diags:?}"
+    );
+}

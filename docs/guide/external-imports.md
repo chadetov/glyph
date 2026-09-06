@@ -426,13 +426,38 @@ A package whose interfaces are mostly methods materializes as the few properties
 they carry, and the notes tell you which members did not make it. Call those on
 a value the package gave you; the record is for the data that crosses the wire.
 
-A package whose API is *classes* rather than interfaces is a different matter:
-`gen dts` reads `interface` and `type` declarations, so a field typed by a class
-(or by a computed type like `Omit<T, K>`) materializes as a reference to a name
-that was never written, and `glyph build` reports it as an unresolved name. `gen`
-names each one in a note when it happens. Importing the class and constructing it
-with `new` needs no generation at all and is checked by `tsc`, so that path is
-unaffected.
+A field typed by a *class* the package declares, or by a host type Glyph has no
+spelling for (`RegExp`, `Date`, `Map`, `URL`), is not a wire shape and gets no
+record. `gen dts` anchors it instead, once per name:
+
+```glyph
+type Lexer = extern_ts("import('marked').Lexer")
+type RegExp = extern_ts("globalThis.RegExp")
+
+@open
+type Doc = { lexer: Lexer, pattern: RegExp, title: string }
+```
+
+The reference resolves, and `d.lexer.lex(src)` is checked by `tsc` against the
+real class, so a misspelt method is a real error mapped to your `.glyph`. What
+the alias does not have is a descriptor: `Lexer.parse` does not exist, and a
+record holding a `Lexer` is refused `Doc.parse` with `E0304`, because a boundary
+check that cannot see into a field must not report that it did. Construct the
+class with `new Lexer(...)` from the package import (D37) and put the value in
+the record. The host type is qualified with `globalThis.` so the module-local
+alias does not shadow it; the list of host types the reader knows is in
+`runtime/tools/ts-to-schema.mjs`, and a host type used at an arity the list does
+not carry is left unresolved with a note naming the field. A class can only be
+anchored when `gen dts` knows the package: run it on the installed package name
+(or on a path inside `node_modules/<package>/`), not on a copied file.
+
+Two things stay unresolved, each with a note naming the field. A computed type
+(`Omit<T, K>`, `Pick<T, K>`) would have to be evaluated rather than read, and the
+reader is syntactic with no handling of `extends`, so evaluating it over an
+interface that extends another would produce an empty record whose descriptor
+rejects every real value; it stays a note by name and `glyph build` reports the
+unresolved name. A `Promise<T>` field has no Glyph type on purpose: an awaited
+value is the result of an `async fn` (D40), so a promise is not a wire shape.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod
 schemas* (a shared-schema package). It resolves the package's runtime entry,

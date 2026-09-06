@@ -1,0 +1,9 @@
+module neg
+
+resource type Handle = { fd: number }
+type H = Handle
+
+fn use_it() -> void {
+  let owned h: H = { fd: 2 }
+  return void
+}

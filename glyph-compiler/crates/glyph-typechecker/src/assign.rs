@@ -882,6 +882,89 @@ fn arm_ordinal(index: usize) -> u16 {
     u16::try_from(index).unwrap_or(u16::MAX)
 }
 
+/// The declaration `ty` names as written, or `None`: a module-local `Ty::Named`
+/// whose symbol is a type declaration of this module. The one place the symbol
+/// table is read for a module-local type, so the collision guard (a prelude
+/// `SymbolId` numbers from 0 independently of the module table, and must not
+/// index an unrelated declaration) lives here once. Shared by the assigner and
+/// the owned checker so both read the same declaration for the same name.
+pub(crate) fn direct_type_decl<'m>(
+    module: &'m Module,
+    resolved: &ResolvedModule,
+    ty: &Ty,
+) -> Option<&'m glyph_ast::TypeDecl> {
+    let Ty::Named { symbol, path } = ty else { return None };
+    let sym = resolved.symbols.table.get(SymbolId(symbol.0))?;
+    if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+        return None;
+    }
+    let SymbolKind::Type { decl_idx } = sym.kind else { return None };
+    let Decl::Type(td) = module.items.get(decl_idx as usize)? else {
+        return None;
+    };
+    Some(td)
+}
+
+/// The type `td` is a second name for, when it is one (D46): its body is a
+/// single bare name, it declares no generic parameters, and it carries no
+/// `where`. Lowering that body gives the `Ty::Named` of the declaration
+/// it names, which is the next hop. `None` for every other body, which is
+/// the declaration's own type rather than another's: a record, a union, a
+/// string-literal union, an `extern_ts` or `typeof` body, a function type,
+/// a generic application (`Record<string, T>`, `Wrapper<T>`), a
+/// refinement, and a bare name that lowers to something other than a
+/// module-local declaration (a primitive, an import). No incompatibility
+/// is decided from a body not being followed; the corpus holds six
+/// `Record<string, T>` and `Array<..>` aliases, and reading those as
+/// nominal would reject programs `tsc` accepts.
+pub(crate) fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> Option<Ty> {
+    if !td.generics.is_empty() || td.refinement.is_some() {
+        return None;
+    }
+    let TypeExpr::Path { segments, .. } = &td.body else {
+        return None;
+    };
+    if segments.len() != 1 {
+        return None;
+    }
+    match lowerer.lower(&td.body) {
+        named @ Ty::Named { .. } => Some(named),
+        _ => None,
+    }
+}
+
+/// Follow `ty` through second names to the declaration the chain ends at
+/// (D46). This is the one chain walker: every judgement that depends on which
+/// declaration a name reaches, field lookup, descriptor lookup, and whether the
+/// declaration is `resource`-marked (G212), goes through it, so no judgement
+/// can answer by which of two names a site reached the type through. A cycle
+/// answers the type as written; anything that is not a module-local alias
+/// answers unchanged.
+pub(crate) fn resolve_alias_chain(
+    module: &Module,
+    resolved: &ResolvedModule,
+    lowerer: &Lowerer<'_>,
+    ty: &Ty,
+) -> Ty {
+    let mut current = ty.clone();
+    let mut seen: HashSet<u32> = HashSet::new();
+    loop {
+        let Ty::Named { symbol, .. } = &current else {
+            return current;
+        };
+        if !seen.insert(symbol.0) {
+            return ty.clone();
+        }
+        let Some(td) = direct_type_decl(module, resolved, &current) else {
+            return current;
+        };
+        match alias_target(lowerer, td) {
+            Some(next) => current = next,
+            None => return current,
+        }
+    }
+}
+
 struct Assigner<'a> {
     /// The parsed module — needed to chase `Ty::Named` symbols back to
     /// their `TypeDecl` for the day-14 match-exhaustiveness check.
@@ -4578,44 +4661,7 @@ impl Assigner<'_> {
     /// written, or `None`. The one place the symbol table is read for a
     /// module-local type, so the collision guard lives here once.
     fn direct_type_decl(&self, ty: &Ty) -> Option<&glyph_ast::TypeDecl> {
-        let Ty::Named { symbol, path } = ty else { return None };
-        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return None;
-        }
-        let SymbolKind::Type { decl_idx } = sym.kind else { return None };
-        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
-            return None;
-        };
-        Some(td)
-    }
-
-    /// The type `td` is a second name for, when it is one (D46): its body is a
-    /// single bare name, it declares no generic parameters, and it carries no
-    /// `where`. Lowering that body gives the `Ty::Named` of the declaration
-    /// it names, which is the next hop. `None` for every other body, which is
-    /// the declaration's own type rather than another's: a record, a union, a
-    /// string-literal union, an `extern_ts` or `typeof` body, a function type,
-    /// a generic application (`Record<string, T>`, `Wrapper<T>`), a
-    /// refinement, and a bare name that lowers to something other than a
-    /// module-local declaration (a primitive, an import). No incompatibility
-    /// is decided from a body not being followed; the corpus holds six
-    /// `Record<string, T>` and `Array<..>` aliases, and reading those as
-    /// nominal would reject programs `tsc` accepts.
-    fn alias_target(&self, td: &glyph_ast::TypeDecl) -> Option<Ty> {
-        if !td.generics.is_empty() || td.refinement.is_some() {
-            return None;
-        }
-        let TypeExpr::Path { segments, .. } = &td.body else {
-            return None;
-        };
-        if segments.len() != 1 {
-            return None;
-        }
-        match self.lowerer.lower(&td.body) {
-            named @ Ty::Named { .. } => Some(named),
-            _ => None,
-        }
+        direct_type_decl(self.module, self.resolved, ty)
     }
 
     /// Follow `ty` through second names to the declaration the chain ends at,
@@ -4624,23 +4670,7 @@ impl Assigner<'_> {
     /// beside `type B = A`, so a cycle is guarded, and answers the type as
     /// written: a name that names nothing resolves to nothing further.
     fn resolve_alias_chain(&self, ty: &Ty) -> Ty {
-        let mut current = ty.clone();
-        let mut seen: HashSet<u32> = HashSet::new();
-        loop {
-            let Ty::Named { symbol, .. } = &current else {
-                return current;
-            };
-            if !seen.insert(symbol.0) {
-                return ty.clone();
-            }
-            let Some(td) = self.direct_type_decl(&current) else {
-                return current;
-            };
-            match self.alias_target(td) {
-                Some(next) => current = next,
-                None => return current,
-            }
-        }
+        resolve_alias_chain(self.module, self.resolved, &self.lowerer, ty)
     }
 
     /// `resolve_alias_chain` applied to every name inside `ty`, so two types

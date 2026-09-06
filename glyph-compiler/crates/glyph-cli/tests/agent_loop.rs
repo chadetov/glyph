@@ -780,3 +780,181 @@ fn repairing_only_what_the_compiler_reported_leaves_the_absorbing_site_behind() 
 
     assert_eq!(mcp.finish(), 0);
 }
+
+/// Everything an agent needs to ask `glyph_impact` about a parameter type
+/// change, and nothing it could use to fake the answer. The three callers are
+/// three different kinds of site: one passes a string literal, one passes a
+/// value of a union declared in another module, and one reads the function as
+/// a value without applying it.
+mod signature_fixture {
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    pub struct Project {
+        pub root: PathBuf,
+        pub src: PathBuf,
+        /// The file declaring the function, and the one the agent edits.
+        pub edited: PathBuf,
+        /// The `module::name` of the function.
+        pub entity: String,
+        /// The caller passing a primitive.
+        pub literal_caller: String,
+        /// The caller passing an imported union value.
+        pub imported_caller: String,
+        /// The module reading the function as a value.
+        pub value_reader: String,
+    }
+
+    fn put(path: &Path, text: &str) {
+        std::fs::write(path, text).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
+    }
+
+    pub fn write(root: PathBuf) -> Project {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let tag = format!("{}s{n}", std::process::id());
+        let home = format!("lib{tag}");
+        let cells = format!("cells{tag}");
+        let (literal, imported, reader) =
+            (format!("lit{tag}"), format!("imp{tag}"), format!("rd{tag}"));
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).expect("create src");
+        put(
+            &root.join("package.json"),
+            "{ \"name\": \"signature\", \"glyph\": { \"src\": \"src\" } }",
+        );
+        let edited = src.join(format!("{home}.glyph"));
+        // The body does not read the parameter, so the edit under test (the
+        // parameter's type) breaks nothing inside the declaration itself.
+        put(
+            &edited,
+            &format!("module {home}\n\npub fn label(s: string) -> number {{\n  return 1\n}}\n"),
+        );
+        put(
+            &src.join(format!("{cells}.glyph")),
+            &format!("module {cells}\n\npub type Cell =\n  | Text\n  | Blank\n"),
+        );
+        put(
+            &src.join(format!("{literal}.glyph")),
+            &format!(
+                "module {literal}\n\nimport {home} {{ label }}\n\n\
+                 pub fn probe() -> number {{\n  return label(\"x\")\n}}\n"
+            ),
+        );
+        put(
+            &src.join(format!("{imported}.glyph")),
+            &format!(
+                "module {imported}\n\nimport {home} {{ label }}\nimport {cells} {{ Cell }}\n\n\
+                 pub fn probe(c: Cell) -> number {{\n  return label(c)\n}}\n"
+            ),
+        );
+        put(
+            &src.join(format!("{reader}.glyph")),
+            &format!(
+                "module {reader}\n\nimport {home} {{ label }}\n\n\
+                 pub const sizer: fn(string) -> number = label\n"
+            ),
+        );
+        Project {
+            root,
+            src,
+            edited,
+            entity: format!("{home}::label"),
+            literal_caller: format!("{literal}::probe"),
+            imported_caller: format!("{imported}::probe"),
+            value_reader: format!("{reader}::sizer"),
+        }
+    }
+
+    /// The agent's edit: the parameter's type, and only that.
+    pub fn change_the_parameter_type(project: &Project) {
+        let text = std::fs::read_to_string(&project.edited).expect("read the function's file");
+        assert!(text.contains("(s: string)"), "{text}");
+        put(&project.edited, &text.replace("(s: string)", "(s: number)"));
+    }
+}
+
+/// An agent about to change a parameter's type asks what breaks, over the real
+/// protocol, and gets a different verdict for each kind of site, each with the
+/// reason. Then it makes the edit and the compiler confirms the verdicts: the
+/// site called WILL_FAIL is the one E0211 lands on, and the site called
+/// UNDETERMINED is the one the compiler says nothing about.
+#[test]
+fn a_signature_type_change_gets_one_verdict_per_kind_of_site() {
+    let project = signature_fixture::write(unique_tmp("signature_type"));
+    let (code, clean) = check_json(&project.src);
+    assert_eq!(code, 0, "the fixture starts green: {clean}");
+
+    let mut mcp = McpProcess::start(&project.root);
+    mcp.handshake(1);
+    let answer = mcp.call_tool(
+        2,
+        "glyph_impact",
+        json!({ "entity": project.entity, "change": { "kind": "change_signature_type" } }),
+    );
+    assert_eq!(field(&answer, &["entity"]), project.entity, "{answer}");
+
+    let by_entity: BTreeMap<String, &Value> = answer["impact"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+        .iter()
+        .filter_map(|e| e["entity"].as_str().map(|n| (n.to_string(), e)))
+        .collect();
+    let verdict_of = |name: &str| -> &Value {
+        by_entity
+            .get(name)
+            .unwrap_or_else(|| panic!("no entry for `{name}` in {answer}"))
+    };
+    let literal = verdict_of(&project.literal_caller);
+    let imported = verdict_of(&project.imported_caller);
+    let reader = verdict_of(&project.value_reader);
+
+    assert_eq!(literal["verdict"], json!("WILL_FAIL"), "{literal}");
+    assert_eq!(literal["diagnostic"], json!("E0211"), "{literal}");
+    assert_eq!(imported["verdict"], json!("UNDETERMINED"), "{imported}");
+    assert_eq!(reader["verdict"], json!("NOT_INDEXED"), "{reader}");
+    for entry in [literal, imported, reader] {
+        assert!(
+            field(entry, &["because"]).len() > 20,
+            "a verdict with no reason: {entry}"
+        );
+    }
+    // The three are three different claims, and the answer says which is
+    // which in a field, not in prose an agent would have to parse.
+    let seen: BTreeSet<&str> = [literal, imported, reader]
+        .iter()
+        .filter_map(|e| e["verdict"].as_str())
+        .collect();
+    assert_eq!(seen.len(), 3, "{answer}");
+
+    // The edit, then the compiler's own word on it.
+    signature_fixture::change_the_parameter_type(&project);
+    let (code, broken) = check_json(&project.src);
+    assert_eq!(code, 1, "the edit has to break the build: {broken}");
+    let diagnostics = broken["diagnostics"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no diagnostics: {broken}"));
+    let reported: BTreeSet<(String, String)> = diagnostics
+        .iter()
+        .filter_map(|d| {
+            Some((
+                d["entity"].as_str()?.to_string(),
+                d["code"].as_str()?.to_string(),
+            ))
+        })
+        .collect();
+    assert!(
+        reported.contains(&(project.literal_caller.clone(), "E0211".to_string())),
+        "the WILL_FAIL site has to be where E0211 lands: {broken}"
+    );
+    assert!(
+        !reported.iter().any(|(e, _)| e == &project.imported_caller),
+        "UNDETERMINED means the compiler says nothing here, and it said something: {broken}"
+    );
+    assert!(
+        !reported.iter().any(|(e, _)| e == &project.value_reader),
+        "NOT_INDEXED means the compiler says nothing here, and it said something: {broken}"
+    );
+
+    assert_eq!(mcp.finish(), 0);
+}

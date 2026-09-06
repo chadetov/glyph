@@ -34,16 +34,17 @@ use glyph_db::{
 };
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, DeclKey, ModuleGraph, Prelude,
-    ResolvedModule, StdlibStubs, SymbolKind,
+    ResolvedModule, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    CoverageSiteRef, CoverageState, CoverageTypeName, FieldAccess, FieldOwner, FieldSite,
+    display_ty, CoverageSiteRef, CoverageState, CoverageTypeName, FieldAccess, FieldOwner,
+    FieldSite, FnParam, Primitive, Ty, TypeMap,
 };
 
 use crate::analysis::{
-    analyze, analyze_full, enclosing_decl_name, extern_ts_escape, global_relations_in,
-    module_outline, outline_of, relations_at, symbol_target_at, Definition, LineIndex,
-    OutlineKind, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
+    analyze, analyze_full, call_argument_spans, enclosing_decl_name, extern_ts_escape,
+    global_relations_in, module_outline, outline_of, relations_at, symbol_target_at,
+    Definition, LineIndex, OutlineKind, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
@@ -478,7 +479,7 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_impact",
-            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` ships entirely `NOT_INDEXED`, and the reason is stated on the search: the checker reports only a provable mismatch, so a named union passed where a `string` is declared raises nothing where a `bool` raises E0211 (G201). A function read as a value rather than applied is `NOT_INDEXED` under `change_arity` for the same shape of reason. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
+            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. `WILL_FAIL` with E0211 where the checker compares that pairing: a primitive against a primitive, a declared type against a declared type of the same module (compared by name), and a tagged union or record declared in the calling module against a `string`, `number` or `bool`, which is the rule G201 added. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a type declared in another module (the G201 rule reads only a declaration in the calling module, so a cross-module type is compared against nothing), or a primitive argument against a declared parameter type. A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects; and the `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
             "inputSchema": { "type": "object", "properties": { "entity": entity, "change": change, "relations": impact_relations, "depth": depth, "path": impact_path }, "required": ["entity", "change"] }
         },
         {
@@ -5023,6 +5024,12 @@ fn site_entry(
 /// value's arity against the type its use context expects; a caller therefore
 /// gets `WILL_FAIL` for one and `NOT_INDEXED` for the other, and the split is
 /// the answer rather than a formatting choice.
+///
+/// A parameter type change is the one kind decided below the site: each
+/// argument a call pairs with a parameter is classified against the checker's
+/// comparison rules (`signature_type_site`), and the site is the weakest of
+/// its arguments. That needs the caller's type map and the callee's signature
+/// as the caller sees it, both read only under that kind.
 fn impact_occurrences(
     project: &Project,
     root: &Path,
@@ -5061,13 +5068,22 @@ fn impact_occurrences(
             not_indexed: Vec::new(),
             excluded: Vec::new(),
         };
-        if matches!(change, Change::SignatureType) {
+        if matches!(change, Change::SignatureType) && relation == Relation::Calls {
             search.not_indexed.push(
-                "whether a site still type-checks against the new signature. The checker \
-                 reports only a provable mismatch and is silent on an undecidable one: a \
-                 named union passed where a `string` is declared raises nothing, where a \
-                 `bool` raises E0211. So no site here can be called safe, and every one of \
-                 them is reported as unchecked (G201)."
+                "a call's result flowing into a typed position. A return-type change \
+                 breaks the `let` annotation, the `return`, or the argument the result \
+                 lands in, and this relation is over the argument list a site applies the \
+                 name to, so that site is not one it holds."
+                    .to_string(),
+            );
+        }
+        if matches!(change, Change::SignatureType) && relation == Relation::References {
+            search.not_indexed.push(
+                "whether a function value still fits the type its use context expects. \
+                 Glyph does not compare a function value's parameter types against an \
+                 annotated `fn` type or a parameter's, so a `fn(number) -> number` assigned \
+                 to a `fn(string) -> number` raises nothing here; `tsc` is what reports it \
+                 on the emitted TypeScript."
                     .to_string(),
             );
         }
@@ -5118,6 +5134,15 @@ fn impact_occurrences(
         if spans.is_empty() {
             continue;
         }
+        // Read only under the one kind that decides below the site, since the
+        // type map is the costly table (see `tool_references`) and nothing else
+        // here needs it.
+        let signature = matches!(change, Change::SignatureType)
+            .then(|| SignatureView {
+                calls: call_argument_spans(fmodule),
+                types: glyph_db::type_map(db, entry.file),
+                params: callee_params_as_seen_from(project, plan, entry),
+            });
         let index = LineIndex::new(ftext);
         for span in spans {
             let mut out = serde_json::Map::new();
@@ -5182,14 +5207,43 @@ fn impact_occurrences(
             let Some(search) = searches.iter().find(|s| s.relation == span.relation) else {
                 continue;
             };
-            let (verdict, because, code, absent) = occurrence_verdict(change, span.relation);
+            let site = match (&signature, span.relation) {
+                (Some(view), Relation::Calls) => {
+                    let args = view
+                        .calls
+                        .get(&(span.start, span.end))
+                        .map(Vec::as_slice)
+                        .unwrap_or_default();
+                    let site = signature_type_site(
+                        args,
+                        view.params.as_deref(),
+                        view.types.type_map(),
+                        fmodule,
+                        fresolved,
+                        ftext,
+                    );
+                    out.insert("arguments".to_string(), json!(site.arguments));
+                    site
+                }
+                _ => {
+                    let (verdict, because, code, absent) =
+                        occurrence_verdict(change, span.relation);
+                    SiteVerdict {
+                        verdict,
+                        because: because.to_string(),
+                        code,
+                        absent,
+                        arguments: Vec::new(),
+                    }
+                }
+            };
             entries.push(impact_entry(
                 out,
                 span.relation,
-                verdict,
-                because,
-                code,
-                absent,
+                site.verdict,
+                &site.because,
+                site.code,
+                site.absent,
                 search,
             ));
         }
@@ -5206,9 +5260,11 @@ fn impact_occurrences(
 ///
 /// Every arm was run against the compiler rather than reasoned about. A name
 /// that goes away is E0103 at each site that spells it; a parameter added to a
-/// `fn` is E0213 where it is applied and nothing where it is read as a value;
-/// a parameter type changed to a named type raises nothing anywhere, where the
-/// same change to a `bool` raises E0211.
+/// `fn` is E0213 where it is applied and nothing where it is read as a value.
+/// A parameter type change at a site that applies the name is not decided
+/// here: `impact_occurrences` dispatches that pair to `signature_type_site`,
+/// which reads the arguments, so this function's `SignatureType` arm is only
+/// ever reached for a site that reads the name.
 fn occurrence_verdict(
     change: &Change,
     relation: Relation,
@@ -5252,13 +5308,395 @@ fn occurrence_verdict(
         },
         Change::SignatureType => (
             Verdict::NotIndexed,
-            "the checker reports only a provable type mismatch and is silent on an \
-             undecidable one, so a signature type changed to or from a named type draws no \
-             conclusion at this site and it cannot be called safe (G201)",
+            "this site reads the name rather than applying it, so no argument is paired \
+             with a parameter here, and Glyph does not compare a function value's parameter \
+             types against the type its use context expects, so the compiler concludes \
+             nothing here either way",
             None,
-            "Glyph raises none where a named type is on either side, which is the reason \
-             this site is unchecked rather than safe",
+            "Glyph raises none; `tsc` is what reports a function value that does not \
+             fit its expected type, on the emitted TypeScript",
         ),
+    }
+}
+
+/// What one occurrence does under one change, with the reason composed rather
+/// than fixed, for the kinds that decide below the site.
+struct SiteVerdict {
+    verdict: Verdict,
+    because: String,
+    code: Option<&'static str>,
+    absent: &'static str,
+    /// One entry per argument paired with a parameter, under
+    /// `change_signature_type`; empty for every other kind.
+    arguments: Vec<Value>,
+}
+
+/// The per-file reads `change_signature_type` needs and no other kind does.
+struct SignatureView {
+    /// Each callee identifier's span, with the spans of the arguments it is
+    /// applied to.
+    calls: BTreeMap<(u32, u32), Vec<glyph_ast::Span>>,
+    /// The checker's type for every expression in the file.
+    types: glyph_db::Types,
+    /// The callee's parameters as this file's checker sees them, or `None`
+    /// when its signature did not lower to a function type.
+    params: Option<Vec<FnParam>>,
+}
+
+/// The callee's parameter list **as the calling module's checker sees it**,
+/// which is the list the checker compared the call's arguments against.
+///
+/// The view depends on where the call is. In the declaring module the
+/// signature lowers through `decl_ty`, and a type declared there is
+/// `Ty::Named`. From any other module it lowers through `exported_fn`, which
+/// renders the same type as `Ty::Imported`, and `Ty::Imported` is a type the
+/// assignability relation declines to judge. Reading the signature from the
+/// wrong side would put a call in a cell the checker never applies to it.
+fn callee_params_as_seen_from(
+    project: &Project,
+    plan: &OccurrencePlan,
+    caller: &ProjectFile,
+) -> Option<Vec<FnParam>> {
+    let db = &project.db;
+    let name: glyph_ast::Ident = Arc::from(plan.name.as_str());
+    let decl_ty = if caller.module_path == plan.module {
+        glyph_db::decl_ty(db, caller.file, name)
+    } else {
+        let declaring = project
+            .searched()
+            .into_iter()
+            .find(|(_, f)| f.module_path == plan.module)?
+            .1
+            .file;
+        glyph_db::exported_fn(db, declaring, name)
+    };
+    match decl_ty.ty() {
+        Ty::Fn { params, .. } => Some(params.clone()),
+        _ => None,
+    }
+}
+
+/// How the checker sees one argument at a call site, for the purpose of
+/// comparing it against a parameter type. Each kind is a row of the table
+/// `signature_type_cell` decides; a kind is distinct only where the checker's
+/// rules treat it distinctly.
+enum ArgKind {
+    /// `string`, `number`, `bool` or `void`. Which one is not read by any
+    /// cell: the change names no replacement, so the rule is about the two
+    /// kinds and not about the two values.
+    Primitive,
+    /// A `Ty::Named` whose declaration is in the calling module and whose body
+    /// is a tagged union or a record: the shape the G201 rule reads.
+    LocalUnionOrRecord,
+    /// A generic application of one (`Tree<number>`). The G201 rule sees
+    /// through the application; the by-name rule does not compare an
+    /// application against a bare name.
+    AppOfLocalUnionOrRecord,
+    /// A `Ty::Named` the G201 rule does not read as a union or record: a body
+    /// of another shape, or a name this module does not declare as a `type`.
+    /// The string says which.
+    NamedOther(&'static str),
+    /// `Ty::Imported`, or an application over one: a type declared in another
+    /// module, which the assignability relation declines to judge.
+    Imported,
+    /// `Ty::Unknown`, or no entry in the type map at all.
+    Unknown,
+    /// A structural record or a function value.
+    Structural,
+    /// Everything else: a generic parameter, an application over a structural
+    /// or prelude base, `unknown`, `never`, a string-literal union.
+    Other,
+}
+
+/// How the checker sees the parameter the argument is paired with.
+enum ParamKind {
+    Primitive(Primitive),
+    /// A declared type of the calling module (`Ty::Named`).
+    Named,
+    /// A type declared in another module (`Ty::Imported`).
+    Imported,
+    Other,
+}
+
+/// The body of the module-local `type` declaration `ty` names, or `None` when
+/// this file cannot see one. The same resolution the checker's
+/// `local_type_decl` performs, which is the point: the answer here has to be
+/// the checker's, not a guess at it.
+fn local_type_body<'m>(
+    ty: &Ty,
+    module: &'m glyph_ast::Module,
+    resolved: &ResolvedModule,
+) -> Option<&'m glyph_ast::TypeExpr> {
+    let Ty::Named { symbol, path } = ty else { return None };
+    let sym = resolved.symbols.table.get(SymbolId(symbol.0))?;
+    if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+        return None;
+    }
+    let SymbolKind::Type { decl_idx } = sym.kind else { return None };
+    let glyph_ast::Decl::Type(td) = module.items.get(decl_idx as usize)? else {
+        return None;
+    };
+    Some(&td.body)
+}
+
+fn classify_argument(
+    ty: &Ty,
+    module: &glyph_ast::Module,
+    resolved: &ResolvedModule,
+) -> ArgKind {
+    use glyph_ast::TypeExpr;
+    let is_union_or_record = |body: &TypeExpr| {
+        matches!(body, TypeExpr::Union { .. } | TypeExpr::Record { .. })
+    };
+    match ty {
+        Ty::Unknown => ArgKind::Unknown,
+        Ty::Prim(_) => ArgKind::Primitive,
+        Ty::Imported { .. } => ArgKind::Imported,
+        Ty::Named { .. } => match local_type_body(ty, module, resolved) {
+            Some(body) if is_union_or_record(body) => ArgKind::LocalUnionOrRecord,
+            Some(TypeExpr::Path { .. }) | Some(TypeExpr::Generic { .. }) => {
+                ArgKind::NamedOther("an alias for another type")
+            }
+            Some(TypeExpr::StringLiteralUnion { .. }) => {
+                ArgKind::NamedOther("a string-literal union (D30), which is a `string`")
+            }
+            Some(TypeExpr::Extern { .. }) => ArgKind::NamedOther("an `extern_ts` body"),
+            Some(TypeExpr::Fn { .. }) => ArgKind::NamedOther("a function type"),
+            Some(_) => ArgKind::NamedOther("a body that is not a tagged union or a record"),
+            None => ArgKind::NamedOther(
+                "a name this module does not declare as a `type` (a prelude, stdlib or \
+                 interface name)",
+            ),
+        },
+        Ty::App { base, .. } => match base.as_ref() {
+            Ty::Imported { .. } => ArgKind::Imported,
+            Ty::Named { .. } => match local_type_body(base, module, resolved) {
+                Some(body) if is_union_or_record(body) => ArgKind::AppOfLocalUnionOrRecord,
+                _ => ArgKind::Other,
+            },
+            _ => ArgKind::Other,
+        },
+        Ty::Record { .. } | Ty::Fn { .. } => ArgKind::Structural,
+        Ty::UnknownTop
+        | Ty::Never
+        | Ty::Param { .. }
+        | Ty::Union { .. }
+        | Ty::StringLiteralUnion(_) => ArgKind::Other,
+    }
+}
+
+fn classify_parameter(ty: &Ty) -> ParamKind {
+    match ty {
+        Ty::Prim(p) => ParamKind::Primitive(*p),
+        Ty::Named { .. } => ParamKind::Named,
+        Ty::Imported { .. } => ParamKind::Imported,
+        _ => ParamKind::Other,
+    }
+}
+
+/// `string`, `number` or `bool`: the primitives the checker's shape rules
+/// (a declared union or record, a structural record or function) are stated
+/// against. `void` is left out of them, as it is in the checker.
+fn is_concrete_scalar(p: Primitive) -> bool {
+    matches!(p, Primitive::String | Primitive::Number | Primitive::Bool)
+}
+
+/// One cell of the `change_signature_type` table: what the checker does with
+/// an argument of `arg` kind against a parameter of `param` kind, and why.
+///
+/// **Every cell was run against the checker before it was written.** The
+/// verdict is about the pairing as it stands: `WILL_FAIL` says the checker has
+/// a rule comparing these two kinds, so a replacement type the argument does
+/// not satisfy is E0211 at this site; `UNDETERMINED` says it has none, so a
+/// mismatch here is reported by nothing until `tsc` reads the emitted
+/// TypeScript on a full `glyph build`, and the reason names the missing rule.
+/// The rules, as the checker holds them in `assign_incompatible` and
+/// `definitely_incompatible`:
+///
+/// - a primitive against a primitive is compared;
+/// - two `Ty::Named` are compared by name;
+/// - a declared union or record of the calling module against a concrete
+///   scalar is compared, reading the declaration body (G201);
+/// - a structural record or function against a concrete scalar is compared;
+/// - `Ty::Imported`, `Ty::Unknown` and a generic parameter are declined on
+///   either side, and a primitive against a `Ty::Named` has no rule.
+///
+/// One function, one match, so when the checker gains a rule the cell that
+/// changes is one arm here.
+fn signature_type_cell(
+    arg: &ArgKind,
+    param: &ParamKind,
+    arg_ty: &str,
+    param_ty: &str,
+) -> (Verdict, String) {
+    use ArgKind as A;
+    use ParamKind as P;
+    let will_fail = |why: String| (Verdict::WillFail, why);
+    let undetermined = |why: String| (Verdict::Undetermined, why);
+    match (arg, param) {
+        (A::Unknown, _) => undetermined(
+            "the checker holds no type for this argument, so it is compared against \
+             nothing, and only `tsc` on a full `glyph build` would see a mismatch here"
+                .to_string(),
+        ),
+        (A::Primitive, P::Primitive(_)) => will_fail(format!(
+            "the checker compares a primitive argument against a primitive parameter, so a \
+             replacement primitive a `{arg_ty}` does not satisfy is E0211 here"
+        )),
+        (A::Primitive, P::Named) => undetermined(format!(
+            "the checker has no rule comparing a primitive argument against a declared \
+             parameter type, so a `{arg_ty}` against a replacement declared type is \
+             reported by nothing here and only `tsc` on a full `glyph build` would see it"
+        )),
+        (A::LocalUnionOrRecord | A::AppOfLocalUnionOrRecord, P::Primitive(p))
+            if is_concrete_scalar(*p) =>
+        {
+            will_fail(format!(
+                "`{arg_ty}` is a tagged union or record declared in this module, and the \
+                 checker reads that declaration (G201): its value is never a `string`, a \
+                 `number` or a `bool`, so a replacement primitive is E0211 here"
+            ))
+        }
+        (A::LocalUnionOrRecord | A::AppOfLocalUnionOrRecord, P::Primitive(_)) => {
+            undetermined(format!(
+                "the rule deciding a declared union or record against a primitive (G201) \
+                 leaves `void` out, so `{arg_ty}` against a `void` parameter is compared by \
+                 nothing"
+            ))
+        }
+        (A::LocalUnionOrRecord | A::NamedOther(_), P::Named) => will_fail(format!(
+            "`{arg_ty}` and `{param_ty}` are both declared types this module names, and the \
+             checker compares them by name, so a replacement declared type of another name \
+             is E0211 here"
+        )),
+        (A::AppOfLocalUnionOrRecord, P::Named) => undetermined(format!(
+            "the checker compares a generic application `{arg_ty}` against a bare declared \
+             name `{param_ty}` by nothing, so a replacement is reported by nothing here"
+        )),
+        (A::NamedOther(shape), P::Primitive(_)) => undetermined(format!(
+            "`{arg_ty}` is declared as {shape}, and the one rule deciding a declared type \
+             against a primitive (G201) reads a tagged union or a record body, so a \
+             replacement primitive is compared against nothing here"
+        )),
+        (A::Primitive | A::LocalUnionOrRecord | A::AppOfLocalUnionOrRecord | A::NamedOther(_), P::Imported) => {
+            undetermined(format!(
+                "the parameter's type `{param_ty}` is declared in another module, and the \
+                 checker compares a cross-module type against nothing, so a replacement is \
+                 reported by nothing here and only `tsc` on a full `glyph build` would see it"
+            ))
+        }
+        (A::Imported, _) => undetermined(format!(
+            "`{arg_ty}` is declared in another module, and the checker's rule for a declared \
+             type against a primitive reads only a declaration in the calling module (G201); \
+             a cross-module type is compared against nothing, so only `tsc` on a full `glyph \
+             build` would report a mismatch here"
+        )),
+        (A::Structural, P::Primitive(p)) if is_concrete_scalar(*p) => will_fail(format!(
+            "`{arg_ty}` is a record or function value, which is never a `string`, a `number` \
+             or a `bool`, and the checker compares the two shapes, so a replacement \
+             primitive is E0211 here"
+        )),
+        _ => undetermined(format!(
+            "the checker has no rule comparing a `{arg_ty}` argument against a `{param_ty}` \
+             parameter, so a replacement is compared against nothing here that Glyph \
+             reports"
+        )),
+    }
+}
+
+/// What one call site does under `change_signature_type`: each argument the
+/// call pairs with a parameter is one cell of `signature_type_cell`, and the
+/// site is the weakest of them. `WILL_FAIL` only when every pairing is one the
+/// checker compares, because the change names no parameter, so a site with one
+/// uncompared pairing may be the site the change slips past.
+fn signature_type_site(
+    args: &[glyph_ast::Span],
+    params: Option<&[FnParam]>,
+    types: &TypeMap,
+    module: &glyph_ast::Module,
+    resolved: &ResolvedModule,
+    text: &str,
+) -> SiteVerdict {
+    const ABSENT: &str = "Glyph raises none for the pairing named in `because`; `tsc` on the \
+                          emitted TypeScript is what would report it, on a full `glyph build`";
+    let undetermined = |because: String, arguments: Vec<Value>| SiteVerdict {
+        verdict: Verdict::Undetermined,
+        because,
+        code: None,
+        absent: ABSENT,
+        arguments,
+    };
+    let Some(params) = params else {
+        return undetermined(
+            "the callee's signature did not lower to a function type, so no parameter is \
+             paired with an argument at this site"
+                .to_string(),
+            Vec::new(),
+        );
+    };
+    if args.is_empty() || params.is_empty() {
+        return undetermined(
+            "the call pairs no argument with a parameter, so no parameter type is compared \
+             at this site; a return-type change reaching what the call's result flows into \
+             is a class this relation does not hold"
+                .to_string(),
+            Vec::new(),
+        );
+    }
+    let mut arguments = Vec::new();
+    let mut reasons = Vec::new();
+    let mut all_compared = true;
+    for (ordinal, (span, param)) in args.iter().zip(params.iter()).enumerate() {
+        let source = text
+            .get(span.start as usize..span.end as usize)
+            .unwrap_or_default();
+        let ty = types.get(*span);
+        let arg_ty = display_ty(ty);
+        let param_ty = display_ty(&param.ty);
+        let kind = if types.has_entry(*span) {
+            classify_argument(ty, module, resolved)
+        } else {
+            ArgKind::Unknown
+        };
+        let (verdict, rule) =
+            signature_type_cell(&kind, &classify_parameter(&param.ty), &arg_ty, &param_ty);
+        let param_name = param.name.as_deref().unwrap_or("_");
+        let because = format!(
+            "argument {} (`{source}`, `{arg_ty}`) against parameter `{param_name}: {param_ty}`: \
+             {rule}",
+            ordinal + 1
+        );
+        all_compared &= verdict == Verdict::WillFail;
+        arguments.push(json!({
+            "ordinal": ordinal + 1,
+            "source": source,
+            "type": arg_ty,
+            "parameter": param_name,
+            "parameter_type": param_ty,
+            "verdict": verdict.wire(),
+            "because": because,
+        }));
+        reasons.push(because);
+    }
+    if args.len() != params.len() {
+        reasons.push(format!(
+            "the call passes {} arguments to {} parameters, which is E0213 already, and the \
+             pairs above are read by position",
+            args.len(),
+            params.len()
+        ));
+    }
+    let because = reasons.join("; ");
+    if all_compared {
+        SiteVerdict {
+            verdict: Verdict::WillFail,
+            because,
+            code: Some("E0211"),
+            absent: "",
+            arguments,
+        }
+    } else {
+        undetermined(because, arguments)
     }
 }
 
@@ -9492,41 +9930,281 @@ mod tests {
         );
     }
 
-    /// G201 ships as a class rather than as a silence. A signature type is a
-    /// change the checker draws no conclusion from when a named type is on
-    /// either side, so every site comes back unchecked and none comes back
-    /// safe.
+    /// The single-argument `change_signature_type` answer for one program:
+    /// the one non-edit-site CALLS entry, so each cell of the table below is
+    /// one program and one assertion.
+    fn signature_call_entry(program: &str, entity: &str, caller: &str) -> Value {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(&root, "api.glyph", program);
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": entity, "change": { "kind": "change_signature_type" } }),
+        );
+        answer["impact"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+            .iter()
+            .find(|e| e["entity"] == caller && e["relation"] == "CALLS")
+            .cloned()
+            .unwrap_or_else(|| panic!("no CALLS entry for `{caller}` in {answer}"))
+    }
+
+    /// Cell (primitive argument, primitive parameter): compared. Run against
+    /// the checker: `f("x")` with `f(n: number)` is E0211.
     #[test]
-    fn a_signature_type_change_is_not_indexed_rather_than_safe() {
+    fn signature_type_primitive_against_primitive_is_will_fail() {
+        let entry = signature_call_entry(
+            "module api\npub fn takes_string(s: string) -> string {\n  return s\n}\n\
+             pub fn calls_it() -> string {\n  return takes_string(\"x\")\n}\n",
+            "api::takes_string",
+            "api::calls_it",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`string`"), "the argument's type is unnamed: {entry}");
+        assert!(because.contains("primitive"), "the rule is unnamed: {entry}");
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args.len(), 1, "{entry}");
+        assert_eq!(args[0]["type"], "string", "{entry}");
+        assert_eq!(args[0]["parameter_type"], "string", "{entry}");
+        assert_eq!(args[0]["verdict"], "WILL_FAIL", "{entry}");
+    }
+
+    /// Cell (local union argument, primitive parameter): the G201 rule. Run
+    /// against the checker: `f(c)` with `c: Cell` and `f(s: string)` is E0211.
+    #[test]
+    fn signature_type_local_union_against_primitive_is_will_fail() {
+        let entry = signature_call_entry(
+            "module api\npub type Cell =\n  | A\n  | B\n\
+             pub fn f(s: string) -> string {\n  return s\n}\n\
+             pub fn g(c: Cell) -> string {\n  return f(c)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`Cell`"), "{entry}");
+        assert!(because.contains("G201"), "the rule is unnamed: {entry}");
+    }
+
+    /// Cell (local record argument, primitive parameter): the same rule reads
+    /// a record body too.
+    #[test]
+    fn signature_type_local_record_against_primitive_is_will_fail() {
+        let entry = signature_call_entry(
+            "module api\npub type Sheet = { rows: number }\n\
+             pub fn f(s: string) -> string {\n  return s\n}\n\
+             pub fn g(c: Sheet) -> string {\n  return f(c)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        assert!(entry["because"].as_str().unwrap_or_default().contains("`Sheet`"), "{entry}");
+    }
+
+    /// Cell (local declared argument, local declared parameter): compared by
+    /// name. Run against the checker: `f(c)` with `c: Cell` and `f(o: Other)`
+    /// is E0211.
+    #[test]
+    fn signature_type_local_named_against_local_named_is_will_fail() {
+        let entry = signature_call_entry(
+            "module api\npub type Cell =\n  | A\n  | B\npub type Other =\n  | C\n  | D\n\
+             pub fn f(o: Other) -> Other {\n  return o\n}\n\
+             pub fn g(c: Cell) -> Other {\n  return f(c)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`Cell`") && because.contains("`Other`"), "{entry}");
+        assert!(because.contains("by name"), "the rule is unnamed: {entry}");
+    }
+
+    /// Cell (local alias argument, primitive parameter): the G201 rule reads
+    /// the body, and a body that is a path is not a union or a record, so the
+    /// checker is silent. Run against the checker: `f(c)` with `c: Id`,
+    /// `type Id = string` and `f(n: number)` reports nothing.
+    #[test]
+    fn signature_type_local_alias_against_primitive_is_undetermined() {
+        let entry = signature_call_entry(
+            "module api\npub type Id = string\n\
+             pub fn f(n: number) -> number {\n  return n\n}\n\
+             pub fn g(c: Id) -> number {\n  return f(c)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`Id`"), "{entry}");
+        assert!(
+            because.contains("union") && because.contains("record"),
+            "the missing shape is unnamed: {entry}"
+        );
+    }
+
+    /// Cell (imported declared argument, primitive parameter): the G201 rule
+    /// reads only a declaration in the calling module, so a cross-module type
+    /// is compared against nothing. Run against the checker: silent.
+    #[test]
+    fn signature_type_imported_type_against_primitive_is_undetermined() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(&root, "cells.glyph", "module cells\npub type Cell =\n  | A\n  | B\n");
+        write(
+            &root,
+            "api.glyph",
+            "module api\nimport cells { Cell }\n\
+             pub fn f(s: string) -> string {\n  return s\n}\n\
+             pub fn g(c: Cell) -> string {\n  return f(c)\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "api::f", "change": { "kind": "change_signature_type" } }),
+        );
+        let entry = answer["impact"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["entity"] == "api::g")
+            .unwrap_or_else(|| panic!("{answer}"));
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("another module"), "{entry}");
+        assert!(because.contains("G201"), "the gap this cell rests on is unnamed: {entry}");
+    }
+
+    /// Cell (primitive argument, declared parameter): the checker has no rule
+    /// for this direction. Run against the checker: `f("x")` with `f(c: Cell)`
+    /// reports nothing.
+    #[test]
+    fn signature_type_primitive_against_declared_is_undetermined() {
+        let entry = signature_call_entry(
+            "module api\npub type Cell =\n  | A\n  | B\n\
+             pub fn f(c: Cell) -> Cell {\n  return c\n}\n\
+             pub fn g() -> Cell {\n  return f(\"x\")\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("no rule"), "{entry}");
+        assert!(because.contains("`string`") && because.contains("`c: Cell`"), "{entry}");
+    }
+
+    /// Cell (unknown argument, any parameter): a `const` with no annotation is
+    /// `Ty::Unknown`, and the checker compares an unknown against nothing.
+    #[test]
+    fn signature_type_unknown_argument_is_undetermined() {
+        let entry = signature_call_entry(
+            "module api\nconst X = { a: 1 }\n\
+             pub fn f(s: string) -> string {\n  return s\n}\n\
+             pub fn g() -> string {\n  return f(X)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`X`"), "{entry}");
+        assert!(because.contains("no type"), "{entry}");
+    }
+
+    /// Cell (structural record argument, primitive parameter): a record or
+    /// function value is never a concrete scalar, and the checker compares the
+    /// shapes. Run against the checker: `f(r)` with `r: { a: number }` and
+    /// `f(s: string)` is E0211.
+    #[test]
+    fn signature_type_structural_record_against_primitive_is_will_fail() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(s: string) -> string {\n  return s\n}\n\
+             pub fn g(r: { a: number }) -> string {\n  return f(r)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        assert!(entry["because"].as_str().unwrap_or_default().contains("record"), "{entry}");
+    }
+
+    /// A site is the weakest of its arguments. One compared pairing (a string
+    /// literal against `string`) beside one the checker has no rule for (a
+    /// number literal against a declared `Cell`) is UNDETERMINED, with both
+    /// arguments read. Run against the checker: the program compiles.
+    #[test]
+    fn signature_type_site_is_the_weakest_of_its_arguments() {
+        let entry = signature_call_entry(
+            "module api\npub type Cell =\n  | A\n  | B\n\
+             pub fn f(s: string, c: Cell) -> string {\n  return s\n}\n\
+             pub fn g() -> string {\n  return f(\"x\", 3)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args.len(), 2, "{entry}");
+        assert_eq!(args[0]["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(args[1]["verdict"], "UNDETERMINED", "{entry}");
+        for arg in args {
+            assert!(arg["because"].as_str().is_some_and(|w| !w.is_empty()), "{arg}");
+        }
+    }
+
+    /// A function read as a value is NOT_INDEXED under this change, as under
+    /// `change_arity`: nothing compares a function value's parameter types
+    /// against the type its use context expects. The CALLS search names the
+    /// class it does not hold either: a return-type change reaching the typed
+    /// position a call's result flows into.
+    #[test]
+    fn signature_type_value_read_is_not_indexed_and_the_return_class_is_named() {
         let root = tmp_root();
         std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
         write(
             &root,
             "api.glyph",
-            "module api\npub fn takes_string(s: string) -> string {\n  return s\n}\n\
-             pub fn calls_it() -> string {\n  return takes_string(\"x\")\n}\n",
+            "module api\npub fn width(n: number) -> number {\n  return n * 2\n}\n\
+             pub fn called() -> number {\n  return width(3)\n}\n\
+             pub const sizer: fn(number) -> number = width\n",
         );
         let mut server = Server::new(root.clone());
-
         let answer = impact(
             &mut server,
-            json!({ "entity": "api::takes_string", "change": { "kind": "change_signature_type" } }),
+            json!({ "entity": "api::width", "change": { "kind": "change_signature_type" } }),
         );
-        let seen: BTreeSet<&str> = answer["impact"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter_map(|e| e["verdict"].as_str())
-            .collect();
-        assert_eq!(seen, BTreeSet::from(["NOT_INDEXED"]), "{answer}");
+        assert_eq!(
+            verdicts(&answer),
+            BTreeMap::from([
+                ("api::called".to_string(), "WILL_FAIL".to_string()),
+                ("api::sizer".to_string(), "NOT_INDEXED".to_string()),
+            ]),
+            "{answer}"
+        );
+        let searches = answer["searches"].as_array().unwrap();
+        let calls = searches.iter().find(|s| s["relation"] == "CALLS").unwrap();
         assert!(
-            answer["searches"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|s| s["not_indexed"].to_string().contains("G201")),
-            "the gap this class comes from is unnamed: {answer}"
+            calls["not_indexed"].to_string().contains("return"),
+            "the return-type class is unnamed on the CALLS search: {calls}"
         );
+        let references = searches.iter().find(|s| s["relation"] == "REFERENCES").unwrap();
+        assert!(
+            !references["not_indexed"].as_array().unwrap().is_empty(),
+            "{references}"
+        );
+        // No search says the kind is unanswerable any more.
+        for search in searches {
+            assert!(
+                !search["not_indexed"].to_string().contains("every one of them is reported"),
+                "{search}"
+            );
+        }
     }
 
     /// A hop past the first is answered, not refused. The carrier is exact at
@@ -9780,6 +10458,7 @@ mod tests {
             "change_signature_type",
             "remove",
             "next_query",
+            "E0211",
             "G201",
         ] {
             assert!(described.contains(word), "`{word}` is undescribed: {described}");

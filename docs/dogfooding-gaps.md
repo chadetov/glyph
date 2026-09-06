@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-223 entries, 190 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+223 entries, 191 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8196,7 +8196,7 @@ and is the owner's to confirm.
   `change_signature_type` answerable for this call-site shape in `glyph_impact`
   is tracked as its own item in `docs/roadmap/releases.md`.
 
-- **G202. The playground cannot be built from its own instructions.**
+- **G202. [FIXED] The playground cannot be built from its own instructions.**
   `playground/README.md` and `playground/build.sh` both tell you to install
   `wasm-bindgen-cli --version 0.2.125`, and
   `glyph-compiler/crates/glyph-wasm/Cargo.toml` pins `wasm-bindgen = "=0.2.127"`
@@ -8214,6 +8214,17 @@ and is the owner's to confirm.
   `playground/build.sh` still say 0.2.125, `glyph-compiler/crates/glyph-wasm/Cargo.toml`
   still pins `=0.2.127`. Previously, against 0.1.112: the two documents say 0.2.125, the manifest pins
   =0.2.127.*
+
+  **Fixed in 0.1.119.** The manifest is authoritative and the documents
+  follow it. `playground/README.md` says 0.2.127; `playground/build.sh` no
+  longer carries a version at all: it reads the pin out of
+  `crates/glyph-wasm/Cargo.toml`, prints it with `--pin`, and refuses to run
+  when the installed `wasm-bindgen-cli` is any other version, printing the
+  exact install command (on a machine with 0.2.125 installed it stops before
+  the cargo build with that message). `scripts/check_playground_pin.py` fails
+  when the README, `build.sh --pin`, or `.github/workflows/playground.yml`
+  disagrees with the manifest, and when the README stops stating a version,
+  in `check_release.py` and CI.
 
 - **G203. [FIXED] An alias of a declared type is a different nominal type, and a
   correct program is rejected for it.** `type A = { x: number }` then

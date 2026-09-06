@@ -37,6 +37,13 @@ jobs:
       - name: Check the apps are written in Glyph alone
         run: python3 scripts/check_apps_are_glyph.py
 
+      # The playground's wasm-bindgen version is pinned in one manifest and
+      # repeated in the README and the deploy workflow. The two disagreed once,
+      # and following the README produced exactly the mismatch the manifest's
+      # own comment warned about.
+      - name: Check the playground pin follows its manifest
+        run: python3 scripts/check_playground_pin.py
+
       # The launcher's tests used to run only in the release workflow, after the
       # tag was pushed, so a broken launcher merged clean and was first executed
       # on the way to the registry.

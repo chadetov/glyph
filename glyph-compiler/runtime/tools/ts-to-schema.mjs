@@ -279,9 +279,12 @@ function objectToSchema(members, ctx) {
       ? typeToSchema(m.type, { ...ctx, owner: `${ctx.owner}.${name}` })
       : { "x-unsupported": "no-type" };
     // A `field?:` member is optional. A `| null`/`| undefined` in the type is
-    // carried as `nullable` on the schema (set by unionToSchema) and also makes
-    // the field optional; the Glyph mapper turns either into an optional field.
-    const optional = isOptional(m) || schema.nullable === true;
+    // carried as `nullable` on the schema (set by unionToSchema) and is a
+    // separate fact: the Glyph mapper turns it into `Nullable<T>` (D45), so the
+    // key is still required unless the member itself is optional. Before
+    // Glyph had a null-tolerant type, `| null` also forced `?`, which accepted
+    // an absent key the TypeScript declaration did not.
+    const optional = isOptional(m);
     if (!optional) required.push(name);
     properties[name] = schema;
   }

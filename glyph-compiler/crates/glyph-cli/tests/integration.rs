@@ -11778,6 +11778,120 @@ pub async fn main() -> void {{
     );
 }
 
+/// G128. `std/http` bounded nothing by default: `get` and the other verbs
+/// waited forever on a peer that accepted the connection and said nothing,
+/// which is the shape G127 argued against one file over. Every request now
+/// carries a 30 000 ms deadline unless a `Fetch` sent through `send` says
+/// `timeout_ms: 0`, which keeps meaning no timeout, so the opt-out is one
+/// greppable literal at the call site. A deadline past what `setTimeout` can
+/// hold is refused with an `Err` naming the limit rather than clamped to one
+/// millisecond and reported as if it had elapsed.
+///
+/// Waiting out the default is not something a test suite does, so the default
+/// is read off `fetch_of` and the mechanism is exercised at 200 ms.
+#[test]
+fn an_http_request_against_a_silent_peer_is_bounded() {
+    if !js_toolchain_available() {
+        eprintln!("skipping std/http deadline: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("httpdeadline");
+    let src = root.join("src");
+    let silent = 50000 + (std::process::id() % 1000);
+    let quick = silent + 1000;
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            r#"module main
+
+import std/http
+import std/io
+import std/net
+import std/net {{ Socket }}
+import std/result {{ Ok, Err }}
+
+const SILENT: int = {silent}
+const QUICK: int = {quick}
+
+fn hello(req: http.Request) -> Result<http.Response, string> {{
+  return Ok(http.text(200, "hi"))
+}}
+
+pub async fn main() -> void {{
+  let silent_url = "http://127.0.0.1:${{number.to_string(SILENT)}}/"
+  let quick_url = "http://127.0.0.1:${{number.to_string(QUICK)}}/"
+  let fresh = http.fetch_of(silent_url, "GET")
+  io.println("default=${{number.to_string(fresh.timeout_ms)}}")
+  // Accepts the connection and then says nothing, so no response ever comes.
+  match await net.listen("127.0.0.1", SILENT, fn(peer: Socket) {{}}) {{
+    Ok(server) => {{
+      let bounded = http.fetch_of(silent_url, "GET")
+      mut bounded.timeout_ms = 200
+      match await http.send(bounded) {{
+        Ok(_) => io.println("bounded=answered (wrong)"),
+        Err(e) => io.println("bounded=${{e.kind}}"),
+      }}
+      let huge = http.fetch_of(silent_url, "GET")
+      mut huge.timeout_ms = 3000000000
+      match await http.send(huge) {{
+        Ok(_) => io.println("huge=answered (wrong)"),
+        Err(e) => io.println("huge=${{e.kind}} ${{e.message}}"),
+      }}
+      net.stop(server)
+    }},
+    Err(e) => io.println("listen=failed ${{e.message}}"),
+  }}
+  match await http.listen("127.0.0.1", QUICK, hello) {{
+    Ok(server) => {{
+      let unbounded = http.fetch_of(quick_url, "GET")
+      mut unbounded.timeout_ms = 0
+      match await http.send(unbounded) {{
+        Ok(r) => io.println("zero=${{number.to_string(r.status)}}"),
+        Err(e) => io.println("zero=${{e.kind}} ${{e.message}}"),
+      }}
+      net.stop(server)
+    }},
+    Err(e) => io.println("quick=failed ${{e.message}}"),
+  }}
+  io.println("main is returning now")
+}}
+"#
+        ),
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr) = spawn_glyph_bounded(
+        &[std::ffi::OsStr::new("run"), entry.as_os_str()],
+        std::time::Duration::from_secs(60),
+    )
+    .expect("the program exits: a request nobody bounded would still be pending");
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(
+        stdout.contains("default=30000"),
+        "a Fetch from fetch_of carries the 30 000 ms default: {stdout}"
+    );
+    assert!(
+        stdout.contains("bounded=timeout"),
+        "a peer that never answers is `kind: \"timeout\"`, not a wait: {stdout}"
+    );
+    assert!(
+        stdout.contains("huge=network a request deadline must be at most 2147483647ms, got 3000000000"),
+        "an unholdable deadline is a usage error naming the limit: {stdout}"
+    );
+    assert!(
+        !stdout.contains("exceeded 3000000000ms"),
+        "a 1ms failure must not claim the deadline it was asked for elapsed: {stdout}"
+    );
+    assert!(
+        stdout.contains("zero=200"),
+        "timeout_ms 0 keeps meaning no timeout, so a quick server still answers: {stdout}"
+    );
+    assert!(
+        stdout.contains("main is returning now"),
+        "the program reached its end: {stdout}"
+    );
+}
+
 /// `std/websocket` end to end: a Glyph server and Node's own WHATWG client
 /// talking over a real socket.
 ///

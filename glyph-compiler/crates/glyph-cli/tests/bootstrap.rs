@@ -307,3 +307,38 @@ fn stdlib_type_only_exports_match_the_runtime() {
          {stale:?}"
     );
 }
+
+/// Every HTTP verb takes its deadline from `fetch_of`, so the 30 000 ms default
+/// is written in one place (G128).
+///
+/// The default cannot be observed behaviourally without waiting it out, which
+/// a test suite does not do, so this reads the runtime source instead, the way
+/// `the_resolver_seed_lists_every_runtime_export` does. Two facts hold the
+/// guarantee: no verb spells its own bounds (each body builds its `Fetch` with
+/// `fetch_of`), and the literal `timeout_ms: 0`, which used to be the default
+/// in three places, appears nowhere in the module. A verb that regrows its own
+/// literal fails here even though every behavioural test still passes.
+#[test]
+fn every_http_verb_takes_its_deadline_from_fetch_of() {
+    let src = fs::read_to_string(repo_file("glyph-compiler/runtime/std/http.ts"))
+        .expect("read runtime/std/http.ts");
+    assert!(
+        !src.contains("timeout_ms: 0"),
+        "runtime/std/http.ts writes `timeout_ms: 0` somewhere, so a request built there is \
+         unbounded; the default belongs in fetch_of alone"
+    );
+    for verb in ["get", "post", "put", "patch", "del", "head"] {
+        let header = format!("export async function {verb}(");
+        let start = src
+            .find(&header)
+            .unwrap_or_else(|| panic!("http.ts no longer exports `{verb}`"));
+        let body = &src[start..];
+        let end = body.find("\n}\n").expect("a function body ends");
+        let body = &body[..end];
+        assert!(
+            body.contains("fetch_of("),
+            "http.{verb} does not build its request with fetch_of, so it does not carry the \
+             default deadline:\n{body}"
+        );
+    }
+}

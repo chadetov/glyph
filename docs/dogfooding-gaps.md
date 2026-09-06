@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-212 entries, 185 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-8 are open. G144, the D28 boundary cast that never reached the returns a
+212 entries, 186 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+7 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -4720,7 +4720,7 @@ until this one.
 
   *Found against 0.1.84.*
 
-- **G128. `std/http` bounds nothing by default, the same shape as G127.**
+- **G128. [FIXED] `std/http` bounds nothing by default, the same shape as G127.**
   `http.get` and `http.post` take a URL and no deadline, and there is no
   overload that takes one. `fetch_of` and `head` set `timeout_ms: 0`, and
   `request` reads 0 as "do not arm the timer" (`runtime/std/http.ts`, the
@@ -4760,6 +4760,21 @@ until this one.
   and no deadline.*
 
   *Re-run for 0.1.96: `fetch_of` and `head` still set `timeout_ms: 0`, and 0 still means no timeout.*
+
+  *Closed by 0.1.118, option (b). `fetch_of` fills in a 30 000 ms deadline and
+  all six verbs (`get`, `post`, `put`, `patch`, `del`, `head`) are `send` over
+  `fetch_of`, so the number is written once and a CLI test reads the runtime
+  source to hold that shape. An explicit `timeout_ms: 0` in a `Fetch` sent
+  through `send` keeps meaning no timeout: nothing that compiles or runs today
+  changes behaviour except that a request nobody bounded now fails with
+  `kind: "timeout"` after thirty seconds, so the release is not breaking on this
+  account and the opt-out is one greppable literal at the call site. `http`
+  gains the `MAX_TIMEOUT_MS` guard `tls` had: before it, a `Fetch` with
+  `timeout_ms: 3000000000` against a silent peer returned `kind: "timeout"`
+  with `exceeded 3000000000ms and was aborted` after one millisecond; it is now
+  an `Err` naming the 2 147 483 647 limit, under `kind: "network"` because a
+  fourth kind would break every exhaustive `match e.kind`. Verified by breaking
+  it: with `fetch_of` set back to 0 the test prints `default=0`.*
 
 - **G129. [FIXED] A variant name in an object pattern's field position
   compiled to a renamed binding, so the arm matched everything.** D9 reads a

@@ -1335,6 +1335,7 @@ type HttpErrorKind = "timeout" | "network" | "status"
 type HttpError = { status: number, message: string, kind: HttpErrorKind }
 type RedirectPolicy = "follow" | "manual" | "error"
 type Fetch = { url: string, method: string, body: Option<unknown>, timeout_ms: number, redirect: RedirectPolicy }
+                                                                 // timeout_ms defaults to 30000; 0 means no timeout
 type Handler  = fn(Request) -> Result<Response, string>         // may be async
 ```
 
@@ -1364,14 +1365,14 @@ handler builds, because nothing was fetched.
 Client (async; `await` them):
 
 ```
-http.get(url: string) -> Result<Response, HttpError>
+http.get(url: string) -> Result<Response, HttpError>    // 30 000 ms deadline, follows redirects
 http.post(url: string, body) -> Result<Response, HttpError>
 http.put(url: string, body) -> Result<Response, HttpError>
 http.patch(url: string, body) -> Result<Response, HttpError>
 http.del(url: string) -> Result<Response, HttpError>    // `del`, not `delete` (reserved word)
 http.head(url: string) -> Result<Response, HttpError>   // status and headers, no body fetched
-http.send(f: Fetch) -> Result<Response, HttpError>      // the bounded form
-http.fetch_of(url: string, method: string) -> Fetch     // a Fetch with the defaults get/post use
+http.send(f: Fetch) -> Result<Response, HttpError>      // the spelled-out form: your own deadline and redirect policy
+http.fetch_of(url: string, method: string) -> Fetch     // a Fetch with the verbs' defaults: timeout_ms 30000, redirect "follow", no body
 http.to_text(response: Response) -> Result<string, string>  // the body as the exact text received
 ```
 
@@ -1387,9 +1388,13 @@ It returns `Result` for a failure that does not exist yet: every response
 carries its bytes, so today the answer is always `Ok`. Whether a non-text
 `content-type` should be `Err` is still open.
 
-`get` and friends follow redirects and wait forever, which is fine for a script
-and not for a service. `send` takes the whole request as one record so it can
-carry a `timeout_ms` and a `redirect` policy:
+`get` and the other verbs follow redirects and give up after 30 000 ms with
+`kind: "timeout"`. Every one of them is `send` over `http.fetch_of(url, verb)`,
+so the default is written once and a verb cannot drift from it. A peer that
+accepts the connection and never answers used to hang the caller for as long as
+the process lived; now it is an `Err` a `match` has to handle. `send` takes the
+whole request as one record so it can carry its own `timeout_ms` and a
+`redirect` policy:
 
 ```glyph
 module main
@@ -1426,8 +1431,13 @@ fn io_fail(e: http.HttpError) -> number {
 The timeout aborts the request rather than abandoning it. Racing a timer against
 the call with `task.race` resolves the caller while the request stays in flight,
 which is the thing `std/task`'s scope rule exists to prevent. `timeout_ms` of `0`
-means no timeout. A `manual` redirect hands back the 3xx itself, so `status` and
-the `location` header are readable; `error` fails the call instead.
+means no timeout, and it is the only way to get one: write the literal at the
+call site when a request really has no bound, so the opt-out is greppable. A
+deadline above 2 147 483 647 ms (2^31-1, the most node's `setTimeout` can hold)
+is refused with an `Err` naming the limit, under `kind: "network"`, because the
+alternative was a request aborted after one millisecond claiming the deadline
+you asked for had elapsed. A `manual` redirect hands back the 3xx itself, so
+`status` and the `location` header are readable; `error` fails the call instead.
 
 Building a `Fetch` by hand needs the annotation (`let req: http.Fetch = ...`),
 because an unannotated `"manual"` infers as `string`. `fetch_of` avoids that:

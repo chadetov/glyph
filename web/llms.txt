@@ -1076,12 +1076,18 @@ Property tests are deterministic (sampled by index, no RNG). Run them with
 
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
-type Response = { status: number, headers: Record<string, string>, body: unknown }
-type HttpError = { status: number, message: string }
+type Response = { status: number, headers: Record<string, string>, body: unknown, raw: string, url: string }
+type HttpError = { status: number, message: string, kind: "timeout" | "network" | "status" }
+type Fetch = { url: string, method: string, body: Option<unknown>, timeout_ms: number, redirect: "follow" | "manual" | "error" }
+                                                      // timeout_ms defaults to 30000; 0 means no timeout
 type Handler  = fn(Request) -> Result<Response, string>   // may be async
 
-http.get(url) -> Result<Response, HttpError>          // client; async, await it
-http.post(url, body) -> Result<Response, HttpError>   // client; async
+http.get(url) -> Result<Response, HttpError>          // client; async, await it; 30 000 ms deadline
+http.post(url, body) -> Result<Response, HttpError>   // client; async; put/patch/del/head likewise
+http.head(url) -> Result<Response, HttpError>         // status and headers, no body
+http.fetch_of(url, method) -> Fetch                   // the verbs' defaults: timeout_ms 30000, redirect "follow", no body
+http.send(f: Fetch) -> Result<Response, HttpError>    // your own deadline and redirect policy; timeout_ms 0 opts out
+http.to_text(resp) -> Result<string, string>          // the body as the exact text received
 http.listen(host, port, handler) -> Result<Server, ServerError>   // async; resolves when BOUND
                                                      // Server is std/net's: stop with net.stop
 http.json(status, body) -> Response                   // application/json response
@@ -1108,6 +1114,12 @@ Every character Node refuses to write in a header is stripped from the value
 first, so a `location` built from user input can neither split the response
 (CR/LF) nor crash the server (anything above U+00FF). A client call reports the
 response headers it received, with the names lowercased.
+
+Every client verb gives up after 30 000 ms with `kind: "timeout"`; a peer that
+accepts and never answers is an `Err`, not a hang. To change the bound, build
+the request with `http.fetch_of(url, "GET")`, set `timeout_ms` on it (0 means no
+timeout, written at the call site so it is greppable), and `await http.send(req)`.
+A deadline above 2147483647 ms is refused with an `Err` naming the limit.
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
 `Err(message)` (sent as a 500). `await http.listen(host, port, handler)` binds

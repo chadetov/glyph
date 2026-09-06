@@ -74,7 +74,15 @@ export type RedirectPolicy = "follow" | "manual" | "error";
 /// One request, spelled out. `send` takes this rather than a pile of optional
 /// arguments: an optional trailing parameter is exactly the shape Glyph's
 /// checker cannot model, and a request that cannot be bounded is not a request
-/// you can ship. `timeout_ms` of 0 means no timeout.
+/// you can ship.
+///
+/// `timeout_ms` defaults to 30 000 (`fetch_of` fills it in, and every verb
+/// builds its request through `fetch_of`), so a request nobody bounded fails
+/// with `kind: "timeout"` after thirty seconds rather than waiting for a peer
+/// that accepted the connection and will never answer. `timeout_ms` of 0 means
+/// no timeout; write it at the call site when that is what you mean, so the
+/// opt-out is one greppable literal. A deadline above 2 147 483 647 (2^31-1,
+/// the most `setTimeout` can hold) is refused with an `Err` naming the limit.
 export type Fetch = {
   url: string;
   method: string;
@@ -83,10 +91,25 @@ export type Fetch = {
   redirect: RedirectPolicy;
 };
 
-/// A `Fetch` with the defaults `get` uses: follow redirects, no timeout, no
-/// body. Build on it rather than writing all five fields every time.
+/// The deadline a request carries when nobody set one: thirty seconds. G127's
+/// argument for `tls.connect` holds here too, "a bound nobody passes is a bound
+/// nobody has", and every HTTP request crosses a network. A default is a bound
+/// somebody has and nobody chose: visible and recoverable as `kind: "timeout"`,
+/// where the absent bound hangs. undici's own 300 s header ceiling is node-only
+/// and absent in the bundled realm this runtime also supports, so the default
+/// is not cosmetic there either.
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+/// The largest delay `setTimeout` holds without clamping: 2^31-1 milliseconds,
+/// a little under 25 days. The same guard `std/tls` carries.
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
+/// A `Fetch` with the defaults every verb uses: follow redirects, the default
+/// deadline, no body. Build on it rather than writing all five fields every
+/// time, and change `timeout_ms` on it when the default is not the bound you
+/// want.
 export function fetch_of(url: string, method: string): Fetch {
-  return { url, method, body: None, timeout_ms: 0, redirect: "follow" };
+  return { url, method, body: None, timeout_ms: DEFAULT_TIMEOUT_MS, redirect: "follow" };
 }
 
 /// Issue a request under the bounds it carries. A timeout aborts the request
@@ -99,30 +122,37 @@ export async function send(f: Fetch): Promise<Result<Response, HttpError>> {
   });
 }
 
+// The six verbs are `send` over a `fetch_of` request, so the default deadline
+// and redirect policy are written once, in `fetch_of`, and a verb cannot drift
+// from them. `head` used to spell its own bounds and `get` used to reach
+// `request` directly, and each was a separate place for a zero deadline to
+// live; `every_http_verb_takes_its_deadline_from_fetch_of` in the CLI tests
+// holds this shape.
+
 /// A HEAD request: the status and headers with no body fetched.
 export async function head(url: string): Promise<Result<Response, HttpError>> {
-  return request(url, "HEAD", undefined, { timeout_ms: 0, redirect: "follow" });
+  return send(fetch_of(url, "HEAD"));
 }
 
 export async function get(url: string): Promise<Result<Response, HttpError>> {
-  return request(url, "GET", undefined);
+  return send(fetch_of(url, "GET"));
 }
 
 export async function post(url: string, body: unknown): Promise<Result<Response, HttpError>> {
-  return request(url, "POST", body);
+  return send({ ...fetch_of(url, "POST"), body: Some(body) });
 }
 
 export async function put(url: string, body: unknown): Promise<Result<Response, HttpError>> {
-  return request(url, "PUT", body);
+  return send({ ...fetch_of(url, "PUT"), body: Some(body) });
 }
 
 export async function patch(url: string, body: unknown): Promise<Result<Response, HttpError>> {
-  return request(url, "PATCH", body);
+  return send({ ...fetch_of(url, "PATCH"), body: Some(body) });
 }
 
 // `del`, not `delete`: `delete` is a reserved word and cannot be an import name.
 export async function del(url: string): Promise<Result<Response, HttpError>> {
-  return request(url, "DELETE", undefined);
+  return send(fetch_of(url, "DELETE"));
 }
 
 /// The response body as the exact text the server sent.
@@ -446,11 +476,23 @@ async function request(
   url: string,
   method: string,
   body: unknown,
-  bounds: { timeout_ms: number; redirect: RedirectPolicy } = {
-    timeout_ms: 0,
-    redirect: "follow",
-  },
+  bounds: { timeout_ms: number; redirect: RedirectPolicy },
 ): Promise<Result<Response, HttpError>> {
+  // A deadline node's timer cannot hold. `setTimeout` clamps anything past
+  // 2^31-1 to one millisecond instead of refusing it, so without this check a
+  // 35-day bound aborted the request in 1ms and reported the 35 days as
+  // elapsed: a confident wrong answer, worse than the hang the deadline
+  // replaces. `int` arithmetic reaches the limit without anyone writing a
+  // suspicious literal, `days * 86400 * 1000` being enough. Reported under
+  // `network` because the request was never issued, and because a fourth
+  // `HttpErrorKind` would break every exhaustive `match e.kind` on upgrade.
+  if (bounds.timeout_ms > MAX_TIMEOUT_MS) {
+    return Err({
+      status: 0,
+      message: `a request deadline must be at most ${String(MAX_TIMEOUT_MS)}ms, got ${String(bounds.timeout_ms)}`,
+      kind: "network",
+    });
+  }
   // An `AbortController` cancels the request itself. Racing a timer against the
   // promise would resolve the caller while the request stayed in flight, which
   // is the workaround this replaces.

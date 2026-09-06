@@ -1325,7 +1325,9 @@ impl<'a> Emitter<'a> {
                     });
                 }
                 if let TypeExpr::Union { variants, .. } = &t.body {
-                    return self.emit_union(&t.name, &t.generics, variants);
+                    self.emit_union(&t.name, &t.generics, variants)?;
+                    self.emit_alias_values(t);
+                    return Ok(());
                 }
                 let generics = self.generics(&t.generics)?;
                 let body = self.ty(&t.body)?;
@@ -1344,6 +1346,7 @@ impl<'a> Emitter<'a> {
                     // value that fails the predicate is rejected at the boundary.
                     self.emit_refinement_descriptor(&t.name, &t.body, pred)?;
                 }
+                self.emit_alias_values(t);
                 Ok(())
             }
             Decl::Component(c) => self.emit_component(c),
@@ -4344,11 +4347,14 @@ impl<'a> Emitter<'a> {
     /// the import half, a field typed by an imported record fell to the
     /// `!== undefined` presence floor while the type promised a full check.
     fn has_descriptor(&self, name: &str) -> bool {
-        if let Some(local) = self.module.items.iter().find_map(|d| match d {
-            Decl::Type(t) if t.name.as_ref() == name && t.generics.is_empty() => Some(t),
-            _ => None,
-        }) {
-            return emits_plain_descriptor(local);
+        if self.module.items.iter().any(|d| matches!(d, Decl::Type(t) if t.name.as_ref() == name)) {
+            // A second name has the descriptor of the declaration it names
+            // (D45): `type B = A` answers for `A`, and `emit_alias_values`
+            // binds the `B` value the emitted `B.is` then reads. A cycle, and
+            // a chain ending at a type with no descriptor, answer false.
+            return self
+                .alias_chain_terminal(name)
+                .is_some_and(emits_plain_descriptor);
         }
         let Some(&sym_id) = self.resolved.symbols.by_name.get(name) else {
             return false;
@@ -4483,6 +4489,38 @@ impl<'a> Emitter<'a> {
                 Some(n) => current = n,
                 None => return Some(current),
             }
+        }
+    }
+
+    /// D45 at run time. Every module-local declaration that is a second name
+    /// for `t` (its alias chain ends at `t`) is bound to `t`'s descriptor as a
+    /// value: `type B = A` emits `const B = A;`, so `B.parse`, `B.is`, `B.schema`
+    /// and a field check spelled `B.is(..)` all reach `A`'s descriptor, and the
+    /// emitted TypeScript states the identity in one greppable line. Emitted
+    /// right after the descriptor rather than at the alias's own position,
+    /// because a `const` is not hoisted: `type B = A` written above `type A`
+    /// would otherwise read `A` in its temporal dead zone. Each binding is
+    /// exported on the alias's own `pub`, not `t`'s. Nothing is emitted for a
+    /// `t` with no descriptor, since there is nothing to alias.
+    fn emit_alias_values(&mut self, t: &glyph_ast::TypeDecl) {
+        if !emits_plain_descriptor(t) {
+            return;
+        }
+        let aliases: Vec<(String, bool)> = self
+            .module
+            .items
+            .iter()
+            .filter_map(|d| match d {
+                Decl::Type(a) if a.name != t.name && matches!(a.body, TypeExpr::Path { .. }) => {
+                    let end = self.alias_chain_terminal(a.name.as_ref())?;
+                    (std::ptr::eq(end, t)).then(|| (a.name.to_string(), a.is_public))
+                }
+                _ => None,
+            })
+            .collect();
+        for (name, is_public) in aliases {
+            let ex = if is_public { "export " } else { "" };
+            self.line(&format!("{ex}const {name} = {};", t.name));
         }
     }
 
@@ -5136,10 +5174,12 @@ impl<'a> Emitter<'a> {
         if !seen.insert(name.to_string()) {
             return None; // recursive type: its own fields are checked once
         }
-        let decl = self.module.items.iter().find_map(|d| match d {
-            Decl::Type(td) if td.name.as_ref() == name && td.generics.is_empty() => Some(td),
-            _ => None,
-        })?;
+        // The claim `B.is` makes is the claim of the record `B` names (D45), so
+        // the fields judged are the fields of the declaration the chain ends at.
+        let decl = self.alias_chain_terminal(name)?;
+        if !decl.generics.is_empty() {
+            return None;
+        }
         let TypeExpr::Record { fields, .. } = &decl.body else {
             return None;
         };
@@ -10304,6 +10344,65 @@ mod tests {
         // emits its descriptor.
         let ts = emit("module x\ntype Cents = int\ntype PosCents = Cents where value > 0\n");
         assert!(ts.contains("const PosCents = {"), "primitive through an alias: {ts}");
+    }
+
+    /// D45 at run time. An alias of a type with a descriptor is a value alias
+    /// of that descriptor too, emitted right after the descriptor it names so
+    /// it is initialised whatever the declaration order. `B.parse`, `B.is`
+    /// and a field typed `B` all reach `A`'s descriptor through it, and the
+    /// emitted TypeScript says so in one greppable line.
+    #[test]
+    fn an_alias_of_a_descriptor_type_is_a_runtime_alias_of_its_descriptor() {
+        let ts = emit(
+            "module x\n\
+             pub type B = A\n\
+             type A = { x: number, }\n\
+             type C = B\n\
+             type R = { b: B, }\n\
+             pub fn go(v: unknown) -> number {\n\
+             \x20 return match B.parse(v) {\n\
+             \x20\x20\x20 Ok(b) => b.x,\n\
+             \x20\x20\x20 Err(_) => 0,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(ts.contains("B.parse(v)"), "the call is emitted as written: {ts}");
+        assert!(ts.contains("export type B = A;"), "type alias: {ts}");
+        assert!(ts.contains("export const B = A;"), "value alias: {ts}");
+        assert!(ts.contains("\nconst C = A;"), "two hops resolve to the record: {ts}");
+        let a = ts.find("const A = {").expect("A's descriptor");
+        let b = ts.find("export const B = A;").expect("B's alias");
+        assert!(b > a, "the alias follows the descriptor it names: {ts}");
+        assert!(ts.contains("B.is("), "a field typed by the alias checks through it: {ts}");
+        // A generic application and a primitive alias have no descriptor to
+        // alias, and get no value.
+        let ts = emit("module x\ntype W<T> = { v: T, }\ntype Boxed<T> = W<T>\n");
+        assert!(!ts.contains("const Boxed"), "generic application: {ts}");
+        let ts = emit("module x\ntype Cents = int\ntype C2 = Cents\n");
+        assert!(!ts.contains("const C2"), "primitive alias: {ts}");
+    }
+
+    /// E0304 reaches through the alias: `B.is` on a second name for a record
+    /// with an unverifiable field is refused exactly as `A.is` is, since the
+    /// claim `B.is` makes is `A`'s.
+    #[test]
+    fn unverifiable_descriptor_use_reaches_through_an_alias() {
+        let err = emit_err(
+            "module x\n\
+             type Opaque = extern_ts(\"{ handle: number }\")\n\
+             type A = { id: number, cb: Opaque, }\n\
+             type B = A\n\
+             pub fn go(v: unknown) -> number {\n\
+             \x20 return match B.parse(v) {\n\
+             \x20\x20\x20 Ok(_) => 1,\n\
+             \x20\x20\x20 Err(_) => 0,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            matches!(&err, EmitError::UnverifiableDescriptorUse { type_name, field, .. } if type_name == "B" && field == "cb"),
+            "{err:?}"
+        );
     }
 
     #[test]

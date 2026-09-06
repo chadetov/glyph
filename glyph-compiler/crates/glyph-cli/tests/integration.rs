@@ -12692,3 +12692,70 @@ fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
         .unwrap_or_else(|| panic!("no E0300; diagnostics were: {:?}", report.diagnostics));
     assert!(diag.contains("record type"), "names the resolved shape: {diag}");
 }
+
+#[test]
+fn a_module_local_alias_is_a_second_name_for_its_record() {
+    // G203 and G206, one program. `type B = A` is a second name for `A`'s
+    // declaration (D45): a `B` passes where an `A` is declared and the
+    // reverse, where 0.1.115 drew E0211 on a program `tsc --strict` accepts;
+    // and a field typo through `B` is E0210 naming the field, where the same
+    // program checked clean unless `A` and `B` were imported from a sibling.
+    // One spelling, one answer, whichever side of a file boundary it sits on.
+    let root = unique_tmp("d45alias");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type A = { x: number, }\n\
+         type B = A\n\
+         fn takes_a(a: A) -> number {\n  return a.x\n}\n\
+         fn takes_b(b: B) -> number {\n  return b.x\n}\n\
+         pub fn both(a: A, b: B) -> number {\n  return takes_a(b) + takes_b(a)\n}\n\
+         pub fn typo(b: B) -> number {\n  return b.naem\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("[E0211]")),
+        "an alias passes both ways: {:?}",
+        report.diagnostics
+    );
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("[E0210]"))
+        .unwrap_or_else(|| panic!("no E0210; diagnostics were: {:?}", report.diagnostics));
+    assert!(diag.contains("naem"), "names the field: {diag}");
+}
+
+#[test]
+fn parse_on_a_module_local_alias_is_the_records_parse() {
+    // D45 at run time. `B.parse` is `A.parse`: the checker types the call
+    // through the alias (the unit test in glyph-typechecker pins the field
+    // check on the parsed value), and the emitter binds `const B = A;` right
+    // after `A`'s descriptor so the call exists at run time whatever order
+    // the two declarations were written in.
+    let root = unique_tmp("d45parse");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         pub type B = A\n\
+         type A = { x: number, }\n\
+         pub fn go(v: unknown) -> number {\n\
+         \x20 return match B.parse(v) {\n\
+         \x20\x20\x20 Ok(b) => b.x,\n\
+         \x20\x20\x20 Err(_) => 0,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let dist = root.join("dist");
+    let report = build_project_inner(&src, &dist, false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(dist.join("main.ts")).expect("main.ts");
+    assert!(ts.contains("export type B = A;"), "the type alias: {ts}");
+    let a = ts.find("const A = {").expect("A's descriptor");
+    let b = ts.find("export const B = A;").expect("B's value alias");
+    assert!(b > a, "the value alias follows the descriptor it names: {ts}");
+}

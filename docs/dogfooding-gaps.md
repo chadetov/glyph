@@ -8059,7 +8059,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.112: the two documents say 0.2.125, the manifest pins
   =0.2.127.*
 
-- **G203. An alias of a declared type is a different nominal type, and a
+- **G203. [FIXED] An alias of a declared type is a different nominal type, and a
   correct program is rejected for it.** `type A = { x: number }` then
   `type B = A`. TypeScript treats a type alias as a name and nothing more, so
   `tsc --strict` accepts a `B` value wherever an `A` is declared. Glyph's
@@ -8090,6 +8090,23 @@ and is the owner's to confirm.
   ("expected `A`, found `B`"); the identical call built against a second,
   independently-declared `type C = { x: number }` reports the same code by
   design, which is not this entry's complaint.*
+
+  **Fixed in 0.1.117, by ruling.** D45: a `type` whose body is a bare name is a
+  second name for the declaration it resolves to, not a new nominal type.
+  `local_type_decl` follows the chain (with a cycle guard, since the resolver
+  accepts `type A = B` beside `type B = A`) and `assign_incompatible`
+  rewrites every name on both sides to the declaration it resolves to before
+  the nominal comparison, so `takes_a(b)` with `b: B` is accepted, and so is
+  the reverse, at the top level and inside a generic application's
+  arguments. The separately declared `type C = { x: number }` is still
+  another type. Only a bare name is followed: a generic application
+  (`Record<string, T>`, `Boxed<T> = Wrapper<T>`), a record, a union, a
+  string-literal union, an `extern_ts`, `typeof` or function body, or any
+  body carrying a `where` is the declaration's own type, and no new
+  incompatibility is decided from that, because the corpus holds six such
+  aliases and zero bare-path ones and making the six nominal would reject
+  programs `tsc` accepts. Not breaking on this program: the published
+  0.1.115 exits 1 with E0211 under `check --no-tsc`, this tree exits 0.
 
 - **G204. [FIXED] A module-level `const`'s own initializer is never checked against
   its declared type.** `const X: number = "hi"` at module scope compiles with
@@ -8135,7 +8152,7 @@ and is the owner's to confirm.
   against a `lib` module declaring `pub const ORIGIN: Sheet` where `Sheet`
   has no `rowz` field.*
 
-- **G206. A module-local alias of a record has no fields, while the same alias
+- **G206. [FIXED] A module-local alias of a record has no fields, while the same alias
   imported from another module has them.** `type A = { x: number }` and
   `type B = A` in one file: a parameter `b: B` gives `b.naem` no `E0210`, no
   field set and no field-use edge, because `named_record_fields` in
@@ -8151,6 +8168,20 @@ and is the owner's to confirm.
   *Reproduced against 0.1.116: the module-local program reports only the G203
   `E0211` on passing an `A` as a `B` and nothing on `b.naem`; the two-module
   program reports `E0210` on `b.naem` and nothing on the pass.*
+
+  **Fixed in 0.1.117, under the same ruling as G203 (D45).**
+  `named_record_fields` reads the record through `local_type_decl`, which
+  follows the alias chain, so `b.naem` on a `b: B` is E0210 in one module as
+  it already was across two, and the field-use site is keyed under the record
+  the chain ends at (`A`), which is the rule the cross-module path applied.
+  `B.parse` types as `A.parse` in the checker, and the emitter binds
+  `const B = A;` right after `A`'s descriptor so the call exists at run time
+  whatever the declaration order; E0304 reaches through the alias the same
+  way. Breaking on this program's `b.naem` half, in the direction every
+  verifiability fix is: the published 0.1.115 exits 0 with no diagnostics
+  under `check --no-tsc`, this tree exits 1 with E0210. The release lane
+  records the ruling as loosening only, and the E0211 half is; the E0210 half
+  is a rejection the two-module spelling already made.
 
 - **G207. [FIXED] A `where` refinement over an alias of a record compiles, where D39
   says it is `E0300`.** `type Rec = { x: int }` then

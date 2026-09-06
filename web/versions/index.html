@@ -61,8 +61,30 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.118</span>
+            <span class="rel-ver">0.1.119</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The corpus, checked against its own formatter</h3>
+            <p>80 of the 175 Glyph files under <code>examples/</code> were not what <code>glyph fmt</code> produces: collapsed parameter lists, missing blank lines, a corpus that the diff-stability pillar points to without being in its own canonical form. Every file is reformatted, a second pass changes nothing, and every app and corpus file gives the same exit code and diagnostic count before and after. <code>scripts/check_fmt.py</code> runs <code>glyph fmt --check</code> over <code>examples/</code> in the release gates and in CI, so the corpus can't drift again without the gate catching it.</p>
+            <h3>The token-count benchmark, corrected to the fixtures that actually compile</h3>
+            <p>None of the three Glyph fixtures behind the density claim was a program the compiler accepted: one used a regex literal Glyph doesn't have, one propagated the wrong error type out of a function, one only passed with <code>tsc</code> turned off. The comparison was Glyph that didn't compile against four languages that did. All three fixtures are rewritten to what Glyph offers, changing what each program does as little as possible, and now pass <code>glyph check</code> with <code>tsc</code> included. The number moves with them: Glyph is 436 tokens to TypeScript's 478 on the three functions, about 9% fewer, not the 29% measured on the fixtures that didn't compile, and it lands about level with Python rather than ahead of it. <code>scripts/check_benchmark_fixtures.py</code> keeps each fixture compiling, in the release gates and in CI.</p>
+            <h3>A hang in the socket tests, and a deadline for every spawned run</h3>
+            <p>The <code>std/net</code> integration test could hang for hours. TCP has no message boundaries, which is the very fact the test exists to check: the test program's client counted reads and exited on the second one, so when the two halves of a split message arrived in a single read on either side, the count never reached two and the client waited on an idle socket that was never going to produce another one. The client now sends its second half only after the first echo comes back and exits on content instead of a read count. Every <code>glyph run</code> the integration suite spawns, 24 call sites, now runs in its own process group under a 120-second deadline that kills the whole tree and reports the test name, the elapsed time, and the output captured so far if it fires.</p>
+            <h3>E0101 names the three real import spellings</h3>
+            <p>The help text for an unresolved import offered a form, <code>myapp/feature</code>, that reads like a package prefix no project has. It now names the three spellings a module can actually have: <code>std/io</code> for the standard library, a bare name for a sibling in the same directory, and the path from the source root for a file in a subdirectory. Writing the fix down found that no program ever reaches this help: a relative import (<code>import ./helper</code>) stops earlier, in the parser, as <code>E0002</code> with generic help. That gap is scheduled for the diagnostics work below.</p>
+            <h3>What's next</h3>
+            <p>The roadmap now names the next three releases: an agent-native query API over the compiler's own facts, diagnostics reframed as a repair protocol an agent can act on without a second call, and a knowledge surface generated from the compiler rather than written by hand about it. The lanes are in <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a>.</p>
+            <p class="rel-note">Not breaking. Established by running the published 0.1.118 and this release on the same two programs, under an isolated <code>HOME</code>: a two-module program with a bare sibling import exits 0 on both, and a relative import (<code>import ./helper</code>) exits 1 on both, reporting <code>E0002</code> on both.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.118</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

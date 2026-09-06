@@ -56,11 +56,14 @@ pub fn of_status(status: int) -> Decision {
 @example of_error({ status: 0, message: "ECONNREFUSED", kind: "network" }) == Retry
 @example of_error({ status: 503, message: "unavailable", kind: "status" }) == Retry
 @example of_error({ status: 401, message: "unauthorized", kind: "status" }) == Fatal
+@example of_error({ status: 0, message: "deadline too large", kind: "argument" }) == Fatal
 pub fn of_error(e: http.HttpError) -> Decision {
   return match e.kind {
     "timeout" => Retry,
     "network" => Retry,
     "status" => of_status(e.status),
+    // Our own argument was invalid; sending it again will not make it valid.
+    "argument" => Fatal,
   }
 }
 

@@ -11875,7 +11875,7 @@ pub async fn main() -> void {{
         "a peer that never answers is `kind: \"timeout\"`, not a wait: {stdout}"
     );
     assert!(
-        stdout.contains("huge=network a request deadline must be at most 2147483647ms, got 3000000000"),
+        stdout.contains("huge=argument a request deadline must be at most 2147483647ms, got 3000000000"),
         "an unholdable deadline is a usage error naming the limit: {stdout}"
     );
     assert!(

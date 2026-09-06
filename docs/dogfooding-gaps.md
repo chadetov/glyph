@@ -4765,16 +4765,23 @@ until this one.
   all six verbs (`get`, `post`, `put`, `patch`, `del`, `head`) are `send` over
   `fetch_of`, so the number is written once and a CLI test reads the runtime
   source to hold that shape. An explicit `timeout_ms: 0` in a `Fetch` sent
-  through `send` keeps meaning no timeout: nothing that compiles or runs today
-  changes behaviour except that a request nobody bounded now fails with
-  `kind: "timeout"` after thirty seconds, so the release is not breaking on this
-  account and the opt-out is one greppable literal at the call site. `http`
-  gains the `MAX_TIMEOUT_MS` guard `tls` had: before it, a `Fetch` with
-  `timeout_ms: 3000000000` against a silent peer returned `kind: "timeout"`
-  with `exceeded 3000000000ms and was aborted` after one millisecond; it is now
-  an `Err` naming the 2 147 483 647 limit, under `kind: "network"` because a
-  fourth kind would break every exhaustive `match e.kind`. Verified by breaking
-  it: with `fetch_of` set back to 0 the test prints `default=0`.*
+  through `send` keeps meaning no timeout, so a request that ran yesterday runs
+  the same today, except that one nobody bounded now fails with
+  `kind: "timeout"` after thirty seconds, and the opt-out is one greppable
+  literal at the call site. `http` gains the `MAX_TIMEOUT_MS` guard `tls` had:
+  before it, a `Fetch` with `timeout_ms: 3000000000` against a silent peer
+  returned `kind: "timeout"` with `exceeded 3000000000ms and was aborted` after
+  one millisecond; it is now an `Err` naming the 2 147 483 647 limit under a
+  fourth kind, `"argument"`, because reporting a caller's bad argument as a
+  network failure is the confident wrong answer the guard exists to remove.
+  **Breaking on that account, not on the deadline:** `HttpErrorKind` gains a
+  member, so every exhaustive `match` over `e.kind` without an `else` arm is
+  E0200 on upgrade. Established by running both binaries on a program matching
+  the three earlier kinds: `check --no-tsc` exits 0 under the published 0.1.117
+  and 1 under this build. Two corpus sites needed the arm,
+  `examples/apps/linkcheck/main.glyph` and `examples/apps/resilient/classify.glyph`.
+  Verified by breaking the default: with `fetch_of` set back to 0 the test
+  prints `default=0`.*
 
 - **G129. [FIXED] A variant name in an object pattern's field position
   compiled to a renamed binding, so the arm matched everything.** D9 reads a

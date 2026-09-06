@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-214 entries, 186 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-9 are open. G144, the D28 boundary cast that never reached the returns a
+222 entries, 186 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+17 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8525,3 +8525,130 @@ and is the owner's to confirm.
   with line numbers is on file locally; the plan is the 0.1.120 lane.
 
   *Reproduced against 0.1.117: `grep -c "fn alias_chain_terminal\|fn resolve_alias_leaf\|fn resolve_imported_alias_leaf\|fn refused_refinement_base\|fn emit_alias_values"` on the emitter is 5, `pub(crate) fn resolve_alias_chain` in the checker is 1, and `ProjectTables::from_modules` is called at `build.rs:537` above the per-module resolve loop.*
+
+- **G215. An imported union passed where a primitive is declared is silent.**
+  `import lib { Status, Pending }`, `let st: Status = Pending`, `shout(st)` with
+  `fn shout(s: string)`: no diagnostic under `check --no-tsc`, where the same
+  program with `Status` declared in the calling module is `E0211`. G201's rule
+  in `assign_incompatible` reads only a declaration of the calling module, so
+  an imported declared type is `Ty::Imported` and the pairing falls to "not
+  provably incompatible". The 0.1.116 answer page named this edge; this is its
+  entry, because an agent reads its diagnostics from exactly the surfaces that
+  run without tsc (`check --no-tsc`, the language server, the MCP server, the
+  playground), and there the program is clean. The fact is one query away:
+  `imported_type_decl` already resolves the declaration for the field check.
+
+  *Reproduced against 0.1.117, `npx -y @glyphlang/glyph@0.1.117 check --no-tsc` on a two-module project: exit 0 with three lint warnings (`E0106`, `E0108`, `E0107`) and no error, where `glyph check` with tsc reports `TS2739`, `TS2345` and `TS2322` for the same file.*
+
+- **G216. A prelude application (`Option<int>`, `Nullable<int>`) where a
+  primitive is declared is silent.** `let o: Option<int> = Some(3)` then
+  `let x: string = o` draws nothing; `let v: Nullable<int> = 3` then
+  `takes_int(v)` with `fn takes_int(n: int)` draws nothing. `definitely_incompatible`
+  has no arm for `Ty::App` against `Ty::Prim` and returns false. The `Option`
+  case is caught by tsc (`TS2322`); the `Nullable` case is not, because the
+  emitted `const v: number | null = 3` is narrowed to `number` by TypeScript's
+  control flow, so the Glyph checker is the only place this can be caught and
+  it is not. A boundary type that exists to make `null` visible (D45) and then
+  passes silently where an `int` is declared is the pillar failing at the type
+  it was added to serve.
+
+  *Reproduced against 0.1.117, `npx -y @glyphlang/glyph@0.1.117 check --no-tsc` on a two-module project: exit 0 with three lint warnings (`E0106`, `E0108`, `E0107`) and no error, where `glyph check` with tsc reports `TS2739`, `TS2345` and `TS2322` for the same file.*
+
+- **G217. A type name used as a value compiles.** `return Order { id: "a", total: 1 }`
+  is the TypeScript-adjacent guess for constructing a record, and Glyph has no
+  such form. The compiler reports `[E0108] Warning: lint: unreachable code` on
+  the braces and exits 0: `Order` resolves to the type symbol, the checker does
+  not refuse a type in expression position, and the `{ ... }` parses as a block
+  after the return. tsc reports `TS2739` (the descriptor object is not an
+  `Order`). An agent writing its first Glyph record hits this before any tool
+  call, and what it is told is that some code is unreachable. The fix is a
+  diagnostic at the use: a type name in expression position is an error naming
+  the construction form (`{ id: "a", total: 1 }` with the annotation carrying
+  the type), and the lint should not fire on a block that follows an error.
+
+  *Reproduced against 0.1.117, `npx -y @glyphlang/glyph@0.1.117 check --no-tsc` on a two-module project: exit 0 with three lint warnings (`E0106`, `E0108`, `E0107`) and no error, where `glyph check` with tsc reports `TS2739`, `TS2345` and `TS2322` for the same file.*
+
+- **G218. No tool describes a symbol.** On a three-module project, `glyph_hover`
+  answered one of fourteen probed positions (`return o` gave the bare string
+  `"Order"`) and `null` on every declaration name, parameter, annotation and
+  variant, because `hover_at` reads only expression spans of the `TypeMap`.
+  `glyph_variants` on `OrderStatus` returned `"variants": ["Pending", "Paid", "Cancelled"]`
+  with no payloads, so an agent given the answer writes `Paid("tx_1")` and gets a
+  diagnostic instead of a program; `union_shape` in `mcp.rs` holds the payload
+  and maps it away one line from the reply. `glyph_symbols` returned name, kind
+  and range: no signature, no field list, no `module::name`, no `pub`, and the
+  `interface Describable` reported as `"kind": "type"` with its member nowhere.
+  `glyph_definition` returns a location with no identity, so it cannot be
+  chained into `glyph_impact`. A function's signature leaks out of exactly one
+  place, `glyph_impact` with `change_signature_type`, whose `arguments` carry
+  `parameter` and `parameter_type` from `callee_params_as_seen_from`, which
+  fetches the whole `Ty::Fn` and drops the rest. Every fact is computed and
+  memoised (`glyph_db::decl_ty`, `exported_fn`, `display_ty`); none is handed
+  over. One call that returns a symbol's shape, fields with types, variants with
+  payloads and construction syntax, parameters and return, interface members,
+  identity, visibility and its `@example`, closes eight of the audit's items.
+
+  *Reproduced against 0.1.117 over `glyph mcp` on a three-module project: fourteen `glyph_hover` probes, one non-null answer; `glyph_variants` payloads absent; `glyph_symbols` fields as listed.*
+
+- **G219. `glyph_diagnostics` is single-file and disagrees with `check --json`.**
+  On a project whose `main.glyph` has a real `E0200` (a non-exhaustive match
+  over an imported union) and on one with a real `E0210`, the MCP tool returned
+  `[]` for both, because `tool_diagnostics` calls `analyze(&text)` on one file
+  with no project context; `glyph check --json` reports both. Where it does
+  answer (a same-file error) it returns four fields (`code`, `message`, `range`,
+  `entity`) against the CLI's eleven, with `help` concatenated into `message`
+  after a newline and `severity`, `stage`, `file`, `union`, `missing_variants`
+  and `note` gone. An agent that trusts the tool concludes a broken project is
+  clean. Two surfaces disagreeing about one fact makes both untrustworthy; the
+  project database the other tools use is in the same process.
+
+  *Reproduced against 0.1.117: `glyph_diagnostics` on `src/main.glyph` of the E0200 project returned `[]`; `glyph check --json --no-tsc` on the same project returned the `E0200` with `union` and `missing_variants`.*
+
+- **G220. A diagnostic carries its facts as prose.** For `E0211` the JSON is
+  `"message": "argument type mismatch: expected \`string\`, found \`OrderStatus\`"`
+  with no `expected` or `actual` field, and `"entity": "main::main"`, the
+  enclosing declaration rather than the symbol at fault; `E0210` names the
+  record only inside the message and carries no field list, though the checker
+  had the field set in hand when it fired; `E0220` computes a did-you-mean
+  `suggestion` that never reaches the JSON; `E0204` is the same as `E0211`.
+  `"file"` is the module name (`"main"`), not a path, so the file cannot be
+  opened from the diagnostic. The JSON `note` stops before the `--explain`
+  pointer the text renderer appends. `E0200` is the one code that carries
+  structure (`union`, `missing_variants`), and it is the one code whose repair
+  loop closes. The error variants carry every one of these as named fields
+  (`ArgumentTypeMismatch { expected, found }`, `UnknownField { field, type_name }`,
+  `UnknownVariantPattern { suggestion }`); `Diagnostic::new` flattens them.
+  `--explain` has no `--json` and its text is about the code, not the program.
+
+  *Reproduced against 0.1.117: `glyph check --json --no-tsc` on the four wrong programs; field table in the audit on file.*
+
+- **G221. No tool answers assignability, dependencies or a module's exports.**
+  "Can a `Nullable<int>` go where an `int` is declared" has no tool, and per G216
+  neither stage answers it. "What does `Order` depend on" and "what does module
+  `orders` export" have no tool; the import edges are in every parsed AST and
+  `glyph_db::module_exports` exists, and nothing composes them. `definitely_incompatible`
+  is private and called only from the return and argument checks.
+
+  *Reproduced against 0.1.117: the seven MCP tools listed by `tools/list` are `glyph_diagnostics`, `glyph_hover`, `glyph_definition`, `glyph_references`, `glyph_variants`, `glyph_impact`, `glyph_symbols`; none takes two types or returns edges of an import graph.*
+
+- **G222. The knowledge surface is hand-written, drifting, and mostly
+  unverified.** `glyph llms` prints `AGENTS.md`, 1,419 lines embedded by
+  `include_str!`, with no generator behind any line of it. It says the MCP
+  server "exposes five tools" and lists five; the server serves seven, and the
+  two the server's own `instructions` string tells an agent to reach for first
+  (`glyph_variants`, `glyph_impact`) appear zero times in it. Its worked
+  diagnostic JSON lacks `entity`, `union`, `missing_variants` and `offset`, which
+  is not the shape the compiler emits. The 58 error codes live in three
+  hand-maintained copies (`explain.rs`, `docs/error-codes.md`, `AGENTS.md`)
+  gated only for the presence of the code string. `check_docs_compile.py`
+  compiles 2 of the 19 Glyph fences in `AGENTS.md`; the other 17 are fragments
+  it skips, including the record-literal example that answers G217. The
+  `expect-error` marker the harness supports is used by zero fences anywhere an
+  agent reads, and the 41 wrong-program cases in `tests/negative/` and the
+  seven in `catches/` are visible only to `cargo test`. There is no
+  machine-readable artefact of the language: no grammar, no D-decision index, no
+  prelude, no stdlib signatures, no code catalogue. `tools/list` costs about
+  7,090 tokens per session, three tools carrying 18,129 characters of
+  description between them.
+
+  *Reproduced against 0.1.117: `grep -c "exposes five tools" AGENTS.md` is 1, `grep -c glyph_impact AGENTS.md` is 0, `tools/list` returns seven tools; `check_docs_compile.py` output for `AGENTS.md`: 19 fences, 2 compiled, 17 skipped; `grep -rl expect-error docs web AGENTS.md README.md` is empty.*

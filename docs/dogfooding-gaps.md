@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-208 entries, 171 are fixed, 12 are partly fixed, 11 are decided or resolved, and
+208 entries, 172 are fixed, 11 are partly fixed, 11 are decided or resolved, and
 14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -826,7 +826,7 @@ on a decision in `docs/roadmap/releases.md`.
   throwing the way TS does, which is what makes `repeat(pad, width - len(s))`
   safe, and `pad_start`/`pad_end` leave a string that is already at least `width`
   long alone.*
-- **G27. [HALF FIXED] An unknown stdlib namespace member leaks a raw `tsc` error.**
+- **G27. [FIXED] An unknown stdlib namespace member leaks a raw `tsc` error.**
   `import std/string { repeat }` gives a clean E0105, because `verify_imports`
   checks named imports against the resolver seed. `string.repeat(...)` gives a
   TS2339 carrying an absolute build path, because nothing checks member access
@@ -844,6 +844,34 @@ on a decision in `docs/roadmap/releases.md`.
   `write_text`, passing because it ran under `--no-tsc`. A gate keeps the seed
   and the runtime's exports in step, negative-tested after its first version
   silently checked nothing.*
+
+  *Premise re-checked for 0.1.117, because the entry recorded both halves fixed
+  and still carried the half-fixed marker. Every import spelling of the typo was
+  run under the published 0.1.115 and under the 0.1.116 tree, with `glyph check`
+  and `glyph check --no-tsc`, and all the runs agree: `string.repeeat("a", 3)`
+  behind `import std/string`, `repeeat("a", 3)` behind `import std/string {
+  repeeat }`, and `s.repeeat("a", 3)` behind `import std/string as s` are each
+  `[E0105] Error: import: \`repeeat\` is not exported by \`std/string\` (did
+  you mean \`repeat\`?)`, exit 1, with the span on the member for the two
+  namespace forms and on the import line for the named one. No spelling of a
+  stdlib namespace member reaches `tsc`, so the entry is closed on its own
+  premise.*
+
+  *Two things nearby still leak a raw code, and neither is a namespace member.
+  A method on a *value* is unchecked by every Glyph stage: `let t =
+  string.trim("  a  ")` then `t.toUpperCasee()` is clean under `--no-tsc` and
+  `[TS2551] Error: tsc: Property 'toUpperCasee' does not exist on type
+  'string'. Did you mean 'toUpperCase'?` with `tsc`; `let r =
+  fs.read_text("x.txt")` then `r.unwrapp()` is clean under `--no-tsc` and
+  `[TS2339] Error: tsc: Property 'unwrapp' does not exist on type
+  'Result<string, FsError>'.` with it. The `string` case is G39's member set,
+  deferred by name in the 0.1.117 plan; the `Result` case is the same defect on
+  a prelude union, which G39's wording (`string`, `number`, `bool`,
+  `Array<T>`) does not list, and it is recorded here so it is not lost. The
+  second thing is the remap itself: both `tsc` errors are rendered against
+  `main:6:3`, which is the `let` on the line *before* the call that fails, so
+  the mapped span is one statement early. That is a source-map defect
+  separate from anything about members, and it is not fixed here.*
 - **G28. [FIXED] There is no `glyph check <file>`.** `build` rejects a non-directory
   source, so the only door into type checking a single file is running it.
   *`glyph check [path]` ships. It takes a `.glyph` file or a directory, reuses

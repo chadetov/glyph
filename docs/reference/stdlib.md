@@ -848,7 +848,7 @@ type Rng
 seeded(seed: number) -> Rng                       // a generator fixed by the seed
 rng.next() -> number                              // method: next float in [0, 1)
 rng.int(lo: number, hi: number) -> number         // method: whole number in [lo, hi)
-rng.bool(probability: number) -> bool             // method: true with this probability
+rng.bool(probability?: number) -> bool            // method: true with this probability (default 0.5)
 rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 ```
 
@@ -1142,8 +1142,6 @@ act on instead of an exception on a callback stack you do not control.
 retrying from a rejection that will be rejected identically forever. A close
 with no code reports 1006, which is what a connection that failed before
 opening produces.
-
-Only text is delivered; a binary frame is decoded as UTF-8.
 
 ## std/test
 

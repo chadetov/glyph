@@ -341,17 +341,10 @@ through verbatim; a single-line one that interpolates comes back in the ordinary
 
 ## The standard library
 
-Not detailed below, but shipped and importable: `std/task` (structured
-concurrency), `std/timers` (`after`, `every`, `cancel`, `unref`, `sleep`),
-`std/websocket` (`connect`, `on_open`, `on_message`, `on_close`, `on_error`,
-`send`, `close`, `is_open`), `std/store`, `std/path`, `std/math`,
-`std/crypto`, `std/encoding`, `std/log`, `std/set`, `std/collections`. Reach for
-these before declaring a Node builtin or a host global by hand: `std/timers` is
-how you schedule work, and `std/websocket` is how you open a connection.
-
-Two ways to read a module's real signatures when it is not written out below.
-Import a name it does not export and read the error, which lists the ones it
-does:
+Two ways to read a module's real signatures when it is not written out below
+(`std/regex`, `std/intl`, `std/nullable` and `std/schema` are shipped and
+importable but not detailed here). Import a name it does not export and read
+the error, which lists the ones it does:
 
 ```
 [E0105] import: `nonexistent` is not exported by `std/random` (exports: Rng, seeded)
@@ -732,6 +725,246 @@ rng.int(lo: number, hi: number) -> number         // method: whole number in [lo
 rng.bool(probability?: number) -> bool            // method: true with this probability (default 0.5)
 rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 ```
+
+### std/store
+
+A shared-state primitive. A `Store<T>` holds a value; create one at module
+scope (`const s = create(initial)`) so many functions share it without
+threading a `let` through `main`. The binding stays `const`, so every mutation
+is a greppable `s.set(...)`/`s.update(...)`:
+
+```
+type Store<T>
+create<T>(initial: T) -> Store<T>               // a store seeded with initial
+store.get() -> T                                 // method: read the current value
+store.set(next: T) -> void                       // method: replace it
+store.update(change: fn(T) -> T) -> void         // method: map it
+```
+
+An empty-collection seed can't infer its element type, so pass an explicit type
+argument: `const tasks = create<Array<Task>>([])`.
+
+### std/task
+
+Structured-concurrency helpers over promises. Pass task thunks (`fn() -> T`,
+usually `async`); `all` is fail-fast, `all_settled` keeps every outcome so a
+partial failure never loses the successes:
+
+```
+type Settled<T>                                                 // { ok: true, value: T } | { ok: false, error: unknown }
+all<T>(tasks: Array<fn() -> T>) -> Array<T>                     // concurrent, joined in order (fail-fast)
+race<T>(tasks: Array<fn() -> T>) -> T                           // first task to settle
+pool<T>(limit: number, tasks: Array<fn() -> T>) -> Array<T>     // at most `limit` in flight (fail-fast)
+all_settled<T>(tasks: Array<fn() -> T>) -> Array<Settled<T>>    // one outcome per task, never rejects
+pool_settled<T>(limit: number, tasks: Array<fn() -> T>) -> Array<Settled<T>>  // bounded, never rejects
+```
+
+Each is `async`, so `await` the result. JavaScript can't force-cancel a
+running task, so a failure in `all`/`pool` abandons its siblings' work rather
+than halting it; the `_settled` forms exist for when you want every outcome
+instead. Read a failed outcome's `unknown` with `string.from(e)`.
+
+### std/set
+
+A hash set with value semantics for primitives; maps use the built-in
+`Record<K, V>`. Like `std/store`, state lives in a closure and every mutation
+is a greppable method call:
+
+```
+type Set<T>
+create<T>(initial?: Array<T>) -> Set<T>          // an empty or seeded set
+set.add(value: T) -> void                         // method: insert
+set.has(value: T) -> bool                         // method: membership
+set.remove(value: T) -> bool                      // method: delete (was it present)
+set.size() -> number                              // method: cardinality
+set.values() -> Array<T>                          // method: members as an array
+unique<T>(values: Array<T>) -> Array<T>           // de-duplicate, order-preserving
+```
+
+### std/path
+
+Cross-platform filesystem paths over node's `path`; the host separator is
+respected, so the same code runs on Unix and Windows:
+
+```
+join(parts: Array<string>) -> string             // join segments
+dirname(p: string) -> string
+basename(p: string) -> string
+extname(p: string) -> string
+is_absolute(p: string) -> bool
+normalize(p: string) -> string
+relative(from: string, to: string) -> string
+```
+
+### std/crypto
+
+Hashing, HMAC, and randomness over node's `crypto`. Each algorithm comes in
+two forms: the plain name takes a UTF-8 string and returns lowercase hex; the
+`_bytes` form takes and returns `Bytes` from `std/bytes`, for a key or wire
+protocol that is arbitrary octets rather than text:
+
+```
+sha1(input: string) -> string                     // legacy protocols only (RFC 4226/6238 OTP, WS handshake)
+sha256(input: string) -> string
+sha512(input: string) -> string
+sha1_bytes(input: Bytes) -> Bytes
+sha256_bytes(input: Bytes) -> Bytes
+sha512_bytes(input: Bytes) -> Bytes
+hmac_sha1(key: string, input: string) -> string
+hmac_sha256(key: string, input: string) -> string
+hmac_sha512(key: string, input: string) -> string
+hmac_sha1_bytes(key: Bytes, input: Bytes) -> Bytes
+hmac_sha256_bytes(key: Bytes, input: Bytes) -> Bytes
+hmac_sha512_bytes(key: Bytes, input: Bytes) -> Bytes
+random_uuid() -> string                           // a v4 UUID
+random_hex(count: number) -> string               // count random bytes, hex (length count * 2)
+random_bytes(count: number) -> Bytes              // count random octets, for a key or a nonce
+timing_safe_equal(a: Bytes, b: Bytes) -> bool     // compare a secret without leaking where it differs
+```
+
+A key from `bytes.from_base64` or `crypto.random_bytes` should use the
+`_bytes` form: routing real key octets through a string replaces any byte
+that is not valid UTF-8, so the string form computes a different MAC than the
+specification says. Verify anything an attacker supplies against a secret
+with `timing_safe_equal`, not `bytes.equals`, which returns as soon as it
+finds a mismatch and so leaks timing.
+
+### std/math
+
+Numeric helpers over JavaScript's `Math`:
+
+```
+math.PI, math.E                                  // constants
+math.abs(x: number) -> number
+math.floor(x: number) -> number
+math.ceil(x: number) -> number
+math.round(x: number) -> number
+math.trunc(x: number) -> number
+math.sqrt(x: number) -> number
+math.sign(x: number) -> number                   // -1, 0, or 1
+math.min(a: number, b: number) -> number
+math.max(a: number, b: number) -> number
+math.pow(base: number, exponent: number) -> number
+math.imul(a: number, b: number) -> number        // 32-bit integer multiply
+math.clamp(x: number, lo: number, hi: number) -> number
+```
+
+### std/encoding
+
+base64, base64url, and hex text encodings, for when both sides are strings.
+When either side is octets, the codecs are on `std/bytes`
+(`bytes.to_base64`, `bytes.from_hex`), which also covers base32 and refuses
+malformed input instead of skipping it. These six do not: `base64_decode("!!!")`
+is `""` with no error, and a decode that is not valid UTF-8 comes back with
+U+FFFD substituted:
+
+```
+encoding.base64_encode(s: string) -> string
+encoding.base64_decode(s: string) -> string
+encoding.base64url_encode(s: string) -> string    // URL-safe alphabet, no padding
+encoding.base64url_decode(s: string) -> string
+encoding.hex_encode(s: string) -> string
+encoding.hex_decode(s: string) -> string
+```
+
+### std/log
+
+Structured (JSON-line) logging. Each call emits one JSON object with `level`,
+`msg`, and a timestamp to stdout (info/debug) or stderr (warn/error):
+
+```
+type Level                                        // "debug" | "info" | "warn" | "error"
+log.debug(message: string) -> void
+log.info(message: string) -> void
+log.warn(message: string) -> void
+log.error(message: string) -> void
+log.with_fields(level: Level, message: string, fields: Record<string, unknown>) -> void
+```
+
+### std/collections
+
+Ordered collections beyond `Array`/`Record`. A `Deque<T>` is a double-ended
+queue; ends that may be empty return `Option<T>`:
+
+```
+type Deque<T>
+deque<T>(initial?: Array<T>) -> Deque<T>
+dq.push_back(value: T) -> void                    // method
+dq.push_front(value: T) -> void                   // method
+dq.pop_back() -> Option<T>                        // method
+dq.pop_front() -> Option<T>                        // method
+dq.peek_front() -> Option<T>                       // method
+dq.peek_back() -> Option<T>                        // method
+dq.len() -> number                                // method
+dq.values() -> Array<T>                           // method
+```
+
+### std/timers
+
+Run something later, or repeatedly, and stop it again. Scheduling is a
+global in JavaScript, and Glyph resolves imported module names rather than
+ambient globals, so this module is the only way to reach it. A pending timer
+keeps the process alive, which is what makes a scheduled program a program
+rather than a script that exits:
+
+```
+type Timer                                                 // opaque; give it to cancel
+
+timers.after(delay_ms: number, handler: fn()) -> Timer     // once
+timers.every(interval_ms: number, handler: fn()) -> Timer  // until cancelled
+timers.cancel(timer: Timer) -> void                        // safe to repeat
+timers.unref(timer: Timer) -> Timer                        // stop holding the process open
+timers.sleep(delay_ms: number) -> Promise<void>            // for `await`
+```
+
+`unref` opts a background tick out of holding the process open, and
+`cancel` on a timer that already fired (or was already cancelled) does
+nothing, so teardown paths are safe to run more than once.
+
+### std/websocket
+
+A WebSocket client and server. Each event is its own function taking exactly
+what that event carries, rather than the host's
+`addEventListener(name, handler)` with an event object whose useful field
+depends on the name, so no handler parameter needs narrowing and no
+event-name string can be misspelled:
+
+```
+type Socket                                         // one connection, either end
+type Server                                         // a listening server
+
+websocket.connect(url: string) -> Socket            // ws:// or wss://; returns before it opens
+websocket.connect_with(url: string, protocols: Array<string>) -> Socket
+websocket.protocol(socket: Socket) -> string        // the subprotocol the server accepted, or ""
+
+websocket.listen(host: string, port: int, on_connection: fn(Socket) -> void)
+    -> Result<Server, ServerError>                  // async; resolves when BOUND; ServerError is std/net's
+websocket.stop(server: Server) -> void              // graceful; safe to call twice
+websocket.port(server: Server) -> int
+websocket.on_stop(server: Server, handler: fn() -> void) -> void
+
+websocket.on_open(socket: Socket, handler: fn()) -> void
+websocket.on_message(socket: Socket, handler: fn(text: string)) -> void   // text frames
+websocket.on_binary(socket: Socket, handler: fn(data: Bytes)) -> void     // binary frames
+websocket.on_close(socket: Socket, handler: fn(code: number, reason: string)) -> void
+websocket.on_error(socket: Socket, handler: fn()) -> void
+
+websocket.send(socket: Socket, text: string) -> bool        // false if not open
+websocket.send_bytes(socket: Socket, data: Bytes) -> bool   // false if not open
+websocket.close(socket: Socket) -> void                     // safe to repeat
+websocket.is_open(socket: Socket) -> bool
+```
+
+A server connection is the same `Socket` as a client one, so `on_message`,
+`on_binary`, `send`, `send_bytes`, `close` and `is_open` work on either end,
+and `listen` has `net.listen`'s contract, including the explicit host and the
+structured `ServerError`. Text and binary frames are delivered to separate
+handlers, and a frame reaches exactly one: before 0.1.80 a binary frame was
+decoded as UTF-8 and delivered to `on_message`, which silently corrupts
+anything that is not a JSON protocol. The server implements RFC 6455
+(handshake, masked client frames, fragmented messages reassembled before
+delivery, ping answered with pong); compression and a TLS (`wss://`)
+listener are not implemented, so terminate TLS in front.
 
 ### std/time
 

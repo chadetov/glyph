@@ -6702,7 +6702,7 @@ and is the owner's to confirm.
   compared before and after rather than assumed equal. The gate that stops it
   recurring is the deliverable; the reformat is the easy half.
 
-  *Reproduced against 0.1.112: `glyph fmt --check examples/apps` reports 30 would reformat, 83 already formatted. Previously, against 0.1.106: 123 of 285 tracked `.glyph` files disagree with `glyph fmt --check`, up from 121 of 284 as the corpus grew: `glyph fmt --check` over every tracked `.glyph`
+  *Reproduced against 0.1.118: `glyph fmt --check examples/apps` still reports 30 would reformat, 83 already formatted, unchanged from 0.1.112. Previously, against 0.1.112: `glyph fmt --check examples/apps` reports 30 would reformat, 83 already formatted. Previously, against 0.1.106: 123 of 285 tracked `.glyph` files disagree with `glyph fmt --check`, up from 121 of 284 as the corpus grew: `glyph fmt --check` over every tracked `.glyph`
   reports 121 of 284 not clean. Found while checking whether an edit to
   `examples/apps/feeds/main.glyph` had broken formatting. It had not: that file
   was already unformatted on main, and so were 120 others.*
@@ -6728,7 +6728,7 @@ and is the owner's to confirm.
   rejected and both `.ts` cases accepted by `tsc --strict`. The stale numbers are
   the committed JSON under `benchmarks/results/`, last measured 2026-06-15.
 
-  *Reproduced against 0.1.112 by checking the directory as one project rather than each file alone, which pulls the whole project in and reports the same error three times: `slugify` is `[E0003] unexpected token: Slash`, `load_feed` is `[E0203]`, and `parse_user` carries only an unrelated `[E0112]`. Previously, against 0.1.106: of the three benchmark fixtures only `parse_user.glyph` compiles; the other two still fail: each fixture copied into its own project and
+  *Reproduced against 0.1.118: `glyph check benchmarks/glyph` reports the same three, unchanged from 0.1.112: `slugify` is `[E0003] unexpected token: Slash`, `load_feed` is `[E0203]` (twice, one per `?` site), and `parse_user` carries only the unrelated `[E0112]`; `benchmarks/verifiability/check.sh` still exits 0 against this binary. Previously, against 0.1.112 by checking the directory as one project rather than each file alone, which pulls the whole project in and reports the same error three times: `slugify` is `[E0003] unexpected token: Slash`, `load_feed` is `[E0203]`, and `parse_user` carries only an unrelated `[E0112]`. Previously, against 0.1.106: of the three benchmark fixtures only `parse_user.glyph` compiles; the other two still fail: each fixture copied into its own project and
   built. `check.sh` run against the same binary to confirm the public claim is
   unaffected.*
 
@@ -7175,7 +7175,7 @@ and is the owner's to confirm.
   wearing an exclusion's colour, which is a mistake this project has made once
   already and corrected.
 
-  *Reproduced against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
+  *Reproduced against 0.1.118: re-measured with a coarser proxy, to refresh stale evidence rather than repeat the original study. `glyph check --no-tsc --json` over `tests/negative` (41 files), the 7 `catches/` cases and all 31 `examples/apps` gives 1,892 diagnostics; classifying each by indentation on its start line (>=2 leading spaces, a fast stand-in for "inside a function body" rather than the original's scanned body ranges cross-checked by hand) puts 1,274 inside a body: 67.3% overall, 70.4% of the 1,810 errors alone. Both are within a few points of the original 71.7%/75.0% and the conclusion is unchanged: diagnostics still land inside bodies close to the rate the corpus is bodies, so the exclusion still stands on the same argument. This did not repeat the original's two independent cross-checks; a full re-run of those is unscheduled. Previously, against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
   `SymbolTarget::Local` arm and answers file-scoped occurrences rather than a
   project-wide identity, confirmed by reading the arm and by the tool's own
   behaviour. What is not measured, and is the whole question, is the fraction of
@@ -7235,7 +7235,7 @@ and is the owner's to confirm.
   and a disagreeing header is a diagnostic. Picking silently is what produced
   two spellings in the first place.
 
-  *Reproduced against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
+  *Reproduced against 0.1.118: the identical two-file project (a file whose header reads `module app/models` while sitting at a path the project keys as `models`) still compiles with no diagnostic naming the disagreement. Previously, against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
   this configuration and is covered by a test naming it.*
 
   **This is worse than a silent gap. It is a silent wrong answer, and it breaks
@@ -8132,7 +8132,9 @@ and is the owner's to confirm.
   A surface that cannot be built from its documented steps is one whose changes
   are reviewed by reading rather than by running.
 
-  *Reproduced against 0.1.112: the two documents say 0.2.125, the manifest pins
+  *Reproduced against 0.1.118: unchanged, `playground/README.md` and
+  `playground/build.sh` still say 0.2.125, `glyph-compiler/crates/glyph-wasm/Cargo.toml`
+  still pins `=0.2.127`. Previously, against 0.1.112: the two documents say 0.2.125, the manifest pins
   =0.2.127.*
 
 - **G203. [FIXED] An alias of a declared type is a different nominal type, and a

@@ -12661,3 +12661,34 @@ fn a_nullable_over_an_option_is_rejected_at_build() {
         report.diagnostics
     );
 }
+
+#[test]
+fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
+    // G207. `type Positive = Rec where value.x > 0` refines a record whenever
+    // `Rec` is one, and D39 refuses a `where` on a record. The refusal used to
+    // read the spelled body, so the inline spelling was E0300 while this one
+    // built clean and emitted a working descriptor. The alias hop (D45) makes
+    // `Rec` and the base one type, so the two spellings have to agree.
+    let root = unique_tmp("g207where");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type Rec = { x: int, }\n\
+         type Positive = Rec where value.x > 0\n\
+         pub fn go(v: unknown) -> number {\n\
+         \x20 return match Positive.parse(v) {\n\
+         \x20\x20\x20 Ok(p) => p.x,\n\
+         \x20\x20\x20 Err(_) => 0,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("[E0300]"))
+        .unwrap_or_else(|| panic!("no E0300; diagnostics were: {:?}", report.diagnostics));
+    assert!(diag.contains("record type"), "names the resolved shape: {diag}");
+}

@@ -1,0 +1,11 @@
+module neg
+
+// D39 admits a `where` on a primitive base only, and the base is judged by
+// the shape it resolves to. `Rec` is a record, so refining it through the
+// alias is refused exactly as the inline `{ x: int, } where ...` spelling is.
+type Rec = { x: int, }
+type Positive = Rec where value.x > 0
+
+fn main() -> number {
+  return 0
+}

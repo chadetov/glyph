@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-212 entries, 181 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-12 are open. G144, the D28 boundary cast that never reached the returns a
+212 entries, 182 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+11 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8369,7 +8369,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.116 (this branch's build, `glyph 0.1.116`), with
   the two modules above.*
-- **G211. A `tsc` error is mapped to the statement before the one that failed.**
+- **G211. [FIXED] A `tsc` error is mapped to the statement before the one that failed.**
   `let t = string.trim("  a  ")` on line 7 and `io.println(t.toUpperCasee())`
   on line 8: `glyph build` reports `[TS2551] Property 'toUpperCasee' does not
   exist on type 'string'` at `main:7:3`, the `let`. The TypeScript line is
@@ -8383,6 +8383,16 @@ and is the owner's to confirm.
   it.
 
   *Reproduced against 0.1.116 (the 0.1.117 tree, version string 0.1.116): the program above, `glyph build --out dist src`, reports the error at `main:7:3` where the call is on line 8.*
+
+  **Fixed in 0.1.118.** The emitter recorded a source-map checkpoint in
+  `emit_stmt`, and the last statement of every block is emitted by
+  `emit_tail_stmt` instead, which recorded none, so a `tsc` error in a body's
+  tail statement fell back to the checkpoint of the statement before it. The
+  tail now records its own checkpoint through the same helper, which also
+  drops the duplicate a tail that delegates back to `emit_stmt` would write.
+  The ledger program reports at `main:8:3`; the same error at the tail of a
+  block arm inside a `match` reports at the arm's tail line, not at the `let`
+  above it. Not breaking: the position changes, the verdict does not.
 
 - **G212. A resource reached through an alias is not a resource, while D46 says
   the alias is the declaration.** `resource type Handle = { fd: number }` and

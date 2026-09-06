@@ -1267,8 +1267,23 @@ impl<'a> Emitter<'a> {
         out
     }
 
+    /// Record that whatever is emitted next comes from `span`. A checkpoint is
+    /// recorded once per declaration and once per statement, and the tail
+    /// statement of a block records its own: the tail is emitted by
+    /// `emit_tail_stmt` rather than `emit_stmt`, and while it recorded nothing
+    /// a `tsc` error in the last statement of a body was mapped onto the
+    /// statement before it (G211). A tail that delegates back to `emit_stmt`
+    /// would record the same pair twice; the duplicate is dropped so the map
+    /// stays strictly increasing.
+    fn checkpoint(&mut self, span: Span) {
+        let at = (self.out.len(), span);
+        if self.source_map.last() != Some(&at) {
+            self.source_map.push(at);
+        }
+    }
+
     fn emit_decl(&mut self, decl: &Decl) -> Result<(), EmitError> {
-        self.source_map.push((self.out.len(), decl.span()));
+        self.checkpoint(decl.span());
         // 0.1.16: module-private by default. A decl is `export`ed only when `pub`
         // (or it is `fn main`, the entrypoint the runner imports). The prefix is
         // read by every sub-emit for this decl (descriptor, constructors).
@@ -2237,7 +2252,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_stmt(&mut self, stmt: &Stmt) -> Result<(), EmitError> {
-        self.source_map.push((self.out.len(), stmt.span()));
+        self.checkpoint(stmt.span());
         match stmt {
             Stmt::Let(l) => {
                 // `let` (not `const`): a `mut` statement may reassign it later.
@@ -4981,6 +4996,7 @@ impl<'a> Emitter<'a> {
         term: ArmTerm,
         break_on_fall: bool,
     ) -> Result<(), EmitError> {
+        self.checkpoint(stmt.span());
         match stmt {
             // A tail `match` inherits the position: its arms `return` the value
             // in return position or run for effect in statement position. It

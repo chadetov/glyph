@@ -8458,6 +8458,149 @@ fn check_reports_tsc_errors_on_a_glyph_clean_tree() {
     );
 }
 
+/// G211. The ledger program: a `let` on line 7 and the failing call on
+/// line 8, the last statement of the body.
+const G211_TAIL_CALL: &str = "module main\n\
+     \n\
+     import std/io\n\
+     import std/string\n\
+     \n\
+     pub fn main() -> void {\n\
+     \x20 let t = string.trim(\"  a  \")\n\
+     \x20 io.println(t.toUpperCasee())\n\
+     }\n";
+
+/// G211, the second shape: the failing expression is the tail of a block
+/// arm inside a `match` that initialises a `let`, on line 11, after a `let`
+/// on line 10 inside the same arm.
+const G211_ARM_TAIL: &str = "module main\n\
+     \n\
+     import std/io\n\
+     import std/string\n\
+     \n\
+     pub fn main() -> void {\n\
+     \x20 let n = 2\n\
+     \x20 let s = match n {\n\
+     \x20   2 => {\n\
+     \x20     let t = string.trim(\"  a  \")\n\
+     \x20     t.toUpperCasee()\n\
+     \x20   },\n\
+     \x20   else => \"b\",\n\
+     \x20 }\n\
+     \x20 io.println(s)\n\
+     }\n";
+
+/// The source-map half of G211, without `tsc`: build the program, find the
+/// emitted line that carries the bad call, and remap a `tsc` diagnostic at
+/// that position. The remap must land on the Glyph line of the call, not on
+/// the statement before it. Runs wherever the suite runs, so the two
+/// `tsc`-driven tests below are not the only thing standing on the fix.
+fn remapped_position_of(program: &str, prefix: &str) -> String {
+    let root = unique_tmp(prefix);
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", program);
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "the program is Glyph-clean; tsc is what rejects it: {:?}",
+        report.diagnostics
+    );
+    let m = report
+        .module_maps
+        .iter()
+        .find(|m| m.ts_rel == "main.ts")
+        .expect("a map for main.ts");
+    let (line_no, line) = m
+        .ts_source
+        .lines()
+        .enumerate()
+        .find(|(_, l)| l.contains("toUpperCasee"))
+        .expect("the bad call is in the emitted TypeScript");
+    let col = line.find("toUpperCasee").unwrap() + 1;
+    let raw = format!(
+        "dist/main.ts({},{col}): error TS2551: Property 'toUpperCasee' does not exist on type 'string'.\n",
+        line_no + 1
+    );
+    glyph_cli::tscmap::remap_tsc_output(&raw, &report.module_maps, false)
+}
+
+#[test]
+fn a_tsc_error_in_the_last_statement_maps_onto_that_statement() {
+    let out = remapped_position_of(G211_TAIL_CALL, "g211_map_tail");
+    assert!(
+        out.contains("main:8:3"),
+        "the call is on line 8, not the `let` on line 7: {out}"
+    );
+    assert!(!out.contains("main:7:"), "one statement early: {out}");
+
+    let out = remapped_position_of(G211_ARM_TAIL, "g211_map_arm");
+    assert!(
+        out.contains("main:11:7"),
+        "the arm's tail expression is on line 11, not its `let` on line 10: {out}"
+    );
+    assert!(!out.contains("main:10:"), "one statement early: {out}");
+}
+
+/// G211 against the real `tsc`: `glyph build` reports the ledger program's
+/// error at the call on line 8. It was reported at the `let` on line 7, which
+/// is where a reader following the caret, or an agent repairing from the
+/// mapped position, would have edited.
+#[test]
+fn build_reports_a_tsc_error_at_the_statement_that_failed() {
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let root = unique_tmp("g211_tsc_tail");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", G211_TAIL_CALL);
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-test"),
+    ]);
+    assert_eq!(code, 1, "tsc rejects the call: {stderr}");
+    assert!(stderr.contains("TS2551"), "remapped tsc error: {stderr}");
+    assert!(
+        stderr.contains("main:8:3"),
+        "reported at the call on line 8: {stderr}"
+    );
+    assert!(!stderr.contains("main:7:"), "not at the `let` before it: {stderr}");
+}
+
+/// G211, the second shape under `tsc`: the tail expression of a block arm
+/// inside a `match`. Statements inside an arm block go through the same tail
+/// path as a function body's last statement, so the fix has to hold there too.
+#[test]
+fn build_reports_a_tsc_error_at_the_tail_of_a_match_arm() {
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let root = unique_tmp("g211_tsc_arm");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", G211_ARM_TAIL);
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-test"),
+    ]);
+    assert_eq!(code, 1, "tsc rejects the call: {stderr}");
+    assert!(stderr.contains("TS2551"), "remapped tsc error: {stderr}");
+    assert!(
+        stderr.contains("main:11:7"),
+        "reported at the arm's tail on line 11: {stderr}"
+    );
+    assert!(!stderr.contains("main:10:"), "not at the `let` before it: {stderr}");
+}
+
 #[test]
 fn run_passes_hyphenated_arguments_through_to_the_program() {
     // G36: without `allow_hyphen_values` clap rejected `--amount` as an unknown

@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-208 entries, 170 are fixed, 11 are partly fixed, 11 are decided or resolved, and
-16 are open. G144, the D28 boundary cast that never reached the returns a
+208 entries, 171 are fixed, 11 are partly fixed, 11 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -4040,8 +4040,12 @@ is right for `Lexer`/`Parser`/`Renderer`/`Tokenizer`/`Hooks` and for
 an ordinary `interface` the reader does handle
 (`interface Rules { block: Record<string, RegExp> }`). So the gap is wider than
 "classes and computed types" and includes host types referenced from shapes that
-otherwise materialize cleanly. `Promise` degraded to `unknown` rather than
-erroring, which is D40 working as designed.
+otherwise materialize cleanly. This round's note originally said `Promise`
+"degraded to `unknown`, which is D40 working as designed"; it did not. The
+member carrying it was a method signature, and the reader dropped the member
+before its return type was read (G208), so nothing about `Promise` was ever
+seen. A `Promise`-typed *property* is a reference to a name that was never
+written, the same as `RegExp`.
 
 **Two small ones, neither blocking.** `string.from` over an `Array<Issue>`
 renders `[object Object],[object Object]`, so a validation failure has to be
@@ -8003,7 +8007,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.116: the program above checks clean.*
 
-- **G208. `gen dts` drops every method signature of an interface with no
+- **G208. [FIXED] `gen dts` drops every method signature of an interface with no
   note.** `runtime/tools/ts-to-schema.mjs` walks members and skips anything
   that is not a `PropertySignature` with no warning, so
   `export interface Client { url: string; fetch(path: string): Promise<string>; close(): void; }`
@@ -8017,3 +8021,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.116: the `Client` interface above yields
   `type Client = { url: string }` and `gen` prints no note.*
+
+  **Fixed in 0.1.117.** The reader warns once per member it drops, naming the
+  owner, the member and the reason, and `gen` surfaces each warning as a note
+  beside the unresolved-reference ones, so the `Client` interface now prints
+  `` `Client.fetch`: a method signature has no wire shape; call it on a value
+  obtained from the package. The member is dropped from the record. `` and the
+  same for `Client.close`, and the summary reads `1 type(s) written ...
+  (2 note(s))`. A call signature, a construct signature, an index signature and
+  an accessor are named for what they are rather than called methods. The record
+  itself is unchanged: a method has no wire shape and is still not a field.
+  Established by running both binaries on the same package: 0.1.115 prints no
+  note on `Client`, this build prints two, and the generated files are
+  byte-identical. Pinned by `dts_notes_every_dropped_method_signature` in
+  `gen.rs` and `gen_dts_notes_each_method_signature_it_drops` in
+  `glyph-cli/tests/gen_dts.rs`; both fail when the warning is dropped.

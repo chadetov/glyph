@@ -419,6 +419,13 @@ appear in no source you could grep, and could change under you when the package
 adds a type. `--rename` is repeatable and is recorded in the generated header, so
 `glyph regen` replays your choice instead of stopping at the same collision.
 
+An interface's method signatures are not fields. A method has no wire shape, so
+`gen` drops it and says so, one note per member: `` `Client.fetch`: a method
+signature has no wire shape; call it on a value obtained from the package. ``
+A package whose interfaces are mostly methods materializes as the few properties
+they carry, and the notes tell you which members did not make it. Call those on
+a value the package gave you; the record is for the data that crosses the wire.
+
 A package whose API is *classes* rather than interfaces is a different matter:
 `gen dts` reads `interface` and `type` declarations, so a field typed by a class
 (or by a computed type like `Omit<T, K>`) materializes as a reference to a name

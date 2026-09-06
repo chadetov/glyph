@@ -187,10 +187,12 @@ function isOptional(m) {
 // Walk
 // ---------------------------------------------------------------------------
 
-// `ctx` threads two things through the walk: `scope` (the enclosing namespace
-// names, so a bare reference can be resolved to its fully-qualified declaration)
-// and `typeParams` (the current declaration's generic parameter names, so a
-// reference to one is carried out by name for a first-class Glyph generic).
+// `ctx` threads three things through the walk: `scope` (the enclosing namespace
+// names, so a bare reference can be resolved to its fully-qualified declaration),
+// `typeParams` (the current declaration's generic parameter names, so a
+// reference to one is carried out by name for a first-class Glyph generic), and
+// `owner` (the dotted path of the member being read, `Client.fetch`, so a note
+// about it can say where it is).
 
 /** Map a TS type node to a JSON Schema fragment. */
 function typeToSchema(node, ctx) {
@@ -242,14 +244,25 @@ function typeToSchema(node, ctx) {
   }
 }
 
-/** Object member list → object schema with `properties` + `required`. */
+/** Object member list → object schema with `properties` + `required`.
+ *
+ *  Only a property has a wire shape. A method, a call or construct signature, an
+ *  index signature or an accessor is dropped, and every drop is a warning naming
+ *  the owner and the member: silently dropping them turned a method-bearing API
+ *  into a one-field record with no note (G208), so a user materializing a
+ *  client lost its whole method surface and was told nothing. */
 function objectToSchema(members, ctx) {
   const properties = {};
   const required = [];
   for (const m of members) {
-    if (m.kind !== K.PropertySignature || !m.name) continue;
+    if (m.kind !== K.PropertySignature || !m.name) {
+      warnings.push(droppedMemberWarning(m, ctx.owner));
+      continue;
+    }
     const name = nameText(m.name);
-    const schema = m.type ? typeToSchema(m.type, ctx) : { "x-unsupported": "no-type" };
+    const schema = m.type
+      ? typeToSchema(m.type, { ...ctx, owner: `${ctx.owner}.${name}` })
+      : { "x-unsupported": "no-type" };
     // A `field?:` member is optional. A `| null`/`| undefined` in the type is
     // carried as `nullable` on the schema (set by unionToSchema) and also makes
     // the field optional; the Glyph mapper turns either into an optional field.
@@ -260,6 +273,29 @@ function objectToSchema(members, ctx) {
   const out = { type: "object", properties };
   if (required.length) out.required = required;
   return out;
+}
+
+/** The warning for a member `objectToSchema` drops: which member of which
+ *  owner, and why it has no place in a wire record. A method is the common case
+ *  and gets the advice that applies to it; the other member kinds are named for
+ *  what they are so the note does not call a call signature a method. */
+function droppedMemberWarning(m, owner) {
+  const named = m.name ? `\`${owner}.${nameText(m.name)}\`` : `\`${owner}\``;
+  switch (m.kind) {
+    case K.MethodSignature:
+      return `${named}: a method signature has no wire shape; call it on a value obtained from the package. The member is dropped from the record.`;
+    case K.CallSignature:
+      return `${named}: a call signature has no wire shape; call the value obtained from the package. The member is dropped from the record.`;
+    case K.ConstructSignature:
+      return `${named}: a construct signature has no wire shape; construct the value with \`new\` on what the package exports. The member is dropped from the record.`;
+    case K.IndexSignature:
+      return `${named}: an index signature is not modelled by the reader; the record is \`@open\`, so extra keys pass \`parse\` unchecked. The member is dropped from the record.`;
+    case K.GetAccessor:
+    case K.SetAccessor:
+      return `${named}: an accessor has no wire shape; read it on a value obtained from the package. The member is dropped from the record.`;
+    default:
+      return `${named}: a \`${K[m.kind]}\` member has no wire shape. The member is dropped from the record.`;
+  }
 }
 
 /** Union type → enum (all string literals), nullable base, or oneOf. */
@@ -473,7 +509,7 @@ function resolveRef(name, scope, bindings) {
 const definitions = {};
 for (const { node, qualified, scope, bindings } of collected) {
   const params = (node.typeParameters || []).map((tp) => nameText(tp.name));
-  const ctx = { scope, typeParams: new Set(params), bindings };
+  const ctx = { scope, typeParams: new Set(params), bindings, owner: qualified };
   const schema =
     node.kind === K.InterfaceDeclaration
       ? objectToSchema(node.members, ctx)

@@ -8152,7 +8152,7 @@ and is the owner's to confirm.
   `E0211` on passing an `A` as a `B` and nothing on `b.naem`; the two-module
   program reports `E0210` on `b.naem` and nothing on the pass.*
 
-- **G207. A `where` refinement over an alias of a record compiles, where D39
+- **G207. [FIXED] A `where` refinement over an alias of a record compiles, where D39
   says it is `E0300`.** `type Rec = { x: int }` then
   `type Positive = Rec where value.x > 0` is `no diagnostics` under
   `check --no-tsc`. The emitter refuses a `where` on a record or union body
@@ -8165,6 +8165,20 @@ and is the owner's to confirm.
   and it is owed before G203's alias hop lands, because that hop makes the
   alias and the record the same type and the two arms would then disagree
   about one type.
+
+  **Fixed in 0.1.117.** The ruling is that D39's refusal is about the shape
+  the base resolves to, not the shape it is spelled as. The emitter's check
+  moved from the two syntactic arms to one `refused_refinement_base` that
+  follows a chain of bare-name aliases (`alias_chain_terminal`, the same walk
+  the D45 hop takes) to the declaration it ends at and refuses a record or a
+  union there with the E0300 the inline spelling already raised. A `where`
+  over an alias of a primitive (`type Cents = int`, `type PosCents = Cents
+  where value > 0`) is D39's own case and still emits its descriptor. Only
+  the emitter changed, because that is the only place the direct spelling
+  was refused. Breaking, established by running both binaries on the program
+  above under `check --no-tsc`: the published 0.1.115 exits 0 with no
+  diagnostics, this tree exits 1 with E0300. (0.1.116 was not on npm at the
+  time of the check.)
 
   *Reproduced against 0.1.116: the program above checks clean.*
 

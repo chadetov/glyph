@@ -1310,13 +1310,21 @@ impl<'a> Emitter<'a> {
             }
             Decl::Interface(i) => self.emit_interface(i),
             Decl::Type(t) => {
+                // D39 admits a `where` on a primitive base only, and the shape
+                // that decides is the one the base resolves to, not the one it
+                // is spelled as (G207). `type Positive = Rec where value.x > 0`
+                // refines a record whenever `Rec` is one, exactly as the inline
+                // spelling does; it used to fall through to the refinement path
+                // and emit a working descriptor while the inline spelling was
+                // refused. D45 makes the alias and the record one type, so the
+                // two spellings are not allowed to disagree.
+                if let Some(construct) = self.refused_refinement_base(t) {
+                    return Err(EmitError::Unsupported {
+                        construct,
+                        span: t.span,
+                    });
+                }
                 if let TypeExpr::Union { variants, .. } = &t.body {
-                    if t.refinement.is_some() {
-                        return Err(EmitError::Unsupported {
-                            construct: "a `where` refinement on a union type (v1 supports refinements on primitive base types)",
-                            span: t.span,
-                        });
-                    }
                     return self.emit_union(&t.name, &t.generics, variants);
                 }
                 let generics = self.generics(&t.generics)?;
@@ -1327,12 +1335,6 @@ impl<'a> Emitter<'a> {
                 // erasure). A generic record emits a checker-threaded descriptor
                 // (its `is`/`parse` take one checker per type parameter).
                 if let TypeExpr::Record { fields, .. } = &t.body {
-                    if t.refinement.is_some() {
-                        return Err(EmitError::Unsupported {
-                            construct: "a `where` refinement on a record type (v1 supports refinements on primitive base types)",
-                            span: t.span,
-                        });
-                    }
                     let redact = glyph_ast::redact_fields(&t.annotations).unwrap_or_default();
                     let open = glyph_ast::is_open_record(&t.annotations);
                     self.emit_record_descriptor(&t.name, &t.generics, fields, &redact, open)?;
@@ -4442,6 +4444,70 @@ impl<'a> Emitter<'a> {
                 }
                 other => return Some(other.clone()),
             }
+        }
+    }
+
+    /// The declaration a chain of second names ends at, starting from the
+    /// module-local type `name`: with `type C = B`, `type B = A` and
+    /// `type A = { .. }`, all three answer `A`. A hop is taken only through a
+    /// declaration whose body is one bare name and which carries no generic
+    /// parameters and no `where`, since those are the declarations D45 reads
+    /// as another name for a declaration rather than as a type of their own.
+    /// Any other body (a record, a union, a generic application, a refinement,
+    /// a prelude or imported name) ends the chain at the declaration carrying
+    /// it. `None` for a name this module does not declare as a `type`, and for
+    /// a cycle.
+    fn alias_chain_terminal(&self, name: &str) -> Option<&glyph_ast::TypeDecl> {
+        let local = |n: &str| {
+            self.module.items.iter().find_map(|d| match d {
+                Decl::Type(t) if t.name.as_ref() == n => Some(t),
+                _ => None,
+            })
+        };
+        let mut current = local(name)?;
+        let mut seen = std::collections::HashSet::new();
+        loop {
+            if !seen.insert(current.name.as_ref().to_string()) {
+                return None; // cyclic alias
+            }
+            if !current.generics.is_empty() || current.refinement.is_some() {
+                return Some(current);
+            }
+            let TypeExpr::Path { segments, .. } = &current.body else {
+                return Some(current);
+            };
+            let [next] = segments.as_slice() else {
+                return Some(current);
+            };
+            match local(next.as_ref()) {
+                Some(n) => current = n,
+                None => return Some(current),
+            }
+        }
+    }
+
+    /// The E0300 construct for a `where` whose base is a record or a union, or
+    /// `None` when the refinement is admissible or absent. The base is judged
+    /// by the shape it resolves to: written inline, or reached through a chain
+    /// of second names (D45), it is the same record, and D39 refuses it either
+    /// way (G207). A base the chain cannot resolve (a prelude name, an import,
+    /// a cycle) is left to the refinement path, which is the existing D39 case.
+    fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<&'static str> {
+        t.refinement.as_ref()?;
+        let base = match &t.body {
+            TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                &self.alias_chain_terminal(segments[0].as_ref())?.body
+            }
+            other => other,
+        };
+        match base {
+            TypeExpr::Union { .. } => Some(
+                "a `where` refinement on a union type (v1 supports refinements on primitive base types)",
+            ),
+            TypeExpr::Record { .. } => Some(
+                "a `where` refinement on a record type (v1 supports refinements on primitive base types)",
+            ),
+            _ => None,
         }
     }
 
@@ -10204,6 +10270,40 @@ mod tests {
         // A refinement on a record type is a clear error in v1, not a silent drop.
         let err = emit_err("module x\npub type Bad = {\n  x: int,\n} where value.x > 0\n");
         assert!(matches!(err, EmitError::Unsupported { .. }), "record refinement errors: {err:?}");
+    }
+
+    /// G207. D39's refusal is about the shape the base resolves to, not the
+    /// shape it is spelled as. `type Positive = Rec where value.x > 0` refines
+    /// a record when `Rec` is one, and the alias hop (D45) makes `Rec` and
+    /// the base one type, so the two spellings have to agree. Before this the
+    /// alias spelling fell through to the refinement path and emitted a
+    /// working descriptor while the inline spelling was E0300.
+    #[test]
+    fn where_over_an_alias_of_a_record_or_union_is_refused_like_the_direct_spelling() {
+        let err = emit_err("module x\ntype Rec = { x: int, }\ntype Positive = Rec where value.x > 0\n");
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("record type")),
+            "record through one alias: {err:?}"
+        );
+        // Two hops resolve the same way as one.
+        let err = emit_err(
+            "module x\ntype Rec = { x: int, }\ntype R2 = Rec\ntype Positive = R2 where value.x > 0\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("record type")),
+            "record through two aliases: {err:?}"
+        );
+        let err = emit_err(
+            "module x\ntype Shape = | Circle | Square\ntype S2 = Shape\ntype Round = S2 where value.tag == \"Circle\"\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("union type")),
+            "union through an alias: {err:?}"
+        );
+        // A `where` over an alias of a primitive is D39's own case and still
+        // emits its descriptor.
+        let ts = emit("module x\ntype Cents = int\ntype PosCents = Cents where value > 0\n");
+        assert!(ts.contains("const PosCents = {"), "primitive through an alias: {ts}");
     }
 
     #[test]

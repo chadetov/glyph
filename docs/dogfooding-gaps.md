@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-208 entries, 171 are fixed, 11 are partly fixed, 11 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+208 entries, 171 are fixed, 12 are partly fixed, 11 are decided or resolved, and
+14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3868,7 +3868,7 @@ G103 was the case where nothing was said at all.
 
   *Re-run for 0.1.97: `url.join("https://x.test/feed.xml", ":::")` still answers `Ok`, so the `Err` branch is still nearly unreachable against a valid base.*
 
-- **G108. The `.d.ts` reader materializes interfaces and type aliases, so a
+- **G108. [HALF FIXED] The `.d.ts` reader materializes interfaces and type aliases, so a
   package whose surface is classes and TypeScript utility types is unusable
   through `gen dts` even when generation succeeds.** Against `marked`, the nine
   unresolved names fall into three groups, and each wants a different answer:
@@ -3897,6 +3897,69 @@ G103 was the case where nothing was said at all.
   generated file lands in `src/.types/`, which `glyph build` does not walk for
   `.glyph`, so the failure only appears once it is moved next to the source; a
   first pass at this reproduction read the silence as the gap having closed.*
+
+  **Half fixed in 0.1.117: classes and host types anchor; utility types remain.**
+  A field typed by a class the `.d.ts` declares, or by a host type with no
+  Glyph spelling, now materializes as a descriptorless `extern_ts` alias (D29),
+  once per name: a class anchors to the package that declares it and a host type
+  to the global, qualified with `globalThis.` because `type RegExp = RegExp`
+  inside the emitted module is TS2456 (the alias shadows the global it names).
+  The reference resolves, `tsc` checks every member access against the real
+  declaration, and the type has no `parse`, so a record holding one is still
+  refused with `E0304` in the module that declares it. A presence-only
+  descriptor was refused because it would turn that refusal into an `Ok` on a
+  value nobody validated. The reproduction changes shape. On the same
+  three-group `.d.ts`, `glyph gen dts marky --out src/types` now prints one
+  note, `` reference to `Omit` (at `Trimmed`) could not be resolved to a
+  materialized type ``, and writes
+
+      @open
+      type Doc = { lexer: Lexer, opts: Trimmed, pattern: RegExp, title: string }
+      type Lexer = extern_ts("import('marky').Lexer")
+      type RegExp = extern_ts("globalThis.RegExp")
+      type Trimmed = Omit<Options, "silent">
+
+  and `check --no-tsc` on the result is exactly one `[E0103] unresolved name
+  `Omit``. A program that constructs the class through D37 `new` and calls a
+  method on the field (`let d: Doc = { lexer: new Lexer(), ... }` then
+  `d.lexer.lex("a b")`) builds with `tsc --strict passed`, and misspelling the
+  method is `[TS2551] Property 'lexx' does not exist on type 'Lexer'. Did you
+  mean 'lex'?` mapped to the `.glyph` line. The host list lives in
+  `runtime/tools/ts-to-schema.mjs` and every entry was checked against the
+  `lib` set `glyph build` writes (`es2022`, `dom`); `Buffer` is deliberately
+  not on it, because the tsconfig loads no ambient type packages and
+  `globalThis.Buffer` is TS2694 in every build. A host type referenced at an
+  arity the list does not carry (`Uint8Array<ArrayBuffer>`) is left unresolved
+  with a note naming the field, rather than declared at a shape `tsc` would
+  reject; a constrained generic (`WeakMap<K extends object, V>`) is left off
+  the list for the same reason. A class can only be anchored when `gen dts`
+  knows the package: a `.d.ts` read by a path outside `node_modules/` gets a
+  note saying so and the reference stays as written. `Promise` stays
+  unmaterializable under D40, and its note now names the field and says why
+  (`` reference to `Promise` (at `Doc.pending`) ... an awaited value is the
+  result of an `async fn` (D40) ``). Pinned by
+  `dts_materializes_a_class_and_a_host_type_as_extern_ts`,
+  `dts_leaves_a_class_unanchored_when_read_outside_a_package` and
+  `dangling_ref_note_names_the_fields_and_says_d40_for_promise` in `gen.rs`,
+  and `gen_dts_anchors_a_class_and_a_host_type_and_notes_omit_by_name` in
+  `glyph-cli/tests/gen_dts.rs`; the unit and end-to-end tests both fail when
+  the class is emitted as a record instead.
+
+  **What remains, and why.** `Omit` and `Pick` stay a note by name. Evaluating
+  them means the reader stops being syntactic, and it has no heritage-clause
+  handling: `Omit<Options, "silent">` over an interface that `extends` another
+  would materialize as an empty record whose strict descriptor rejects every
+  real value, a clean build over a boundary that lies. Two edges found while
+  closing this half are recorded here rather than absorbed. The `new`-and-method
+  confirmation above was run on a copy of the generated file with `pub` added by
+  hand: `gen dts` writes its declarations without `pub`, and `import
+  types/marky { Doc }` on the generated file as written is `[E0105] `Doc` is
+  not exported by `types/marky``, so the flow the guide documents does not
+  reach a second module. And `E0304` is checked only in the module that
+  declares the record: `Doc.parse(v)` called from a sibling that imports `Doc`
+  is `no diagnostics`, for this record and for a control record holding
+  `Array<unknown>`, so the refusal this entry relies on does not cross a module
+  boundary today.
 
 ## Round 31: four apps, and a loop index that was a string
 

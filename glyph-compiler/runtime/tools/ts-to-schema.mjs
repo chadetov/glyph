@@ -39,6 +39,18 @@
 // types, primitives, arrays, `T[]`, references to other declared types, optional
 // members (`field?:`), `T | null`/`| undefined`, and string-literal unions (→
 // `enum`). Anything else emits a schema the Glyph mapper narrows with a note.
+//
+// A reference to a `class` the package declares, or to a host type with no
+// Glyph spelling (`RegExp`, `Date`, `Map`), is not a wire shape and gets no
+// record. It is anchored instead: a synthetic definition carrying
+// `x-extern-class` (the class's qualified name; the Rust side writes
+// `extern_ts("import('<package>').Name")`) or `x-extern-host` (the global's own
+// TypeScript name, qualified with `globalThis.` so the module-local alias does
+// not shadow it), once per referenced name. The mapper turns each into a
+// descriptorless `extern_ts` alias, so the reference resolves and `tsc` checks
+// every member access against the real declaration (G108). `Promise` is
+// deliberately not on the host list: an awaited value is an `async fn` result
+// (D40), so a field holding one is left unresolved and noted by field.
 
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
@@ -233,8 +245,11 @@ function typeToSchema(node, ctx) {
       // scope so an aliased import (`Widget as W`), an `export * as ns` prefix, or
       // a reference inside `namespace Ns` finds its declaration. A generic
       // instantiation (`Page<User>`) carries its arguments.
-      const out = { $ref: "#/definitions/" + resolveRef(name, ctx.scope, ctx.bindings) };
-      if (node.typeArguments?.length) {
+      const resolved = resolveRef(name, ctx.scope, ctx.bindings);
+      const argc = node.typeArguments?.length ?? 0;
+      noteReference(resolved, argc, ctx.owner);
+      const out = { $ref: "#/definitions/" + resolved };
+      if (argc) {
         out["x-type-args"] = node.typeArguments.map((a) => typeToSchema(a, ctx));
       }
       return out;
@@ -335,6 +350,89 @@ const collected = []; // { node, qualified, scope }
 const declaredNames = new Set();
 const warnings = []; // surfaced to the user as `glyph gen` notes
 
+// Classes the reachable files declare, by qualified name, with their type
+// parameter names. A class is not walked into a record (its members are
+// methods, not a wire shape); it is kept here so a reference to it can be
+// anchored to the package that declares it instead of dangling.
+const classes = new Map();
+
+// Every type reference the walk resolved: name -> [{ argc, at }], where `at`
+// is the owner path of the field that made it. Read after the walk to decide
+// which unresolved names can be anchored and to say where the rest are.
+const references = new Map();
+function noteReference(name, argc, at) {
+  if (!references.has(name)) references.set(name, []);
+  references.get(name).push({ argc, at });
+}
+
+// Host types a `.d.ts` can name that have no Glyph spelling, with the type
+// parameters each takes. Every entry resolves under the `lib` set the tsconfig
+// `glyph build` writes (`es2022` and `dom`). The list is deliberately the
+// unconstrained ones:
+// `WeakMap<K extends object, V>` cannot be re-declared as `WeakMap<K, V>`
+// without the constraint, which `tsc` rejects, so it is left to the note. A
+// typed array is listed at arity 0 (its buffer parameter has a default); a
+// reference that passes one is left unresolved with a note rather than
+// declared at a shape `tsc` would reject.
+const HOST_TYPES = new Map([
+  ["RegExp", []],
+  ["Date", []],
+  ["Error", []],
+  ["TypeError", []],
+  ["RangeError", []],
+  ["SyntaxError", []],
+  ["ReferenceError", []],
+  ["EvalError", []],
+  ["URIError", []],
+  ["AggregateError", []],
+  ["Symbol", []],
+  ["Map", ["K", "V"]],
+  ["Set", ["T"]],
+  ["ArrayBuffer", []],
+  ["SharedArrayBuffer", []],
+  ["DataView", []],
+  ["Int8Array", []],
+  ["Uint8Array", []],
+  ["Uint8ClampedArray", []],
+  ["Int16Array", []],
+  ["Uint16Array", []],
+  ["Int32Array", []],
+  ["Uint32Array", []],
+  ["Float32Array", []],
+  ["Float64Array", []],
+  ["BigInt64Array", []],
+  ["BigUint64Array", []],
+  ["Iterable", ["T"]],
+  ["Iterator", ["T"]],
+  ["IterableIterator", ["T"]],
+  ["AsyncIterable", ["T"]],
+  ["AsyncIterator", ["T"]],
+  ["AsyncIterableIterator", ["T"]],
+  ["URL", []],
+  ["URLSearchParams", []],
+  ["Blob", []],
+  ["File", []],
+  ["FormData", []],
+  ["Headers", []],
+  ["Request", []],
+  ["Response", []],
+  ["AbortSignal", []],
+  ["AbortController", []],
+  ["ReadableStream", ["R"]],
+  ["WritableStream", ["W"]],
+  ["TransformStream", ["I", "O"]],
+  ["TextEncoder", []],
+  ["TextDecoder", []],
+  ["Event", []],
+  ["EventTarget", []],
+  ["WebSocket", []],
+  ["MessagePort", []],
+  ["Worker", []],
+  // `Buffer` is deliberately absent: it lives in `@types/node`, and the
+  // tsconfig `glyph build` writes loads no ambient type packages, so
+  // `globalThis.Buffer` would be TS2694 in every build. It stays a note.
+]);
+
 /** Per-file binding context: the renames (`import { X as Y }`, `export { X as Y
  *  } from`) and namespace aliases (`import * as ns`, `export * as ns`) that let a
  *  written reference in this file resolve to a declared type. */
@@ -384,6 +482,18 @@ function collect(statements, scope, bindings) {
         // materialize a mis-typed descriptor.
         warnings.push(
           `type \`${qualified}\` is declared in more than one reachable file; the first is kept and the rest are dropped, so a reference may bind to the wrong shape. Rename the collision or materialize the intended file directly.`,
+        );
+      }
+    } else if (stmt.kind === K.ClassDeclaration && stmt.name) {
+      // A class is recorded, not walked: its instance members are mostly
+      // methods, and a record of its properties would claim a wire shape the
+      // class does not have. A reference to it is anchored to the package.
+      const qualified = [...scope, nameText(stmt.name)].join(".");
+      if (!classes.has(qualified)) {
+        classes.set(qualified, (stmt.typeParameters || []).map((tp) => nameText(tp.name)));
+      } else {
+        warnings.push(
+          `class \`${qualified}\` is declared in more than one reachable file; the first is kept and the rest are dropped, so a reference may anchor to the wrong declaration. Rename the collision or materialize the intended file directly.`,
         );
       }
     } else if (
@@ -501,7 +611,7 @@ function resolveRef(name, scope, bindings) {
   }
   for (let i = scope.length; i >= 0; i--) {
     const cand = [...scope.slice(0, i), n].join(".");
-    if (declaredNames.has(cand)) return cand;
+    if (declaredNames.has(cand) || classes.has(cand)) return cand;
   }
   return n;
 }
@@ -519,6 +629,38 @@ for (const { node, qualified, scope, bindings } of collected) {
   // object literal, so attaching the key is safe).
   if (params.length) schema["x-type-params"] = params;
   definitions[qualified] = schema;
+}
+
+// Anchor every referenced name that is not a declaration the walk produced: a
+// class to the package that declares it, a known host type to the global. Each
+// becomes one synthetic definition the mapper writes as an `extern_ts` alias,
+// so the reference resolves without claiming a wire shape. Anything else is
+// left for the mapper's unresolved-reference note.
+for (const [name, uses] of references) {
+  if (declaredNames.has(name)) continue;
+  if (classes.has(name)) {
+    const params = classes.get(name);
+    const def = { "x-extern-class": name };
+    if (params.length) def["x-type-params"] = params;
+    definitions[name] = def;
+    continue;
+  }
+  const params = HOST_TYPES.get(name);
+  if (params === undefined) continue;
+  const mismatched = uses.filter((u) => u.argc !== params.length);
+  if (mismatched.length) {
+    for (const u of mismatched) {
+      warnings.push(
+        `\`${u.at}\`: \`${name}\` is referenced with ${u.argc} type argument(s), and the host type is known here with ${params.length}; it is left unresolved rather than declared at a shape \`tsc\` would reject.`,
+      );
+    }
+    continue;
+  }
+  const def = {
+    "x-extern-host": params.length ? `globalThis.${name}<${params.join(", ")}>` : `globalThis.${name}`,
+  };
+  if (params.length) def["x-type-params"] = params;
+  definitions[name] = def;
 }
 
 process.stdout.write(JSON.stringify({ definitions, warnings }));

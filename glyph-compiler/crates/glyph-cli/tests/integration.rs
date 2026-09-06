@@ -5571,6 +5571,160 @@ fn array_range_and_range_from_drive_counted_loops() {
     }
 }
 
+/// G101. `fold` cannot stop early, so alpha-beta pruning, which is a fold that
+/// stops when the window closes, was four mutually recursive functions
+/// threading an index. `fold_while` is that fold; the stop test runs before
+/// each element is consumed, so a closed window skips the rest of the
+/// children. The node count is what proves pruning happened: the standard
+/// three-child tree has six leaves and a correct alpha-beta visits four.
+#[test]
+fn array_fold_while_prunes_an_alpha_beta_search() {
+    if !js_toolchain_available() {
+        eprintln!("skipping fold_while run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("foldwhile");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/array
+import std/io
+
+const INF: int = 1000000000
+
+type Window = { alpha: int, beta: int, value: int, nodes: int }
+
+fn lower(a: int, b: int) -> int {
+  return match a < b {
+    true => a,
+    false => b,
+  }
+}
+
+fn higher(a: int, b: int) -> int {
+  return match a > b {
+    true => a,
+    false => b,
+  }
+}
+
+// The window has closed: nothing further down this branch can change the
+// answer, so the fold stops before touching the next child.
+fn closed(w: Window) -> bool {
+  return w.alpha >= w.beta
+}
+
+fn min_node(leaves: Array<int>, alpha: int, beta: int, nodes: int) -> Window {
+  let start: Window = { alpha: alpha, beta: beta, value: INF, nodes: nodes }
+  return array.fold_while(leaves, start, fn(w: Window, leaf: int) -> Window {
+    let v = lower(w.value, leaf)
+    return { alpha: w.alpha, beta: lower(w.beta, v), value: v, nodes: w.nodes + 1 }
+  }, closed)
+}
+
+fn max_root(children: Array<Array<int>>) -> Window {
+  let start: Window = { alpha: 0 - INF, beta: INF, value: 0 - INF, nodes: 0 }
+  return array.fold_while(children, start, fn(w: Window, leaves: Array<int>) -> Window {
+    let child = min_node(leaves, w.alpha, w.beta, w.nodes)
+    let v = higher(w.value, child.value)
+    return { alpha: higher(w.alpha, v), beta: w.beta, value: v, nodes: child.nodes }
+  }, closed)
+}
+
+fn count_leaves(children: Array<Array<int>>) -> int {
+  return array.fold(children, 0, fn(n: int, leaves: Array<int>) -> int {
+    return n + array.len(leaves)
+  })
+}
+
+pub fn main() -> void {
+  let tree: Array<Array<int>> = [[3, 5], [2, 9], [0, 1]]
+  let result = max_root(tree)
+  io.println("value=${number.to_string(result.value)} nodes=${number.to_string(result.nodes)} of ${number.to_string(count_leaves(tree))}")
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr) = spawn_glyph_bounded(
+        &[std::ffi::OsStr::new("run"), entry.as_os_str()],
+        std::time::Duration::from_secs(60),
+    )
+    .expect("the program exits");
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    // Minimax over this tree is 3 either way; the count is the evidence. A
+    // `fold_while` that consumed every element would print `nodes=6`.
+    assert!(
+        stdout.contains("value=3 nodes=4 of 6"),
+        "alpha-beta must reach the minimax answer having visited four of six leaves: {stdout}"
+    );
+}
+
+/// G101, the error-carrying half. `try_fold` stops at the first `Err` and
+/// returns it; the elements after it are never visited, and a full run returns
+/// `Ok` of the final accumulator.
+#[test]
+fn array_try_fold_stops_at_the_first_err() {
+    if !js_toolchain_available() {
+        eprintln!("skipping try_fold run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("tryfold");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/array
+import std/io
+
+type Tally = { sum: int, seen: int }
+
+fn add(acc: Tally, x: int) -> Result<Tally, string> {
+  io.println("visit ${number.to_string(x)}")
+  return match x < 0 {
+    true => Err("negative ${number.to_string(x)} after ${number.to_string(acc.seen)} elements"),
+    false => Ok({ sum: acc.sum + x, seen: acc.seen + 1 }),
+  }
+}
+
+pub fn main() -> void {
+  let start: Tally = { sum: 0, seen: 0 }
+  match array.try_fold([1, 2, 0 - 1, 4], start, add) {
+    Ok(t) => io.println("ok sum=${number.to_string(t.sum)}"),
+    Err(e) => io.println("err ${e}"),
+  }
+  match array.try_fold([1, 2, 3], start, add) {
+    Ok(t) => io.println("ok sum=${number.to_string(t.sum)} seen=${number.to_string(t.seen)}"),
+    Err(e) => io.println("err ${e}"),
+  }
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr) = spawn_glyph_bounded(
+        &[std::ffi::OsStr::new("run"), entry.as_os_str()],
+        std::time::Duration::from_secs(60),
+    )
+    .expect("the program exits");
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(
+        stdout.contains("err negative -1 after 2 elements"),
+        "the first Err is the result: {stdout}"
+    );
+    assert!(
+        !stdout.contains("visit 4"),
+        "the element after the failure is never visited: {stdout}"
+    );
+    assert!(
+        stdout.contains("ok sum=6 seen=3"),
+        "a run with no Err is Ok of the final accumulator: {stdout}"
+    );
+}
+
 #[test]
 fn start_here_tutorials_broken_program_is_exactly_e0200() {
     // B4 honesty guard: the Start-Here tutorial shows deleting a match arm

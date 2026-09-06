@@ -402,6 +402,8 @@ array.any<T>(xs, predicate) -> bool
 array.contains<T>(xs, value) -> bool
 array.sort<T>(xs, compare) -> Array<T>
 array.fold<T, A>(xs, init, f) -> A          // f is (acc, x); no index
+array.fold_while<T, A>(xs, init, f, done) -> A   // stops before the next element once done(acc) is true
+array.try_fold<T, A, E>(xs, init, f) -> Result<A, E>  // f returns Result<A, E>; the first Err is the result
 array.max(xs: Array<number>) -> Option<number>          // None on []
 array.min(xs: Array<number>) -> Option<number>          // None on []
 array.sum(xs: Array<number>) -> number                  // 0 on []
@@ -411,6 +413,43 @@ array.index_of<T>(xs, value) -> Option<number>
 array.flat_map<T, U>(xs, f) -> Array<U>     // flattens one level
 array.range(count) -> Array<number>            // [0, 1, ..., count-1]
 array.range_from(start, end) -> Array<number>  // [start, ..., end-1]
+```
+
+`fold_while` is the early exit `fold` lacks: `done(acc)` is checked before each
+element, so a search stops the moment the answer is known (alpha-beta pruning is
+`done = fn(w) { return w.alpha >= w.beta }`). `try_fold` is the error-carrying
+form: its callback returns `Result<A, E>`, the first `Err` is the result, and a
+`match` over the call must have an `Err` arm. There is no `Step<A>` type.
+
+```glyph
+module main
+
+import std/array
+import std/io
+
+fn spend(spent: int, cost: int) -> int {
+  return spent + cost
+}
+
+fn over(spent: int) -> bool {
+  return spent >= 10
+}
+
+fn add_positive(sum: int, x: int) -> Result<int, string> {
+  return match x < 0 {
+    true => Err("negative ${number.to_string(x)}"),
+    false => Ok(sum + x),
+  }
+}
+
+pub fn main() -> void {
+  // 15: stops before the 7, because 4 + 5 + 6 already reached the budget
+  io.println(number.to_string(array.fold_while([4, 5, 6, 7], 0, spend, over)))
+  match array.try_fold([1, 2, 0 - 1, 4], 0, add_positive) {
+    Ok(total) => io.println(number.to_string(total)),
+    Err(e) => io.println(e),   // "negative -1"; the 4 is never visited
+  }
+}
 ```
 
 ### std/string

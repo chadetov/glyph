@@ -3,6 +3,7 @@
 // prelude `Option` rather than `undefined`.
 
 import { type Option, Some, None } from "./option";
+import { type Result, Ok } from "./result";
 
 export function find<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Option<T> {
   for (const x of xs) {
@@ -89,6 +90,56 @@ export function sort<T>(xs: ReadonlyArray<T>, compare: (a: T, b: T) => number): 
 // there is no index and no source-array argument.
 export function fold<T, A>(xs: ReadonlyArray<T>, init: A, f: (acc: A, x: T) => A): A {
   return xs.reduce(f, init);
+}
+
+// `fold_while` is `fold` that can stop. Before each element is consumed,
+// `done(acc)` is asked whether the answer is already known; when it is, the
+// accumulator is returned and the rest of the array is never visited, so
+// `done(init)` being true returns `init` with nothing consumed. This is the
+// shape of alpha-beta pruning (`done = w => w.alpha >= w.beta`), of a budget
+// that runs out, and of every search that knows when it is finished. Written
+// over `fold`, each of those evaluates the whole array and looks correct doing
+// it, which for a search is the difference between pruning and not pruning.
+//
+// There is no `Step<A>` continue-or-stop type here on purpose. A generic
+// stdlib union would be the first of its kind, and a `match` over one gets no
+// exhaustiveness check today, so the stop signal is a separate predicate the
+// checker can already type.
+export function fold_while<T, A>(
+  xs: ReadonlyArray<T>,
+  init: A,
+  f: (acc: A, x: T) => A,
+  done: (acc: A) => boolean,
+): A {
+  let acc = init;
+  for (const x of xs) {
+    if (done(acc)) {
+      return acc;
+    }
+    acc = f(acc, x);
+  }
+  return acc;
+}
+
+// `try_fold` is `fold` whose step can fail. The first `Err` the callback
+// returns is the result, and the elements after it are never visited; a run
+// with no `Err` is `Ok` of the final accumulator. The error-carrying stop:
+// parsing a list where one bad line fails the whole thing, or applying a
+// sequence of operations where the first refusal stops the rest.
+export function try_fold<T, A, E>(
+  xs: ReadonlyArray<T>,
+  init: A,
+  f: (acc: A, x: T) => Result<A, E>,
+): Result<A, E> {
+  let acc = init;
+  for (const x of xs) {
+    const step = f(acc, x);
+    if (step.tag === "Err") {
+      return step;
+    }
+    acc = step.value;
+  }
+  return Ok(acc);
 }
 
 // The five reductions. `max`, `min`, `max_by` and `min_by` return an `Option`

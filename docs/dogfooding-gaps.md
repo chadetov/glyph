@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-212 entries, 186 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-7 are open. G144, the D28 boundary cast that never reached the returns a
+214 entries, 186 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+9 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8479,3 +8479,47 @@ and is the owner's to confirm.
   (`E0211` at the call and `E0205` at the `let`; D46 had not landed), the
   tree with the hop removed reports `E0205`, this build exits 0. Breaking in
   the accepting direction only, so not marked breaking.
+
+- **G213. A user type named `Option<T>` gets the prelude `Option`'s runtime
+  check.** `type Option<T> = { label: T }` and `type Poll = { pick: Option<string> }`:
+  `Poll.parse` on `{"pick":{"tag":"None"}}` returns `Ok`, accepting a value with
+  no `label` as a `Poll`. The build is green and `tsc --strict` is clean. The
+  emitter's `field_check` in `glyph-emit/src/lib.rs` decides a field's runtime
+  predicate from the `TypeExpr`'s base-name spelling (`Array`, `Nullable`,
+  `Option`, `Record`, matched on the last path segment), not from the resolved
+  `Ty`; the checker's `prelude_app` in `assign.rs` guards the same question by
+  the prelude symbol and correctly declines here. One program, two readings of
+  one name. The bare `type Option = { label: string }` spelling is not affected,
+  because the emitter's arm matches only the one-argument form. The fix is not
+  a guard on the spelling: the emitter has `resolved` and `prelude` in hand and
+  can lower the field's `TypeExpr` to a `Ty` through the checker's `Lowerer`,
+  which is the 0.1.120 change this entry is an instance of.
+
+  *Reproduced against 0.1.117: the program above prints `accepted a None as a Poll`, exit 0, under `npx -y @glyphlang/glyph@0.1.117 run`.*
+
+- **G214. The emitter re-derives 49 semantic facts the resolver and checker
+  already compute, through six families of duplicated rules.** An audit of
+  `glyph-emit/src/lib.rs` against `glyph-typechecker/src/assign.rs` found:
+  `ProjectTables::from_modules` is called in `glyph-cli/src/build.rs` over
+  parse results, before symbols, resolution and types run, so its eight
+  registries are an AST-only cross-module resolver (`ModuleTypeNames` re-walks
+  imports by spelling and its own doc says three spellings are resolved and
+  nothing else); five alias walkers (`alias_chain_terminal`,
+  `refused_refinement_base`, `resolve_alias_leaf`, `resolve_imported_alias_leaf`,
+  `emit_alias_values`) with three distinct stop rules beside the checker's one
+  `resolve_alias_chain`; six hand copies of `direct_type_decl`, one of them
+  (`union_variant_names_of_decl`) without the prelude-collision guard the
+  original exists to hold once; four variant-versus-binding rules built on
+  `is_variant_shaped` beside the checker's `classify_arm`, one of them
+  (`emit_pattern_chain`'s catch-all) consulting no variant list at all; and a
+  family of type decisions made from `TypeExpr` spelling rather than `Ty`
+  (G213 is the reproducible instance). The emitter does receive the `TypeMap`
+  and consumes it in three places; it receives no cross-module type context,
+  which is the structural root. G147, G206, G207 and G212 were each one of these
+  duplicates disagreeing with the checker on one program. Two suspected
+  instances were checked and are not defects: a same-named variant in two unions
+  of one module cannot exist (`E0100`), and a lowercase variant inside an object
+  pattern stops loudly at `E0300` rather than binding silently. The full audit
+  with line numbers is on file locally; the plan is the 0.1.120 lane.
+
+  *Reproduced against 0.1.117: `grep -c "fn alias_chain_terminal\|fn resolve_alias_leaf\|fn resolve_imported_alias_leaf\|fn refused_refinement_base\|fn emit_alias_values"` on the emitter is 5, `pub(crate) fn resolve_alias_chain` in the checker is 1, and `ProjectTables::from_modules` is called at `build.rs:537` above the per-module resolve loop.*

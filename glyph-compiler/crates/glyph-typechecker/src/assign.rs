@@ -949,7 +949,137 @@ impl Assigner<'_> {
         }
     }
 
+    /// D45: every type written in a declaration's signature or body is checked
+    /// for `Nullable<T>` with a `T` that is itself `Nullable` or `Option`
+    /// (E0227). Runs for every top-level declaration; the annotations inside a
+    /// body (`let`, lambdas, call type arguments, `is` arms) are reached from
+    /// the walk that visits them.
+    fn check_decl_nullable_args(&mut self, decl: &Decl) {
+        match decl {
+            Decl::Import(_) => {}
+            Decl::Type(t) => self.check_nullable_args(&t.body),
+            Decl::Fn(f) => {
+                for p in &f.params {
+                    self.check_nullable_args(&p.ty);
+                }
+                if let Some(rt) = &f.return_ty {
+                    self.check_nullable_args(rt);
+                }
+            }
+            Decl::Component(c) => {
+                for p in &c.params {
+                    self.check_nullable_args(&p.ty);
+                }
+                if let Some(rt) = &c.return_ty {
+                    self.check_nullable_args(rt);
+                }
+            }
+            Decl::Const(c) => {
+                if let Some(te) = &c.ty {
+                    self.check_nullable_args(te);
+                }
+            }
+            Decl::Interface(i) => {
+                for m in &i.members {
+                    match m {
+                        glyph_ast::InterfaceMember::Method { params, return_ty, .. } => {
+                            for p in params {
+                                self.check_nullable_args(&p.ty);
+                            }
+                            if let Some(rt) = return_ty {
+                                self.check_nullable_args(rt);
+                            }
+                        }
+                        glyph_ast::InterfaceMember::Field(f) => self.check_nullable_args(&f.ty),
+                    }
+                }
+            }
+        }
+    }
+
+    /// The recursive half of the D45 rule: find every `Nullable<..>` inside
+    /// `te`, however deeply it is nested, and reject one whose argument
+    /// resolves to `Nullable` or `Option`. The argument is judged by what it
+    /// resolves to rather than how it is spelled, so an alias for `Option<int>`
+    /// is refused like the direct spelling and `import std/option { Option }`
+    /// changes nothing. The message carries the argument as written.
+    fn check_nullable_args(&mut self, te: &TypeExpr) {
+        match te {
+            TypeExpr::Generic { base, args, span } => {
+                if self.is_prelude_named(base, "Nullable") {
+                    if let [arg] = args.as_slice() {
+                        let lowered = self.lowerer.lower(arg);
+                        if self.resolves_to_nullable_or_option(&lowered, 0) {
+                            self.errors.push(TypeError::NullableNested {
+                                inner: type_expr_source(arg),
+                                span: *span,
+                            });
+                        }
+                    }
+                }
+                self.check_nullable_args(base);
+                for a in args {
+                    self.check_nullable_args(a);
+                }
+            }
+            TypeExpr::Fn { params, return_ty, .. } => {
+                for p in params {
+                    self.check_nullable_args(&p.ty);
+                }
+                if let Some(rt) = return_ty {
+                    self.check_nullable_args(rt);
+                }
+            }
+            TypeExpr::Record { fields, .. } => {
+                for f in fields {
+                    self.check_nullable_args(&f.ty);
+                }
+            }
+            TypeExpr::Union { variants, .. } => {
+                for v in variants {
+                    if let Some(p) = &v.payload {
+                        self.check_nullable_args(p);
+                    }
+                }
+            }
+            TypeExpr::Path { .. }
+            | TypeExpr::Extern { .. }
+            | TypeExpr::StringLiteralUnion { .. }
+            | TypeExpr::TypeOf { .. } => {}
+        }
+    }
+
+    /// Whether a written type resolves to the prelude container `name`
+    /// (`Nullable`, `Option`), whatever spelling brought it into scope.
+    fn is_prelude_named(&self, te: &TypeExpr, name: &str) -> bool {
+        let Ty::Named { symbol, path } = self.lowerer.lower(te) else {
+            return false;
+        };
+        path.last().map(|n| n.as_ref()) == Some(name)
+            && self.lowerer.prelude.lookup(name) == Some(SymbolId(symbol.0))
+    }
+
+    /// Whether `ty` is `Nullable<..>` or `Option<..>`, following a local alias
+    /// whose body is one (`type O = Option<int>`) up to a fixed depth, which
+    /// is also the cycle guard.
+    fn resolves_to_nullable_or_option(&self, ty: &Ty, depth: usize) -> bool {
+        if self.prelude_app(ty, "Nullable").is_some() || self.prelude_app(ty, "Option").is_some() {
+            return true;
+        }
+        if depth >= 8 {
+            return false;
+        }
+        match self.local_type_decl(ty) {
+            Some(td) if td.generics.is_empty() => {
+                let body = self.lowerer.lower(&td.body);
+                self.resolves_to_nullable_or_option(&body, depth + 1)
+            }
+            _ => false,
+        }
+    }
+
     fn walk_decl(&mut self, decl: &Decl) {
+        self.check_decl_nullable_args(decl);
         match decl {
             Decl::Import(_) => {}
             // An interface is a set of type-level member signatures; there is no
@@ -1152,6 +1282,9 @@ impl Assigner<'_> {
     fn walk_stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Let(l) => {
+                if let Some(te) = &l.ty {
+                    self.check_nullable_args(te);
+                }
                 self.walk_expr(&l.value);
                 if let Expr::Match { arms, .. } = &l.value {
                     self.check_arms_produce_values(arms);
@@ -1490,6 +1623,9 @@ impl Assigner<'_> {
                 span,
                 type_args,
             } => {
+                for t in type_args {
+                    self.check_nullable_args(t);
+                }
                 self.walk_expr(callee);
                 for a in args {
                     self.walk_expr(a);
@@ -1590,6 +1726,11 @@ impl Assigner<'_> {
                 self.tm.insert(*span, Ty::Unknown);
             }
             Expr::Match { scrutinee, arms, span } => {
+                for arm in arms {
+                    if let Pattern::IsType { ty, .. } = &arm.pattern {
+                        self.check_nullable_args(ty);
+                    }
+                }
                 self.walk_expr(scrutinee);
                 // Day-14 exhaustiveness check: when the scrutinee's type
                 // resolves to a user-defined tagged union, verify the
@@ -1642,6 +1783,12 @@ impl Assigner<'_> {
                 is_async,
                 span,
             } => {
+                for p in params {
+                    self.check_nullable_args(&p.ty);
+                }
+                if let Some(rt) = return_ty {
+                    self.check_nullable_args(rt);
+                }
                 let er = self.enclosing_return(return_ty.as_ref(), *is_async);
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
@@ -2044,6 +2191,28 @@ impl Assigner<'_> {
     /// the arity is modeled) so this never introduces a new argument-type
     /// diagnostic; the value it adds is the decidable `Result<T, E>` return.
     fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        // `std/nullable` (D45): the explicit bridge between `T | null` and
+        // `Option<T>`. `T` rides on the argument the way `array.find`'s does, so
+        // `to_option` hands the exhaustiveness checker a real `Option<T>` and
+        // `from_option` a `Nullable<T>` that no `Option` slot accepts.
+        if module_key == "std/nullable" {
+            let t = || Ty::Param {
+                name: Ident::from("T"),
+                owner: ParamOwner::Unresolved,
+            };
+            let (param, ret) = match field {
+                "to_option" => (self.stdlib_nullable_ty(t())?, self.stdlib_option_ty(t())?),
+                "from_option" => (self.stdlib_option_ty(t())?, self.stdlib_nullable_ty(t())?),
+                "is_null" => (self.stdlib_nullable_ty(t())?, Ty::Prim(Primitive::Bool)),
+                _ => return None,
+            };
+            return Some(Ty::Fn {
+                params: vec![required(param)],
+                return_ty: Arc::new(ret),
+                is_async: false,
+            });
+        }
+
         // The CLDR plural category is the reason `std/intl` exists. Modeling the
         // return as the closed six-member literal union is what makes a `match`
         // over it exhaustive without a catch-all (D30); as a bare `string` it
@@ -2792,6 +2961,20 @@ impl Assigner<'_> {
             base: Arc::new(Ty::Named {
                 symbol: SymbolRef(option_id.0),
                 path: vec![Ident::from("Option")],
+            }),
+            args: vec![inner],
+        })
+    }
+
+    /// Build `Nullable<inner>` as a prelude `App` (D45). Mirrors
+    /// `stdlib_option_ty`, under `Nullable`'s own symbol, so the result is
+    /// decidably not an `Option`.
+    fn stdlib_nullable_ty(&self, inner: Ty) -> Option<Ty> {
+        let nullable_id = self.lowerer.prelude.lookup("Nullable")?;
+        Some(Ty::App {
+            base: Arc::new(Ty::Named {
+                symbol: SymbolRef(nullable_id.0),
+                path: vec![Ident::from("Nullable")],
             }),
             args: vec![inner],
         })
@@ -5762,6 +5945,42 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
             }
         }
         _ => {}
+    }
+}
+
+/// A written type as the source spells it, for a diagnostic that quotes the
+/// program back (`Nullable<Option<int>>` says `Option<int>`, not
+/// `Option<number>`). Paths and applications are exact; the other forms are
+/// summarized, since no D45 message has needed them yet.
+fn type_expr_source(te: &TypeExpr) -> String {
+    match te {
+        TypeExpr::Path { segments, .. } => segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("."),
+        TypeExpr::Generic { base, args, .. } => format!(
+            "{}<{}>",
+            type_expr_source(base),
+            args.iter().map(type_expr_source).collect::<Vec<_>>().join(", ")
+        ),
+        TypeExpr::Fn { .. } => "fn(..)".to_string(),
+        TypeExpr::Record { .. } => "{ .. }".to_string(),
+        TypeExpr::Union { variants, .. } => variants
+            .iter()
+            .map(|v| v.name.to_string())
+            .collect::<Vec<_>>()
+            .join(" | "),
+        TypeExpr::StringLiteralUnion { values, .. } => values
+            .iter()
+            .map(|v| format!("\"{v}\""))
+            .collect::<Vec<_>>()
+            .join(" | "),
+        TypeExpr::Extern { raw, .. } => format!("extern_ts(\"{raw}\")"),
+        TypeExpr::TypeOf { path, .. } => format!(
+            "typeof {}",
+            path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
+        ),
     }
 }
 
@@ -11105,5 +11324,131 @@ fn f(a: Answer) -> number {
             .unwrap_or_else(|| panic!("expected E0210: {errs:?}"));
         assert_eq!(e.union(), None);
         assert_eq!(e.missing_variants(), None);
+    }
+
+    // ----- D45: `Nullable<T>` is its own type, bridged explicitly -----
+
+    #[test]
+    fn a_nullable_is_not_an_option_at_an_argument() {
+        let errs = errors_of(
+            "module x\nfn take(o: Option<int>) -> int { return 1 }\n\
+             fn f(n: Nullable<int>) -> int { return take(n) }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "a Nullable passed where an Option is declared must be E0211: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_nullable_is_not_an_option_at_a_let_in_either_direction() {
+        let errs = errors_of(
+            "module x\nfn f(n: Nullable<int>) -> int {\n  let o: Option<int> = n\n  return 1\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { .. })),
+            "Nullable into Option must be E0204: {errs:?}"
+        );
+        let errs = errors_of(
+            "module x\nfn f(o: Option<int>) -> int {\n  let n: Nullable<int> = o\n  return 1\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { .. })),
+            "Option into Nullable must be E0204: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn nullable_of_option_is_rejected_in_a_record_field() {
+        let errs = errors_of("module x\ntype Frame = { s: Nullable<Option<int>> }\n");
+        let hit = errs
+            .iter()
+            .find(|e| matches!(e, TypeError::NullableNested { .. }))
+            .unwrap_or_else(|| panic!("expected E0227 for Nullable<Option<int>>: {errs:?}"));
+        assert_eq!(hit.code(), "E0227");
+        assert!(hit.to_string().contains("Option<int>"), "{hit}");
+    }
+
+    #[test]
+    fn nullable_of_nullable_is_rejected_in_a_parameter() {
+        let errs = errors_of("module x\nfn f(n: Nullable<Nullable<int>>) -> int { return 1 }\n");
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NullableNested { .. })),
+            "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn nullable_over_an_alias_for_option_is_rejected() {
+        // The rule is about what `T` is, not how it is spelled: an alias whose
+        // body is `Option<int>` is still an `Option`.
+        let errs = errors_of(
+            "module x\ntype O = Option<int>\nfn f(n: Nullable<O>) -> int { return 1 }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NullableNested { .. })),
+            "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn nullable_of_a_plain_type_is_accepted() {
+        let errs = errors_of(
+            "module x\ntype User = { name: string }\n\
+             type Frame = { a: Nullable<int>, b: Nullable<Array<int>>, c: Nullable<User>, d?: Nullable<string> }\n\
+             fn f(n: Nullable<int>) -> Nullable<int> {\n  let m: Nullable<int> = n\n  return m\n}\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::NullableNested { .. })),
+            "{errs:?}"
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { .. })),
+            "a Nullable<int> is assignable to a Nullable<int>: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn to_option_returns_an_option_the_exhaustiveness_check_sees() {
+        let errs = errors_of(
+            "module x\nimport std/nullable\n\
+             fn f(n: Nullable<int>) -> int {\n  return match nullable.to_option(n) {\n    Some(v) => v,\n  }\n}\n",
+        );
+        let hit = errs
+            .iter()
+            .find_map(|e| match e {
+                TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                    Some((type_name.clone(), missing.clone()))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("expected E0200 on the Option to_option returns: {errs:?}"));
+        assert_eq!(hit.0, "Option");
+        assert!(hit.1.contains("None"), "{hit:?}");
+    }
+
+    #[test]
+    fn from_option_returns_a_nullable_not_an_option() {
+        let errs = errors_of(
+            "module x\nimport std/nullable\n\
+             fn f(o: Option<int>) -> int {\n  let x: Option<int> = nullable.from_option(o)\n  return 1\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { expected, found, .. }
+                if expected.starts_with("Option") && found.starts_with("Nullable"))),
+            "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn is_null_returns_a_bool() {
+        let errs = errors_of(
+            "module x\nimport std/nullable\n\
+             fn f(n: Nullable<int>) -> int {\n  let s: string = nullable.is_null(n)\n  return 1\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { found, .. } if found == "bool")),
+            "{errs:?}"
+        );
     }
 }

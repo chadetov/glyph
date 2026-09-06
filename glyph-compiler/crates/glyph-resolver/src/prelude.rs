@@ -56,6 +56,7 @@ pub fn build_prelude() -> Prelude {
         // Generic container types
         ("Result", PreludeKind::Result),
         ("Option", PreludeKind::Option),
+        ("Nullable", PreludeKind::Nullable),
         ("Array", PreludeKind::Array),
         ("Record", PreludeKind::Record),
         ("Schema", PreludeKind::Schema),
@@ -125,5 +126,18 @@ mod tests {
             SymbolKind::Prelude { kind } => assert_eq!(kind, PreludeKind::Ok),
             _ => panic!("Ok should be a Prelude symbol"),
         }
+    }
+
+    #[test]
+    fn nullable_is_a_prelude_type_constructor_distinct_from_option() {
+        // D45: `Nullable<T>` is its own prelude name with its own symbol, so a
+        // `Ty::Named` built from it can never compare equal to `Option`'s.
+        let p = build_prelude();
+        let id = p.lookup("Nullable").expect("missing prelude type: Nullable");
+        match p.table.get(id).unwrap().kind {
+            SymbolKind::Prelude { kind } => assert_eq!(kind, PreludeKind::Nullable),
+            _ => panic!("Nullable should be a Prelude symbol"),
+        }
+        assert_ne!(id, p.lookup("Option").unwrap());
     }
 }

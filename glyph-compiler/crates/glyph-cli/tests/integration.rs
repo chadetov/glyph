@@ -12555,3 +12555,109 @@ fn fmt_keeps_a_note_on_a_continued_annotation_line() {
         "the assertion survives the round trip:\n{five}"
     );
 }
+
+// --- D45: `Nullable<T>` at the boundary -------------------------------------
+
+/// D45. A `Nullable<int>` field takes the two spellings a real API sends for a
+/// value that may be missing, `null` and the bare value, and rejects the tagged
+/// `Option` encoding, because a non-null value is checked as the inner type and
+/// `int` rejects an object. An absent key is still `missing`: `s?: Nullable<int>`
+/// is the spelling for absent-or-null-or-value. The bridge to `Option` is an
+/// explicit `std/nullable` call, and `json.stringify` of the value is the wire
+/// form again, so the round trip holds in both directions.
+#[test]
+fn a_nullable_field_decodes_null_and_bare_values_and_rejects_the_tagged_form() {
+    let root = unique_tmp("nullable_field");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io
+import std/json
+import std/nullable
+import std/string
+
+type Frame = { op: int, s: Nullable<int> }
+
+fn describe(label: string, raw: string) -> string {
+  return match json.parse(raw) {
+    Err(_) => label + " => bad json",
+    Ok(v) => match Frame.parse(v) {
+      Err(issues) => label + " => rejected " + json.stringify(issues),
+      Ok(f) => match nullable.to_option(f.s) {
+        Some(n) => label + " => Some(" + string.from(n) + ") wire " + json.stringify(f),
+        None => label + " => None wire " + json.stringify(f),
+      },
+    },
+  }
+}
+
+fn main() -> void {
+  io.println(describe("null", "{\"op\":10,\"s\":null}"))
+  io.println(describe("absent", "{\"op\":10}"))
+  io.println(describe("bare", "{\"op\":10,\"s\":3}"))
+  io.println(describe("tagged", "{\"op\":10,\"s\":{\"tag\":\"Some\",\"value\":3}}"))
+  let none: Frame = { op: 1, s: nullable.from_option(None), }
+  let some: Frame = { op: 2, s: nullable.from_option(Some(7)), }
+  io.println("from None is_null=" + string.from(nullable.is_null(none.s)) + " wire " + json.stringify(none))
+  io.println("from Some(7) is_null=" + string.from(nullable.is_null(some.s)) + " wire " + json.stringify(some))
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should build and run:\n{stdout}\n{stderr}");
+    assert!(
+        stdout.contains("null => None wire {\"op\":10,\"s\":null}"),
+        "a JSON null decodes and round-trips as null:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("absent => rejected ")
+            && stdout.contains("\"path\":[\"s\"]")
+            && stdout.contains("\"code\":\"missing\""),
+        "an absent key is still required:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("bare => Some(3) wire {\"op\":10,\"s\":3}"),
+        "a bare value decodes as the value and round-trips as itself:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("tagged => rejected ") && stdout.contains("must be Nullable<int>"),
+        "the tagged Option encoding is not a Nullable<int>:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("from None is_null=true wire {\"op\":1,\"s\":null}"),
+        "from_option(None) is null on the wire:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("from Some(7) is_null=false wire {\"op\":2,\"s\":7}"),
+        "from_option(Some(7)) is the bare value on the wire:\n{stdout}"
+    );
+}
+
+/// D45. `T` in `Nullable<T>` may not itself be `Nullable` or `Option`: the
+/// first has one runtime spelling for two states, the second would put a tagged
+/// object under a null-tolerant field, which is the ambiguity the type exists
+/// to avoid. One code, E0227, from the typechecker.
+#[test]
+fn a_nullable_over_an_option_is_rejected_at_build() {
+    let root = unique_tmp("nullable_of_option");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         type Frame = { s: Nullable<Option<int>> }\n\
+         fn main() -> void {\n  return void\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ran");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("[E0227]")),
+        "expected E0227 for Nullable<Option<int>>; got: {:?}",
+        report.diagnostics
+    );
+}

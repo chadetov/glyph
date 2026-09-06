@@ -1094,6 +1094,7 @@ machine-readably. The full catalogue:
 | E0224 | Reading a key out of a `Record<K, V>` map, where the key may not be there | `record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine |
 | E0225 | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost | Move the read after the `await`. A local counter across an `await` is fine and is not reported |
 | E0226 | Every arm of a `match` can fail and none is a catch-all, over a scrutinee with no cases to count (a record, an unresolved type) | Add an `else` arm |
+| E0227 | `Nullable<T>` whose `T` is itself `Nullable` or `Option` (D45): null is the whole absent state, so the nesting means nothing the plain type does not | Write `Nullable<int>`; convert to an `Option` inside the program with `nullable.to_option` |
 | E0300 | Construct not supported by the emitter | Use a supported form |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a match nested inside a larger expression | Bind the match first (`let x = match ...`), then use `?` |

@@ -451,6 +451,7 @@ impl<'a> Lowerer<'a> {
             kind,
             PreludeKind::Result
                 | PreludeKind::Option
+                | PreludeKind::Nullable
                 | PreludeKind::Array
                 | PreludeKind::Record
                 | PreludeKind::Schema
@@ -481,8 +482,13 @@ impl<'a> Lowerer<'a> {
             PreludeKind::Void => Ty::Prim(Primitive::Void),
             PreludeKind::UnknownTop => Ty::UnknownTop,
             PreludeKind::Never => Ty::Never,
+            // `Nullable` (D45) is a container of its own: the same `Ty::Named`
+            // shape as `Option`, under its own prelude symbol, so the two are
+            // never assignable to each other and the conversion has to be
+            // written out.
             PreludeKind::Result
             | PreludeKind::Option
+            | PreludeKind::Nullable
             | PreludeKind::Array
             | PreludeKind::Record
             | PreludeKind::Schema

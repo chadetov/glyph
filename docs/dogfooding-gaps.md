@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-205 entries, 170 are fixed, 11 are partly fixed, 11 are decided or resolved, and
-13 are open. G144, the D28 boundary cast that never reached the returns a
+208 entries, 170 are fixed, 11 are partly fixed, 11 are decided or resolved, and
+16 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7969,3 +7969,51 @@ and is the owner's to confirm.
   `import lib { ORIGIN }` and through `import lib` plus `lib.ORIGIN.rowz`,
   against a `lib` module declaring `pub const ORIGIN: Sheet` where `Sheet`
   has no `rowz` field.*
+
+- **G206. A module-local alias of a record has no fields, while the same alias
+  imported from another module has them.** `type A = { x: number }` and
+  `type B = A` in one file: a parameter `b: B` gives `b.naem` no `E0210`, no
+  field set and no field-use edge, because `named_record_fields` in
+  `glyph-typechecker/src/assign.rs` returns `None` for any non-record body and
+  `local_type_decl` follows no alias. Write the identical two declarations in a
+  sibling module, `import lib { A, B }`, and `b.naem` is `E0210` naming `B`,
+  because `imported_record_decl` walks the alias chain to the record it ends
+  at. One spelling, two answers, decided by a file boundary. This is the field
+  half of G203, which records only the `E0211` half; the two close together
+  under the same ruling, which is that a `type` whose body is a bare path
+  naming another `type` is a second name for that declaration.
+
+  *Reproduced against 0.1.116: the module-local program reports only the G203
+  `E0211` on passing an `A` as a `B` and nothing on `b.naem`; the two-module
+  program reports `E0210` on `b.naem` and nothing on the pass.*
+
+- **G207. A `where` refinement over an alias of a record compiles, where D39
+  says it is `E0300`.** `type Rec = { x: int }` then
+  `type Positive = Rec where value.x > 0` is `no diagnostics` under
+  `check --no-tsc`. The emitter refuses a `where` on a record or union body
+  syntactically (`glyph-emit/src/lib.rs`, the two `E0300` arms before the
+  refinement branch), so a refinement whose body is a `TypeExpr::Path` to a
+  record falls through to `emit_refinement_descriptor` and emits a working
+  descriptor. The spec's own rule is that the parser wins and the divergence
+  is flagged; this flags it. Whether the answer is to extend D39 to records
+  reached through an alias or to refuse the alias case too is a spec ruling,
+  and it is owed before G203's alias hop lands, because that hop makes the
+  alias and the record the same type and the two arms would then disagree
+  about one type.
+
+  *Reproduced against 0.1.116: the program above checks clean.*
+
+- **G208. `gen dts` drops every method signature of an interface with no
+  note.** `runtime/tools/ts-to-schema.mjs` walks members and skips anything
+  that is not a `PropertySignature` with no warning, so
+  `export interface Client { url: string; fetch(path: string): Promise<string>; close(): void; }`
+  materializes as `@open type Client = { url: string }` and `gen` reports
+  `1 type(s) written` with zero notes. The round-31 note under G108 says
+  `Promise` "degraded to `unknown`, which is D40 working as designed"; it did
+  not degrade, the member vanished before its return type was read. A user
+  materializing a method-bearing API loses its whole method surface and is
+  told nothing, which is the silent half of G108 and the cheaper half to
+  close: one note per dropped member, naming it and why.
+
+  *Reproduced against 0.1.116: the `Client` interface above yields
+  `type Client = { url: string }` and `gen` prints no note.*

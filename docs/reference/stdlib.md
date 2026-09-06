@@ -268,6 +268,16 @@ counts as a space, which is what a form post sends. A malformed escape there
 decodes to itself rather than failing the whole read; `decode_component` is the
 strict form that tells you.
 
+**`join`'s `Err` branch comes from the base argument, not the relative one.**
+Against a valid base, the WHATWG parser treats anything that is not itself a
+URL as a relative path, so `join("https://x.test/feed.xml", ":::")` is
+`Ok(https://x.test/:::)` rather than an error. Only a `base` the parser cannot
+resolve fails: `join("not a base", "/x")` is
+`Err(cannot resolve "/x" against "not a base")`. A caller that writes an `Err`
+arm expecting it to catch a malformed link will find it unreachable there; the
+signature cannot be tightened without lying about the base, so the arm still
+has to exist, it just never fires on a bad `relative`.
+
 ## std/dns
 
 Name lookups. Every one is async and returns a `Result`, because a lookup fails

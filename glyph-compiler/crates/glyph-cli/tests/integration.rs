@@ -961,6 +961,38 @@ fn an_annotated_module_const_is_field_checked() {
     );
 }
 
+/// An annotated module `const` has its initializer judged against the
+/// annotation, under the same code the annotated `let` uses. Run through
+/// `build_project_inner` for the reason `an_annotated_module_const_is_field_checked`
+/// is: the typechecker's own harness lowers through a different resolver than
+/// the compiler does, and the lowering half of this work once passed there
+/// while the shipped compiler stayed silent.
+#[test]
+fn an_annotated_module_const_initializer_is_checked() {
+    let root = unique_tmp("constinit");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         const X: number = \"hi\"\n\
+         fn f() -> number {\n  \
+           return X\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0204") && d.contains("number") && d.contains("string")),
+        "expected E0204 naming both types; got: {:?}",
+        report.diagnostics
+    );
+}
+
 /// The other half of the same rule, and the reason it is safe: a `const` with
 /// no annotation claims nothing. Inferring a type from the initializer is a
 /// separate decision, and reporting against a guess would reject working code.

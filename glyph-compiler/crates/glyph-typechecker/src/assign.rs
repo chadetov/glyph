@@ -993,7 +993,28 @@ impl Assigner<'_> {
                 }
                 self.return_stack.pop();
             }
-            Decl::Const(c) => self.walk_expr(&c.value),
+            Decl::Const(c) => {
+                self.walk_expr(&c.value);
+                // An annotated module `const` gets the check an annotated `let`
+                // gets (G149). Lowering the const to its annotation made every
+                // read of it trust the annotation, so an initializer that
+                // disagrees with it is the same load-bearing lie the `let` case
+                // is: `const X: number = "hi"` typed `X` as `number` while it
+                // held a string, and only `tsc` (TS2322) said so. Judged only
+                // when there is an annotation, and `found` is read off the
+                // initializer's span so the diagnostic underlines the value.
+                if let Some(te) = &c.ty {
+                    let expected = self.lowerer.lower(te);
+                    let found = self.tm.get(c.value.span()).clone();
+                    if self.assign_incompatible(&found, &expected) {
+                        self.errors.push(TypeError::TypeMismatch {
+                            expected: ty_display(&expected),
+                            found: ty_display(&found),
+                            span: c.value.span(),
+                        });
+                    }
+                }
+            }
         }
     }
 
@@ -6139,6 +6160,89 @@ mod tests {
             !errs
                 .iter()
                 .any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "no annotation, no claim: {errs:?}"
+        );
+    }
+
+    /// An annotated module `const` gets the check an annotated `let` gets: the
+    /// initializer is judged against the annotation, under the same code. It
+    /// used to be silent, so `const X: number = "hi"` was caught only by `tsc`
+    /// (TS2322) while `let x: number = "hi"` inside a function was E0204.
+    #[test]
+    fn an_annotated_module_const_initializer_is_checked_against_its_annotation() {
+        let errs = errors_of(
+            "module x\n\
+             const X: number = \"hi\"\n\
+             fn f() -> number {\n\
+             \x20 return X\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::TypeMismatch { expected, found, .. }
+                    if expected == "number" && found == "string"
+            )),
+            "a const initializer that disagrees with its annotation is E0204: {errs:?}"
+        );
+    }
+
+    /// The check judges only a provable mismatch. A fitting primitive, a record
+    /// literal against a declared record (structural, undecided by name) and a
+    /// literal against a string-literal union (D30) all stay silent.
+    #[test]
+    fn an_annotated_module_const_with_a_fitting_initializer_stays_silent() {
+        let errs = errors_of(
+            "module x\n\
+             type Sheet = { rows: number, cols: number }\n\
+             type Tier = \"free\" | \"pro\"\n\
+             const N: number = 1\n\
+             const ORIGIN: Sheet = { rows: 0, cols: 0 }\n\
+             const T: Tier = \"free\"\n\
+             fn f() -> number {\n\
+             \x20 return N\n\
+             }\n",
+        );
+        assert!(errs.is_empty(), "a fitting initializer draws nothing: {errs:?}");
+    }
+
+    /// The two rules meet at a const: a primitive initializer for a const
+    /// annotated with a declared union is the reverse direction of G201 at the
+    /// const position.
+    #[test]
+    fn a_primitive_initializer_for_a_const_of_a_declared_union_is_flagged() {
+        let errs = errors_of(
+            "module x\n\
+             type PaymentResult =\n\
+             \x20 | Settled\n\
+             \x20 | Declined\n\
+             const R: PaymentResult = \"Settled\"\n\
+             fn f() -> number {\n\
+             \x20 return 1\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::TypeMismatch { expected, found, .. }
+                    if expected == "PaymentResult" && found == "string"
+            )),
+            "errs: {errs:?}"
+        );
+    }
+
+    /// No annotation, nothing to disagree with.
+    #[test]
+    fn an_unannotated_module_const_initializer_is_not_judged() {
+        let errs = errors_of(
+            "module x\n\
+             const X = \"hi\"\n\
+             fn f() -> string {\n\
+             \x20 return X\n\
+             }\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { .. })),
             "no annotation, no claim: {errs:?}"
         );
     }

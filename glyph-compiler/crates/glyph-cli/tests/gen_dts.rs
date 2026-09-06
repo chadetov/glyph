@@ -181,3 +181,96 @@ fn gen_dts_anchors_a_class_and_a_host_type_and_notes_omit_by_name() {
         "got: {diags:?}"
     );
 }
+
+fn tsc_available() -> bool {
+    Command::new("tsc")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// `glyph build <dir> --out <out>` at `root`: the diagnostic lines it prints
+/// and its tail summary lines, so a test can assert on what a user sees.
+fn build(root: &Path, dir: &str) -> (bool, String) {
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .args(["build", dir, "--out", "dist"])
+        .current_dir(root)
+        .output()
+        .expect("run glyph build");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    (text.contains("tsc --strict passed"), text)
+}
+
+/// G209. The declarations `gen dts` writes were not `pub`, so the flow the
+/// guide documents (`import types/<pkg> { T }` from another module) was
+/// `[E0105] T is not exported` against every generated file, and had been
+/// since the generator existed. This is the confirmation the G108 entry had to
+/// run on a hand-patched copy, as a test: generate, import the generated module
+/// from `main.glyph`, construct the class with `new`, call a method on the
+/// field, and pass `glyph build` with `tsc`. The `extern_ts` anchors are `pub`
+/// too, so the importing module can name them in an annotation.
+#[test]
+fn gen_dts_module_imports_and_the_class_field_typechecks_through_new() {
+    let root = project_with_package(
+        "import",
+        "export interface Options { gfm: boolean; silent: boolean; }\n\
+         export declare class Lexer { constructor(options?: Options); lex(src: string): string[]; }\n\
+         export interface Doc { lexer: Lexer; pattern: RegExp; title: string; }\n",
+    );
+    let Gen::Ok { .. } = gen_dts(&root) else {
+        eprintln!("skipping: node/typescript not available");
+        return;
+    };
+    let text = std::fs::read_to_string(root.join("src/types/marky.glyph")).expect("generated file");
+    assert!(text.contains("pub type Doc ="), "the record is exported; got:\n{text}");
+    assert!(text.contains("pub type Options ="), "got:\n{text}");
+    assert!(
+        text.contains("pub type Lexer = extern_ts(") && text.contains("pub type RegExp = extern_ts("),
+        "the anchors are exported too; got:\n{text}"
+    );
+
+    write_file(
+        &root,
+        "src/main.glyph",
+        r#"module main
+
+import marky { Lexer }
+import types/marky { Doc, RegExp }
+
+fn main(argv: Array<string>) -> number {
+  let lx = new Lexer()
+  let re: RegExp = extern_ts("/a+/")
+  let d: Doc = { lexer: lx, pattern: re, title: "t" }
+  let toks = d.lexer.lex("a b")
+  print(toks[0])
+  return 0
+}
+"#,
+    );
+    let diags = check_no_tsc(&root, "src");
+    assert!(diags.is_empty(), "the generated module imports as written; got: {diags:?}");
+
+    if !tsc_available() {
+        eprintln!("skipping the tsc half: tsc not available");
+        return;
+    }
+    let (passed, out) = build(&root, "src");
+    assert!(passed, "new Lexer() into the record and a method call on the field:\n{out}");
+
+    // The class is real to `tsc`: a misspelt method is an error mapped to the
+    // Glyph source, not a silent `any`.
+    let main = root.join("src/main.glyph");
+    let wrong = std::fs::read_to_string(&main).unwrap().replace("d.lexer.lex(", "d.lexer.lexx(");
+    std::fs::write(&main, wrong).unwrap();
+    let (passed, out) = build(&root, "src");
+    assert!(!passed, "a wrong method name must fail tsc:\n{out}");
+    assert!(
+        out.contains("Property 'lexx' does not exist on type 'Lexer'") && out.contains("main:"),
+        "mapped to the Glyph source:\n{out}"
+    );
+}

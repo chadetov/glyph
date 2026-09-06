@@ -116,8 +116,12 @@ use glyph_ast::{
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant, is_variant_shaped,
 };
-use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
-use glyph_typechecker::{DeclTyResolver, ImportedTypeDecl, Primitive, Ty, TypeMap};
+use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolKind};
+use glyph_typechecker::ty::SymbolRef;
+use glyph_typechecker::{
+    alias_target, direct_type_decl, resolve_alias_chain, split_type_app, DeclTyResolver,
+    ImportedTypeDecl, Lowerer, Primitive, Ty, TypeMap,
+};
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap};
 use std::rc::Rc;
@@ -483,8 +487,8 @@ pub struct EmitContext<'a> {
     /// `(module path, type name) -> body` for every *non-generic* exported type
     /// across the project that emits **no** runtime descriptor: a string-literal
     /// union (D30), an alias to a primitive (`type Count = int`), an alias to
-    /// another such alias. A module-local scan resolves these through
-    /// `resolve_alias_leaf`, so a field typed by a local `"text" | "int"` gets a
+    /// another such alias. A module-local alias resolves through the checker's
+    /// chain (`alias_leaf`), so a field typed by a local `"text" | "int"` gets a
     /// membership check; the same type imported from a sibling resolved to
     /// nothing and fell to the `!== undefined` floor, which accepts any string.
     /// That is the D30 guarantee evaporating at a module boundary, the same hole
@@ -731,6 +735,7 @@ pub fn emit_module_mapped(
     ctx: EmitContext,
 ) -> Result<EmitOutput, EmitError> {
     let shadowed = Rc::new(shadowed_globals_of(module));
+    let lowerer = Lowerer::with_imports(resolved, prelude, ctx.decls);
     let mut e = Emitter {
         out: String::new(),
         indent: 0,
@@ -748,6 +753,7 @@ pub fn emit_module_mapped(
         module,
         resolved,
         prelude,
+        lowerer,
         types,
         synth_types: Rc::new(RefCell::new(HashMap::new())),
         source_map: Vec::new(),
@@ -825,6 +831,13 @@ struct Emitter<'a> {
     /// back to its name so the emitter can inject `import`s for the prelude
     /// tagged-union values/types a module references without an explicit import.
     prelude: &'a Prelude,
+    /// The checker's `TypeExpr -> Ty` lowering over this module's resolutions
+    /// and the project's declarations, built the way the checker builds its
+    /// own. A type the emitter reads is then the type the checker read: the
+    /// alias chain (`resolve_alias_chain`) and the declaration lookup
+    /// (`direct_type_decl`) take a `Ty` this produces, so no walk of this
+    /// module's items decides what a name stands for (G214).
+    lowerer: Lowerer<'a>,
     types: &'a TypeMap,
     /// Types of synthesized scrutinee temporaries the `TypeMap` doesn't know
     /// about — keyed by temp name (`__p1`). `degroup_nested_arms` records the
@@ -909,6 +922,7 @@ impl<'a> Emitter<'a> {
             module: self.module,
             resolved: self.resolved,
             prelude: self.prelude,
+            lowerer: Lowerer::with_imports(self.resolved, self.prelude, self.ctx.decls),
             types: self.types,
             synth_types: Rc::clone(&self.synth_types),
             // A sub-emitter's output is spliced into the parent as a string, so
@@ -1700,7 +1714,7 @@ impl<'a> Emitter<'a> {
                 if self.has_descriptor(name) {
                     return Some(name.to_string());
                 }
-                let leaf = self.resolve_alias_leaf(name)?;
+                let leaf = self.alias_leaf(name)?;
                 self.field_descriptor_name(&leaf)
             }
             TypeExpr::Path { segments, .. } if segments.len() == 2 => {
@@ -2690,40 +2704,28 @@ impl<'a> Emitter<'a> {
 
     fn union_variant_names(&self, ty: &Ty) -> Option<Vec<String>> {
         // A generic union applied to type arguments (`Box<string>`) is a
-        // `Ty::App` over the union's `Ty::Named`; unwrap to the base so a match
-        // on a generic union resolves its variants like a monomorphic one.
-        let ty = match ty {
-            Ty::App { base, .. } => base.as_ref(),
-            other => other,
-        };
+        // `Ty::App` over the union's `Ty::Named`; the base answers, so a match
+        // on a generic union resolves its variants like a monomorphic one. The
+        // base is then followed through second names (D46) by the checker's
+        // own chain, so a match over `type Local = Shape` dispatches on the
+        // variant set the checker requires of it (G224). Before the hop the
+        // alias had no list here, and a lowercase variant under it lowered as
+        // a binding that swallowed every value.
+        let base = split_type_app(ty).0;
+        let end = resolve_alias_chain(self.module, self.resolved, &self.lowerer, base);
         // A union declared in another module lowers to `Ty::Imported { module,
         // name }` rather than `Ty::Named` (this module's AST never sees the
         // declaration to walk). Its variant list is the checker's: the same
         // `imported_type_decl` query `required_variants` reads for the
         // exhaustiveness check, so the list the emitter dispatches on and the
         // list the checker required are one answer (G147, G214).
-        if let Ty::Imported { module, name } = ty {
+        if let Ty::Imported { module, name } = &end {
             return self.imported_union_variant_names(module.as_str(), name);
         }
-        let Ty::Named { symbol, path } = ty else {
-            return None;
-        };
-        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-        // Prelude and module symbol tables both number ids from 0, so a
-        // prelude `Ty::Named` (e.g. a bare `Option`) could index an unrelated
-        // module symbol here. Require the resolved symbol's name to match the
-        // type's path, which a genuine prelude id never will (the same
-        // collision `assign.rs::prelude_app` and `owned.rs` guard).
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return None;
-        }
-        let decl_idx = match &sym.kind {
-            SymbolKind::Type { decl_idx } => *decl_idx,
-            _ => return None,
-        };
-        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
-            return None;
-        };
+        // `direct_type_decl` holds the prelude/module symbol-id collision
+        // guard once: a prelude `Ty::Named` (a bare `Option`) cannot index an
+        // unrelated module symbol through it.
+        let td = direct_type_decl(self.module, self.resolved, &end)?;
         let TypeExpr::Union { variants, .. } = &td.body else {
             return None;
         };
@@ -2798,10 +2800,10 @@ impl<'a> Emitter<'a> {
     /// single-value, so this returns false for them and for any type whose
     /// union declaration cannot be resolved (mirroring `union_variant_names`).
     fn variant_payload_is_record(&self, ty: &Ty, variant: &str) -> bool {
-        let ty = match ty {
-            Ty::App { base, .. } => base.as_ref(),
-            other => other,
-        };
+        // The same base and the same chain `union_variant_names` reads, so the
+        // payload shape and the variant list come off one declaration.
+        let base = split_type_app(ty).0;
+        let end = resolve_alias_chain(self.module, self.resolved, &self.lowerer, base);
         // The scrutinee is typed by an imported union, so its variant shapes
         // are read off the declaring module through the checker's resolver
         // rather than from this module's AST. Keying the lookup on the
@@ -2814,7 +2816,7 @@ impl<'a> Emitter<'a> {
         // asks only whether *some* symbol of this name is a record-payload
         // import, never what is being matched, so it gets `b.Hit(n)` wrong
         // whenever an unrelated `a.Hit` is also in scope.
-        if let Ty::Imported { module, .. } = ty {
+        if let Ty::Imported { module, .. } = &end {
             return self.imported_variant_carries_record(module.as_str(), variant);
         }
         // Cross-module fallback for a scrutinee the checker did not pin to a
@@ -2824,19 +2826,7 @@ impl<'a> Emitter<'a> {
         if self.imported_variant_is_record(variant) {
             return true;
         }
-        let Ty::Named { symbol, path } = ty else {
-            return false;
-        };
-        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
-            return false;
-        };
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return false;
-        }
-        let SymbolKind::Type { decl_idx } = &sym.kind else {
-            return false;
-        };
-        let Some(Decl::Type(td)) = self.module.items.get(*decl_idx as usize) else {
+        let Some(td) = direct_type_decl(self.module, self.resolved, &end) else {
             return false;
         };
         let TypeExpr::Union { variants, .. } = &td.body else {
@@ -2872,9 +2862,7 @@ impl<'a> Emitter<'a> {
     /// `.value`. Returns `None` for a non-App type (a user union's variant
     /// payloads are not carried as type arguments — the rarer nested case).
     fn outer_variant_payload_ty(&self, scrutinee_ty: &Ty, outer: &str) -> Option<Ty> {
-        let Ty::App { args, .. } = scrutinee_ty else {
-            return None;
-        };
+        let args = split_type_app(scrutinee_ty).1;
         match outer {
             "Ok" | "Some" => args.first().cloned(),
             "Err" => args.get(1).cloned(),
@@ -2906,69 +2894,37 @@ impl<'a> Emitter<'a> {
         if let Some(pty) = self.outer_variant_payload_ty(scrutinee_ty, outer) {
             return self.union_variant_names(&pty);
         }
-        let base = match scrutinee_ty {
-            Ty::App { base, .. } => base.as_ref(),
-            other => other,
-        };
-        if let Ty::Imported { module, name } = base {
+        // The same chain the outer dispatch took: an alias of an imported
+        // union reaches the sibling's declaration here too, so the payload
+        // under it is read where the outer variant list was read.
+        let base = resolve_alias_chain(
+            self.module,
+            self.resolved,
+            &self.lowerer,
+            split_type_app(scrutinee_ty).0,
+        );
+        if let Ty::Imported { module, name } = &base {
             // The payload was lowered on the declaring side, so whatever type
             // it names is a `Ty::Imported` anchored on the module that declares
             // it, whether that is the outer union's own module or a third one;
             // a generic application (`B(Tree<K>)`) unwraps to its base.
             let payload = self.imported_variant_payload(module.as_str(), name, outer)?;
-            let payload_base = match &payload {
-                Ty::App { base, .. } => base.as_ref(),
-                other => other,
-            };
             let Ty::Imported {
                 module: payload_module,
                 name: payload_name,
-            } = payload_base
+            } = split_type_app(&payload).0
             else {
                 return None;
             };
             return self.imported_union_variant_names(payload_module.as_str(), payload_name);
         }
-        let payload = match self.user_variant_payload(scrutinee_ty, outer)? {
-            TypeExpr::Generic { base, .. } => base.as_ref(),
-            other => other,
-        };
-        let TypeExpr::Path { segments, .. } = payload else {
-            return None;
-        };
-        self.union_variant_names_of_path(segments)
-    }
-
-    /// The variant names of the union a type path written in this module
-    /// refers to: a local declaration, a named import (`import m { Inner }`)
-    /// answered by the declaring module's exported declaration, or a namespace
-    /// spelling (`m.Inner`) answered the same way. `None` for a path that is
-    /// none of these or that names something other than a union.
-    fn union_variant_names_of_path(&self, segments: &[Ident]) -> Option<Vec<String>> {
-        match segments {
-            [name] => {
-                if let Some(vs) = self.union_variant_names_of_decl(name) {
-                    return Some(vs);
-                }
-                let sym_id = *self.resolved.symbols.by_name.get(name.as_ref())?;
-                let sym = self.resolved.symbols.table.get(sym_id)?;
-                let SymbolKind::ImportNamed { path, original } = &sym.kind else {
-                    return None;
-                };
-                self.imported_union_variant_names(&glyph_resolver::path_key(path), original)
-            }
-            [ns, name] => {
-                let sym_id = *self.resolved.symbols.by_name.get(ns.as_ref())?;
-                let sym = self.resolved.symbols.table.get(sym_id)?;
-                let (SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. }) =
-                    &sym.kind
-                else {
-                    return None;
-                };
-                self.imported_union_variant_names(&glyph_resolver::path_key(path), name)
-            }
-            _ => None,
-        }
+        // A local union's payload is written in its declaration as a
+        // `TypeExpr`. Lowering it through the checker's `Lowerer` gives the
+        // `Ty` the checker gave it, and the one variant-list resolution above
+        // answers for every spelling of it: a local declaration, a named
+        // import, a namespace import, a generic application over any of them.
+        let payload = self.user_variant_payload(scrutinee_ty, outer)?;
+        self.union_variant_names(&self.lowerer.lower(payload))
     }
 
     /// The declared payload type expression of `variant` in the user union
@@ -2976,26 +2932,9 @@ impl<'a> Emitter<'a> {
     /// where a user union keeps its payload types; `outer_variant_payload_ty`
     /// only ever finds the prelude's, which are type arguments.
     fn user_variant_payload(&self, ty: &Ty, variant: &str) -> Option<&TypeExpr> {
-        let ty = match ty {
-            Ty::App { base, .. } => base.as_ref(),
-            other => other,
-        };
-        let Ty::Named { symbol, path } = ty else {
-            return None;
-        };
-        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-        // The prelude and this module both number symbol ids from 0, so require
-        // the name to match before trusting the id (the same collision guard
-        // `union_variant_names` carries).
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return None;
-        }
-        let SymbolKind::Type { decl_idx } = &sym.kind else {
-            return None;
-        };
-        let Decl::Type(td) = self.module.items.get(*decl_idx as usize)? else {
-            return None;
-        };
+        let base = split_type_app(ty).0;
+        let end = resolve_alias_chain(self.module, self.resolved, &self.lowerer, base);
+        let td = direct_type_decl(self.module, self.resolved, &end)?;
         let TypeExpr::Union { variants, .. } = &td.body else {
             return None;
         };
@@ -3004,26 +2943,6 @@ impl<'a> Emitter<'a> {
             .find(|v| v.name.as_ref() == variant)?
             .payload
             .as_ref()
-    }
-
-    /// The variant names of the union declared under `name` in this module,
-    /// looked up by name rather than through a `Ty`: a user union's payload
-    /// arrives as a `TypeExpr` from the declaration, which nothing resolves into
-    /// a `Ty` for the emitter. `None` for an imported name, whose declaration
-    /// lives in another module.
-    fn union_variant_names_of_decl(&self, name: &str) -> Option<Vec<String>> {
-        let sym_id = *self.resolved.symbols.by_name.get(name)?;
-        let sym = self.resolved.symbols.table.get(sym_id)?;
-        let SymbolKind::Type { decl_idx } = &sym.kind else {
-            return None;
-        };
-        let Decl::Type(td) = self.module.items.get(*decl_idx as usize)? else {
-            return None;
-        };
-        let TypeExpr::Union { variants, .. } = &td.body else {
-            return None;
-        };
-        Some(variants.iter().map(|v| v.name.to_string()).collect())
     }
 
     /// The type of a `match` scrutinee, consulting `synth_types` for synthesized
@@ -3082,22 +3001,12 @@ impl<'a> Emitter<'a> {
     }
 
     /// Whether a module-local `Ty::Named` aliases a type TypeScript treats as a
-    /// union: `type Mode = "fast" | "slow"` (D30), or an alias of `bool`. Walks
-    /// the same `Ty::Named` -> `TypeDecl` chain as `variant_payload_is_record`.
+    /// union: `type Mode = "fast" | "slow"` (D30), or an alias of `bool`. Reads
+    /// the declaration as written (one level, through `direct_type_decl`),
+    /// which is what the pin compensates for: the narrowing TypeScript keeps
+    /// is the one on the name the site was annotated with.
     fn named_alias_is_narrowable(&self, ty: &Ty) -> bool {
-        let Ty::Named { symbol, path } = ty else {
-            return false;
-        };
-        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
-            return false;
-        };
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return false;
-        }
-        let SymbolKind::Type { decl_idx } = &sym.kind else {
-            return false;
-        };
-        let Some(Decl::Type(td)) = self.module.items.get(*decl_idx as usize) else {
+        let Some(td) = direct_type_decl(self.module, self.resolved, ty) else {
             return false;
         };
         match &td.body {
@@ -3140,12 +3049,13 @@ impl<'a> Emitter<'a> {
     /// turns out to be a primitive at run time still costs one comparison and
     /// gives the same answer.
     fn is_primitive_operand(&self, e: &Expr) -> bool {
-        match self.scrutinee_ty(e) {
+        let ty = self.scrutinee_ty(e);
+        match &ty {
             // `int` and `bigint` are named types over a primitive, and a
             // string-literal union is a set of strings; all compare correctly
             // with `===`.
             Ty::Prim(_) | Ty::StringLiteralUnion(_) => true,
-            Ty::Named { ref symbol, ref path } => {
+            Ty::Named { path, .. } => {
                 // `int` and `bigint` are named types over a primitive.
                 if matches!(
                     path.last().map(|p| p.as_ref()),
@@ -3158,26 +3068,18 @@ impl<'a> Emitter<'a> {
                 // it keeps `t == "pro"` a plain `===` in the emitted TypeScript
                 // rather than a helper call that would give the same answer more
                 // slowly and read worse.
-                self.local_alias_is_primitive(*symbol, path)
+                self.local_alias_is_primitive(&ty)
             }
             _ => false,
         }
     }
 
     /// Whether a module-local `type X = ...` names a primitive or a
-    /// string-literal union. One level of alias only: a chain is rare, and
-    /// stopping keeps this from needing cycle detection for a formatting nicety.
-    fn local_alias_is_primitive(&self, symbol: glyph_typechecker::ty::SymbolRef, path: &[Ident]) -> bool {
-        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
-            return false;
-        };
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return false;
-        }
-        let SymbolKind::Type { decl_idx } = &sym.kind else {
-            return false;
-        };
-        let Some(Decl::Type(td)) = self.module.items.get(*decl_idx as usize) else {
+    /// string-literal union. One level of alias only, read through
+    /// `direct_type_decl`: a chain is rare, and stopping keeps this a
+    /// formatting nicety rather than a judgement.
+    fn local_alias_is_primitive(&self, ty: &Ty) -> bool {
+        let Some(td) = direct_type_decl(self.module, self.resolved, ty) else {
             return false;
         };
         match &td.body {
@@ -4112,10 +4014,7 @@ impl<'a> Emitter<'a> {
         // gets refused as undecidable even though the checker resolved it
         // completely. Local generic and imported non-generic both worked; only
         // the combination did not.
-        let ty = match ty {
-            Ty::App { base, .. } => base.as_ref(),
-            other => other,
-        };
+        let ty = split_type_app(ty).0;
         if self.variant_payload_is_record(ty, variant.as_ref()) {
             return PayloadShape::Flat;
         }
@@ -4274,10 +4173,11 @@ impl<'a> Emitter<'a> {
         if self.module.items.iter().any(|d| matches!(d, Decl::Type(t) if t.name.as_ref() == name)) {
             // A second name has the descriptor of the declaration it names
             // (D46): `type B = A` answers for `A`, and `emit_alias_values`
-            // binds the `B` value the emitted `B.is` then reads. A cycle, and
-            // a chain ending at a type with no descriptor, answer false.
+            // binds the `B` value the emitted `B.is` then reads. A cycle, a
+            // chain ending at a type with no descriptor, and a chain that
+            // leaves the module answer false.
             return self
-                .alias_chain_terminal(name)
+                .chain_end_decl(name)
                 .is_some_and(emits_plain_descriptor);
         }
         let Some(&sym_id) = self.resolved.symbols.by_name.get(name) else {
@@ -4321,7 +4221,7 @@ impl<'a> Emitter<'a> {
 
     /// Resolve a type imported from a sibling module to the leaf a field check
     /// can be built from, following alias hops *inside that module*. The local
-    /// twin is `resolve_alias_leaf`; without this one a `"text" | "int"` union
+    /// twin is `alias_leaf`; without this one a `"text" | "int"` union
     /// keeps its membership check at home and loses it the moment it is
     /// imported, so the boundary check is weaker than the type declares.
     /// Stops at a type that has its own descriptor (that path is already
@@ -4365,43 +4265,36 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// The declaration a chain of second names ends at, starting from the
-    /// module-local type `name`: with `type C = B`, `type B = A` and
-    /// `type A = { .. }`, all three answer `A`. A hop is taken only through a
-    /// declaration whose body is one bare name and which carries no generic
-    /// parameters and no `where`, since those are the declarations D46 reads
-    /// as another name for a declaration rather than as a type of their own.
-    /// Any other body (a record, a union, a generic application, a refinement,
-    /// a prelude or imported name) ends the chain at the declaration carrying
-    /// it. `None` for a name this module does not declare as a `type`, and for
-    /// a cycle.
-    fn alias_chain_terminal(&self, name: &str) -> Option<&glyph_ast::TypeDecl> {
-        let local = |n: &str| {
-            self.module.items.iter().find_map(|d| match d {
-                Decl::Type(t) if t.name.as_ref() == n => Some(t),
-                _ => None,
-            })
-        };
-        let mut current = local(name)?;
-        let mut seen = std::collections::HashSet::new();
-        loop {
-            if !seen.insert(current.name.as_ref().to_string()) {
-                return None; // cyclic alias
-            }
-            if !current.generics.is_empty() || current.refinement.is_some() {
-                return Some(current);
-            }
-            let TypeExpr::Path { segments, .. } = &current.body else {
-                return Some(current);
-            };
-            let [next] = segments.as_slice() else {
-                return Some(current);
-            };
-            match local(next.as_ref()) {
-                Some(n) => current = n,
-                None => return Some(current),
-            }
+    /// The `Ty::Named` of the type this module declares under `name`, or
+    /// `None` for a name it does not declare as a `type` (an import, a prelude
+    /// name, a value). The entry from a spelled name into the checker's chain:
+    /// `resolve_alias_chain` and `direct_type_decl` take a `Ty`, and this is
+    /// the one that names a local declaration as written.
+    fn local_type_named(&self, name: &str) -> Option<Ty> {
+        let &sym_id = self.resolved.symbols.by_name.get(name)?;
+        let sym = self.resolved.symbols.table.get(sym_id)?;
+        if !matches!(sym.kind, SymbolKind::Type { .. }) {
+            return None;
         }
+        Some(Ty::Named {
+            symbol: SymbolRef(sym_id.0),
+            path: vec![Ident::from(name)],
+        })
+    }
+
+    /// The declaration this module holds at the end of `name`'s chain of
+    /// second names (D46), read through the checker's `resolve_alias_chain`
+    /// and `direct_type_decl` rather than a walk of this module's items: with
+    /// `type C = B`, `type B = A` and `type A = { .. }`, all three answer `A`.
+    /// `None` for a name this module does not declare as a `type` and for a
+    /// chain that ends in another module, whose declaration is not this
+    /// module's to read here. A cycle answers the declaration as written,
+    /// which no caller reads as a descriptor, a refinement base or an alias
+    /// of anything.
+    fn chain_end_decl(&self, name: &str) -> Option<&'a glyph_ast::TypeDecl> {
+        let start = self.local_type_named(name)?;
+        let end = resolve_alias_chain(self.module, self.resolved, &self.lowerer, &start);
+        direct_type_decl(self.module, self.resolved, &end)
     }
 
     /// D46 at run time. Every module-local declaration that is a second name
@@ -4424,7 +4317,7 @@ impl<'a> Emitter<'a> {
             .iter()
             .filter_map(|d| match d {
                 Decl::Type(a) if a.name != t.name && matches!(a.body, TypeExpr::Path { .. }) => {
-                    let end = self.alias_chain_terminal(a.name.as_ref())?;
+                    let end = self.chain_end_decl(a.name.as_ref())?;
                     (std::ptr::eq(end, t)).then(|| (a.name.to_string(), a.is_public))
                 }
                 _ => None,
@@ -4440,13 +4333,15 @@ impl<'a> Emitter<'a> {
     /// `None` when the refinement is admissible or absent. The base is judged
     /// by the shape it resolves to: written inline, or reached through a chain
     /// of second names (D46), it is the same record, and D39 refuses it either
-    /// way (G207). A base the chain cannot resolve (a prelude name, an import,
-    /// a cycle) is left to the refinement path, which is the existing D39 case.
+    /// way (G207). The chain is the checker's, so the shape refused here is
+    /// the shape the checker reads for the same name. A base the chain does
+    /// not end at in this module (a prelude name, an import, a cycle) is left
+    /// to the refinement path, which is the existing D39 case.
     fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<&'static str> {
         t.refinement.as_ref()?;
         let base = match &t.body {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
-                &self.alias_chain_terminal(segments[0].as_ref())?.body
+                &self.chain_end_decl(segments[0].as_ref())?.body
             }
             other => other,
         };
@@ -4461,52 +4356,36 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// Resolve a module-local *descriptorless* type alias to its leaf body, so a
-    /// field typed by the alias validates like the inline type. Follows a chain
-    /// of alias hops (`type A = B; type B = "x" | "y"`), stopping at any type
-    /// that `has_descriptor` accepts (a record, a tagged union, or a D39 refined
-    /// primitive — each resolves through its own descriptor instead) and at any
-    /// type that is not a local alias at all (a prelude type, a literal union,
-    /// etc.). Stopping at a refined alias is load-bearing: resolving through it
-    /// to the base type would emit the base leaf-check and silently drop the
-    /// `where` predicate. Returns `None` for a name that is not a local alias,
-    /// and guards against a cycle. The returned leaf is never a followable
-    /// alias, so `field_value_check` on it terminates.
-    fn resolve_alias_leaf(&self, name: &str) -> Option<TypeExpr> {
-        let alias_body = |n: &str| -> Option<TypeExpr> {
-            self.module.items.iter().find_map(|d| match d {
-                Decl::Type(t) if t.name.as_ref() == n && t.generics.is_empty() => {
-                    Some(t.body.clone())
+    /// The body a module-local *descriptorless* alias `name` stands for, so a
+    /// field typed by the alias validates like the inline type. The chain is
+    /// the checker's (`resolve_alias_chain`), so what counts as a hop is
+    /// decided once: with `type A = B` and `type B = "x" | "y"` the answer is
+    /// the literal union. A chain that ends at a declaration with a descriptor
+    /// never reaches here, because `has_descriptor` answers for the alias
+    /// first (D46) and `field_check` emits `.is` on it; a chain that leaves
+    /// the module answers the body of the alias that named the import, one
+    /// hop, and `field_check`'s recursion on that body takes the import path,
+    /// so the sibling's descriptor or leaf is what the field is checked
+    /// against. `None` for a name that is not a local non-generic alias, and
+    /// for a cycle, which the chain reports by answering its start unchanged.
+    fn alias_leaf(&self, name: &str) -> Option<TypeExpr> {
+        let start = self.local_type_named(name)?;
+        let end = resolve_alias_chain(self.module, self.resolved, &self.lowerer, &start);
+        let td = match &end {
+            Ty::Named { .. } => {
+                let td = direct_type_decl(self.module, self.resolved, &end)?;
+                if end == start && alias_target(&self.lowerer, td).is_some() {
+                    return None; // cyclic alias
                 }
-                _ => None,
-            })
+                td
+            }
+            Ty::Imported { .. } => direct_type_decl(self.module, self.resolved, &start)?,
+            _ => return None,
         };
-        let mut current = name.to_string();
-        let mut seen = std::collections::HashSet::new();
-        let mut body = alias_body(&current)?;
-        loop {
-            if !seen.insert(current.clone()) {
-                return None; // cyclic alias
-            }
-            // Follow only a single-segment reference to another local alias that
-            // has no descriptor of its own (a record short-circuits to `.is`).
-            let next = match &body {
-                TypeExpr::Path { segments, .. } if segments.len() == 1 => {
-                    let n = segments[0].as_ref();
-                    (!self.has_descriptor(n) && n != current)
-                        .then(|| n.to_string())
-                        .filter(|n| alias_body(n).is_some())
-                }
-                _ => None,
-            };
-            match next {
-                Some(n) => {
-                    current = n.clone();
-                    body = alias_body(&n)?;
-                }
-                None => return Some(body),
-            }
+        if !td.generics.is_empty() {
+            return None;
         }
+        Some(td.body.clone())
     }
 
     /// The guard variable (`__is_T`) for a type parameter `name` in scope while a
@@ -4647,7 +4526,7 @@ impl<'a> Emitter<'a> {
                     FieldCheck::Deep(format!("{guard}({access})"))
                 } else if self.has_descriptor(name) {
                     FieldCheck::Deep(format!("{name}.is({access})"))
-                } else if let Some(leaf) = self.resolve_alias_leaf(name) {
+                } else if let Some(leaf) = self.alias_leaf(name) {
                     // A non-record type alias (`type Tier = "free" | "pro"`,
                     // `type Count = int`): resolve to its leaf so a field typed by
                     // the alias gets the same runtime check as the inline type
@@ -5089,7 +4968,7 @@ impl<'a> Emitter<'a> {
         }
         // The claim `B.is` makes is the claim of the record `B` names (D46), so
         // the fields judged are the fields of the declaration the chain ends at.
-        let decl = self.alias_chain_terminal(name)?;
+        let decl = self.chain_end_decl(name)?;
         if !decl.generics.is_empty() {
             return None;
         }
@@ -8910,6 +8789,22 @@ mod tests {
             !ts.contains("const Black ="),
             "`Black` names a variant, not a binding:\n{ts}"
         );
+    }
+
+    #[test]
+    fn a_match_over_an_alias_dispatches_on_the_unions_variants() {
+        // G224 on the emitter's side. `type Local = Inner` is `Inner` (D46).
+        // Before the emitter read the alias through the checker's chain it
+        // found no variant list under `Local`, so the lowercase variant
+        // `alpha` was lowered as a binding that swallowed every value, while
+        // the checker, after G224, certifies the same match as exhaustive.
+        let ts = emit(
+            "module x\ntype Inner =\n  | alpha\n  | beta\ntype Local = Inner\n\
+             fn c(s: Local) -> string {\n  return match s {\n    alpha => \"a\",\n    beta => \"b\",\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"alpha\":"), "{ts}");
+        assert!(ts.contains("case \"beta\":"), "{ts}");
+        assert!(!ts.contains("const alpha ="), "{ts}");
     }
 
     #[test]

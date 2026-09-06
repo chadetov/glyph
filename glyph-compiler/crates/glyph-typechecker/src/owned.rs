@@ -39,11 +39,12 @@
 use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, Ident, LetStmt, Module, MutKind, ObjectField, PostfixOp, Span,
+    ArrayElem, Block, Decl, Expr, LetStmt, Module, MutKind, ObjectField, PostfixOp, Span,
     Stmt, TemplatePart,
 };
-use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
+use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId};
 
+use crate::assign::{direct_type_decl, resolve_alias_chain};
 use crate::lower::Lowerer;
 use crate::ty::{ty_display, Ty};
 use crate::type_map::TypeMap;
@@ -472,10 +473,10 @@ impl OwnedChecker<'_> {
         match ty {
             Ty::Unknown => ResourceKind::Unknown,
             Ty::Param { .. } => ResourceKind::Unknown,
-            Ty::Named { symbol, path } => self.named_is_resource(symbol.0, path),
+            named @ Ty::Named { .. } => self.named_is_resource(named),
             // A resource type could in principle be generic; judge by its base.
             Ty::App { base, .. } => match base.as_ref() {
-                Ty::Named { symbol, path } => self.named_is_resource(symbol.0, path),
+                named @ Ty::Named { .. } => self.named_is_resource(named),
                 _ => ResourceKind::Unknown,
             },
             // Whether a sibling module marked the declaration `resource` is not
@@ -490,7 +491,15 @@ impl OwnedChecker<'_> {
         }
     }
 
-    fn named_is_resource(&self, symbol_id: u32, path: &[Ident]) -> ResourceKind {
+    /// Whether the declaration a `Ty::Named` reaches is `resource`-marked.
+    ///
+    /// The name is followed through second names first (D46, G212): `type H =
+    /// Handle` declares no type of its own, so `owned` on an `H` asks about
+    /// `Handle`'s declaration, through the same chain walker every other
+    /// judgement in the checker uses. Before that hop `let owned b: H` was
+    /// `E0205` where `let owned a: Handle` was accepted, which is the
+    /// ownership check answering by which name a site reached the type.
+    fn named_is_resource(&self, ty: &Ty) -> ResourceKind {
         // A prelude type (`Result`, `Option`, `Array`, ...) is never a
         // resource. Its `SymbolId` indexes the *prelude* table, not the
         // module table, and the two number ids from 0 independently — so
@@ -498,21 +507,18 @@ impl OwnedChecker<'_> {
         // with an unrelated module symbol (the collision the day-19
         // exhaustiveness check also guards). Match by name AND prelude id, as
         // `required_variants` does.
-        if let Some(name) = path.last() {
-            if self.lowerer.prelude.lookup(name.as_ref()) == Some(SymbolId(symbol_id)) {
-                return ResourceKind::NotResource;
+        if let Ty::Named { symbol, path } = ty {
+            if let Some(name) = path.last() {
+                if self.lowerer.prelude.lookup(name.as_ref()) == Some(SymbolId(symbol.0)) {
+                    return ResourceKind::NotResource;
+                }
             }
         }
-        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol_id)) else {
-            return ResourceKind::Unknown;
-        };
-        let SymbolKind::Type { decl_idx } = sym.kind else {
-            return ResourceKind::Unknown;
-        };
-        match self.module.items.get(decl_idx as usize) {
-            Some(Decl::Type(td)) if td.is_resource => ResourceKind::Resource,
-            Some(Decl::Type(_)) => ResourceKind::NotResource,
-            _ => ResourceKind::Unknown,
+        let canonical = resolve_alias_chain(self.module, self.resolved, &self.lowerer, ty);
+        match direct_type_decl(self.module, self.resolved, &canonical) {
+            Some(td) if td.is_resource => ResourceKind::Resource,
+            Some(_) => ResourceKind::NotResource,
+            None => ResourceKind::Unknown,
         }
     }
 
@@ -802,5 +808,92 @@ mod tests {
             "got {errs:?}"
         );
     }
-}
 
+    // ----- G212: a resource reached through a D46 alias -----
+
+    /// Second names for the resource, one hop and two, an alias of a plain
+    /// record, and a consumer whose `owned` parameter is typed by the alias.
+    const ALIASES: &str = "type FH = FileHandle\n\
+        type FH2 = FH\n\
+        type Plain = { n: number }\n\
+        type P = Plain\n\
+        fn close_alias(owned h: FH) -> void { return void }\n";
+
+    fn owned_errors_with_aliases(body: &str) -> Vec<TypeError> {
+        owned_errors(&format!("{ALIASES}{body}"))
+    }
+
+    #[test]
+    fn owned_on_an_alias_of_a_resource_is_accepted_and_tracked() {
+        // `type FH = FileHandle` is a second name for the declaration (D46),
+        // so `let owned f: FH` asks about `FileHandle`'s `resource` marker,
+        // not about a declaration called `FH`. Consuming through the direct
+        // name's consumer counts: the value is a FileHandle whichever name
+        // the site wrote.
+        let errs = owned_errors_with_aliases(
+            "fn use_it() -> void {\n  let owned f: FH = make()\n  close(f)\n}\n",
+        );
+        assert!(errs.is_empty(), "expected no owned errors, got {errs:?}");
+    }
+
+    #[test]
+    fn a_drop_through_an_alias_is_flagged_as_through_the_direct_name() {
+        // Accepting the alias is only half of it: an `FH` that is never
+        // consumed is the same forgotten handle a `FileHandle` is, and stays
+        // E0206. Before the hop this program was E0205 instead, a wrong
+        // answer that happened to be red.
+        let errs =
+            owned_errors_with_aliases("fn use_it() -> void {\n  let owned f: FH = make()\n}\n");
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedNotConsumed { name, .. }] if name == "f"),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn an_alias_chain_reaches_the_resource() {
+        // `FH2 = FH = FileHandle`: the chain is followed to its end, the same
+        // walk field lookup takes, so a two-hop name is tracked like a one-hop
+        // one. Consumed twice to show the tracking, not just the acceptance.
+        let errs = owned_errors_with_aliases(
+            "fn use_it() -> void {\n  let owned f: FH2 = make()\n  close(f)\n  close(f)\n}\n",
+        );
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedUsedAfterMove { name, .. }] if name == "f"),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_consumer_whose_owned_parameter_is_typed_by_the_alias_consumes() {
+        // `fn close_alias(owned h: FH)` takes the resource under its second
+        // name. Passing a `FileHandle` to it consumes the handle, so the clean
+        // program is clean and the consume after it is a double consume.
+        let clean = owned_errors_with_aliases(
+            "fn use_it() -> void {\n  let owned f: FileHandle = make()\n  close_alias(f)\n}\n",
+        );
+        assert!(clean.is_empty(), "expected no owned errors, got {clean:?}");
+        let twice = owned_errors_with_aliases(
+            "fn use_it() -> void {\n  let owned f: FileHandle = make()\n  close_alias(f)\n  close(f)\n}\n",
+        );
+        assert!(
+            matches!(twice.as_slice(), [TypeError::OwnedUsedAfterMove { name, .. }] if name == "f"),
+            "got {twice:?}"
+        );
+    }
+
+    #[test]
+    fn owned_on_an_alias_of_a_non_resource_is_still_rejected() {
+        // The hop changes which declaration is read, not what is read from
+        // it: `P = Plain` ends at a record that is not `resource`-marked, so
+        // `owned` on it is E0205 exactly as on `Plain`, and the message names
+        // the type as the site wrote it.
+        let errs = owned_errors_with_aliases(
+            "fn use_it() -> void {\n  let owned x: P = { n: 1 }\n}\n",
+        );
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedRequiresResourceType { name, ty, .. }] if name == "x" && ty == "P"),
+            "got {errs:?}"
+        );
+    }
+}

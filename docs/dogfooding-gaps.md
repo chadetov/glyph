@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-212 entries, 182 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-11 are open. G144, the D28 boundary cast that never reached the returns a
+212 entries, 183 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+10 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8394,7 +8394,7 @@ and is the owner's to confirm.
   block arm inside a `match` reports at the arm's tail line, not at the `let`
   above it. Not breaking: the position changes, the verdict does not.
 
-- **G212. A resource reached through an alias is not a resource, while D46 says
+- **G212. [FIXED] A resource reached through an alias is not a resource, while D46 says
   the alias is the declaration.** `resource type Handle = { fd: number }` and
   `type H = Handle`: `let owned a: Handle = { fd: 1 }` is accepted and tracked,
   and `let owned b: H = { fd: 2 }` is `E0205` saying `b` has non-resource type
@@ -8409,3 +8409,16 @@ and is the owner's to confirm.
   code was written.
 
   *Reproduced against 0.1.117: the program above is `[E0205] owned requires a resource type, but b has non-resource type H`, exit 1; with `Handle` written at both sites it checks clean, exit 0.*
+
+  **Fixed in 0.1.118.** `named_is_resource` follows the alias chain before it
+  reads the declaration, through the D46 walker itself: `resolve_alias_chain`
+  and `direct_type_decl` are now crate-visible functions in `assign.rs` that
+  the assigner's methods and the owned checker both call, so there is one
+  chain and one place that reads the symbol table for a module-local type.
+  `let owned b: H` is accepted and tracked, a consume through either name
+  counts, a drop through the alias is `E0206` as through `Handle`, and
+  `owned` on an alias of a plain record stays `E0205` naming the type as
+  written. Exit codes on the ledger program: the published 0.1.116 exits 1
+  (`E0211` at the call and `E0205` at the `let`; D46 had not landed), the
+  tree with the hop removed reports `E0205`, this build exits 0. Breaking in
+  the accepting direction only, so not marked breaking.

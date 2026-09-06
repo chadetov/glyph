@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-209 entries, 173 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+210 entries, 174 are fixed, 10 are partly fixed, 11 are decided or resolved, and
 15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -8180,6 +8180,51 @@ and is the owner's to confirm.
   `gen.rs` and `gen_dts_notes_each_method_signature_it_drops` in
   `glyph-cli/tests/gen_dts.rs`; both fail when the warning is dropped.
 
+- **G209. [FIXED] A generated module cannot be imported as written.** Every
+  declaration `gen dts`, `gen zod` and `gen openapi` write is `type X = ...`
+  with no `pub`, and a named import of a non-`pub` type has been `E0105` since
+  before 0.1.58. So the flow the guide documents, `glyph gen dts <pkg> --out
+  src/types` then `import types/<pkg> { T }` and `T.parse(...)` in another
+  module, has never reached the second module. Nothing in `examples/` imports a
+  generated module, which is how it stayed unseen through thirty rounds; the
+  rounds that used `gen dts` stopped earlier, on the unresolved names G108
+  records. Reproduction: `marky` declares `interface Options { gfm: boolean;
+  silent: boolean }` and `interface Doc { opts: Options; title: string }`;
+  `glyph gen dts marky --out src/types` writes `type Doc = { opts: Options,
+  title: string }` and `type Options = ...`, and a `main.glyph` with
+  `import types/marky { Doc }` fails:
+
+      [E0105] Error: import: `Doc` is not exported by `types/marky`
+         │ Help: Check the spelling, and that the module actually exports this name.
+      glyph check: 1 error(s) across 2 module(s)
+
+  Found while closing the class half of G108, whose `new`-and-method
+  confirmation had to be run on a copy of the generated file with `pub` added
+  by hand.
+
+  *Reproduced against 0.1.115 (the published release; 0.1.116 has landed and
+  not shipped) with the two-interface package above, run from a clean npx
+  cache in an isolated `HOME`: `check --no-tsc` is the `[E0105]` quoted.*
+
+  **Fixed in 0.1.117.** Everything `gen` writes is `pub`: every record, alias,
+  string-literal union, `extern_ts` anchor and tagged union, the `parse_*`
+  dispatchers, the `--client` functions and the `--handlers` router. The
+  handler stubs stay as they were, since the router in the same file calls
+  them and the user fills them in there. The confirmation G108 had to run on a
+  hand-patched copy is now the test: `gen dts marky`, then a `main.glyph` with
+  `import marky { Lexer }` and `import types/marky { Doc, RegExp }` that
+  constructs `new Lexer()`, puts it in a `Doc` and calls `d.lexer.lex("a b")`,
+  is `no diagnostics` under `check --no-tsc` and `tsc --strict passed` under
+  `glyph build`; misspelling the method is `Property 'lexx' does not exist on
+  type 'Lexer'` mapped to `main`. One question checked on the way: the
+  `extern_ts` anchors do not have to be `pub` for the record's fields to
+  resolve from the importing module (with only the records exported, the same
+  program checks clean), so they are `pub` for the other reason, that the
+  importer can name them in an annotation, which the test does with
+  `let re: RegExp`. Pinned by
+  `gen_dts_module_imports_and_the_class_field_typechecks_through_new` in
+  `glyph-cli/tests/gen_dts.rs`, which fails when the record's `pub` is
+  dropped.
 - **G211. A `tsc` error is mapped to the statement before the one that failed.**
   `let t = string.trim("  a  ")` on line 7 and `io.println(t.toUpperCasee())`
   on line 8: `glyph build` reports `[TS2551] Property 'toUpperCasee' does not

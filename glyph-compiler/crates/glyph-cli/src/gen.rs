@@ -1116,7 +1116,7 @@ impl Generator {
                 None => url,
             };
             e.body.push_str(&format!(
-                "async fn {id}({params}) -> Result<Response, HttpError> {{\n  \
+                "pub async fn {id}({params}) -> Result<Response, HttpError> {{\n  \
                    return await {verb}({call_args})\n}}\n\n",
                 id = op.op_id,
                 params = sig.join(", "),
@@ -1181,7 +1181,7 @@ impl Generator {
                 methods.push(op.method.clone());
             }
         }
-        let mut router = String::from("fn route(req: Request) -> Result<Response, string> {\n  return match req.method {\n");
+        let mut router = String::from("pub fn route(req: Request) -> Result<Response, string> {\n  return match req.method {\n");
         for m in &methods {
             router.push_str(&format!("    \"{m}\" => match segments(req) {{\n"));
             for op in ops.iter().filter(|o| &o.method == m) {
@@ -1317,7 +1317,7 @@ impl Generator {
         }
 
         let parse_fn = format!(
-            "fn parse_{name}(v: unknown) -> Result<{name}, string> {{\n  \
+            "pub fn parse_{name}(v: unknown) -> Result<{name}, string> {{\n  \
                return match discriminant(v, \"{prop}\") {{\n    \
                  Some(kind) => match kind {{\n{arms}      \
                    else => Err(\"unknown {name} discriminator\"),\n    \
@@ -1329,7 +1329,7 @@ impl Generator {
         self.note(format!(
             "{name}: discriminated union on `{prop}` — generated a `parse_{name}` dispatcher (Glyph has no native discriminated-union type)."
         ));
-        Some(format!("type {name} =\n{union_arms}\n{parse_fn}"))
+        Some(format!("pub type {name} =\n{union_arms}\n{parse_fn}"))
     }
 
     /// A bare `oneOf`/`anyOf` of inline object variants that share a
@@ -1406,7 +1406,7 @@ impl Generator {
         }
 
         let parse_fn = format!(
-            "fn parse_{name}(v: unknown) -> Result<{name}, string> {{\n  \
+            "pub fn parse_{name}(v: unknown) -> Result<{name}, string> {{\n  \
                return match discriminant(v, \"{prop}\") {{\n    \
                  Some(kind) => match kind {{\n{arms}      \
                    else => Err(\"unknown {name} discriminator\"),\n    \
@@ -1418,10 +1418,17 @@ impl Generator {
         self.note(format!(
             "{name}: TypeScript discriminated union on `{prop}` — generated variant records and a `parse_{name}` dispatcher."
         ));
-        Some(format!("{records}type {name} =\n{union_arms}\n{parse_fn}"))
+        Some(format!("{records}pub type {name} =\n{union_arms}\n{parse_fn}"))
     }
 
-    /// Emit one top-level `type Name = ...` declaration.
+    /// Emit one top-level `pub type Name = ...` declaration.
+    ///
+    /// Everything `gen` writes is `pub`. A generated module exists to be
+    /// imported (`import types/<pkg> { T }` then `T.parse(...)` in the module
+    /// that owns the boundary), and a named import of a non-`pub` type is
+    /// E0105, so a file written without `pub` could be built but never used
+    /// from a second module (G209). Handler stubs are the one exception: the
+    /// router in the same file calls them, and the user fills them in there.
     fn emit_type(&mut self, name: &str, schema: &Value) -> String {
         // A class the `.d.ts` declares, or a host type with no Glyph spelling,
         // is anchored rather than shaped: an `extern_ts` alias (D29) resolves
@@ -1430,7 +1437,7 @@ impl Generator {
         // A presence-only descriptor was considered and refused: it would turn
         // that refusal into an `Ok` on a value nobody validated.
         if let Some(raw) = schema.get("x-extern-host").and_then(|v| v.as_str()) {
-            return format!("type {name}{} = extern_ts(\"{raw}\")\n", type_param_suffix(schema));
+            return format!("pub type {name}{} = extern_ts(\"{raw}\")\n", type_param_suffix(schema));
         }
         if let Some(qualified) = schema.get("x-extern-class").and_then(|v| v.as_str()) {
             let Some(pkg) = self.extern_package.as_deref() else {
@@ -1441,7 +1448,7 @@ impl Generator {
             };
             let params = type_param_suffix(schema);
             return format!(
-                "type {name}{params} = extern_ts(\"import('{pkg}').{qualified}{params}\")\n"
+                "pub type {name}{params} = extern_ts(\"import('{pkg}').{qualified}{params}\")\n"
             );
         }
 
@@ -1466,14 +1473,14 @@ impl Generator {
             self.note(format!(
                 "{name}: `allOf` mixes non-object members; emitted as `unknown`."
             ));
-            return format!("type {name} = unknown\n");
+            return format!("pub type {name} = unknown\n");
         }
 
         // A string enum materializes as a Glyph string-literal union, so the
         // descriptor checks membership (not just `string`) and `tsc` enforces
         // the narrowed type.
         if let Some(union) = string_enum_union(schema) {
-            return format!("type {name}{} = {union}\n", type_param_suffix(schema));
+            return format!("pub type {name}{} = {union}\n", type_param_suffix(schema));
         }
 
         // Object with properties → record. A generic declaration keeps its
@@ -1487,7 +1494,7 @@ impl Generator {
 
         // Everything else at the top level: emit an alias to the mapped type.
         let ty = self.type_ref(name, schema);
-        format!("type {name}{} = {ty}\n", type_param_suffix(schema))
+        format!("pub type {name}{} = {ty}\n", type_param_suffix(schema))
     }
 
     /// Collect `(field_name, type, optional)` for an object schema.
@@ -1553,14 +1560,14 @@ impl Generator {
             if k == "__record__" {
                 // A free-form `Record<K,V>` alias, not a strict record: `@open`
                 // is meaningless here (it already accepts arbitrary keys).
-                return format!("type {name} = {ty}\n");
+                return format!("pub type {name} = {ty}\n");
             }
         }
         let prefix = if open { "@open\n" } else { "" };
         if fields.is_empty() {
-            return format!("{prefix}type {name} = {{}}\n");
+            return format!("{prefix}pub type {name} = {{}}\n");
         }
-        let mut out = format!("{prefix}type {name} = {{\n");
+        let mut out = format!("{prefix}pub type {name} = {{\n");
         for (fname, ty, optional) in fields {
             let q = if *optional { "?" } else { "" };
             out.push_str(&format!("  {fname}{q}: {ty},\n"));
@@ -2433,11 +2440,11 @@ mod tests {
                "Closed":{"type":"object","additionalProperties":false,
                  "required":["id"],"properties":{"id":{"type":"string"}}}}}}"##,
         );
-        // The open record carries `@open` immediately above its `type`.
-        assert!(out.contains("@open\ntype Open"), "open record needs @open; got:\n{out}");
+        // The open record carries `@open` immediately above its `pub type`.
+        assert!(out.contains("@open\npub type Open"), "open record needs @open; got:\n{out}");
         // The closed record does not.
-        assert!(out.contains("type Closed"), "got:\n{out}");
-        assert!(!out.contains("@open\ntype Closed"), "closed record must stay strict; got:\n{out}");
+        assert!(out.contains("pub type Closed"), "got:\n{out}");
+        assert!(!out.contains("@open\npub type Closed"), "closed record must stay strict; got:\n{out}");
     }
 
     #[test]

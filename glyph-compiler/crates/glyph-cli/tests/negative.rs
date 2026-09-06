@@ -1,6 +1,11 @@
 //! Negative-example suite: every `tests/negative/*.glyph` must fail to compile
 //! with the error code named in its sibling `*.expected_error` file.
 //!
+//! A case that needs a second module is a directory instead: every `*.glyph`
+//! in `tests/negative/<case>/` is one module of the project and the code is
+//! in `<case>/expected_error`. The first such case was G205, a field typo on
+//! an imported `const`, which cannot be written in one file.
+//!
 //! Each case is built in isolation (its own temp directory). Building uses the
 //! same pipeline the `glyph` binary does, so the codes asserted here are exactly
 //! what a user sees. No `tsc`/`tsx` is needed — these never reach emission.
@@ -35,10 +40,14 @@ fn unique_tmp() -> PathBuf {
 #[test]
 fn every_negative_case_fails_with_its_expected_code() {
     let dir = negative_dir();
+    // A file case is one module; a directory case is a project of them.
     let mut entries: Vec<PathBuf> = fs::read_dir(&dir)
         .unwrap_or_else(|e| panic!("read_dir {dir:?}: {e}"))
         .map(|e| e.unwrap().path())
-        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("glyph"))
+        .filter(|p| {
+            p.extension().and_then(|e| e.to_str()) == Some("glyph")
+                || (p.is_dir() && p.join("expected_error").is_file())
+        })
         .collect();
     entries.sort();
     assert!(
@@ -47,23 +56,39 @@ fn every_negative_case_fails_with_its_expected_code() {
         entries.len()
     );
 
-    for glyph_path in &entries {
-        let name = glyph_path
-            .file_stem()
-            .unwrap()
-            .to_string_lossy()
-            .into_owned();
-        let expected = fs::read_to_string(glyph_path.with_extension("expected_error"))
-            .unwrap_or_else(|e| panic!("{name}: missing .expected_error: {e}"));
+    for case in &entries {
+        let name = case.file_stem().unwrap().to_string_lossy().into_owned();
+        let (expected_path, sources): (PathBuf, Vec<(String, String)>) = if case.is_dir() {
+            let mut modules: Vec<(String, String)> = fs::read_dir(case)
+                .unwrap()
+                .map(|e| e.unwrap().path())
+                .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("glyph"))
+                .map(|p| {
+                    let file = p.file_name().unwrap().to_string_lossy().into_owned();
+                    (file, fs::read_to_string(&p).unwrap())
+                })
+                .collect();
+            modules.sort();
+            assert!(!modules.is_empty(), "{name}: a directory case with no .glyph module");
+            (case.join("expected_error"), modules)
+        } else {
+            (
+                case.with_extension("expected_error"),
+                vec![(format!("{name}.glyph"), fs::read_to_string(case).unwrap())],
+            )
+        };
+        let expected = fs::read_to_string(&expected_path)
+            .unwrap_or_else(|e| panic!("{name}: missing expected_error: {e}"));
         let code = expected.trim();
         assert!(
             code.starts_with('E') && code.len() == 5,
             "{name}: malformed expected code {code:?}"
         );
 
-        let source = fs::read_to_string(glyph_path).unwrap();
         let root = unique_tmp();
-        fs::write(root.join("src").join(format!("{name}.glyph")), &source).unwrap();
+        for (file, source) in &sources {
+            fs::write(root.join("src").join(file), source).unwrap();
+        }
         let report = build_project_inner(&root.join("src"), &root.join("out"), false)
             .unwrap_or_else(|e| panic!("{name}: build did not run: {e}"));
 

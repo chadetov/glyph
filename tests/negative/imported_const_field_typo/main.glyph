@@ -1,0 +1,8 @@
+module main
+import lib { ORIGIN }
+
+// An imported `const` carries its annotation across the module boundary, so
+// a field typo on it is E0210 exactly as it is in the declaring module.
+fn main() -> number {
+  return ORIGIN.rowz
+}

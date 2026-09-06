@@ -8106,7 +8106,7 @@ and is the owner's to confirm.
   incompatibility is decided from that, because the corpus holds six such
   aliases and zero bare-path ones and making the six nominal would reject
   programs `tsc` accepts. Not breaking on this program: the published
-  0.1.115 exits 1 with E0211 under `check --no-tsc`, this tree exits 0.
+  0.1.116 exits 1 with E0211 under `check --no-tsc`, this tree exits 0.
 
 - **G204. [FIXED] A module-level `const`'s own initializer is never checked against
   its declared type.** `const X: number = "hi"` at module scope compiles with
@@ -8135,7 +8135,7 @@ and is the owner's to confirm.
   `0 error(s)` under `glyph check --no-tsc`; the identical assignment as
   `let x: number = "hi"` inside a `fn` is `E0204`.*
 
-- **G205. An imported `const` is still `Ty::Unknown`.** `import lib { ORIGIN }`
+- **G205. [FIXED] An imported `const` is still `Ty::Unknown`.** `import lib { ORIGIN }`
   then `ORIGIN.rowz`, where `lib` declares `pub const ORIGIN: Sheet = { ... }`
   and `Sheet` has no `rowz` field, is silent: no `E0210`, whether the const is
   named-imported or reached through a namespace import (`lib.ORIGIN.rowz`).
@@ -8146,6 +8146,18 @@ and is the owner's to confirm.
   counterpart: an imported const's declaration index resolves, but nothing
   reads its annotation across the module boundary, so it lowers to
   `Ty::Unknown` exactly where a same-module const used to before 0.1.116.
+
+  **Fixed in 0.1.117.** `glyph_db::exported_const`, the sibling of
+  `exported_fn`, lowers a `pub const`'s annotation on the export view, and
+  `DeclTyResolver::imported_const_decl` carries it to the checker, which tries
+  it after `imported_fn_decl` in both the named-import arm of
+  `type_of_ident_ref` and the namespace arm of `stdlib_member_ty`. `ORIGIN.rowz`
+  and `lib.ORIGIN.rowz` are both E0210 naming `Sheet`; an unannotated const
+  stays `Unknown`, as it does in its own module. Breaking, established by
+  running both binaries on the program above under `check --no-tsc`: the
+  published 0.1.116 exits 0 with no diagnostics, this tree exits 1 with two
+  E0210s. The negative suite gained its first two-module case for it; the
+  runner now takes a directory of modules beside the single-file cases.
 
   *Reproduced against 0.1.114: `ORIGIN.rowz` is `0 error(s)` both through
   `import lib { ORIGIN }` and through `import lib` plus `lib.ORIGIN.rowz`,
@@ -8178,7 +8190,7 @@ and is the owner's to confirm.
   `const B = A;` right after `A`'s descriptor so the call exists at run time
   whatever the declaration order; E0304 reaches through the alias the same
   way. Breaking on this program's `b.naem` half, in the direction every
-  verifiability fix is: the published 0.1.115 exits 0 with no diagnostics
+  verifiability fix is: the published 0.1.116 exits 0 with no diagnostics
   under `check --no-tsc`, this tree exits 1 with E0210. The release lane
   records the ruling as loosening only, and the E0211 half is; the E0210 half
   is a rejection the two-module spelling already made.
@@ -8207,9 +8219,8 @@ and is the owner's to confirm.
   where value > 0`) is D39's own case and still emits its descriptor. Only
   the emitter changed, because that is the only place the direct spelling
   was refused. Breaking, established by running both binaries on the program
-  above under `check --no-tsc`: the published 0.1.115 exits 0 with no
-  diagnostics, this tree exits 1 with E0300. (0.1.116 was not on npm at the
-  time of the check.)
+  above under `check --no-tsc`: the published 0.1.116 exits 0 with no
+  diagnostics, this tree exits 1 with E0300.
 
   *Reproduced against 0.1.116: the program above checks clean.*
 

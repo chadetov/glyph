@@ -167,6 +167,24 @@ pub trait DeclTyResolver {
     fn imported_fn_decl(&self, _module_path: &str, _fn_name: &str) -> Option<Ty> {
         None
     }
+
+    /// Cross-module const resolution: for the project module at `module_path`,
+    /// return the lowered annotation of the `pub const` named `const_name`, on
+    /// the export view (so an annotation naming a sibling `type` comes back
+    /// as `Ty::Imported`). `None` with no cross-module context, for a module
+    /// that is not a project sibling, for a name the module does not declare
+    /// as a `const`, and for a const with no annotation, which stays `Unknown`
+    /// exactly as it does in its own module.
+    ///
+    /// Without this an imported const had no type at all (G205): `ORIGIN.rowz`
+    /// was silent through `import lib { ORIGIN }` and through `lib.ORIGIN`
+    /// alike, where the same read in the declaring module has been E0210
+    /// since the annotated-const rule landed.
+    ///
+    /// Answered by `glyph_db::exported_const`, the sibling of `exported_fn`.
+    fn imported_const_decl(&self, _module_path: &str, _const_name: &str) -> Option<Ty> {
+        None
+    }
 }
 
 /// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
@@ -1986,8 +2004,18 @@ impl Assigner<'_> {
                             .map(|s| s.as_ref())
                             .collect::<Vec<_>>()
                             .join("/");
+                        //
+                        // A sibling's `pub const` is the third kind a named
+                        // import can bind (G205); its annotation is read the
+                        // same way, so the guarantee does not depend on
+                        // whether the value was declared as a function or a
+                        // constant.
                         self.decl_ty_resolver
                             .imported_fn_decl(&key, original.as_ref())
+                            .or_else(|| {
+                                self.decl_ty_resolver
+                                    .imported_const_decl(&key, original.as_ref())
+                            })
                             .or_else(|| self.stdlib_fn_ty(&key, original.as_ref()))
                             .unwrap_or(Ty::Unknown)
                     }
@@ -2037,8 +2065,11 @@ impl Assigner<'_> {
         // project sibling's `pub fn` through `ImportNamespace`/`ImportAlias`
         // rather than `ImportNamed`, so it needs the identical fallback the
         // by-name arm in `type_of_ident_ref` tries first.
+        // And the namespace spelling of G205: `l.ORIGIN` reaches a sibling's
+        // `pub const` here, with the same fallback order as the by-name arm.
         self.decl_ty_resolver
             .imported_fn_decl(&key, field.as_ref())
+            .or_else(|| self.decl_ty_resolver.imported_const_decl(&key, field.as_ref()))
             .or_else(|| self.stdlib_fn_ty(&key, field.as_ref()))
     }
 
@@ -11751,5 +11782,59 @@ fn f(a: Answer) -> number {
              fn f(a: A) -> number {\n  return 1\n}\n\
              fn go(b: B) -> number {\n  return f(b)\n}\n",
         );
+    }
+
+    /// G205. An imported const's type comes from `imported_const_decl`, under
+    /// both import spellings, so a field typo on it is E0210 naming the record
+    /// exactly as it is in the declaring module. The resolver here stands in
+    /// for `glyph_db::exported_const` and answers the one const it knows; the
+    /// unannotated const it does not know stays `Unknown` and silent.
+    #[test]
+    fn an_imported_const_is_checked_against_its_annotation_under_both_spellings() {
+        struct OneImportedConst;
+        impl DeclTyResolver for OneImportedConst {
+            fn decl_ty(&self, _decl_idx: u32) -> Ty {
+                Ty::Unknown
+            }
+            fn imported_const_decl(&self, module_path: &str, const_name: &str) -> Option<Ty> {
+                (module_path == "lib" && const_name == "ORIGIN").then(|| Ty::Imported {
+                    module: "lib".into(),
+                    name: Ident::from("Sheet"),
+                })
+            }
+            fn imported_type_decl(
+                &self,
+                module_path: &str,
+                type_name: &str,
+            ) -> Option<ImportedTypeDecl> {
+                (module_path == "lib" && type_name == "Sheet").then(|| ImportedTypeDecl {
+                    name: Ident::from("Sheet"),
+                    generics: Vec::new(),
+                    body: Ty::Record {
+                        fields: vec![RecordField {
+                            name: Ident::from("rows"),
+                            ty: Ty::Prim(Primitive::Number),
+                            optional: false,
+                        }],
+                    },
+                })
+            }
+        }
+        let src = "module app\n\
+                   import lib { ORIGIN, LOOSE }\n\
+                   import lib as l\n\
+                   fn named() -> number {\n  return ORIGIN.rowz\n}\n\
+                   fn spaced() -> number {\n  return l.ORIGIN.rowz\n}\n\
+                   fn loose() -> number {\n  return LOOSE.rowz\n}\n";
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, errs) = assign_types_with_resolver(&m, &resolved, &prelude, &OneImportedConst);
+        let typos: Vec<_> = errs
+            .iter()
+            .filter(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "rowz" && type_name == "Sheet"))
+            .collect();
+        assert_eq!(typos.len(), 2, "one per annotated spelling, none for the unannotated const: {errs:?}");
     }
 }

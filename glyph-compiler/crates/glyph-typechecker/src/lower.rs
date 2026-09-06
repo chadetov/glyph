@@ -546,6 +546,19 @@ impl ExportLowerer<'_> {
     pub fn lower_exported_fn_signature(&self, decl: &glyph_ast::Decl) -> Ty {
         self.0.lower_decl_signature(decl)
     }
+
+    /// Lower a `const` declaration's annotation as another module sees it:
+    /// the value counterpart of `lower_exported_fn_signature`. `pub const
+    /// ORIGIN: Sheet = ...` reaches a consumer as `Ty::Imported` for `Sheet`,
+    /// so a field read on the imported const is checked against the record it
+    /// names. An unannotated const is `Ty::Unknown`, as it is in its own
+    /// module: inferring it from the initializer is a different question.
+    pub fn lower_exported_const(&self, c: &glyph_ast::ConstDecl) -> Ty {
+        c.ty
+            .as_ref()
+            .map(|t| self.0.lower(t))
+            .unwrap_or(Ty::Unknown)
+    }
 }
 
 /// The registry key for a module path: its segments joined with `/`

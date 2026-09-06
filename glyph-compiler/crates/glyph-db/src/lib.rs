@@ -1948,6 +1948,27 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
             Some(ty)
         }
     }
+
+    fn imported_const_decl(&self, module_path: &str, const_name: &str) -> Option<Ty> {
+        // The const counterpart of `imported_fn_decl` (G205): the same project
+        // sibling lookup, answered by the tracked `exported_const(db, file,
+        // name)` query. `Ty::Unknown` is that query's sentinel for a name the
+        // module does not declare, one that is not a `const`, and a `const`
+        // with no annotation; every one of those is a miss for the caller's
+        // `.or_else` chain, not a type.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let ty = exported_const(self.db, file, Ident::from(const_name)).ty().clone();
+        if matches!(ty, Ty::Unknown) {
+            None
+        } else {
+            Some(ty)
+        }
+    }
 }
 
 /// Extract the declaration `file` declares under `name` from the parsed
@@ -2133,6 +2154,50 @@ pub fn exported_fn(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
     let imports = SalsaDeclTy { db, file };
     let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &imports, &module_path);
     DeclTy::new(lowerer.lower_exported_fn_signature(decl))
+}
+
+/// Lower the annotation of the `const` `file` declares under `name` as
+/// **another module sees it**. The value counterpart of `exported_fn`: the
+/// same three steps, and the same reason the lowering happens on the source
+/// side, since `pub const ORIGIN: Sheet` names a `Sheet` that only the
+/// declaring module's resolutions can place, and it has to reach the consumer
+/// as `Ty::Imported { module, name }` rather than a foreign `SymbolId`.
+///
+/// Before this query an imported const had no type at all (G205). `exported_fn`
+/// gave a cross-module call its signature and nothing read a const's
+/// annotation across the boundary, so `ORIGIN.rowz` was silent under both
+/// import spellings while the same read in the declaring module was E0210.
+///
+/// `Ty::Unknown` is the sentinel for every miss: no such name, a name that is
+/// not a `const`, and a `const` with no annotation, which is `Unknown` in its
+/// own module too.
+///
+/// This query answers `DeclTyResolver::imported_const_decl`.
+#[salsa::tracked(returns(clone))]
+pub fn exported_const(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
+    let parsed = parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let Some(Decl::Const(c)) = decl_by_name(module, &name) else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let resolved = resolve(db, file);
+    let Some(resolved_module) = resolved.resolved() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let project = db.project_files_input();
+    let Some(module_path) = project
+        .entries(db)
+        .iter()
+        .find(|(_, f)| *f == file)
+        .map(|(p, _)| p.clone())
+    else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let imports = SalsaDeclTy { db, file };
+    let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &imports, &module_path);
+    DeclTy::new(lowerer.lower_exported_const(c))
 }
 
 #[cfg(test)]
@@ -3847,6 +3912,52 @@ pub fn run(c: Command) -> number {
             vec!["Left".to_string(), "Right".to_string()]
         );
         assert_ne!(c1, c2, "two projects collapsed into one answer");
+    }
+
+    /// G205. `exported_const` reads a `pub const`'s annotation on the export
+    /// view, so a consumer sees `Sheet` as `Ty::Imported` keyed on the
+    /// declaring module. The three misses share the `Ty::Unknown` sentinel:
+    /// a const with no annotation (which is `Unknown` in its own module too),
+    /// a name declared as something other than a const, and a name the module
+    /// does not declare.
+    #[test]
+    fn exported_const_reads_an_annotation_across_the_module_boundary() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\n\
+             pub type Sheet = { rows: number, cols: number, }\n\
+             pub const ORIGIN: Sheet = { rows: 0, cols: 0, }\n\
+             pub const LOOSE = { rows: 0, cols: 0, }\n\
+             pub fn make() -> Sheet {\n  return ORIGIN\n}\n",
+        );
+        db.project_files = Some(ProjectFiles::new(&db, vec![("lib".to_string(), lib)]));
+
+        let origin = exported_const(&db, lib, name("ORIGIN")).ty().clone();
+        assert_eq!(
+            origin,
+            Ty::Imported {
+                module: "lib".into(),
+                name: Ident::from("Sheet"),
+            },
+            "the annotation, on the export view"
+        );
+        assert_eq!(
+            exported_const(&db, lib, name("LOOSE")).ty().clone(),
+            Ty::Unknown,
+            "an unannotated const is not inferred"
+        );
+        assert_eq!(
+            exported_const(&db, lib, name("make")).ty().clone(),
+            Ty::Unknown,
+            "a fn is not a const"
+        );
+        assert_eq!(
+            exported_const(&db, lib, name("MISSING")).ty().clone(),
+            Ty::Unknown,
+            "an undeclared name"
+        );
     }
 
     #[test]

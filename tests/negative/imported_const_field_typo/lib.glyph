@@ -1,0 +1,4 @@
+module lib
+
+pub type Sheet = { rows: number, cols: number, }
+pub const ORIGIN: Sheet = { rows: 0, cols: 0, }

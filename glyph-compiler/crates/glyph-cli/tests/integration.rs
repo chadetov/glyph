@@ -12759,3 +12759,50 @@ fn parse_on_a_module_local_alias_is_the_records_parse() {
     let b = ts.find("export const B = A;").expect("B's value alias");
     assert!(b > a, "the value alias follows the descriptor it names: {ts}");
 }
+
+#[test]
+fn an_imported_const_carries_its_annotation_under_both_import_spellings() {
+    // G205. `imported_fn_decl` gave a cross-module `fn` its signature and
+    // nothing did the same for a `pub const`, so `ORIGIN` imported by name or
+    // reached through a namespace was `Ty::Unknown` and `ORIGIN.rowz` was
+    // silent, where the same const read in its own module has been E0210
+    // since 0.1.116. `glyph_db::exported_const` reads the annotation across
+    // the boundary and both spellings now report the typo naming the record.
+    // An unannotated const stays `Unknown`, as in its own module.
+    let root = unique_tmp("g205const");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\n\
+         pub type Sheet = { rows: number, cols: number, }\n\
+         pub const ORIGIN: Sheet = { rows: 0, cols: 0, }\n\
+         pub const LOOSE = { rows: 0, cols: 0, }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import lib { ORIGIN, LOOSE }\n\
+         import lib as l\n\
+         pub fn named() -> number {\n  return ORIGIN.rowz\n}\n\
+         pub fn spaced() -> number {\n  return l.ORIGIN.rowz\n}\n\
+         pub fn loose() -> number {\n  return LOOSE.rowz\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let e0210: Vec<&String> = report
+        .diagnostics
+        .iter()
+        .filter(|d| d.contains("[E0210]"))
+        .collect();
+    assert_eq!(
+        e0210.len(),
+        2,
+        "one per annotated spelling, none for the unannotated const: {:?}",
+        report.diagnostics
+    );
+    for diag in e0210 {
+        assert!(diag.contains("Sheet"), "names the record: {diag}");
+        assert!(diag.contains("rowz"), "names the field: {diag}");
+    }
+}

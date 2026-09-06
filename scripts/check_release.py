@@ -52,6 +52,7 @@ GATES = [
     ("check_docs_compile", "every documented program compiles"),
     ("check_fmt", "examples/ is what `glyph fmt` produces"),
     ("check_benchmark_fixtures", "every benchmark fixture compiles"),
+    ("check_playground_pin", "the playground's wasm-bindgen version follows the manifest"),
     ("check_doc_claims", "test counts and promises match reality"),
     ("check_runtime_against_types_node", "the runtime matches its declarations"),
 ]

@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-211 entries, 179 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+211 entries, 180 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 12 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -7313,7 +7313,7 @@ and is the owner's to confirm.
   `std/io` or `myapp/feature`)", so the diagnostic that sends someone looking is
   still the one implying a prefix.*
 
-- **G178. [HALF FIXED] Eleven stdlib modules are shipped and importable with no documented
+- **G178. [FIXED] Eleven stdlib modules are shipped and importable with no documented
   signatures.** `glyph llms` lists them under "Not detailed below, but shipped
   and importable". `std/random` got a signature block in 0.1.106; the other
   eleven are unverified. For anything simulation-shaped the RNG was not a
@@ -7327,6 +7327,16 @@ and is the owner's to confirm.
 
   *Half closed. `std/random` gained its signatures in 0.1.107 and left the list.
   Confirmed against 0.1.112: eleven modules remain under "Not detailed below".*
+
+  *Closed by 0.1.118: all eleven (`collections`, `crypto`, `encoding`, `log`,
+  `math`, `path`, `set`, `store`, `task`, `timers`, `websocket`) gained
+  signature blocks in both `AGENTS.md` (mirrored to `llms.txt` and
+  `web/llms.txt`) and `docs/reference/stdlib.md`, checked against the runtime
+  source in `glyph-compiler/runtime/std/*.ts` and against the resolver's export
+  seed list in `glyph-resolver/src/module_graph.rs`, which the two files now
+  match exactly. 76 top-level functions and 16 record methods across the
+  eleven modules, plus 8 types and the 2 `std/math` constants. The "Not
+  detailed below" list in `AGENTS.md` is now empty and removed.*
 
 - **G179. [FIXED] Runtime pruning changed what `glyph build` writes, and nothing says
   so.** 0.1.106 emits only the std modules a project imports. Good for output

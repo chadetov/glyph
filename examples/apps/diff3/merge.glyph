@@ -42,12 +42,7 @@ pub type MergeResult<T> =
 // shows up as a `Removed` (which both sides agree to drop) immediately
 // followed by an `Added` (which conflicts unless the replacement text is the
 // same on both sides).
-pub fn merge3<T>(
-  base: Array<T>,
-  ours: Array<T>,
-  theirs: Array<T>,
-  eq: fn(T, T) -> bool,
-) -> MergeResult<T> {
+pub fn merge3<T>(base: Array<T>, ours: Array<T>, theirs: Array<T>, eq: fn(T, T) -> bool) -> MergeResult<T> {
   let ea = diff.diff(base, ours, eq)
   let eb = diff.diff(base, theirs, eq)
   let na = array.len(ea)
@@ -60,9 +55,7 @@ pub fn merge3<T>(
   let pb = 0
   loop {
     match pa >= na && pb >= nb {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     match pa >= na {
@@ -72,12 +65,8 @@ pub fn merge3<T>(
         // only be trailing insertions, but the match still names every
         // variant of `Edit<T>` rather than assuming that.
         match eb[pb] {
-          Same(v) => {
-            mut ctx.push(v)
-          },
-          Added(v) => {
-            mut ctx.push(v)
-          },
+          Same(v) => { mut ctx.push(v) },
+          Added(v) => { mut ctx.push(v) },
           Removed(v) => {},
         }
         mut pb = pb + 1
@@ -85,12 +74,8 @@ pub fn merge3<T>(
       false => match pb >= nb {
         true => {
           match ea[pa] {
-            Same(v) => {
-              mut ctx.push(v)
-            },
-            Added(v) => {
-              mut ctx.push(v)
-            },
+            Same(v) => { mut ctx.push(v) },
+            Added(v) => { mut ctx.push(v) },
             Removed(v) => {},
           }
           mut pa = pa + 1

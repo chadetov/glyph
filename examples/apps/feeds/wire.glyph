@@ -9,20 +9,10 @@ module wire
 
 // A feed item. `link` is often relative, which `main` resolves against the feed
 // URL rather than trusting.
-pub type Item = {
-  title: string,
-  link: string,
-}
+pub type Item = { title: string, link: string }
 
-pub type Channel = {
-  title: string,
-  item: Array<Item>,
-}
+pub type Channel = { title: string, item: Array<Item> }
 
-pub type Rss = {
-  channel: Channel,
-}
+pub type Rss = { channel: Channel }
 
-pub type Document = {
-  rss: Rss,
-}
+pub type Document = { rss: Rss }

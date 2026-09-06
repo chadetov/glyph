@@ -11,10 +11,7 @@ import std/option { Option, Some, None }
 
 // A fraction kept in lowest terms with `den > 0`. The reducing constructors are
 // the only way to build one, so this invariant holds everywhere downstream.
-pub type Rational = {
-  num: number,
-  den: number,
-}
+pub type Rational = { num: number, den: number }
 
 // Euclid's algorithm on two non-negative integers. gcd(0, 0) is 0.
 fn gcd(a: number, b: number) -> number {
@@ -38,10 +35,7 @@ fn reduce(num: number, den: number) -> Rational {
     true => 1,
     false => g,
   }
-  return {
-    num: math.floor(n / divisor),
-    den: math.floor(d / divisor),
-  }
+  return { num: math.floor(n / divisor), den: math.floor(d / divisor) }
 }
 
 // The checked constructor: None when the denominator is zero.
@@ -54,10 +48,7 @@ pub fn rational(num: number, den: number) -> Option<Rational> {
 
 // A whole number as a fraction over 1.
 pub fn from_int(n: number) -> Rational {
-  return {
-    num: math.floor(n),
-    den: 1,
-  }
+  return { num: math.floor(n), den: 1 }
 }
 
 pub fn add(x: Rational, y: Rational) -> Rational {
@@ -82,10 +73,7 @@ pub fn div(x: Rational, y: Rational) -> Option<Rational> {
 }
 
 pub fn neg(x: Rational) -> Rational {
-  return {
-    num: -x.num,
-    den: x.den,
-  }
+  return { num: -x.num, den: x.den }
 }
 
 pub fn is_zero(x: Rational) -> bool {

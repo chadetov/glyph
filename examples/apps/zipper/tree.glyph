@@ -43,7 +43,11 @@ pub fn down<T>(z: Zipper<T>, index: int) -> Result<Zipper<T>, NavError<T>> {
     Dir({ value, children }) => match array.get(children, index) {
       None => Err(NoSuchChild({ index: index })),
       Some(target) => {
-        let crumb = { parent_value: value, left: array.slice(children, 0, index), right: array.slice(children, index + 1) }
+        let crumb = {
+          parent_value: value,
+          left: array.slice(children, 0, index),
+          right: array.slice(children, index + 1),
+        }
         Ok({ focus: target, crumbs: array.push(z.crumbs, crumb) })
       },
     },
@@ -99,7 +103,9 @@ pub fn remove_focus<T>(z: Zipper<T>) -> Result<Zipper<T>, NavError<T>> {
       match array.get(z.crumbs, last) {
         None => Err(AtRoot),
         Some(crumb) => {
-          let parent = Dir({ value: crumb.parent_value, children: array.concat(crumb.left, crumb.right) })
+          let parent = Dir(
+            { value: crumb.parent_value, children: array.concat(crumb.left, crumb.right) },
+          )
           Ok({ focus: parent, crumbs: array.slice(z.crumbs, 0, last) })
         },
       }
@@ -121,12 +127,16 @@ pub fn value_of<T>(t: Tree<T>) -> T {
 // its line; the caller decides what a leaf's line looks like versus a
 // directory's by inspecting the payload it gets handed.
 fn join_lines(lines: Array<string>) -> string {
-  return array.fold(lines, "", fn(acc: string, line: string) -> string {
-    return match acc == "" {
-      true => line,
-      false => "${acc}\n${line}",
-    }
-  })
+  return array.fold(
+    lines,
+    "",
+    fn(acc: string, line: string) -> string {
+      return match acc == "" {
+        true => line,
+        false => "${acc}\n${line}",
+      }
+    },
+  )
 }
 
 pub fn render<T>(t: Tree<T>, describe: fn(T) -> string, indent: string) -> string {
@@ -135,7 +145,10 @@ pub fn render<T>(t: Tree<T>, describe: fn(T) -> string, indent: string) -> strin
     Dir({ value, children }) => {
       let header = "${indent}${describe(value)}"
       let child_indent = "${indent}  "
-      let lines = array.map(children, fn(c: Tree<T>) -> string { return render(c, describe, child_indent) })
+      let lines = array.map(
+        children,
+        fn(c: Tree<T>) -> string { return render(c, describe, child_indent) },
+      )
       let body = join_lines(lines)
       "${header}\n${body}"
     },

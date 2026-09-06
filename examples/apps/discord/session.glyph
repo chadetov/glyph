@@ -123,9 +123,14 @@ pub fn receive(current: Session, incoming: Incoming) -> Step {
     // it means a reconnect straight after READY has a session id but nothing to
     // resume from, so it would announce a resume and then identify instead.
     protocol.Ready({ seq, session_id, user }) => step(
-      { phase: live_phase(current), token: current.token, seq: Some(seq),
-        session_id: Some(session_id), awaiting_ack: current.awaiting_ack,
-        reconnecting: current.reconnecting },
+      {
+        phase: live_phase(current),
+        token: current.token,
+        seq: Some(seq),
+        session_id: Some(session_id),
+        awaiting_ack: current.awaiting_ack,
+        reconnecting: current.reconnecting,
+      },
       [Note({ line: "ready as ${user}" })],
     ),
 
@@ -154,10 +159,12 @@ pub fn receive(current: Session, incoming: Incoming) -> Step {
     ),
 
     protocol.InvalidSession({ resumable }) => step(
-      with_reconnecting(match resumable {
-        true => current,
-        false => forget_session(current),
-      }),
+      with_reconnecting(
+        match resumable {
+          true => current,
+          false => forget_session(current),
+        },
+      ),
       [StopHeartbeat, CloseSocket, Reconnect({ resume: resumable })],
     ),
 
@@ -184,9 +191,14 @@ fn greet(current: Session, interval: int) -> Step {
     None => protocol.Identify({ token: current.token, intents: MESSAGE_INTENTS }),
   }
   return step(
-    { phase: Identifying, token: current.token,
-      seq: current.seq, session_id: current.session_id, awaiting_ack: false,
-      reconnecting: false },
+    {
+      phase: Identifying,
+      token: current.token,
+      seq: current.seq,
+      session_id: current.session_id,
+      awaiting_ack: false,
+      reconnecting: false,
+    },
     [
       StartHeartbeat({ interval: interval }),
       Send({ frame: protocol.write(opening) }),
@@ -252,8 +264,14 @@ pub fn tick(current: Session) -> Step {
 pub fn disconnected(current: Session, code: int, reason: string) -> Step {
   return match is_terminal(code) {
     true => step(
-      { phase: Fatal({ reason: reason }), token: current.token, seq: current.seq,
-        session_id: current.session_id, awaiting_ack: false, reconnecting: false },
+      {
+        phase: Fatal({ reason: reason }),
+        token: current.token,
+        seq: current.seq,
+        session_id: current.session_id,
+        awaiting_ack: false,
+        reconnecting: false,
+      },
       [
         StopHeartbeat,
         CloseSocket,
@@ -291,8 +309,12 @@ pub fn attempting(current: Session) -> Session {
 // required, invalid API version, invalid intents, and intents not enabled for
 // the application.
 fn is_terminal(code: int) -> bool {
-  return code == 4004 || code == 4010 || code == 4011
-    || code == 4012 || code == 4013 || code == 4014
+  return code == 4004
+    || code == 4010
+    || code == 4011
+    || code == 4012
+    || code == 4013
+    || code == 4014
 }
 
 // ---------------------------------------------------------------------------
@@ -450,13 +472,19 @@ fn a_missed_ack_reconnects() -> bool {
 }
 
 fn a_resumable_invalid_session_resumes() -> bool {
-  let live = with_seq(receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session, 9)
+  let live = with_seq(
+    receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session,
+    9,
+  )
   let after = receive(live, protocol.InvalidSession({ resumable: true }))
   return has_session(after.session) && array.any(after.actions, is_reconnect)
 }
 
 fn a_dead_session_starts_over() -> bool {
-  let live = with_seq(receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session, 9)
+  let live = with_seq(
+    receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session,
+    9,
+  )
   let after = receive(live, protocol.InvalidSession({ resumable: false }))
   return !has_session(after.session)
 }
@@ -504,9 +532,10 @@ fn is_stop(action: Action) -> bool {
 
 fn own_messages_are_ignored() -> bool {
   let live = receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session
-  let from_bot = receive(live, protocol.Message({
-    seq: 3, channel: "c", author: "b", content: "!ping", bot: true,
-  }))
+  let from_bot = receive(
+    live,
+    protocol.Message({ seq: 3, channel: "c", author: "b", content: "!ping", bot: true }),
+  )
   return array.len(from_bot.actions) == 0 && seq_of(from_bot.session) == 3
 }
 

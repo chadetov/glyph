@@ -15,10 +15,7 @@ import std/string
 import std/result { Result, Ok, Err }
 
 // value = mantissa / 10^scale, with scale >= 0.
-pub type Decimal = {
-  mantissa: number,
-  scale: number,
-}
+pub type Decimal = { mantissa: number, scale: number }
 
 // Ten raised to a nonnegative integer power, by recursion.
 fn pow10(n: number) -> number {

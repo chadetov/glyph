@@ -14,6 +14,7 @@ import std/array
 // 2^53, so it is exact in a double: no bitwise tricks (and no bitwise
 // operators, which Glyph does not have) are needed.
 const MODULUS: number = 2147483647
+
 const MULTIPLIER: number = 16807
 
 // A generator is just its state. Advancing it yields a fresh generator; the old
@@ -36,7 +37,7 @@ pub fn seeded(seed: number) -> Rng {
 
 // One step of the recurrence: state' = (MULTIPLIER * state) mod MODULUS.
 fn step(rng: Rng) -> Rng {
-  return { state: (MULTIPLIER * rng.state) % MODULUS }
+  return { state: MULTIPLIER * rng.state % MODULUS }
 }
 
 // The next float in [0, 1), with the advanced generator.
@@ -85,12 +86,7 @@ pub fn floats(rng: Rng, count: number) -> Draw<Array<number>> {
 }
 
 // `count` whole numbers in [lo, hi), the integer analogue of `floats`.
-pub fn ints(
-  rng: Rng,
-  count: number,
-  lo: number,
-  hi: number,
-) -> Draw<Array<number>> {
+pub fn ints(rng: Rng, count: number, lo: number, hi: number) -> Draw<Array<number>> {
   return match count <= 0 {
     true => { value: [], rng: rng },
     false => {

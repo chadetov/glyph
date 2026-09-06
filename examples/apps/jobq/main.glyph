@@ -116,16 +116,16 @@ fn parse_port(raw: string) -> Result<int, string> {
 // with one command, and the queue does not care which process claims a job.
 async fn serve(db: Db, port: int) -> number {
   let policy = job.default_policy()
-  let _pump = timers.every(200, fn() {
-    let _ = worker.drain(db, time.now(), policy, LEASE_MS)
-  })
+  let _pump = timers.every(200, fn() { let _ = worker.drain(db, time.now(), policy, LEASE_MS) })
   // `listen` resolves once the port is bound, so the "listening" line is only
   // printed when it is true. It used to be printed before the bind was even
   // attempted, which meant a port already in use produced the banner and then
   // the error.
-  return match await http.listen("0.0.0.0", port, fn(req) {
-    return Ok(api.handle(db, req, time.now()))
-  }) {
+  return match await http.listen(
+    "0.0.0.0",
+    port,
+    fn(req) { return Ok(api.handle(db, req, time.now())) },
+  ) {
     Ok(server) => {
       io.println("jobq listening on ${number.to_string(net.port(server))}")
       0
@@ -159,13 +159,11 @@ fn add(db: Db, kind: string) -> number {
 
 fn stats(db: Db) -> number {
   let c = store.counts(db)
-  io.println(json.stringify({
-    queued: c.queued,
-    running: c.running,
-    done: c.done,
-    failed: c.failed,
-    dead: c.dead,
-  }))
+  io.println(
+    json.stringify(
+      { queued: c.queued, running: c.running, done: c.done, failed: c.failed, dead: c.dead },
+    ),
+  )
   return 0
 }
 
@@ -224,8 +222,10 @@ async fn selftest() -> number {
   mut failures = failures + expect(final_counts.dead == 2, "the repeatedly failing job is dead")
 
   // A row that will not decode is reported, not silently skipped.
-  db.exec("INSERT INTO jobs (kind, payload, status, attempts, run_after_ms, status_at_ms, last_error)
-           VALUES ('x', '{}', 'not-a-status', 0, 0, 0, '')")
+  db.exec(
+    "INSERT INTO jobs (kind, payload, status, attempts, run_after_ms, status_at_ms, last_error)
+           VALUES ('x', '{}', 'not-a-status', 0, 0, 0, '')",
+  )
   let listed = store.recent(db, 50)
   mut failures = failures + expect(array.len(listed.broken) == 1, "the corrupt row is reported")
   mut failures = failures + expect(

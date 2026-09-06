@@ -68,7 +68,7 @@ async fn fetch(source: string) -> Result<string, string> {
 // The boundary, in one function. The parser hands back an unknown, and
 // `Document.parse` either produces a checked value or says what is wrong.
 fn render(xml: string, base: string) -> Result<Array<string>, string> {
-  let parser = new XMLParser({ ignoreAttributes: true, })
+  let parser = new XMLParser({ ignoreAttributes: true })
   let raw = parser.parse(xml)
   return match Document.parse(raw) {
     Err(issues) => {

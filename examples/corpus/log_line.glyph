@@ -27,12 +27,7 @@ pub type Field = { key: string, value: FieldValue }
 
 // A log record before serialization: level, message, timestamp, and any extra
 // structured fields.
-pub type Entry = {
-  level: Level,
-  message: string,
-  time: string,
-  fields: Array<Field>,
-}
+pub type Entry = { level: Level, message: string, time: string, fields: Array<Field> }
 
 // Numeric severity for ordering. Exhaustive over `Level` (D30): adding a level
 // forces a new arm here.
@@ -117,6 +112,8 @@ fn render_fields(fields: Array<Field>, i: number) -> string {
 // One JSON log line: the fixed level/msg/time head plus any structured fields,
 // e.g. `{"level":"info","msg":"ok","time":"...","status":200}`.
 pub fn format_line(e: Entry) -> string {
-  let head = "{" + quote("level") + ":" + quote(e.level) + "," + quote("msg") + ":" + quote(e.message) + "," + quote("time") + ":" + quote(e.time)
+  let head = "{" + quote("level") + ":" + quote(e.level) + "," + quote("msg") + ":" + quote(
+    e.message,
+  ) + "," + quote("time") + ":" + quote(e.time)
   return head + render_fields(e.fields, 0) + "}"
 }

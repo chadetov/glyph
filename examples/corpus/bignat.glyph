@@ -29,11 +29,7 @@ fn trim(digits: Array<number>) -> Array<number> {
         true => [],
         false => [head],
       },
-      [rh, ...rt] => [
-        head,
-        rh,
-        ...rt,
-      ],
+      [rh, ...rt] => [head, rh, ...rt],
     },
   }
 }
@@ -77,20 +73,12 @@ fn digit_value(c: string) -> Option<number> {
 // to `acc` (which is being built least significant first, so a left-to-right
 // scan naturally lands the last character in the ones place). None if any
 // character is not a digit.
-fn parse_from(
-  s: string,
-  i: number,
-  acc: Array<number>,
-) -> Option<Array<number>> {
+fn parse_from(s: string, i: number, acc: Array<number>) -> Option<Array<number>> {
   return match i >= string.len(s) {
     true => Some(acc),
     false => match digit_value(s[i]) {
       None => None,
-      Some(d) => parse_from(
-        s,
-        i + 1,
-        [d, ...acc],
-      ),
+      Some(d) => parse_from(s, i + 1, [d, ...acc]),
     },
   }
 }
@@ -100,11 +88,7 @@ fn parse_from(
 pub fn parse(s: string) -> Option<BigNat> {
   return match string.len(s) == 0 {
     true => None,
-    false => match parse_from(
-      s,
-      0,
-      [],
-    ) {
+    false => match parse_from(s, 0, []) {
       None => None,
       Some(digits) => Some(make(digits)),
     },
@@ -139,11 +123,7 @@ pub fn to_string(n: BigNat) -> string {
 
 // Pick the tie-break: return `rest` when it already decided the order, else
 // order the two current digits. Used so compare needs no local binding.
-fn resolve(
-  rest: number,
-  a: number,
-  b: number,
-) -> number {
+fn resolve(rest: number, a: number, b: number) -> number {
   return match rest == 0 {
     true => match a < b {
       true => -1,
@@ -163,11 +143,7 @@ fn cmp_same_len(a: Array<number>, b: Array<number>) -> number {
     [] => 0,
     [ha, ...ta] => match b {
       [] => 0,
-      [hb, ...tb] => resolve(
-        cmp_same_len(ta, tb),
-        ha,
-        hb,
-      ),
+      [hb, ...tb] => resolve(cmp_same_len(ta, tb), ha, hb),
     },
   }
 }
@@ -192,68 +168,42 @@ pub fn equals(x: BigNat, y: BigNat) -> bool {
 
 // Add two little-endian digit lists with an incoming carry, most significant
 // last. Runs until both lists and the carry are exhausted.
-fn add_rec(
-  a: Array<number>,
-  b: Array<number>,
-  carry: number,
-) -> Array<number> {
+fn add_rec(a: Array<number>, b: Array<number>, carry: number) -> Array<number> {
   return match a {
     [] => match b {
       [] => match carry == 0 {
         true => [],
         false => [carry],
       },
-      [hb, ...tb] => [(hb + carry) % 10, ...add_rec(
-        [],
-        tb,
-        math.floor((hb + carry) / 10),
-      )],
+      [hb, ...tb] => [(hb + carry) % 10, ...add_rec([], tb, math.floor((hb + carry) / 10))],
     },
     [ha, ...ta] => match b {
-      [] => [(ha + carry) % 10, ...add_rec(
-        ta,
-        [],
-        math.floor((ha + carry) / 10),
-      )],
-      [hb, ...tb] => [(ha + hb + carry) % 10, ...add_rec(
-        ta,
-        tb,
-        math.floor((ha + hb + carry) / 10),
-      )],
+      [] => [(ha + carry) % 10, ...add_rec(ta, [], math.floor((ha + carry) / 10))],
+      [hb, ...tb] => [
+        (ha + hb + carry) % 10,
+        ...add_rec(ta, tb, math.floor((ha + hb + carry) / 10)),
+      ],
     },
   }
 }
 
 pub fn add(x: BigNat, y: BigNat) -> BigNat {
-  return make(add_rec(
-    x.digits,
-    y.digits,
-    0,
-  ))
+  return make(add_rec(x.digits, y.digits, 0))
 }
 
 // Subtract two little-endian digit lists with an incoming borrow. `a` is
 // assumed to be at least `b` (the caller checks order), so no result digit ever
 // goes negative once trimmed. The `+ 10` keeps the modulo nonnegative before
 // the borrow is carried up.
-fn sub_rec(
-  a: Array<number>,
-  b: Array<number>,
-  borrow: number,
-) -> Array<number> {
+fn sub_rec(a: Array<number>, b: Array<number>, borrow: number) -> Array<number> {
   return match a {
     [] => [],
     [ha, ...ta] => match b {
-      [] => [(ha - borrow + 10) % 10, ...sub_rec(
-        ta,
-        [],
-        next_borrow(ha - borrow),
-      )],
-      [hb, ...tb] => [(ha - hb - borrow + 10) % 10, ...sub_rec(
-        ta,
-        tb,
-        next_borrow(ha - hb - borrow),
-      )],
+      [] => [(ha - borrow + 10) % 10, ...sub_rec(ta, [], next_borrow(ha - borrow))],
+      [hb, ...tb] => [
+        (ha - hb - borrow + 10) % 10,
+        ...sub_rec(ta, tb, next_borrow(ha - hb - borrow)),
+      ],
     },
   }
 }
@@ -271,30 +221,18 @@ fn next_borrow(raw: number) -> number {
 pub fn sub(x: BigNat, y: BigNat) -> Option<BigNat> {
   return match compare(x, y) < 0 {
     true => None,
-    false => Some(make(sub_rec(
-      x.digits,
-      y.digits,
-      0,
-    ))),
+    false => Some(make(sub_rec(x.digits, y.digits, 0))),
   }
 }
 
 // Multiply a little-endian digit list by one digit `d`, threading a carry.
-fn mul_digit(
-  a: Array<number>,
-  d: number,
-  carry: number,
-) -> Array<number> {
+fn mul_digit(a: Array<number>, d: number, carry: number) -> Array<number> {
   return match a {
     [] => match carry == 0 {
       true => [],
       false => digits_of(carry),
     },
-    [ha, ...ta] => [(ha * d + carry) % 10, ...mul_digit(
-      ta,
-      d,
-      math.floor((ha * d + carry) / 10),
-    )],
+    [ha, ...ta] => [(ha * d + carry) % 10, ...mul_digit(ta, d, math.floor((ha * d + carry) / 10))],
   }
 }
 
@@ -316,33 +254,13 @@ fn shift_left(digits: Array<number>, k: number) -> Array<number> {
 
 // Schoolbook multiply: for each digit of `b` at position `shift`, multiply the
 // whole of `a` by it, shift into place, and sum the partial products.
-fn mul_rec(
-  a: Array<number>,
-  b: Array<number>,
-  shift: number,
-) -> Array<number> {
+fn mul_rec(a: Array<number>, b: Array<number>, shift: number) -> Array<number> {
   return match b {
     [] => [],
-    [hb, ...tb] => add_rec(
-      shift_left(mul_digit(
-        a,
-        hb,
-        0,
-      ), shift),
-      mul_rec(
-        a,
-        tb,
-        shift + 1,
-      ),
-      0,
-    ),
+    [hb, ...tb] => add_rec(shift_left(mul_digit(a, hb, 0), shift), mul_rec(a, tb, shift + 1), 0),
   }
 }
 
 pub fn mul(x: BigNat, y: BigNat) -> BigNat {
-  return make(mul_rec(
-    x.digits,
-    y.digits,
-    0,
-  ))
+  return make(mul_rec(x.digits, y.digits, 0))
 }

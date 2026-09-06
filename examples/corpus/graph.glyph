@@ -20,9 +20,7 @@ fn neighbors_of(v: number, edges: Array<Edge>) -> Array<number> {
   let out: Array<number> = []
   for e in edges {
     match e.from == v {
-      true => {
-        mut out.push(e.to)
-      },
+      true => { mut out.push(e.to) },
       false => {},
     }
   }
@@ -57,9 +55,7 @@ pub fn bfs(g: Graph, start: number) -> Array<number> {
   let order: Array<number> = []
   loop {
     match head >= array.len(queue) {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     let v = queue[head]
@@ -93,10 +89,7 @@ fn dfs_visit(g: Graph, v: number, acc: Walk) -> Walk {
   return match array.contains(acc.seen, v) {
     true => acc,
     false => {
-      let stepped = {
-        order: array.push(acc.order, v),
-        seen: array.push(acc.seen, v),
-      }
+      let stepped = { order: array.push(acc.order, v), seen: array.push(acc.seen, v) }
       return dfs_neighbors(g, g.adj[v], stepped)
     },
   }
@@ -122,9 +115,7 @@ fn remove_value(xs: Array<number>, v: number) -> Array<number> {
   for x in xs {
     match x == v {
       true => {},
-      false => {
-        mut out.push(x)
-      },
+      false => { mut out.push(x) },
     }
   }
   return out
@@ -134,9 +125,7 @@ fn remove_value(xs: Array<number>, v: number) -> Array<number> {
 fn has_incoming(g: Graph, remaining: Array<number>, v: number) -> bool {
   for u in remaining {
     match array.contains(g.adj[u], v) {
-      true => {
-        return true
-      },
+      true => { return true },
       false => {},
     }
   }
@@ -148,20 +137,14 @@ fn has_incoming(g: Graph, remaining: Array<number>, v: number) -> bool {
 fn first_ready(g: Graph, remaining: Array<number>) -> Option<number> {
   for v in remaining {
     match has_incoming(g, remaining, v) {
-      false => {
-        return Some(v)
-      },
+      false => { return Some(v) },
       true => {},
     }
   }
   return None
 }
 
-fn kahn(
-  g: Graph,
-  remaining: Array<number>,
-  out: Array<number>,
-) -> Result<Array<number>, string> {
+fn kahn(g: Graph, remaining: Array<number>, out: Array<number>) -> Result<Array<number>, string> {
   return match array.len(remaining) == 0 {
     true => Ok(out),
     false => {

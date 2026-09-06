@@ -6,10 +6,7 @@ import std/result { Ok, Err }
 import std/url
 import wire { Document, Item }
 
-pub type Entry = {
-  title: string,
-  href: string,
-}
+pub type Entry = { title: string, href: string }
 
 // A feed's links are relative more often than not, and joining them by hand is
 // how `../` and a scheme-relative `//host/path` end up pointing somewhere else.
@@ -32,8 +29,11 @@ pub fn resolve_link(base: string, link: string) -> Entry {
 }
 
 pub fn entries(doc: Document, base: string) -> Array<Entry> {
-  return array.map(doc.rss.channel.item, fn(it: Item) -> Entry {
-    let resolved = resolve_link(base, it.link)
-    return { title: it.title, href: resolved.href }
-  })
+  return array.map(
+    doc.rss.channel.item,
+    fn(it: Item) -> Entry {
+      let resolved = resolve_link(base, it.link)
+      return { title: it.title, href: resolved.href }
+    },
+  )
 }

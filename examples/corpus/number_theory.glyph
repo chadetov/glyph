@@ -57,7 +57,7 @@ pub fn ext_gcd(a: number, b: number) -> Bezout {
 pub fn mod_inv(a: number, m: number) -> Option<number> {
   let e = ext_gcd(a % m, m)
   return match e.g == 1 {
-    true => Some(((e.x % m) + m) % m),
+    true => Some((e.x % m + m) % m),
     false => None,
   }
 }
@@ -76,10 +76,10 @@ fn mod_pow_go(base: number, exp: number, m: number, acc: number) -> number {
     true => acc,
     false => {
       let next_acc = match exp % 2 == 1 {
-        true => (acc * base) % m,
+        true => acc * base % m,
         false => acc,
       }
-      mod_pow_go((base * base) % m, math.floor(exp / 2), m, next_acc)
+      mod_pow_go(base * base % m, math.floor(exp / 2), m, next_acc)
     },
   }
 }

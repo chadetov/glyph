@@ -57,12 +57,19 @@ pub fn open(path: string) -> Db {
 // rename is one edit rather than a hunt through string literals that the
 // compiler cannot check.
 const C_ID = "id"
+
 const C_KIND = "kind"
+
 const C_PAYLOAD = "payload"
+
 const C_STATUS = "status"
+
 const C_ATTEMPTS = "attempts"
+
 const C_RUN_AFTER = "run_after_ms"
+
 const C_STATUS_AT = "status_at_ms"
+
 const C_LAST_ERROR = "last_error"
 
 // A row's column as text. Absent or non-text is `None` rather than a coerced
@@ -126,14 +133,16 @@ pub fn decode(row: Row) -> Result<Job, StoreError> {
     Some(s) => s,
     None => { return Err(Corrupt({ id: id, reason: "unknown status ${name}" })) },
   }
-  return Ok({
-    id: id,
-    kind: kind,
-    payload: payload,
-    status: status,
-    attempts: attempts,
-    run_after_ms: run_after,
-  })
+  return Ok(
+    {
+      id: id,
+      kind: kind,
+      payload: payload,
+      status: status,
+      attempts: attempts,
+      run_after_ms: run_after,
+    },
+  )
 }
 
 // Decode a batch, dropping nothing silently: a row that will not decode is
@@ -245,13 +254,7 @@ pub fn recent(db: Db, limit: int) -> Decoded {
   return decode_all(db.query("SELECT * FROM jobs ORDER BY id DESC LIMIT ?", [limit]))
 }
 
-pub type Counts = {
-  queued: int,
-  running: int,
-  done: int,
-  failed: int,
-  dead: int,
-}
+pub type Counts = { queued: int, running: int, done: int, failed: int, dead: int }
 
 // One grouped query rather than five counts, so the numbers describe a single
 // moment. Five separate statements can report a job in two states at once when
@@ -274,11 +277,41 @@ pub fn counts(db: Db) -> Counts {
 
 fn with_count(tally: Counts, name: string, n: int) -> Counts {
   return match name {
-    "queued" => { queued: n, running: tally.running, done: tally.done, failed: tally.failed, dead: tally.dead },
-    "running" => { queued: tally.queued, running: n, done: tally.done, failed: tally.failed, dead: tally.dead },
-    "done" => { queued: tally.queued, running: tally.running, done: n, failed: tally.failed, dead: tally.dead },
-    "failed" => { queued: tally.queued, running: tally.running, done: tally.done, failed: n, dead: tally.dead },
-    "dead" => { queued: tally.queued, running: tally.running, done: tally.done, failed: tally.failed, dead: n },
+    "queued" => {
+      queued: n,
+      running: tally.running,
+      done: tally.done,
+      failed: tally.failed,
+      dead: tally.dead,
+    },
+    "running" => {
+      queued: tally.queued,
+      running: n,
+      done: tally.done,
+      failed: tally.failed,
+      dead: tally.dead,
+    },
+    "done" => {
+      queued: tally.queued,
+      running: tally.running,
+      done: n,
+      failed: tally.failed,
+      dead: tally.dead,
+    },
+    "failed" => {
+      queued: tally.queued,
+      running: tally.running,
+      done: tally.done,
+      failed: n,
+      dead: tally.dead,
+    },
+    "dead" => {
+      queued: tally.queued,
+      running: tally.running,
+      done: tally.done,
+      failed: tally.failed,
+      dead: n,
+    },
     else => tally,
   }
 }

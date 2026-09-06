@@ -16,20 +16,12 @@ import std/array
 // A cache holding at most `capacity` entries. `order` lists the live keys from
 // least- to most-recently-used; `store` maps each of those keys to its value.
 // The two always agree on which keys are present.
-pub type Lru<V> = {
-  capacity: number,
-  order: Array<string>,
-  store: Record<string, V>,
-}
+pub type Lru<V> = { capacity: number, order: Array<string>, store: Record<string, V> }
 
 // A fresh empty cache. A capacity of zero or less can never hold an entry.
 pub fn create<V>(capacity: number) -> Lru<V> {
   let store: Record<string, V> = {}
-  return {
-    capacity: capacity,
-    order: [],
-    store: store,
-  }
+  return { capacity: capacity, order: [], store: store }
 }
 
 // The number of live entries.
@@ -93,16 +85,8 @@ fn evict<V>(c: Lru<V>) -> void {
 // Insert or overwrite `key` with `value`, marking it most-recently-used. When
 // the insert pushes the cache past its capacity, the least-recently-used entry
 // is evicted. Mutates the cache in place.
-pub fn put<V>(
-  c: Lru<V>,
-  key: string,
-  value: V,
-) -> void {
-  mut c.store = record.set(
-    c.store,
-    key,
-    value,
-  )
+pub fn put<V>(c: Lru<V>, key: string, value: V) -> void {
+  mut c.store = record.set(c.store, key, value)
   touch(c, key)
   evict(c)
 }

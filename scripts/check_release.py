@@ -50,6 +50,7 @@ GATES = [
     ("check_exact_or_absent", "no impact edge is manufactured under degeneracy"),
     ("check_scaffold_docs", "what `glyph init` writes still builds"),
     ("check_docs_compile", "every documented program compiles"),
+    ("check_fmt", "examples/ is what `glyph fmt` produces"),
     ("check_doc_claims", "test counts and promises match reality"),
     ("check_runtime_against_types_node", "the runtime matches its declarations"),
 ]

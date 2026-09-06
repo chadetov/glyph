@@ -21,33 +21,22 @@ pub fn append(path: string, t: Target, outcome: CheckOutcome) -> Result<void, st
 
 fn line_of(t: Target, outcome: CheckOutcome, at: string) -> string {
   return match outcome {
-    DnsFailed(d) => json.stringify({
-      at: at,
-      target: t.name,
-      host: t.host,
-      outcome: "dns_failed",
-      reason: d.reason,
-    }),
-    TlsFailed(d) => json.stringify({
-      at: at,
-      target: t.name,
-      host: t.host,
-      outcome: "tls_failed",
-      reason: d.reason,
-    }),
-    TimedOut => json.stringify({
-      at: at,
-      target: t.name,
-      host: t.host,
-      outcome: "timed_out",
-    }),
-    Responded(r) => json.stringify({
-      at: at,
-      target: t.name,
-      host: t.host,
-      outcome: "responded",
-      status: r.status,
-      latency_ms: r.latency_ms,
-    }),
+    DnsFailed(d) => json.stringify(
+      { at: at, target: t.name, host: t.host, outcome: "dns_failed", reason: d.reason },
+    ),
+    TlsFailed(d) => json.stringify(
+      { at: at, target: t.name, host: t.host, outcome: "tls_failed", reason: d.reason },
+    ),
+    TimedOut => json.stringify({ at: at, target: t.name, host: t.host, outcome: "timed_out" }),
+    Responded(r) => json.stringify(
+      {
+        at: at,
+        target: t.name,
+        host: t.host,
+        outcome: "responded",
+        status: r.status,
+        latency_ms: r.latency_ms,
+      },
+    ),
   }
 }

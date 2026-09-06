@@ -9,11 +9,7 @@ import std/math
 import std/option { Option, Some, None }
 
 // A calendar date. Month is 1..12, day is 1..31.
-pub type Date = {
-  year: number,
-  month: number,
-  day: number,
-}
+pub type Date = { year: number, month: number, day: number }
 
 // Proleptic Gregorian leap-year rule.
 pub fn is_leap_year(y: number) -> bool {
@@ -34,51 +30,23 @@ pub fn days_in_month(y: number, m: number) -> number {
       false => 28,
     },
     false => {
-      let table = [
-        31,
-        28,
-        31,
-        30,
-        31,
-        30,
-        31,
-        31,
-        30,
-        31,
-        30,
-        31,
-      ]
+      let table = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
       return table[m - 1]
     },
   }
 }
 
 // Sum of days in months [cur, target) of year `y`, threaded through recursion.
-fn before_month(
-  y: number,
-  target: number,
-  cur: number,
-  acc: number,
-) -> number {
+fn before_month(y: number, target: number, cur: number, acc: number) -> number {
   return match cur >= target {
     true => acc,
-    false => before_month(
-      y,
-      target,
-      cur + 1,
-      acc + days_in_month(y, cur),
-    ),
+    false => before_month(y, target, cur + 1, acc + days_in_month(y, cur)),
   }
 }
 
 // Ordinal day within the year, 1 = Jan 1.
 pub fn day_of_year(d: Date) -> number {
-  return d.day + before_month(
-    d.year,
-    d.month,
-    1,
-    0,
-  )
+  return d.day + before_month(d.year, d.month, 1, 0)
 }
 
 // Days elapsed since 1970-01-01 (may be negative), by Howard Hinnant's
@@ -111,15 +79,7 @@ pub fn weekday(d: Date) -> number {
 
 // The English name of a weekday index, or None when out of range.
 pub fn weekday_name(i: number) -> Option<string> {
-  let names = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ]
+  let names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
   return match i < 0 {
     true => None,
     false => match i >= 7 {

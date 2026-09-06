@@ -82,16 +82,16 @@ fn ingest(rings: Array<Ring>, source: string, req: Request, now_ms: int) -> Resp
 
 fn log_outcome(source: string, outcome: Outcome) -> void {
   match outcome {
-    Accepted({ event_type }) => log.with_fields("info", "webhook accepted", {
-      source: source,
-      decision: "accepted",
-      event_type: event_type,
-    }),
-    Rejected({ reason }) => log.with_fields("warn", "webhook rejected", {
-      source: source,
-      decision: "rejected",
-      reason: reason,
-    }),
+    Accepted({ event_type }) => log.with_fields(
+      "info",
+      "webhook accepted",
+      { source: source, decision: "accepted", event_type: event_type },
+    ),
+    Rejected({ reason }) => log.with_fields(
+      "warn",
+      "webhook rejected",
+      { source: source, decision: "rejected", reason: reason },
+    ),
   }
 }
 

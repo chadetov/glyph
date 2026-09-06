@@ -54,9 +54,7 @@ fn sift_up(xs: Array<number>, start: number) -> void {
   let i = start
   loop {
     match i == 0 {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     let parent = math.floor((i - 1) / 2)
@@ -65,9 +63,7 @@ fn sift_up(xs: Array<number>, start: number) -> void {
         swap(xs, i, parent)
         mut i = parent
       },
-      false => {
-        break
-      },
+      false => { break },
     }
   }
 }
@@ -97,9 +93,7 @@ fn sift_down(xs: Array<number>, start: number, n: number) -> void {
   loop {
     let child = smaller_child(xs, i, n)
     match child == i {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     match xs[child] < xs[i] {
@@ -107,9 +101,7 @@ fn sift_down(xs: Array<number>, start: number, n: number) -> void {
         swap(xs, i, child)
         mut i = child
       },
-      false => {
-        break
-      },
+      false => { break },
     }
   }
 }
@@ -159,9 +151,7 @@ pub fn from_array(values: Array<number>) -> Heap {
   let i = math.floor(n / 2) - 1
   loop {
     match i < 0 {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     sift_down(items, i, n)
@@ -181,12 +171,8 @@ pub fn sorted(h: Heap) -> Array<number> {
   let out: Array<number> = []
   loop {
     match pop_min(work) {
-      None => {
-        break
-      },
-      Some(v) => {
-        mut out.push(v)
-      },
+      None => { break },
+      Some(v) => { mut out.push(v) },
     }
   }
   return out

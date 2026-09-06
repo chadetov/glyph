@@ -44,21 +44,12 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
   let words = false
   for a in argv {
     match a == "--words" {
-      true => {
-        mut words = true
-      },
-      false => {
-        mut positional.push(a)
-      },
+      true => { mut words = true },
+      false => { mut positional.push(a) },
     }
   }
   return match array.len(positional) == 3 {
-    true => Ok({
-      base: positional[0],
-      ours: positional[1],
-      theirs: positional[2],
-      words: words,
-    }),
+    true => Ok({ base: positional[0], ours: positional[1], theirs: positional[2], words: words }),
     false => Err(USAGE),
   }
 }

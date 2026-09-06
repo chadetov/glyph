@@ -10,13 +10,7 @@ import std/math
 
 // A duration split into whole calendar-independent units. `millis` is the
 // sub-second remainder; every field is non-negative.
-pub type Parts = {
-  days: number,
-  hours: number,
-  minutes: number,
-  seconds: number,
-  millis: number,
-}
+pub type Parts = { days: number, hours: number, minutes: number, seconds: number, millis: number }
 
 // Break a non-negative millisecond count into ordered units, largest first.
 pub fn breakdown(ms: number) -> Parts {
@@ -29,13 +23,7 @@ pub fn breakdown(ms: number) -> Parts {
   let hrs = math.floor(mins / 60)
   let hours = hrs % 24
   let days = math.floor(hrs / 24)
-  return {
-    days: days,
-    hours: hours,
-    minutes: minutes,
-    seconds: seconds,
-    millis: millis,
-  }
+  return { days: days, hours: hours, minutes: minutes, seconds: seconds, millis: millis }
 }
 
 // English pluralization: "1 day", "2 days", "0 seconds".

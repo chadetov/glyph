@@ -15,9 +15,7 @@ pub type Run<T> = { value: T, count: number }
 pub fn find<T>(xs: Array<T>, pred: fn(T) -> bool) -> Option<T> {
   for x in xs {
     match pred(x) {
-      true => {
-        return Some(x)
-      },
+      true => { return Some(x) },
       false => {},
     }
   }
@@ -29,9 +27,7 @@ pub fn position<T>(xs: Array<T>, pred: fn(T) -> bool) -> Option<number> {
   let i = 0
   for x in xs {
     match pred(x) {
-      true => {
-        return Some(i)
-      },
+      true => { return Some(i) },
       false => {},
     }
     mut i = i + 1
@@ -40,11 +36,7 @@ pub fn position<T>(xs: Array<T>, pred: fn(T) -> bool) -> Option<number> {
 }
 
 // Left fold. The accumulator is a `mut` local threaded through a `for`.
-pub fn fold<T, A>(
-  xs: Array<T>,
-  init: A,
-  f: fn(A, T) -> A,
-) -> A {
+pub fn fold<T, A>(xs: Array<T>, init: A, f: fn(A, T) -> A) -> A {
   let acc = init
   for x in xs {
     mut acc = f(acc, x)
@@ -54,11 +46,7 @@ pub fn fold<T, A>(
 
 // Sum of a number array, expressed as a fold.
 pub fn sum(xs: Array<number>) -> number {
-  return fold(
-    xs,
-    0,
-    fn(a: number, x: number) -> number { a + x },
-  )
+  return fold(xs, 0, fn(a: number, x: number) -> number { a + x })
 }
 
 // The first `n` elements, via array-pattern recursion.
@@ -138,12 +126,7 @@ pub fn merge_sort(xs: Array<number>) -> Array<number> {
 }
 
 // Binary search over a sorted number array; returns the index or None.
-fn bsearch(
-  xs: Array<number>,
-  target: number,
-  lo: number,
-  hi: number,
-) -> Option<number> {
+fn bsearch(xs: Array<number>, target: number, lo: number, hi: number) -> Option<number> {
   return match lo >= hi {
     true => None,
     false => {
@@ -152,18 +135,8 @@ fn bsearch(
       return match v == target {
         true => Some(mid),
         false => match v < target {
-          true => bsearch(
-            xs,
-            target,
-            mid + 1,
-            hi,
-          ),
-          false => bsearch(
-            xs,
-            target,
-            lo,
-            mid,
-          ),
+          true => bsearch(xs, target, mid + 1, hi),
+          false => bsearch(xs, target, lo, mid),
         },
       }
     },
@@ -171,10 +144,5 @@ fn bsearch(
 }
 
 pub fn binary_search(xs: Array<number>, target: number) -> Option<number> {
-  return bsearch(
-    xs,
-    target,
-    0,
-    array.len(xs),
-  )
+  return bsearch(xs, target, 0, array.len(xs))
 }

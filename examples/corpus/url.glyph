@@ -21,74 +21,42 @@ const PRINTABLE = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[
 const HEX = "0123456789abcdef"
 
 // The first index of single character `ch` in `s` at or after `from`, or -1.
-fn index_of(
-  s: string,
-  ch: string,
-  from: number,
-) -> number {
+fn index_of(s: string, ch: string, from: number) -> number {
   return match from >= string.len(s) {
     true => -1,
     false => match s[from] == ch {
       true => from,
-      false => index_of(
-        s,
-        ch,
-        from + 1,
-      ),
+      false => index_of(s, ch, from + 1),
     },
   }
 }
 
 // The substring `s[start, end)`, threaded character by character.
-fn slice(
-  s: string,
-  start: number,
-  end: number,
-) -> string {
+fn slice(s: string, start: number, end: number) -> string {
   return match start >= end {
     true => "",
     false => match start >= string.len(s) {
       true => "",
-      false => s[start] + slice(
-        s,
-        start + 1,
-        end,
-      ),
+      false => s[start] + slice(s, start + 1, end),
     },
   }
 }
 
 // The path portion of `u`, everything before the first `?`.
 pub fn path(u: string) -> string {
-  let q = index_of(
-    u,
-    "?",
-    0,
-  )
+  let q = index_of(u, "?", 0)
   return match q < 0 {
     true => u,
-    false => slice(
-      u,
-      0,
-      q,
-    ),
+    false => slice(u, 0, q),
   }
 }
 
 // The raw query string of `u`, everything after the first `?` (no `?`), or "".
 pub fn query_string(u: string) -> string {
-  let q = index_of(
-    u,
-    "?",
-    0,
-  )
+  let q = index_of(u, "?", 0)
   return match q < 0 {
     true => "",
-    false => slice(
-      u,
-      q + 1,
-      string.len(u),
-    ),
+    false => slice(u, q + 1, string.len(u)),
   }
 }
 
@@ -99,9 +67,7 @@ pub fn segments(u: string) -> Array<string> {
   for seg in string.split(path(u), "/") {
     match string.len(seg) == 0 {
       true => {},
-      false => {
-        mut out.push(seg)
-      },
+      false => { mut out.push(seg) },
     }
   }
   return out
@@ -109,11 +75,7 @@ pub fn segments(u: string) -> Array<string> {
 
 // The value of hex digit `c` (0-15), case-insensitive, or None.
 fn hex_val(c: string) -> Option<number> {
-  let idx = index_of(
-    HEX,
-    string.lower(c),
-    0,
-  )
+  let idx = index_of(HEX, string.lower(c), 0)
   return match idx < 0 {
     true => None,
     false => Some(idx),
@@ -189,26 +151,12 @@ pub fn params(u: string) -> Array<Param> {
         match string.len(part) == 0 {
           true => {},
           false => {
-            let eq = index_of(
-              part,
-              "=",
-              0,
-            )
+            let eq = index_of(part, "=", 0)
             match eq < 0 {
-              true => {
-                mut out.push({ key: decode(part), value: "" })
-              },
+              true => { mut out.push({ key: decode(part), value: "" }) },
               false => {
-                let key = decode(slice(
-                  part,
-                  0,
-                  eq,
-                ))
-                let value = decode(slice(
-                  part,
-                  eq + 1,
-                  string.len(part),
-                ))
+                let key = decode(slice(part, 0, eq))
+                let value = decode(slice(part, eq + 1, string.len(part)))
                 mut out.push({ key: key, value: value })
               },
             }
@@ -238,27 +186,15 @@ fn find_param(ps: Array<Param>, name: string) -> Option<string> {
 // A header by name, matched case-insensitively (per RFC 7230), or None, the
 // pure-Glyph mirror of `http.header`.
 pub fn header(headers: Record<string, string>, name: string) -> Option<string> {
-  return find_header(
-    record.keys(headers),
-    headers,
-    string.lower(name),
-  )
+  return find_header(record.keys(headers), headers, string.lower(name))
 }
 
-fn find_header(
-  keys: Array<string>,
-  headers: Record<string, string>,
-  target: string,
-) -> Option<string> {
+fn find_header(keys: Array<string>, headers: Record<string, string>, target: string) -> Option<string> {
   return match keys {
     [] => None,
     [k, ...rest] => match string.lower(k) == target {
       true => record.get(headers, k),
-      false => find_header(
-        rest,
-        headers,
-        target,
-      ),
+      false => find_header(rest, headers, target),
     },
   }
 }

@@ -52,11 +52,7 @@ pub type Outcome =
   // goes straight to `Dead` instead of burning its whole retry budget.
   | Permanent({ error: string })
 
-pub type Policy = {
-  max_attempts: int,
-  base_delay_ms: int,
-  max_delay_ms: int,
-}
+pub type Policy = { max_attempts: int, base_delay_ms: int, max_delay_ms: int }
 
 pub fn default_policy() -> Policy {
   return { max_attempts: 5, base_delay_ms: 1000, max_delay_ms: 60000 }
@@ -66,14 +62,7 @@ pub fn default_policy() -> Policy {
 @example new_job(1, "email", "{}", 100).attempts == 0
 @example is_queued(new_job(1, "email", "{}", 100))
 pub fn new_job(id: int, kind: string, payload: string, now_ms: int) -> Job {
-  return {
-    id: id,
-    kind: kind,
-    payload: payload,
-    status: Queued,
-    attempts: 0,
-    run_after_ms: now_ms,
-  }
+  return { id: id, kind: kind, payload: payload, status: Queued, attempts: 0, run_after_ms: now_ms }
 }
 
 // ---------------------------------------------------------------------------
@@ -327,8 +316,7 @@ fn a_permanent_failure_skips_the_retry_budget() -> bool {
 }
 
 fn a_dead_job_keeps_its_error() -> bool {
-  return last_error(settled(Permanent({ error: "bad payload" }), 1))
-    == Some("bad payload")
+  return last_error(settled(Permanent({ error: "bad payload" }), 1)) == Some("bad payload")
 }
 
 fn retried() -> Job {

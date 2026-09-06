@@ -43,35 +43,49 @@ pub async fn main(argv: Array<string>) -> number {
   let running = false
   let debounce_timer: Option<Timer> = None
 
-  let _pump = every(cfg.poll_ms, fn() {
-    let current = scan.snapshot(cfg.dir, cfg.include, cfg.ignore)
-    let changed = scan.diff(last, current)
-    match array.len(changed) == 0 {
-      true => {},
-      false => {
-        mut last = current
-        let changed_list = string.join(changed, ", ")
-        io.println("watchrun: changed ${changed_list}")
-        match debounce_timer {
-          None => {},
-          Some(t) => { cancel(t) },
-        }
-        mut debounce_timer = Some(after(cfg.debounce_ms, fn() {
-          mut debounce_timer = None
-          match running {
-            true => {},
-            false => {
-              mut running = true
-              runner.run(cfg.cmd, cfg.dir, cfg.log_path, cfg.timeout_ms, fn(result) {
-                mut running = false
-                print_summary(result)
-              })
-            },
+  let _pump = every(
+    cfg.poll_ms,
+    fn() {
+      let current = scan.snapshot(cfg.dir, cfg.include, cfg.ignore)
+      let changed = scan.diff(last, current)
+      match array.len(changed) == 0 {
+        true => {},
+        false => {
+          mut last = current
+          let changed_list = string.join(changed, ", ")
+          io.println("watchrun: changed ${changed_list}")
+          match debounce_timer {
+            None => {},
+            Some(t) => { cancel(t) },
           }
-        }))
-      },
-    }
-  })
+          mut debounce_timer = Some(
+            after(
+              cfg.debounce_ms,
+              fn() {
+                mut debounce_timer = None
+                match running {
+                  true => {},
+                  false => {
+                    mut running = true
+                    runner.run(
+                      cfg.cmd,
+                      cfg.dir,
+                      cfg.log_path,
+                      cfg.timeout_ms,
+                      fn(result) {
+                        mut running = false
+                        print_summary(result)
+                      },
+                    )
+                  },
+                }
+              },
+            ),
+          )
+        },
+      }
+    },
+  )
 
   return 0
 }
@@ -84,5 +98,7 @@ fn print_summary(r: runner.RunResult) -> void {
       false => "FAIL",
     },
   }
-  io.println("watchrun: ${status} exit=${number.to_string(r.code)} ${number.to_string(r.duration_ms)}ms")
+  io.println(
+    "watchrun: ${status} exit=${number.to_string(r.code)} ${number.to_string(r.duration_ms)}ms",
+  )
 }

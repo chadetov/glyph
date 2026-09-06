@@ -10,38 +10,21 @@ import std/string
 import std/array
 import std/option { Option, Some, None }
 
-pub type Version = {
-  major: number,
-  minor: number,
-  patch: number,
-  prerelease: Array<string>,
-}
+pub type Version = { major: number, minor: number, patch: number, prerelease: Array<string> }
 
 // The index of the single char `c` within "0123456789", which is also its
 // numeric value, or None when `c` is not a digit.
 fn digit_value(c: string) -> Option<number> {
   let digits = "0123456789"
-  return index_of_char(
-    digits,
-    c,
-    0,
-  )
+  return index_of_char(digits, c, 0)
 }
 
-fn index_of_char(
-  hay: string,
-  needle: string,
-  i: number,
-) -> Option<number> {
+fn index_of_char(hay: string, needle: string, i: number) -> Option<number> {
   return match i >= string.len(hay) {
     true => None,
     false => match hay[i] == needle {
       true => Some(i),
-      false => index_of_char(
-        hay,
-        needle,
-        i + 1,
-      ),
+      false => index_of_char(hay, needle, i + 1),
     },
   }
 }
@@ -49,20 +32,12 @@ fn index_of_char(
 // Fold the digits of `s` into a non-negative integer, or None if `s` is empty
 // or holds a non-digit. Leading zeros are accepted here; the core parser
 // rejects them separately.
-fn parse_digits_go(
-  s: string,
-  i: number,
-  acc: number,
-) -> Option<number> {
+fn parse_digits_go(s: string, i: number, acc: number) -> Option<number> {
   return match i >= string.len(s) {
     true => Some(acc),
     false => match digit_value(s[i]) {
       None => None,
-      Some(d) => parse_digits_go(
-        s,
-        i + 1,
-        acc * 10 + d,
-      ),
+      Some(d) => parse_digits_go(s, i + 1, acc * 10 + d),
     },
   }
 }
@@ -70,11 +45,7 @@ fn parse_digits_go(
 pub fn parse_digits(s: string) -> Option<number> {
   return match string.len(s) == 0 {
     true => None,
-    false => parse_digits_go(
-      s,
-      0,
-      0,
-    ),
+    false => parse_digits_go(s, 0, 0),
   }
 }
 
@@ -108,11 +79,7 @@ fn all_ident_chars(s: string, i: number) -> bool {
 
 fn is_ident_char(c: string) -> bool {
   let ok = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
-  return match index_of_char(
-    ok,
-    c,
-    0,
-  ) {
+  return match index_of_char(ok, c, 0) {
     Some(_) => true,
     None => false,
   }
@@ -157,12 +124,7 @@ fn finish_parse(nums: Array<string>, pre: Array<string>) -> Option<Version> {
         None => None,
         Some(pat) => match valid_prerelease(pre, 0) {
           false => None,
-          true => Some({
-            major: maj,
-            minor: min,
-            patch: pat,
-            prerelease: pre,
-          }),
+          true => Some({ major: maj, minor: min, patch: pat, prerelease: pre }),
         },
       },
     },
@@ -182,18 +144,10 @@ fn cmp_num(a: number, b: number) -> number {
 
 // ASCII lexical order over two strings, char by char.
 fn cmp_str(a: string, b: string) -> number {
-  return cmp_str_go(
-    a,
-    b,
-    0,
-  )
+  return cmp_str_go(a, b, 0)
 }
 
-fn cmp_str_go(
-  a: string,
-  b: string,
-  i: number,
-) -> number {
+fn cmp_str_go(a: string, b: string, i: number) -> number {
   let la = string.len(a)
   let lb = string.len(b)
   return match i >= la {
@@ -206,11 +160,7 @@ fn cmp_str_go(
       false => {
         let c = cmp_char(a[i], b[i])
         return match c == 0 {
-          true => cmp_str_go(
-            a,
-            b,
-            i + 1,
-          ),
+          true => cmp_str_go(a, b, i + 1),
           false => c,
         }
       },
@@ -244,11 +194,7 @@ fn cmp_ident(x: string, y: string) -> number {
   }
 }
 
-fn cmp_pre_go(
-  a: Array<string>,
-  b: Array<string>,
-  i: number,
-) -> number {
+fn cmp_pre_go(a: Array<string>, b: Array<string>, i: number) -> number {
   let la = array.len(a)
   let lb = array.len(b)
   return match i >= la {
@@ -261,11 +207,7 @@ fn cmp_pre_go(
       false => {
         let c = cmp_ident(a[i], b[i])
         return match c == 0 {
-          true => cmp_pre_go(
-            a,
-            b,
-            i + 1,
-          ),
+          true => cmp_pre_go(a, b, i + 1),
           false => c,
         }
       },
@@ -284,11 +226,7 @@ fn cmp_prerelease(a: Array<string>, b: Array<string>) -> number {
     },
     false => match eb {
       true => -1,
-      false => cmp_pre_go(
-        a,
-        b,
-        0,
-      ),
+      false => cmp_pre_go(a, b, 0),
     },
   }
 }

@@ -59,9 +59,11 @@ async fn main(argv: Array<string>) -> number {
     },
   }
   let rings = array.map(config.source_names(), store.make_ring)
-  return match await http.listen("0.0.0.0", port, fn(req) {
-    return Ok(api.handle(rings, req, time.now()))
-  }) {
+  return match await http.listen(
+    "0.0.0.0",
+    port,
+    fn(req) { return Ok(api.handle(rings, req, time.now())) },
+  ) {
     Ok(server) => {
       io.println("webhook_ingress listening on ${number.to_string(net.port(server))}")
       0

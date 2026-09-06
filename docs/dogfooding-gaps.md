@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-223 entries, 188 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-17 are open. G144, the D28 boundary cast that never reached the returns a
+223 entries, 189 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+16 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6682,7 +6682,7 @@ and is the owner's to confirm.
   claim about a binary rather than about a commit message: a `match` on an
   imported `Box` omitting `Full` reports `E0200: non-exhaustive match on Box:
   missing variants Full`.*
-- **G158. Most of the repo's own Glyph is not what `glyph fmt` produces.**
+- **G158. [FIXED] Most of the repo's own Glyph is not what `glyph fmt` produces.**
   121 of 284 tracked `.glyph` files disagree with the formatter, and nothing
   gates it. Six of those are `tests/negative/` fixtures that are deliberately
   unparseable, so the real number is about 115 files that parse cleanly and are
@@ -6706,6 +6706,21 @@ and is the owner's to confirm.
   reports 121 of 284 not clean. Found while checking whether an edit to
   `examples/apps/feeds/main.glyph` had broken formatting. It had not: that file
   was already unformatted on main, and so were 120 others.*
+
+  **Fixed in 0.1.119.** Re-checked first: `glyph fmt --check` reported 30 of
+  113 under `examples/apps`, 80 of 175 under `examples/`, and 136 of 335
+  tracked `.glyph` files repo-wide. `glyph fmt examples` reformatted the 80; a
+  second pass changed nothing, so none of them is the G151 fixed-point bug.
+  The reformat changed no semantics: `glyph check --no-tsc` on each of the 31
+  apps with its own directory as root, on the five numbered examples and on
+  every corpus file gave the same exit code and diagnostic count before and
+  after, every comment line survived, and `check_apps_are_glyph`,
+  `check_catches`, `check_docs_compile` and the `repo_examples` emit test all
+  pass on the formatted tree. `scripts/check_fmt.py` now runs `glyph fmt
+  --check` over `examples/` in `check_release.py` and CI and fails on any file
+  that would change. The parser fixtures and `tests/negative/` stay as they
+  are, for the reasons above; the 56 files still unformatted repo-wide are all
+  outside `examples/`.
 
 - **G159. Two of the three token-count benchmark fixtures are not Glyph the compiler accepts.**
   `benchmarks/glyph/slugify.glyph` calls `.replace_all(/[^a-z0-9]+/, "-")`, and

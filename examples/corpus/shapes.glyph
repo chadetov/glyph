@@ -8,8 +8,8 @@ type Shape =
 
 fn area(s: Shape) -> number {
   return match s {
-    Circle({ radius }) => (radius * radius),
-    Square({ side }) => (side * side),
-    Rect({ width, height }) => (width * height),
+    Circle({ radius }) => radius * radius,
+    Square({ side }) => side * side,
+    Rect({ width, height }) => width * height,
   }
 }

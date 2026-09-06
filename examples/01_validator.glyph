@@ -24,21 +24,27 @@ type Schema<T> = { name: string, parse: fn(input: unknown) -> Result<T, Array<Is
 // ---------------------------------------------------------------------------
 
 fn string_schema() -> Schema<string> {
-  return { name: "string", parse: fn(input) {
-    match input {
-      is string => Ok(input),
-      else => Err([{ path: [], message: "expected string" }]),
-    }
-  } }
+  return {
+    name: "string",
+    parse: fn(input) {
+      match input {
+        is string => Ok(input),
+        else => Err([{ path: [], message: "expected string" }]),
+      }
+    },
+  }
 }
 
 fn number_schema() -> Schema<number> {
-  return { name: "number", parse: fn(input) {
-    match input {
-      is number => Ok(input),
-      else => Err([{ path: [], message: "expected number" }]),
-    }
-  } }
+  return {
+    name: "number",
+    parse: fn(input) {
+      match input {
+        is number => Ok(input),
+        else => Err([{ path: [], message: "expected number" }]),
+      }
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -55,60 +61,64 @@ fn number_schema() -> Schema<number> {
 // fields; the return type is checked at every call site against what the shape
 // actually produces, so a caller cannot claim a type the shape does not build.
 fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {
-  return { name: "object", parse: fn(input) {
-    match input {
-      is Record<string, unknown> => {
-        let issues: Array<Issue> = []
-        let result: Record<string, unknown> = {}
-        for key, sub_schema in shape {
-          let field = input[key]
-          match sub_schema.parse(field) {
-            Ok(value) => {
-              mut result[key] = value
-            },
-            Err(sub_issues) => {
-              for issue in sub_issues {
-                mut issues.push({ path: [key, ...issue.path], message: issue.message })
-              }
-            },
+  return {
+    name: "object",
+    parse: fn(input) {
+      match input {
+        is Record<string, unknown> => {
+          let issues: Array<Issue> = []
+          let result: Record<string, unknown> = {}
+          for key, sub_schema in shape {
+            let field = input[key]
+            match sub_schema.parse(field) {
+              Ok(value) => { mut result[key] = value },
+              Err(sub_issues) => {
+                for issue in sub_issues {
+                  mut issues.push({ path: [key, ...issue.path], message: issue.message })
+                }
+              },
+            }
           }
-        }
-        match issues.length {
-          0 => Ok(result),
-          else => Err(issues),
-        }
-      },
-      else => Err([{ path: [], message: "expected object" }]),
-    }
-  } }
+          match issues.length {
+            0 => Ok(result),
+            else => Err(issues),
+          }
+        },
+        else => Err([{ path: [], message: "expected object" }]),
+      }
+    },
+  }
 }
 
 fn array_schema<T>(element: Schema<T>) -> Schema<Array<T>> {
-  return { name: "array", parse: fn(input) {
-    match input {
-      is Array<unknown> => {
-        let issues: Array<Issue> = []
-        let result: Array<T> = []
-        for index, item in input {
-          match element.parse(item) {
-            Ok(value) => {
-              mut result.push(value)
-            },
-            Err(sub_issues) => {
-              for issue in sub_issues {
-                mut issues.push({ path: [string.from(index), ...issue.path], message: issue.message })
-              }
-            },
+  return {
+    name: "array",
+    parse: fn(input) {
+      match input {
+        is Array<unknown> => {
+          let issues: Array<Issue> = []
+          let result: Array<T> = []
+          for index, item in input {
+            match element.parse(item) {
+              Ok(value) => { mut result.push(value) },
+              Err(sub_issues) => {
+                for issue in sub_issues {
+                  mut issues.push(
+                    { path: [string.from(index), ...issue.path], message: issue.message },
+                  )
+                }
+              },
+            }
           }
-        }
-        match issues.length {
-          0 => Ok(result),
-          else => Err(issues),
-        }
-      },
-      else => Err([{ path: [], message: "expected array" }]),
-    }
-  } }
+          match issues.length {
+            0 => Ok(result),
+            else => Err(issues),
+          }
+        },
+        else => Err([{ path: [], message: "expected array" }]),
+      }
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +148,10 @@ fn demo() {
       for issue in issues {
         // A prelude `Issue` path segment is a key or an array index, so it is
         // `string | number`; render each one before joining.
-        let location = string.join(array.map(issue.path, fn(p) -> string { return string.from(p) }), ".")
+        let location = string.join(
+          array.map(issue.path, fn(p) -> string { return string.from(p) }),
+          ".",
+        )
         print("${location}: ${issue.message}")
       }
     },

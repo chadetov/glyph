@@ -34,18 +34,10 @@ pub fn to_base(n: number, base: number) -> string {
 }
 
 // Left-pad `s` with the single char `fill` until at least `width` wide.
-pub fn pad_left(
-  s: string,
-  width: number,
-  fill: string,
-) -> string {
+pub fn pad_left(s: string, width: number, fill: string) -> string {
   return match string.len(s) >= width {
     true => s,
-    false => pad_left(
-      fill + s,
-      width,
-      fill,
-    ),
+    false => pad_left(fill + s, width, fill),
   }
 }
 
@@ -66,20 +58,12 @@ fn upto(s: string, end: number) -> string {
 }
 
 // First index of the single char `needle` in `hay`, or None.
-fn index_of(
-  hay: string,
-  needle: string,
-  i: number,
-) -> Option<number> {
+fn index_of(hay: string, needle: string, i: number) -> Option<number> {
   return match i >= string.len(hay) {
     true => None,
     false => match hay[i] == needle {
       true => Some(i),
-      false => index_of(
-        hay,
-        needle,
-        i + 1,
-      ),
+      false => index_of(hay, needle, i + 1),
     },
   }
 }
@@ -118,11 +102,7 @@ pub fn group_thousands(s: string) -> string {
     true => from_index(s, 1),
     false => s,
   }
-  let dot = index_of(
-    body,
-    ".",
-    0,
-  )
+  let dot = index_of(body, ".", 0)
   let int_part = match dot {
     Some(k) => upto(body, k),
     None => body,
@@ -159,10 +139,6 @@ pub fn fixed(x: number, decimals: number) -> string {
   }
   return match decimals <= 0 {
     true => sign + to_base(whole, 10),
-    false => sign + to_base(whole, 10) + "." + pad_left(
-      to_base(frac, 10),
-      decimals,
-      "0",
-    ),
+    false => sign + to_base(whole, 10) + "." + pad_left(to_base(frac, 10), decimals, "0"),
   }
 }

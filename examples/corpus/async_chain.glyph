@@ -12,5 +12,5 @@ async fn fetch_b() -> number {
 async fn combine() -> number {
   let a = await fetch_a()
   let b = await fetch_b()
-  return (a + b)
+  return a + b
 }

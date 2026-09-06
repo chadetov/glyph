@@ -143,11 +143,7 @@ pub fn quantile(xs: Array<number>, q: number) -> Option<number> {
       true => Some(xs[0]),
       false => {
         let s = sorted(xs)
-        let qc = math.clamp(
-          q,
-          0,
-          1,
-        )
+        let qc = math.clamp(q, 0, 1)
         let pos = qc * (n - 1)
         let lo = math.floor(pos)
         let hi = math.min(lo + 1, n - 1)

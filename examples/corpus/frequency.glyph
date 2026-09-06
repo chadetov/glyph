@@ -37,29 +37,17 @@ pub fn contains(bag: Bag, key: string) -> bool {
 // `bag` with `key`'s count changed by `n` (negative to remove). A count that
 // reaches 0 or below drops the key, preserving the "absent means zero"
 // invariant. Value-oriented: a new bag is returned and the input is untouched.
-pub fn add_n(
-  bag: Bag,
-  key: string,
-  n: number,
-) -> Bag {
+pub fn add_n(bag: Bag, key: string, n: number) -> Bag {
   let next = count_of(bag, key) + n
   return match next > 0 {
-    true => record.set(
-      bag,
-      key,
-      next,
-    ),
+    true => record.set(bag, key, next),
     false => record.remove(bag, key),
   }
 }
 
 // `bag` with one more of `key`.
 pub fn add(bag: Bag, key: string) -> Bag {
-  return add_n(
-    bag,
-    key,
-    1,
-  )
+  return add_n(bag, key, 1)
 }
 
 // Count every string in `keys`, growing a bag from empty. `mut out[key] = ...`
@@ -121,11 +109,7 @@ pub fn entries(bag: Bag) -> Array<Entry> {
 
 // The `n` highest-ranked entries.
 pub fn most_common(bag: Bag, n: number) -> Array<Entry> {
-  return array.slice(
-    entries(bag),
-    0,
-    n,
-  )
+  return array.slice(entries(bag), 0, n)
 }
 
 // How many distinct keys the bag holds.
@@ -148,11 +132,7 @@ pub fn total(bag: Bag) -> number {
 pub fn merge(a: Bag, b: Bag) -> Bag {
   let out: Bag = a
   for key, count in b {
-    mut out = add_n(
-      out,
-      key,
-      count,
-    )
+    mut out = add_n(out, key, count)
   }
   return out
 }

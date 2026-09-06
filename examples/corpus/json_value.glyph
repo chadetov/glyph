@@ -20,10 +20,7 @@ pub type Json =
 
 // One object member: a key and its value. Kept as a named record so `JObj`
 // carries an ordered, duplicate-tolerant list rather than a map.
-pub type Entry = {
-  key: string,
-  value: Json,
-}
+pub type Entry = { key: string, value: Json }
 
 // Escape one character into its JSON representation. The five structural
 // escapes plus backspace and form feed are named; everything else passes

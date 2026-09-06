@@ -68,17 +68,20 @@ pub fn snapshot(dir: string, include: Array<string>, ignore: Array<string>) -> S
 pub fn diff(prev: Snapshot, curr: Snapshot) -> Array<string> {
   let curr_keys = record.keys(curr)
   let prev_keys = record.keys(prev)
-  let changed_or_added = array.filter(curr_keys, fn(k: string) -> bool {
-    let curr_mtime = match record.get(curr, k) {
-      Some(v) => v,
-      None => -1,
-    }
-    let prev_mtime = match record.get(prev, k) {
-      Some(v) => v,
-      None => -2,
-    }
-    return curr_mtime != prev_mtime
-  })
+  let changed_or_added = array.filter(
+    curr_keys,
+    fn(k: string) -> bool {
+      let curr_mtime = match record.get(curr, k) {
+        Some(v) => v,
+        None => -1,
+      }
+      let prev_mtime = match record.get(prev, k) {
+        Some(v) => v,
+        None => -2,
+      }
+      return curr_mtime != prev_mtime
+    },
+  )
   let removed = array.filter(prev_keys, fn(k: string) -> bool { !record.has(curr, k) })
   return array.concat(changed_or_added, removed)
 }

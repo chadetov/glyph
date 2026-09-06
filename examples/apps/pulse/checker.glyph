@@ -35,6 +35,7 @@ pub type CheckOutcome =
   | Responded({ status: int, latency_ms: int })
 
 const CRLF: string = "\r\n"
+
 // How often the completion loop wakes up to check whether a callback has
 // settled the outcome yet. Short enough that it does not add meaningfully to
 // a check's latency, long enough not to spin the event loop for nothing.
@@ -69,27 +70,35 @@ async fn exchange(socket: net.Socket, t: Target, timeout_ms: int, started: int) 
   let state: Option<CheckOutcome> = None
   let buffer = ""
 
-  let deadline = timers.after(timeout_ms, fn() {
-    mut state = settle(state, TimedOut)
-  })
+  let deadline = timers.after(timeout_ms, fn() { mut state = settle(state, TimedOut) })
 
-  net.on_text(socket, fn(chunk: string) {
-    mut buffer = "${buffer}${chunk}"
-    match string.index_of(buffer, CRLF) {
-      None => {},
-      Some(at) => {
-        mut state = settle(state, outcome_of(string.slice(buffer, 0, at), started))
-      },
-    }
-  })
+  net.on_text(
+    socket,
+    fn(chunk: string) {
+      mut buffer = "${buffer}${chunk}"
+      match string.index_of(buffer, CRLF) {
+        None => {},
+        Some(at) => { mut state = settle(state, outcome_of(string.slice(buffer, 0, at), started)) },
+      }
+    },
+  )
 
-  net.on_error(socket, fn(message: string) {
-    mut state = settle(state, TlsFailed({ reason: "connection error: ${message}" }))
-  })
+  net.on_error(
+    socket,
+    fn(message: string) {
+      mut state = settle(state, TlsFailed({ reason: "connection error: ${message}" }))
+    },
+  )
 
-  net.on_close(socket, fn() {
-    mut state = settle(state, TlsFailed({ reason: "connection closed before a response arrived" }))
-  })
+  net.on_close(
+    socket,
+    fn() {
+      mut state = settle(
+        state,
+        TlsFailed({ reason: "connection closed before a response arrived" }),
+      )
+    },
+  )
 
   net.send(
     socket,

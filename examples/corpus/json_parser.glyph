@@ -39,11 +39,7 @@ type NumPart = { value: number, pos: number }
 
 // A run of digits read as an integer, how many there were (for fraction
 // scaling), and the resume index.
-type DigitsRead = {
-  value: number,
-  count: number,
-  pos: number,
-}
+type DigitsRead = { value: number, count: number, pos: number }
 
 // The four JSON whitespace characters.
 fn is_ws(c: string) -> bool {
@@ -110,52 +106,24 @@ fn pow10(n: number) -> number {
 
 // Read a maximal run of digits from `i`, folding them into `acc` most
 // significant first and counting how many were consumed.
-fn read_digits(
-  s: string,
-  i: number,
-  acc: number,
-  count: number,
-) -> DigitsRead {
+fn read_digits(s: string, i: number, acc: number, count: number) -> DigitsRead {
   return match i >= string.len(s) {
-    true => {
-      value: acc,
-      count: count,
-      pos: i,
-    },
+    true => { value: acc, count: count, pos: i },
     false => match is_digit(s[i]) {
-      true => read_digits(
-        s,
-        i + 1,
-        acc * 10 + digit_val(s[i]),
-        count + 1,
-      ),
-      false => {
-        value: acc,
-        count: count,
-        pos: i,
-      },
+      true => read_digits(s, i + 1, acc * 10 + digit_val(s[i]), count + 1),
+      false => { value: acc, count: count, pos: i },
     },
   }
 }
 
 // Does the literal `word` appear at position `i` of `s`? A character walk.
-fn matches_at(
-  s: string,
-  i: number,
-  word: string,
-  k: number,
-) -> bool {
+fn matches_at(s: string, i: number, word: string, k: number) -> bool {
   return match k >= string.len(word) {
     true => true,
     false => match i + k >= string.len(s) {
       true => false,
       false => match s[i + k] == word[k] {
-        true => matches_at(
-          s,
-          i,
-          word,
-          k + 1,
-        ),
+        true => matches_at(s, i, word, k + 1),
         false => false,
       },
     },
@@ -164,18 +132,8 @@ fn matches_at(
 
 // Match one of the three keyword literals (`true`, `false`, `null`) and yield
 // the corresponding `Json`, or an error if the spelling does not line up.
-fn parse_keyword(
-  s: string,
-  i: number,
-  word: string,
-  value: Json,
-) -> Result<VParsed, string> {
-  return match matches_at(
-    s,
-    i,
-    word,
-    0,
-  ) {
+fn parse_keyword(s: string, i: number, word: string, value: Json) -> Result<VParsed, string> {
+  return match matches_at(s, i, word, 0) {
     true => Ok({ value: value, pos: i + string.len(word) }),
     false => Err("invalid literal at " + string.from(i)),
   }
@@ -196,19 +154,11 @@ fn unescape(e: string) -> Option<string> {
 }
 
 // Handle the character after a backslash inside a string, then resume scanning.
-fn parse_escape(
-  s: string,
-  i: number,
-  acc: string,
-) -> Result<SParsed, string> {
+fn parse_escape(s: string, i: number, acc: string) -> Result<SParsed, string> {
   return match i >= string.len(s) {
     true => Err("dangling escape"),
     false => match unescape(s[i]) {
-      Some(ch) => scan_string(
-        s,
-        i + 1,
-        acc + ch,
-      ),
+      Some(ch) => scan_string(s, i + 1, acc + ch),
       None => Err("unsupported escape at " + string.from(i)),
     },
   }
@@ -216,26 +166,14 @@ fn parse_escape(
 
 // Scan the body of a string from `i`, accumulating decoded characters until the
 // closing quote. `i` points at the first body character (past the open quote).
-fn scan_string(
-  s: string,
-  i: number,
-  acc: string,
-) -> Result<SParsed, string> {
+fn scan_string(s: string, i: number, acc: string) -> Result<SParsed, string> {
   return match i >= string.len(s) {
     true => Err("unterminated string"),
     false => match s[i] == "\"" {
       true => Ok({ text: acc, pos: i + 1 }),
       false => match s[i] == "\\" {
-        true => parse_escape(
-          s,
-          i + 1,
-          acc,
-        ),
-        false => scan_string(
-          s,
-          i + 1,
-          acc + s[i],
-        ),
+        true => parse_escape(s, i + 1, acc),
+        false => scan_string(s, i + 1, acc + s[i]),
       },
     },
   }
@@ -244,11 +182,7 @@ fn scan_string(
 // Parse a quoted string whose opening quote is at `i`, returning its decoded
 // body.
 fn parse_string_raw(s: string, i: number) -> Result<SParsed, string> {
-  return scan_string(
-    s,
-    i + 1,
-    "",
-  )
+  return scan_string(s, i + 1, "")
 }
 
 // The string case of a JSON value.
@@ -261,22 +195,13 @@ fn parse_string_value(s: string, i: number) -> Result<VParsed, string> {
 
 // If a `.` follows the integer part, read the fractional digits and fold them in
 // by dividing by the appropriate power of ten.
-fn build_fraction(
-  s: string,
-  i: number,
-  whole: number,
-) -> NumPart {
+fn build_fraction(s: string, i: number, whole: number) -> NumPart {
   return match i >= string.len(s) {
     true => { value: whole, pos: i },
     false => match s[i] == "." {
       false => { value: whole, pos: i },
       true => {
-        let frac = read_digits(
-          s,
-          i + 1,
-          0,
-          0,
-        )
+        let frac = read_digits(s, i + 1, 0, 0)
         return { value: whole + frac.value / pow10(frac.count), pos: frac.pos }
       },
     },
@@ -293,11 +218,7 @@ fn is_exp_marker(c: string) -> bool {
 
 // If an `e`/`E` exponent follows, read its optional sign and digits and scale
 // the value by that power of ten.
-fn apply_exponent(
-  s: string,
-  i: number,
-  value: number,
-) -> NumPart {
+fn apply_exponent(s: string, i: number, value: number) -> NumPart {
   return match i >= string.len(s) {
     true => { value: value, pos: i },
     false => match is_exp_marker(s[i]) {
@@ -318,12 +239,7 @@ fn apply_exponent(
           true => i + 2,
           false => i + 1,
         }
-        let ed = read_digits(
-          s,
-          start,
-          0,
-          0,
-        )
+        let ed = read_digits(s, start, 0, 0)
         let factor = pow10(ed.value)
         let scaled = match neg {
           true => value / factor,
@@ -351,22 +267,9 @@ fn parse_number(s: string, i: number) -> Result<VParsed, string> {
     false => match is_digit(s[j]) {
       false => Err("expected digit at " + string.from(j)),
       true => {
-        let intp = read_digits(
-          s,
-          j,
-          0,
-          0,
-        )
-        let fracp = build_fraction(
-          s,
-          intp.pos,
-          intp.value,
-        )
-        let expp = apply_exponent(
-          s,
-          fracp.pos,
-          fracp.value,
-        )
+        let intp = read_digits(s, j, 0, 0)
+        let fracp = build_fraction(s, intp.pos, intp.value)
+        let expp = apply_exponent(s, fracp.pos, fracp.value)
         let signed = match neg {
           true => 0 - expp.value,
           false => expp.value,
@@ -379,11 +282,7 @@ fn parse_number(s: string, i: number) -> Result<VParsed, string> {
 
 // Parse the comma-separated tail of an array, having already consumed `[` and
 // any leading value separator, accumulating items until `]`.
-fn parse_array_items(
-  s: string,
-  i: number,
-  acc: Array<Json>,
-) -> Result<VParsed, string> {
+fn parse_array_items(s: string, i: number, acc: Array<Json>) -> Result<VParsed, string> {
   return match parse_value(s, i) {
     Err(e) => Err(e),
     Ok(p) => {
@@ -393,11 +292,7 @@ fn parse_array_items(
         true => Err("unterminated array"),
         false => match s[next] {
           "]" => Ok({ value: JArr({ items: items }), pos: next + 1 }),
-          "," => parse_array_items(
-            s,
-            next + 1,
-            items,
-          ),
+          "," => parse_array_items(s, next + 1, items),
           else => Err("expected , or ] at " + string.from(next)),
         },
       }
@@ -412,22 +307,14 @@ fn parse_array(s: string, i: number) -> Result<VParsed, string> {
     true => Err("unterminated array"),
     false => match s[j] == "]" {
       true => Ok({ value: JArr({ items: [] }), pos: j + 1 }),
-      false => parse_array_items(
-        s,
-        j,
-        [],
-      ),
+      false => parse_array_items(s, j, []),
     },
   }
 }
 
 // Parse the members of an object one `"key": value` pair at a time, accumulating
 // entries until `}`.
-fn parse_object_members(
-  s: string,
-  i: number,
-  acc: Array<Entry>,
-) -> Result<VParsed, string> {
+fn parse_object_members(s: string, i: number, acc: Array<Entry>) -> Result<VParsed, string> {
   let j = skip_ws(s, i)
   return match j >= string.len(s) {
     true => Err("unterminated object"),
@@ -450,11 +337,7 @@ fn parse_object_members(
                     true => Err("unterminated object"),
                     false => match s[next] {
                       "}" => Ok({ value: JObj({ entries: entries }), pos: next + 1 }),
-                      "," => parse_object_members(
-                        s,
-                        next + 1,
-                        entries,
-                      ),
+                      "," => parse_object_members(s, next + 1, entries),
                       else => Err("expected , or } at " + string.from(next)),
                     },
                   }
@@ -475,11 +358,7 @@ fn parse_object(s: string, i: number) -> Result<VParsed, string> {
     true => Err("unterminated object"),
     false => match s[j] == "}" {
       true => Ok({ value: JObj({ entries: [] }), pos: j + 1 }),
-      false => parse_object_members(
-        s,
-        j,
-        [],
-      ),
+      false => parse_object_members(s, j, []),
     },
   }
 }
@@ -494,24 +373,9 @@ fn parse_value(s: string, i: number) -> Result<VParsed, string> {
       "{" => parse_object(s, j),
       "[" => parse_array(s, j),
       "\"" => parse_string_value(s, j),
-      "t" => parse_keyword(
-        s,
-        j,
-        "true",
-        JBool({ value: true }),
-      ),
-      "f" => parse_keyword(
-        s,
-        j,
-        "false",
-        JBool({ value: false }),
-      ),
-      "n" => parse_keyword(
-        s,
-        j,
-        "null",
-        JNull,
-      ),
+      "t" => parse_keyword(s, j, "true", JBool({ value: true })),
+      "f" => parse_keyword(s, j, "false", JBool({ value: false })),
+      "n" => parse_keyword(s, j, "null", JNull),
       else => parse_number(s, j),
     },
   }

@@ -54,15 +54,7 @@ pub fn civil_from_days(z0: number) -> DateTime {
     true => y + 1,
     false => y,
   }
-  return {
-    year: year,
-    month: m,
-    day: d,
-    hour: 0,
-    minute: 0,
-    second: 0,
-    millis: 0,
-  }
+  return { year: year, month: m, day: d, hour: 0, minute: 0, second: 0, millis: 0 }
 }
 
 // Break an epoch-millisecond instant into UTC calendar fields. The day count is
@@ -126,7 +118,10 @@ fn field(n: number, width: number) -> string {
 // signed form, which this deliberately does not emit.
 pub fn format_iso(ms: number) -> string {
   let dt = from_epoch_ms(ms)
-  return field(dt.year, 4) + "-" + field(dt.month, 2) + "-" + field(dt.day, 2) + "T" + field(dt.hour, 2) + ":" + field(dt.minute, 2) + ":" + field(dt.second, 2) + "." + field(dt.millis, 3) + "Z"
+  return field(dt.year, 4) + "-" + field(dt.month, 2) + "-" + field(dt.day, 2) + "T" + field(
+    dt.hour,
+    2,
+  ) + ":" + field(dt.minute, 2) + ":" + field(dt.second, 2) + "." + field(dt.millis, 3) + "Z"
 }
 
 // The UTC weekday of an instant: 0 = Sunday .. 6 = Saturday. The epoch, a
@@ -143,15 +138,7 @@ pub fn weekday(ms: number) -> number {
 
 // The English weekday name, or None when the index is out of 0..6.
 pub fn weekday_name(i: number) -> Option<string> {
-  let names = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ]
+  let names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
   return match i < 0 {
     true => None,
     false => match i >= 7 {

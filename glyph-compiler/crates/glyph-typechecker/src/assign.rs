@@ -2073,9 +2073,18 @@ impl Assigner<'_> {
         let SymbolKind::Type { decl_idx } = sym.kind else {
             return None;
         };
-        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+        let Decl::Type(_) = self.module.items.get(decl_idx as usize)? else {
             return None;
         };
+        // `T.parse` is a member of the descriptor `T` names. Under D45 a second
+        // name names the same descriptor, so `B.parse` with `type B = A` is
+        // `A.parse` and its result is checked as an `A`; the emitter binds the
+        // value alias that makes the call exist at run time.
+        let named = Ty::Named {
+            symbol: SymbolRef(id.0),
+            path: vec![sym.name.clone()],
+        };
+        let td = self.local_type_decl(&named)?;
         if !td.generics.is_empty() {
             return None;
         }
@@ -2089,10 +2098,9 @@ impl Assigner<'_> {
         if !has_descriptor {
             return None;
         }
-        let parsed = Ty::Named {
-            symbol: SymbolRef(id.0),
-            path: vec![td.name.clone()],
-        };
+        // The parsed value is a `T`, which is the type the author wrote; under
+        // the alias hop it compares equal to the declaration it names.
+        let parsed = named;
         let issue_id = self.lowerer.prelude.lookup("Issue")?;
         let issues = self.stdlib_array_ty(Ty::Named {
             symbol: SymbolRef(issue_id.0),
@@ -4521,12 +4529,25 @@ impl Assigner<'_> {
     /// those could index an unrelated module-local declaration and answer for
     /// it.
     ///
-    /// Nothing here follows an alias. The body comes back exactly as written,
-    /// which is what lets a caller distinguish "declared as a record" from
-    /// "declared as a path that might be anything".
+    /// A second name is followed to the declaration it names (D45). `type B =
+    /// A` declares no type of its own, so asking for `B`'s declaration answers
+    /// `A`'s, through any length of chain, and the body that comes back is the
+    /// one the chain ends at. What counts as a second name is decided in
+    /// `alias_target`; a body of any other form is the declaration's own and
+    /// comes back exactly as written, which is what lets a caller distinguish
+    /// "declared as a record" from "declared as a generic application that
+    /// might be anything".
     fn local_type_decl(&self, ty: &Ty) -> Option<&glyph_ast::TypeDecl> {
         let (base, _args) = split_type_app(ty);
-        let Ty::Named { symbol, path } = base else { return None };
+        let canonical = self.resolve_alias_chain(base);
+        self.direct_type_decl(&canonical)
+    }
+
+    /// `local_type_decl` without the alias hop: the declaration `ty` names as
+    /// written, or `None`. The one place the symbol table is read for a
+    /// module-local type, so the collision guard lives here once.
+    fn direct_type_decl(&self, ty: &Ty) -> Option<&glyph_ast::TypeDecl> {
+        let Ty::Named { symbol, path } = ty else { return None };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
         if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
             return None;
@@ -4536,6 +4557,111 @@ impl Assigner<'_> {
             return None;
         };
         Some(td)
+    }
+
+    /// The type `td` is a second name for, when it is one (D45): its body is a
+    /// single bare name, it declares no generic parameters, and it carries no
+    /// `where`. Lowering that body gives the `Ty::Named` of the declaration
+    /// it names, which is the next hop. `None` for every other body, which is
+    /// the declaration's own type rather than another's: a record, a union, a
+    /// string-literal union, an `extern_ts` or `typeof` body, a function type,
+    /// a generic application (`Record<string, T>`, `Wrapper<T>`), a
+    /// refinement, and a bare name that lowers to something other than a
+    /// module-local declaration (a primitive, an import). No incompatibility
+    /// is decided from a body not being followed; the corpus holds six
+    /// `Record<string, T>` and `Array<..>` aliases, and reading those as
+    /// nominal would reject programs `tsc` accepts.
+    fn alias_target(&self, td: &glyph_ast::TypeDecl) -> Option<Ty> {
+        if !td.generics.is_empty() || td.refinement.is_some() {
+            return None;
+        }
+        let TypeExpr::Path { segments, .. } = &td.body else {
+            return None;
+        };
+        if segments.len() != 1 {
+            return None;
+        }
+        match self.lowerer.lower(&td.body) {
+            named @ Ty::Named { .. } => Some(named),
+            _ => None,
+        }
+    }
+
+    /// Follow `ty` through second names to the declaration the chain ends at,
+    /// answering the `Ty::Named` of that declaration; anything that is not a
+    /// module-local alias answers unchanged. The resolver accepts `type A = B`
+    /// beside `type B = A`, so a cycle is guarded, and answers the type as
+    /// written: a name that names nothing resolves to nothing further.
+    fn resolve_alias_chain(&self, ty: &Ty) -> Ty {
+        let mut current = ty.clone();
+        let mut seen: HashSet<u32> = HashSet::new();
+        loop {
+            let Ty::Named { symbol, .. } = &current else {
+                return current;
+            };
+            if !seen.insert(symbol.0) {
+                return ty.clone();
+            }
+            let Some(td) = self.direct_type_decl(&current) else {
+                return current;
+            };
+            match self.alias_target(td) {
+                Some(next) => current = next,
+                None => return current,
+            }
+        }
+    }
+
+    /// `resolve_alias_chain` applied to every name inside `ty`, so two types
+    /// that differ only in which name they use for a declaration compare
+    /// equal wherever they are compared: at the top, inside a generic
+    /// application's arguments, in a record's fields, in a function's
+    /// parameters and return, in a union's payloads.
+    fn canonicalize_aliases(&self, ty: &Ty) -> Ty {
+        match ty {
+            Ty::Named { .. } => self.resolve_alias_chain(ty),
+            Ty::App { base, args } => Ty::App {
+                base: Arc::new(self.canonicalize_aliases(base)),
+                args: args.iter().map(|a| self.canonicalize_aliases(a)).collect(),
+            },
+            Ty::Fn {
+                params,
+                return_ty,
+                is_async,
+            } => Ty::Fn {
+                params: params
+                    .iter()
+                    .map(|p| FnParam {
+                        name: p.name.clone(),
+                        owned: p.owned,
+                        ty: self.canonicalize_aliases(&p.ty),
+                        optional: p.optional,
+                    })
+                    .collect(),
+                return_ty: Arc::new(self.canonicalize_aliases(return_ty)),
+                is_async: *is_async,
+            },
+            Ty::Record { fields } => Ty::Record {
+                fields: fields
+                    .iter()
+                    .map(|f| RecordField {
+                        name: f.name.clone(),
+                        ty: self.canonicalize_aliases(&f.ty),
+                        optional: f.optional,
+                    })
+                    .collect(),
+            },
+            Ty::Union { variants } => Ty::Union {
+                variants: variants
+                    .iter()
+                    .map(|v| UnionVariant {
+                        name: v.name.clone(),
+                        payload: v.payload.as_ref().map(|p| self.canonicalize_aliases(p)),
+                    })
+                    .collect(),
+            },
+            _ => ty.clone(),
+        }
     }
 
     /// Whether `ty` is a name for a declaration in this file whose body is a
@@ -4738,10 +4864,21 @@ impl Assigner<'_> {
 
     /// `named_record_fields` with the declaration it read them from. A record
     /// declared in this file, so the owning module is this file's own key.
+    ///
+    /// The owner is the record the alias chain ends at, not the name the use
+    /// site reached it by, which is the rule `imported_record_shape` already
+    /// applies across a module boundary: `type B = A` declares no field of its
+    /// own, so a site reading `b.x` through it is a site over `A.x`, and
+    /// keying it under `B` would put it in the impact set of a rename that
+    /// cannot touch it.
     fn named_record_shape(&self, ty: &Ty, args: &[Ty]) -> Option<RecordShape> {
         let fields = self.named_record_fields(ty, args)?;
+        let td = self.local_type_decl(ty)?;
         Some(RecordShape {
-            owner: self.local_owner(ty)?,
+            owner: FieldOwner::Declared {
+                module: self.own_module_key(),
+                name: td.name.to_string(),
+            },
             fields,
         })
     }
@@ -4886,24 +5023,19 @@ impl Assigner<'_> {
     }
 
     /// The field set of a `Ty::Named` record declaration, with any generic
-    /// parameters substituted by `args`. Guards against the prelude/module
-    /// symbol-id collision (a prelude `Ty::Named` like `Array` could otherwise
-    /// index an unrelated module record) by requiring the resolved symbol's name
-    /// to match the type's lexical path — the same guard the emitter uses.
+    /// parameters substituted by `args`. Reads the declaration through
+    /// `local_type_decl`, so it carries the collision guard and follows a
+    /// second name to the record it names (D45): a `b: B` with `type B = A`
+    /// has `A`'s fields, as it already did when both were imported.
     fn named_record_fields(&self, ty: &Ty, args: &[Ty]) -> Option<Vec<RecordField>> {
-        let Ty::Named { symbol, path } = ty else {
-            return None;
-        };
-        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return None;
-        }
-        let SymbolKind::Type { decl_idx } = sym.kind else {
-            return None;
-        };
-        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
-            return None;
-        };
+        let td = self.local_type_decl(ty)?;
+        self.record_decl_fields(td, args)
+    }
+
+    /// The field set of the record declaration `td`, with its generic
+    /// parameters substituted by `args`. `None` for a body that is not a
+    /// record.
+    fn record_decl_fields(&self, td: &glyph_ast::TypeDecl, args: &[Ty]) -> Option<Vec<RecordField>> {
         if !matches!(&td.body, TypeExpr::Record { .. }) {
             return None;
         }
@@ -5088,7 +5220,16 @@ impl Assigner<'_> {
                 }
             }
         }
-        definitely_incompatible(found, expected)
+        // D45. Two names for one declaration are one type, so each side is
+        // rewritten to the declaration its names resolve to before the nominal
+        // comparison reads them. Without this `takes_a(b)` with `type B = A`
+        // was E0211 on a program `tsc --strict` accepts (G203), because
+        // `definitely_incompatible` compares a `Ty::Named` by its lexical path
+        // and has no declaration to look up.
+        definitely_incompatible(
+            &self.canonicalize_aliases(found),
+            &self.canonicalize_aliases(expected),
+        )
     }
 
     /// The declaration and ordered variant list of a union declared in another
@@ -11449,6 +11590,166 @@ fn f(a: Answer) -> number {
         assert!(
             errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { found, .. } if found == "bool")),
             "{errs:?}"
+    /// D45. `type B = A` is a second name for `A`'s declaration, so a `B`
+    /// passes where an `A` is declared and the reverse. G203 recorded the
+    /// E0211 this used to draw, on a program `tsc --strict` accepts.
+    #[test]
+    fn a_bare_path_alias_is_a_second_name_for_the_declaration_it_resolves_to() {
+        let errs = errors_of(
+            "module x\n\
+             type A = { x: number, }\n\
+             type B = A\n\
+             fn takes_a(a: A) -> number {\n  return a.x\n}\n\
+             fn takes_b(b: B) -> number {\n  return b.x\n}\n\
+             fn go(a: A, b: B) -> number {\n  return takes_a(b) + takes_b(a)\n}\n",
+        );
+        assert!(errs.is_empty(), "an alias passes both ways: {errs:?}");
+    }
+
+    /// The hop reads a chain and stops at the declaration, so two aliases of
+    /// one record are one type between themselves as well, and an alias one
+    /// level inside a generic application is resolved where the application's
+    /// arguments are compared.
+    #[test]
+    fn an_alias_chain_is_followed_to_its_end() {
+        let errs = errors_of(
+            "module x\n\
+             type A = { x: number, }\n\
+             type B = A\n\
+             type C = B\n\
+             fn takes_a(a: A) -> number {\n  return a.x\n}\n\
+             fn takes_bs(bs: Array<B>) -> number {\n  return 1\n}\n\
+             fn go(c: C, cs: Array<C>) -> number {\n  return takes_a(c) + takes_bs(cs)\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// Nominal typing is untouched where no alias is involved: a second record
+    /// of the same shape is another type (Q15), and the E0211 stays.
+    #[test]
+    fn a_separately_declared_record_of_the_same_shape_is_still_another_type() {
+        let errs = errors_of(
+            "module x\n\
+             type A = { x: number, }\n\
+             type C = { x: number, }\n\
+             fn takes_a(a: A) -> number {\n  return a.x\n}\n\
+             fn go(c: C) -> number {\n  return takes_a(c)\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "{errs:?}"
+        );
+    }
+
+    /// A generic application is not a bare path and is not followed, and the
+    /// ruling decides no new incompatibility from that, so the answer for
+    /// `type Boxed<T> = W<T>` against `W<number>` is what it was before: the
+    /// nominal E0211. Pinned so a widening of the hop is a deliberate change.
+    #[test]
+    fn a_generic_application_alias_is_not_followed() {
+        let errs = errors_of(
+            "module x\n\
+             type W<T> = { v: T, }\n\
+             type Boxed<T> = W<T>\n\
+             fn takes_w(w: W<number>) -> number {\n  return 1\n}\n\
+             fn go(b: Boxed<number>) -> number {\n  return takes_w(b)\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "{errs:?}"
+        );
+    }
+
+    /// G206. A field typo through a module-local alias is E0210, as it already
+    /// was through the same alias imported from a sibling module.
+    #[test]
+    fn a_field_typo_through_a_local_alias_is_e0210() {
+        let errs = errors_of(
+            "module x\n\
+             type A = { x: number, }\n\
+             type B = A\n\
+             fn go(b: B) -> number {\n  return b.naem\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, .. } if field == "naem"
+            )),
+            "{errs:?}"
+        );
+    }
+
+    /// `B.parse` is `A.parse`: the descriptor member resolves through the
+    /// alias, so the parsed value carries the record's field set.
+    #[test]
+    fn parse_on_a_local_alias_resolves_to_the_records_descriptor() {
+        let errs = errors_of(
+            "module x\n\
+             type A = { x: number, }\n\
+             type B = A\n\
+             fn go(v: unknown) -> number {\n\
+             \x20 return match B.parse(v) {\n\
+             \x20\x20\x20 Ok(p) => p.naem,\n\
+             \x20\x20\x20 Err(_) => 0,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, .. } if field == "naem"
+            )),
+            "{errs:?}"
+        );
+    }
+
+    /// A field reached through an alias is a site over the record the chain
+    /// ends at, which is the rule the cross-module path already applies: an
+    /// alias declares no field of its own, so keying the site under it would
+    /// put it in the impact set of a rename that cannot touch it.
+    #[test]
+    fn a_field_access_through_a_local_alias_is_keyed_under_the_record() {
+        struct NoCrossModule;
+        impl DeclTyResolver for NoCrossModule {
+            fn decl_ty(&self, _decl_idx: u32) -> Ty {
+                Ty::Unknown
+            }
+        }
+        let src = "module x\n\
+                   type A = { x: number, }\n\
+                   type B = A\n\
+                   fn go(b: B) -> number {\n  return b.x\n}\n";
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let (_tm, ty_errs, _cov, uses) =
+            assign_types_with_relations(&m, &resolved, &prelude, &NoCrossModule);
+        assert!(ty_errs.is_empty(), "{ty_errs:?}");
+        let reads: Vec<_> = uses
+            .sites()
+            .iter()
+            .filter(|s| matches!(s.access(), FieldAccess::Read))
+            .collect();
+        assert_eq!(reads.len(), 1, "one read of `x`: {:?}", uses.sites());
+        assert!(
+            matches!(reads[0].owner(), FieldOwner::Declared { name, .. } if name == "A"),
+            "keyed under the record, not the alias: {:?}",
+            reads[0].owner()
+        );
+    }
+
+    /// `type A = B` and `type B = A` name nothing. The resolver accepts the
+    /// pair today, so the hop has to terminate on it rather than loop.
+    #[test]
+    fn a_cyclic_alias_pair_terminates() {
+        let _ = errors_of(
+            "module x\n\
+             type A = B\n\
+             type B = A\n\
+             fn f(a: A) -> number {\n  return 1\n}\n\
+             fn go(b: B) -> number {\n  return f(b)\n}\n",
         );
     }
 }

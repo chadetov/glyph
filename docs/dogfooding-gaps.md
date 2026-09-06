@@ -6741,7 +6741,17 @@ and is the owner's to confirm.
   which is the minimum. Whether the socket wait itself is wrong is a separate
   question the deadline would give evidence for.
 
-  *Reproduced against 0.1.110: `net_carries_a_split_character_and_reports_a_bind_failure` still carries no timeout of its own. Previously, against 0.1.104:  during release verification: `ps -eo etime,pid`
+  *Reproduced against 0.1.115, during its release verification on 2026-09-05:
+  three worktrees ran the workspace suite in parallel and all three hung inside
+  this test at the same time, each `glyph run` child alive 11h with its `tsx`
+  and `esbuild` children, until killed by hand; the test then reported exit -1.
+  `a_tls_dial_against_a_silent_peer_is_bounded` failed in the same run with
+  "the program never exited". Both pass alone on the same code in 4 to 6
+  seconds. Six `tsx` and `esbuild` processes from an earlier run were still
+  alive at PPID 1, 16h old. Ports are chosen from the pid, so this is not a
+  port collision between the three runs; the shared `glyph-run-cache`
+  directory under the system temp dir is the one thing all three touched.
+  Previously, against 0.1.110: `net_carries_a_split_character_and_reports_a_bind_failure` still carried no timeout of its own. Against 0.1.104:  during release verification: `ps -eo etime,pid`
   shows the three processes above, and the run that spawned them had already
   exited. Two independent verification passes hit the same test in the same way
   under concurrent load.*

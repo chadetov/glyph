@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-205 entries, 169 are fixed, 11 are partly fixed, 11 are decided or resolved, and
-14 are open. G144, the D28 boundary cast that never reached the returns a
+205 entries, 170 are fixed, 11 are partly fixed, 11 are decided or resolved, and
+13 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7866,8 +7866,12 @@ and is the owner's to confirm.
   alias, a string-literal union (D30), an `extern_ts` or `typeof` body and an
   `interface` all stay silent as before, and `void` is excluded; the argument,
   `return` and `let` annotation positions gain the diagnostic together, since
-  they share the relation. Breaking, established by running the published
-  0.1.114 and this tree on the same programs: exit 0 before, exit 1 after.
+  they share the relation. The reverse direction landed in the same release:
+  a `string`, `number` or `bool` where a locally declared union or record is
+  expected is a mismatch too, with one exclusion stated beside the rule, the
+  zero-field record `type T = { }`, which TypeScript lets a string satisfy.
+  Breaking, established by running the published 0.1.114 and this tree on the
+  same programs: exit 0 before, exit 1 after.
   The wider question this entry also named, how much of assignability should
   become decidable, is not owed by this fix and is unaddressed; making
   `change_signature_type` answerable for this call-site shape in `glyph_impact`
@@ -7922,7 +7926,7 @@ and is the owner's to confirm.
   independently-declared `type C = { x: number }` reports the same code by
   design, which is not this entry's complaint.*
 
-- **G204. A module-level `const`'s own initializer is never checked against
+- **G204. [FIXED] A module-level `const`'s own initializer is never checked against
   its declared type.** `const X: number = "hi"` at module scope compiles with
   no diagnostic; the identical mismatch as a `let` inside a function is
   `E0204`. `tsc --strict` catches the const too, as `TS2322`, so
@@ -7934,6 +7938,16 @@ and is the owner's to confirm.
   nothing about whether the const's own initializer agrees with the
   annotation it now carries, and the initializer is exactly the gap this
   entry names.
+
+  **Fixed in 0.1.116.** The `Decl::Const` arm of the declaration walk in
+  `glyph-typechecker/src/assign.rs` now lowers the annotation and checks the
+  initializer's type against it with `assign_incompatible`, raising E0204 the
+  way an annotated `let` does. An unannotated const is not judged, since
+  inferring from the initializer is a different question. The corpus was
+  swept first: 50 annotated module consts across 175 modules and 31 apps, none
+  flagged, so no corpus file changed. Breaking, established by running the
+  published 0.1.114 and this tree on `const LIMIT: number = "ten"`: exit 0
+  before, exit 1 after.
 
   *Reproduced against 0.1.114: `const X: number = "hi"` at module scope is
   `0 error(s)` under `glyph check --no-tsc`; the identical assignment as

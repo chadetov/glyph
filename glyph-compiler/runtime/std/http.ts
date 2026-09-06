@@ -61,8 +61,12 @@ export type Response = {
 /// aborted because it outlived its budget; `network` is one that never got an
 /// answer (DNS, refused connection); `status` is a response that arrived and
 /// was not ok. A caller that must tell "the site is slow" from "the site is
-/// gone" had no way to before, because both were `status: 0`.
-export type HttpErrorKind = "timeout" | "network" | "status";
+/// gone" had no way to before, because both were `status: 0`. `argument` is a
+/// request that was never issued because one of its arguments was invalid (a
+/// deadline `setTimeout` cannot hold); it is the caller's bug, not the
+/// network's, and reporting it as either of the others would be the confident
+/// wrong answer this field exists to remove.
+export type HttpErrorKind = "timeout" | "network" | "status" | "argument";
 
 export type HttpError = { status: number; message: string; kind: HttpErrorKind };
 
@@ -82,7 +86,8 @@ export type RedirectPolicy = "follow" | "manual" | "error";
 /// that accepted the connection and will never answer. `timeout_ms` of 0 means
 /// no timeout; write it at the call site when that is what you mean, so the
 /// opt-out is one greppable literal. A deadline above 2 147 483 647 (2^31-1,
-/// the most `setTimeout` can hold) is refused with an `Err` naming the limit.
+/// the most `setTimeout` can hold) is refused with an `Err` of
+/// `kind: "argument"` naming the limit.
 export type Fetch = {
   url: string;
   method: string;
@@ -483,14 +488,13 @@ async function request(
   // 35-day bound aborted the request in 1ms and reported the 35 days as
   // elapsed: a confident wrong answer, worse than the hang the deadline
   // replaces. `int` arithmetic reaches the limit without anyone writing a
-  // suspicious literal, `days * 86400 * 1000` being enough. Reported under
-  // `network` because the request was never issued, and because a fourth
-  // `HttpErrorKind` would break every exhaustive `match e.kind` on upgrade.
+  // suspicious literal, `days * 86400 * 1000` being enough. It is the
+  // caller's argument that is wrong, so the kind says so.
   if (bounds.timeout_ms > MAX_TIMEOUT_MS) {
     return Err({
       status: 0,
       message: `a request deadline must be at most ${String(MAX_TIMEOUT_MS)}ms, got ${String(bounds.timeout_ms)}`,
-      kind: "network",
+      kind: "argument",
     });
   }
   // An `AbortController` cancels the request itself. Racing a timer against the

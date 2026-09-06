@@ -5987,6 +5987,7 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
                     "timeout".to_string(),
                     "network".to_string(),
                     "status".to_string(),
+                    "argument".to_string(),
                 ]),
             ),
         ],

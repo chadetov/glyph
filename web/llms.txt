@@ -1077,7 +1077,7 @@ Property tests are deterministic (sampled by index, no RNG). Run them with
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
 type Response = { status: number, headers: Record<string, string>, body: unknown, raw: string, url: string }
-type HttpError = { status: number, message: string, kind: "timeout" | "network" | "status" }
+type HttpError = { status: number, message: string, kind: "timeout" | "network" | "status" | "argument" }
 type Fetch = { url: string, method: string, body: Option<unknown>, timeout_ms: number, redirect: "follow" | "manual" | "error" }
                                                       // timeout_ms defaults to 30000; 0 means no timeout
 type Handler  = fn(Request) -> Result<Response, string>   // may be async
@@ -1119,7 +1119,8 @@ Every client verb gives up after 30 000 ms with `kind: "timeout"`; a peer that
 accepts and never answers is an `Err`, not a hang. To change the bound, build
 the request with `http.fetch_of(url, "GET")`, set `timeout_ms` on it (0 means no
 timeout, written at the call site so it is greppable), and `await http.send(req)`.
-A deadline above 2147483647 ms is refused with an `Err` naming the limit.
+A deadline above 2147483647 ms is refused with an `Err` of `kind: "argument"`
+naming the limit. `match e.kind` is exhaustive over all four kinds.
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
 `Err(message)` (sent as a 500). `await http.listen(host, port, handler)` binds

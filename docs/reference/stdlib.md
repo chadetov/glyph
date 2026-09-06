@@ -1331,7 +1331,7 @@ A `fetch`-based client and a small server, both errors-as-values.
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
 type Response = { status: number, headers: Record<string, string>, body: unknown, url: string }
-type HttpErrorKind = "timeout" | "network" | "status"
+type HttpErrorKind = "timeout" | "network" | "status" | "argument"
 type HttpError = { status: number, message: string, kind: HttpErrorKind }
 type RedirectPolicy = "follow" | "manual" | "error"
 type Fetch = { url: string, method: string, body: Option<unknown>, timeout_ms: number, redirect: RedirectPolicy }
@@ -1352,10 +1352,13 @@ header set is there before reading it.
 `HttpError.kind` says *why*, the way `FsError.kind` does, so a caller matches on
 it instead of parsing a message. `timeout` is a request this client aborted for
 outliving its budget, `network` is one that never got an answer (DNS, refused
-connection), and `status` is a response that arrived and was not ok. Before it
-existed a slow site and a dead one both arrived as `status: 0`. The checker
-models the field, so `match e.kind` is held to D30 exhaustiveness: drop an arm
-and you get `E0200` naming the kind you missed.
+connection), `status` is a response that arrived and was not ok, and `argument`
+is a request that was never issued because one of its arguments was invalid (a
+deadline `setTimeout` cannot hold). Before `kind` existed a slow site and a dead
+one both arrived as `status: 0`. The checker models the field, so `match e.kind`
+is held to D30 exhaustiveness: drop an arm and you get `E0200` naming the kind
+you missed. `argument` arrived in 0.1.118, so a `match` written against the
+three earlier kinds without an `else` arm is E0200 on upgrade until it names it.
 
 `Response.url` is where the response actually came from. After a followed
 redirect that is where you landed rather than where you asked, which is the only
@@ -1434,7 +1437,7 @@ which is the thing `std/task`'s scope rule exists to prevent. `timeout_ms` of `0
 means no timeout, and it is the only way to get one: write the literal at the
 call site when a request really has no bound, so the opt-out is greppable. A
 deadline above 2 147 483 647 ms (2^31-1, the most node's `setTimeout` can hold)
-is refused with an `Err` naming the limit, under `kind: "network"`, because the
+is refused with an `Err` of `kind: "argument"` naming the limit, because the
 alternative was a request aborted after one millisecond claiming the deadline
 you asked for had elapsed. A `manual` redirect hands back the 3xx itself, so
 `status` and the `location` header are readable; `error` fails the call instead.

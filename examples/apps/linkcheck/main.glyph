@@ -504,6 +504,9 @@ async fn check_external(url: string) -> Outcome {
       "timeout" => TimedOut,
       "network" => NetworkFail({ message: first_line(e.message) }),
       "status" => from_status(e.status),
+      // The request was never issued: an argument of ours was invalid, so it
+      // is a bad link check rather than a bad link.
+      "argument" => Bad({ reason: first_line(e.message) }),
     },
   }
 }

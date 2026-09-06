@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-222 entries, 188 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+223 entries, 188 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+17 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8697,3 +8697,16 @@ and is the owner's to confirm.
   description between them.
 
   *Reproduced against 0.1.117: `grep -c "exposes five tools" AGENTS.md` is 1, `grep -c glyph_impact AGENTS.md` is 0, `tools/list` returns seven tools; `check_docs_compile.py` output for `AGENTS.md`: 19 fences, 2 compiled, 17 skipped; `grep -rl expect-error docs web AGENTS.md README.md` is empty.*
+
+- **G223. E0101 is unreachable from source: a relative import stops in the
+  parser.** `import ./helper` and `import ../helper` both fail as
+  `E0002: expected module path segment, found Dot` with the generic help "Add
+  the expected token", so the text a user meets at a relative import is E0002's
+  and never the E0101 help that names the three true spellings (`std/io`, a
+  sibling by bare name, a subdirectory by its path from the root). Found while
+  closing G177: the help was rewritten to say the truth, and then turned out to
+  be reached by no program. The parser should recognise a leading `./` or `../`
+  in an import path and raise E0101 itself, or the E0002 at that position should
+  carry the same help.
+
+  *Reproduced against 0.1.118 (the 0.1.119 tree): both spellings above are `[E0002] expected module path segment, found Dot`, exit 1, with no mention of the import forms.*

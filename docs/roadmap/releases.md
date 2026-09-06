@@ -5340,8 +5340,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G202: the playground pins a `wasm-bindgen-cli` its manifest does not, so the page cannot be rebuilt from its own instructions
 - G159: two of the three token-count benchmark fixtures are not Glyph the compiler accepts, and nothing builds them
 - G158: 30 of 113 files in `examples/apps` are not what `glyph fmt` produces
-- G166: a `std/net` integration test can hang without end and leaks a `tsx` process tree when it does
-- G177: E0101's help still offers `myapp/feature`, implying a package prefix a sibling import does not need
+- G166: **fixed, with the mechanism.** The test program's exit condition counted reads, and TCP has no message boundaries, which is the very fact the test checks: under load the two halves of the split character arrived in one read on one side or the other, `seen` stopped at 1, and the program waited on an idle socket forever. Reproduced both ways (a 0 ms gap hangs every time; eight copies under a 32-process load hung 5 of 8) and fixed by making the client send the second half only after the first echo is back. Every `glyph run` the integration suite spawns, 24 sites, now runs in its own process group under a 120 s deadline that kills the whole tree and reports the test, the command and the output so far; 8 of 8 complete under the same load
+- G177: **fixed.** E0101's help names the three true spellings: a stdlib module by its `std/` path, a sibling by its bare name, a subdirectory file by its path from the root. Closing it found G223: no program reaches E0101, because a relative import stops in the parser as `E0002` with a generic help; scheduled with the diagnostics work
 
 **Deferred, with the reason rather than by omission**
 - G18, G19, G20, G98: language ergonomics. `T?` sugar, nested strings inside `${...}`, `is` narrowing, formatter layout. Each is a design decision and each is forward-compatible by construction, so deferring costs nothing that adding them later would not also cost
@@ -5371,6 +5371,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - Every item above is measured by re-running the audit's probes and recording the answers in the ledger entries
 
 **0.1.122 — Diagnostics as a repair protocol**
+- G223: a relative import (`import ./helper`) stops in the parser as `E0002` with a generic help, so the E0101 text that names the true import forms is reached by no program; the parser raises E0101 at a leading `./` or `../`
 - G220: `expected`, `actual`, `cause` (the symbol at fault as `module::name`, distinct from the enclosing `entity`), `alternatives` (the record's field list for `E0210`, the accepted types for `E0211`, the `suggestion` `E0220` already computes) and `related` (the union's variants for `E0200`) as fields on every diagnostic that has them, populated from the error variants that already carry them by name; `file` becomes a path; the JSON carries the `--explain` pointer the text renderer already builds. `E0200` is the model: it is the one code whose repair loop closes today, because it is the one code with structure
 - `glyph check --agent`: the same diagnostics plus, per diagnostic, the repair constraints an edit must keep (do not cast, preserve exhaustiveness, keep the `owned` consume) and the `glyph_symbol` description of every symbol the diagnostic names, so the agent's next edit needs no second call
 - `glyph --explain <CODE> --json`: the code's text, its `help`, and the compiled counter-example from `tests/negative/` that draws it, with the corrected form beside it. The corpus, the pairing and the verification exist and are green today; this only routes them

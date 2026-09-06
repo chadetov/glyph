@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-222 entries, 187 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-16 are open. G144, the D28 boundary cast that never reached the returns a
+222 entries, 188 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6948,7 +6948,7 @@ and is the owner's to confirm.
   spelling now return identical answers, the symlinked path no longer
   duplicates, and a non-Glyph file is rejected with a message naming why.*
 
-- **G166. A `std/net` integration test can hang without end, and leaks a `tsx` process tree when it does.**
+- **G166. [FIXED] A `std/net` integration test can hang without end, and leaks a `tsx` process tree when it does.**
   `net_carries_a_split_character_and_reports_a_bind_failure` in
   `glyph-cli/tests/integration.rs` has no timeout of its own. Under load it
   passes; under enough load it reports "has been running for over 60 seconds"
@@ -6986,6 +6986,32 @@ and is the owner's to confirm.
   shows the three processes above, and the run that spawned them had already
   exited. Two independent verification passes hit the same test in the same way
   under concurrent load.*
+
+  **Fixed in 0.1.119.** Two changes, one per consequence. The hang was the
+  test program's own: the client counted reads and exited on the second one,
+  with a 60 ms timer between the two halves it sent. TCP has no message
+  boundaries, which is the fact the test exists to check, and under load the
+  two halves reached the server in one read (`got=hi é!`) or the two echoes
+  reached the client in one (`client=echo:hi echo:é!`); either way the
+  program then waited on an idle socket for a second read that could never
+  come, which is the ESTABLISHED socket at 0% CPU the entry describes.
+  Reproduced with the program outside the harness on this machine: ten solo
+  runs of the test passed in 4.9 to 9.7 s; the timer gap set to 0 ms hangs
+  every time; at the real 60 ms, eight copies running under twice as many
+  busy loops as cores hung five of eight within two minutes, both shapes
+  among them. The client now sends the second half only after the first echo
+  is back and exits when what it has heard ends in `echo:é!`, so no read
+  boundary matters on either side; the same eight copies under the same load
+  completed eight of eight. The leak is closed in the harness: every `glyph`
+  the integration suite spawns goes through one helper that runs the child in
+  its own process group under a 120 second deadline, kills the group on
+  expiry (the `tsx` and `esbuild` children with it), and fails the test with
+  its name, the elapsed time and the output captured so far. All 24 `glyph
+  run` spawn sites in `integration.rs` route through it, including one raw
+  `Command` that did not. Set to 1 ms, the deadline fails an ordinary test
+  with that message after 59 ms; set to 8 s against a copy of the program
+  whose exit condition cannot fire, it reports the five lines the program
+  had printed and leaves no `tsx` or `esbuild` process behind.
 
 - **G167. [FIXED] One release's stuck job blocked the next release's publish, twice.**
   `.github/workflows/release.yml` held a single global concurrency group,

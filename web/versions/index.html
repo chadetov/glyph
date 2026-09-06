@@ -61,8 +61,51 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.117</span>
+            <span class="rel-ver">0.1.118</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Every HTTP request now has a deadline, and a rejected one says so</h3>
+            <p><code>std/http</code> bounded nothing by default: <code>get</code> against a peer that accepted the connection and said nothing waited for as long as the process lived. All six verbs (<code>get</code>, <code>post</code>, <code>put</code>, <code>patch</code>, <code>del</code>, <code>head</code>) now carry a 30,000ms deadline unless the call sets its own, and a deadline past what <code>setTimeout</code> can hold is refused up front instead of firing after one millisecond and blaming the network. Filing that refusal under an existing <code>HttpErrorKind</code> would have been the wrong answer with confidence attached, so <code>HttpErrorKind</code> gains a fourth member, <code>"argument"</code>: the request was never issued because one of its arguments was invalid.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>match e.kind {
+  "timeout" => io.println("timed out"),
+  "network" => io.println("network error"),
+  "status" => io.println("bad status"),
+}
+<span class="del">// 0.1.117: builds clean</span>
+<span class="add">// 0.1.118: [E0200] match is not exhaustive: missing case for "argument"</span></pre>
+            </div>
+            <p>An explicit <code>timeout_ms: 0</code> on a <code>Fetch</code> sent through <code>send</code> still means no timeout; that stays the one greppable opt-out. Nothing that compiles or runs today changes behaviour, except that a request nobody bounded now fails with <code>kind: "timeout"</code> after thirty seconds instead of hanging.</p>
+            <h3>fold_while and try_fold, for a fold that knows when to stop</h3>
+            <p><code>array.fold</code> cannot stop early, so a search that knows when it is finished was either written as recursive functions threading an index, or as a <code>fold</code> that evaluates the whole array and looks correct doing it. <code>fold_while</code> checks a predicate before each element; <code>try_fold</code> stops on the first <code>Err</code>.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>let total = array.fold_while([1, 2, 3, 4, 5], 0,
+  (acc, x) -> acc + x, (acc) -> acc >= 6)
+io.println(string.from(total)) // 6, stops before visiting 4 and 5</pre>
+            </div>
+            <p>Both are typed through the existing signature table: a <code>done</code> predicate returning the wrong type, or a <code>try_fold</code> result matched with no <code>Err</code> arm, are diagnosed the same as any other stdlib call. There is no <code>Step&lt;A&gt;</code> continue-or-stop type; a generic stdlib union would be the first of its kind and a <code>match</code> over one gets no exhaustiveness check today, so the stop signal is a predicate the checker already knows how to type.</p>
+            <h3>A line reader for std/fs</h3>
+            <p>Reading a large file meant loading it whole. <code>std/fs</code> gains a handle-based reader: <code>open_lines(path) -&gt; Result&lt;LineReader, FsError&gt;</code>, <code>next_line(reader) -&gt; Result&lt;Option&lt;string&gt;, FsError&gt;</code>, and <code>close_lines(reader) -&gt; void</code>. <code>next_line</code> returns a <code>Result</code> around the <code>Option</code> rather than the <code>Option</code> alone, because a disc error at line 400,000 reported as end of input is a silent truncation: a real read failure is <code>Err</code>, never a quiet <code>None</code>. Reaching the end and hitting an error both close the underlying descriptor, and <code>close_lines</code> is idempotent for an early stop. The reads are synchronous and block the event loop, the same way <code>io.read_line</code> already does on standard input.</p>
+            <h3>A tsc error in a block's last statement now points at that statement</h3>
+            <p>The emitter recorded a source-map checkpoint at the start of every declaration and statement, except the last statement of a block, so a <code>tsc</code> error there was reported at the statement before it. A caret that lands one line early is a line an agent repairing the error would edit instead of the one that actually failed. The tail statement now records its own checkpoint; the verdict a program gets is unchanged, only where the error points.</p>
+            <h3>A resource reached through a type alias is still a resource</h3>
+            <p><code>type H = Handle</code> with <code>resource type Handle = { fd: number }</code> used to lose the ownership check: <code>let owned a: Handle</code> was tracked and a double consume was <code>E0206</code>, but <code>let owned b: H</code> was rejected outright as not a resource at all. The ownership check now follows the same alias chain the rest of the checker already follows, so an alias of a resource is accepted and tracked, and a drop through either name is caught.</p>
+            <h3>Eleven stdlib modules, documented</h3>
+            <p><code>store</code>, <code>task</code>, <code>set</code>, <code>path</code>, <code>crypto</code>, <code>math</code>, <code>encoding</code>, <code>log</code>, <code>collections</code>, <code>timers</code> and <code>websocket</code> were shipped and importable with no signature listed for any of them. Every export now has a documented signature, checked against the runtime source and the resolver's own export list. Separately, <code>url.join</code>'s <code>Err</code> case is documented: against a valid base the parser resolves almost anything as a relative path, so the failure comes from an unparseable base, not from the string being joined to it.</p>
+            <p class="rel-note"><strong>Breaking.</strong> The new <code>"argument"</code> <code>HttpErrorKind</code> turns an exhaustive <code>match e.kind</code> with no catch-all arm red. Established by running the published 0.1.117 and this release on the same program under an isolated <code>HOME</code>: <code>check --no-tsc</code> exits 0 under 0.1.117 and 1 under 0.1.118, reporting <code>E0200</code>. The alias-resource fix and the folds only accept programs that were previously rejected; the tsc position fix changes no verdict.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.117</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

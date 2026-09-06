@@ -15,10 +15,10 @@
 //! runtime. The server (`lib.rs`) converts `GlyphDiagnostic` to the protocol
 //! type using `LineIndex`.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use glyph_ast::{
-    Block, Decl, Expr, ImportKind, JsxAttr, JsxChild, JsxElement, Module, TypeExpr,
+    Block, Decl, Expr, ImportKind, JsxAttr, JsxChild, JsxElement, Module, Span, TypeExpr,
 };
 use glyph_db::{Db, ParsedModule, Resolved, SourceFile, Types};
 use glyph_resolver::{
@@ -1061,7 +1061,19 @@ pub struct RelatedSpan {
 /// changes, which is the property this relation is for; that the emitter writes
 /// an object literal rather than a function call is a representation detail.
 pub fn callee_name_spans(module: &Module) -> BTreeSet<(u32, u32)> {
-    let mut out = BTreeSet::new();
+    call_argument_spans(module).into_keys().collect()
+}
+
+/// The same set of callees, each with the spans of the arguments it is applied
+/// to, in source order.
+///
+/// The argument spans are the expressions' own spans, which is what the type
+/// map is keyed by, so a caller can read the checker's type for each argument
+/// of a call without walking the tree again. A call with no arguments is
+/// present with an empty list, since applying a name to nothing is still
+/// applying it.
+pub fn call_argument_spans(module: &Module) -> BTreeMap<(u32, u32), Vec<Span>> {
+    let mut out = BTreeMap::new();
     for decl in &module.items {
         match decl {
             Decl::Fn(f) => block_callees(&f.body, &mut out),
@@ -1081,17 +1093,22 @@ pub fn callee_name_spans(module: &Module) -> BTreeSet<(u32, u32)> {
     out
 }
 
-fn block_callees(block: &Block, out: &mut BTreeSet<(u32, u32)>) {
+type Callees = BTreeMap<(u32, u32), Vec<Span>>;
+
+fn block_callees(block: &Block, out: &mut Callees) {
     for stmt in &block.stmts {
         glyph_ast::visit::stmt_exprs(stmt, &mut |e| expr_callees(e, out));
         glyph_ast::visit::stmt_blocks(stmt, &mut |b| block_callees(b, out));
     }
 }
 
-fn expr_callees(e: &Expr, out: &mut BTreeSet<(u32, u32)>) {
-    if let Expr::Call { callee, .. } | Expr::New { callee, .. } = e {
+fn expr_callees(e: &Expr, out: &mut Callees) {
+    if let Expr::Call { callee, args, .. } | Expr::New { callee, args, .. } = e {
         if let Expr::Ident { span, .. } = &**callee {
-            out.insert((span.start, span.end));
+            out.insert(
+                (span.start, span.end),
+                args.iter().map(|a| a.span()).collect(),
+            );
         }
     }
     glyph_ast::visit::child_exprs(e, &mut |c| expr_callees(c, out));
@@ -1103,7 +1120,7 @@ fn expr_callees(e: &Expr, out: &mut BTreeSet<(u32, u32)>) {
     }
 }
 
-fn jsx_callees(el: &JsxElement, out: &mut BTreeSet<(u32, u32)>) {
+fn jsx_callees(el: &JsxElement, out: &mut Callees) {
     for attr in &el.attrs {
         match attr {
             JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => expr_callees(value, out),

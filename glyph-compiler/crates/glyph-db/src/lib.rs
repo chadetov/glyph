@@ -1809,9 +1809,22 @@ fn own_module_key(module: &Module) -> String {
 /// `DeclTyResolver` impl that fetches per-decl types from the salsa-tracked
 /// `decl_ty(db, file, name)` query. Lives at the `glyph-db` ↔ `glyph-typechecker`
 /// boundary so the typechecker stays unaware of salsa.
-struct SalsaDeclTy<'a> {
+///
+/// Public so the build driver can hand the emitter the same resolver the
+/// checker ran with: the emitter reads an imported union's variants and
+/// payloads through `DeclTyResolver` rather than through a registry of its
+/// own, and one resolver for both passes is what makes the two read the same
+/// declaration (G214).
+pub struct SalsaDeclTy<'a> {
     db: &'a dyn Db,
     file: SourceFile,
+}
+
+impl<'a> SalsaDeclTy<'a> {
+    /// The resolver for the module `file`, over the project `db` holds.
+    pub fn new(db: &'a dyn Db, file: SourceFile) -> Self {
+        Self { db, file }
+    }
 }
 
 impl DeclTyResolver for SalsaDeclTy<'_> {

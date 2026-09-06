@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-223 entries, 191 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-14 are open. G144, the D28 boundary cast that never reached the returns a
+223 entries, 191 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+13 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8588,7 +8588,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.117: the program above prints `accepted a None as a Poll`, exit 0, under `npx -y @glyphlang/glyph@0.1.117 run`.*
 
-- **G214. The emitter re-derives 49 semantic facts the resolver and checker
+- **G214. [HALF FIXED] The emitter re-derives 49 semantic facts the resolver and checker
   already compute, through six families of duplicated rules.** An audit of
   `glyph-emit/src/lib.rs` against `glyph-typechecker/src/assign.rs` found:
   `ProjectTables::from_modules` is called in `glyph-cli/src/build.rs` over
@@ -8614,6 +8614,56 @@ and is the owner's to confirm.
   with line numbers is on file locally; the plan is the 0.1.120 lane.
 
   *Reproduced against 0.1.117: `grep -c "fn alias_chain_terminal\|fn resolve_alias_leaf\|fn resolve_imported_alias_leaf\|fn refused_refinement_base\|fn emit_alias_values"` on the emitter is 5, `pub(crate) fn resolve_alias_chain` in the checker is 1, and `ProjectTables::from_modules` is called at `build.rs:537` above the per-module resolve loop.*
+
+  *Change 1 of the 0.1.120 lane landed; changes 2 and 3 are owed.
+  `EmitContext` carries `decls: &dyn DeclTyResolver`, and `glyph build` hands
+  the emitter the `SalsaDeclTy` the checker ran the module with (the struct
+  became `pub` with a constructor; no new salsa query). The playground and
+  the emitter's harnesses pass `NoDecls`, whose every cross-module answer is
+  the trait's `None` default, which is the single-module behaviour exactly.
+  Four of the eight `ProjectTables` registries are gone because nothing reads
+  them: `union_variant_names` (an imported union's variant list is now
+  `imported_type_decl`'s body, the query `required_variants` reads for
+  exhaustiveness, read without an alias hop because the checker's
+  `imported_union_variants` takes none), `union_variant_payloads` (the union
+  under an imported outer variant is the payload the exported declaration
+  names, followed to its own declaration the way
+  `imported_variant_payload_union` follows it), `record_payload_variants`
+  (whether an imported variant's payload is a record is
+  `imported_union_of_variant` plus the payload's lowered shape, keyed by
+  module and variant as before since a variant name identifies its union
+  within one module), and `generic_descriptor_arities` (the declaration's
+  parameter count and body shape through `imported_type_decl`; the rule that
+  a generic record is a descriptor stays the emitter's). `ModuleTypeNames`,
+  the AST-only cross-module name resolver those tables needed, is deleted
+  with them, and the four hand-joined module paths in `has_descriptor`,
+  `import_module_path`, `namespace_module_path` and the record-variant
+  fallback read `glyph_resolver::path_key`. Net 55 lines out of the emitter
+  with the test resolver added; 330 in, 385 out.*
+
+  *Kept, and why: `plain_descriptors` and `descriptorless_aliases` stay
+  because descriptor-ness is an emission fact the trait has no query for,
+  and `resolve_imported_alias_leaf` stays on the second of them because its
+  consumer, `field_check`, still decides from a `TypeExpr` and the trait
+  answers in `Ty`; that walker goes when change 2 moves `field_check` onto
+  `Ty`. `project_modules` and `imported_module_paths` are the reachability
+  facts the resolver has no reverse index for. The five alias walkers, the
+  six `direct_type_decl` copies and the four `is_variant_shaped` rules are
+  untouched; those are changes 2 and 3. Two edges the trait path inherits
+  from the checker rather than from the old scan: a sibling that fails to
+  resolve answers nothing (the old tables read its AST anyway), which only
+  changes a build that was already red, and a scrutinee typed by an imported
+  second name of a union reads no variant list, which is what the checker
+  reads too.*
+
+  *Evidence: every app under `examples/apps/` and the corpus emitted with
+  `glyph build --no-tsc` before and after, 684 `.ts` files across 32 roots,
+  `diff -r` empty. `g147_shapes_dispatch_across_a_module_boundary_at_run_time`
+  runs the three G147 shapes (an imported outer union with a payload variant,
+  an imported payload union under a local outer, a lowercase nullary imported
+  variant, in both import spellings) under node and passed before and after;
+  with `NoDecls` substituted in `build.rs` it and both older G147 run-time
+  tests fail at E0305, so the trait is what answers.*
 
 - **G215. An imported union passed where a primitive is declared is silent.**
   `import lib { Status, Pending }`, `let st: Status = Pending`, `shout(st)` with

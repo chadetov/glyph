@@ -6429,6 +6429,109 @@ fn imported_outer_union_lowercase_payload_variant_dispatches_at_run_time() {
 }
 
 #[test]
+fn g147_shapes_dispatch_across_a_module_boundary_at_run_time() {
+    // The three G147 shapes in one program, run under node: an imported outer
+    // union with a payload variant (`B(Inner)` on `shapes.G`), an imported
+    // payload union under a local outer (`Wrap(Inner)` on `main.Outer`), and
+    // a lowercase nullary imported variant (`alpha`) in both positions. The
+    // record-payload bind is pinned in the named-import spelling and the
+    // namespace spelling, since the namespace one binds no variant symbol in
+    // the consumer and so has no by-name fallback to hide behind.
+    //
+    // The emitter reads every one of these facts about `shapes` through the
+    // checker's `DeclTyResolver` rather than a registry of its own, so this
+    // is the test that has to keep passing while that registry is removed:
+    // a shape the trait cannot answer prints the wrong line here.
+    let root = unique_tmp("g147-shapes-run");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "shapes.glyph",
+        "module shapes\n\
+         pub type Inner =\n\
+         \x20 | alpha\n\
+         \x20 | beta\n\
+         pub type G =\n\
+         \x20 | A\n\
+         \x20 | B(Inner)\n\
+         \x20 | C({ label: string })\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io { println }\n\
+         import shapes { G, A, B, C, Inner, alpha, beta }\n\
+         import shapes as sh\n\
+         type Outer =\n\
+         \x20 | Leaf\n\
+         \x20 | Wrap(Inner)\n\
+         pub fn label(g: G) -> string {\n\
+         \x20 return match g {\n\
+         \x20\x20\x20 A => \"arm:a\",\n\
+         \x20\x20\x20 B(alpha) => \"arm:b-alpha\",\n\
+         \x20\x20\x20 B(beta) => \"arm:b-beta\",\n\
+         \x20\x20\x20 C(c) => \"arm:c:\" + c.label,\n\
+         \x20 }\n\
+         }\n\
+         pub fn label_ns(g: sh.G) -> string {\n\
+         \x20 return match g {\n\
+         \x20\x20\x20 sh.A => \"ns:a\",\n\
+         \x20\x20\x20 sh.B(sh.alpha) => \"ns:b-alpha\",\n\
+         \x20\x20\x20 sh.B(sh.beta) => \"ns:b-beta\",\n\
+         \x20\x20\x20 sh.C(c) => \"ns:c:\" + c.label,\n\
+         \x20 }\n\
+         }\n\
+         pub fn outer(o: Outer) -> string {\n\
+         \x20 return match o {\n\
+         \x20\x20\x20 Leaf => \"arm:leaf\",\n\
+         \x20\x20\x20 Wrap(alpha) => \"arm:wrap-alpha\",\n\
+         \x20\x20\x20 Wrap(beta) => \"arm:wrap-beta\",\n\
+         \x20 }\n\
+         }\n\
+         fn main() {\n\
+         \x20 println(label(A))\n\
+         \x20 println(label(B(alpha)))\n\
+         \x20 println(label(B(beta)))\n\
+         \x20 println(label(C({ label: \"x\", })))\n\
+         \x20 println(label_ns(sh.A))\n\
+         \x20 println(label_ns(sh.B(sh.alpha)))\n\
+         \x20 println(label_ns(sh.B(sh.beta)))\n\
+         \x20 println(label_ns(sh.C({ label: \"y\", })))\n\
+         \x20 println(outer(Leaf))\n\
+         \x20 println(outer(Wrap(alpha)))\n\
+         \x20 println(outer(Wrap(beta)))\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "every G147 shape must build across the boundary: {:?}",
+        report.diagnostics
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        vec![
+            "arm:a",
+            "arm:b-alpha",
+            "arm:b-beta",
+            "arm:c:x",
+            "ns:a",
+            "ns:b-alpha",
+            "ns:b-beta",
+            "ns:c:y",
+            "arm:leaf",
+            "arm:wrap-alpha",
+            "arm:wrap-beta",
+        ],
+        "each value reaches its own arm: {stdout}"
+    );
+}
+
+#[test]
 fn non_exhaustive_imported_union_match_is_caught() {
     // The imported-union type-resolution pass: a match on an imported union that
     // omits a variant is now E0200, resolved cross-module by the union's real

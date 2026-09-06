@@ -6944,7 +6944,7 @@ and is the owner's to confirm.
   wearing an exclusion's colour, which is a mistake this project has made once
   already and corrected.
 
-  *Reproduced against 0.1.110: still unmeasured. The roadmap names the measurement in two places and no run has produced a number, which is the entry's whole point. Previously, against 0.1.104: `glyph_references` on a local takes the
+  *Reproduced against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
   `SymbolTarget::Local` arm and answers file-scoped occurrences rather than a
   project-wide identity, confirmed by reading the arm and by the tool's own
   behaviour. What is not measured, and is the whole question, is the fraction of

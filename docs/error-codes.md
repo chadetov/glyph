@@ -147,6 +147,7 @@ only what it can prove: an import some `.glyph` file under the root answers to.
 | `E0224` | Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there. Use `record.get`, which returns `Option<V>` |
 | `E0225` | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await` |
 | `E0226` | A `match` whose scrutinee has no variant set to count against, where every arm's pattern can fail and no arm is a catch-all. Add an `else` |
+| `E0227` | `Nullable<T>` where `T` is itself `Nullable` or `Option` (D45). Two states would share one runtime spelling, or a tagged object would sit under a null-tolerant field. Write `Nullable` over the plain type |
 
 ### Emitter — `E03xx`
 

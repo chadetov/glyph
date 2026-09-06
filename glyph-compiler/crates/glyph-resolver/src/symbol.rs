@@ -186,6 +186,12 @@ pub enum PreludeKind {
     // Generic container types (resolved by name; arity in the typechecker)
     Result,
     Option,
+    /// `Nullable<T>` (D45) — a value that is JSON `null` or a `T`. Emits as
+    /// TypeScript `T | null` and validates as `null` or a `T` at the boundary.
+    /// Its own type in Glyph, distinct from `Option`: no `match`, no
+    /// `Some`/`None`; `std/nullable` converts explicitly, so the crossing is
+    /// greppable.
+    Nullable,
     Array,
     /// `Record<K, V>` from the validator example.
     Record,

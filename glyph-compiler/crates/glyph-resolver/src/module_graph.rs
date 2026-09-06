@@ -203,6 +203,9 @@ impl StdlibStubs {
         );
         // A seeded, reproducible PRNG (not cryptographic; use std/crypto for that).
         s.add("std/random", &["Rng", "seeded"]);
+        // The explicit bridge between a wire `null` and `Option` (D45). The type
+        // is a prelude name and needs no import; the functions do.
+        s.add("std/nullable", &["Nullable", "to_option", "from_option", "is_null"]);
         // base64 / base64url / hex text encodings.
         s.add(
             "std/encoding",

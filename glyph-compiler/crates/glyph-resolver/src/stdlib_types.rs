@@ -45,6 +45,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ("std/log", &["Level"]),
     ("std/dns", &["MailHost"]),
     ("std/net", &["Server", "ServerError", "ServerErrorKind", "Socket"]),
+    ("std/nullable", &["Nullable"]),
     ("std/option", &["Option"]),
     ("std/random", &["Rng"]),
     ("std/result", &["Result"]),

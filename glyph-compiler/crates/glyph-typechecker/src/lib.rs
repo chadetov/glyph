@@ -423,6 +423,13 @@ pub enum TypeError {
     #[error("non-exhaustive match: every arm can fail and no arm is a catch-all")]
     NonExhaustiveFieldMatch { span: Span },
 
+    /// D45: `Nullable<T>` where `T` is itself `Nullable` or `Option`. The first
+    /// would give two states one runtime spelling (`null`); the second would
+    /// put a tagged object under a null-tolerant field, which is the ambiguity
+    /// the type exists to avoid. `inner` is the argument as it was written.
+    #[error("`Nullable<{inner}>`: the argument of `Nullable` may not itself be `Nullable` or `Option`")]
+    NullableNested { inner: String, span: Span },
+
     /// A `@redact fields: [...]` annotation (D24) names a field the type does
     /// not have — a typo or a renamed field. Redaction is type-level
     /// enforcement, so an unknown field name is a hard error: it would silently
@@ -559,6 +566,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::NonExhaustiveValueMatch { span, .. } => *span,
             TypeError::NonExhaustiveFieldMatch { span } => *span,
+            TypeError::NullableNested { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
@@ -593,6 +601,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
             TypeError::NonExhaustiveValueMatch { .. } => "E0218",
             TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
+            TypeError::NullableNested { .. } => "E0227",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
             TypeError::UnknownField { .. } => "E0210",
@@ -630,6 +639,9 @@ impl TypeError {
             }
             TypeError::MapFieldAccess { .. } => {
                 "Use `record.get(map, \"key\")`, which returns `Option<V>` so the absent case has somewhere to go. `record.has` tests for the key alone."
+            }
+            TypeError::NullableNested { .. } => {
+                "Write `Nullable` over the plain type (`Nullable<int>`) for a field the wire sends as null, or `Option<T>` alone inside the program; `nullable.to_option` and `nullable.from_option` convert between them."
             }
             TypeError::OwnedRequiresResourceType { .. } => {
                 "`owned` is only for `resource`-marked types. Drop `owned`, or mark the type `resource`."
@@ -715,6 +727,9 @@ impl TypeError {
             ),
             TypeError::NonExhaustiveValueMatch { .. } => Some(
                 "`number` and `string` are unbounded, so literal arms can never cover every value; the emitted `switch` `default` throws at runtime.",
+            ),
+            TypeError::NullableNested { .. } => Some(
+                "`Nullable<T>` is `T | null` at run time (D45): null is the whole of its absent state, so a nested `Nullable` or `Option` has no second thing to say.",
             ),
             TypeError::NonExhaustiveFieldMatch { .. } => Some(
                 "Coverage is proved over a set of tags, not over a product of fields (D44), so two field tests are never read as leaving nothing between them.",

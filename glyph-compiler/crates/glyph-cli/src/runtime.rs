@@ -36,6 +36,10 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/option.ts"),
     ),
     (
+        ".glyph-runtime/std/nullable.ts",
+        include_str!("../../../runtime/std/nullable.ts"),
+    ),
+    (
         ".glyph-runtime/std/schema.ts",
         include_str!("../../../runtime/std/schema.ts"),
     ),

@@ -1,0 +1,8 @@
+module app
+
+// D45: the argument of `Nullable` may not itself be `Nullable` or `Option`.
+type Frame = { op: int, s: Nullable<Option<int>> }
+
+fn main() -> void {
+  return void
+}

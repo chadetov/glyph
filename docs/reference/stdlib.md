@@ -53,6 +53,20 @@ Some(value: T) -> Option<T>                     // a present value
 None                                            // the absent value (a constant)
 ```
 
+## std/nullable
+
+A value that is JSON `null` or a `T`, held as `T | null` at run time (D45). The
+boundary type for a field a real API sends as `null`. It is not an `Option`:
+there is no `match` on it, and the conversion is a call, so the place null
+enters a program can be grepped for.
+
+```
+type Nullable<T>
+to_option(n: Nullable<T>) -> Option<T>          // null becomes None, a value becomes Some(value)
+from_option(o: Option<T>) -> Nullable<T>        // None becomes null, Some(value) becomes value
+is_null(n: Nullable<T>) -> bool                 // true for null
+```
+
 ## std/array
 
 Operations are value-oriented: they return new arrays and never mutate the input.

@@ -4684,6 +4684,22 @@ impl<'a> Emitter<'a> {
                             self.g("Array")
                         ))
                     }
+                    // `Nullable<T>` (D45): `null` or a `T`. The inner check is
+                    // the one a bare `T` field gets, so `Nullable<int>` still
+                    // rejects `3.5` and `Nullable<User>` still delegates to
+                    // `User.is`. `Nullable<unknown>` is `unknown`, since that
+                    // already admits null, and stays the presence floor; any
+                    // other unverifiable `T` stays unverifiable (E0304), because
+                    // `=== null || true` would be a check that never checks.
+                    (Some("Nullable"), [inner]) => {
+                        if is_named_type(inner, "unknown") {
+                            return FieldCheck::PresenceOnly;
+                        }
+                        let Some(inner_check) = self.field_value_check_opt(inner, access) else {
+                            return FieldCheck::Unverifiable;
+                        };
+                        FieldCheck::Deep(format!("({access} === null || {inner_check})"))
+                    }
                     (Some("Option"), [inner]) => {
                         let tag = format!("(({access}) as {{ tag?: unknown }}).tag");
                         let value = format!("(({access}) as {{ value?: unknown }}).value");
@@ -5972,6 +5988,20 @@ impl<'a> Emitter<'a> {
                 let mut a = Vec::with_capacity(args.len());
                 for arg in args {
                     a.push(self.ty(arg)?);
+                }
+                // `Nullable<T>` (D45) is TypeScript's own `T | null`, written
+                // inline; nothing is imported for it. A function type is
+                // parenthesized so the `| null` applies to the function rather
+                // than to its return type.
+                if is_named_type(base, "Nullable") {
+                    if let ([inner], [rendered]) = (args.as_slice(), a.as_slice()) {
+                        let rendered = if matches!(inner, TypeExpr::Fn { .. }) {
+                            format!("({rendered})")
+                        } else {
+                            rendered.clone()
+                        };
+                        return Ok(format!("{rendered} | null"));
+                    }
                 }
                 // `infer_output<S>` (D28) lowers to the injected mapped-type
                 // alias; the emitter never writes inline `{ [K in keyof S]... }`
@@ -10511,5 +10541,52 @@ mod tests {
             "expected a break for the inner arm and one for the outer case, got: {ts}"
         );
         let _ = dflt;
+    }
+
+    // ----- D45: `Nullable<T>` emits as `T | null` and validates as such -----
+
+    #[test]
+    fn a_nullable_field_emits_as_t_or_null() {
+        let ts = emit("module x\ntype Frame = { op: int, s: Nullable<int> }\n");
+        assert!(ts.contains("type Frame = { op: number; s: number | null };"), "{ts}");
+        // No runtime import backs it: `T | null` is TypeScript's own spelling.
+        // The name survives only in the descriptor's message, which quotes the
+        // type as the program wrote it.
+        assert!(!ts.contains("Nullable<number>"), "{ts}");
+        assert!(!ts.contains("std/nullable"), "{ts}");
+    }
+
+    #[test]
+    fn a_nullable_field_check_accepts_null_or_the_inner_type() {
+        let ts = emit("module x\ntype Frame = { op: int, s: Nullable<int> }\n");
+        let access = "(value as Record<string, unknown>).s";
+        let expected = format!(
+            "({access} === null || (typeof {access} === \"number\" && Number.isInteger({access})))"
+        );
+        assert!(ts.contains(&expected), "{ts}");
+        assert!(ts.contains("field `s` must be Nullable<int>"), "{ts}");
+        // An absent key is still absent: only `s?:` makes it optional.
+        assert!(ts.contains("field `s` is required"), "{ts}");
+    }
+
+    #[test]
+    fn a_nullable_over_a_function_type_is_parenthesized() {
+        let ts = emit("module x\ntype H = { cb: Nullable<fn(x: int) -> int> }\n");
+        assert!(ts.contains("cb: ((x: number) => number) | null"), "{ts}");
+    }
+
+    #[test]
+    fn a_nullable_annotation_emits_as_t_or_null_in_a_signature() {
+        let ts = emit("module x\nfn f(n: Nullable<string>) -> Nullable<string> { return n }\n");
+        assert!(ts.contains("function f(n: string | null): string | null"), "{ts}");
+    }
+
+    #[test]
+    fn a_nullable_over_a_record_delegates_to_its_descriptor() {
+        let ts = emit(
+            "module x\ntype User = { name: string }\ntype Frame = { u: Nullable<User> }\n",
+        );
+        let access = "(value as Record<string, unknown>).u";
+        assert!(ts.contains(&format!("({access} === null || User.is({access}))")), "{ts}");
     }
 }

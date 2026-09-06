@@ -538,6 +538,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             covers a bool field between them, and coverage is proved over a set \
             of tags rather than a product of fields, so the checker does not \
             conclude it.",
+        "E0227" => "E0227: `Nullable` over `Nullable` or `Option`\n\n\
+            `Nullable<T>` (D45) is `T | null` at run time: the type for a field a \
+            real API sends as JSON null. Its null is the whole of its absent \
+            state, so `Nullable<Nullable<int>>` would give two states one \
+            spelling, and `Nullable<Option<int>>` would put a tagged object under \
+            a null-tolerant field, which is the ambiguity the type exists to \
+            avoid. Neither means anything the plain type does not.\n\n\
+            Before:  type Frame = { s: Nullable<Option<int>> }\n\
+            After:   type Frame = { s: Nullable<int> }\n\n\
+            Inside the program, convert with `nullable.to_option(f.s)` to get an \
+            `Option<int>` to match on; `nullable.from_option` goes the other way. \
+            The call is the greppable record of where null enters the program.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -663,7 +675,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
-    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0300", "E0301",
+    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0227", "E0300", "E0301",
     "E0302", "E0303", "E0305", "E0310",
 ];
 

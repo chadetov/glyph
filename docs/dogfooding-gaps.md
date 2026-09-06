@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-212 entries, 184 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-9 are open. G144, the D28 boundary cast that never reached the returns a
+212 entries, 185 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+8 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3431,7 +3431,7 @@ worth keeping.
   number because the sum of no numbers is genuinely 0. Ties go to the first
   element, verified by breaking the comparison and watching the answer move.*
 
-- **G101. `array.fold` cannot stop early, so every short-circuiting accumulation
+- **G101. [FIXED] `array.fold` cannot stop early, so every short-circuiting accumulation
   is hand-written index recursion.** The app's requirements ask for alpha-beta
   pruning, which is exactly a fold that stops when the window closes. Alpha-beta
   *is* expressible today: a pair of mutually recursive functions threading an
@@ -3449,6 +3449,17 @@ worth keeping.
   concat, contains, filter, find, flat_map, fold, get, and 10 more`).
   `runtime/std/array.ts` defines `fold` and nothing that can stop early, and
   neither name appears anywhere else under `runtime/`.*
+
+  *Closed by 0.1.118. `std/array` gains `fold_while(xs, init, f, done)`, which
+  asks `done(acc)` before each element and returns the accumulator the moment it
+  holds, and `try_fold(xs, init, f)`, whose step returns the prelude `Result`
+  and whose first `Err` is the result. Both are in the signature table: a `done`
+  returning a number is E0211, and a `try_fold` result matched without an `Err`
+  arm is E0200. Decided against a `Step<A>` continue-or-stop type, because a
+  generic stdlib union would be the first of its kind and a `match` over one
+  gets no exhaustiveness check today (G143, G147), so the stop signal is a
+  predicate the checker can already type. Verified by breaking it: with the
+  `done` check removed, the alpha-beta test visits six leaves instead of four.*
 
 **The documentation gap, which is not a `G` entry because nothing is broken.**
 The author's `specs/requirements.md` records, as a decision taken before the

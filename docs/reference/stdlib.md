@@ -93,6 +93,8 @@ array.any<T>(xs, predicate: fn(T) -> bool) -> bool
 array.contains<T>(xs, value: T) -> bool
 array.sort<T>(xs, compare: fn(T, T) -> number) -> Array<T>
 array.fold<T, A>(xs, init: A, f: fn(A, T) -> A) -> A
+array.fold_while<T, A>(xs, init: A, f: fn(A, T) -> A, done: fn(A) -> bool) -> A  // stops before the next element once done(acc)
+array.try_fold<T, A, E>(xs, init: A, f: fn(A, T) -> Result<A, E>) -> Result<A, E>  // the first Err is the result
 array.max(xs: Array<number>) -> Option<number>          // None on an empty array
 array.min(xs: Array<number>) -> Option<number>          // None on an empty array
 array.sum(xs: Array<number>) -> number                  // 0 on an empty array
@@ -106,6 +108,67 @@ array.range_from(start: number, end: number) -> Array<number>  // [start, ..., e
 
 `fold` takes the callback last, so it reads like the rest of the module; the
 callback gets `(acc, x)` and no index.
+
+`fold_while` is `fold` that can stop. Before each element is consumed, `done(acc)`
+is asked whether the answer is already known; when it is, the accumulator is
+returned and the rest of the array is never visited (`done(init)` true returns
+`init` with nothing consumed). That is the shape of alpha-beta pruning, of a
+budget that runs out, and of every search that knows when it is finished.
+Written over `fold`, each of those evaluates the whole array and looks correct
+doing it. The stop signal is a separate predicate rather than a `Step<A>`
+continue-or-stop type, because a generic stdlib union would be the first of its
+kind and a `match` over one gets no exhaustiveness check today.
+
+```glyph
+module main
+
+import std/array
+import std/io
+
+type Budget = { spent: int, taken: int }
+
+fn spend(b: Budget, cost: int) -> Budget {
+  return { spent: b.spent + cost, taken: b.taken + 1 }
+}
+
+fn exhausted(b: Budget) -> bool {
+  return b.spent >= 10
+}
+
+pub fn main() -> void {
+  let start: Budget = { spent: 0, taken: 0 }
+  let b = array.fold_while([4, 5, 6, 7], start, spend, exhausted)
+  // spent=15 taken=3: the 7 was never visited
+  io.println("spent=${number.to_string(b.spent)} taken=${number.to_string(b.taken)}")
+}
+```
+
+`try_fold` is `fold` whose step can fail. The first `Err` the callback returns is
+the result and the elements after it are never visited; a run with no `Err` is
+`Ok` of the final accumulator. The error type is bound from the callback's
+declared return, so the call is a prelude `Result`: a `match` over it is held to
+an `Err` arm (E0200), and `?` accepts it.
+
+```glyph
+module main
+
+import std/array
+import std/io
+
+fn add_positive(sum: int, x: int) -> Result<int, string> {
+  return match x < 0 {
+    true => Err("negative ${number.to_string(x)}"),
+    false => Ok(sum + x),
+  }
+}
+
+pub fn main() -> void {
+  match array.try_fold([1, 2, 0 - 1, 4], 0, add_positive) {
+    Ok(total) => io.println("total ${number.to_string(total)}"),
+    Err(e) => io.println(e),   // "negative -1"; the 4 is never visited
+  }
+}
+```
 
 `max`, `min`, `max_by` and `min_by` are the reductions `fold` makes you spell
 out. Picking the highest-scoring element of an array is what every search,

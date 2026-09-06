@@ -2974,6 +2974,58 @@ impl Assigner<'_> {
                     acc,
                 )
             }
+            // The two early-exit folds (G101). `fold_while` adds a stop test
+            // over the accumulator; modeling it as `fn(A) -> bool` is what
+            // makes a `done` that returns a number E0211 here rather than a
+            // fold that stops after the first non-zero accumulator at run
+            // time. `try_fold`'s step returns the prelude `Result<A, E>`, and
+            // `E` is bound from the callback's declared return the way `map`
+            // binds `U`, so the call is a `Result` the exhaustiveness checker
+            // holds to an `Err` arm and the `?` operator accepts. There is no
+            // `Step<A>` type: a generic stdlib union would be the first of its
+            // kind and a `match` over it would go unchecked today.
+            "fold_while" => {
+                let acc = Ty::Param {
+                    name: Ident::from("A"),
+                    owner: ParamOwner::Unresolved,
+                };
+                (
+                    vec![
+                        of(xs.clone()),
+                        of(acc.clone()),
+                        of(Ty::Fn {
+                            params: vec![of(acc.clone()), of(elem())],
+                            return_ty: Arc::new(acc.clone()),
+                            is_async: false,
+                        }),
+                        of(mapper(acc.clone(), Ty::Prim(Primitive::Bool))),
+                    ],
+                    acc,
+                )
+            }
+            "try_fold" => {
+                let acc = Ty::Param {
+                    name: Ident::from("A"),
+                    owner: ParamOwner::Unresolved,
+                };
+                let err = Ty::Param {
+                    name: Ident::from("E"),
+                    owner: ParamOwner::Unresolved,
+                };
+                let step = self.stdlib_result_ty(acc.clone(), err.clone())?;
+                (
+                    vec![
+                        of(xs.clone()),
+                        of(acc.clone()),
+                        of(Ty::Fn {
+                            params: vec![of(acc.clone()), of(elem())],
+                            return_ty: Arc::new(step),
+                            is_async: false,
+                        }),
+                    ],
+                    self.stdlib_result_ty(acc, err)?,
+                )
+            }
             // The five reductions (G100). `max`/`min`/`max_by`/`min_by` are
             // `Option`-returning because an empty array has no maximum, so
             // modeling them is what turns the empty case into a `None` arm the
@@ -10420,6 +10472,83 @@ fn label(s: Status) -> string {
                 "{call} should be an argument-count mismatch: {errs:?}"
             );
         }
+    }
+
+    #[test]
+    fn array_fold_while_returns_the_accumulator_type() {
+        // G101. `fold_while` is `fold` that stops before consuming the next
+        // element once `done(acc)` holds. Its result is the accumulator, bound
+        // off `init` the way `fold` binds it, so a `let` over it carries a type
+        // and a field typo on that type is a Glyph error.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/array\n\
+             fn step(acc: number, x: number) -> number { return acc + x }\n\
+             fn stop(acc: number) -> bool { return acc > 10 }\n\
+             fn f(xs: Array<number>) -> void {\n  let total = array.fold_while(xs, 0, step, stop)\n  return void\n}\n",
+        );
+        assert!(
+            matches!(
+                tm.get(first_let_value_span_anywhere(&m)),
+                Ty::Prim(Primitive::Number)
+            ),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn a_fold_while_stop_test_that_returns_a_number_is_an_argument_mismatch() {
+        // The stop test is `fn(A) -> bool`. A callback returning a number
+        // would be truthy on every non-zero accumulator, so the fold would stop
+        // after the first element on a build `tsc --strict` passed if the
+        // signature were left unmodeled. Same shape as the G99 async checks.
+        let errs = errors_of(
+            "module x\nimport std/array\n\
+             fn step(acc: number, x: number) -> number { return acc + x }\n\
+             fn score(acc: number) -> number { return acc }\n\
+             fn f(xs: Array<number>) -> void {\n  let total = array.fold_while(xs, 0, step, score)\n  return void\n}\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "a `done` returning number should be an argument-type mismatch: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn array_try_fold_returns_a_prelude_result_bound_from_the_callback() {
+        // `try_fold`'s error type has no argument of its own: it is bound from
+        // the callback's declared `Result<A, E>` return, the same route
+        // `array.map` uses for `U`. The result is the prelude `Result`, so the
+        // `?` operator and the exhaustiveness checker both recognise it.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/array\n\
+             fn step(acc: number, x: number) -> Result<number, string> { return Ok(acc + x) }\n\
+             fn f(xs: Array<number>) -> void {\n  let total = array.try_fold(xs, 0, step)\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { base, args }
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Result"))
+                    && args.first() == Some(&Ty::Prim(Primitive::Number))
+                    && args.get(1) == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn a_try_fold_matched_without_an_err_arm_is_non_exhaustive() {
+        // The reason to type it at all: left `Unknown`, a `match` with only an
+        // `Ok` arm builds clean and throws at run time on the first `Err`.
+        let errs = errors_of(
+            "module x\nimport std/array\n\
+             fn step(acc: number, x: number) -> Result<number, string> { return Ok(acc + x) }\n\
+             fn f(xs: Array<number>) -> number {\n  return match array.try_fold(xs, 0, step) {\n    Ok(total) => total,\n  }\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| e.code() == "E0200"),
+            "a try_fold result matched without an Err arm must be E0200: {errs:?}"
+        );
     }
 
     #[test]

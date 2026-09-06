@@ -25,7 +25,7 @@
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use glyph_emit::{emit_module, ProjectTables};
+use glyph_emit::{emit_module, NoDecls, ProjectTables};
 use glyph_lexer::Span;
 use glyph_resolver::{
     build_prelude, collect_module_symbols, module_lints, path_key, resolve_module, verify_imports,
@@ -187,7 +187,9 @@ fn compile_inner(source: &str) -> CompileOutput {
         &resolved,
         &types,
         &prelude,
-        tables.emit_context(PLAYGROUND_MODULE_PATH),
+        // One module, no siblings: every cross-module question the emitter
+        // asks is answered "nothing declared", which is the truth here.
+        tables.emit_context(PLAYGROUND_MODULE_PATH, &NoDecls),
     ) {
         Ok(ts) => Some(ts),
         Err(e) => {

@@ -117,7 +117,7 @@ use glyph_ast::{
     TemplatePart, TypeExpr, UnaryOp, UnionVariant, is_variant_shaped,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
-use glyph_typechecker::{Primitive, Ty, TypeMap};
+use glyph_typechecker::{DeclTyResolver, ImportedTypeDecl, Primitive, Ty, TypeMap};
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap};
 use std::rc::Rc;
@@ -449,17 +449,21 @@ enum ArmTerm {
     Assign,
 }
 
-/// Project context the emitter needs to resolve cross-module import specifiers.
-/// A project (sibling `.glyph`) import must emit a relative specifier (`./x`)
-/// rather than the bare module path, which neither `tsc` nor `tsx` resolves;
-/// `std/*` is left bare (tsconfig-mapped) and an external npm package (e.g.
-/// `react`) is left bare too. The default (`EmitContext::single`) treats every
-/// import as non-project, which is correct for a one-module program.
-/// `(module path, union name, variant name) -> (module path, type name)`, the
-/// shape of [`EmitContext::union_variant_payloads`].
-pub type UnionVariantPayloads =
-    std::collections::BTreeMap<(String, String, String), (String, String)>;
-
+/// Project context the emitter needs beyond the module it is emitting.
+///
+/// Two kinds of fact live here, and the split is the point. The semantic ones,
+/// what a sibling module declares and in what shape, are read through `decls`,
+/// the checker's own `DeclTyResolver`, so the emitter consumes them rather
+/// than rediscovering them from a scan of its own (G214). The emission-owned
+/// ones are the three tables: which modules are project siblings (a project
+/// import must emit a relative specifier, `./x`, where `std/*` and an external
+/// package stay bare), and which sibling types emit a runtime descriptor and
+/// which do not. Whether a declaration emits a descriptor is a fact about
+/// emission, not about the language, and the checker has no query for it.
+///
+/// The default (`EmitContext::single`) treats every import as non-project and
+/// every sibling as declaring nothing, which is correct for a one-module
+/// program.
 #[derive(Clone, Copy)]
 pub struct EmitContext<'a> {
     /// The importing module's own path (e.g. `sub/a`), used to compute the
@@ -468,17 +472,6 @@ pub struct EmitContext<'a> {
     /// Every project module path, so a project import is told apart from a
     /// `std/*` or external one.
     pub project_modules: &'a std::collections::BTreeSet<String>,
-    /// `(module path, variant name)` for every record-payload variant across the
-    /// project, so a `Variant(v)` bind on an *imported* union knows whether to
-    /// bind the whole object (record payload) or `.value` (single-value payload).
-    /// Empty for a single-module build (no imported project unions).
-    pub record_payload_variants: &'a std::collections::BTreeSet<(String, String)>,
-    /// `(module path, type name) -> arity` for every generic record descriptor
-    /// across the project, so an *imported* generic descriptor's
-    /// `Imported.parse<T>(v)` call threads its runtime checker argument (a
-    /// module-local scan resolves the import to arity 0 and would drop it).
-    /// Empty for a single-module build (no imported generic descriptors).
-    pub generic_descriptor_arities: &'a std::collections::BTreeMap<(String, String), usize>,
     /// `(module path, type name)` for every *non-generic* exported type across
     /// the project that emits a runtime descriptor (a record, a tagged union
     /// whose descriptor name is free, or a D39 refined primitive). Without it a
@@ -498,29 +491,35 @@ pub struct EmitContext<'a> {
     /// G76 closed for `match` exhaustiveness.
     /// Empty for a single-module build (no imported aliases).
     pub descriptorless_aliases: &'a std::collections::BTreeMap<(String, String), TypeExpr>,
-    /// `(module path, type name) -> variant names` for every tagged union
-    /// declared across the project, in declaration order. A match arm's bare
-    /// ident payload (`Err(empty)`) has to tell a variant reference apart from
-    /// a fresh binding; `union_variant_names` (this module's own scan) sees
-    /// nothing for an *imported* union, and shape alone (`is_variant_shaped`)
-    /// only covers a PascalCase variant. This registry is the other half: a
-    /// lowercase variant of an imported union is still found by name here
-    /// (G147). Empty for a single-module build (no imported unions).
-    pub union_variant_names: &'a std::collections::BTreeMap<(String, String), Vec<String>>,
-    /// `(module path, union name, variant name) -> (module path, type name)`:
-    /// the declaration each payload-carrying variant's payload *names*, for
-    /// every tagged union across the project whose variant payload is a type
-    /// path (`B(Inner)`, `B(inner.Inner)`, `B(Tree<K>)`). Resolved in the
-    /// declaring module's own namespace at scan time, since that is the only
-    /// place `Inner` can be told apart from a same-named type of the consumer.
-    /// `union_variant_names` answers "which variants does this union have";
-    /// this table answers "which union is under this variant", which is the
-    /// question the nested-arm rule has to ask when the *outer* union is the
-    /// imported one and reaches the emitter as a bare `Ty::Imported` with no
-    /// payload types attached (G147, the half 0.1.96 left open). Only paths
-    /// are recorded: a record, function or literal payload has no variants to
-    /// look up. Empty for a single-module build.
-    pub union_variant_payloads: &'a UnionVariantPayloads,
+    /// The checker's view of every other module's declarations: the same
+    /// `DeclTyResolver` the typechecker ran this module with, so a fact about
+    /// a sibling (which variants an imported union has, which of them carry a
+    /// record payload, which union sits under a payload variant, how many
+    /// parameters an imported generic record takes) is read off the
+    /// declaration the checker read, through the query it read it with, rather
+    /// than re-derived from a scan of the sibling's AST. This is what tells a
+    /// lowercase variant of an imported union (`Err(empty)`, `B(alpha)`) from
+    /// a fresh binding across a module boundary (G147): the same variant list
+    /// the checker required is the one the emitter dispatches on. The emitter
+    /// consumes semantic facts; it does not rediscover them (G214).
+    ///
+    /// A surface with no project behind it passes [`NoDecls`], which answers
+    /// the trait's defaults: no sibling declares anything, which is exactly
+    /// the single-module case.
+    pub decls: &'a dyn DeclTyResolver,
+}
+
+/// The `DeclTyResolver` of a program with no siblings: every cross-module
+/// query takes the trait's `None` default, and `decl_ty`, which the emitter
+/// never asks, answers `Unknown`. This is the resolver a single-module surface
+/// (the playground, the conformance and formatter harnesses) emits with, and
+/// it makes "no project" a value rather than a special case in the emitter.
+pub struct NoDecls;
+
+impl DeclTyResolver for NoDecls {
+    fn decl_ty(&self, _decl_idx: u32) -> Ty {
+        Ty::Unknown
+    }
 }
 
 impl<'a> EmitContext<'a> {
@@ -529,34 +528,22 @@ impl<'a> EmitContext<'a> {
     ///
     /// **Only correct when the program really has no siblings**, which in
     /// practice means a test. Anything that emits TypeScript a person will run
-    /// builds its context from [`ProjectTables`], because the six tables above
-    /// are read for imports and an empty one silently answers "this project
-    /// declares nothing" to every question about them. A surface that reached
-    /// for this constructor instead emitted a weaker runtime check and a bare
-    /// specifier for a sibling import, and looked correct doing it (G170).
+    /// builds its context from [`ProjectTables`] and the checker's resolver,
+    /// because the tables above are read for imports and an empty one silently
+    /// answers "this project declares nothing" to every question about them.
+    /// A surface that reached for this constructor instead emitted a weaker
+    /// runtime check and a bare specifier for a sibling import, and looked
+    /// correct doing it (G170).
     pub fn single() -> Self {
         EmitContext {
             module_path: "",
             project_modules: &EMPTY_MODULES,
-            record_payload_variants: &EMPTY_VARIANTS,
-            generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
-            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
-            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
+            decls: &NoDecls,
         }
     }
 }
-
-static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
-    std::sync::LazyLock::new(std::collections::BTreeSet::new);
-
-static EMPTY_UNION_VARIANT_NAMES: std::sync::LazyLock<
-    std::collections::BTreeMap<(String, String), Vec<String>>,
-> = std::sync::LazyLock::new(Default::default);
-
-static EMPTY_UNION_VARIANT_PAYLOADS: std::sync::LazyLock<UnionVariantPayloads> =
-    std::sync::LazyLock::new(Default::default);
 
 static EMPTY_DESCRIPTORS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
@@ -565,22 +552,21 @@ static EMPTY_ALIASES: std::sync::LazyLock<
     std::collections::BTreeMap<(String, String), TypeExpr>,
 > = std::sync::LazyLock::new(Default::default);
 
-static EMPTY_ARITIES: std::sync::LazyLock<std::collections::BTreeMap<(String, String), usize>> =
-    std::sync::LazyLock::new(std::collections::BTreeMap::new);
-
 static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
 
-/// Every project-wide fact a per-module pass needs, computed once from the
-/// parsed modules of a project.
+/// Every project-wide *emission* fact a per-module pass needs, computed once
+/// from the parsed modules of a project.
 ///
-/// Seven of the eight tables below back an [`EmitContext`], and each answers
-/// the same question about a *sibling* module: what does it export, and in
-/// what shape. A module-local scan cannot answer any of them, and every one of
-/// them exists because a module-local scan was tried first and emitted
-/// TypeScript that was weaker than the type declared (G124, G139, G147). The
-/// eighth, `imported_module_paths`, is the reachability fact behind G124's
-/// lint and comes off the same pass over the same ASTs.
+/// Three of the four tables below back an [`EmitContext`]: the project's
+/// module set, and which sibling types emit a runtime descriptor and which do
+/// not. A module-local scan cannot answer them, and each exists because a
+/// module-local scan was tried first and emitted TypeScript that was weaker
+/// than the type declared (G124, G139). The fourth, `imported_module_paths`,
+/// is the reachability fact behind G124's lint and comes off the same pass
+/// over the same ASTs. What a sibling *declares*, its unions, their variants
+/// and payloads, is not read here at all: that is the checker's fact and the
+/// emitter reads it through `EmitContext::decls` (G214).
 ///
 /// **This is the only implementation of that scan.** It lives here, beside
 /// `EmitContext` and [`emits_plain_descriptor`], so a surface that emits
@@ -591,100 +577,9 @@ static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
 #[derive(Debug, Default, Clone)]
 pub struct ProjectTables {
     project_modules: std::collections::BTreeSet<String>,
-    record_payload_variants: std::collections::BTreeSet<(String, String)>,
-    generic_descriptor_arities: std::collections::BTreeMap<(String, String), usize>,
     plain_descriptors: std::collections::BTreeSet<(String, String)>,
     descriptorless_aliases: std::collections::BTreeMap<(String, String), TypeExpr>,
-    union_variant_names: std::collections::BTreeMap<(String, String), Vec<String>>,
-    union_variant_payloads: UnionVariantPayloads,
     imported_module_paths: std::collections::BTreeSet<String>,
-}
-
-/// The type names in scope inside one module, as `ProjectTables::scan` needs
-/// them: which declaration a type path written in that module refers to.
-///
-/// Three spellings are resolved and nothing else is guessed at. A bare name
-/// declared by the module itself is `(this module, name)`; a bare name brought
-/// in by `import m { Name }` is `(m, Name)`; a two-segment `ns.Name` whose head
-/// is a namespace or aliased import of `m` is `(m, Name)`. A name that is none
-/// of these (a prelude container, a primitive, a default import, a longer path)
-/// resolves to nothing, and the table stays silent about it rather than
-/// recording a guess the nested-arm rule would then act on.
-struct ModuleTypeNames<'m> {
-    module_path: &'m str,
-    local_types: std::collections::BTreeSet<&'m str>,
-    named_imports: std::collections::BTreeMap<&'m str, String>,
-    namespaces: std::collections::BTreeMap<&'m str, String>,
-}
-
-impl<'m> ModuleTypeNames<'m> {
-    fn of(module_path: &'m str, ast: &'m Module) -> Self {
-        let mut names = ModuleTypeNames {
-            module_path,
-            local_types: Default::default(),
-            named_imports: Default::default(),
-            namespaces: Default::default(),
-        };
-        for item in &ast.items {
-            match item {
-                Decl::Type(td) => {
-                    names.local_types.insert(td.name.as_ref());
-                }
-                Decl::Import(imp) => {
-                    let key = glyph_resolver::path_key(&imp.path);
-                    match &imp.kind {
-                        ImportKind::Named(items) => {
-                            for name in items {
-                                names.named_imports.insert(name.as_ref(), key.clone());
-                            }
-                        }
-                        ImportKind::Namespace => {
-                            if let Some(last) = imp.path.segments.last() {
-                                names.namespaces.insert(last.as_ref(), key);
-                            }
-                        }
-                        ImportKind::Aliased(alias) => {
-                            names.namespaces.insert(alias.as_ref(), key);
-                        }
-                        // A default import binds a value, never a type this
-                        // table could name.
-                        ImportKind::Default(_) => {}
-                    }
-                }
-                _ => {}
-            }
-        }
-        names
-    }
-
-    /// The declaration the type path `ty` names in this module, or `None` when
-    /// `ty` is not a path this module can be seen to resolve. A generic
-    /// application (`Tree<K>`) resolves to its base, the way the checker's
-    /// `union_base` reads a payload.
-    fn decl_of(&self, ty: &TypeExpr) -> Option<(String, String)> {
-        let ty = match ty {
-            TypeExpr::Generic { base, .. } => base.as_ref(),
-            other => other,
-        };
-        let TypeExpr::Path { segments, .. } = ty else {
-            return None;
-        };
-        match segments.as_slice() {
-            [name] => {
-                let name = name.as_ref();
-                if self.local_types.contains(name) {
-                    return Some((self.module_path.to_string(), name.to_string()));
-                }
-                let module = self.named_imports.get(name)?;
-                Some((module.clone(), name.to_string()))
-            }
-            [ns, name] => {
-                let module = self.namespaces.get(ns.as_ref())?;
-                Some((module.clone(), name.as_ref().to_string()))
-            }
-            _ => None,
-        }
-    }
 }
 
 impl ProjectTables {
@@ -714,15 +609,6 @@ impl ProjectTables {
 
     /// Fold one module's declarations into the tables.
     fn scan(&mut self, module_path: &str, ast: &Module) {
-        // What each type name means *inside this module*, read off its own
-        // imports and declarations before any variant payload is looked at.
-        // A payload path is resolved here, in the declaring module's
-        // namespace, because the consumer that later matches on the union has
-        // no view of this module's imports: to it `Inner` is whatever `Inner`
-        // means at its own site, which may be a different declaration or
-        // nothing at all. Declaration order does not matter to Glyph, so this
-        // is a separate pass rather than a fold over the item list.
-        let names = ModuleTypeNames::of(module_path, ast);
         for item in &ast.items {
             match item {
                 Decl::Import(imp) => {
@@ -733,46 +619,18 @@ impl ProjectTables {
                     self.imported_module_paths
                         .insert(glyph_resolver::path_key(&imp.path));
                 }
-                Decl::Type(td) => {
-                    if let TypeExpr::Union { variants, .. } = &td.body {
-                        self.union_variant_names.insert(
+                // Only an exported, non-generic type is a descriptor question
+                // for a sibling: a generic one threads checkers instead, and
+                // a private one cannot be named from outside.
+                Decl::Type(td) if td.is_public && td.generics.is_empty() => {
+                    if emits_plain_descriptor(td) {
+                        self.plain_descriptors
+                            .insert((module_path.to_string(), td.name.to_string()));
+                    } else {
+                        self.descriptorless_aliases.insert(
                             (module_path.to_string(), td.name.to_string()),
-                            variants.iter().map(|v| v.name.to_string()).collect(),
+                            td.body.clone(),
                         );
-                        for v in variants {
-                            if matches!(v.payload, Some(TypeExpr::Record { .. })) {
-                                self.record_payload_variants
-                                    .insert((module_path.to_string(), v.name.to_string()));
-                            }
-                            let decl = v.payload.as_ref().and_then(|p| names.decl_of(p));
-                            if let Some(decl) = decl {
-                                self.union_variant_payloads.insert(
-                                    (
-                                        module_path.to_string(),
-                                        td.name.to_string(),
-                                        v.name.to_string(),
-                                    ),
-                                    decl,
-                                );
-                            }
-                        }
-                    }
-                    if !td.generics.is_empty() && matches!(&td.body, TypeExpr::Record { .. }) {
-                        self.generic_descriptor_arities.insert(
-                            (module_path.to_string(), td.name.to_string()),
-                            td.generics.len(),
-                        );
-                    }
-                    if td.is_public && td.generics.is_empty() {
-                        if emits_plain_descriptor(td) {
-                            self.plain_descriptors
-                                .insert((module_path.to_string(), td.name.to_string()));
-                        } else {
-                            self.descriptorless_aliases.insert(
-                                (module_path.to_string(), td.name.to_string()),
-                                td.body.clone(),
-                            );
-                        }
                     }
                 }
                 _ => {}
@@ -780,17 +638,20 @@ impl ProjectTables {
         }
     }
 
-    /// The context for emitting the module at `module_path`.
-    pub fn emit_context<'a>(&'a self, module_path: &'a str) -> EmitContext<'a> {
+    /// The context for emitting the module at `module_path`, reading the
+    /// project's declarations through `decls`: the resolver the checker ran
+    /// that module with, or [`NoDecls`] on a surface that holds one module.
+    pub fn emit_context<'a>(
+        &'a self,
+        module_path: &'a str,
+        decls: &'a dyn DeclTyResolver,
+    ) -> EmitContext<'a> {
         EmitContext {
             module_path,
             project_modules: &self.project_modules,
-            record_payload_variants: &self.record_payload_variants,
-            generic_descriptor_arities: &self.generic_descriptor_arities,
             plain_descriptors: &self.plain_descriptors,
             descriptorless_aliases: &self.descriptorless_aliases,
-            union_variant_names: &self.union_variant_names,
-            union_variant_payloads: &self.union_variant_payloads,
+            decls,
         }
     }
 
@@ -2837,16 +2698,12 @@ impl<'a> Emitter<'a> {
         };
         // A union declared in another module lowers to `Ty::Imported { module,
         // name }` rather than `Ty::Named` (this module's AST never sees the
-        // declaration to walk). The project-wide registry is the only place
-        // its variant list is readable from here; without this the payload
-        // union's variants were invisible whenever they arrived through an
-        // import rather than a same-module declaration (G147).
+        // declaration to walk). Its variant list is the checker's: the same
+        // `imported_type_decl` query `required_variants` reads for the
+        // exhaustiveness check, so the list the emitter dispatches on and the
+        // list the checker required are one answer (G147, G214).
         if let Ty::Imported { module, name } = ty {
-            return self
-                .ctx
-                .union_variant_names
-                .get(&(module.as_str().to_string(), name.to_string()))
-                .cloned();
+            return self.imported_union_variant_names(module.as_str(), name);
         }
         let Ty::Named { symbol, path } = ty else {
             return None;
@@ -2873,6 +2730,65 @@ impl<'a> Emitter<'a> {
         Some(variants.iter().map(|v| v.name.to_string()).collect())
     }
 
+    /// The declaration the sibling module `module` declares under `name`, as
+    /// the checker sees it: lowered on the declaring side, through the same
+    /// `imported_type_decl` query the checker's exhaustiveness and payload
+    /// rules read. `None` when no project module answers, which is also the
+    /// answer on a surface with no project behind its context.
+    fn imported_type_decl(&self, module: &str, name: &str) -> Option<ImportedTypeDecl> {
+        self.ctx.decls.imported_type_decl(module, name)
+    }
+
+    /// The variant names of the union declared under `name` in the sibling
+    /// module `module`, in declaration order, read the way the checker's
+    /// `imported_union_variants` reads them: off the declaration as written,
+    /// with no hop through a second name, so the emitter and the checker agree
+    /// on which scrutinees have a variant list at all. `None` for a name the
+    /// module does not declare as a union.
+    fn imported_union_variant_names(&self, module: &str, name: &str) -> Option<Vec<String>> {
+        let decl = self.imported_type_decl(module, name)?;
+        let Ty::Union { variants } = &decl.body else {
+            return None;
+        };
+        Some(variants.iter().map(|v| v.name.to_string()).collect())
+    }
+
+    /// The payload type of `variant` in the union `union` of the sibling
+    /// module `module`, as the declaring module lowered it: an inline record
+    /// payload is `Ty::Record`, a payload naming a type is `Ty::Imported`
+    /// (or an application over one). The checker's `union_variant_payload`,
+    /// without the generic substitution the emitter has no use for. `None`
+    /// for a nullary variant, a variant the union does not declare, or a name
+    /// that is not a union there.
+    fn imported_variant_payload(&self, module: &str, union: &str, variant: &str) -> Option<Ty> {
+        let decl = self.imported_type_decl(module, union)?;
+        let Ty::Union { variants } = &decl.body else {
+            return None;
+        };
+        variants
+            .iter()
+            .find(|v| v.name.as_ref() == variant)?
+            .payload
+            .clone()
+    }
+
+    /// Whether the variant `variant`, declared by some union of the sibling
+    /// module `module`, carries a record payload. Keyed by module and variant
+    /// rather than by union, on purpose: within one module a variant name
+    /// identifies its union (two unions sharing one is E0100), and the type a
+    /// scrutinee is declared with may reach that union through a second name
+    /// the checker reads no variants through, so the union name a
+    /// `Ty::Imported` carries is not what decides the payload's shape. The
+    /// union is found through the trait's `imported_union_of_variant` and the
+    /// payload through `imported_type_decl`, both the checker's queries.
+    fn imported_variant_carries_record(&self, module: &str, variant: &str) -> bool {
+        let Some((union, _)) = self.ctx.decls.imported_union_of_variant(module, variant) else {
+            return false;
+        };
+        self.imported_variant_payload(module, &union, variant)
+            .is_some_and(|p| matches!(p, Ty::Record { .. }))
+    }
+
     /// Whether the variant named `variant` of the tagged union `ty` carries a
     /// record payload (spread flat into the scrutinee object as
     /// `{ tag, ...fields }`), as opposed to a single-value payload (stored under
@@ -2887,21 +2803,19 @@ impl<'a> Emitter<'a> {
             other => other,
         };
         // The scrutinee is typed by an imported union, so its variant shapes
-        // live in the project registry rather than in this module's AST. Keying
-        // the lookup on the scrutinee's *own* module makes the namespace
-        // spelling (`err.BadLeadByte(v)`) resolve exactly as the named-import
-        // spelling does, which the by-name fallback below cannot: that spelling
-        // never binds the variant name in the consumer's symbol table.
+        // are read off the declaring module through the checker's resolver
+        // rather than from this module's AST. Keying the lookup on the
+        // scrutinee's *own* module makes the namespace spelling
+        // (`err.BadLeadByte(v)`) resolve exactly as the named-import spelling
+        // does, which the by-name fallback below cannot: that spelling never
+        // binds the variant name in the consumer's symbol table.
         //
         // This is the deciding answer and so it comes first. The fallback below
         // asks only whether *some* symbol of this name is a record-payload
         // import, never what is being matched, so it gets `b.Hit(n)` wrong
         // whenever an unrelated `a.Hit` is also in scope.
         if let Ty::Imported { module, .. } = ty {
-            return self
-                .ctx
-                .record_payload_variants
-                .contains(&(module.as_str().to_string(), variant.to_string()));
+            return self.imported_variant_carries_record(module.as_str(), variant);
         }
         // Cross-module fallback for a scrutinee the checker did not pin to a
         // `Ty::Imported` (an inferred `let` bound to a cross-module call has no
@@ -2935,7 +2849,7 @@ impl<'a> Emitter<'a> {
     }
 
     /// Whether `variant` is an imported record-payload variant, resolved via its
-    /// own module's `ImportNamed` symbol and the project record-variant registry.
+    /// own module's `ImportNamed` symbol and the declaring module's declaration.
     /// A same-module variant name shadows an import in `by_name`, so this only
     /// fires for a genuinely imported one.
     fn imported_variant_is_record(&self, variant: &str) -> bool {
@@ -2948,15 +2862,7 @@ impl<'a> Emitter<'a> {
         let SymbolKind::ImportNamed { path, original } = &sym.kind else {
             return false;
         };
-        let module_path: String = path
-            .segments
-            .iter()
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
-            .join("/");
-        self.ctx
-            .record_payload_variants
-            .contains(&(module_path, original.to_string()))
+        self.imported_variant_carries_record(&glyph_resolver::path_key(path), original)
     }
 
     /// The type of an outer variant's payload, for a scrutinee whose payload is
@@ -2983,12 +2889,14 @@ impl<'a> Emitter<'a> {
     /// the variant's own declaration (`Full(Color)`) and never becomes a `Ty`
     /// here at all.
     ///
-    /// Across a module boundary the declaration is read from the project
-    /// registries instead: an *imported* outer union's variant payload is the
-    /// declaration `union_variant_payloads` recorded for it, and a *local*
-    /// outer union's imported payload is followed through its import symbol.
-    /// Both land in `union_variant_names`, so the same table decides for every
-    /// spelling of the boundary (G147).
+    /// Across a module boundary the declaration is read through the checker's
+    /// resolver instead: an *imported* outer union's variant payload is the
+    /// type its exported declaration names, followed to that type's own
+    /// declaration the way the checker's `imported_variant_payload_union`
+    /// follows it, and a *local* outer union's imported payload is followed
+    /// through its import symbol to the same query. Both land in
+    /// `imported_union_variant_names`, so the same declaration decides for
+    /// every spelling of the boundary (G147).
     ///
     /// `None` means the payload union is not readable from this module (the
     /// scrutinee's type did not resolve, the payload is not a union, or the
@@ -3003,16 +2911,23 @@ impl<'a> Emitter<'a> {
             other => other,
         };
         if let Ty::Imported { module, name } = base {
-            let (payload_module, payload_name) = self.ctx.union_variant_payloads.get(&(
-                module.as_str().to_string(),
-                name.to_string(),
-                outer.to_string(),
-            ))?;
-            return self
-                .ctx
-                .union_variant_names
-                .get(&(payload_module.clone(), payload_name.clone()))
-                .cloned();
+            // The payload was lowered on the declaring side, so whatever type
+            // it names is a `Ty::Imported` anchored on the module that declares
+            // it, whether that is the outer union's own module or a third one;
+            // a generic application (`B(Tree<K>)`) unwraps to its base.
+            let payload = self.imported_variant_payload(module.as_str(), name, outer)?;
+            let payload_base = match &payload {
+                Ty::App { base, .. } => base.as_ref(),
+                other => other,
+            };
+            let Ty::Imported {
+                module: payload_module,
+                name: payload_name,
+            } = payload_base
+            else {
+                return None;
+            };
+            return self.imported_union_variant_names(payload_module.as_str(), payload_name);
         }
         let payload = match self.user_variant_payload(scrutinee_ty, outer)? {
             TypeExpr::Generic { base, .. } => base.as_ref(),
@@ -3026,9 +2941,9 @@ impl<'a> Emitter<'a> {
 
     /// The variant names of the union a type path written in this module
     /// refers to: a local declaration, a named import (`import m { Inner }`)
-    /// answered from the project registry, or a namespace spelling
-    /// (`m.Inner`) answered the same way. `None` for a path that is none of
-    /// these or that names something other than a union.
+    /// answered by the declaring module's exported declaration, or a namespace
+    /// spelling (`m.Inner`) answered the same way. `None` for a path that is
+    /// none of these or that names something other than a union.
     fn union_variant_names_of_path(&self, segments: &[Ident]) -> Option<Vec<String>> {
         match segments {
             [name] => {
@@ -3040,10 +2955,7 @@ impl<'a> Emitter<'a> {
                 let SymbolKind::ImportNamed { path, original } = &sym.kind else {
                     return None;
                 };
-                self.ctx
-                    .union_variant_names
-                    .get(&(glyph_resolver::path_key(path), original.to_string()))
-                    .cloned()
+                self.imported_union_variant_names(&glyph_resolver::path_key(path), original)
             }
             [ns, name] => {
                 let sym_id = *self.resolved.symbols.by_name.get(ns.as_ref())?;
@@ -3053,10 +2965,7 @@ impl<'a> Emitter<'a> {
                 else {
                     return None;
                 };
-                self.ctx
-                    .union_variant_names
-                    .get(&(glyph_resolver::path_key(path), name.to_string()))
-                    .cloned()
+                self.imported_union_variant_names(&glyph_resolver::path_key(path), name)
             }
             _ => None,
         }
@@ -4186,16 +4095,16 @@ impl<'a> Emitter<'a> {
     /// How `variant`'s payload is stored, given the type of the value being
     /// matched. `variant_payload_is_record` is the deciding answer and comes
     /// first: it is the same one `emit_arm_binds` asks, and it resolves an
-    /// imported union through the project's `(module, variant)` registry rather
-    /// than through this module's AST.
+    /// imported union through the declaring module's declaration rather than
+    /// through this module's AST.
     ///
     /// The remaining work is proving *boxed* positively rather than reading it
     /// off a `false`. Three things prove it: a prelude variant (`Ok`/`Err`/
     /// `Some` have no declaration to resolve and always box), a union this
-    /// module declares that lists the variant, and a resolved `Ty::Imported` —
-    /// the registry holds every record-payload variant of every project module,
-    /// so a miss there is an answer and not an absence. Anything else is
-    /// `Unknown`.
+    /// module declares that lists the variant, and a resolved `Ty::Imported`:
+    /// the declaring module's declaration names every record-payload variant
+    /// it has, so a miss there is an answer and not an absence. Anything else
+    /// is `Unknown`.
     fn payload_shape(&self, ty: &Ty, variant: &Ident) -> PayloadShape {
         // Unwrap the application the way `variant_payload_is_record` and
         // `union_variant_names` both do. Without this an imported *generic*
@@ -4380,15 +4289,9 @@ impl<'a> Emitter<'a> {
         let SymbolKind::ImportNamed { path, original } = &sym.kind else {
             return false;
         };
-        let module_path: String = path
-            .segments
-            .iter()
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
-            .join("/");
         self.ctx
             .plain_descriptors
-            .contains(&(module_path, original.to_string()))
+            .contains(&(glyph_resolver::path_key(path), original.to_string()))
     }
 
     /// True if the type named by the two-segment path `ns.name` (a namespace or
@@ -4413,13 +4316,7 @@ impl<'a> Emitter<'a> {
         let SymbolKind::ImportNamed { path, .. } = &sym.kind else {
             return None;
         };
-        Some(
-            path.segments
-                .iter()
-                .map(|s| s.as_ref())
-                .collect::<Vec<_>>()
-                .join("/"),
-        )
+        Some(glyph_resolver::path_key(path))
     }
 
     /// Resolve a type imported from a sibling module to the leaf a field check
@@ -5348,12 +5245,7 @@ impl<'a> Emitter<'a> {
                 let Some(module_path) = self.namespace_module_path(ns.as_ref()) else {
                     return Ok(None);
                 };
-                let arity = self
-                    .ctx
-                    .generic_descriptor_arities
-                    .get(&(module_path, type_name.to_string()))
-                    .copied()
-                    .unwrap_or(0);
+                let arity = self.imported_generic_descriptor_arity(&module_path, type_name);
                 (format!("{ns}.{type_name}"), arity)
             }
             _ => return Ok(None),
@@ -5399,21 +5291,27 @@ impl<'a> Emitter<'a> {
             if !matches {
                 return None;
             }
-            Some(
-                im.path
-                    .segments
-                    .iter()
-                    .map(|s| s.as_ref())
-                    .collect::<Vec<_>>()
-                    .join("/"),
-            )
+            Some(glyph_resolver::path_key(&im.path))
         })
+    }
+
+    /// The number of type parameters of the generic record descriptor `name`
+    /// declared in the sibling module `module`, or `0` when `name` is not one
+    /// there. The rule, that a generic record emits a descriptor whose `parse`
+    /// takes one checker per type parameter, is the emitter's, and it is the
+    /// same rule `generic_descriptor_arity` applies to a local declaration;
+    /// the facts it is applied to, the declaration's parameters and the shape
+    /// of its body, are read through the checker's `imported_type_decl`.
+    fn imported_generic_descriptor_arity(&self, module: &str, name: &str) -> usize {
+        self.imported_type_decl(module, name)
+            .filter(|d| !d.generics.is_empty() && matches!(d.body, Ty::Record { .. }))
+            .map_or(0, |d| d.generics.len())
     }
 
     /// The number of type parameters of a generic record descriptor `name`, or
     /// `0` when `name` is not one. Resolves a module-local descriptor first; on a
-    /// miss, resolves `name` through its `ImportNamed` symbol and consults the
-    /// project-wide arity registry, so an *imported* generic descriptor's
+    /// miss, resolves `name` through its `ImportNamed` symbol and reads the
+    /// declaring module's declaration, so an *imported* generic descriptor's
     /// `Imported.parse<T>(v)` call threads its checker argument.
     fn generic_descriptor_arity(&self, name: &str) -> usize {
         if let Some(n) = self.module.items.iter().find_map(|d| match d {
@@ -5429,8 +5327,9 @@ impl<'a> Emitter<'a> {
             return n;
         }
         // Imported generic descriptor: resolve via its own module's `ImportNamed`
-        // symbol and consult the project registry. A same-module type name shadows
-        // an import in `by_name`, so this only fires for a genuinely imported one.
+        // symbol and read the declaring module's declaration. A same-module type
+        // name shadows an import in `by_name`, so this only fires for a genuinely
+        // imported one.
         let Some(&sym_id) = self.resolved.symbols.by_name.get(name) else {
             return 0;
         };
@@ -5440,17 +5339,7 @@ impl<'a> Emitter<'a> {
         let SymbolKind::ImportNamed { path, original } = &sym.kind else {
             return 0;
         };
-        let module_path: String = path
-            .segments
-            .iter()
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
-            .join("/");
-        self.ctx
-            .generic_descriptor_arities
-            .get(&(module_path, original.to_string()))
-            .copied()
-            .unwrap_or(0)
+        self.imported_generic_descriptor_arity(&glyph_resolver::path_key(path), original)
     }
 
     /// The local binding names of every namespace/aliased import
@@ -6228,7 +6117,7 @@ fn union_descriptor_name_free(name: &str, variants: &[UnionVariant]) -> bool {
 /// refined primitive. Single-sourced so the emitter's descriptor resolution and
 /// the CLI's project-wide registry agree on what "has a descriptor" means; a
 /// generic record is excluded because its members take one checker per type
-/// parameter (see `generic_descriptor_arities`).
+/// parameter (see `generic_descriptor_arity`).
 pub fn emits_plain_descriptor(t: &glyph_ast::TypeDecl) -> bool {
     if !t.generics.is_empty() {
         return false;
@@ -7342,12 +7231,9 @@ mod tests {
         let ctx = EmitContext {
             module_path: "sub/a",
             project_modules: &modules,
-            record_payload_variants: &EMPTY_VARIANTS,
-            generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
-            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
-            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
+            decls: &NoDecls,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7373,12 +7259,9 @@ mod tests {
         let ctx = EmitContext {
             module_path: "sub/a",
             project_modules: &modules,
-            record_payload_variants: &EMPTY_VARIANTS,
-            generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
-            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
-            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
+            decls: &NoDecls,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7845,22 +7728,19 @@ mod tests {
     fn imported_generic_descriptor_parse_call_threads_a_checker() {
         // `Box.parse<User>(v)` where `Box` is imported from another module still
         // appends the checker: the arity resolves through the import's
-        // `ImportNamed` symbol and the project-wide registry, not just a
-        // module-local scan (which sees the import as arity 0 and would drop it).
+        // `ImportNamed` symbol and the declaring module's declaration, not just
+        // a module-local scan (which sees the import as arity 0 and would drop
+        // it).
         let (module, resolved, types, prelude) = pipeline(
             "module app\nimport boxmod { Box }\npub type User = { name: string }\npub fn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
         );
-        let mut arities: std::collections::BTreeMap<(String, String), usize> = Default::default();
-        arities.insert(("boxmod".to_string(), "Box".to_string()), 1);
+        let siblings = Siblings::new(&[("boxmod", "module boxmod\npub type Box<T> = { value: T }\n")]);
         let ctx = EmitContext {
             module_path: "app",
             project_modules: &EMPTY_MODULES,
-            record_payload_variants: &EMPTY_VARIANTS,
-            generic_descriptor_arities: &arities,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
-            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
-            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
+            decls: &siblings,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7977,12 +7857,9 @@ mod tests {
         let ctx = EmitContext {
             module_path: "a",
             project_modules: &project,
-            record_payload_variants: &EMPTY_VARIANTS,
-            generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
-            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
-            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
+            decls: &NoDecls,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -8003,7 +7880,7 @@ mod tests {
         );
         let tables =
             ProjectTables::from_modules([("palette", Some(&palette)), ("main", Some(&module))]);
-        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
+        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main", &NoDecls))
             .expect("emit failed");
         assert!(
             ts.contains("import { type Colour } from \"./palette\";"),
@@ -8042,7 +7919,7 @@ mod tests {
             "a module that failed to parse is still in the project: {:?}",
             tables.project_modules()
         );
-        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("a"))
+        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("a", &NoDecls))
             .expect("emit failed");
         assert!(
             ts.contains("from \"./b\""),
@@ -8636,16 +8513,103 @@ mod tests {
     }
 
 
-    /// Emit `main_src` as module `main` beside one sibling module, so a test
-    /// can reach the tables a single-module `EmitContext::single()` leaves
-    /// empty. Returns the emit result rather than unwrapping it, because the
-    /// G147 tests below assert on both outcomes.
-    fn emit_beside(sibling: (&str, &str), main_src: &str) -> Result<String, EmitError> {
-        let sib = glyph_parser::parse(sibling.1).expect("sibling parse failed");
+    /// The checker's resolver over a handful of sibling modules held in
+    /// memory: what `SalsaDeclTy` answers from the project database, answered
+    /// here from parsed and resolved sources and lowered on the export view
+    /// exactly as `glyph_db::exported_type` lowers them. A test that hands the
+    /// emitter a sibling through this is handing it the checker's reading of
+    /// that sibling, not a table it typed out by hand.
+    struct Siblings {
+        modules: Vec<(String, Module, ResolvedModule)>,
+        prelude: Prelude,
+    }
+
+    impl Siblings {
+        fn new(sources: &[(&str, &str)]) -> Self {
+            let prelude = glyph_resolver::build_prelude();
+            let modules = sources
+                .iter()
+                .map(|(path, src)| {
+                    let module = glyph_parser::parse(src).expect("sibling parse failed");
+                    let syms = glyph_resolver::collect_module_symbols(&module)
+                        .expect("sibling collect failed");
+                    let (resolved, _errs) =
+                        glyph_resolver::resolve_module(&module, syms, &prelude);
+                    (path.to_string(), module, resolved)
+                })
+                .collect();
+            Siblings { modules, prelude }
+        }
+
+        /// The parsed siblings, in the shape `ProjectTables::from_modules`
+        /// takes, so the emission-owned tables see the same modules.
+        fn asts(&self) -> Vec<(&str, Option<&Module>)> {
+            self.modules
+                .iter()
+                .map(|(path, module, _)| (path.as_str(), Some(module)))
+                .collect()
+        }
+    }
+
+    impl DeclTyResolver for Siblings {
+        fn decl_ty(&self, _decl_idx: u32) -> Ty {
+            Ty::Unknown
+        }
+
+        fn imported_union_of_variant(
+            &self,
+            module_path: &str,
+            variant_name: &str,
+        ) -> Option<(String, Vec<Ident>)> {
+            let (_, module, _) = self.modules.iter().find(|(p, _, _)| p == module_path)?;
+            module.items.iter().find_map(|item| {
+                let Decl::Type(td) = item else { return None };
+                let TypeExpr::Union { variants, .. } = &td.body else {
+                    return None;
+                };
+                variants
+                    .iter()
+                    .any(|v| v.name.as_ref() == variant_name)
+                    .then(|| {
+                        (
+                            td.name.to_string(),
+                            variants.iter().map(|v| v.name.clone()).collect(),
+                        )
+                    })
+            })
+        }
+
+        fn imported_type_decl(&self, module_path: &str, type_name: &str) -> Option<ImportedTypeDecl> {
+            let (path, module, resolved) =
+                self.modules.iter().find(|(p, _, _)| p == module_path)?;
+            let td = module.items.iter().find_map(|item| match item {
+                Decl::Type(td) if td.name.as_ref() == type_name => Some(td),
+                _ => None,
+            })?;
+            let lowerer =
+                glyph_typechecker::Lowerer::for_export(resolved, &self.prelude, self, path);
+            Some(lowerer.lower_exported_type(td))
+        }
+    }
+
+    /// Emit `main_src` as module `main` beside the given sibling modules, so
+    /// a test can reach what a single-module `EmitContext::single()` leaves
+    /// empty: the emission-owned tables and, through [`Siblings`], the
+    /// checker's view of each sibling's declarations. Returns the emit result
+    /// rather than unwrapping it, because the G147 tests below assert on both
+    /// outcomes.
+    fn emit_beside_all(siblings: &[(&str, &str)], main_src: &str) -> Result<String, EmitError> {
+        let siblings = Siblings::new(siblings);
         let (module, resolved, types, prelude) = pipeline(main_src);
-        let tables =
-            ProjectTables::from_modules([(sibling.0, Some(&sib)), ("main", Some(&module))]);
-        emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
+        let mut asts = siblings.asts();
+        asts.push(("main", Some(&module)));
+        let tables = ProjectTables::from_modules(asts);
+        emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main", &siblings))
+    }
+
+    /// `emit_beside_all` with one sibling.
+    fn emit_beside(sibling: (&str, &str), main_src: &str) -> Result<String, EmitError> {
+        emit_beside_all(&[sibling], main_src)
     }
 
     fn assert_dispatches_on_b(ts: &str) {
@@ -8679,25 +8643,17 @@ mod tests {
     #[test]
     fn imported_outer_union_whose_payload_is_named_imported_from_a_third_module_dispatches() {
         // The payload union lives in a third module and reaches `tree` by a
-        // named import. The registry resolves the payload path in the
-        // *declaring* module's namespace, so `Inner` here means `inner.Inner`
-        // and not a same-named type of the consumer.
-        let inner = glyph_parser::parse("module inner\npub type Inner = | alpha | beta\n")
-            .expect("inner parse failed");
-        let tree = glyph_parser::parse(
-            "module tree\nimport inner { Inner }\npub type G = | A | B(Inner)\n",
-        )
-        .expect("tree parse failed");
-        let (module, resolved, types, prelude) = pipeline(
+        // named import. The declaring module's export view resolves the
+        // payload path in *its* namespace, so `Inner` here means
+        // `inner.Inner` and not a same-named type of the consumer.
+        let ts = emit_beside_all(
+            &[
+                ("inner", "module inner\npub type Inner = | alpha | beta\n"),
+                ("tree", "module tree\nimport inner { Inner }\npub type G = | A | B(Inner)\n"),
+            ],
             "module main\nimport tree { G, A, B }\nimport inner { alpha, beta }\npub fn label(g: G) -> string {\n  return match g {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(beta) => \"b-beta\",\n  }\n}\n",
-        );
-        let tables = ProjectTables::from_modules([
-            ("inner", Some(&inner)),
-            ("tree", Some(&tree)),
-            ("main", Some(&module)),
-        ]);
-        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
-            .expect("a payload union two hops away must still dispatch");
+        )
+        .expect("a payload union two hops away must still dispatch");
         assert_dispatches_on_b(&ts);
     }
 
@@ -8707,21 +8663,14 @@ mod tests {
         // `inner.Inner`. The two import spellings of the payload must resolve
         // to the same declaration, or the spelling decides whether the
         // program builds, which is the module-boundary rule this repo keeps.
-        let inner = glyph_parser::parse("module inner\npub type Inner = | alpha | beta\n")
-            .expect("inner parse failed");
-        let tree =
-            glyph_parser::parse("module tree\nimport inner\npub type G = | A | B(inner.Inner)\n")
-                .expect("tree parse failed");
-        let (module, resolved, types, prelude) = pipeline(
+        let ts = emit_beside_all(
+            &[
+                ("inner", "module inner\npub type Inner = | alpha | beta\n"),
+                ("tree", "module tree\nimport inner\npub type G = | A | B(inner.Inner)\n"),
+            ],
             "module main\nimport tree { G, A, B }\nimport inner { alpha, beta }\npub fn label(g: G) -> string {\n  return match g {\n    A => \"a\",\n    B(alpha) => \"b-alpha\",\n    B(beta) => \"b-beta\",\n  }\n}\n",
-        );
-        let tables = ProjectTables::from_modules([
-            ("inner", Some(&inner)),
-            ("tree", Some(&tree)),
-            ("main", Some(&module)),
-        ]);
-        let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main"))
-            .expect("a namespace-spelled payload union must dispatch like the named one");
+        )
+        .expect("a namespace-spelled payload union must dispatch like the named one");
         assert_dispatches_on_b(&ts);
     }
 
@@ -8753,7 +8702,7 @@ mod tests {
 
     #[test]
     fn a_binding_under_an_imported_outer_union_is_still_a_binding() {
-        // The registry must only promote names the payload union declares. A
+        // Only a name the payload union declares is a variant reference. A
         // lowercase name it does not know stays a binding, so `B(x)` binds the
         // payload and the program keeps meaning what it says.
         let ts = emit_beside(
@@ -10485,12 +10434,9 @@ mod tests {
         let ctx = EmitContext {
             module_path: "app",
             project_modules: &project,
-            record_payload_variants: &EMPTY_VARIANTS,
-            generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &descriptors,
             descriptorless_aliases: &EMPTY_ALIASES,
-            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
-            union_variant_payloads: &EMPTY_UNION_VARIANT_PAYLOADS,
+            decls: &NoDecls,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

@@ -744,7 +744,11 @@ fn build_project_inner_with(
                 ));
         }
 
-        let ctx = tables.emit_context(module_path.as_str());
+        // The emitter reads sibling declarations through the resolver the
+        // checker just ran this module with, so a fact about an imported
+        // union is the checker's fact and not a second reading of the AST.
+        let decls = glyph_db::SalsaDeclTy::new(&db, *sf);
+        let ctx = tables.emit_context(module_path.as_str(), &decls);
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {
                 let rel = format!("{module_path}.ts");

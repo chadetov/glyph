@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-223 entries, 191 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-13 are open. G144, the D28 boundary cast that never reached the returns a
+224 entries, 191 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8804,3 +8804,20 @@ and is the owner's to confirm.
   carry the same help.
 
   *Reproduced against 0.1.118 (the 0.1.119 tree): both spellings above are `[E0002] expected module path segment, found Dot`, exit 1, with no mention of the import forms.*
+
+- **G224. A match over a local alias of an imported union is not
+  exhaustiveness-checked.** `import lib { Shape, Circle, Square }` with
+  `type Local = Shape` in the importing module: `match s { Circle => 1, Square => 2 }`
+  over `s: Local` draws nothing, while the same match over `s: Shape` and over
+  `s: S2` (an alias declared and exported by `lib`) both draw
+  `E0200 missing variants Tri`. D46 made a bare-name alias a second name for
+  its declaration in `local_type_decl`, `named_record_fields` and the
+  descriptor lookup; `resolve_named_union` and `required_variants` were not
+  given the hop, so an alias that resolves to `Ty::Imported` reads no variant
+  list and the match is silently unchecked. The 0.1.117 note under G203 named
+  the local-alias-of-a-union case as an open edge; this is its entry, with the
+  cross-module spelling that makes it a green build over a match the language
+  promises to check. Found while landing 0.1.120 change 1, where the emitter
+  now mirrors exactly this asymmetry instead of resolving it.
+
+  *Reproduced against 0.1.118 (the 0.1.120 tree): the program above reports two `E0200`s, at the `Shape` match and the `S2` match, and none at the `Local` match; exit 1 only because of the other two.*

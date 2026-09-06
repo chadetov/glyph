@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-222 entries, 186 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-17 are open. G144, the D28 boundary cast that never reached the returns a
+222 entries, 187 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+16 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7357,7 +7357,7 @@ and is the owner's to confirm.
   *Closed by 0.1.107, confirmed against 0.1.112: the contradicting gotcha is gone
   and the bootstrap says a parameter's fields are mutable in place.*
 
-- **G177. [HALF FIXED] A sibling module is imported by bare name, and E0101's fix text implies
+- **G177. [FIXED] A sibling module is imported by bare name, and E0101's fix text implies
   otherwise.** The fix text reads "Use an absolute module path (`std/io`,
   `myapp/x`)", and `myapp/x` implies a project module needs a package-name
   prefix. It does not: a sibling in the same `src/` is `import world`. The author
@@ -7378,6 +7378,25 @@ and is the owner's to confirm.
   module name." E0101's own help still reads "Use an absolute module path (e.g.
   `std/io` or `myapp/feature`)", so the diagnostic that sends someone looking is
   still the one implying a prefix.*
+
+  **Fixed in 0.1.119.** The help now reads: "Name the module from the source
+  root, not from this file: a stdlib module by its `std/` path (`import
+  std/io`), a sibling file by its bare name (`import helper`), a file in a
+  subdirectory by its path from the root (`import queries/report`). Relative
+  paths (`./`, `../`) are not allowed (D15)." The subdirectory form is how
+  `derive_module_path` keys a file: `src/app/users.glyph` is `app/users`.
+  `--explain E0101` and the `docs/error-codes.md` row say the same, with a
+  before and after per form and no `myapp/` anywhere; a resolver unit test
+  asserts all three spellings and the absence of the prefix. One finding on
+  the way: E0101 cannot be drawn from source. `import ./helper` and `import
+  ../helper` both stop in the parser as `E0002: expected module path segment,
+  found Dot`, whose help is the generic "Add the expected token", and the
+  resolver's check sits unreachable behind it. So the text a user meets at a
+  relative import is E0002's, which does not yet say what E0101's now says.
+  That is the parser's, and is recorded here for scheduling rather than fixed
+  under this entry. The other half of the entry, one import line for a
+  namespace and one for bare constructors, has been in the bootstrap since
+  0.1.107 and is unchanged.
 
 - **G178. [FIXED] Eleven stdlib modules are shipped and importable with no documented
   signatures.** `glyph llms` lists them under "Not detailed below, but shipped

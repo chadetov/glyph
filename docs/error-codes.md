@@ -40,7 +40,7 @@ below.
 | Code | Meaning |
 |------|---------|
 | `E0100` | Duplicate top-level name |
-| `E0101` | Relative import (use an absolute module path; D15) |
+| `E0101` | Relative import (`./`, `../`; D15). A module is named from the source root, with no package prefix: `std/io` for the stdlib, `helper` for a sibling file, `queries/report` for a file in a subdirectory. In practice the parser refuses a leading `.` at the import site as `E0002` before the resolver runs |
 | `E0102` | Barrel file: only imports, no declarations (D15) |
 | `E0103` | Unresolved name |
 | `E0104` | Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `"glyph"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead |

@@ -213,7 +213,7 @@ impl ResolveError {
                 "Rename one of them. Every top-level name must be unique (greppability)."
             }
             ResolveError::RelativeImport { .. } => {
-                "Use an absolute module path (e.g. `std/io` or `myapp/feature`); relative imports are not allowed (D15)."
+                "Name the module from the source root, not from this file: a stdlib module by its `std/` path (`import std/io`), a sibling file by its bare name (`import helper`), a file in a subdirectory by its path from the root (`import queries/report`). Relative paths (`./`, `../`) are not allowed (D15)."
             }
             ResolveError::BarrelFile { .. } => {
                 "Add a declaration, or remove this file. A module that only imports re-exports nothing (D15: no barrel files)."
@@ -333,6 +333,26 @@ mod tests {
     #[test]
     fn an_ordinary_unknown_name_gets_the_generic_help() {
         assert!(unresolved("widget").help().unwrap().contains("fix the spelling"));
+    }
+
+    /// G177: a sibling module is imported by its bare name. The help used to
+    /// offer `myapp/feature`, which reads as a package prefix no project has,
+    /// and the author who followed it had to probe to find `import helper`.
+    #[test]
+    fn a_relative_import_is_told_the_three_true_spellings() {
+        let help = ResolveError::RelativeImport {
+            span: Span::new(0, 0),
+        }
+        .help()
+        .unwrap();
+        assert!(help.contains("`import std/io`"), "stdlib form: {help}");
+        assert!(help.contains("`import helper`"), "sibling form: {help}");
+        assert!(
+            help.contains("`import queries/report`"),
+            "subdirectory form: {help}"
+        );
+        assert!(help.contains("D15"), "the rule is named: {help}");
+        assert!(!help.contains("myapp"), "no invented package prefix: {help}");
     }
 
     #[test]

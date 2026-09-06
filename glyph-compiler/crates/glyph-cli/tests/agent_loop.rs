@@ -958,3 +958,173 @@ fn a_signature_type_change_gets_one_verdict_per_kind_of_site() {
 
     assert_eq!(mcp.finish(), 0);
 }
+
+/// One module with a union, an empty record, and a caller of each. The two
+/// callers pass the same string literal; what differs is what the checker
+/// compares it against.
+mod declared_signature_fixture {
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    pub struct Project {
+        pub root: PathBuf,
+        pub src: PathBuf,
+        /// The one file, which the agent edits.
+        pub edited: PathBuf,
+        /// `module::tag`, whose `string` parameter is replaced by the union.
+        pub tag: String,
+        /// `module::fill`, whose parameter is the empty record.
+        pub fill: String,
+        /// The caller passing a literal to `tag`.
+        pub tag_caller: String,
+        /// The caller passing a literal to `fill`.
+        pub fill_caller: String,
+    }
+
+    fn put(path: &Path, text: &str) {
+        std::fs::write(path, text).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
+    }
+
+    pub fn write(root: PathBuf) -> Project {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let shop = format!("shop{}d{n}", std::process::id());
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).expect("create src");
+        put(
+            &root.join("package.json"),
+            "{ \"name\": \"declared\", \"glyph\": { \"src\": \"src\" } }",
+        );
+        let edited = src.join(format!("{shop}.glyph"));
+        // Neither body reads its parameter, so the edit under test breaks
+        // nothing inside the declaration it is made in.
+        put(
+            &edited,
+            &format!(
+                "module {shop}\n\n\
+                 pub type Kind =\n  | Retail\n  | Wholesale\n\n\
+                 pub type Blank = {{ }}\n\n\
+                 pub fn tag(s: string) -> number {{\n  return 1\n}}\n\n\
+                 pub fn fill(b: Blank) -> number {{\n  return 1\n}}\n\n\
+                 pub fn tagged() -> number {{\n  return tag(\"x\")\n}}\n\n\
+                 pub fn filled() -> number {{\n  return fill(\"x\")\n}}\n"
+            ),
+        );
+        Project {
+            root,
+            src,
+            edited,
+            tag: format!("{shop}::tag"),
+            fill: format!("{shop}::fill"),
+            tag_caller: format!("{shop}::tagged"),
+            fill_caller: format!("{shop}::filled"),
+        }
+    }
+
+    /// The agent's edit: `tag`'s parameter becomes the module's own union.
+    pub fn replace_the_parameter_with_the_union(project: &Project) {
+        let text = std::fs::read_to_string(&project.edited).expect("read the module");
+        assert!(text.contains("tag(s: string)"), "{text}");
+        put(&project.edited, &text.replace("tag(s: string)", "tag(s: Kind)"));
+    }
+}
+
+/// A `WILL_FAIL` under `change_signature_type` names the classes of
+/// replacement the checker compares the argument against, and the checker has
+/// to agree with each class it names. For a string literal the answer names a
+/// replacement primitive and a replacement union or record declared in the
+/// calling module with at least one field; the agent replaces `string` with
+/// the module's union, and E0211 lands on the site the answer called
+/// `WILL_FAIL`. The same literal against the empty record `type Blank = { }`
+/// is `UNDETERMINED`, with the reason, and the compiler says nothing there
+/// before or after.
+///
+/// The pairing itself (a primitive argument against a declared union
+/// parameter) is asked over the protocol after the edit, on the site the
+/// compiler has just diagnosed, since no green program holds that pairing.
+#[test]
+fn a_signature_type_change_to_a_declared_type_is_confirmed_by_the_checker() {
+    let project = declared_signature_fixture::write(unique_tmp("declared_signature_type"));
+    let (code, clean) = check_json(&project.src);
+    assert_eq!(code, 0, "the fixture starts green: {clean}");
+
+    let mut mcp = McpProcess::start(&project.root);
+    mcp.handshake(1);
+    let entry_for = |answer: &Value, caller: &str| -> Value {
+        answer["impact"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+            .iter()
+            .find(|e| e["entity"] == caller && e["relation"] == "CALLS")
+            .cloned()
+            .unwrap_or_else(|| panic!("no CALLS entry for `{caller}` in {answer}"))
+    };
+
+    let tag = mcp.call_tool(
+        2,
+        "glyph_impact",
+        json!({ "entity": project.tag, "change": { "kind": "change_signature_type" } }),
+    );
+    let tagged = entry_for(&tag, &project.tag_caller);
+    assert_eq!(tagged["verdict"], json!("WILL_FAIL"), "{tagged}");
+    assert_eq!(tagged["diagnostic"], json!("E0211"), "{tagged}");
+    let because = field(&tagged, &["because"]);
+    assert!(
+        because.contains("replacement primitive") && because.contains("at least one field"),
+        "the classes the argument is compared against are unnamed: {tagged}"
+    );
+
+    let fill = mcp.call_tool(
+        3,
+        "glyph_impact",
+        json!({ "entity": project.fill, "change": { "kind": "change_signature_type" } }),
+    );
+    let filled = entry_for(&fill, &project.fill_caller);
+    assert_eq!(filled["verdict"], json!("UNDETERMINED"), "{filled}");
+    assert!(filled["diagnostic"].is_null(), "{filled}");
+    assert!(
+        field(&filled, &["because"]).contains("no fields"),
+        "the exclusion is unnamed: {filled}"
+    );
+
+    // The edit, in the class the verdict named, then the compiler's own word.
+    declared_signature_fixture::replace_the_parameter_with_the_union(&project);
+    let (code, broken) = check_json(&project.src);
+    assert_eq!(code, 1, "the edit has to break the build: {broken}");
+    let reported: BTreeSet<(String, String)> = broken["diagnostics"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no diagnostics: {broken}"))
+        .iter()
+        .filter_map(|d| {
+            Some((
+                d["entity"].as_str()?.to_string(),
+                d["code"].as_str()?.to_string(),
+            ))
+        })
+        .collect();
+    assert!(
+        reported.contains(&(project.tag_caller.clone(), "E0211".to_string())),
+        "the WILL_FAIL site has to be where E0211 lands: {broken}"
+    );
+    assert!(
+        !reported.iter().any(|(e, _)| e == &project.fill_caller),
+        "UNDETERMINED means the compiler says nothing here, and it said something: {broken}"
+    );
+
+    // The site is now a primitive argument against a declared union parameter,
+    // and the answer for that pairing is the diagnostic the compiler just gave.
+    let after = mcp.call_tool(
+        4,
+        "glyph_impact",
+        json!({ "entity": project.tag, "change": { "kind": "change_signature_type" } }),
+    );
+    let tagged = entry_for(&after, &project.tag_caller);
+    assert_eq!(tagged["verdict"], json!("WILL_FAIL"), "{tagged}");
+    assert_eq!(tagged["diagnostic"], json!("E0211"), "{tagged}");
+    assert!(
+        field(&tagged, &["because"]).contains("union"),
+        "the shape the checker read is unnamed: {tagged}"
+    );
+
+    assert_eq!(mcp.finish(), 0);
+}

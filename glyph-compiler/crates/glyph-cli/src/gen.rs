@@ -2544,6 +2544,60 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// G208. A member that is not a property (a method, a call or construct
+    /// signature, an index signature) has no wire shape, so the reader drops
+    /// it. Dropping it silently turned a method-bearing API into a record with
+    /// one field and a report of `1 type(s) written` with no note, so a user
+    /// lost the whole method surface and was told nothing. Every dropped member
+    /// now gets a note naming the owner, the member and the reason.
+    #[test]
+    fn dts_notes_every_dropped_method_signature() {
+        let dir = std::env::temp_dir().join(format!("glyph-dts-methods-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("client.d.ts");
+        std::fs::write(
+            &src,
+            "export interface Client { url: string; fetch(path: string): Promise<string>; close(): void; }",
+        )
+        .unwrap();
+
+        match dts(&src, &dir.join("out"), &Renames::new()) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(text.contains("type Client = { url: string }"), "got:\n{text}");
+                let dropped: Vec<&String> = report
+                    .notes
+                    .iter()
+                    .filter(|n| n.contains("no wire shape"))
+                    .collect();
+                assert_eq!(dropped.len(), 2, "one note per dropped member; notes: {:?}", report.notes);
+                assert!(
+                    dropped.iter().any(|n| n.contains("`Client.fetch`") && n.contains("method signature")),
+                    "names the method and its owner; notes: {:?}",
+                    report.notes
+                );
+                assert!(
+                    dropped.iter().any(|n| n.contains("`Client.close`")),
+                    "every dropped member, not the first; notes: {:?}",
+                    report.notes
+                );
+                // The reason tells the user what to do instead of the record.
+                assert!(
+                    dropped.iter().all(|n| n.contains("call it on a value obtained from the package")),
+                    "notes: {:?}",
+                    report.notes
+                );
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// Two source types that flatten onto one Glyph name must stop the
     /// generator, not produce a file that cannot compile.
     ///

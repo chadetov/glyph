@@ -464,7 +464,7 @@ io.print(message) -> void                   // no newline: a prompt shares its l
 io.eprint(message) -> void                  // to stderr, no newline
 io.is_terminal() -> bool                    // is stdout a terminal, not a pipe
 io.stdin_is_terminal() -> bool              // is a person typing, not a file piped in
-io.read_line() -> Option<string>            // one line, as soon as it arrives; None at EOF
+io.read_line() -> Option<string>            // one line, as soon as it arrives; None at EOF (files: fs.open_lines)
 io.read_to_string() -> string               // the rest of stdin
 ```
 
@@ -572,12 +572,29 @@ fs.stat(path) -> Result<FileInfo, FsError>                // follows symlinks
 fs.read_bytes(path) -> Result<Bytes, FsError>             // the octets, undecoded (std/bytes)
 fs.write_bytes(path, contents) -> Result<void, FsError>
 fs.append_bytes(path, contents) -> Result<void, FsError>
+type LineReader                                           // a file open for reading line by line; opaque
+fs.open_lines(path) -> Result<LineReader, FsError>        // a directory opens, then fails on the first next_line
+fs.next_line(r) -> Result<Option<string>, FsError>        // next line without its `\n` (and a `\r` before it); Ok(None) at the end
+fs.close_lines(r) -> void                                 // for stopping early; idempotent
 ```
 
 `match e.kind` is checked for exhaustiveness like any union you declared: cover
 all six kinds (including `fs.ErrorKind.Other({ code })`) and you need no `else`
 arm; omit one and the build fails with E0200. Walk a tree with `read_dir` +
 `is_dir` + `path.join`; there is no `walk` helper.
+
+`read_text` holds the whole file; `open_lines` holds one 64 KiB chunk per reader
+and hands out a line at a time. A read error is `Err`, never `None`, so a
+`match` over `next_line` with no `Err` arm is E0200. Reaching the end closes the
+reader and so does an error; `close_lines` is for stopping early. No `owned`
+tracking: close it or let `next_line` reach the end. The reads block the event
+loop, so not in a program that also serves a socket or HTTP.
+
+```
+let r = fs.open_lines(path)?
+let first = fs.next_line(r)?     // Ok(Some(line)), Ok(None) at the end, Err on a read error
+fs.close_lines(r)                // only when stopping before the end
+```
 
 The `_text` calls decode and encode UTF-8; use `_bytes` for any file that is not
 text. `read_text` on a PNG replaces every byte that is not valid UTF-8 with

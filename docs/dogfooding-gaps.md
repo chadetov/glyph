@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-212 entries, 183 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-10 are open. G144, the D28 boundary cast that never reached the returns a
+212 entries, 184 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+9 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3639,7 +3639,7 @@ and stopped on the same sentence: Glyph has no bytes.
   from `.d.mts`, not `.d.ts`. Measured on the package that produced the entry,
   `glyph gen dts date-fns` went from **0 types to 280**.
 
-- **G105. A file can only be read whole, and there is no async iteration.** A
+- **G105. [FIXED] A file can only be read whole, and there is no async iteration.** A
   streaming merge that never holds more than one line per source cannot be
   written. `std/fs` has no open/read-at-offset/close and no line iterator.
   `std/io.read_line` does exactly the right thing (chunked `readSync` into a
@@ -3671,6 +3671,30 @@ and stopped on the same sentence: Glyph has no bytes.
   the property-testing sampler, so the naming problem is unchanged.*
 
   *Re-run for 0.1.96: `std/fs` still exposes whole-file reads only, and `std/stream` is still the property-testing sampler.*
+
+  **Fixed in 0.1.118.** `std/fs` gains a handle reader: `open_lines(path) ->
+  Result<LineReader, FsError>`, `next_line(r) -> Result<Option<string>,
+  FsError>` and `close_lines(r) -> void`, with `LineReader` an opaque type the
+  module exports the way `std/net` exports `Socket`. Two signatures changed
+  from the proposal. `next_line` answers `Result<Option<string>, FsError>`
+  rather than `Option<string>`, because the plain option would report a disc
+  error at line 400,000 as end of input, a silent truncation at a boundary;
+  the typechecker models it, so a `match` with the two `Ok` arms and no `Err`
+  arm is E0200, and a directory opened for lines is `Err(IsADirectory)` on the
+  first read where the mutated runtime printed `end`. `next_line` closes the
+  descriptor when it returns `Ok(None)` and when it returns `Err`; `close_lines`
+  is idempotent, for the early stop. One claim struck: the proposal's "an
+  `owned` resource so a dropped reader is E0206 like a socket" was false, since
+  no stdlib handle is tracked by the `owned` check, `Socket` included, and the
+  docs say "close it or let `next_line` reach the end" and nothing about E0206.
+  Synchronous, chunked `readSync` into a `StringDecoder` per reader, the way
+  `io.read_line` does for fd 0, with the `pending`/`eof`/`chunk` triple
+  instantiated per handle; the shim gains `openSync` and `closeSync`. No new
+  iteration construct. The streamed HTTP body keeps its 8 MB limit (G120)
+  untouched; a streaming request body is its own design. Confirmed by a
+  three-source k-way merge run under node with one reader per source, a file
+  whose last line lacks a newline, a CRLF source, a missing path as
+  `NotFound`, and `close_lines` twice on one reader.
 
 - **G106. [FIXED] E0106 calls an import dead when only an `@example` uses it.** A module
   whose `@example` annotations reference `Some`/`None`, a union's constructors,

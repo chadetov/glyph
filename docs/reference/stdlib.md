@@ -193,7 +193,7 @@ io.print(message: string) -> void               // stdout, no newline (a prompt)
 io.eprint(message: string) -> void              // stderr, no newline
 io.is_terminal() -> bool                        // is stdout a terminal, not a pipe
 io.stdin_is_terminal() -> bool                  // is a person typing, not a file piped in
-io.read_line() -> Option<string>                // one line from stdin (None at EOF)
+io.read_line() -> Option<string>                // one line from stdin (None at EOF); for a file, fs.open_lines
 io.read_to_string() -> string                   // the rest of stdin
 io.inspect(value: unknown) -> void              // pretty-print any value to stderr (debugging)
 io.render(value: unknown) -> string             // the same rendering as a string
@@ -523,6 +523,10 @@ fs.stat(path: string) -> Result<FileInfo, FsError>                        // fol
 fs.read_bytes(path: string) -> Result<Bytes, FsError>                     // the octets, undecoded
 fs.write_bytes(path: string, contents: Bytes) -> Result<void, FsError>
 fs.append_bytes(path: string, contents: Bytes) -> Result<void, FsError>
+type LineReader                                                           // a file open for reading line by line; opaque
+fs.open_lines(path: string) -> Result<LineReader, FsError>                // a directory opens and fails on the first next_line
+fs.next_line(r: LineReader) -> Result<Option<string>, FsError>            // the next line without its `\n` (and a `\r` before it); Ok(None) at the end
+fs.close_lines(r: LineReader) -> void                                     // for stopping early; idempotent
 ```
 
 The `_text` calls decode and encode as UTF-8. Use the `_bytes` calls for any
@@ -562,6 +566,96 @@ fs.read_dir(dir).map(fn(names: Array<string>) {
   return array.filter(names, fn(n: string) { return fs.is_dir(path.join([dir, n])) })
 })
 ```
+
+`read_text` holds the whole file. `open_lines` holds one 64 KiB chunk per open
+reader and hands out one line at a time, which is what a merge of sorted files,
+a log scan, or anything else that must not have the file in memory needs.
+`next_line` answers `Result<Option<string>, FsError>` rather than
+`Option<string>`: `Ok(Some(line))` is a line, `Ok(None)` is the end of input,
+and a read error is `Err`, so a disc failing at line 400,000 is a value the
+`match` has to handle and not a shorter file. The typechecker knows the shape,
+so a `match` with the two `Ok` arms and no `Err` arm is E0200. Reaching the end
+closes the descriptor, and so does a read error; `close_lines` is for stopping
+before the end, and calling it twice is fine. Nothing tracks a reader: close it
+or let `next_line` reach the end.
+
+The reads block. A `next_line` that has to refill waits for the disc with the
+event loop stopped, the same way `read_text` does, so the reader is for a
+command-line program and not for one that also serves a socket or an HTTP
+request.
+
+A three-way merge of sorted files, holding one line per source and never a
+file. The recursion advances only the reader whose head was written out:
+
+```glyph
+module merge
+
+import std/fs
+import std/io
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+
+type Pick = "a" | "b" | "c" | "done"
+
+fn before(x: string, y: Option<string>) -> bool {
+  return match y {
+    None => true,
+    Some(v) => x <= v,
+  }
+}
+
+fn pick(a: Option<string>, b: Option<string>, c: Option<string>) -> Pick {
+  return match a {
+    Some(x) => match before(x, b) && before(x, c) {
+      true => "a",
+      false => pick(None, b, c),
+    },
+    None => match b {
+      Some(y) => match before(y, c) {
+        true => "b",
+        false => "c",
+      },
+      None => match c {
+        Some(_) => "c",
+        None => "done",
+      },
+    },
+  }
+}
+
+fn emit(head: Option<string>, r: fs.LineReader) -> Result<Option<string>, fs.FsError> {
+  match head {
+    None => return Ok(None),
+    Some(line) => io.println(line),
+  }
+  return fs.next_line(r)
+}
+
+fn merge(
+  ra: fs.LineReader, a: Option<string>,
+  rb: fs.LineReader, b: Option<string>,
+  rc: fs.LineReader, c: Option<string>,
+  written: int,
+) -> Result<int, fs.FsError> {
+  return match pick(a, b, c) {
+    "a" => merge(ra, emit(a, ra)?, rb, b, rc, c, written + 1),
+    "b" => merge(ra, a, rb, emit(b, rb)?, rc, c, written + 1),
+    "c" => merge(ra, a, rb, b, rc, emit(c, rc)?, written + 1),
+    "done" => Ok(written),
+  }
+}
+
+pub fn merge_files(a: string, b: string, c: string) -> Result<int, fs.FsError> {
+  let ra = fs.open_lines(a)?
+  let rb = fs.open_lines(b)?
+  let rc = fs.open_lines(c)?
+  return merge(ra, fs.next_line(ra)?, rb, fs.next_line(rb)?, rc, fs.next_line(rc)?, 0)
+}
+```
+
+Each `?` in `merge_files` returns with any reader opened before it still open.
+The process exit closes those; a program that carries on after the failure
+calls `close_lines` on them first.
 
 ## std/process
 

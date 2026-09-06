@@ -1,10 +1,10 @@
 module slugify
 
 import std/string
+import std/regex
 
-fn slugify(s: string) -> string {
-  return s
-    .to_lower_case()
-    .replace_all(/[^a-z0-9]+/, "-")
-    .trim_matches("-")
+pub fn slugify(s: string) -> string {
+  let lowered = string.lower(s)
+  let dashed = regex.replace_all("[^a-z0-9]+", lowered, "-")
+  return regex.replace_all("^-+|-+$", dashed, "")
 }

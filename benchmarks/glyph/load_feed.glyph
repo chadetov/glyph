@@ -1,26 +1,29 @@
 module load_feed
 
-import std/result { Result, Ok, Err }
+import std/result { Result, Ok }
 import std/http
+import std/json
 
-type Feed = {
-  user_id: string,
-  posts: Array<string>,
-}
+type Feed = { user_id: string, posts: Array<string> }
+
+type Posts = { titles: Array<string> }
 
 type FeedError =
   | NetworkError({ status: number })
   | DecodeError({ reason: string })
 
-async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
-  let user_resp = await http.get("/api/users/${user_id}")?
-    .map_err(fn(e) { NetworkError({ status: e.status }) })
+fn network(e: http.HttpError) -> FeedError {
+  return NetworkError({ status: e.status })
+}
 
-  let posts_resp = await http.get("/api/users/${user_id}/posts")?
-    .map_err(fn(e) { NetworkError({ status: e.status }) })
-
-  return Ok({
-    user_id: user_id,
-    posts: posts_resp.body.titles,
-  })
+pub async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
+  await http.get("/api/users/${user_id}").map_err(network)?
+  let posts_resp = await http.get("/api/users/${user_id}/posts").map_err(network)?
+  let text = http.to_text(posts_resp).map_err(
+    fn(e: string) -> FeedError { return DecodeError({ reason: e }) },
+  )?
+  let posts = json.parse<Posts>(text).map_err(
+    fn(issues) -> FeedError { return DecodeError({ reason: json.stringify(issues) }) },
+  )?
+  return Ok({ user_id: user_id, posts: posts.titles })
 }

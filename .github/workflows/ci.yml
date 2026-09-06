@@ -163,11 +163,16 @@ jobs:
 
       # The examples are the corpus the diff-stability pillar points at, and
       # for a long time 80 of them were not in the formatter's canonical form.
-      # It stayed invisible because nothing looked.
-      - name: Check the examples are formatted
+      # The benchmark fixtures are the programs the token counts are taken
+      # over, and two of the three did not compile from the first measurement
+      # on. Both facts stayed invisible because nothing looked.
+      - name: Check the examples are formatted and the benchmark fixtures compile
         env:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
-        run: python3 scripts/check_fmt.py
+        run: |
+          set -e
+          python3 scripts/check_fmt.py
+          python3 scripts/check_benchmark_fixtures.py
 
       # The std/bytes codecs are hand-written, so the platform is not checking
       # them and the published RFC 4648 vectors only cover what someone thought

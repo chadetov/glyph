@@ -32,6 +32,16 @@ Functions picked to translate naturally across all five languages — no languag
 | `load_feed` | Async network call with error-as-value handling | Verifiability — `Result` + `?` |
 | `slugify` | Lowercase + strip non-alphanumerics + collapse spaces | Greppability — pure transformation |
 
+The three Glyph fixtures were rewritten to what the compiler accepts (a regex
+literal the language does not have, an error propagated across two `Result`
+types, a field read on an unnarrowed scrutinee), and the counts were re-taken
+in `results/2026-09-06T15-34-06Z.json`. The Glyph numbers went up: `load_feed`
+166 to 237 tokens, `parse_user` 125 to 132, `slugify` 50 to 67, so Glyph is
+now 436 tokens to TypeScript's 478 on the three functions rather than 341, and
+Python at 435 is one token denser than Glyph on the totals. The earlier
+figures counted programs that did not compile, which is why they were
+smaller.
+
 By end of phase 1 week 8, the set grows to 5–10 functions. By phase 8 (killer demo), 20+.
 
 ## Running the benchmarks

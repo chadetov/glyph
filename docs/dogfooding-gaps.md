@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-211 entries, 180 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-12 are open. G144, the D28 boundary cast that never reached the returns a
+211 entries, 181 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+11 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3882,7 +3882,7 @@ hand-written adapter") now has an app behind it rather than only a guide.
 
   *Re-run for 0.1.97: `std/http` does export `text`, but it is `text(status, body)`, the server-side constructor for a `text/plain` response. The client-side accessor this entry asks for, `text(response) -> Result<string, string>`, still does not exist and `Response.body` is still `unknown`.*
 
-- **G119. `url.join`'s `Err` branch is nearly unreachable, and nothing says so.**
+- **G119. [FIXED] `url.join`'s `Err` branch is nearly unreachable, and nothing says so.**
   Against a valid base the WHATWG parser treats anything that is not a URL as a
   relative path, so `url.join("https://x.test/feed.xml", ":::")` is
   `Ok(https://x.test/:::)` rather than an error. Only an invalid *base* fails.
@@ -3897,6 +3897,15 @@ hand-written adapter") now has an app behind it rather than only a guide.
   `Err(cannot resolve "/x" against "not a base")`. The `Err` arm remains
   reachable only through a bad base. `join` still delegates to the host `URL`
   constructor unchanged.*
+
+  *Closed by 0.1.118: the `std/url` block in `AGENTS.md` and
+  `docs/reference/stdlib.md` now says which argument the failure comes from,
+  with both examples (`url.join("https://x.test/feed.xml", ":::")` is `Ok`;
+  only an invalid base, e.g. `url.join("not a base", "/x")`, is `Err`). The
+  doc comment on `join` in `glyph-compiler/runtime/std/url.ts` was checked: it
+  is not false, but it says nothing about the `Err` case at all, so the
+  asymmetry this entry is about was invisible there too; left unedited, the
+  runtime is out of scope for this pass.*
 
 ## Round 30: what is left between `gen dts` and a usable `marked`
 

@@ -668,6 +668,13 @@ Use it rather than splitting the string: `https://evil.com@example.com/` has hos
 `example.com`, and a hand-rolled parser gets that wrong in the direction that
 matters. `query_params` is an array because `?tag=a&tag=b` is legal.
 
+`join`'s `Err` comes from the *base*, not the relative reference. The WHATWG
+parser resolves anything that is not itself a URL as a relative path, so
+`join("https://x.test/feed.xml", ":::")` is `Ok(https://x.test/:::)`. Only a
+`base` the parser cannot make sense of fails:
+`join("not a base", "/x")` is `Err(cannot resolve "/x" against "not a base")`.
+Do not expect an `Err` arm to catch a malformed link; it never will.
+
 ### std/dns
 
 ```

@@ -17,6 +17,7 @@ pub type Config = {
 }
 
 const DEFAULT_INCLUDE = ["**/*"]
+
 const DEFAULT_IGNORE = ["node_modules/**", ".git/**", "*.log"]
 
 fn value_of(argv: Array<string>, i: number) -> Result<string, string> {
@@ -93,15 +94,17 @@ pub fn parse_args(argv: Array<string>) -> Result<Config, string> {
   }
   return match string.len(cmd) == 0 {
     true => Err("--cmd is required"),
-    false => Ok({
-      dir: dir,
-      cmd: cmd,
-      include: include,
-      ignore: ignore,
-      debounce_ms: debounce_ms,
-      timeout_ms: timeout_ms,
-      poll_ms: poll_ms,
-      log_path: log_path,
-    }),
+    false => Ok(
+      {
+        dir: dir,
+        cmd: cmd,
+        include: include,
+        ignore: ignore,
+        debounce_ms: debounce_ms,
+        timeout_ms: timeout_ms,
+        poll_ms: poll_ms,
+        log_path: log_path,
+      },
+    ),
   }
 }

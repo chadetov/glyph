@@ -14,13 +14,7 @@ import std/json
 import std/result { Result, Ok, Err }
 import std/string
 
-pub type Target = {
-  name: string,
-  host: string,
-  port: int,
-  path: string,
-  tls_name: string,
-}
+pub type Target = { name: string, host: string, port: int, path: string, tls_name: string }
 
 type Config = { targets: Array<Target> }
 
@@ -39,7 +33,7 @@ pub fn load(path: string) -> Result<Array<Target>, string> {
       let parts: Array<string> = []
       for issue in issues {
         let field_path = string.join(
-          array.map(issue.path, fn(p: unknown) -> string { return string.from(p) }),
+          array.map(issue.path, fn(p) -> string { return string.from(p) }),
           ".",
         )
         mut parts.push("${field_path}: ${issue.message}")

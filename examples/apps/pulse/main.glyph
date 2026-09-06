@@ -35,17 +35,19 @@ fn parse_args(argv: Array<string>) -> Option<Args> {
     None => None,
     Some(config_path) => match array.get(argv, 1) {
       None => None,
-      Some(history_path) => Some({
-        config_path: config_path,
-        history_path: history_path,
-        timeout_ms: match array.get(argv, 2) {
-          None => DEFAULT_TIMEOUT_MS,
-          Some(raw) => match number.parse(raw) {
-            Ok(n) => n,
-            Err(_) => DEFAULT_TIMEOUT_MS,
+      Some(history_path) => Some(
+        {
+          config_path: config_path,
+          history_path: history_path,
+          timeout_ms: match array.get(argv, 2) {
+            None => DEFAULT_TIMEOUT_MS,
+            Some(raw) => match number.parse(raw) {
+              Ok(n) => n,
+              Err(_) => DEFAULT_TIMEOUT_MS,
+            },
           },
         },
-      }),
+      ),
     },
   }
 }

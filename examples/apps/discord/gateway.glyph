@@ -112,41 +112,53 @@ fn connect(conn: Conn) {
   // compiler will not let the function end without giving it away.
   let owned sock: Wire = websocket.connect(conn.url)
 
-  websocket.on_open(sock, fn() {
-    match current(conn, mine) {
-      false => {},
-      true => {
-        say(conn, "socket open")
-        mut conn.retry = backoff.succeeded(conn.retry)
-      },
-    }
-  })
+  websocket.on_open(
+    sock,
+    fn() {
+      match current(conn, mine) {
+        false => {},
+        true => {
+          say(conn, "socket open")
+          mut conn.retry = backoff.succeeded(conn.retry)
+        },
+      }
+    },
+  )
 
-  websocket.on_message(sock, fn(text) {
-    match current(conn, mine) {
-      false => {},
-      true => advance(conn, session.receive(conn.state, protocol.read(text))),
-    }
-  })
+  websocket.on_message(
+    sock,
+    fn(text) {
+      match current(conn, mine) {
+        false => {},
+        true => advance(conn, session.receive(conn.state, protocol.read(text))),
+      }
+    },
+  )
 
   // The close code is what separates an outage worth waiting out from a
   // rejection that will be rejected identically forever, so it is handed to the
   // session rather than summarized here.
-  websocket.on_close(sock, fn(code, reason) {
-    match current(conn, mine) {
-      false => {},
-      true => advance(conn, session.disconnected(conn.state, code, close_reason(reason))),
-    }
-  })
+  websocket.on_close(
+    sock,
+    fn(code, reason) {
+      match current(conn, mine) {
+        false => {},
+        true => advance(conn, session.disconnected(conn.state, code, close_reason(reason))),
+      }
+    },
+  )
 
   // An error is always followed by a close, and the close is where the
   // reconnect is decided, so this only reports.
-  websocket.on_error(sock, fn() {
-    match current(conn, mine) {
-      false => {},
-      true => say(conn, "socket error"),
-    }
-  })
+  websocket.on_error(
+    sock,
+    fn() {
+      match current(conn, mine) {
+        false => {},
+        true => say(conn, "socket error"),
+      }
+    },
+  )
 
   // The handlers above borrow the socket. This is the line that gives it away:
   // the connection holds it from here, and the only way back out is
@@ -205,9 +217,9 @@ fn perform(conn: Conn, action: Action) {
     session.Note({ line }) => say(conn, line),
     session.StartHeartbeat({ interval }) => {
       stop_heartbeat(conn)
-      mut conn.heartbeat = Some(timers.every(interval, fn() {
-        advance(conn, session.tick(conn.state))
-      }))
+      mut conn.heartbeat = Some(
+        timers.every(interval, fn() { advance(conn, session.tick(conn.state)) }),
+      )
       say(conn, "heartbeat every ${number.to_string(interval)}ms")
     },
     session.StopHeartbeat => stop_heartbeat(conn),

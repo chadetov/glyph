@@ -114,13 +114,7 @@ pub fn adler32(bytes: Array<number>) -> number {
   return adler_at(bytes, 0, array.len(bytes), 1, 0)
 }
 
-fn adler_at(
-  bytes: Array<number>,
-  i: number,
-  n: number,
-  a: number,
-  b: number,
-) -> number {
+fn adler_at(bytes: Array<number>, i: number, n: number, a: number, b: number) -> number {
   return match i >= n {
     true => b * 65536 + a,
     false => {
@@ -136,13 +130,7 @@ pub fn fletcher16(bytes: Array<number>) -> number {
   return fletcher_at(bytes, 0, array.len(bytes), 0, 0)
 }
 
-fn fletcher_at(
-  bytes: Array<number>,
-  i: number,
-  n: number,
-  s1: number,
-  s2: number,
-) -> number {
+fn fletcher_at(bytes: Array<number>, i: number, n: number, s1: number, s2: number) -> number {
   return match i >= n {
     true => s2 * 256 + s1,
     false => {

@@ -93,9 +93,7 @@ pub fn measure(set: Array<Interval>) -> number {
 pub fn contains_point(set: Array<Interval>, x: number) -> bool {
   for iv in set {
     match contains(iv, x) {
-      true => {
-        return true
-      },
+      true => { return true },
       false => {},
     }
   }
@@ -104,13 +102,7 @@ pub fn contains_point(set: Array<Interval>, x: number) -> bool {
 
 // Two-pointer sweep of the overlap between two canonical sets. `acc` is built
 // by prepending, so the caller reverses.
-fn intersect_go(
-  a: Array<Interval>,
-  b: Array<Interval>,
-  i: number,
-  j: number,
-  acc: Array<Interval>,
-) -> Array<Interval> {
+fn intersect_go(a: Array<Interval>, b: Array<Interval>, i: number, j: number, acc: Array<Interval>) -> Array<Interval> {
   return match i >= array.len(a) {
     true => acc,
     false => match j >= array.len(b) {
@@ -142,13 +134,7 @@ pub fn intersection(a: Array<Interval>, b: Array<Interval>) -> Array<Interval> {
 
 // Carve the cutters `b` (canonical) out of the single range `lo..=hi`, emitting
 // the surviving pieces into `acc` (prepended, so the caller reverses).
-fn subtract_iv(
-  lo: number,
-  hi: number,
-  b: Array<Interval>,
-  j: number,
-  acc: Array<Interval>,
-) -> Array<Interval> {
+fn subtract_iv(lo: number, hi: number, b: Array<Interval>, j: number, acc: Array<Interval>) -> Array<Interval> {
   return match lo > hi {
     true => acc,
     false => match j >= array.len(b) {

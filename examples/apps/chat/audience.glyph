@@ -86,11 +86,6 @@ fn len_of(nicks: Array<string>) -> int {
 // A one-user server, enough to resolve the `@example` above without reaching
 // for the engine.
 fn seeded() -> Server {
-  let user: model.User = {
-    nick: "alice",
-    joined: [],
-    active: None,
-    inbox: [],
-  }
+  let user: model.User = { nick: "alice", joined: [], active: None, inbox: [] }
   return { users: { alice: user }, rooms: {}, seq: 1 }
 }

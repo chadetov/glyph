@@ -46,12 +46,19 @@ pub type Outgoing =
 
 // Gateway opcodes, named so the `match` below reads as the protocol does.
 const OP_DISPATCH = 0
+
 const OP_HEARTBEAT = 1
+
 const OP_IDENTIFY = 2
+
 const OP_RESUME = 6
+
 const OP_RECONNECT = 7
+
 const OP_INVALID_SESSION = 9
+
 const OP_HELLO = 10
+
 const OP_HEARTBEAT_ACK = 11
 
 // ---------------------------------------------------------------------------
@@ -85,11 +92,7 @@ type ReadyUser = { username: string }
 type MessageFrame = { d: MessageData }
 
 @open
-type MessageData = {
-  channel_id: string,
-  content: string,
-  author: MessageAuthor,
-}
+type MessageData = { channel_id: string, content: string, author: MessageAuthor }
 
 @open
 type MessageAuthor = { username: string, bot: bool }
@@ -128,17 +131,17 @@ pub fn read(raw: string) -> Incoming {
     false => match envelope.op == OP_HEARTBEAT {
       true => HeartbeatRequest,
       false => match envelope.op == OP_HEARTBEAT_ACK {
-      true => HeartbeatAck,
-      false => match envelope.op == OP_RECONNECT {
-        true => Reconnect,
-        false => match envelope.op == OP_INVALID_SESSION {
-          true => read_invalid_session(decoded),
-          false => match envelope.op == OP_DISPATCH {
-            true => read_dispatch(decoded),
-            false => Unknown({ op: envelope.op }),
+        true => HeartbeatAck,
+        false => match envelope.op == OP_RECONNECT {
+          true => Reconnect,
+          false => match envelope.op == OP_INVALID_SESSION {
+            true => read_invalid_session(decoded),
+            false => match envelope.op == OP_DISPATCH {
+              true => read_dispatch(decoded),
+              false => Unknown({ op: envelope.op }),
+            },
           },
         },
-      },
       },
     },
   }
@@ -181,24 +184,24 @@ fn read_dispatch(decoded: unknown) -> Incoming {
 
 fn read_ready(decoded: unknown, frame: DispatchFrame) -> Incoming {
   return match ReadyFrame.parse(decoded) {
-    Ok(ready) => Ready({
-      seq: frame.s,
-      session_id: ready.d.session_id,
-      user: ready.d.user.username,
-    }),
+    Ok(ready) => Ready(
+      { seq: frame.s, session_id: ready.d.session_id, user: ready.d.user.username },
+    ),
     Err(_) => Dispatch({ seq: frame.s, event: frame.t }),
   }
 }
 
 fn read_message(decoded: unknown, frame: DispatchFrame) -> Incoming {
   return match MessageFrame.parse(decoded) {
-    Ok(m) => Message({
-      seq: frame.s,
-      channel: m.d.channel_id,
-      author: m.d.author.username,
-      content: m.d.content,
-      bot: m.d.author.bot,
-    }),
+    Ok(m) => Message(
+      {
+        seq: frame.s,
+        channel: m.d.channel_id,
+        author: m.d.author.username,
+        content: m.d.content,
+        bot: m.d.author.bot,
+      },
+    ),
     Err(_) => Dispatch({ seq: frame.s, event: frame.t }),
   }
 }
@@ -216,11 +219,7 @@ fn is_malformed(incoming: Incoming) -> bool {
 
 type IdentifyProperties = { os: string, browser: string, device: string }
 
-type IdentifyData = {
-  token: string,
-  intents: int,
-  properties: IdentifyProperties,
-}
+type IdentifyData = { token: string, intents: int, properties: IdentifyProperties }
 
 type IdentifyFrame = { op: int, d: IdentifyData }
 
@@ -242,17 +241,18 @@ pub fn write(outgoing: Outgoing) -> string {
       Some(n) => "{\"op\":1,\"d\":${number.to_string(n)}}",
       None => "{\"op\":1,\"d\":null}",
     },
-    Identify({ token, intents }) => json.stringify({
-      op: OP_IDENTIFY,
-      d: {
-        token: token,
-        intents: intents,
-        properties: { os: "linux", browser: "glyph", device: "glyph" },
+    Identify({ token, intents }) => json.stringify(
+      {
+        op: OP_IDENTIFY,
+        d: {
+          token: token,
+          intents: intents,
+          properties: { os: "linux", browser: "glyph", device: "glyph" },
+        },
       },
-    }),
-    Resume({ token, session_id, seq }) => json.stringify({
-      op: OP_RESUME,
-      d: { token: token, session_id: session_id, seq: seq },
-    }),
+    ),
+    Resume({ token, session_id, seq }) => json.stringify(
+      { op: OP_RESUME, d: { token: token, session_id: session_id, seq: seq } },
+    ),
   }
 }

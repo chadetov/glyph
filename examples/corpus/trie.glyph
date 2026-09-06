@@ -20,10 +20,7 @@ import std/option { Option, Some, None }
 // outgoing character transitions, held sorted ascending by `ch`. Generic in the
 // stored value type `V`. The recursion is through `Edge<V>`, which owns a child
 // `Trie<V>`.
-pub type Trie<V> = {
-  value: Option<V>,
-  edges: Array<Edge<V>>,
-}
+pub type Trie<V> = { value: Option<V>, edges: Array<Edge<V>> }
 
 // One labelled transition: the single character `ch` and the subtree reached by
 // consuming it.
@@ -54,11 +51,7 @@ fn child_for<V>(edges: Array<Edge<V>>, ch: string) -> Option<Trie<V>> {
 // order by `ch`. If an edge for `ch` exists its subtree is replaced; otherwise a
 // new edge is spliced in at the first position whose label is greater, so the
 // list stays sorted without a re-sort.
-fn set_edge<V>(
-  edges: Array<Edge<V>>,
-  ch: string,
-  child: Trie<V>,
-) -> Array<Edge<V>> {
+fn set_edge<V>(edges: Array<Edge<V>>, ch: string, child: Trie<V>) -> Array<Edge<V>> {
   return match edges {
     [] => [{ ch: ch, child: child }],
     [head, ...rest] => match head.ch == ch {
@@ -74,12 +67,7 @@ fn set_edge<V>(
 // Insert or overwrite `key` with `value`, descending from character `i`. At the
 // end of the key the node's terminal value is set; otherwise the edge for the
 // current character is followed (or created empty) and rebuilt with the result.
-fn insert_at<V>(
-  t: Trie<V>,
-  key: string,
-  i: number,
-  value: V,
-) -> Trie<V> {
+fn insert_at<V>(t: Trie<V>, key: string, i: number, value: V) -> Trie<V> {
   return match i == string.len(key) {
     true => { value: Some(value), edges: t.edges },
     false => {

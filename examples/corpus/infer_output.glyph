@@ -8,49 +8,56 @@ import std/result { Result, Ok, Err }
 type Schema<T> = { name: string, parse: fn(input: unknown) -> Result<T, Array<Issue>> }
 
 fn string_schema() -> Schema<string> {
-  return { name: "string", parse: fn(input) {
-    match input {
-      is string => Ok(input),
-      else => Err([{ path: [], message: "expected string" }]),
-    }
-  } }
+  return {
+    name: "string",
+    parse: fn(input) {
+      match input {
+        is string => Ok(input),
+        else => Err([{ path: [], message: "expected string" }]),
+      }
+    },
+  }
 }
 
 fn number_schema() -> Schema<number> {
-  return { name: "number", parse: fn(input) {
-    match input {
-      is number => Ok(input),
-      else => Err([{ path: [], message: "expected number" }]),
-    }
-  } }
+  return {
+    name: "number",
+    parse: fn(input) {
+      match input {
+        is number => Ok(input),
+        else => Err([{ path: [], message: "expected number" }]),
+      }
+    },
+  }
 }
 
 fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {
-  return { name: "object", parse: fn(input) {
-    match input {
-      is Record<string, unknown> => {
-        let issues: Array<Issue> = []
-        let result: Record<string, unknown> = {}
-        for key, sub_schema in shape {
-          match sub_schema.parse(input[key]) {
-            Ok(value) => {
-              mut result[key] = value
-            },
-            Err(sub_issues) => {
-              for issue in sub_issues {
-                mut issues.push({ path: [key, ...issue.path], message: issue.message })
-              }
-            },
+  return {
+    name: "object",
+    parse: fn(input) {
+      match input {
+        is Record<string, unknown> => {
+          let issues: Array<Issue> = []
+          let result: Record<string, unknown> = {}
+          for key, sub_schema in shape {
+            match sub_schema.parse(input[key]) {
+              Ok(value) => { mut result[key] = value },
+              Err(sub_issues) => {
+                for issue in sub_issues {
+                  mut issues.push({ path: [key, ...issue.path], message: issue.message })
+                }
+              },
+            }
           }
-        }
-        match issues.length {
-          0 => Ok(result),
-          else => Err(issues),
-        }
-      },
-      else => Err([{ path: [], message: "expected object" }]),
-    }
-  } }
+          match issues.length {
+            0 => Ok(result),
+            else => Err(issues),
+          }
+        },
+        else => Err([{ path: [], message: "expected object" }]),
+      }
+    },
+  }
 }
 
 type Point = { x: number, y: number }

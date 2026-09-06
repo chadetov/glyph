@@ -5,12 +5,10 @@ module store
 import std/store { Store, create }
 import std/array
 
-type Task = {
-  id: number,
-  title: string,
-}
+type Task = { id: number, title: string }
 
 const tasks: Store<Array<Task>> = create<Array<Task>>([])
+
 const next_id: Store<number> = create(0)
 
 fn add(title: string) -> Task {

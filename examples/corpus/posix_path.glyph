@@ -19,9 +19,7 @@ pub fn segments(p: string) -> Array<string> {
   for s in raw {
     match string.len(s) == 0 {
       true => {},
-      false => {
-        mut out.push(s)
-      },
+      false => { mut out.push(s) },
     }
   }
   return out
@@ -29,11 +27,7 @@ pub fn segments(p: string) -> Array<string> {
 
 // Fold one segment into a reversed accumulator (head = most recent segment),
 // resolving `.` and `..`. `absolute` decides whether a leading `..` survives.
-fn step(
-  acc: Array<string>,
-  seg: string,
-  absolute: bool,
-) -> Array<string> {
+fn step(acc: Array<string>, seg: string, absolute: bool) -> Array<string> {
   return match seg == "." {
     true => acc,
     false => match seg == ".." {
@@ -53,22 +47,10 @@ fn step(
 }
 
 // Reduce the segment list to its resolved reversed stack.
-fn resolve(
-  segs: Array<string>,
-  acc: Array<string>,
-  absolute: bool,
-) -> Array<string> {
+fn resolve(segs: Array<string>, acc: Array<string>, absolute: bool) -> Array<string> {
   return match segs {
     [] => acc,
-    [head, ...rest] => resolve(
-      rest,
-      step(
-        acc,
-        head,
-        absolute,
-      ),
-      absolute,
-    ),
+    [head, ...rest] => resolve(rest, step(acc, head, absolute), absolute),
   }
 }
 
@@ -86,11 +68,7 @@ fn rev(xs: Array<string>, acc: Array<string>) -> Array<string> {
 // resolution matches node.
 pub fn normalize(p: string) -> string {
   let absolute = is_absolute(p)
-  let stack = rev(resolve(
-    segments(p),
-    [],
-    absolute,
-  ), [])
+  let stack = rev(resolve(segments(p), [], absolute), [])
   let body = string.join(stack, "/")
   return match absolute {
     true => "/" + body,
@@ -136,24 +114,12 @@ pub fn dirname(p: string) -> string {
 
 // The last `.`-delimited suffix of `basename(p)`, including the dot, or "".
 // A leading-dot name (".gitignore") has no extension, matching node.
-fn last_dot(
-  s: string,
-  i: number,
-  best: Option<number>,
-) -> Option<number> {
+fn last_dot(s: string, i: number, best: Option<number>) -> Option<number> {
   return match i >= string.len(s) {
     true => best,
     false => match s[i] == "." {
-      true => last_dot(
-        s,
-        i + 1,
-        Some(i),
-      ),
-      false => last_dot(
-        s,
-        i + 1,
-        best,
-      ),
+      true => last_dot(s, i + 1, Some(i)),
+      false => last_dot(s, i + 1, best),
     },
   }
 }
@@ -167,11 +133,7 @@ fn from_index(s: string, i: number) -> string {
 
 pub fn extname(p: string) -> string {
   let base = basename(p)
-  return match last_dot(
-    base,
-    0,
-    None,
-  ) {
+  return match last_dot(base, 0, None) {
     None => "",
     Some(k) => match k == 0 {
       true => "",

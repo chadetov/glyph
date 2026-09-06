@@ -14,32 +14,15 @@ import std/task
 // Domain types
 // ---------------------------------------------------------------------------
 
-type User = {
-  id: string,
-  name: string,
-}
+type User = { id: string, name: string }
 
-type Post = {
-  id: string,
-  author_id: string,
-  title: string,
-}
+type Post = { id: string, author_id: string, title: string }
 
-type Comment = {
-  id: string,
-  post_id: string,
-  body: string,
-}
+type Comment = { id: string, post_id: string, body: string }
 
-type PostWithComments = {
-  post: Post,
-  comments: Array<Comment>,
-}
+type PostWithComments = { post: Post, comments: Array<Comment> }
 
-type Feed = {
-  user: User,
-  posts: Array<PostWithComments>,
-}
+type Feed = { user: User, posts: Array<PostWithComments> }
 
 // One error type for the whole module. No string errors, no exception classes.
 type FeedError =
@@ -52,15 +35,11 @@ type FeedError =
 // ---------------------------------------------------------------------------
 
 async fn fetch_json<T>(url: string, schema: Schema<T>) -> Result<T, FeedError> {
-  let response = await http.get(url)
-    .map_err(fn(e) { NetworkError({ url: url, status: e.status }) })?
+  let response = await http.get(url).map_err(fn(e) { NetworkError({ url: url, status: e.status }) })?
 
   match schema.parse(response.body) {
     Ok(value) => Ok(value),
-    Err(issues) => Err(DecodeError({
-      url: url,
-      reason: issues[0].message,
-    })),
+    Err(issues) => Err(DecodeError({ url: url, reason: issues[0].message })),
   }
 }
 
@@ -89,18 +68,17 @@ async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
   // `result.all` collapses `Array<Result<T, E>>` into `Result<Array<T>, E>` by
   // short-circuiting on the first `Err`.
   let comment_results = await task.all(
-    array.map(posts, fn(post) { return async fn() { return await fetch_comments(post.id) } })
+    array.map(posts, fn(post) { return async fn() { return await fetch_comments(post.id) } }),
   )
   let comments_per_post = result.all(comment_results)?
 
-  let posts_with_comments = array.zip(posts, comments_per_post, fn(post, comments) {
-    return { post: post, comments: comments }
-  })
+  let posts_with_comments = array.zip(
+    posts,
+    comments_per_post,
+    fn(post, comments) { return { post: post, comments: comments } },
+  )
 
-  return Ok({
-    user: user,
-    posts: posts_with_comments,
-  })
+  return Ok({ user: user, posts: posts_with_comments })
 }
 
 // ---------------------------------------------------------------------------
@@ -110,19 +88,14 @@ async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
 async fn handle_request(user_id: string) -> http.Response {
   match await load_feed(user_id) {
     Ok(feed) => http.json(200, feed),
-    Err(NetworkError({ status })) => http.json(502, {
-      error: "upstream_failed",
-      status: status,
-    }),
-    Err(DecodeError({ url, reason })) => http.json(500, {
-      error: "decode_failed",
-      url: url,
-      reason: reason,
-    }),
-    Err(NotFound({ resource, id })) => http.json(404, {
-      error: "not_found",
-      resource: resource,
-      id: id,
-    }),
+    Err(NetworkError({ status })) => http.json(502, { error: "upstream_failed", status: status }),
+    Err(DecodeError({ url, reason })) => http.json(
+      500,
+      { error: "decode_failed", url: url, reason: reason },
+    ),
+    Err(NotFound({ resource, id })) => http.json(
+      404,
+      { error: "not_found", resource: resource, id: id },
+    ),
   }
 }

@@ -161,6 +161,14 @@ jobs:
           python3 scripts/check_scaffold_docs.py
           python3 scripts/check_docs_compile.py
 
+      # The examples are the corpus the diff-stability pillar points at, and
+      # for a long time 80 of them were not in the formatter's canonical form.
+      # It stayed invisible because nothing looked.
+      - name: Check the examples are formatted
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: python3 scripts/check_fmt.py
+
       # The std/bytes codecs are hand-written, so the platform is not checking
       # them and the published RFC 4648 vectors only cover what someone thought
       # to write down. This runs them against node's Buffer over random data:

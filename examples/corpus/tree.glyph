@@ -8,6 +8,6 @@ type Tree =
 fn count_leaves(t: Tree) -> number {
   return match t {
     Leaf({ value }) => 1,
-    Node({ left, right }) => (count_leaves(left) + count_leaves(right)),
+    Node({ left, right }) => count_leaves(left) + count_leaves(right),
   }
 }

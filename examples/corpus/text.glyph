@@ -22,41 +22,23 @@ pub fn char_at(s: string, i: number) -> Option<string> {
 
 // The substring `s[start, end)`, threaded character by character. Out-of-range
 // endpoints are clamped to the string.
-pub fn slice(
-  s: string,
-  start: number,
-  end: number,
-) -> string {
+pub fn slice(s: string, start: number, end: number) -> string {
   let lo = math.max(start, 0)
   let hi = math.min(end, string.len(s))
   return match lo >= hi {
     true => "",
-    false => s[lo] + slice(
-      s,
-      lo + 1,
-      hi,
-    ),
+    false => s[lo] + slice(s, lo + 1, hi),
   }
 }
 
 // Character-by-character comparison of `needle[j..]` against `hay[pos + j..]`.
-fn matches_from(
-  hay: string,
-  needle: string,
-  pos: number,
-  j: number,
-) -> bool {
+fn matches_from(hay: string, needle: string, pos: number, j: number) -> bool {
   return match j >= string.len(needle) {
     true => true,
     false => match pos + j >= string.len(hay) {
       true => false,
       false => match hay[pos + j] == needle[j] {
-        true => matches_from(
-          hay,
-          needle,
-          pos,
-          j + 1,
-        ),
+        true => matches_from(hay, needle, pos, j + 1),
         false => false,
       },
     },
@@ -65,27 +47,14 @@ fn matches_from(
 
 // First index at or after `start` where `needle` occurs, or None. An empty
 // needle matches at `start`.
-pub fn find_from(
-  hay: string,
-  needle: string,
-  start: number,
-) -> Option<number> {
+pub fn find_from(hay: string, needle: string, start: number) -> Option<number> {
   return match string.len(needle) == 0 {
     true => Some(start),
     false => match start + string.len(needle) > string.len(hay) {
       true => None,
-      false => match matches_from(
-        hay,
-        needle,
-        start,
-        0,
-      ) {
+      false => match matches_from(hay, needle, start, 0) {
         true => Some(start),
-        false => find_from(
-          hay,
-          needle,
-          start + 1,
-        ),
+        false => find_from(hay, needle, start + 1),
       },
     },
   }
@@ -93,11 +62,7 @@ pub fn find_from(
 
 // First index of `needle` in `hay`, or None.
 pub fn find(hay: string, needle: string) -> Option<number> {
-  return find_from(
-    hay,
-    needle,
-    0,
-  )
+  return find_from(hay, needle, 0)
 }
 
 // Is `needle` anywhere in `hay`?
@@ -112,63 +77,31 @@ pub fn contains(hay: string, needle: string) -> bool {
 pub fn count(hay: string, needle: string) -> number {
   return match string.len(needle) == 0 {
     true => 0,
-    false => count_from(
-      hay,
-      needle,
-      0,
-    ),
+    false => count_from(hay, needle, 0),
   }
 }
 
-fn count_from(
-  hay: string,
-  needle: string,
-  start: number,
-) -> number {
-  return match find_from(
-    hay,
-    needle,
-    start,
-  ) {
+fn count_from(hay: string, needle: string, start: number) -> number {
+  return match find_from(hay, needle, start) {
     None => 0,
     Some(k) => {
       let next = k + string.len(needle)
-      return 1 + count_from(
-        hay,
-        needle,
-        next,
-      )
+      return 1 + count_from(hay, needle, next)
     },
   }
 }
 
 // Replace every non-overlapping occurrence of `needle` with `repl`. An empty
 // needle is returned unchanged (no infinite splitting).
-pub fn replace_all(
-  hay: string,
-  needle: string,
-  repl: string,
-) -> string {
+pub fn replace_all(hay: string, needle: string, repl: string) -> string {
   return match string.len(needle) == 0 {
     true => hay,
     false => match find(hay, needle) {
       None => hay,
       Some(k) => {
-        let head = slice(
-          hay,
-          0,
-          k,
-        )
-        let tail = slice(
-          hay,
-          k + string.len(needle),
-          string.len(hay),
-        )
-        return head + repl + replace_all(
-          tail,
-          needle,
-          repl,
-        )
+        let head = slice(hay, 0, k)
+        let tail = slice(hay, k + string.len(needle), string.len(hay))
+        return head + repl + replace_all(tail, needle, repl)
       },
     },
   }
@@ -182,16 +115,8 @@ pub fn split_on(s: string, sep: string) -> Array<string> {
     false => match find(s, sep) {
       None => [s],
       Some(k) => {
-        let head = slice(
-          s,
-          0,
-          k,
-        )
-        let tail = slice(
-          s,
-          k + string.len(sep),
-          string.len(s),
-        )
+        let head = slice(s, 0, k)
+        let tail = slice(s, k + string.len(sep), string.len(s))
         return [head, ...split_on(tail, sep)]
       },
     },
@@ -220,50 +145,20 @@ pub fn words(s: string) -> Array<string> {
 // insertions, deletions, and substitutions to turn one into the other. The
 // classic recurrence, expressed over the string tails by index.
 pub fn levenshtein(a: string, b: string) -> number {
-  return lev(
-    a,
-    b,
-    0,
-    0,
-  )
+  return lev(a, b, 0, 0)
 }
 
-fn lev(
-  a: string,
-  b: string,
-  i: number,
-  j: number,
-) -> number {
+fn lev(a: string, b: string, i: number, j: number) -> number {
   return match i >= string.len(a) {
     true => string.len(b) - j,
     false => match j >= string.len(b) {
       true => string.len(a) - i,
       false => match a[i] == b[j] {
-        true => lev(
-          a,
-          b,
-          i + 1,
-          j + 1,
-        ),
+        true => lev(a, b, i + 1, j + 1),
         false => {
-          let del = lev(
-            a,
-            b,
-            i + 1,
-            j,
-          )
-          let ins = lev(
-            a,
-            b,
-            i,
-            j + 1,
-          )
-          let sub = lev(
-            a,
-            b,
-            i + 1,
-            j + 1,
-          )
+          let del = lev(a, b, i + 1, j)
+          let ins = lev(a, b, i, j + 1)
+          let sub = lev(a, b, i + 1, j + 1)
           return 1 + math.min(math.min(del, ins), sub)
         },
       },

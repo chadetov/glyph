@@ -10,19 +10,11 @@ import std/net
 import std/result { Ok, Err }
 import std/option { Some, None }
 
-
 // The DTOs. Declared once; their runtime descriptors validate the wire boundary
 // for free — this is Glyph's answer to hand-writing a zod schema per payload.
-type NewTask = {
-  title: string,
-  done: bool,
-}
+type NewTask = { title: string, done: bool }
 
-type Task = {
-  id: number,
-  title: string,
-  done: bool,
-}
+type Task = { id: number, title: string, done: bool }
 
 fn is_authed(req: Request) -> bool {
   // Untrusted input is an `Option`: a missing `authorization` header is `None`,
@@ -49,11 +41,7 @@ async fn main(argv: Array<string>) -> number {
           "POST" => match NewTask.parse(req.body) {
             // Validated into the typed DTO — no hand-written validator.
             Ok(input) => {
-              let task = {
-                id: next_id,
-                title: input.title,
-                done: input.done,
-              }
+              let task = { id: next_id, title: input.title, done: input.done }
               mut tasks.push(task)
               mut next_id = next_id + 1
               Ok(json(201, { task: task }))

@@ -27,13 +27,7 @@ fn iota(n: number, i: number, acc: Array<number>) -> Array<number> {
 // Build column `j` onward of the current DP row. `cur` is the row so far, so
 // `cur[j - 1]` is the left neighbor; `prev` is the row above. `sc` is the
 // current source character being aligned against every character of `t`.
-fn build_row(
-  sc: string,
-  t: string,
-  prev: Array<number>,
-  j: number,
-  cur: Array<number>,
-) -> Array<number> {
+fn build_row(sc: string, t: string, prev: Array<number>, j: number, cur: Array<number>) -> Array<number> {
   let n = string.len(t)
   return match j > n {
     true => cur,
@@ -52,12 +46,7 @@ fn build_row(
 }
 
 // Fold the DP down the rows of `s`, returning the final row.
-fn build_rows(
-  s: string,
-  t: string,
-  i: number,
-  prev: Array<number>,
-) -> Array<number> {
+fn build_rows(s: string, t: string, i: number, prev: Array<number>) -> Array<number> {
   let m = string.len(s)
   return match i > m {
     true => prev,

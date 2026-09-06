@@ -26,9 +26,7 @@ fn zero_row(cols: number) -> Array<number> {
   let j = 0
   loop {
     match j >= cols {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     mut row.push(0)
@@ -43,9 +41,7 @@ fn zeros(rows: number, cols: number) -> Array<Array<number>> {
   let i = 0
   loop {
     match i >= rows {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     mut grid.push(zero_row(cols))
@@ -65,26 +61,18 @@ pub fn build_table(a: Array<string>, b: Array<string>) -> Array<Array<number>> {
   let i = n - 1
   loop {
     match i < 0 {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     let j = m - 1
     loop {
       match j < 0 {
-        true => {
-          break
-        },
+        true => { break },
         false => {},
       }
       match a[i] == b[j] {
-        true => {
-          mut table[i][j] = table[i + 1][j + 1] + 1
-        },
-        false => {
-          mut table[i][j] = math.max(table[i + 1][j], table[i][j + 1])
-        },
+        true => { mut table[i][j] = table[i + 1][j + 1] + 1 },
+        false => { mut table[i][j] = math.max(table[i + 1][j], table[i][j + 1]) },
       }
       mut j = j - 1
     }
@@ -107,9 +95,7 @@ pub fn diff(a: Array<string>, b: Array<string>) -> Array<Op> {
   let j = 0
   loop {
     match i >= n && j >= m {
-      true => {
-        break
-      },
+      true => { break },
       false => {},
     }
     match i < n && j < m && a[i] == b[j] {
@@ -171,12 +157,8 @@ pub fn summary(ops: Array<Op>) -> string {
   for op in ops {
     match op {
       Keep({ line }) => {},
-      Add({ line }) => {
-        mut added = added + 1
-      },
-      Del({ line }) => {
-        mut deleted = deleted + 1
-      },
+      Add({ line }) => { mut added = added + 1 },
+      Del({ line }) => { mut deleted = deleted + 1 },
     }
   }
   return "+" + string.from(added) + " -" + string.from(deleted)

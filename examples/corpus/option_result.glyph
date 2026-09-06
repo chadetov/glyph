@@ -107,10 +107,7 @@ pub fn to_option<T, E>(r: Result<T, E>) -> Option<T> {
   }
 }
 
-pub fn and_then_res<T, U, E>(
-  r: Result<T, E>,
-  f: fn(T) -> Result<U, E>,
-) -> Result<U, E> {
+pub fn and_then_res<T, U, E>(r: Result<T, E>, f: fn(T) -> Result<U, E>) -> Result<U, E> {
   return match r {
     Ok(v) => f(v),
     Err(e) => Err(e),

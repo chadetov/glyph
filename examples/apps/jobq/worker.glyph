@@ -20,12 +20,7 @@ import job
 import job { Job, Outcome }
 import store
 
-pub type Report = {
-  ran: int,
-  succeeded: int,
-  retried: int,
-  died: int,
-}
+pub type Report = { ran: int, succeeded: int, retried: int, died: int }
 
 pub fn empty_report() -> Report {
   return { ran: 0, succeeded: 0, retried: 0, died: 0 }

@@ -8,12 +8,7 @@ import std/collections { deque, Deque }
 const CAPACITY = 20
 
 @open
-pub type Event = {
-  source: string,
-  event_type: string,
-  received_at: int,
-  raw_body: string,
-}
+pub type Event = { source: string, event_type: string, received_at: int, raw_body: string }
 
 // One source's ring buffer. `buffer` is a `Deque`, whose push/pop methods
 // mutate the queue in place through the closure `deque` returns, so a `Ring`

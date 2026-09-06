@@ -15,16 +15,9 @@ import std/string
 // Domain
 // ---------------------------------------------------------------------------
 
-type Todo = {
-  id: number,
-  text: string,
-  done: bool,
-}
+type Todo = { id: number, text: string, done: bool }
 
-type TodoFile = {
-  next_id: number,
-  items: Array<Todo>,
-}
+type TodoFile = { next_id: number, items: Array<Todo> }
 
 type LoadError =
   | FileNotReadable({ path: string, reason: string })
@@ -109,10 +102,7 @@ async fn load(path: string) -> Result<TodoFile, LoadError> {
     },
     Ok(text) => match json.parse<TodoFile>(text) {
       Ok(data) => Ok(data),
-      Err(issues) => Err(FileNotParseable({
-        path: path,
-        reason: issues[0].message,
-      })),
+      Err(issues) => Err(FileNotParseable({ path: path, reason: issues[0].message })),
     },
   }
 }
@@ -138,15 +128,8 @@ async fn run(command: Command) -> Result<void, string> {
 
     Add({ text }) => {
       let file = await load(TODO_PATH).map_err(format_load_error)?
-      let new_item = {
-        id: file.next_id,
-        text: text,
-        done: false,
-      }
-      let updated = {
-        next_id: file.next_id + 1,
-        items: [...file.items, new_item],
-      }
+      let new_item = { id: file.next_id, text: text, done: false }
+      let updated = { next_id: file.next_id + 1, items: [...file.items, new_item] }
       await save(TODO_PATH, updated).map_err(format_save_error)?
       io.println("added #${number.to_string(new_item.id)}: ${text}")
       Ok(void)
@@ -154,9 +137,7 @@ async fn run(command: Command) -> Result<void, string> {
 
     List({ show_done }) => {
       let file = await load(TODO_PATH).map_err(format_load_error)?
-      let visible = array.filter(file.items, fn(t) {
-        return show_done || !t.done
-      })
+      let visible = array.filter(file.items, fn(t) { return show_done || !t.done })
       match visible.length {
         0 => io.println("(no todos)"),
         else => {
@@ -179,12 +160,15 @@ async fn run(command: Command) -> Result<void, string> {
         Some(_) => {
           let updated = {
             next_id: file.next_id,
-            items: array.map(file.items, fn(t) {
-              return match t.id == id {
-                true => { ...t, done: true },
-                false => t,
-              }
-            }),
+            items: array.map(
+              file.items,
+              fn(t) {
+                return match t.id == id {
+                  true => { ...t, done: true },
+                  false => t,
+                }
+              },
+            ),
           }
           await save(TODO_PATH, updated).map_err(format_save_error)?
           io.println("marked #${number.to_string(id)} done")
@@ -255,7 +239,7 @@ async fn main(argv: Array<string>) -> number {
       return 2
     },
     Ok(command) => match await run(command) {
-      Ok(_) => return 0,
+      Ok(_) => { return 0 },
       Err(msg) => {
         io.eprintln("error: ${msg}")
         return 1

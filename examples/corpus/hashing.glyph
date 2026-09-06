@@ -15,6 +15,7 @@ import std/array
 
 // FNV-1a and FNV-1 32-bit parameters (the classic 2166136261 / 16777619 pair).
 const FNV_OFFSET: number = 2166136261
+
 const FNV_PRIME: number = 16777619
 
 // Fold a signed 32-bit result (what `^`, `|`, and imul produce) back into the
@@ -63,7 +64,7 @@ pub fn fnv1(bytes: Array<number>) -> number {
 fn djb2_from(bytes: Array<number>, i: number, h: number) -> number {
   return match i >= array.len(bytes) {
     true => h,
-    false => djb2_from(bytes, i + 1, (math.imul(h, 33) + bytes[i]) | 0),
+    false => djb2_from(bytes, i + 1, math.imul(h, 33) + bytes[i] | 0),
   }
 }
 

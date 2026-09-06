@@ -17,12 +17,7 @@ import std/option { Option, Some, None }
 // so ordering uses the built-in `<`/`==`.
 pub type Tree<V> =
   | Leaf
-  | Node({
-    key: number,
-    value: V,
-    left: Tree<V>,
-    right: Tree<V>,
-  })
+  | Node({ key: number, value: V, left: Tree<V>, right: Tree<V> })
 
 // A key/value pair, the shape `min`/`max` and the inorder walk return.
 pub type Pair<V> = { key: number, value: V }
@@ -34,46 +29,18 @@ pub fn empty<V>() -> Tree<V> {
 
 // Insert or overwrite `key`. Walks to the correct leaf position rebuilding the
 // spine; an existing key has its value replaced, so a map holds no duplicates.
-pub fn insert<V>(
-  t: Tree<V>,
-  key: number,
-  value: V,
-) -> Tree<V> {
+pub fn insert<V>(t: Tree<V>, key: number, value: V) -> Tree<V> {
   return match t {
-    Leaf => Node({
-      key: key,
-      value: value,
-      left: Leaf,
-      right: Leaf,
-    }),
+    Leaf => Node({ key: key, value: value, left: Leaf, right: Leaf }),
     Node(n) => match key == n.key {
-      true => Node({
-        key: key,
-        value: value,
-        left: n.left,
-        right: n.right,
-      }),
+      true => Node({ key: key, value: value, left: n.left, right: n.right }),
       false => match key < n.key {
-        true => Node({
-          key: n.key,
-          value: n.value,
-          left: insert(
-            n.left,
-            key,
-            value,
-          ),
-          right: n.right,
-        }),
-        false => Node({
-          key: n.key,
-          value: n.value,
-          left: n.left,
-          right: insert(
-            n.right,
-            key,
-            value,
-          ),
-        }),
+        true => Node(
+          { key: n.key, value: n.value, left: insert(n.left, key, value), right: n.right },
+        ),
+        false => Node(
+          { key: n.key, value: n.value, left: n.left, right: insert(n.right, key, value) },
+        ),
       },
     },
   }
@@ -132,12 +99,7 @@ fn join<V>(left: Tree<V>, right: Tree<V>) -> Tree<V> {
     Leaf => left,
     Node(_r) => match min(right) {
       None => left,
-      Some(p) => Node({
-        key: p.key,
-        value: p.value,
-        left: left,
-        right: remove(right, p.key),
-      }),
+      Some(p) => Node({ key: p.key, value: p.value, left: left, right: remove(right, p.key) }),
     },
   }
 }
@@ -151,18 +113,8 @@ pub fn remove<V>(t: Tree<V>, target: number) -> Tree<V> {
     Node(n) => match target == n.key {
       true => join(n.left, n.right),
       false => match target < n.key {
-        true => Node({
-          key: n.key,
-          value: n.value,
-          left: remove(n.left, target),
-          right: n.right,
-        }),
-        false => Node({
-          key: n.key,
-          value: n.value,
-          left: n.left,
-          right: remove(n.right, target),
-        }),
+        true => Node({ key: n.key, value: n.value, left: remove(n.left, target), right: n.right }),
+        false => Node({ key: n.key, value: n.value, left: n.left, right: remove(n.right, target) }),
       },
     },
   }
@@ -197,7 +149,10 @@ pub fn height<V>(t: Tree<V>) -> number {
 pub fn to_pairs<V>(t: Tree<V>) -> Array<Pair<V>> {
   return match t {
     Leaf => [],
-    Node(n) => array.concat(to_pairs(n.left), array.concat([{ key: n.key, value: n.value }], to_pairs(n.right))),
+    Node(n) => array.concat(
+      to_pairs(n.left),
+      array.concat([{ key: n.key, value: n.value }], to_pairs(n.right)),
+    ),
   }
 }
 
@@ -211,11 +166,7 @@ pub fn keys<V>(t: Tree<V>) -> Array<number> {
 pub fn from_pairs<V>(pairs: Array<Pair<V>>) -> Tree<V> {
   let acc = empty<V>()
   for p in pairs {
-    mut acc = insert(
-      acc,
-      p.key,
-      p.value,
-    )
+    mut acc = insert(acc, p.key, p.value)
   }
   return acc
 }

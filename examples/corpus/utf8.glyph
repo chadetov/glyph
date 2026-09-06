@@ -47,21 +47,18 @@ pub fn encode_point(cp: number) -> Array<number> {
   return match cp < 128 {
     true => [cp],
     false => match cp < 2048 {
-      true => [
-        192 | math.floor(cp / 64),
-        CONT_MARK | (cp % 64),
-      ],
+      true => [192 | math.floor(cp / 64), CONT_MARK | cp % 64],
       false => match cp < 65536 {
         true => [
           224 | math.floor(cp / 4096),
-          CONT_MARK | (math.floor(cp / 64) % 64),
-          CONT_MARK | (cp % 64),
+          CONT_MARK | math.floor(cp / 64) % 64,
+          CONT_MARK | cp % 64,
         ],
         false => [
           240 | math.floor(cp / 262144),
-          CONT_MARK | (math.floor(cp / 4096) % 64),
-          CONT_MARK | (math.floor(cp / 64) % 64),
-          CONT_MARK | (cp % 64),
+          CONT_MARK | math.floor(cp / 4096) % 64,
+          CONT_MARK | math.floor(cp / 64) % 64,
+          CONT_MARK | cp % 64,
         ],
       },
     },
@@ -105,15 +102,11 @@ fn cont_at(bytes: Array<number>, i: number, n: number) -> Result<number, Utf8Err
 fn decode_one(bytes: Array<number>, i: number, n: number) -> Result<Decoded, Utf8Error> {
   let b0 = bytes[i]
   match b0 < 128 {
-    true => {
-      return Ok({ cp: b0, width: 1 })
-    },
+    true => { return Ok({ cp: b0, width: 1 }) },
     false => {},
   }
   match b0 < 192 {
-    true => {
-      return Err(BadLeadByte({ at: i }))
-    },
+    true => { return Err(BadLeadByte({ at: i })) },
     false => {},
   }
   match b0 < 224 {
@@ -148,9 +141,7 @@ fn decode_one(bytes: Array<number>, i: number, n: number) -> Result<Decoded, Utf
 // prepended to the recursively-decoded tail.
 fn decode_from(bytes: Array<number>, i: number, n: number) -> Result<Array<number>, Utf8Error> {
   match i >= n {
-    true => {
-      return Ok([])
-    },
+    true => { return Ok([]) },
     false => {},
   }
   let step = decode_one(bytes, i, n)?

@@ -100,20 +100,15 @@ fn decode_group(c0: string, c1: string, c2: string, c3: string) -> Option<Array<
           Some(v2) => match c3 == "=" {
             true => {
               let triple = v0 * 262144 + v1 * 4096 + v2 * 64
-              return Some([
-                math.floor(triple / 65536) % 256,
-                math.floor(triple / 256) % 256,
-              ])
+              return Some([math.floor(triple / 65536) % 256, math.floor(triple / 256) % 256])
             },
             false => match dec_digit(c3) {
               None => None,
               Some(v3) => {
                 let triple = v0 * 262144 + v1 * 4096 + v2 * 64 + v3
-                return Some([
-                  math.floor(triple / 65536) % 256,
-                  math.floor(triple / 256) % 256,
-                  triple % 256,
-                ])
+                return Some(
+                  [math.floor(triple / 65536) % 256, math.floor(triple / 256) % 256, triple % 256],
+                )
               },
             },
           },

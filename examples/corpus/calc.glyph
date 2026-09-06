@@ -151,9 +151,7 @@ fn parse_atom(s: string, i: number) -> Result<Parsed, string> {
           let n = parse_number(s, j)
           Ok({ value: n.value, pos: n.pos })
         },
-        false => Err(
-          "unexpected character '" + s[j] + "' at " + number.to_string(j),
-        ),
+        false => Err("unexpected character '" + s[j] + "' at " + number.to_string(j)),
       },
     },
   }

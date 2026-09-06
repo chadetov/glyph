@@ -102,21 +102,15 @@ pub fn run(program: Array<Instr>, max_steps: number) -> Result<number, string> {
   let steps = 0
   loop {
     match steps >= max_steps {
-      true => {
-        return Err("step limit exceeded")
-      },
+      true => { return Err("step limit exceeded") },
       false => {},
     }
     match pc < 0 {
-      true => {
-        return Err("program counter went below zero")
-      },
+      true => { return Err("program counter went below zero") },
       false => {},
     }
     match pc >= array.len(program) {
-      true => {
-        return Err("program counter ran off the end")
-      },
+      true => { return Err("program counter ran off the end") },
       false => {},
     }
     mut steps = steps + 1
@@ -126,12 +120,8 @@ pub fn run(program: Array<Instr>, max_steps: number) -> Result<number, string> {
         mut stack = n.stack
         mut pc = n.pc
       },
-      Done(d) => {
-        return Ok(d.value)
-      },
-      Fault(f) => {
-        return Err(f.message)
-      },
+      Done(d) => { return Ok(d.value) },
+      Fault(f) => { return Err(f.message) },
     }
   }
 }

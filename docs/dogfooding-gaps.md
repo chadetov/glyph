@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-208 entries, 173 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-14 are open. G144, the D28 boundary cast that never reached the returns a
+209 entries, 173 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8179,3 +8179,18 @@ and is the owner's to confirm.
   byte-identical. Pinned by `dts_notes_every_dropped_method_signature` in
   `gen.rs` and `gen_dts_notes_each_method_signature_it_drops` in
   `glyph-cli/tests/gen_dts.rs`; both fail when the warning is dropped.
+
+- **G211. A `tsc` error is mapped to the statement before the one that failed.**
+  `let t = string.trim("  a  ")` on line 7 and `io.println(t.toUpperCasee())`
+  on line 8: `glyph build` reports `[TS2551] Property 'toUpperCasee' does not
+  exist on type 'string'` at `main:7:3`, the `let`. The TypeScript line is
+  right; the map from emitted line back to Glyph line lands one statement
+  early. A reader following the caret edits the wrong line, and an agent
+  driving a repair loop from the mapped position does the same, which is the
+  exact place a wrong answer costs the most. Found while re-checking G27: the
+  remaining leak there is a method on a value (`t.toUpperCasee()`,
+  `r.unwrapp()` on a `Result`), which is G39's member set and stays with it,
+  but the position those leaks are reported at is a separate defect and this is
+  it.
+
+  *Reproduced against 0.1.116 (the 0.1.117 tree, version string 0.1.116): the program above, `glyph build --out dist src`, reports the error at `main:7:3` where the call is on line 8.*

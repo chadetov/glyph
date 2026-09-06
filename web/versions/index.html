@@ -61,8 +61,61 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.116</span>
+            <span class="rel-ver">0.1.117</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Nullable&lt;T&gt;, for a field the wire sends as null</h3>
+            <p>A field a real API sends as JSON <code>null</code> had no Glyph type to declare it with. <code>Option&lt;T&gt;</code> only decodes its own tagged form, and an optional field of the base type accepted <code>null</code> but gave the program nothing to match on. <code>Nullable&lt;T&gt;</code> is a new prelude type for exactly that field: it emits as TypeScript <code>T | null</code>, and its check accepts <code>null</code> or a <code>T</code>, rejecting the tagged <code>Option</code> encoding as a value of the wrong shape.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>type Frame = { op: int, s: Nullable&lt;int&gt; }
+
+import std/nullable
+
+fn main() -> void {
+  return match Frame.parse(json.parse("{\"op\":1,\"s\":null}")) {
+    Ok(f) => io.println(string.from(nullable.is_null(f.s))),
+    Err(e) => io.println("rejected"),
+  }
+}
+<span class="add">// {"op":1,"s":null} and {"op":1,"s":3} both decode; {"s":{"tag":"Some","value":3}} does not</span></pre>
+            </div>
+            <p>It is its own type, not an <code>Option</code>: assigning one where the other is declared is <code>E0204</code> at a <code>let</code> and <code>E0211</code> at an argument in either direction, and there is no <code>match</code> arm for <code>Some</code> or <code>None</code> on it. The bridge is explicit, <code>std/nullable</code>'s <code>to_option</code>, <code>from_option</code> and <code>is_null</code>, one greppable call at the point null enters a program. <code>T</code> may not itself be <code>Nullable</code> or <code>Option</code> (<code>E0227</code>): the first would give two states one runtime spelling, the second would put a tagged object under a null-tolerant field. <code>glyph gen dts</code> and <code>glyph gen openapi</code> route a schema's <code>nullable</code> field to <code>Nullable&lt;T&gt;</code> instead of collapsing it to an optional field. <code>Option&lt;T&gt;</code> is untouched, so this addition rejects nothing that built before.</p>
+            <h3>A bare-name type alias is a second name for its declaration</h3>
+            <p><code>type B = A</code>, with <code>type A = { x: number }</code>, used to declare a type of its own: a <code>B</code> passed where an <code>A</code> was expected was <code>E0211</code> on a program <code>tsc</code> accepts, and <code>b.naem</code> on a <code>b: B</code> got no field check at all, while the identical two declarations imported from a sibling module answered both correctly. One spelling had two answers, decided only by which file it was written in.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>type A = { x: number }
+type B = A
+
+fn takes_a(a: A) -> number {
+  return a.x
+}
+
+fn main(b: B) -> number {
+  return takes_a(b)
+}
+<span class="del">// 0.1.116: [E0211] argument type mismatch: expected `A`, found `B`</span>
+<span class="add">// 0.1.117: no diagnostics. B.parse is A.parse, and b.naem is E0210 as it already was on an a: A</span></pre>
+            </div>
+            <p>Only a bare name is followed to the declaration it names; a record, a union, a generic application such as <code>Record&lt;string, T&gt;</code>, or a body carrying a <code>where</code> is still the declaration's own type, unchanged by this rule. A <code>where</code> over an alias of a record or union is now <code>E0300</code> like the inline spelling, since the two are one type once the alias is followed: <code>type Positive = Rec where value.x &gt; 0</code> with <code>Rec</code> a record built clean before and is refused now.</p>
+            <h3>gen dts anchors a class instead of naming one that doesn't exist</h3>
+            <p>A field typed by a class the <code>.d.ts</code> declares, or by a host type Glyph has no spelling for (<code>RegExp</code>, <code>Date</code>, <code>Map</code>), used to materialize as a reference to a name <code>gen dts</code> never wrote, and the next build failed on it as an unresolved name. It now anchors each as a descriptorless <code>extern_ts</code> alias, so the reference resolves, <code>tsc</code> checks every method call against the real class, and a wire record holding one is still refused parse in the module that declares it, since nothing validated the class at runtime. Every interface member the reader still drops, a method signature among them, now gets a note naming the owner and the reason, and every declaration <code>gen dts</code>, <code>gen zod</code> and <code>gen openapi</code> write is <code>pub</code>, so a generated module can finally be imported by name from the module that owns the boundary.</p>
+            <h3>An imported const and an imported union, closed</h3>
+            <p>A cross-module <code>pub const</code> was typed by its annotation in the module that declared it and <code>Ty::Unknown</code> everywhere it was imported, so <code>ORIGIN.rowz</code> on a <code>Sheet</code> with no <code>rowz</code> field said nothing one import away. It is now <code>E0210</code> naming the record on both sides of the boundary. Separately, a lowercase nullary variant nested under a payload-carrying variant of an imported union, <code>B(alpha)</code> over an imported <code>tree.G</code>, stopped a valid build at <code>E0305</code>; a new per-variant payload registry resolves it the same way in the CLI, the playground and the MCP server at once.</p>
+            <p>Two findings from this round are recorded open, not fixed: <code>E0304</code> only refuses an unverifiable record in the module that declares it, so the same <code>Doc.parse</code> call from a sibling that imports <code>Doc</code> reports nothing (G210); and a <code>tsc</code> error is mapped to the Glyph statement before the one that actually failed, so a caret follows a reader to the wrong line (G211).</p>
+            <p class="rel-note"><strong>Breaking.</strong> G205 (the imported const), G207 (the alias <code>where</code>) and the alias hop through G201 each turn a previously silent program red; G91 (<code>Nullable</code>) and G147 (the nested variant) only accept more. Established by running the published 0.1.116 and this release on the same five programs, under an isolated <code>HOME</code>: a <code>where</code> over an alias of a record, and an imported const's misspelt field, each go from exit 0 to exit 1; a <code>B</code> passed where an <code>A</code> is declared goes from exit 1 to exit 0; a <code>Nullable&lt;int&gt;</code> field goes from exit 1 (no such type) to exit 0; and a program using <code>Option&lt;int&gt;</code> alone stays exit 0 on both.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.116</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

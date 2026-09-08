@@ -784,8 +784,17 @@ fn repairing_only_what_the_compiler_reported_leaves_the_absorbing_site_behind() 
 /// Everything an agent needs to ask `glyph_impact` about a parameter type
 /// change, and nothing it could use to fake the answer. The three callers are
 /// three different kinds of site: one passes a string literal, one passes a
-/// value of a union declared in another module, and one reads the function as
-/// a value without applying it.
+/// value of a type declared in another module whose chain of names ends at a
+/// primitive, and one reads the function as a value without applying it.
+///
+/// The middle one used to pass an imported *union*, which was the checker's
+/// gap the cell reported (G201 read only a declaration of the calling
+/// module). G215 closed it, so an imported union against a `string` is E0211
+/// with no edit at all and this fixture would not start green. What is left
+/// undetermined is the shape the imported rule declines: a declaration whose
+/// chain of second names ends at a primitive rather than at a union or a
+/// record. `an_imported_union_call_site_is_where_e0211_lands` covers the
+/// pairing that moved.
 mod signature_fixture {
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -799,7 +808,8 @@ mod signature_fixture {
         pub entity: String,
         /// The caller passing a primitive.
         pub literal_caller: String,
-        /// The caller passing an imported union value.
+        /// The caller passing a value of an imported alias of a primitive,
+        /// which is the imported shape the checker still compares by nothing.
         pub imported_caller: String,
         /// The module reading the function as a value.
         pub value_reader: String,
@@ -832,7 +842,7 @@ mod signature_fixture {
         );
         put(
             &src.join(format!("{cells}.glyph")),
-            &format!("module {cells}\n\npub type Cell =\n  | Text\n  | Blank\n"),
+            &format!("module {cells}\n\npub type Cell = string\n"),
         );
         put(
             &src.join(format!("{literal}.glyph")),
@@ -919,6 +929,12 @@ fn a_signature_type_change_gets_one_verdict_per_kind_of_site() {
             "a verdict with no reason: {entry}"
         );
     }
+    // The undetermined site says which shape the chain of names ends at,
+    // since that is the whole reason the checker compares it by nothing.
+    assert!(
+        field(imported, &["because"]).contains("alias for a primitive"),
+        "the shape the imported chain ends at is unnamed: {imported}"
+    );
     // The three are three different claims, and the answer says which is
     // which in a field, not in prose an agent would have to parse.
     let seen: BTreeSet<&str> = [literal, imported, reader]
@@ -1124,6 +1140,148 @@ fn a_signature_type_change_to_a_declared_type_is_confirmed_by_the_checker() {
     assert!(
         field(&tagged, &["because"]).contains("union"),
         "the shape the checker read is unnamed: {tagged}"
+    );
+
+    assert_eq!(mcp.finish(), 0);
+}
+
+/// A union declared in one module, a function taking it in a second, and a
+/// caller in a third: the call site the imported-declaration rule decides.
+mod imported_signature_fixture {
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    pub struct Project {
+        pub root: PathBuf,
+        pub src: PathBuf,
+        /// The module declaring the function, and the one the agent edits.
+        pub edited: PathBuf,
+        /// `module::label`, whose parameter is an imported union.
+        pub entity: String,
+        /// The caller passing a value of that same imported union.
+        pub caller: String,
+    }
+
+    fn put(path: &Path, text: &str) {
+        std::fs::write(path, text).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
+    }
+
+    pub fn write(root: PathBuf) -> Project {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let tag = format!("{}i{n}", std::process::id());
+        let (cells, home, caller) =
+            (format!("c{tag}"), format!("l{tag}"), format!("p{tag}"));
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).expect("create src");
+        put(
+            &root.join("package.json"),
+            "{ \"name\": \"imported\", \"glyph\": { \"src\": \"src\" } }",
+        );
+        // Two unions, so the edit under test replaces the parameter's type
+        // with another declaration of the same module rather than removing
+        // the type the caller passes.
+        put(
+            &src.join(format!("{cells}.glyph")),
+            &format!(
+                "module {cells}\n\npub type Cell =\n  | Text\n  | Blank\n\n\
+                 pub type Other =\n  | Red\n  | Green\n"
+            ),
+        );
+        let edited = src.join(format!("{home}.glyph"));
+        // The body does not read the parameter, so the edit breaks nothing
+        // inside the declaration it is made in.
+        put(
+            &edited,
+            &format!(
+                "module {home}\n\nimport {cells} {{ Cell }}\n\n\
+                 pub fn label(c: Cell) -> number {{\n  return 1\n}}\n"
+            ),
+        );
+        put(
+            &src.join(format!("{caller}.glyph")),
+            &format!(
+                "module {caller}\n\nimport {home} {{ label }}\nimport {cells} {{ Cell }}\n\n\
+                 pub fn probe(c: Cell) -> number {{\n  return label(c)\n}}\n"
+            ),
+        );
+        Project {
+            root,
+            src,
+            edited,
+            entity: format!("{home}::label"),
+            caller: format!("{caller}::probe"),
+        }
+    }
+
+    /// The agent's edit: the parameter takes the other union of the same
+    /// module, which is a different declaration from the one the caller passes.
+    pub fn replace_the_parameter_with_the_other_union(project: &Project) {
+        let text = std::fs::read_to_string(&project.edited).expect("read the module");
+        assert!(text.contains("{ Cell }") && text.contains("(c: Cell)"), "{text}");
+        put(
+            &project.edited,
+            &text.replace("{ Cell }", "{ Other }").replace("(c: Cell)", "(c: Other)"),
+        );
+    }
+}
+
+/// A call site passing a value of an imported union is `WILL_FAIL`, and the
+/// compiler's own diagnostic is what says so.
+///
+/// This is the cell G215 moved. The rule deciding a declared type against
+/// another read only a declaration of the calling module, so every
+/// cross-module site came back `UNDETERMINED` and an agent was told to look at
+/// `tsc`. The checker reads the declaration through the module's exports now,
+/// following its chain of second names to the end, so the answer here is a
+/// verdict; the test makes the edit in the class the verdict names and E0211
+/// lands on exactly the site that was called `WILL_FAIL`.
+#[test]
+fn an_imported_union_call_site_is_where_e0211_lands() {
+    let project = imported_signature_fixture::write(unique_tmp("imported_signature_type"));
+    let (code, clean) = check_json(&project.src);
+    assert_eq!(code, 0, "the fixture starts green: {clean}");
+
+    let mut mcp = McpProcess::start(&project.root);
+    mcp.handshake(1);
+    let answer = mcp.call_tool(
+        2,
+        "glyph_impact",
+        json!({ "entity": project.entity, "change": { "kind": "change_signature_type" } }),
+    );
+    let entry = answer["impact"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+        .iter()
+        .find(|e| e["entity"] == project.caller.as_str() && e["relation"] == "CALLS")
+        .cloned()
+        .unwrap_or_else(|| panic!("no CALLS entry for `{}` in {answer}", project.caller));
+    assert_eq!(entry["verdict"], json!("WILL_FAIL"), "{entry}");
+    assert_eq!(entry["diagnostic"], json!("E0211"), "{entry}");
+    let because = field(&entry, &["because"]);
+    assert!(
+        because.contains("another module") && because.contains("G226"),
+        "the cross-module rule the verdict rests on is unnamed: {entry}"
+    );
+
+    // The edit, in the class the verdict named, then the compiler's own word.
+    imported_signature_fixture::replace_the_parameter_with_the_other_union(&project);
+    let (code, broken) = check_json(&project.src);
+    assert_eq!(code, 1, "the edit has to break the build: {broken}");
+    let reported: BTreeSet<(String, String)> = broken["diagnostics"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no diagnostics: {broken}"))
+        .iter()
+        .filter_map(|d| {
+            Some((
+                d["entity"].as_str()?.to_string(),
+                d["code"].as_str()?.to_string(),
+            ))
+        })
+        .collect();
+    assert!(
+        reported.contains(&(project.caller.clone(), "E0211".to_string())),
+        "the WILL_FAIL site has to be where E0211 lands: {broken}"
     );
 
     assert_eq!(mcp.finish(), 0);

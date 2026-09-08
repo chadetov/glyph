@@ -1,7 +1,8 @@
 module cells
 
-// A union declared apart from every caller, so a value of it reaching `label`
-// is a cross-module type at the call site.
-pub type Cell =
-  | Text
-  | Blank
+// A second name for a primitive, declared apart from every caller. A value of
+// it reaching `label` is a cross-module type at the call site whose chain of
+// names ends at a `string` rather than at a union or a record, which is the
+// one shape the checker's imported-declaration rule (G215) compares by
+// nothing.
+pub type Cell = string

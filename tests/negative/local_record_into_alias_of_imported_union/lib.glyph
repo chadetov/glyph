@@ -1,0 +1,5 @@
+module lib
+
+pub type Shape =
+  | Circle
+  | Square

@@ -5082,6 +5082,35 @@ impl Assigner<'_> {
         Some((module.to_string(), name.to_string()))
     }
 
+    /// The declaration an imported name reaches, when that declaration is a
+    /// tagged union or a record: where it is declared and its body, or `None`.
+    ///
+    /// The cross-module counterpart of `declared_union_or_record_body` for
+    /// the assignability relation (G215, G226). The chain of second names is
+    /// followed to its end, so `pub type Rows = Sheet` in the sibling is a hop
+    /// exactly as a local `type Local = Shape` is, and the identity answered
+    /// is the pair the chain ends at: two spellings of one declaration answer
+    /// the same pair and are one type. What is kept out is what the local
+    /// reading keeps out: a body that is a primitive (`pub type Id = string`),
+    /// a string-literal union, a generic application, or an `extern_ts` or
+    /// `typeof` body (the export view lowers both to `Unknown`), and an
+    /// `interface`, which `exported_type` does not answer at all. None of
+    /// those is a declaration this checker can decide a pairing from, so each
+    /// answers `None`, which every caller reads as undetermined.
+    fn imported_union_or_record(&self, ty: &Ty) -> Option<ImportedUnionOrRecord> {
+        let Ty::Imported { module, name } = ty else {
+            return None;
+        };
+        let mut seen: HashSet<(String, String)> = HashSet::new();
+        let (module, name) = self.imported_record_decl(module.as_str(), name.as_ref(), &mut seen)?;
+        let decl = self.decl_ty_resolver.imported_type_decl(&module, &name)?;
+        matches!(decl.body, Ty::Union { .. } | Ty::Record { .. }).then(|| ImportedUnionOrRecord {
+            module,
+            name,
+            body: decl.body,
+        })
+    }
+
     /// The field set of an imported record type, with the declaration's generic
     /// parameters substituted by `args`. `None` when the sibling declares the
     /// name as something other than a record, or when it cannot be resolved at
@@ -5347,10 +5376,83 @@ impl Assigner<'_> {
         // was E0211 on a program `tsc --strict` accepts (G203), because
         // `definitely_incompatible` compares a `Ty::Named` by its lexical path
         // and has no declaration to look up.
-        definitely_incompatible(
-            &self.canonicalize_aliases(found),
-            &self.canonicalize_aliases(expected),
-        )
+        let found = self.canonicalize_aliases(found);
+        let expected = self.canonicalize_aliases(expected);
+        // G215, G226. An imported declaration is decided like a local one.
+        // Read after canonicalization, because a local second name for an
+        // import is the `Ty::Imported` it names by now, and that is the form
+        // every rule below has to recognise.
+        if self.imported_incompatible(&found, &expected) {
+            return true;
+        }
+        definitely_incompatible(&found, &expected)
+    }
+
+    /// The pairings of an imported declaration the relation decides, on
+    /// canonical types. G215 and G226: `definitely_incompatible` declines
+    /// `Ty::Imported` on either side, since the free function has no
+    /// declaration to read, so an imported union passed where a `string` was
+    /// declared drew nothing under every surface that runs without tsc, and a
+    /// local record assigned to a local alias of an imported union lost its
+    /// `E0204` the moment the alias canonicalized across the boundary. Each
+    /// arm is the imported reading of a rule the local side already applies,
+    /// through `imported_union_or_record`, which keeps out exactly what the
+    /// local reading keeps out:
+    ///
+    /// - an imported union or record, or an application of one, is never a
+    ///   `string`, a `number` or a `bool` (G201, with no exclusion: `{}` is
+    ///   not a `string` under tsc either);
+    /// - a `string`, a `number` or a `bool` is never an imported union or a
+    ///   record with at least one field (the reverse direction, with the
+    ///   zero-field record excluded because tsc lets a `string` satisfy `{}`);
+    /// - an imported union or record is a different type from a `type`
+    ///   declaration of this module, and from an imported union or record
+    ///   whose chain ends at a different `(module, name)`. The identity is
+    ///   read after the chain, so `Local`, `Local2` and `Shape` for one
+    ///   declaration compare equal, which is what D46 promises.
+    ///
+    /// A generic application against a bare name stays undetermined in both
+    /// directions, as it does for two local names, and an imported declaration
+    /// that is neither a union nor a record is compared by nothing here, which
+    /// leaves the primitive alias, the string-literal union and the opaque
+    /// body exactly as silent as the local rule leaves them.
+    fn imported_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
+        if let Ty::Prim(p) = expected {
+            if is_concrete_scalar(*p)
+                && self
+                    .imported_union_or_record(split_type_app(found).0)
+                    .is_some()
+            {
+                return true;
+            }
+        }
+        if let Ty::Prim(p) = found {
+            if is_concrete_scalar(*p) {
+                if let Some(decl) = self.imported_union_or_record(split_type_app(expected).0) {
+                    if !decl.is_empty_record() {
+                        return true;
+                    }
+                }
+            }
+        }
+        match (found, expected) {
+            (Ty::Imported { .. }, Ty::Imported { .. }) => match (
+                self.imported_union_or_record(found),
+                self.imported_union_or_record(expected),
+            ) {
+                (Some(f), Some(e)) => f.identity() != e.identity(),
+                _ => false,
+            },
+            (Ty::Imported { .. }, Ty::Named { .. }) => {
+                self.imported_union_or_record(found).is_some()
+                    && self.direct_type_decl(expected).is_some()
+            }
+            (Ty::Named { .. }, Ty::Imported { .. }) => {
+                self.direct_type_decl(found).is_some()
+                    && self.imported_union_or_record(expected).is_some()
+            }
+            _ => false,
+        }
     }
 
     /// The declaration and ordered variant list of a union declared in another
@@ -5735,6 +5837,10 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 ///   declaration, and a body that is a tagged union or a record is not a
 ///   `string`, a `number` or a `bool` (G201), nor the other way round, where
 ///   an empty record is excluded because tsc lets a `string` satisfy `{}`.
+///   The same caller reads a declaration in another module through
+///   `imported_union_or_record` and decides the same pairings for it, plus
+///   the identity of two declarations (G215, G226); `Ty::Imported` reaching
+///   this function is declined on either side.
 fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(expected, Ty::UnknownTop) {
         return false;
@@ -5809,6 +5915,30 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
             }
         }),
         _ => false,
+    }
+}
+
+/// A declaration in another module that the assignability relation can decide
+/// a pairing from: the tagged union or record an imported name reaches,
+/// addressed by the module and name its chain of second names ends at. Built
+/// only by `imported_union_or_record`, which is where the body is read.
+struct ImportedUnionOrRecord {
+    module: String,
+    name: String,
+    body: Ty,
+}
+
+impl ImportedUnionOrRecord {
+    /// The declaration's address, which is what two imported declarations are
+    /// compared by: one declaration under two names has one address.
+    fn identity(&self) -> (&str, &str) {
+        (&self.module, &self.name)
+    }
+
+    /// `pub type T = { }`, the one record a primitive is not decided against,
+    /// because tsc lets a `string` satisfy the empty object type.
+    fn is_empty_record(&self) -> bool {
+        matches!(&self.body, Ty::Record { fields } if fields.is_empty())
     }
 }
 
@@ -6122,13 +6252,14 @@ fn ty_is_decidable(ty: &Ty) -> bool {
     match ty {
         Ty::Unknown => false,
         Ty::Param { .. } => false,
-        // Cross-module assignability stays exactly as permissive as it was when
-        // an imported type was `Ty::Unknown`. The identity is now available, so
-        // `definitely_incompatible` *could* decide it, but that would be a new
-        // error class at a module boundary — language surface, not
-        // implementation, and it is not part of this change. Without this arm
-        // the `_ => true` fallback would draw a false `QuestionOnNonResult` on
-        // `g()?` where `g` returns an imported `type Res = Result<A, B>`.
+        // An imported type is undecidable from the `Ty` alone: the identity
+        // is here, the declaration is not, and without this arm the `_ =>
+        // true` fallback would draw a false `QuestionOnNonResult` on `g()?`
+        // where `g` returns an imported `type Res = Result<A, B>`. The
+        // pairings that need the declaration (an imported union or record
+        // against a primitive, or against another declaration) are decided
+        // where it can be read, in `Assigner::imported_incompatible` (G215,
+        // G226), before `definitely_incompatible` is asked.
         Ty::Imported { .. } => false,
         Ty::App { base, .. } => ty_is_decidable(base),
         _ => true,
@@ -9809,12 +9940,11 @@ fn main() -> number {
     }
 
     #[test]
-    fn an_imported_union_argument_stays_silent_for_now() {
-        // A type from a sibling module lowers to `Ty::Imported`, which
-        // `ty_is_decidable` deliberately holds undecidable so that cross-module
-        // assignability stays as permissive as it was. G201 does not change
-        // that; the single-module lowering used by this test's harness produces
-        // `Ty::Unknown` for the import, which is the same silence.
+    fn an_imported_union_argument_without_a_project_context_stays_silent() {
+        // A db-less caller holds the identity of an imported type and not its
+        // declaration, so the pairing is undetermined for it, exactly as a
+        // field typo on an imported record is. The project-aware reading is
+        // the group below.
         let src = r#"module x
 import payments { PaymentResult }
 
@@ -9827,6 +9957,429 @@ fn main(r: PaymentResult) -> string {
 }
 "#;
         assert!(ty_errors_of(src).is_empty(), "errs: {:?}", ty_errors_of(src));
+    }
+
+    // ----- G215, G226: an imported declaration is decided like a local one -----
+
+    /// A project of one sibling, `lib`, as `glyph_db::exported_type` would
+    /// answer it, plus a second module `other` declaring a union under the
+    /// same display name. One entry per shape the rule has to read past. The
+    /// module's own declarations are answered by `LocalDeclTy`, so a call's
+    /// arguments are checked against a real signature.
+    struct LibDecls<'a> {
+        local: LocalDeclTy<'a>,
+    }
+
+    impl DeclTyResolver for LibDecls<'_> {
+        fn decl_ty(&self, decl_idx: u32) -> Ty {
+            self.local.decl_ty(decl_idx)
+        }
+
+        fn imported_type_decl(
+            &self,
+            module_path: &str,
+            type_name: &str,
+        ) -> Option<ImportedTypeDecl> {
+            let decl = |name: &str, generics: Vec<&str>, body: Ty| ImportedTypeDecl {
+                name: Ident::from(name),
+                generics: generics.into_iter().map(Ident::from).collect(),
+                body,
+            };
+            let union = |names: &[&str]| Ty::Union {
+                variants: names
+                    .iter()
+                    .map(|n| UnionVariant {
+                        name: Ident::from(*n),
+                        payload: None,
+                    })
+                    .collect(),
+            };
+            let field = |name: &str, ty: Ty| RecordField {
+                name: Ident::from(name),
+                ty,
+                optional: false,
+            };
+            match (module_path, type_name) {
+                ("lib", "Status") => Some(decl("Status", vec![], union(&["Pending", "Done"]))),
+                ("lib", "Point") => Some(decl(
+                    "Point",
+                    vec![],
+                    Ty::Record {
+                        fields: vec![field("x", Ty::Prim(Primitive::Number))],
+                    },
+                )),
+                ("lib", "Box") => Some(decl(
+                    "Box",
+                    vec!["T"],
+                    Ty::Record {
+                        fields: vec![field(
+                            "value",
+                            Ty::Param {
+                                name: Ident::from("T"),
+                                owner: ParamOwner::Unresolved,
+                            },
+                        )],
+                    },
+                )),
+                ("lib", "Empty") => Some(decl("Empty", vec![], Ty::Record { fields: vec![] })),
+                ("lib", "Id") => Some(decl("Id", vec![], Ty::Prim(Primitive::String))),
+                ("lib", "Tier") => Some(decl(
+                    "Tier",
+                    vec![],
+                    Ty::StringLiteralUnion(vec!["free".into(), "pro".into()]),
+                )),
+                // `pub type Rows = Point` in the sibling: a hop, not a type.
+                ("lib", "Rows") => Some(decl(
+                    "Rows",
+                    vec![],
+                    Ty::Imported {
+                        module: "lib".into(),
+                        name: Ident::from("Point"),
+                    },
+                )),
+                ("other", "Status") => Some(decl("Status", vec![], union(&["Up", "Down"]))),
+                _ => None,
+            }
+        }
+    }
+
+    fn lib_errors_of(src: &str) -> Vec<TypeError> {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let lowerer = Lowerer::new(&resolved, &prelude);
+        let decls = LibDecls {
+            local: LocalDeclTy::new(&m, &lowerer),
+        };
+        let (_tm, ty_errs) = assign_types_with_resolver(&m, &resolved, &prelude, &decls);
+        ty_errs
+    }
+
+    fn has_argument_mismatch(errs: &[TypeError], expected: &str, found: &str) -> bool {
+        errs.iter().any(|e| matches!(
+            e,
+            TypeError::ArgumentTypeMismatch { expected: x, found: f, .. }
+                if x == expected && f == found
+        ))
+    }
+
+    fn has_type_mismatch(errs: &[TypeError], expected: &str, found: &str) -> bool {
+        errs.iter().any(|e| matches!(
+            e,
+            TypeError::TypeMismatch { expected: x, found: f, .. }
+                if x == expected && f == found
+        ))
+    }
+
+    #[test]
+    fn an_imported_union_argument_into_a_string_parameter_is_flagged() {
+        // G215, the program the ledger records: silent under every surface
+        // that runs without tsc, where the same union declared locally is
+        // E0211 by G201.
+        let src = r#"module x
+import lib { Status, Pending }
+
+fn shout(s: string) -> string {
+  return s
+}
+
+fn main() -> string {
+  let st: Status = Pending
+  return shout(st)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "string", "Status"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_union_is_decided_under_the_namespace_spelling_too() {
+        // The identity is the declaration's, so the spelling that brought it
+        // into scope cannot change the verdict.
+        let src = r#"module x
+import lib
+
+fn shout(s: string) -> string {
+  return s
+}
+
+fn main(st: lib.Status) -> string {
+  return shout(st)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "string", "Status"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_application_of_an_imported_record_into_a_number_parameter_is_flagged() {
+        // The judgement is the declaration's, so `Box<number>` answers as the
+        // bare name does, exactly as a local `Tree<number>` does under G201.
+        let src = r#"module x
+import lib { Box }
+
+fn takes_number(n: number) -> number {
+  return n
+}
+
+fn main(b: Box<number>) -> number {
+  return takes_number(b)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "number", "Box"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_string_into_an_imported_union_parameter_is_flagged() {
+        // The reverse direction across the boundary.
+        let src = r#"module x
+import lib { Status }
+
+fn takes_status(s: Status) -> Status {
+  return s
+}
+
+fn main() -> Status {
+  return takes_status("Pending")
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "Status", "string"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_number_into_an_imported_fielded_record_parameter_is_flagged() {
+        let src = r#"module x
+import lib { Point }
+
+fn takes_point(p: Point) -> Point {
+  return p
+}
+
+fn main() -> Point {
+  return takes_point(3)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "Point", "number"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_string_into_an_imported_empty_record_parameter_stays_silent() {
+        // The one exclusion the reverse direction keeps locally, kept here:
+        // tsc lets a `string` satisfy `{}`.
+        let src = r#"module x
+import lib { Empty }
+
+fn takes_empty(e: Empty) -> Empty {
+  return e
+}
+
+fn main() -> Empty {
+  return takes_empty("x")
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_empty_record_into_a_string_parameter_is_still_flagged() {
+        // And the forward direction has no exclusion, as locally: `{}` is not
+        // a `string` under tsc either.
+        let src = r#"module x
+import lib { Empty }
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn main(e: Empty) -> string {
+  return takes_string(e)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "string", "Empty"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_primitive_alias_stays_silent_against_any_primitive() {
+        // `pub type Id = string` is a name for `string`. Locally the alias is
+        // undetermined against `string` and against `number` alike, and the
+        // imported reading keeps both silences.
+        let src = r#"module x
+import lib { Id }
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn takes_number(n: number) -> number {
+  return n
+}
+
+fn main(i: Id) -> number {
+  takes_string(i)
+  return takes_number(i)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_string_literal_union_reached_as_a_body_stays_silent() {
+        // A `Ty::Imported` whose declaration is a string-literal union is a
+        // `string` at run time and under Glyph's own rule, so it is compared
+        // by nothing, as the local alias is.
+        let src = r#"module x
+import lib { Tier }
+
+fn takes_string(s: string) -> string {
+  return s
+}
+
+fn takes_tier(t: Tier) -> Tier {
+  return t
+}
+
+fn main(t: Tier) -> Tier {
+  takes_string(t)
+  return takes_tier("free")
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_local_record_bound_to_a_local_alias_of_an_imported_union_is_flagged() {
+        // G226, the program the ledger records. `Local` canonicalizes to the
+        // `Ty::Imported` it names (D46), and the pairing of that declaration
+        // against a declaration of this module is decided by identity, which
+        // is the `E0204` 0.1.118 reported by the nominal comparison and
+        // 0.1.120 change 1 lost.
+        let src = r#"module x
+import lib { Status }
+
+type Local = Status
+type Other = { x: int }
+
+fn main() -> Local {
+  let o: Other = { x: 1, }
+  let l: Local = o
+  return l
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_type_mismatch(&errs, "Local", "Other"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_union_into_a_local_record_parameter_is_flagged() {
+        // The same pairing the other way round: an imported declaration where
+        // a declaration of this module is expected.
+        let src = r#"module x
+import lib { Status }
+
+type Other = { x: int }
+
+fn takes_other(o: Other) -> Other {
+  return o
+}
+
+fn main(s: Status) -> Other {
+  return takes_other(s)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "Other", "Status"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn two_local_aliases_of_one_imported_declaration_are_one_type() {
+        // The identity is read after the chain, so the two second names and
+        // the direct import compare equal. Under 0.1.118 `let b: Local2 = a`
+        // was a false E0204 by spelling.
+        let src = r#"module x
+import lib { Status, Pending }
+
+type Local = Status
+type Local2 = Status
+
+fn main() -> Local2 {
+  let s: Status = Pending
+  let a: Local = s
+  let b: Local2 = a
+  return b
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_siblings_own_alias_chain_ends_at_the_declaration_it_names() {
+        // `pub type Rows = Point` in the sibling is a hop the same way a local
+        // alias is, so `Rows` and `Point` are one declaration and a `Rows`
+        // where a `Point` is expected is correct code.
+        let src = r#"module x
+import lib { Rows, Point }
+
+fn takes_point(p: Point) -> Point {
+  return p
+}
+
+fn main(r: Rows) -> Point {
+  return takes_point(r)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn two_imported_declarations_with_one_display_name_are_different_types() {
+        // The address is `(module, name)`, not the name diagnostics print: the
+        // corpus holds eleven unrelated declarations named `Command`.
+        let src = r#"module x
+import lib { Status }
+import other as o
+
+fn takes_status(s: Status) -> Status {
+  return s
+}
+
+fn main(s: o.Status) -> Status {
+  return takes_status(s)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(has_argument_mismatch(&errs, "Status", "Status"), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_union_against_a_prelude_application_stays_undetermined() {
+        // Neither side is a declaration of this module, and `Option` is not a
+        // project declaration, so the pairing has no rule: the same silence a
+        // local union against `Option<number>` keeps. Pinned so the identity
+        // arm cannot widen into comparing against the prelude by accident.
+        let src = r#"module x
+import lib { Status }
+
+fn takes_option(o: Option<number>) -> Option<number> {
+  return o
+}
+
+fn main(s: Status) -> Option<number> {
+  return takes_option(s)
+}
+"#;
+        let errs = lib_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
     }
 
     // ----- BUG-03: call arity -----

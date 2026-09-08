@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-226 entries, 193 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-14 are open. G144, the D28 boundary cast that never reached the returns a
+226 entries, 195 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+12 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8732,7 +8732,7 @@ and is the owner's to confirm.
   with `NoDecls` substituted in `build.rs` it and both older G147 run-time
   tests fail at E0305, so the trait is what answers.*
 
-- **G215. An imported union passed where a primitive is declared is silent.**
+- **G215. [FIXED] An imported union passed where a primitive is declared is silent.**
   `import lib { Status, Pending }`, `let st: Status = Pending`, `shout(st)` with
   `fn shout(s: string)`: no diagnostic under `check --no-tsc`, where the same
   program with `Status` declared in the calling module is `E0211`. G201's rule
@@ -8745,6 +8745,31 @@ and is the owner's to confirm.
   `imported_type_decl` already resolves the declaration for the field check.
 
   *Reproduced against 0.1.117, `npx -y @glyphlang/glyph@0.1.117 check --no-tsc` on a two-module project: exit 0 with three lint warnings (`E0106`, `E0108`, `E0107`) and no error, where `glyph check` with tsc reports `TS2739`, `TS2345` and `TS2322` for the same file.*
+
+  *Fixed in 0.1.120, with G226. `assign_incompatible` reads an imported
+  declaration through `imported_union_or_record`, which follows the sibling's
+  own chain of second names to its end (`imported_record_decl`, the walk the
+  field check already used) and answers only when the declaration there is a
+  tagged union or a record. On that answer the relation decides the pairings
+  the local G201 rule decides, with the local exclusions: an imported union
+  or record, or an application of one, against a `string`, `number` or
+  `bool`; one of those three against an imported union or a record with at
+  least one field (the zero-field record excluded, as locally); and the
+  identity of two declarations, an imported one against a `type` of the
+  calling module or against an imported one whose chain ends at a different
+  `module::name`. A primitive alias, a string-literal union, an `extern_ts`
+  or `typeof` body and an interface stay undetermined, as they are locally,
+  and so does an imported declaration against a prelude application.
+  Fourteen checker unit tests over a stub `imported_type_decl` pin each
+  pairing and each silence, `tests/negative/imported_union_into_string_parameter`
+  and a `glyph-cli` integration test hold the ledger program. Two-binary:
+  the published 0.1.119 exits 0 on it with `no diagnostics`, this build exits
+  1 with `E0211 expected string, found Status`. Breaking in the checking
+  direction. The corpus, every app as its own root and the docs compile
+  unchanged. The `change_signature_type` cells in `glyph-lsp/src/mcp.rs` that
+  answer `UNDETERMINED` for an imported argument (`(A::Imported, _)`) and for
+  an imported parameter (`(_, P::Imported)`) now describe a rule the checker
+  has; flipping them is scheduled with G221 in 0.1.121.*
 
 - **G216. A prelude application (`Option<int>`, `Nullable<int>`) where a
   primitive is declared is silent.** `let o: Option<int> = Some(3)` then
@@ -8932,7 +8957,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.118: the program with `import std/string` is `no diagnostics`, exit 0; with `import std/string { trim }` and `trim(...)` it is `[E0204] type mismatch: expected string, found number`, exit 1.*
 
-- **G226. Canonicalizing an alias to its imported declaration lost a diagnostic
+- **G226. [FIXED] Canonicalizing an alias to its imported declaration lost a diagnostic
   the previous release had.** 0.1.120 change 1 made `resolve_alias_chain`
   cross the module boundary so a match over `type Local = Shape` with `Shape`
   imported is exhaustiveness-checked (G224). A consequence measured with both
@@ -8947,3 +8972,19 @@ and is the owner's to confirm.
   union or record it names and deciding the pairing the way the local rule does.
 
   *Reproduced against 0.1.118 and the 0.1.120 tree at `0e6f2f3`: `E0204` before, `no diagnostics` after, on the program in `/private/tmp/claude-501/dev120-probe/aliascmp` (a local record assigned to a local alias of an imported union).*
+
+  *Fixed in 0.1.120, with G215 and by the same rule. `let l: Local = o`
+  pairs a `type` of the calling module against the `Ty::Imported` its alias
+  canonicalizes to, and two declarations are two types, so it is `E0204
+  expected Local, found Other` again. The identity is read after the chain,
+  so `let a: Local = s` and `let b: Local2 = a` stay silent: 0.1.118 and
+  0.1.119 called the second a mismatch by spelling, which tsc accepts.
+  Three-binary on the ledger program: the published 0.1.119 exits 1 with two
+  `E0204`s (one true, one false), the 0.1.120 tree at `20e8f41` exits 0 with
+  none, this build exits 1 with the one true diagnostic.
+  `tests/negative/local_record_into_alias_of_imported_union` and a
+  `glyph-cli` integration test that also asserts the single `E0204` hold it,
+  beside the checker unit tests under G215. Breaking in the checking
+  direction against the 0.1.120 tree; against 0.1.119 it removes a false
+  positive and keeps the true one.*
+

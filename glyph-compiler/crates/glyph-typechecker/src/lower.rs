@@ -166,6 +166,25 @@ impl<'a> Lowerer<'a> {
                                     module: module_key(path),
                                     name: original.clone(),
                                 }),
+                            // A bare name bound to a namespace, an alias or a
+                            // default import is not a type: the resolver has
+                            // one symbol table, so `import std/string` binds
+                            // `string` and the annotation `string` resolves
+                            // to that binding. It is the prelude type the
+                            // name spells, the rule the arm above applies to
+                            // `import std/result { Result }`. Answering
+                            // `Unknown` here switched the checker off for
+                            // every `string` annotation in a module that used
+                            // the namespace form (G225), and the emitter
+                            // reads the binding the same way
+                            // (`prelude_kind_of_name`), so the two agree.
+                            SymbolKind::ImportNamespace { .. }
+                            | SymbolKind::ImportAlias { .. }
+                            | SymbolKind::ImportDefault { .. } => self
+                                .prelude
+                                .lookup(head.as_ref())
+                                .map(|id| self.prelude_ty(id, head))
+                                .unwrap_or(Ty::Unknown),
                             _ => Ty::Unknown,
                         }
                     }
@@ -913,5 +932,64 @@ type T = { f: Result<User, FeedError> }
             decl.generics.iter().map(|g| g.as_ref()).collect::<Vec<_>>(),
             vec!["T"]
         );
+    }
+
+    /// The lowered type of the first parameter of the first `fn` in `src`.
+    fn first_fn_param_ty(src: &str) -> Ty {
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let f = m
+            .items
+            .iter()
+            .find_map(|d| match d {
+                glyph_ast::Decl::Fn(f) => Some(f),
+                _ => None,
+            })
+            .expect("a fn");
+        Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty)
+    }
+
+    // G225. `import std/string` binds `string`, and a `string` annotation in
+    // that module resolves to the binding rather than to the prelude. It is
+    // the prelude type the name spells, under the namespace form and the
+    // aliased form alike, the way `import std/result { Result }` already was.
+    #[test]
+    fn a_prelude_name_shadowed_by_a_namespace_import_lowers_to_the_prelude_type() {
+        let shadowed = first_fn_param_ty(
+            "module x\nimport std/string\nfn f(s: string) -> string {\n  return string.trim(s)\n}\n",
+        );
+        assert_eq!(shadowed, Ty::Prim(Primitive::String));
+        let aliased = first_fn_param_ty(
+            "module x\nimport std/number as number\nfn f(n: number) -> string {\n  return number.to_string(n)\n}\n",
+        );
+        assert_eq!(aliased, Ty::Prim(Primitive::Number));
+    }
+
+    #[test]
+    fn a_prelude_container_shadowed_by_a_namespace_import_is_the_prelude_container() {
+        // `import std/result` binds `result`, not `Result`, so this spelling
+        // never shadowed; an alias can. Either way the annotation is the
+        // prelude's own `Result`, the value the un-imported spelling lowers to.
+        let plain = first_fn_param_ty(
+            "module x\nfn f(r: Result<number, string>) -> number {\n  return 1\n}\n",
+        );
+        let aliased = first_fn_param_ty(
+            "module x\nimport std/result as Result\nfn f(r: Result<number, string>) -> number {\n  return 1\n}\n",
+        );
+        assert_eq!(aliased, plain, "the alias must not change what `Result` is");
+        assert!(matches!(aliased, Ty::App { .. }), "got {aliased:?}");
+    }
+
+    #[test]
+    fn a_namespace_binding_that_spells_no_prelude_name_stays_unknown() {
+        // `io` is not a type. A bare `io` in type position resolves to the
+        // namespace and lowers to nothing, exactly as before.
+        let ty = first_fn_param_ty(
+            "module x\nimport std/io\nfn f(x: io) -> number {\n  io.println(\"a\")\n  return 1\n}\n",
+        );
+        assert_eq!(ty, Ty::Unknown);
     }
 }

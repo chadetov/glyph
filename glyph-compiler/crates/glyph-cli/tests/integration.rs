@@ -13838,3 +13838,28 @@ fn g226_a_local_record_bound_to_a_local_alias_of_an_imported_union_is_e0204() {
         "the two aliases of one declaration must stay silent:\n{stderr}"
     );
 }
+
+#[test]
+fn g225_a_namespace_import_of_std_string_does_not_hide_a_string_mismatch() {
+    // `import std/string` binds `string`; the annotation resolved to the
+    // binding and lowered to nothing, so `let x: string = 5` was clean, where
+    // the named form `import std/string { trim }` made the same line E0204.
+    let root = unique_tmp("g225");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import std/string\n\
+         fn main() {\n\
+         \x20 let x: string = 5\n\
+         \x20 let y: string = string.trim(\"a\")\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0204]") && stderr.contains("expected `string`, found `number`"),
+        "stderr:\n{stderr}"
+    );
+    assert_eq!(stderr.matches("[E0204]").count(), 1, "stderr:\n{stderr}");
+}

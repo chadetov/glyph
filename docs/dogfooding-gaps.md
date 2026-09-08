@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-226 entries, 195 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-12 are open. G144, the D28 boundary cast that never reached the returns a
+226 entries, 196 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+11 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8941,7 +8941,7 @@ and is the owner's to confirm.
   first is the alias spelling of G215 and closes with it; the second was a
   program the checker rejected and `tsc` accepted.*
 
-- **G225. A namespace import of `std/string` shadows the prelude type
+- **G225. [FIXED] A namespace import of `std/string` shadows the prelude type
   `string`, and `let x: string = 5` goes silent.** With `import std/string`
   the resolver binds the type name `string` to the import, the lowerer answers
   `Unknown` for the annotation, and the mismatch draws nothing; with the named
@@ -8956,6 +8956,27 @@ and is the owner's to confirm.
   do the same at the annotation.
 
   *Reproduced against 0.1.118: the program with `import std/string` is `no diagnostics`, exit 0; with `import std/string { trim }` and `trim(...)` it is `[E0204] type mismatch: expected string, found number`, exit 1.*
+
+  *Fixed in 0.1.120. The lowerer's `Path` arm reads a bare name bound to a
+  namespace, an alias or a default import as the prelude type it spells,
+  through the same `prelude_ty` the un-imported spelling goes through, which
+  is the rule the neighbouring arm already applied to `import std/result {
+  Result }` and the one the emitter's `prelude_kind_of_name` applies; a
+  binding that spells no prelude name (`io` in type position) stays
+  `Unknown`. The `Array` half is verified and was never a gap: `import
+  std/array` binds `array`, not `Array`, so `Array<int>` resolved to the
+  prelude all along (`let xs: Array<int> = ["a"]` is `E0204` under 0.1.119
+  and here alike); `let xs: Array<int> = 5` is silent under both, which is
+  G216's `App` against `Prim` cell and not this entry. Three lowerer unit
+  tests, `tests/negative/namespace_import_shadows_prelude_string.glyph` and
+  a `glyph-cli` integration test hold it. Two-binary: the published 0.1.119
+  exits 0 on the ledger program, this build exits 1 with `E0204 expected
+  string, found number`. Breaking in the checking direction. The 86 corpus
+  programs that use `import std/string` and every app as its own root stay
+  green, and the docs compile unchanged. One edge left where it is: the
+  resolver still counts the annotation as a use of the import, so a module
+  whose only `string` is an annotation draws no `E0106` for the namespace
+  import.*
 
 - **G226. [FIXED] Canonicalizing an alias to its imported declaration lost a diagnostic
   the previous release had.** 0.1.120 change 1 made `resolve_alias_chain`

@@ -116,11 +116,11 @@ use glyph_ast::{
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant, is_variant_shaped,
 };
-use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolKind};
+use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 use glyph_typechecker::ty::SymbolRef;
 use glyph_typechecker::{
-    alias_target, direct_type_decl, resolve_alias_chain, split_type_app, DeclTyResolver,
-    ImportedTypeDecl, Lowerer, Primitive, Ty, TypeMap,
+    alias_target, direct_type_decl, prelude_app, resolve_alias_chain, split_type_app,
+    DeclTyResolver, ImportedTypeDecl, Lowerer, Primitive, Ty, TypeMap,
 };
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap};
@@ -764,6 +764,51 @@ pub fn emit_module_mapped(
         ts: e.out,
         source_map: e.source_map,
     })
+}
+
+/// What a type expression stands for, as far as a runtime check is decided:
+/// the prelude's own types, which the emitter checks by their runtime shape,
+/// and everything else, which is checked by name (a descriptor), by structure
+/// (an inline record, a function), or not at all.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TypeShape {
+    /// The prelude's `unknown`: every value satisfies it.
+    UnknownTop,
+    /// The prelude's `int`: a whole `number` (D31).
+    Int,
+    /// A primitive checked by `typeof`, carrying the JS `typeof` string.
+    Typeof(&'static str),
+    /// The prelude's `Array<T>`.
+    Array,
+    /// The prelude's `Nullable<T>` (D45).
+    Nullable,
+    /// The prelude's `Option<T>`.
+    Option,
+    /// The prelude's `Record<K, V>`.
+    Record,
+    /// Anything else: a declared or imported name, a type parameter, a user
+    /// application (a user's own `Option<T>` included), a function type, an
+    /// inline record, a literal union.
+    Other,
+}
+
+/// Where a `TypeExpr` handed to a runtime-check builder was written, which
+/// decides what its shape is read from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Origin {
+    /// This module. Its names resolve in `self.resolved`, so the shape is the
+    /// checker's: the resolution of a bare name, and of an application's
+    /// base. A user's `type Option<T>` resolves to the module and is
+    /// `Other`, so it receives its own descriptor's check and not the
+    /// prelude's (G213).
+    Local,
+    /// A sibling module's exported body, out of `descriptorless_aliases`. Its
+    /// spans index the sibling's file, so this module's resolutions must not
+    /// be consulted for it, and its shape is read from the spelling, as every
+    /// leaf was before. The export-lowered `Ty` cannot stand in: it maps
+    /// `int` and `bigint` to `number`, and the integer check would be lost.
+    /// A sibling that shadows a prelude name is the edge this leaves.
+    Sibling,
 }
 
 struct Emitter<'a> {
@@ -1702,7 +1747,10 @@ impl<'a> Emitter<'a> {
     /// reaches another module's descriptor by the same binding the emitted type
     /// annotation uses.
     fn field_descriptor_name(&self, ty: &TypeExpr) -> Option<String> {
-        if is_named_type(ty, "int") || js_typeof(ty).is_some() {
+        if matches!(
+            self.type_shape(ty, Origin::Local),
+            TypeShape::Int | TypeShape::Typeof(_)
+        ) {
             return None;
         }
         match ty {
@@ -2687,10 +2735,9 @@ impl<'a> Emitter<'a> {
     /// run time instead of guessed here.
     fn iter_shape(&self, iter: &Expr) -> IterShape {
         let ty = self.types.get(iter.span());
-        if matches!(&ty, Ty::App { base, .. }
-            if matches!(base.as_ref(), Ty::Named { path, .. }
-                if path.last().map(|n| n.as_ref()) == Some("Array")))
-        {
+        // The prelude's `Array`, by the checker's guard: the base has to carry
+        // the prelude's own symbol, so a user's `Array<T>` is a record here.
+        if prelude_app(self.prelude, ty, "Array").is_some() {
             return IterShape::Array;
         }
         match &ty {
@@ -4088,9 +4135,12 @@ impl<'a> Emitter<'a> {
     /// None for a type the emitter cannot check yet (a union, a generic, an
     /// imported or non-record named type).
     fn is_check(&self, ty: &TypeExpr, m: &str) -> Option<String> {
+        // The pattern's type is written in this module, so its shape is the
+        // checker's reading of it, not its spelling (G213).
+        let shape = self.type_shape(ty, Origin::Local);
         match ty {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
-                if let Some(jt) = js_typeof(ty) {
+                if let TypeShape::Typeof(jt) = shape {
                     Some(format!("typeof {m} === \"{jt}\""))
                 } else if self.has_descriptor(segments[0].as_ref()) {
                     Some(format!("{}.is({m})", segments[0]))
@@ -4099,14 +4149,14 @@ impl<'a> Emitter<'a> {
                 }
             }
             TypeExpr::Generic { base, args, .. } => match base.as_ref() {
-                TypeExpr::Path { segments, .. } => match segments.last().map(|s| s.as_ref()) {
+                TypeExpr::Path { segments, .. } => match (shape, segments.last().map(|s| s.as_ref())) {
                     // A Glyph record is a plain object, not an array; exclude
                     // arrays so an `is Array<...>` arm after `is Record<...>`
                     // isn't dead. Emit the check as a type-predicate IIFE so it
                     // narrows the scrutinee to the record type (indexable), not
                     // just to `{}` — a bare `typeof x === "object"` would leave
                     // `x[key]` an implicit-any index error.
-                    Some("Record") => {
+                    (TypeShape::Record, _) => {
                         let rec = self.ty(ty).ok()?;
                         Some(format!(
                             "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{}.isArray(__x))({m})",
@@ -4116,7 +4166,7 @@ impl<'a> Emitter<'a> {
                     // Element-check the array so `is Array<E>` is as sound as the
                     // descriptor's `Array<E>` check; fall back to a shallow
                     // `Array.isArray` when the element type has no checkable form.
-                    Some("Array") => match args.as_slice() {
+                    (TypeShape::Array, _) => match args.as_slice() {
                         [elem] => match self.is_check(elem, "__e") {
                             Some(ec) => Some(format!(
                                 "{}.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {ec})",
@@ -4132,8 +4182,9 @@ impl<'a> Emitter<'a> {
                     // from another project module; `generic_descriptor_arity`
                     // resolves both (local-first, then the arity registry), so a
                     // cross-module `is` narrows the same way `parse` does rather
-                    // than hard-erroring.
-                    Some(gname) if self.generic_descriptor_arity(gname) > 0 => {
+                    // than hard-erroring. A user's own `Record<K, V>` or
+                    // `Array<T>` lands here, since its shape is `Other`.
+                    (_, Some(gname)) if self.generic_descriptor_arity(gname) > 0 => {
                         let mut targ_strs = Vec::with_capacity(args.len());
                         for a in args {
                             targ_strs.push(self.ty(a).ok()?);
@@ -4475,11 +4526,109 @@ impl<'a> Emitter<'a> {
 
     /// The deep predicate for `ty`, or `None` for the two cases that have none.
     /// Used by the recursive arms, where an `unknown` element and an
-    /// unverifiable one are equally unusable as a sub-check.
-    fn field_value_check_opt(&self, ty: &TypeExpr, access: &str) -> Option<String> {
-        match self.field_check(ty, access) {
+    /// unverifiable one are equally unusable as a sub-check. `origin` is the
+    /// enclosing type's, so a sibling's `Array<int>` element is read where
+    /// the array was.
+    fn field_value_check_opt(&self, ty: &TypeExpr, access: &str, origin: Origin) -> Option<String> {
+        match self.field_check_in(ty, access, origin) {
             FieldCheck::Deep(c) => Some(c),
             _ => None,
+        }
+    }
+
+    /// The prelude kind a bare type name written in this module resolved to,
+    /// or `None` for a name that is a user's type: a `type` or variant this
+    /// module declares, a project sibling's exported type, or a type
+    /// parameter. This is the checker's own reading of the name: a user's
+    /// `type Option<T> = ...` resolves to the module's declaration and
+    /// answers `None` here, where the spelling would have said `Option`.
+    ///
+    /// Two resolutions read as the prelude type the name spells. A span the
+    /// resolver recorded nothing for (a name it could not resolve, which is
+    /// already a diagnostic) keeps the reading the program had. And a name
+    /// bound to a namespace, an alias or a stdlib import is not a type at
+    /// all: the resolver has one symbol table, so `import std/string` binds
+    /// `string` and the type `string` resolves to that binding, which the
+    /// lowerer answers `Unknown` for. That leaves every `string` annotation
+    /// in such a module unchecked by the checker (it is a finding of this
+    /// change, not a fix of it), and reading the resolution as a user type
+    /// here would turn every such field into E0304 across the corpus. The
+    /// type is the prelude's, which is what the lowerer itself says for a
+    /// prelude container reached through `import std/result { Result }`.
+    fn prelude_kind_of_name(&self, te: &TypeExpr) -> Option<PreludeKind> {
+        let TypeExpr::Path { segments, span } = te else {
+            return None;
+        };
+        let [name] = segments.as_slice() else {
+            return None;
+        };
+        let id = match self.resolved.resolutions.get(*span) {
+            Some(ResolvedRef::Prelude(id)) => id,
+            Some(ResolvedRef::Local(_)) => return None,
+            Some(ResolvedRef::Module(id)) => {
+                let sym = self.resolved.symbols.table.get(id)?;
+                match &sym.kind {
+                    SymbolKind::Type { .. } | SymbolKind::Variant { .. } => return None,
+                    SymbolKind::ImportNamed { path, .. }
+                        if path.segments.first().map(|s| s.as_ref()) != Some("std") =>
+                    {
+                        return None
+                    }
+                    _ => self.prelude.lookup(name.as_ref())?,
+                }
+            }
+            None => self.prelude.lookup(name.as_ref())?,
+        };
+        match self.prelude.table.get(id)?.kind {
+            SymbolKind::Prelude { kind } => Some(kind),
+            _ => None,
+        }
+    }
+
+    /// The prelude kind under `name` in the prelude table, by spelling alone:
+    /// the reading a sibling's body gets, and the fallback for a local name
+    /// the resolver recorded nothing for.
+    fn prelude_kind_by_spelling(&self, name: &str) -> Option<PreludeKind> {
+        let id = self.prelude.lookup(name)?;
+        match self.prelude.table.get(id)?.kind {
+            SymbolKind::Prelude { kind } => Some(kind),
+            _ => None,
+        }
+    }
+
+    /// The shape of `te` for a runtime check. A local type is read through
+    /// the resolver and the prelude, so the decision is the checker's and a
+    /// user declaration named like a prelude type is `Other`; a sibling's
+    /// body is read from its spelling (see [`Origin`]).
+    fn type_shape(&self, te: &TypeExpr, origin: Origin) -> TypeShape {
+        let kind = match (origin, te) {
+            (Origin::Local, TypeExpr::Path { .. }) => self.prelude_kind_of_name(te),
+            (Origin::Local, TypeExpr::Generic { base, .. }) => self.prelude_kind_of_name(base),
+            (Origin::Sibling, TypeExpr::Path { segments, .. }) => match segments.as_slice() {
+                [name] => self.prelude_kind_by_spelling(name.as_ref()),
+                _ => None,
+            },
+            (Origin::Sibling, TypeExpr::Generic { base, .. }) => match base.as_ref() {
+                TypeExpr::Path { segments, .. } => segments
+                    .last()
+                    .and_then(|n| self.prelude_kind_by_spelling(n.as_ref())),
+                _ => None,
+            },
+            _ => None,
+        };
+        match (te, kind) {
+            (TypeExpr::Path { .. }, Some(PreludeKind::UnknownTop)) => TypeShape::UnknownTop,
+            (TypeExpr::Path { .. }, Some(PreludeKind::Int)) => TypeShape::Int,
+            (TypeExpr::Path { .. }, Some(PreludeKind::String)) => TypeShape::Typeof("string"),
+            (TypeExpr::Path { .. }, Some(PreludeKind::Number)) => TypeShape::Typeof("number"),
+            (TypeExpr::Path { .. }, Some(PreludeKind::BigInt)) => TypeShape::Typeof("bigint"),
+            (TypeExpr::Path { .. }, Some(PreludeKind::Bool)) => TypeShape::Typeof("boolean"),
+            (TypeExpr::Path { .. }, Some(PreludeKind::Void)) => TypeShape::Typeof("undefined"),
+            (TypeExpr::Generic { .. }, Some(PreludeKind::Array)) => TypeShape::Array,
+            (TypeExpr::Generic { .. }, Some(PreludeKind::Nullable)) => TypeShape::Nullable,
+            (TypeExpr::Generic { .. }, Some(PreludeKind::Option)) => TypeShape::Option,
+            (TypeExpr::Generic { .. }, Some(PreludeKind::Record)) => TypeShape::Record,
+            _ => TypeShape::Other,
         }
     }
 
@@ -4500,20 +4649,31 @@ impl<'a> Emitter<'a> {
     /// predicate is deliberate: an error that disagreed with the emitted check
     /// would either refuse a checkable type or let a lie through.
     fn field_check(&self, ty: &TypeExpr, access: &str) -> FieldCheck {
+        self.field_check_in(ty, access, Origin::Local)
+    }
+
+    /// `field_check` with the type's origin made explicit. The shape of `ty`
+    /// is decided by `type_shape` from the checker's reading of a local type
+    /// (G213: a user's `type Option<T> = { label: T }` is `Other` and gets
+    /// its own descriptor's check, where the spelling gave it the prelude's
+    /// `{ tag: "None" } | { tag: "Some", value }` shape and accepted a value
+    /// with no `label`), and from the spelling of a sibling's body.
+    fn field_check_in(&self, ty: &TypeExpr, access: &str, origin: Origin) -> FieldCheck {
+        let shape = self.type_shape(ty, origin);
         // `unknown` is satisfied by every value, so a required field of it is
         // fully checked by being there. Emitting a type branch as well would be
         // a branch that can never fire, which is what this whole change is about.
-        if is_named_type(ty, "unknown") {
+        if shape == TypeShape::UnknownTop {
             return FieldCheck::PresenceOnly;
         }
         // `int` is a whole `number`: the leaf check that `number` cannot express.
-        if is_named_type(ty, "int") {
+        if shape == TypeShape::Int {
             return FieldCheck::Deep(format!(
                 "(typeof {access} === \"number\" && {}.isInteger({access}))",
                 self.g("Number")
             ));
         }
-        if let Some(jt) = js_typeof(ty) {
+        if let TypeShape::Typeof(jt) = shape {
             return FieldCheck::Deep(format!("typeof {access} === \"{jt}\""));
         }
         match ty {
@@ -4531,15 +4691,17 @@ impl<'a> Emitter<'a> {
                     // `type Count = int`): resolve to its leaf so a field typed by
                     // the alias gets the same runtime check as the inline type
                     // (membership, isInteger, …), not a bare presence check.
-                    self.field_check(&leaf, access)
+                    // The leaf is this module's, so it keeps the caller's origin.
+                    self.field_check_in(&leaf, access, origin)
                 } else if let Some(leaf) = self
                     .import_module_path(name)
                     .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
                 {
                     // The same alias, imported from a sibling module. Without
                     // this the D30 membership check survives at home and
-                    // evaporates across the import.
-                    self.field_check(&leaf, access)
+                    // evaporates across the import. The leaf is the sibling's
+                    // body, read by its spelling.
+                    self.field_check_in(&leaf, access, Origin::Sibling)
                 } else {
                     FieldCheck::Unverifiable
                 }
@@ -4559,7 +4721,7 @@ impl<'a> Emitter<'a> {
                 {
                     // `import catalog` then a field typed `catalog.ColType`:
                     // the same descriptorless alias reached through a namespace.
-                    self.field_check(&leaf, access)
+                    self.field_check_in(&leaf, access, Origin::Sibling)
                 } else {
                     FieldCheck::Unverifiable
                 }
@@ -4569,9 +4731,14 @@ impl<'a> Emitter<'a> {
                     TypeExpr::Path { segments, .. } => segments.last().map(|s| s.as_ref()),
                     _ => None,
                 };
-                match (base_name, args.as_slice()) {
-                    (Some("Array"), [elem]) => {
-                        let Some(elem_check) = self.field_value_check_opt(elem, "__e") else {
+                // The prelude containers are matched by shape, which for a
+                // local type is the resolution's answer and never the
+                // spelling's; a user's own `Option<T>` is `Other` and falls
+                // to its descriptor below. The base name is read only for
+                // rendering that descriptor call.
+                match (shape, base_name, args.as_slice()) {
+                    (TypeShape::Array, _, [elem]) => {
+                        let Some(elem_check) = self.field_value_check_opt(elem, "__e", origin) else {
                             return FieldCheck::Unverifiable;
                         };
                         FieldCheck::Deep(format!(
@@ -4586,19 +4753,19 @@ impl<'a> Emitter<'a> {
                     // already admits null, and stays the presence floor; any
                     // other unverifiable `T` stays unverifiable (E0304), because
                     // `=== null || true` would be a check that never checks.
-                    (Some("Nullable"), [inner]) => {
-                        if is_named_type(inner, "unknown") {
+                    (TypeShape::Nullable, _, [inner]) => {
+                        if self.type_shape(inner, origin) == TypeShape::UnknownTop {
                             return FieldCheck::PresenceOnly;
                         }
-                        let Some(inner_check) = self.field_value_check_opt(inner, access) else {
+                        let Some(inner_check) = self.field_value_check_opt(inner, access, origin) else {
                             return FieldCheck::Unverifiable;
                         };
                         FieldCheck::Deep(format!("({access} === null || {inner_check})"))
                     }
-                    (Some("Option"), [inner]) => {
+                    (TypeShape::Option, _, [inner]) => {
                         let tag = format!("(({access}) as {{ tag?: unknown }}).tag");
                         let value = format!("(({access}) as {{ value?: unknown }}).value");
-                        let Some(inner_check) = self.field_value_check_opt(inner, &value) else {
+                        let Some(inner_check) = self.field_value_check_opt(inner, &value, origin) else {
                             return FieldCheck::Unverifiable;
                         };
                         FieldCheck::Deep(format!(
@@ -4609,8 +4776,8 @@ impl<'a> Emitter<'a> {
                     // (a string, an array, null) and recurse the value type over
                     // every entry, so a `Record<string, number>` field can never
                     // bind to a string or an object whose values are not numbers.
-                    (Some("Record"), [_key, value]) => {
-                        let Some(value_check) = self.field_value_check_opt(value, "__v") else {
+                    (TypeShape::Record, _, [_key, value]) => {
+                        let Some(value_check) = self.field_value_check_opt(value, "__v", origin) else {
                             return FieldCheck::Unverifiable;
                         };
                         FieldCheck::Deep(format!(
@@ -4626,7 +4793,7 @@ impl<'a> Emitter<'a> {
                     // imported; `generic_descriptor_arity` resolves both, so a
                     // nested cross-module argument (`Box.parse<Box<User>>`)
                     // validates deeply instead of falling to the presence floor.
-                    (Some(gname), _) if self.generic_descriptor_arity(gname) > 0 => {
+                    (_, Some(gname), _) if self.generic_descriptor_arity(gname) > 0 => {
                         let checkers = args
                             .iter()
                             .map(|a| self.checker_lambda(a))
@@ -4653,7 +4820,7 @@ impl<'a> Emitter<'a> {
                 ];
                 for f in fields {
                     let sub = format!("({access} as Record<string, unknown>).{}", f.name);
-                    let Some(c) = self.field_value_check_opt(&f.ty, &sub) else {
+                    let Some(c) = self.field_value_check_opt(&f.ty, &sub, origin) else {
                         return FieldCheck::Unverifiable;
                     };
                     if f.optional {
@@ -5865,13 +6032,13 @@ impl<'a> Emitter<'a> {
                     .join(".");
                 // Glyph `bool` is TS `boolean`; `int` is TS `number` (TypeScript
                 // has no integer type; the integer check is in the descriptor);
-                // the rest map by name.
-                if joined == "bool" {
-                    "boolean".to_string()
-                } else if joined == "int" {
-                    "number".to_string()
-                } else {
-                    joined
+                // the rest map by name. Which `bool` and `int` are is the
+                // resolver's answer, so a module's own `type int = ...`
+                // renders under its own name.
+                match self.prelude_kind_of_name(te) {
+                    Some(PreludeKind::Bool) => "boolean".to_string(),
+                    Some(PreludeKind::Int) => "number".to_string(),
+                    _ => joined,
                 }
             }
             TypeExpr::Generic { base, args, .. } => {
@@ -5882,8 +6049,9 @@ impl<'a> Emitter<'a> {
                 // `Nullable<T>` (D45) is TypeScript's own `T | null`, written
                 // inline; nothing is imported for it. A function type is
                 // parenthesized so the `| null` applies to the function rather
-                // than to its return type.
-                if is_named_type(base, "Nullable") {
+                // than to its return type. The prelude's `Nullable`, by
+                // resolution: a user's own `Nullable<T>` renders as written.
+                if self.prelude_kind_of_name(base) == Some(PreludeKind::Nullable) {
                     if let ([inner], [rendered]) = (args.as_slice(), a.as_slice()) {
                         let rendered = if matches!(inner, TypeExpr::Fn { .. }) {
                             format!("({rendered})")
@@ -6049,25 +6217,6 @@ fn apply_generics(name: &str, generics: &[GenericParam], used: &[bool]) -> Strin
         .collect::<Vec<_>>()
         .join(", ");
     format!("{name}<{args}>")
-}
-
-/// The JS `typeof` string for a Glyph primitive type, or None for any
-/// non-primitive (which the descriptor checks by presence instead).
-fn js_typeof(te: &TypeExpr) -> Option<&'static str> {
-    let TypeExpr::Path { segments, .. } = te else {
-        return None;
-    };
-    match segments.as_slice() {
-        [seg] => match seg.as_ref() {
-            "string" => Some("string"),
-            "number" => Some("number"),
-            "bigint" => Some("bigint"),
-            "bool" => Some("boolean"),
-            "void" => Some("undefined"),
-            _ => None,
-        },
-        _ => None,
-    }
 }
 
 /// Render a literal pattern as a TS `case` label.
@@ -8805,6 +8954,24 @@ mod tests {
         assert!(ts.contains("case \"alpha\":"), "{ts}");
         assert!(ts.contains("case \"beta\":"), "{ts}");
         assert!(!ts.contains("const alpha ="), "{ts}");
+    }
+
+    #[test]
+    fn a_user_type_named_option_gets_its_own_check_not_the_preludes() {
+        // G213. `type Option<T> = { label: T }` shadows the prelude's name and
+        // nothing else: the resolver binds `pick`'s `Option` to the module's
+        // declaration, and the field check has to follow that binding. Read
+        // by spelling, the field got the prelude's `{ tag: "None" } | { tag:
+        // "Some", value }` shape and `Poll.parse` accepted `{ tag: "None" }`
+        // for a field that requires a `label`.
+        let ts = emit(
+            "module x\ntype Option<T> = { label: T }\ntype Poll = { pick: Option<string> }\nfn main() {}\n",
+        );
+        assert!(
+            ts.contains("Option.is((value as Record<string, unknown>).pick, (__cv: unknown) => typeof __cv === \"string\")"),
+            "the user's descriptor checks the field:\n{ts}"
+        );
+        assert!(!ts.contains("=== \"None\""), "no prelude Option shape for a user type:\n{ts}");
     }
 
     #[test]

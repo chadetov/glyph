@@ -4222,18 +4222,11 @@ impl Assigner<'_> {
     }
 
     /// If `ty` is an application of the named prelude container type, return
-    /// its type arguments. The single collision-guarded prelude-app detector:
-    /// prelude and module symbol tables both number ids from 0, so an id match
-    /// alone could collide with an unrelated module symbol — require BOTH the
-    /// lexical name on the base path AND the prelude id. Shared by
-    /// `is_prelude_array` and `prelude_union`.
+    /// its type arguments. The free function `prelude_app` is the one
+    /// collision-guarded detector; this is its method form over the
+    /// Assigner's prelude, shared by `is_prelude_array` and `prelude_union`.
     fn prelude_app<'a>(&self, ty: &'a Ty, name: &str) -> Option<&'a [Ty]> {
-        let Ty::App { base, args } = ty else { return None };
-        let Ty::Named { symbol, path } = base.as_ref() else { return None };
-        if path.last().map(|n| n.as_ref()) != Some(name) {
-            return None;
-        }
-        (self.lowerer.prelude.lookup(name) == Some(SymbolId(symbol.0))).then_some(args.as_slice())
+        prelude_app(self.lowerer.prelude, ty, name)
     }
 
     /// True if `ty` is an application of the prelude `Array` type
@@ -6094,6 +6087,24 @@ fn unknown_params(n: usize) -> Vec<FnParam> {
 /// one turned a compile-time error into a runtime throw for the generic
 /// spelling of a program the non-generic spelling rejected. A caller that asks
 /// this instead of matching `Ty::App` itself cannot regress that way.
+/// If `ty` is an application of the prelude container type called `name`
+/// (`Array`, `Option`, `Nullable`, `Record`, `Result`), return its type
+/// arguments. The single collision-guarded prelude-app detector: prelude and
+/// module symbol tables both number ids from 0, so an id match alone could
+/// collide with an unrelated module symbol, and a name match alone would let
+/// a user's own `type Option<T>` answer for the prelude's (G213). Both are
+/// required: the lexical name on the base path AND the prelude id. Public so
+/// the emitter decides a runtime check from the same guard the checker
+/// decides a type from.
+pub fn prelude_app<'a>(prelude: &Prelude, ty: &'a Ty, name: &str) -> Option<&'a [Ty]> {
+    let Ty::App { base, args } = ty else { return None };
+    let Ty::Named { symbol, path } = base.as_ref() else { return None };
+    if path.last().map(|n| n.as_ref()) != Some(name) {
+        return None;
+    }
+    (prelude.lookup(name) == Some(SymbolId(symbol.0))).then_some(args.as_slice())
+}
+
 pub fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
     match ty {
         Ty::App { base, args } => (base.as_ref(), args.as_slice()),

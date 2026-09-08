@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-224 entries, 192 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-13 are open. G144, the D28 boundary cast that never reached the returns a
+224 entries, 193 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+12 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8571,7 +8571,7 @@ and is the owner's to confirm.
   tree with the hop removed reports `E0205`, this build exits 0. Breaking in
   the accepting direction only, so not marked breaking.
 
-- **G213. A user type named `Option<T>` gets the prelude `Option`'s runtime
+- **G213. [FIXED] A user type named `Option<T>` gets the prelude `Option`'s runtime
   check.** `type Option<T> = { label: T }` and `type Poll = { pick: Option<string> }`:
   `Poll.parse` on `{"pick":{"tag":"None"}}` returns `Ok`, accepting a value with
   no `label` as a `Poll`. The build is green and `tsc --strict` is clean. The
@@ -8587,6 +8587,39 @@ and is the owner's to confirm.
   which is the 0.1.120 change this entry is an instance of.
 
   *Reproduced against 0.1.117: the program above prints `accepted a None as a Poll`, exit 0, under `npx -y @glyphlang/glyph@0.1.117 run`.*
+
+  *Fixed in 0.1.120, change 2 of the lane. `field_check`, `is_check`,
+  `iter_shape` and `ty()`'s primitive mapping decide `unknown`, `int`, the
+  `typeof` primitives, `Array`, `Nullable`, `Option` and `Record` from the
+  checker's reading of the name rather than its spelling: for a type written
+  in this module, the resolver's answer for the name (a `Type` declaration
+  of this module or a sibling's is a user type; the prelude's symbol is the
+  prelude's) through one `type_shape`, and the checker's `prelude_app`
+  guard where only a `Ty` is in hand (`iter_shape`). A user's `Option<T>`
+  is `Other` and receives its own generic descriptor's check,
+  `Option.is(pick, (__cv) => typeof __cv === "string")`, so `Poll.parse`
+  on `{"pick":{"tag":"None"}}` is `Err`. Pinned by an emitter unit test on
+  the descriptor and by an integration test that runs the program under
+  node. Two-binary: `npx -y @glyphlang/glyph@0.1.118 run` prints `accepted a
+  None as a Poll`, this build prints `rejected` and accepts `{ label:
+  "yes" }`. Not breaking at compile time (nothing that built goes red); a
+  run-time acceptance changes, in the rejecting direction, for exactly the
+  programs that declare a type under a prelude container's name. The
+  corpus and every app emit byte for byte what they emitted before.*
+
+  *Two edges stay, named here so they are not rediscovered. A sibling's
+  exported body (`descriptorless_aliases`) is still read by spelling, under
+  an explicit `Origin::Sibling`, because its spans index the sibling's file
+  and the export-lowered `Ty` maps `int` and `bigint` to `number`, so the
+  integer check cannot be recovered from it; a sibling that shadows a
+  prelude container is therefore still read as the prelude's. And the fix
+  surfaced a checker hole it does not close: with the namespace form
+  `import std/string`, the resolver's single symbol table binds the type
+  name `string` to the import, the lowerer answers `Unknown`, and
+  `let x: string = 5` is silent under 0.1.118 and under this build (the
+  named form `import std/string { trim }` keeps `string`). The emitter reads
+  such a binding as the prelude type it spells, which is what kept the
+  corpus's emission unchanged; the checker's side is its own entry.*
 
 - **G214. [HALF FIXED] The emitter re-derives 49 semantic facts the resolver and checker
   already compute, through six families of duplicated rules.** An audit of
@@ -8615,8 +8648,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.117: `grep -c "fn alias_chain_terminal\|fn resolve_alias_leaf\|fn resolve_imported_alias_leaf\|fn refused_refinement_base\|fn emit_alias_values"` on the emitter is 5, `pub(crate) fn resolve_alias_chain` in the checker is 1, and `ProjectTables::from_modules` is called at `build.rs:537` above the per-module resolve loop.*
 
-  *Change 1 of the 0.1.120 lane landed; changes 2 and 3 are owed.
-  `EmitContext` carries `decls: &dyn DeclTyResolver`, and `glyph build` hands
+  *Changes 1 and 2 of the 0.1.120 lane landed; change 3, the arm
+  classification, is owed. Change 1: `EmitContext` carries `decls: &dyn
+  DeclTyResolver`, and `glyph build` hands
   the emitter the `SalsaDeclTy` the checker ran the module with (the struct
   became `pub` with a constructor; no new salsa query). The playground and
   the emitter's harnesses pass `NoDecls`, whose every cross-module answer is
@@ -8641,15 +8675,48 @@ and is the owner's to confirm.
   fallback read `glyph_resolver::path_key`. Net 55 lines out of the emitter
   with the test resolver added; 330 in, 385 out.*
 
+  *Change 2, in three commits. The checker's `direct_type_decl`,
+  `alias_target`, `resolve_alias_chain`, `split_type_app` and `prelude_app`
+  are public, and the emitter holds a `Lowerer` built the way the checker
+  builds its own. Gone from the emitter: `alias_chain_terminal` and
+  `resolve_alias_leaf` (two of the five walkers), `union_variant_names_of_decl`
+  and `union_variant_names_of_path`, the six hand copies of
+  `direct_type_decl` (`union_variant_names`, `variant_payload_is_record`,
+  `user_variant_payload`, `union_variant_names_of_decl`,
+  `named_alias_is_narrowable`, `local_alias_is_primitive` read the public
+  one), the six open-coded `Ty::App` unwraps (`split_type_app`), and
+  `js_typeof`. `emit_alias_values` and `refused_refinement_base` keep their
+  names and read the checker's chain through `chain_end_decl`, a two-line
+  adapter beside `local_type_named`; `alias_leaf` answers the body an alias
+  stands for one hop at a time so `field_check`'s recursion carries a chain
+  across an import. Every `field_check`, `is_check`, `iter_shape` and `ty()`
+  decision about a prelude type is made from the resolution or the lowered
+  `Ty` (G213). The variant dispatch follows the chain the coverage check
+  follows, so a match over an alias dispatches on the union's variants
+  (G224's emitter half: a lowercase variant under an alias was a binding).
+  The reproduction grep above answers 3, and the three are
+  `resolve_imported_alias_leaf`, `emit_alias_values` and
+  `refused_refinement_base`. The emitter is 266 lines out and 161 in for the
+  chain, then 64 out and 231 in for the shape decision (the `TypeShape` and
+  `Origin` enums, `type_shape` and `prelude_kind_of_name` carry their own
+  documentation); the walks are gone and the file is 62 lines longer than
+  before the two, 10,815 against 10,753, most of it doc comment. Evidence
+  per commit: the corpus and every app emitted before and after each, 684
+  `.ts` files across 32 roots, `diff -r` empty three times.*
+
   *Kept, and why: `plain_descriptors` and `descriptorless_aliases` stay
-  because descriptor-ness is an emission fact the trait has no query for,
-  and `resolve_imported_alias_leaf` stays on the second of them because its
-  consumer, `field_check`, still decides from a `TypeExpr` and the trait
-  answers in `Ty`; that walker goes when change 2 moves `field_check` onto
-  `Ty`. `project_modules` and `imported_module_paths` are the reachability
-  facts the resolver has no reverse index for. The five alias walkers, the
-  six `direct_type_decl` copies and the four `is_variant_shaped` rules are
-  untouched; those are changes 2 and 3. Two edges the trait path inherits
+  because descriptor-ness is an emission fact the trait has no query for.
+  `resolve_imported_alias_leaf` stays, walking the sibling's exported bodies
+  as `TypeExpr` under an explicit `Origin::Sibling`, because the
+  export-lowered `Ty` maps `int` and `bigint` to `number` and the integer
+  check cannot be recovered from it; the two `symbols.by_name` reads that
+  find an import's module (`import_module_path`, `namespace_module_path`)
+  stay with it. `named_alias_is_narrowable` and `local_alias_is_primitive`
+  read one level on purpose: they compensate for the narrowing TypeScript
+  keeps on the annotated name, a fact about emission. `project_modules` and
+  `imported_module_paths` are the reachability facts the resolver has no
+  reverse index for. The four `is_variant_shaped` rules are untouched; that
+  is change 3. Two edges the trait path inherits
   from the checker rather than from the old scan: a sibling that fails to
   resolve answers nothing (the old tables read its AST anyway), which only
   changes a build that was already red, and a scrutinee typed by an imported
@@ -8834,7 +8901,9 @@ and is the owner's to confirm.
   `alias_of_imported_union_not_exhaustive`) and three checker unit tests pin
   it. Two-binary: under 0.1.118 the three-match program reports two `E0200`s
   and the single-file alias program exits 0 with no diagnostics; under this
-  build, three and one. Breaking in the checking direction.*
+  build, three and one. Breaking in the checking direction. No emitted
+  TypeScript changes: the corpus and every app emitted before and after,
+  684 `.ts` files across 32 roots, `diff -r` empty.*
 
   *One consequence, established by the same two binaries on a second
   program. Canonicalizing an alias of an import to `Ty::Imported` puts it

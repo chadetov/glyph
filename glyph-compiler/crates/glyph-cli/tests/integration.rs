@@ -6532,6 +6532,46 @@ fn g147_shapes_dispatch_across_a_module_boundary_at_run_time() {
 }
 
 #[test]
+fn g213_a_user_type_named_option_is_validated_by_its_own_descriptor() {
+    // G213 under node. `type Option<T> = { label: T }` is the program's own
+    // record, and `Poll.parse` on `{ pick: { tag: "None" } }` has to reject
+    // it: the value has no `label`. Under 0.1.118 the emitter decided the
+    // field's runtime check from the spelling `Option` and gave it the
+    // prelude's `{ tag: "None" } | { tag: "Some", value }` shape, so the
+    // parse returned `Ok` for a value that is not a `Poll`.
+    let root = unique_tmp("g213-user-option");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io { println }\n\
+         type Option<T> = { label: T }\n\
+         type Poll = { pick: Option<string> }\n\
+         fn main() {\n\
+         \x20 let raw: unknown = { pick: { tag: \"None\", }, }\n\
+         \x20 match Poll.parse(raw) {\n\
+         \x20\x20\x20 Ok(p) => println(\"accepted a None as a Poll\"),\n\
+         \x20\x20\x20 Err(e) => println(\"rejected\"),\n\
+         \x20 }\n\
+         \x20 let good: unknown = { pick: { label: \"yes\", }, }\n\
+         \x20 match Poll.parse(good) {\n\
+         \x20\x20\x20 Ok(p) => println(\"accepted:\" + p.pick.label),\n\
+         \x20\x20\x20 Err(e) => println(\"rejected a Poll\"),\n\
+         \x20 }\n\
+         }\n",
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        vec!["rejected", "accepted:yes"],
+        "the user's Option is checked by its own descriptor: {stdout}"
+    );
+}
+
+#[test]
 fn non_exhaustive_imported_union_match_is_caught() {
     // The imported-union type-resolution pass: a match on an imported union that
     // omits a variant is now E0200, resolved cross-module by the union's real

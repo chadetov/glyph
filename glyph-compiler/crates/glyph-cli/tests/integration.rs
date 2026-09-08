@@ -13750,3 +13750,91 @@ fn spawn_run(file: &Path) -> (i32, String, String) {
         spawn_glyph(&[std::ffi::OsStr::new("run"), file.as_os_str()]);
     (code, stdout, stderr)
 }
+
+// ---------------------------------------------------------------------------
+// G215, G226, G225: an imported declaration is decided like a local one, and
+// a namespace import does not switch the checker off for a prelude name.
+// ---------------------------------------------------------------------------
+
+/// `glyph check <root> --no-tsc` over a project directory: the exit code and
+/// the diagnostic lines. These are the surfaces an agent reads (`check
+/// --no-tsc`, the language server, the MCP server), so a program that is red
+/// only once `tsc` reads the emitted TypeScript is green to them.
+fn check_no_tsc(root: &Path) -> (i32, String) {
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        root.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    (code, stderr)
+}
+
+#[test]
+fn g215_an_imported_union_passed_where_a_string_is_declared_is_e0211() {
+    // The ledger's program: `shout(st)` with `st: Status` imported and
+    // `fn shout(s: string)`. Exit 0 with no error under 0.1.119; the same
+    // program with `Status` declared in the calling module was E0211 since
+    // G201.
+    let root = unique_tmp("g215");
+    write_file(
+        &root,
+        "lib.glyph",
+        "module lib\npub type Status =\n  | Pending\n  | Done\n",
+    );
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import lib { Status, Pending }\n\
+         fn shout(s: string) -> string {\n  return s\n}\n\
+         fn main() {\n  let st: Status = Pending\n  shout(st)\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0211]") && stderr.contains("expected `string`, found `Status`"),
+        "stderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn g226_a_local_record_bound_to_a_local_alias_of_an_imported_union_is_e0204() {
+    // The ledger's program. `let l: Local = o` was E0204 under 0.1.118, went
+    // silent when `Local` started canonicalizing to the imported `Shape`, and
+    // is E0204 again by the identity of the two declarations. The other two
+    // bindings are one declaration under three names and stay silent, where
+    // 0.1.118 called `let b: Local2 = a` a mismatch by spelling.
+    let root = unique_tmp("g226");
+    write_file(
+        &root,
+        "lib.glyph",
+        "module lib\npub type Shape =\n  | Circle\n  | Square\n",
+    );
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import lib { Shape, Circle }\n\
+         type Local = Shape\n\
+         type Local2 = Shape\n\
+         type Other = { x: int }\n\
+         fn main() {\n\
+         \x20 let o: Other = { x: 1, }\n\
+         \x20 let l: Local = o\n\
+         \x20 let s: Shape = Circle\n\
+         \x20 let a: Local = s\n\
+         \x20 let b: Local2 = a\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0204]") && stderr.contains("expected `Local`, found `Other`"),
+        "stderr:\n{stderr}"
+    );
+    assert_eq!(
+        stderr.matches("[E0204]").count(),
+        1,
+        "the two aliases of one declaration must stay silent:\n{stderr}"
+    );
+}

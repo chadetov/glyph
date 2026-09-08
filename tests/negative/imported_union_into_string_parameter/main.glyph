@@ -1,0 +1,15 @@
+module main
+import lib { Status, Pending }
+
+// A union declared in a sibling is decided the way a local one is (G215): a
+// value of it is never a `string`, whichever module holds the declaration, so
+// passing one where a `string` is declared is E0211 here exactly as it is
+// when `Status` is declared in this file.
+fn shout(s: string) -> string {
+  return s
+}
+
+pub fn main() -> string {
+  let st: Status = Pending
+  return shout(st)
+}

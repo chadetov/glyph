@@ -1,0 +1,15 @@
+module main
+import lib { Shape }
+
+// `Local` is a second name for the sibling's `Shape` (D46), and `Other` is a
+// declaration of this module. Two different declarations are two types, so
+// binding an `Other` to a `Local` is E0204 (G226), the diagnostic 0.1.118
+// reported and the alias canonicalization briefly lost.
+type Local = Shape
+type Other = { x: int }
+
+pub fn main() -> Local {
+  let o: Other = { x: 1, }
+  let l: Local = o
+  return l
+}

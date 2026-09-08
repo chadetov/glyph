@@ -28,7 +28,7 @@ use crate::ty::{
     ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField,
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
-use crate::type_map::TypeMap;
+use crate::type_map::{IdentPattern, TypeMap};
 use crate::{DiagnosticUnion, TypeError};
 
 /// How the innermost enclosing callable's declared return type relates to
@@ -5586,7 +5586,7 @@ impl Assigner<'_> {
     ///
     /// Deferred: nested constructor payloads and array payloads.
     fn bind_arm_payloads(&mut self, scrutinee_ty: &Ty, pattern: &Pattern) {
-        self.record_pattern_tys(scrutinee_ty, pattern);
+        self.record_pattern_tys(Some(scrutinee_ty), pattern);
         let Pattern::Constructor { path, args, .. } = pattern else {
             return;
         };
@@ -5643,9 +5643,10 @@ impl Assigner<'_> {
     }
 
     /// Record, for every node of `pattern`, the type of the value that node is
-    /// matched against, keyed by the node's own span.
+    /// matched against, keyed by the node's own span, and for every bare
+    /// identifier node what it is: a variant reference or a binding.
     ///
-    /// The emitter reads these back. A variant declared with a record payload
+    /// The emitter reads both back. A variant declared with a record payload
     /// has that payload spread flat into the tag object while every other
     /// payload sits under `value`, so a pattern reached *through* a payload has
     /// to know which, and the type is the only thing that answers it. The
@@ -5654,49 +5655,114 @@ impl Assigner<'_> {
     /// an emitter-local answer would be a second, weaker copy of a question
     /// already answered once.
     ///
-    /// A node whose type cannot be resolved is simply not recorded, and the
-    /// emitter falls back to what it can decide from the variant name alone.
-    fn record_pattern_tys(&mut self, ty: &Ty, pattern: &Pattern) {
-        self.tm.insert(pattern.span(), ty.clone());
+    /// A node whose type cannot be resolved is not recorded, and the emitter
+    /// falls back to what it can decide from the variant name alone. The walk
+    /// does not stop there, because the classification is recorded for every
+    /// identifier node whether or not its type resolved: with no variant set
+    /// to consult, `is_variant_reference` answers from the name's shape, which
+    /// is the answer every coverage pass in this file gives for the same node
+    /// (`Scrutinee::Union` over an empty set). The emitter then lowers an arm
+    /// exactly as the checker counted it, and holds no rule of its own (G214).
+    ///
+    /// Three positions, three rules, each the one the checks above apply at
+    /// that position:
+    /// - an arm head, and a constructor's payload sub-pattern, are classified
+    ///   against the variant set of the value there (`required_variants`), the
+    ///   list `check_arm_reachability` and `check_patterns_exhaustive` read;
+    /// - an object field's sub-pattern is a binding when `bound_name` says the
+    ///   field binds it, which is how the resolver bound it and how
+    ///   `is_refutable` counts it; a field it does not bind is walked as a
+    ///   pattern in its own right;
+    /// - an array element or rest is classified by shape alone, because that is
+    ///   what `is_refutable` reads for array exhaustiveness and what the
+    ///   emitter's chain choice reads for the same element.
+    ///
+    /// One pass reads a list this walk does not: `check_imported_union_coverage`
+    /// over a scrutinee whose type never resolved classifies the heads against
+    /// the imported union it recovered from the arms, while the reachability
+    /// pass and this walk see no variants there and read shape. Only a
+    /// lowercase imported variant over an untyped scrutinee can tell, and it
+    /// is recorded here the way the reachability pass counted it.
+    fn record_pattern_tys(&mut self, ty: Option<&Ty>, pattern: &Pattern) {
+        if let Some(ty) = ty {
+            self.tm.insert(pattern.span(), ty.clone());
+        }
         match pattern {
-            Pattern::Constructor { path, args, .. } => {
-                let Some(variant) = path.last() else { return };
-                let Some(payload_ty) = self.variant_payload(ty, variant) else {
-                    return;
+            Pattern::Ident { name, span } => {
+                let variants: Vec<Ident> = ty
+                    .and_then(|t| self.required_variants(t))
+                    .map(|(_, vs)| vs)
+                    .unwrap_or_default();
+                let kind = if is_variant_reference(name, Scrutinee::Union(&variants)) {
+                    IdentPattern::VariantReference
+                } else {
+                    IdentPattern::Binding
                 };
-                if let [sub] = args.as_slice() {
-                    self.record_pattern_tys(&payload_ty, sub);
+                self.tm.record_ident_pattern(*span, kind);
+            }
+            Pattern::Constructor { path, args, .. } => {
+                let payload_ty = path
+                    .last()
+                    .and_then(|variant| ty.and_then(|t| self.variant_payload(t, variant)));
+                for sub in args {
+                    self.record_pattern_tys(payload_ty.as_ref(), sub);
                 }
             }
             Pattern::Object { fields, .. } => {
-                let Ty::Record { fields: rec_fields } = ty else {
-                    return;
+                let rec_fields = match ty {
+                    Some(Ty::Record { fields }) => fields.clone(),
+                    _ => Vec::new(),
                 };
-                let rec_fields = rec_fields.clone();
                 for pf in fields {
                     let Some(sub) = &pf.pattern else { continue };
-                    let Some(rf) = rec_fields.iter().find(|rf| rf.name == pf.key) else {
+                    let field_ty = rec_fields.iter().find(|rf| rf.name == pf.key).map(|rf| &rf.ty);
+                    if pf.bound_name().is_some() {
+                        // `{ key: alias }`: the field binds `alias`, whatever
+                        // the field's type declares.
+                        if let Some(field_ty) = field_ty {
+                            self.tm.insert(sub.span(), field_ty.clone());
+                        }
+                        self.tm.record_ident_pattern(sub.span(), IdentPattern::Binding);
                         continue;
-                    };
-                    self.record_pattern_tys(&rf.ty, sub);
+                    }
+                    self.record_pattern_tys(field_ty, sub);
                 }
             }
             Pattern::Array { elements, rest, .. } => {
-                let Some(elem) = self.prelude_app(ty, "Array").and_then(|a| a.first()).cloned()
-                else {
-                    return;
-                };
+                let elem = ty.and_then(|t| self.prelude_app(t, "Array").and_then(|a| a.first()).cloned());
                 for el in elements {
-                    self.record_pattern_tys(&elem, el);
+                    self.record_array_slot(elem.as_ref(), el);
                 }
                 // A rest binding holds the tail, which is another array of the
                 // same element type.
                 if let Some(r) = rest.as_deref() {
-                    self.record_pattern_tys(ty, r);
+                    self.record_array_slot(ty, r);
                 }
             }
-            _ => {}
+            Pattern::Wildcard { .. }
+            | Pattern::Else { .. }
+            | Pattern::Literal { .. }
+            | Pattern::IsType { .. } => {}
         }
+    }
+
+    /// One array element or rest slot of `record_pattern_tys`: a bare
+    /// identifier there is classified by shape, the reading `is_refutable`
+    /// gives it for array exhaustiveness; anything else is walked as a pattern.
+    fn record_array_slot(&mut self, ty: Option<&Ty>, p: &Pattern) {
+        let Pattern::Ident { name, span } = p else {
+            self.record_pattern_tys(ty, p);
+            return;
+        };
+        if let Some(ty) = ty {
+            self.tm.insert(*span, ty.clone());
+        }
+        let kind = if is_constructor_shaped(name) {
+            IdentPattern::VariantReference
+        } else {
+            IdentPattern::Binding
+        };
+        self.tm.record_ident_pattern(*span, kind);
     }
 
     /// The lowered payload type of `variant_name` in the tagged union `ty`

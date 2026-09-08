@@ -46,7 +46,7 @@ pub use ty::{
     FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty,
     UnionVariant,
 };
-pub use type_map::TypeMap;
+pub use type_map::{IdentPattern, TypeMap};
 
 use glyph_ast::Span;
 

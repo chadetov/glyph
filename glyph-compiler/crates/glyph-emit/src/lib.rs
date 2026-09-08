@@ -114,16 +114,16 @@ use glyph_ast::{
     ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, FnTypeParam, GenericParam, Ident,
     ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm, MatchArmBody,
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
-    TemplatePart, TypeExpr, UnaryOp, UnionVariant, is_variant_shaped,
+    TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 use glyph_typechecker::ty::SymbolRef;
 use glyph_typechecker::{
     alias_target, direct_type_decl, prelude_app, resolve_alias_chain, split_type_app,
-    DeclTyResolver, ImportedTypeDecl, Lowerer, Primitive, Ty, TypeMap,
+    DeclTyResolver, IdentPattern, ImportedTypeDecl, Lowerer, Primitive, Ty, TypeMap,
 };
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -756,6 +756,7 @@ pub fn emit_module_mapped(
         lowerer,
         types,
         synth_types: Rc::new(RefCell::new(HashMap::new())),
+        synth_bindings: Rc::new(RefCell::new(HashSet::new())),
         source_map: Vec::new(),
         ctx,
     };
@@ -891,6 +892,16 @@ struct Emitter<'a> {
     /// whole object) or a single value (bind `.value`). Shared with
     /// sub-emitters so a value-position inner match still sees it.
     synth_types: Rc<RefCell<HashMap<String, Ty>>>,
+    /// The `(name, span)` of every pattern node this emitter invented: the
+    /// `__pN` binding `degroup_nested_arms` writes as a grouping arm's payload
+    /// argument. The checker never walked these, so its classification table
+    /// has no entry for them, and none is needed: the emitter made each one
+    /// as a binding, and that is the emitter's own fact to answer when the
+    /// nested-constructor gate re-runs over the rewritten arms. Keyed by name
+    /// and span together: the node carries its arm's whole span, which no
+    /// pattern the author wrote can have. Shared with sub-emitters as
+    /// `synth_types` is.
+    synth_bindings: Rc<RefCell<HashSet<(String, Span)>>>,
     /// A coarse source map for remapping `tsc` errors back to Glyph source:
     /// `(byte offset into `out`, originating Glyph span)` checkpoints, recorded
     /// as each declaration and top-level statement begins. Offsets are strictly
@@ -970,6 +981,7 @@ impl<'a> Emitter<'a> {
             lowerer: Lowerer::with_imports(self.resolved, self.prelude, self.ctx.decls),
             types: self.types,
             synth_types: Rc::clone(&self.synth_types),
+            synth_bindings: Rc::clone(&self.synth_bindings),
             // A sub-emitter's output is spliced into the parent as a string, so
             // its byte offsets don't map to the final file; give it a throwaway
             // map. Its statements map to the enclosing top-level statement.
@@ -2917,81 +2929,6 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// The variant names of the union carried as `outer`'s payload in
-    /// `scrutinee_ty`. Two spellings of "payload", and both have to answer:
-    /// the prelude one, where the payload is a type argument (`Result<T, E>`:
-    /// `Err` -> `E`), and a user union's, where the payload type is written in
-    /// the variant's own declaration (`Full(Color)`) and never becomes a `Ty`
-    /// here at all.
-    ///
-    /// Across a module boundary the declaration is read through the checker's
-    /// resolver instead: an *imported* outer union's variant payload is the
-    /// type its exported declaration names, followed to that type's own
-    /// declaration the way the checker's `imported_variant_payload_union`
-    /// follows it, and a *local* outer union's imported payload is followed
-    /// through its import symbol to the same query. Both land in
-    /// `imported_union_variant_names`, so the same declaration decides for
-    /// every spelling of the boundary (G147).
-    ///
-    /// `None` means the payload union is not readable from this module (the
-    /// scrutinee's type did not resolve, the payload is not a union, or the
-    /// project holds no declaration under that name), which is exactly when
-    /// the name's shape has to answer instead.
-    fn nested_payload_variants(&self, scrutinee_ty: &Ty, outer: &str) -> Option<Vec<String>> {
-        if let Some(pty) = self.outer_variant_payload_ty(scrutinee_ty, outer) {
-            return self.union_variant_names(&pty);
-        }
-        // The same chain the outer dispatch took: an alias of an imported
-        // union reaches the sibling's declaration here too, so the payload
-        // under it is read where the outer variant list was read.
-        let base = resolve_alias_chain(
-            self.module,
-            self.resolved,
-            &self.lowerer,
-            split_type_app(scrutinee_ty).0,
-        );
-        if let Ty::Imported { module, name } = &base {
-            // The payload was lowered on the declaring side, so whatever type
-            // it names is a `Ty::Imported` anchored on the module that declares
-            // it, whether that is the outer union's own module or a third one;
-            // a generic application (`B(Tree<K>)`) unwraps to its base.
-            let payload = self.imported_variant_payload(module.as_str(), name, outer)?;
-            let Ty::Imported {
-                module: payload_module,
-                name: payload_name,
-            } = split_type_app(&payload).0
-            else {
-                return None;
-            };
-            return self.imported_union_variant_names(payload_module.as_str(), payload_name);
-        }
-        // A local union's payload is written in its declaration as a
-        // `TypeExpr`. Lowering it through the checker's `Lowerer` gives the
-        // `Ty` the checker gave it, and the one variant-list resolution above
-        // answers for every spelling of it: a local declaration, a named
-        // import, a namespace import, a generic application over any of them.
-        let payload = self.user_variant_payload(scrutinee_ty, outer)?;
-        self.union_variant_names(&self.lowerer.lower(payload))
-    }
-
-    /// The declared payload type expression of `variant` in the user union
-    /// `ty`, when `ty` names a union declared in this module. The declaration is
-    /// where a user union keeps its payload types; `outer_variant_payload_ty`
-    /// only ever finds the prelude's, which are type arguments.
-    fn user_variant_payload(&self, ty: &Ty, variant: &str) -> Option<&TypeExpr> {
-        let base = split_type_app(ty).0;
-        let end = resolve_alias_chain(self.module, self.resolved, &self.lowerer, base);
-        let td = direct_type_decl(self.module, self.resolved, &end)?;
-        let TypeExpr::Union { variants, .. } = &td.body else {
-            return None;
-        };
-        variants
-            .iter()
-            .find(|v| v.name.as_ref() == variant)?
-            .payload
-            .as_ref()
-    }
-
     /// The type of a `match` scrutinee, consulting `synth_types` for synthesized
     /// temporaries the `TypeMap` doesn't know about, then the `TypeMap`.
     fn scrutinee_ty(&self, expr: &Expr) -> Ty {
@@ -3165,18 +3102,17 @@ impl<'a> Emitter<'a> {
     /// variant pattern, so the arm needs an inner dispatch on the payload's tag.
     ///
     /// The gate (`emit_match_dispatch`) and the rewrite (`degroup_nested_arms`)
-    /// both ask through here with the same scrutinee type, so they cannot part:
-    /// an arg the gate accepts and the rewrite declines would be rewritten to
-    /// itself and re-enter the gate forever.
-    fn arm_has_nested_constructor(&self, arm: &MatchArm, scrutinee_ty: &Ty) -> bool {
-        let Pattern::Constructor { path, args, .. } = &arm.pattern else {
-            return false;
+    /// both ask through here, so they cannot part: an arg the gate accepts and
+    /// the rewrite declines would be rewritten to itself and re-enter the gate
+    /// forever.
+    fn arm_has_nested_constructor(&self, arm: &MatchArm) -> Result<bool, EmitError> {
+        let Pattern::Constructor { args, .. } = &arm.pattern else {
+            return Ok(false);
         };
         let [arg] = args.as_slice() else {
-            return false;
+            return Ok(false);
         };
-        let outer = path.last().map(|s| s.as_ref()).unwrap_or("");
-        self.is_nested_variant_arg(arg, scrutinee_ty, outer)
+        self.is_nested_variant_arg(arg)
     }
 
     /// Whether a constructor pattern's single argument is itself a variant
@@ -3184,38 +3120,59 @@ impl<'a> Emitter<'a> {
     /// degrouped into an inner value-match), or a bare no-payload variant
     /// (`Ok(None)`, `Err(Empty)`, `Err(blank)`), which parses as a
     /// `Pattern::Ident` rather than a `Pattern::Constructor`.
-    fn is_nested_variant_arg(&self, p: &Pattern, scrutinee_ty: &Ty, outer: &str) -> bool {
+    ///
+    /// The bare form is the checker's call. It classified this node against
+    /// the payload union's own variant set when it checked the match
+    /// (`record_pattern_tys`), which is how `Err(blank)` is a variant
+    /// reference over a union that declares `blank` and a payload binding
+    /// anywhere else; where the emitter read the name's shape instead, the
+    /// two arms lowered to duplicate `case "Err":` labels and the first
+    /// silently swallowed every error (G147, G214).
+    fn is_nested_variant_arg(&self, p: &Pattern) -> Result<bool, EmitError> {
         match p {
-            Pattern::Constructor { .. } | Pattern::Literal { .. } => true,
-            Pattern::Ident { name, .. } => {
-                self.is_nested_variant_name(name, scrutinee_ty, outer)
-            }
-            _ => false,
+            Pattern::Constructor { .. } | Pattern::Literal { .. } => Ok(true),
+            Pattern::Ident { name, span } => self.ident_pattern_is_variant(name, *span),
+            _ => Ok(false),
         }
     }
 
-    /// Whether a bare ident in payload position names a variant of the payload
-    /// union rather than binding the payload.
+    /// What the checker decided a bare identifier in pattern position is: a
+    /// variant reference (the arm tests the tag and binds nothing) or a
+    /// binding (the arm matches every value and binds it). The answer is the
+    /// one `is_variant_reference` gave when the checker walked the arm, read
+    /// back by the node's span; the emitter holds no rule of its own, so a
+    /// name's capitalization and a variant list of the emitter's reading can
+    /// no longer make an arm mean something the checker did not count (G214).
     ///
-    /// The payload union's own variant list decides first, and the name's shape
-    /// answers only when that list is unknown. This is
-    /// `assign.rs::check_patterns_exhaustive`'s rule, and it is mirrored here
-    /// exactly on purpose: where the checker reads `Err(blank)` as a variant
-    /// reference and the emitter read it as a binding, the two arms lowered to
-    /// duplicate `case "Err":` labels and the first silently swallowed every
-    /// error. Shape alone cannot close that, because Glyph accepts a lowercase
-    /// variant name; `nested_payload_variants` closes the other half by
-    /// consulting the project-wide `union_variant_names` registry for a
-    /// payload union that reaches the emitter as `Ty::Imported`, so a
-    /// lowercase variant of an imported union is found by name rather than
-    /// falling through to the shape check (G147).
-    fn is_nested_variant_name(&self, name: &Ident, scrutinee_ty: &Ty, outer: &str) -> bool {
-        self.nested_payload_variants(scrutinee_ty, outer)
-            .is_some_and(|vs| vs.iter().any(|v| v.as_str() == name.as_ref()))
-            || is_variant_shaped(name)
+    /// A node the checker never classified is refused, not guessed at. Every
+    /// arm pattern of a checked module is walked, so this is reached only by a
+    /// match the checker never saw, and a lowering decided from the spelling
+    /// there would be exactly the second answer this exists to remove. The
+    /// one node with no checker entry that is answered is the one the emitter
+    /// itself invented (`synth_bindings`), a binding by construction.
+    fn ident_pattern_is_variant(&self, name: &Ident, span: Span) -> Result<bool, EmitError> {
+        if self
+            .synth_bindings
+            .borrow()
+            .contains(&(name.to_string(), span))
+        {
+            return Ok(false);
+        }
+        match self.types.ident_pattern(span) {
+            Some(IdentPattern::VariantReference) => Ok(true),
+            Some(IdentPattern::Binding) => Ok(false),
+            None => Err(EmitError::Unsupported {
+                construct: "a match arm pattern the checker did not classify",
+                span,
+            }),
+        }
     }
 
-    fn degroup_nested_arms(&mut self, scrutinee: &Expr, arms: &[MatchArm]) -> Vec<MatchArm> {
+    fn degroup_nested_arms(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+    ) -> Result<Vec<MatchArm>, EmitError> {
         // Owned so no borrow of `self.types` is held across the `&mut self`
         // `fresh_temp` call below. Uses `scrutinee_ty` so a deeper-nested match
         // (whose scrutinee is itself a synthesized temp) resolves too.
@@ -3252,9 +3209,7 @@ impl<'a> Emitter<'a> {
             // that shadows the value dispatch.
             let inner: Pattern = match arg {
                 Pattern::Constructor { .. } | Pattern::Literal { .. } => arg.clone(),
-                Pattern::Ident { name, span }
-                    if self.is_nested_variant_name(name, &scrutinee_ty, outer) =>
-                {
+                Pattern::Ident { name, span } if self.ident_pattern_is_variant(name, *span)? => {
                     // Rewrite the binding-shaped ident into an explicit nullary
                     // constructor so the inner switch dispatches on its tag
                     // rather than binding (and swallowing) the whole payload.
@@ -3284,6 +3239,20 @@ impl<'a> Emitter<'a> {
                 }
             } else {
                 let p = self.fresh_temp("__p");
+                // The one pattern node this rewrite invents is the `__pN`
+                // binding below. The checker never saw it, so it is entered
+                // in `synth_bindings` as what it is, a binding, for the
+                // nested-constructor gate that re-runs over these arms; the
+                // `switch` itself binds it unconditionally as the
+                // constructor's single payload argument. Every node the
+                // inner `match` dispatches on is an original sub-pattern of
+                // one of these arms, carried over with its own span (the
+                // rewritten nullary form above is a `Constructor`, which no
+                // site classifies), so each question the inner dispatch asks
+                // lands on a span the checker walked as a payload sub-pattern
+                // of the same arm and answered against the same payload
+                // union. That is what makes reading the checker's table sound
+                // at a match the checker never saw as such.
                 // Record the grouping temp's type (the outer variant's payload)
                 // so the synthesized inner `match` on it binds a record payload
                 // as the whole object rather than a non-existent `.value`.
@@ -3291,6 +3260,9 @@ impl<'a> Emitter<'a> {
                     self.synth_types.borrow_mut().insert(p.clone(), pty);
                 }
                 let bind = Arc::from(p.as_str());
+                self.synth_bindings
+                    .borrow_mut()
+                    .insert((p.clone(), arm.span));
                 let new_arm = MatchArm {
                     pattern: Pattern::Constructor {
                         path: path.clone(),
@@ -3314,7 +3286,68 @@ impl<'a> Emitter<'a> {
                 out.push(new_arm);
             }
         }
-        out
+        Ok(out)
+    }
+
+    /// Whether the pattern reaches into an object-pattern field with anything
+    /// other than a plain binding: a variant tag (`{ color: Black }`), a nested
+    /// constructor (`{ left: Node({ value: v }) }`), a nested destructure
+    /// (`{ pos: { x, y } }`), a literal or an array pattern. A `switch` case
+    /// cannot express any of them (the tests live below the discriminant and
+    /// can fail after the case is entered), so one such arm routes the whole
+    /// match through `emit_pattern_chain`.
+    fn has_structured_field(&self, p: &Pattern) -> Result<bool, EmitError> {
+        match p {
+            Pattern::Object { fields, .. } => {
+                for f in fields {
+                    let structured = match &f.pattern {
+                        None => false,
+                        // A wildcard field tests nothing and binds nothing, so
+                        // it does not need the chain. Counting it here
+                        // de-optimized a whole match from `switch` to if-chain
+                        // for `{ text: _ }`, which was the entire emitted delta
+                        // across all 19 apps.
+                        Some(Pattern::Wildcard { .. }) => false,
+                        Some(sub) => f.bound_name().is_none() || self.has_structured_field(sub)?,
+                    };
+                    if structured {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
+            }
+            Pattern::Constructor { args, .. } => {
+                for arg in args {
+                    if self.has_structured_field(arg)? {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
+            }
+            Pattern::Array { elements, rest, .. } => {
+                for el in elements {
+                    // A bare element the checker classified as a variant
+                    // reference (`[Black]`) is a nullary-variant tag test, not
+                    // a binding, the same reading an object field's
+                    // `{ color: Black }` gets via `bound_name`. Without this
+                    // arm the element looked untested and the whole match fell
+                    // through to `emit_array_chain`, whose own condition/bind
+                    // helpers bind every `Pattern::Ident` element (G138).
+                    let structured = match el {
+                        Pattern::Ident { name, span } => self.ident_pattern_is_variant(name, *span)?,
+                        other => self.has_structured_field(other)?,
+                    };
+                    if structured {
+                        return Ok(true);
+                    }
+                }
+                match rest.as_deref() {
+                    Some(r) => self.has_structured_field(r),
+                    None => Ok(false),
+                }
+            }
+            _ => Ok(false),
+        }
     }
 
     /// `emit_match_dispatch`, optionally wrapped in a plain block so the arm
@@ -3364,8 +3397,10 @@ impl<'a> Emitter<'a> {
         // later one has to run when the earlier one's field test fails, which a
         // `case` that has already been entered cannot do. Lower the whole match
         // to an exclusive if-chain instead.
-        if arms.iter().any(|a| has_structured_field(&a.pattern)) {
-            return self.emit_pattern_chain(scrutinee, arms, term);
+        for arm in arms {
+            if self.has_structured_field(&arm.pattern)? {
+                return self.emit_pattern_chain(scrutinee, arms, term);
+            }
         }
 
         // An array pattern arm makes this an array match, lowered to a length-
@@ -3380,29 +3415,26 @@ impl<'a> Emitter<'a> {
         // nested arms into one arm whose payload is dispatched by an inner
         // `match`, then re-emit: the inner match lowers through the tail-match
         // path, and deeper nesting recurses through this same rewrite.
-        let scrutinee_ty = self.scrutinee_ty(scrutinee);
-        if arms
-            .iter()
-            .any(|a| self.arm_has_nested_constructor(a, &scrutinee_ty))
-        {
-            let rewritten = self.degroup_nested_arms(scrutinee, arms);
-            return self.emit_match_dispatch(scrutinee, &rewritten, term);
+        for arm in arms {
+            if self.arm_has_nested_constructor(arm)? {
+                let rewritten = self.degroup_nested_arms(scrutinee, arms)?;
+                return self.emit_match_dispatch(scrutinee, &rewritten, term);
+            }
         }
 
-        // Variant names of the scrutinee's union, when its type is known.
-        let variants = self.union_variant_names(&scrutinee_ty);
-        let is_variant = |name: &Ident| {
-            is_prelude_variant(name)
-                // A PascalCase bare ident is a variant reference (the resolver's
-                // rule), so an *imported* union's nullary variant lowers to a
-                // `case "V":` on `.tag` rather than being misread as a binding
-                // catch-all. Its type is `Unknown` here, so the variant set below
-                // is empty; the switch on `.tag` works regardless of provenance.
-                || is_variant_shaped(name)
-                || variants
-                    .as_ref()
-                    .is_some_and(|vs| vs.iter().any(|v| v.as_str() == name.as_ref()))
-        };
+        // The checker's classification of every bare-identifier head, in arm
+        // order (`false` for every other head shape): a variant reference
+        // lowers to a `case` on the tag, a binding to a `default` that binds
+        // the scrutinee. Read from the checker's table rather than decided
+        // here, so the arm the checker counted as covering `blank` is the arm
+        // that runs for it (G214).
+        let mut head_is_variant: Vec<bool> = Vec::with_capacity(arms.len());
+        for arm in arms {
+            head_is_variant.push(match &arm.pattern {
+                Pattern::Ident { name, span } => self.ident_pattern_is_variant(name, *span)?,
+                _ => false,
+            });
+        }
 
         for arm in arms {
             match &arm.pattern {
@@ -3455,18 +3487,18 @@ impl<'a> Emitter<'a> {
         // A bare identifier that is not a variant is a binding catch-all,
         // equivalent to `_`/`else` but binding the scrutinee to its name. It
         // counts as a catch-all in the guards below.
-        let is_catch_all = |a: &MatchArm| match &a.pattern {
+        let is_catch_all = |i: usize| match &arms[i].pattern {
             Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
-            Pattern::Ident { name, .. } => !is_variant(name),
+            Pattern::Ident { .. } => !head_is_variant[i],
             _ => false,
         };
 
         // Two catch-all arms would emit two `default:` clauses (invalid TS).
         // The typechecker does not yet reject the redundant arm, so guard here.
-        if let Some(extra) = arms.iter().filter(|a| is_catch_all(a)).nth(1) {
+        if let Some(extra) = (0..arms.len()).filter(|&i| is_catch_all(i)).nth(1) {
             return Err(EmitError::Unsupported {
                 construct: "a match with more than one catch-all arm",
-                span: extra.span,
+                span: arms[extra].span,
             });
         }
 
@@ -3474,11 +3506,10 @@ impl<'a> Emitter<'a> {
         // switch over. Evaluate the scrutinee for any effect (parenthesized so
         // an object-literal scrutinee isn't parsed as a block), then run the
         // lone catch-all arm.
-        let has_variant_arm = arms.iter().any(|a| match &a.pattern {
-            Pattern::Constructor { .. } => true,
-            Pattern::Ident { name, .. } => is_variant(name),
-            _ => false,
-        });
+        let has_variant_arm = arms
+            .iter()
+            .enumerate()
+            .any(|(i, a)| matches!(a.pattern, Pattern::Constructor { .. }) || head_is_variant[i]);
         // A literal arm switches on the scrutinee value directly; a variant arm
         // switches on its `tag`. The two should never mix (a primitive has no
         // tag, a union no literal values) — but the typechecker does not yet
@@ -3536,7 +3567,7 @@ impl<'a> Emitter<'a> {
         // whose later label can never run, which JavaScript and `tsc --strict`
         // both accept in silence; see `EmitError::DuplicateMatchCase`.
         let mut case_labels: Vec<String> = Vec::new();
-        for arm in arms {
+        for (i, arm) in arms.iter().enumerate() {
             match &arm.pattern {
                 Pattern::Constructor { path, args, .. } => {
                     let variant = path.last().expect("constructor path is non-empty");
@@ -3550,12 +3581,12 @@ impl<'a> Emitter<'a> {
                     self.indent -= 1;
                     self.line("}");
                 }
-                // A bare identifier is a no-payload variant when the scrutinee
-                // type confirms it (a `case "Name":` with no payload binding),
-                // otherwise a binding catch-all: a `default:` that binds the
-                // scrutinee to the name so the arm body can read it.
+                // A bare identifier is a no-payload variant when the checker
+                // classified it as one (a `case "Name":` with no payload
+                // binding), otherwise a binding catch-all: a `default:` that
+                // binds the scrutinee to the name so the arm body can read it.
                 Pattern::Ident { name, .. } => {
-                    if is_variant(name) {
+                    if head_is_variant[i] {
                         check_case_label(&mut case_labels, name, arm.span)?;
                         self.line(&format!("case \"{name}\": {{"));
                         self.indent += 1;
@@ -3598,7 +3629,7 @@ impl<'a> Emitter<'a> {
         // typechecker has proven exhaustiveness, so the throw is unreachable;
         // for a value match without an `else` it is the runtime fallback for an
         // unlisted value (value-match exhaustiveness is not yet checked).
-        let has_catch_all = arms.iter().any(is_catch_all);
+        let has_catch_all = (0..arms.len()).any(is_catch_all);
         if !has_catch_all {
             let err = self.g("Error");
             self.line(&format!("default: throw new {err}(\"non-exhaustive match\");"));
@@ -3874,11 +3905,13 @@ impl<'a> Emitter<'a> {
         let mut first = true;
         let mut else_arm: Option<&MatchArm> = None;
         for arm in arms {
-            // A catch-all closes the chain: `_`, `else`, or a bare lowercase
-            // binding. Anything else contributes at least one test.
+            // A catch-all closes the chain: `_`, `else`, or a bare identifier
+            // the checker classified as a binding. Anything else contributes
+            // at least one test, a variant-reference head included: it tests
+            // the tag, whatever its spelling.
             let is_catch_all = match &arm.pattern {
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
-                Pattern::Ident { name, .. } => !is_variant_shaped(name),
+                Pattern::Ident { name, span } => !self.ident_pattern_is_variant(name, *span)?,
                 _ => false,
             };
             if is_catch_all {
@@ -3955,10 +3988,11 @@ impl<'a> Emitter<'a> {
     ) -> Result<(), EmitError> {
         match pat {
             Pattern::Wildcard { .. } | Pattern::Else { .. } => Ok(()),
-            Pattern::Ident { name, .. } => {
-                // A PascalCase name in pattern position is a nullary variant
-                // reference (D9); a lowercase one binds and tests nothing.
-                if is_variant_shaped(name) {
+            Pattern::Ident { name, span: at } => {
+                // A nullary variant reference tests the tag; a binding tests
+                // nothing. Which one this is was decided when the checker
+                // walked the arm against the value's own variant set.
+                if self.ident_pattern_is_variant(name, *at)? {
                     out.push(format!("{access}.{TAG} === \"{name}\""));
                 }
                 Ok(())
@@ -4089,7 +4123,8 @@ impl<'a> Emitter<'a> {
         span: Span,
     ) -> Result<(), EmitError> {
         match pat {
-            Pattern::Ident { name, .. } if !is_variant_shaped(name) => {
+            // A variant-reference head binds nothing and falls through.
+            Pattern::Ident { name, span: at } if !self.ident_pattern_is_variant(name, *at)? => {
                 self.line(&format!("const {name} = {access};"));
             }
             Pattern::Constructor { path, args, .. } => {
@@ -6453,42 +6488,6 @@ enum PayloadShape {
     Unknown,
 }
 
-/// Whether the pattern reaches into an object-pattern field with anything other
-/// than a plain binding: a variant tag (`{ color: Black }`), a nested
-/// constructor (`{ left: Node({ value: v }) }`), a nested destructure
-/// (`{ pos: { x, y } }`), a literal or an array pattern. A `switch` case cannot
-/// express any of them — the tests live below the discriminant and can fail
-/// after the case is entered — so one such arm routes the whole match through
-/// `emit_pattern_chain`.
-fn has_structured_field(p: &Pattern) -> bool {
-    match p {
-        Pattern::Object { fields, .. } => fields.iter().any(|f| match &f.pattern {
-            None => false,
-            // A wildcard field tests nothing and binds nothing, so it does not
-            // need the chain. Counting it here de-optimized a whole match from
-            // `switch` to if-chain for `{ text: _ }`, which was the entire
-            // emitted delta across all 19 apps.
-            Some(Pattern::Wildcard { .. }) => false,
-            Some(sub) => f.bound_name().is_none() || has_structured_field(sub),
-        }),
-        Pattern::Constructor { args, .. } => args.iter().any(has_structured_field),
-        Pattern::Array { elements, rest, .. } => {
-            elements.iter().any(|el| match el {
-                // A PascalCase array element (`[Black]`) is a nullary-variant
-                // tag test, not a binding (D9), the same reading an object
-                // field's `{ color: Black }` gets via `bound_name`. Without
-                // this arm the element looked untested and the whole match
-                // fell through to `emit_array_chain`, whose own condition/bind
-                // helpers bind every `Pattern::Ident` element regardless of
-                // case (G138).
-                Pattern::Ident { name, .. } => is_variant_shaped(name),
-                other => has_structured_field(other),
-            }) || rest.as_deref().is_some_and(has_structured_field)
-        }
-        _ => false,
-    }
-}
-
 /// Record a `case` label about to be written, refusing a repeat.
 ///
 /// A `switch` with two identical labels is valid JavaScript that runs the first
@@ -8540,6 +8539,76 @@ mod tests {
         assert!(!ts.contains("const red ="), "{ts}");
     }
 
+    // The four places the emitter used to decide variant-versus-binding on
+    // its own, each reached by a lowercase variant, each asserting the
+    // dispatch the checker's `is_variant_reference` decided (G214, change 3).
+    // A PascalCase *binding* has no test because the language has no such
+    // thing: D9 fixes a PascalCase head as a variant reference before any
+    // type is known, the resolver resolves it as a name, and the checker
+    // reports E0220 when the union declares no such variant.
+
+    #[test]
+    fn lowercase_variant_as_an_arm_head_is_a_case_not_a_default() {
+        // `emit_match_dispatch`'s own `is_variant`.
+        let ts = emit(
+            "module x\ntype Size = | blank | Full(int)\npub fn n(s: Size) -> int {\n  return match s {\n    blank => 0,\n    Full(k) => k,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"blank\": {"), "{ts}");
+        assert!(!ts.contains("const blank ="), "{ts}");
+        assert!(!ts.contains("default: {"), "{ts}");
+    }
+
+    #[test]
+    fn lowercase_variant_under_a_user_outer_variant_is_grouped_into_the_inner_switch() {
+        // `is_nested_variant_arg`, which the gate in `emit_match_dispatch`
+        // and the rewrite in `degroup_nested_arms` both ask.
+        let ts = emit(
+            "module x\ntype Inner = | blank | Full(int)\ntype Outer = | Wrap(Inner) | Leaf\npub fn n(o: Outer) -> int {\n  return match o {\n    Wrap(blank) => 0,\n    Wrap(Full(k)) => k,\n    Leaf => 1,\n  }\n}\n",
+        );
+        assert_eq!(ts.matches("case \"Wrap\": {").count(), 1, "{ts}");
+        assert!(ts.contains("case \"blank\": {"), "{ts}");
+        assert!(!ts.contains("const blank ="), "{ts}");
+    }
+
+    #[test]
+    fn lowercase_variant_as_a_head_of_a_pattern_chain_is_a_tag_test() {
+        // `emit_pattern_chain`'s catch-all rule, which consulted no variant
+        // list at all: the field test on `color` routes the whole match
+        // through the chain, and the lowercase head there was an `else` that
+        // bound the scrutinee.
+        let ts = emit(
+            "module x\ntype Color = | Red | Blue\ntype Outer = | blank | Leaf({ color: Color, n: int })\npub fn n(o: Outer) -> int {\n  return match o {\n    blank => 0,\n    Leaf({ color: Red, n }) => n,\n    Leaf({ color: Blue, n }) => 0 - n,\n  }\n}\n",
+        );
+        assert!(ts.contains(".tag === \"blank\""), "{ts}");
+        assert!(!ts.contains("const blank ="), "{ts}");
+    }
+
+    #[test]
+    fn lowercase_variant_under_a_payload_in_a_pattern_chain_is_a_tag_test() {
+        // `pattern_conditions` and `emit_pattern_binds`: the same chain, with
+        // the lowercase variant one level down. Read by shape it tested
+        // nothing and bound the payload, so `Wrap(Full(3))` took the
+        // `Wrap(blank)` arm.
+        let ts = emit(
+            "module x\ntype Color = | Red | Blue\ntype Inner = | blank | Full(int)\ntype Outer = | Wrap(Inner) | Leaf({ color: Color, n: int })\npub fn n(o: Outer) -> int {\n  return match o {\n    Wrap(blank) => 0,\n    Wrap(Full(k)) => k,\n    Leaf({ color: Red, n }) => n,\n    Leaf({ color: Blue, n }) => 0 - n,\n  }\n}\n",
+        );
+        assert!(ts.contains(".value.tag === \"blank\""), "{ts}");
+        assert!(!ts.contains("const blank ="), "{ts}");
+    }
+
+    #[test]
+    fn an_arm_head_the_checker_never_classified_is_refused_not_guessed() {
+        // The emitter holds no rule of its own any more. Handed a type map
+        // with no classification for the arm (a checker that never walked
+        // the match), it stops at E0300 rather than reading the name's shape.
+        let src = "module x\ntype Size = | blank | Full(int)\npub fn n(s: Size) -> int {\n  return match s {\n    blank => 0,\n    Full(k) => k,\n  }\n}\n";
+        let (module, resolved, _types, prelude) = pipeline(src);
+        let empty = glyph_typechecker::TypeMap::new();
+        let err = emit_module(&module, &resolved, &empty, &prelude, EmitContext::single())
+            .expect_err("an unclassified head must not be guessed");
+        assert_eq!(err.code(), "E0300", "{err:?}");
+    }
+
 
     /// The checker's resolver over a handful of sibling modules held in
     /// memory: what `SalsaDeclTy` answers from the project database, answered
@@ -8620,15 +8689,65 @@ mod tests {
         }
     }
 
+    /// The checker's resolver for `main` beside its siblings: the module's
+    /// own declarations lowered as `assign_types` lowers them, and every
+    /// cross-module question answered by [`Siblings`].
+    ///
+    /// The checker and the emitter are handed this same one, as `glyph build`
+    /// hands both the same `SalsaDeclTy`. The emitter reads the checker's
+    /// classification of every arm back out of the type map, so a checker
+    /// that saw fewer siblings than the emitter would be handing the emitter
+    /// an answer about a program the checker never checked, which is the
+    /// two-answers situation G214 exists to remove.
+    struct MainBeside<'a> {
+        module: &'a Module,
+        lowerer: Lowerer<'a>,
+        siblings: &'a Siblings,
+    }
+
+    impl DeclTyResolver for MainBeside<'_> {
+        fn decl_ty(&self, decl_idx: u32) -> Ty {
+            self.module
+                .items
+                .get(decl_idx as usize)
+                .map(|d| self.lowerer.lower_decl_signature(d))
+                .unwrap_or(Ty::Unknown)
+        }
+
+        fn imported_union_of_variant(
+            &self,
+            module_path: &str,
+            variant_name: &str,
+        ) -> Option<(String, Vec<Ident>)> {
+            self.siblings
+                .imported_union_of_variant(module_path, variant_name)
+        }
+
+        fn imported_type_decl(&self, module_path: &str, type_name: &str) -> Option<ImportedTypeDecl> {
+            self.siblings.imported_type_decl(module_path, type_name)
+        }
+    }
+
     /// Emit `main_src` as module `main` beside the given sibling modules, so
     /// a test can reach what a single-module `EmitContext::single()` leaves
     /// empty: the emission-owned tables and, through [`Siblings`], the
-    /// checker's view of each sibling's declarations. Returns the emit result
-    /// rather than unwrapping it, because the G147 tests below assert on both
-    /// outcomes.
+    /// checker's view of each sibling's declarations. The checker runs with
+    /// the same siblings ([`MainBeside`]). Returns the emit result rather than
+    /// unwrapping it, because the G147 tests below assert on both outcomes.
     fn emit_beside_all(siblings: &[(&str, &str)], main_src: &str) -> Result<String, EmitError> {
         let siblings = Siblings::new(siblings);
-        let (module, resolved, types, prelude) = pipeline(main_src);
+        let module = glyph_parser::parse(main_src).expect("parse failed");
+        let syms = glyph_resolver::collect_module_symbols(&module).expect("collect failed");
+        let prelude = glyph_resolver::build_prelude();
+        let (resolved, _errs) = glyph_resolver::resolve_module(&module, syms, &prelude);
+        let resolver = MainBeside {
+            module: &module,
+            lowerer: Lowerer::new(&resolved, &prelude),
+            siblings: &siblings,
+        };
+        let (types, _ty_errs) = glyph_typechecker::assign_types_with_resolver(
+            &module, &resolved, &prelude, &resolver,
+        );
         let mut asts = siblings.asts();
         asts.push(("main", Some(&module)));
         let tables = ProjectTables::from_modules(asts);

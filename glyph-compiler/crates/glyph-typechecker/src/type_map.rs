@@ -14,9 +14,30 @@ use crate::ty::Ty;
 
 const UNKNOWN: Ty = Ty::Unknown;
 
+/// What a bare identifier in pattern position is, as the checker decided it.
+///
+/// D9 gives the question two inputs: the name's shape (a PascalCase head is a
+/// variant reference before any type is known) and the variant set of the
+/// value it is matched against (Glyph accepts a lowercase variant name, so
+/// `blank` is a reference over a union that declares it and a binding
+/// anywhere else). The checker answers it once, in `is_variant_reference`,
+/// and records the answer here so the emitter lowers the arm the way the
+/// checker counted it, rather than re-deriving the rule from the spelling and
+/// a variant list of its own (G214).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IdentPattern {
+    /// Names a variant: the arm tests the tag and binds nothing.
+    VariantReference,
+    /// A fresh binding: the arm matches every value and binds it to the name.
+    Binding,
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct TypeMap {
     by_span: HashMap<(u32, u32), Ty>,
+    /// The checker's classification of every `Pattern::Ident` node inside a
+    /// `match` arm, keyed by the node's span. See `IdentPattern`.
+    ident_patterns: HashMap<(u32, u32), IdentPattern>,
 }
 
 impl TypeMap {
@@ -45,6 +66,20 @@ impl TypeMap {
     /// "no entry"; a stored `Unknown` means "I looked and don't know yet."
     pub fn has_entry(&self, span: Span) -> bool {
         self.by_span.contains_key(&(span.start, span.end))
+    }
+
+    /// Record what the `Pattern::Ident` at `span` is. Written once per node
+    /// by the checker's pattern walk.
+    pub fn record_ident_pattern(&mut self, span: Span, kind: IdentPattern) {
+        self.ident_patterns.insert((span.start, span.end), kind);
+    }
+
+    /// The checker's classification of the `Pattern::Ident` at `span`, or
+    /// `None` when the checker never walked that node. A caller that gets
+    /// `None` has a pattern the checker did not classify, which is a fact
+    /// about the pattern and not a licence to guess from its spelling.
+    pub fn ident_pattern(&self, span: Span) -> Option<IdentPattern> {
+        self.ident_patterns.get(&(span.start, span.end)).copied()
     }
 
     /// Iterate recorded `(span, type)` entries in arbitrary order. Used by the
@@ -82,6 +117,18 @@ mod tests {
     fn missing_lookup_returns_unknown() {
         let m = TypeMap::new();
         assert!(m.get(Span::new(0, 1)).is_unknown());
+    }
+
+    #[test]
+    fn ident_pattern_is_recorded_per_span_and_absent_when_never_walked() {
+        let mut m = TypeMap::new();
+        let head = Span::new(4, 9);
+        m.record_ident_pattern(head, IdentPattern::VariantReference);
+        assert_eq!(m.ident_pattern(head), Some(IdentPattern::VariantReference));
+        assert_eq!(m.ident_pattern(Span::new(4, 8)), None);
+        // The classification and the type live in separate tables: recording
+        // one says nothing about the other.
+        assert!(!m.has_entry(head));
     }
 
     #[test]

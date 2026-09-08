@@ -30,15 +30,15 @@ use serde_json::{json, Value};
 
 use glyph_db::{
     project_match_coverage, CompilerDb, CoverageTypeRef, DeclIndex, EventSink,
-    ProjectCoverageSite, SourceFile,
+    ProjectCoverageSite, SalsaDeclTy, SourceFile,
 };
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, DeclKey, ModuleGraph, Prelude,
     ResolvedModule, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    display_ty, CoverageSiteRef, CoverageState, CoverageTypeName, FieldAccess, FieldOwner,
-    FieldSite, FnParam, Primitive, Ty, TypeMap,
+    display_ty, imported_decl_chain_end, CoverageSiteRef, CoverageState, CoverageTypeName,
+    DeclTyResolver, FieldAccess, FieldOwner, FieldSite, FnParam, Primitive, Ty, TypeMap,
 };
 
 use crate::analysis::{
@@ -479,7 +479,7 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_impact",
-            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type of the same module (compared by the declaration each name resolves to), a tagged union or record declared in the calling module against a `string`, `number` or `bool` (the rule G201 added), and a `string`, `number` or `bool` against a tagged union or a record with at least one field declared in the calling module (its reverse). `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a type declared in another module (both rules read only a declaration in the calling module, so a cross-module type is compared against nothing), a primitive against the zero-field record `type T = { }` (excluded because TypeScript lets a `string` satisfy the empty object type), or a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects; and the `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
+            "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), and a `string`, `number` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both). `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects; and the `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
             "inputSchema": { "type": "object", "properties": { "entity": entity, "change": change, "relations": impact_relations, "depth": depth, "path": impact_path }, "required": ["entity", "change"] }
         },
         {
@@ -5141,6 +5141,7 @@ fn impact_occurrences(
             .then(|| SignatureView {
                 calls: call_argument_spans(fmodule),
                 types: glyph_db::type_map(db, entry.file),
+                decls: SalsaDeclTy::new(db, entry.file),
                 params: callee_params_as_seen_from(project, plan, entry),
             });
         let index = LineIndex::new(ftext);
@@ -5218,6 +5219,7 @@ fn impact_occurrences(
                         args,
                         view.params.as_deref(),
                         view.types.type_map(),
+                        &view.decls,
                         fmodule,
                         fresolved,
                         ftext,
@@ -5332,12 +5334,15 @@ struct SiteVerdict {
 }
 
 /// The per-file reads `change_signature_type` needs and no other kind does.
-struct SignatureView {
+struct SignatureView<'a> {
     /// Each callee identifier's span, with the spans of the arguments it is
     /// applied to.
     calls: BTreeMap<(u32, u32), Vec<glyph_ast::Span>>,
     /// The checker's type for every expression in the file.
     types: glyph_db::Types,
+    /// The resolver the checker ran this file with, for reading the
+    /// declaration behind an imported type the way the checker read it.
+    decls: SalsaDeclTy<'a>,
     /// The callee's parameters as this file's checker sees them, or `None`
     /// when its signature did not lower to a function type.
     params: Option<Vec<FnParam>>,
@@ -5396,9 +5401,14 @@ enum ArgKind {
     /// of another shape, or a name this module does not declare as a `type`.
     /// The string says which.
     NamedOther(&'static str),
-    /// `Ty::Imported`, or an application over one: a type declared in another
-    /// module, which the assignability relation declines to judge.
-    Imported,
+    /// `Ty::Imported`: a type declared in another module, with what the
+    /// declaration at the end of its chain of second names is, read through
+    /// the module's exports the way the checker reads it (G215, G226).
+    Imported(NamedBody),
+    /// A generic application over a `Ty::Imported` (`Tree<number>` with
+    /// `Tree` imported). The G215 rule sees through the application; the
+    /// by-declaration rule does not compare an application against a name.
+    AppOfImported(NamedBody),
     /// `Ty::Unknown`, or no entry in the type map at all.
     Unknown,
     /// A structural record or a function value.
@@ -5415,16 +5425,20 @@ enum ParamKind {
     /// declaration body is, since the rule comparing a primitive against it
     /// is decided on the body.
     Named(NamedBody),
-    /// A type declared in another module (`Ty::Imported`).
-    Imported,
+    /// A type declared in another module (`Ty::Imported`), with what the
+    /// declaration at the end of its chain of second names is.
+    Imported(NamedBody),
+    /// A generic application over a `Ty::Imported`.
+    AppOfImported(NamedBody),
     Other,
 }
 
-/// The declaration body behind a `Ty::Named`, read the way the checker's
-/// `declared_union_or_record_body` reads it: the one distinction it draws
-/// against a primitive is whether the body is a tagged union or a record, and
-/// the reverse direction of G201 draws one more, whether that record has any
-/// field at all.
+/// The declaration body behind a declared type, local (`Ty::Named`) or
+/// imported (`Ty::Imported`), read the way the checker's
+/// `declared_union_or_record_body` and `imported_union_or_record` read it:
+/// the one distinction either draws against a primitive is whether the body
+/// is a tagged union or a record, and the reverse direction draws one more,
+/// whether that record has any field at all.
 enum NamedBody {
     /// A tagged union, or a record with at least one field.
     UnionOrFieldedRecord,
@@ -5433,9 +5447,19 @@ enum NamedBody {
     /// body by nothing, while still comparing the body against a primitive.
     EmptyRecord,
     /// Any other body, or no `type` declaration this module can see. The
-    /// string says which.
+    /// string says which; `UNDECLARED` is the one the cells read back, since
+    /// a name with no `type` declaration behind it is the one shape the
+    /// checker's by-declaration rule across a module boundary declines.
     Other(&'static str),
 }
+
+/// The `NamedBody::Other` reason for a `Ty::Named` this module does not
+/// declare as a `type`. A constant rather than a literal at its one write,
+/// because one cell matches on it: the checker compares a local `type`
+/// declaration against an imported union or record by declaration (G226),
+/// and a name that is not a `type` declaration has none to compare.
+const UNDECLARED: &str =
+    "a name this module does not declare as a `type` (a prelude, stdlib or interface name)";
 
 /// What the module-local declaration behind `ty` is, for both classifiers, so
 /// the argument side and the parameter side name a body the same way.
@@ -5458,10 +5482,44 @@ fn classify_named_body(
         Some(TypeExpr::Extern { .. }) => NamedBody::Other("an `extern_ts` body"),
         Some(TypeExpr::TypeOf { .. }) => NamedBody::Other("a `typeof` body"),
         Some(TypeExpr::Fn { .. }) => NamedBody::Other("a function type"),
-        None => NamedBody::Other(
-            "a name this module does not declare as a `type` (a prelude, stdlib or \
-             interface name)",
+        None => NamedBody::Other(UNDECLARED),
+    }
+}
+
+/// What the declaration behind an imported name is, read the way the checker
+/// reads it for the assignability relation: through the resolver the checker
+/// ran with, along the sibling's own chain of second names to the end
+/// (`imported_decl_chain_end`, the walk `imported_union_or_record` takes).
+/// The body there is the export view's lowering, which is why the shapes are
+/// named by `Ty` here and by `TypeExpr` in `classify_named_body`: a sibling's
+/// `pub type Id = string` arrives as `Ty::Prim`, and its `extern_ts` or
+/// `typeof` body as `Ty::Unknown`.
+fn imported_body(decls: &dyn DeclTyResolver, module: &str, name: &str) -> NamedBody {
+    let Some((_, _, decl)) = imported_decl_chain_end(decls, module, name) else {
+        return NamedBody::Other(
+            "a name its module does not export as a `type` (an interface, or a module this \
+             project does not hold)",
+        );
+    };
+    match &decl.body {
+        Ty::Union { .. } => NamedBody::UnionOrFieldedRecord,
+        Ty::Record { fields } if fields.is_empty() => NamedBody::EmptyRecord,
+        Ty::Record { .. } => NamedBody::UnionOrFieldedRecord,
+        Ty::Prim(_) => NamedBody::Other("an alias for a primitive"),
+        Ty::StringLiteralUnion(_) => {
+            NamedBody::Other("a string-literal union (D30), which is a `string`")
+        }
+        Ty::App { .. } => NamedBody::Other("an alias for a generic application"),
+        Ty::Fn { .. } => NamedBody::Other("a function type"),
+        Ty::Unknown => NamedBody::Other(
+            "an `extern_ts` or `typeof` body, which its module's export view lowers to \
+             `Unknown`",
         ),
+        Ty::Imported { .. }
+        | Ty::Named { .. }
+        | Ty::UnknownTop
+        | Ty::Never
+        | Ty::Param { .. } => NamedBody::Other("a body that is neither a tagged union nor a record"),
     }
 }
 
@@ -5490,11 +5548,14 @@ fn classify_argument(
     ty: &Ty,
     module: &glyph_ast::Module,
     resolved: &ResolvedModule,
+    decls: &dyn DeclTyResolver,
 ) -> ArgKind {
     match ty {
         Ty::Unknown => ArgKind::Unknown,
         Ty::Prim(_) => ArgKind::Primitive,
-        Ty::Imported { .. } => ArgKind::Imported,
+        Ty::Imported { module: m, name } => {
+            ArgKind::Imported(imported_body(decls, m.as_str(), name))
+        }
         // The G201 direction has no empty-record exclusion (`{}` is not a
         // `string` under tsc either), so both record shapes are one kind here.
         Ty::Named { .. } => match classify_named_body(ty, module, resolved) {
@@ -5504,7 +5565,9 @@ fn classify_argument(
             NamedBody::Other(shape) => ArgKind::NamedOther(shape),
         },
         Ty::App { base, .. } => match base.as_ref() {
-            Ty::Imported { .. } => ArgKind::Imported,
+            Ty::Imported { module: m, name } => {
+                ArgKind::AppOfImported(imported_body(decls, m.as_str(), name))
+            }
             Ty::Named { .. } => match classify_named_body(base, module, resolved) {
                 NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord => {
                     ArgKind::AppOfLocalUnionOrRecord
@@ -5526,11 +5589,20 @@ fn classify_parameter(
     ty: &Ty,
     module: &glyph_ast::Module,
     resolved: &ResolvedModule,
+    decls: &dyn DeclTyResolver,
 ) -> ParamKind {
     match ty {
         Ty::Prim(p) => ParamKind::Primitive(*p),
         Ty::Named { .. } => ParamKind::Named(classify_named_body(ty, module, resolved)),
-        Ty::Imported { .. } => ParamKind::Imported,
+        Ty::Imported { module: m, name } => {
+            ParamKind::Imported(imported_body(decls, m.as_str(), name))
+        }
+        Ty::App { base, .. } => match base.as_ref() {
+            Ty::Imported { module: m, name } => {
+                ParamKind::AppOfImported(imported_body(decls, m.as_str(), name))
+            }
+            _ => ParamKind::Other,
+        },
         _ => ParamKind::Other,
     }
 }
@@ -5566,8 +5638,19 @@ fn is_concrete_scalar(p: Primitive) -> bool {
 ///   body (the reverse of G201); the zero-field record is excluded because
 ///   TypeScript lets a `string` satisfy `{}`;
 /// - a structural record or function against a concrete scalar is compared;
-/// - `Ty::Imported`, `Ty::Unknown` and a generic parameter are declined on
-///   either side.
+/// - an imported declaration is decided like a local one, through the
+///   declaration at the end of its chain of second names as its module
+///   exports it (`imported_incompatible`): an imported union or record, or
+///   an application of one, against a concrete scalar (G215); a concrete
+///   scalar against an imported union or fielded record, the zero-field
+///   record excluded as locally; and a declaration against a declaration
+///   across the boundary, compared by the address each chain ends at
+///   (G226). An imported declaration whose exported body is not a union or
+///   a record (a primitive alias, a string-literal union, an `extern_ts` or
+///   `typeof` body, a generic application, an interface) is compared by
+///   nothing, and a generic application against a bare name stays
+///   undetermined as it does for two local names;
+/// - `Ty::Unknown` and a generic parameter are declined on either side.
 ///
 /// One function, one match, so when the checker gains a rule the cell that
 /// changes is one arm here.
@@ -5644,18 +5727,136 @@ fn signature_type_cell(
              against a primitive (G201) reads a tagged union or a record body, so a \
              replacement primitive is compared against nothing here"
         )),
-        (A::Primitive | A::LocalUnionOrRecord | A::AppOfLocalUnionOrRecord | A::NamedOther(_), P::Imported) => {
+        // A primitive against an imported declaration: the reverse direction,
+        // read through the module's exports (G215).
+        (
+            A::Primitive,
+            P::Imported(NamedBody::UnionOrFieldedRecord)
+            | P::AppOfImported(NamedBody::UnionOrFieldedRecord),
+        ) => will_fail(format!(
+            "`{param_ty}` is a tagged union or a record with at least one field declared in \
+             another module, and the checker reads that declaration through the module's \
+             exports (G215, the reverse direction): a `{arg_ty}` is never one, and it is \
+             compared the same way against a primitive, so a replacement primitive a \
+             `{arg_ty}` does not satisfy, or a replacement union or fielded record declared \
+             here or imported, is E0211 here"
+        )),
+        (A::Primitive, P::Imported(NamedBody::EmptyRecord) | P::AppOfImported(NamedBody::EmptyRecord)) => {
             undetermined(format!(
-                "the parameter's type `{param_ty}` is declared in another module, and the \
-                 checker compares a cross-module type against nothing, so a replacement is \
-                 reported by nothing here and only `tsc` on a full `glyph build` would see it"
+                "`{param_ty}` is declared in another module as a record with no fields, and \
+                 the checker deliberately compares a primitive against `type T = {{ }}` by \
+                 nothing wherever it is declared, since TypeScript lets a `string` satisfy \
+                 the empty object type; a `{arg_ty}` against a replacement of that shape is \
+                 reported by nothing here and only `tsc` on a full `glyph build` would see a \
+                 mismatch"
             ))
         }
-        (A::Imported, _) => undetermined(format!(
-            "`{arg_ty}` is declared in another module, and the checker's rule for a declared \
-             type against a primitive reads only a declaration in the calling module (G201); \
-             a cross-module type is compared against nothing, so only `tsc` on a full `glyph \
-             build` would report a mismatch here"
+        (A::Primitive, P::Imported(NamedBody::Other(shape)) | P::AppOfImported(NamedBody::Other(shape))) => {
+            undetermined(format!(
+                "`{param_ty}` is declared in another module as {shape}, and the rule comparing \
+                 a primitive against an imported declaration (G215) reads a tagged union or a \
+                 record at the end of the declaration's chain of names, so a `{arg_ty}` \
+                 against it is compared by nothing here and only `tsc` on a full `glyph \
+                 build` would see a mismatch"
+            ))
+        }
+        // A local declaration against an imported one: compared by
+        // declaration (G226), which needs a `type` declaration on the local
+        // side and a union or record at the end of the imported chain.
+        (A::NamedOther(UNDECLARED), P::Imported(_) | P::AppOfImported(_)) => undetermined(format!(
+            "`{arg_ty}` is {UNDECLARED}, and the checker compares a local name against an \
+             imported declaration only when the name is a `type` this module declares \
+             (G226), so a replacement is compared against nothing here"
+        )),
+        (
+            A::LocalUnionOrRecord | A::NamedOther(_),
+            P::Imported(NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord),
+        ) => will_fail(format!(
+            "`{arg_ty}` is a type this module declares and `{param_ty}` is a tagged union or \
+             record declared in another module; the checker compares the two by the \
+             declaration each resolves to (G226), so a replacement union or record declared \
+             under another name, here or in another module, is E0211 here"
+        )),
+        (A::LocalUnionOrRecord | A::NamedOther(_), P::Imported(NamedBody::Other(shape))) => {
+            undetermined(format!(
+                "the parameter's type `{param_ty}` is declared in another module as {shape}, \
+                 and the checker compares a declaration of this module against an imported \
+                 one only when the imported declaration is a tagged union or a record at the \
+                 end of its chain of names (G226), so a replacement is compared against \
+                 nothing here"
+            ))
+        }
+        (
+            A::LocalUnionOrRecord | A::NamedOther(_) | A::AppOfLocalUnionOrRecord,
+            P::AppOfImported(_),
+        )
+        | (A::AppOfLocalUnionOrRecord, P::Imported(_)) => undetermined(format!(
+            "the checker compares a generic application against a bare declared name by \
+             nothing, for `{arg_ty}` against `{param_ty}` as for two local names, so a \
+             replacement is reported by nothing here"
+        )),
+        // An imported declaration as the argument (G215, G226).
+        (
+            A::Imported(NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord)
+            | A::AppOfImported(NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord),
+            P::Primitive(p),
+        ) if is_concrete_scalar(*p) => will_fail(format!(
+            "`{arg_ty}` is a tagged union or record declared in another module, and the \
+             checker reads that declaration through the module's exports, following its \
+             chain of second names to the end (G215): its value is never a `string`, a \
+             `number` or a `bool`, so a replacement `string`, `number` or `bool` is E0211 \
+             here"
+        )),
+        (
+            A::Imported(NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord)
+            | A::AppOfImported(NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord),
+            P::Primitive(_),
+        ) => undetermined(format!(
+            "the rule deciding an imported union or record against a primitive (G215) \
+             leaves `void` out, as the local rule does, so `{arg_ty}` against a `void` \
+             parameter is compared by nothing"
+        )),
+        (A::Imported(NamedBody::Other(shape)) | A::AppOfImported(NamedBody::Other(shape)), _) => {
+            undetermined(format!(
+                "`{arg_ty}` is declared in another module as {shape}, and the checker \
+                 compares an imported declaration only when the declaration at the end of \
+                 its chain of names is a tagged union or a record (G215, G226), so a \
+                 replacement is compared against nothing here and only `tsc` on a full \
+                 `glyph build` would see a mismatch"
+            ))
+        }
+        (A::Imported(_), P::Named(_)) => will_fail(format!(
+            "`{arg_ty}` is a tagged union or record declared in another module and \
+             `{param_ty}` is a type this module declares; the checker compares the two by \
+             the declaration each resolves to (G226), so a replacement type declared in this \
+             module, or a union or record imported from elsewhere, is E0211 here"
+        )),
+        (A::Imported(_), P::Imported(NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord)) => {
+            will_fail(format!(
+                "`{arg_ty}` and `{param_ty}` are declarations read through their modules' \
+                 exports, and the checker compares them by the module and name each chain of \
+                 second names ends at (G226), so a replacement union or record declared under \
+                 another name, here or in another module, is E0211 here"
+            ))
+        }
+        (A::Imported(_), P::Imported(NamedBody::Other(shape))) => undetermined(format!(
+            "the parameter's type `{param_ty}` is declared in another module as {shape}, and \
+             the checker compares two imported declarations only when both are a tagged \
+             union or a record at the end of their chains of names (G226), so a replacement \
+             is compared against nothing here"
+        )),
+        (A::Imported(_), P::AppOfImported(_)) | (A::AppOfImported(_), P::Named(_) | P::Imported(_) | P::AppOfImported(_)) => {
+            undetermined(format!(
+                "the checker compares a generic application against a bare declared name by \
+                 nothing, for `{arg_ty}` against `{param_ty}` as for two local names, so a \
+                 replacement is reported by nothing here"
+            ))
+        }
+        (A::Imported(_) | A::AppOfImported(_), P::Other) => undetermined(format!(
+            "the parameter's type `{param_ty}` is neither a primitive nor a declared name (an \
+             application of a prelude type, a structural record or a function type), and the \
+             checker compares an imported declaration only against a primitive or a declared \
+             union or record (G215, G226), so a replacement is compared against nothing here"
         )),
         (A::Structural, P::Primitive(p)) if is_concrete_scalar(*p) => will_fail(format!(
             "`{arg_ty}` is a record or function value, which is never a `string`, a `number` \
@@ -5679,6 +5880,7 @@ fn signature_type_site(
     args: &[glyph_ast::Span],
     params: Option<&[FnParam]>,
     types: &TypeMap,
+    decls: &dyn DeclTyResolver,
     module: &glyph_ast::Module,
     resolved: &ResolvedModule,
     text: &str,
@@ -5720,13 +5922,13 @@ fn signature_type_site(
         let arg_ty = display_ty(ty);
         let param_ty = display_ty(&param.ty);
         let kind = if types.has_entry(*span) {
-            classify_argument(ty, module, resolved)
+            classify_argument(ty, module, resolved, decls)
         } else {
             ArgKind::Unknown
         };
         let (verdict, rule) = signature_type_cell(
             &kind,
-            &classify_parameter(&param.ty, module, resolved),
+            &classify_parameter(&param.ty, module, resolved, decls),
             &arg_ty,
             &param_ty,
         );
@@ -10004,9 +10206,17 @@ mod tests {
     /// the one non-edit-site CALLS entry, so each cell of the table below is
     /// one program and one assertion.
     fn signature_call_entry(program: &str, entity: &str, caller: &str) -> Value {
+        signature_call_entry_in(&[("api.glyph", program)], entity, caller)
+    }
+
+    /// `signature_call_entry` over a project of several modules, for the
+    /// cells an imported declaration lands in.
+    fn signature_call_entry_in(files: &[(&str, &str)], entity: &str, caller: &str) -> Value {
         let root = tmp_root();
         std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
-        write(&root, "api.glyph", program);
+        for (name, text) in files {
+            write(&root, name, text);
+        }
         let mut server = Server::new(root.clone());
         let answer = impact(
             &mut server,
@@ -10125,37 +10335,300 @@ mod tests {
         );
     }
 
-    /// Cell (imported declared argument, primitive parameter): the G201 rule
-    /// reads only a declaration in the calling module, so a cross-module type
-    /// is compared against nothing. Run against the checker: silent.
+    /// The sibling every imported-cell test imports from.
+    const CELLS: (&str, &str) = (
+        "cells.glyph",
+        "module cells\npub type Cell =\n  | A\n  | B\npub type Other =\n  | C\n  | D\n\
+         pub type Sheet = { rows: number }\npub type Blank = { }\npub type Id = string\n\
+         pub type Raw = extern_ts(\"globalThis.RegExp\")\n\
+         pub interface Named {\n  name: string\n}\n",
+    );
+
+    /// Cell (imported union argument, primitive parameter): the G215 rule,
+    /// reading the declaration through the module's exports. Run against the
+    /// checker: `f(c)` with `c: Cell` imported and `f(s: string)` is E0211
+    /// under `check --no-tsc`.
     #[test]
-    fn signature_type_imported_type_against_primitive_is_undetermined() {
-        let root = tmp_root();
-        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
-        write(&root, "cells.glyph", "module cells\npub type Cell =\n  | A\n  | B\n");
-        write(
-            &root,
-            "api.glyph",
-            "module api\nimport cells { Cell }\n\
-             pub fn f(s: string) -> string {\n  return s\n}\n\
-             pub fn g(c: Cell) -> string {\n  return f(c)\n}\n",
+    fn signature_type_imported_union_against_primitive_is_will_fail() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Cell }\n\
+                     pub fn f(s: string) -> string {\n  return s\n}\n\
+                     pub fn g(c: Cell) -> string {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
         );
-        let mut server = Server::new(root.clone());
-        let answer = impact(
-            &mut server,
-            json!({ "entity": "api::f", "change": { "kind": "change_signature_type" } }),
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`Cell`") && because.contains("another module"), "{entry}");
+        assert!(because.contains("G215"), "the rule is unnamed: {entry}");
+    }
+
+    /// Cell (imported record argument, primitive parameter): the same rule
+    /// reads a record body. Run against the checker: E0211.
+    #[test]
+    fn signature_type_imported_record_against_primitive_is_will_fail() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Sheet }\n\
+                     pub fn f(s: string) -> string {\n  return s\n}\n\
+                     pub fn g(c: Sheet) -> string {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
         );
-        let entry = answer["impact"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|e| e["entity"] == "api::g")
-            .unwrap_or_else(|| panic!("{answer}"));
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        assert!(entry["because"].as_str().unwrap_or_default().contains("`Sheet`"), "{entry}");
+    }
+
+    /// Cell (imported alias of a primitive, primitive parameter): the chain
+    /// ends at a `string`, not a union or a record, so the checker compares
+    /// it by nothing. Run against the checker: `f(c)` with `c: Id`,
+    /// `pub type Id = string` in the sibling, and `f(n: number)` is silent
+    /// under `check --no-tsc`.
+    #[test]
+    fn signature_type_imported_primitive_alias_against_primitive_is_undetermined() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Id }\n\
+                     pub fn f(n: number) -> number {\n  return n\n}\n\
+                     pub fn g(c: Id) -> number {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
         assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
         assert!(entry["diagnostic"].is_null(), "{entry}");
         let because = entry["because"].as_str().unwrap_or_default();
-        assert!(because.contains("another module"), "{entry}");
-        assert!(because.contains("G201"), "the gap this cell rests on is unnamed: {entry}");
+        assert!(because.contains("`Id`"), "{entry}");
+        assert!(
+            because.contains("alias for a primitive"),
+            "the shape the chain ends at is unnamed: {entry}"
+        );
+    }
+
+    /// Cell (imported `extern_ts` alias, primitive parameter): the export
+    /// view lowers the body to `Unknown`, so there is no declaration to
+    /// compare. Run against the checker: silent.
+    #[test]
+    fn signature_type_imported_extern_ts_alias_against_primitive_is_undetermined() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Raw }\n\
+                     pub fn f(n: number) -> number {\n  return n\n}\n\
+                     pub fn g(c: Raw) -> number {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert!(
+            entry["because"].as_str().unwrap_or_default().contains("`extern_ts`"),
+            "the shape the chain ends at is unnamed: {entry}"
+        );
+    }
+
+    /// Cell (imported interface argument, primitive parameter): a module does
+    /// not export an interface as a `type`, so the chain ends nowhere. Run
+    /// against the checker: silent.
+    #[test]
+    fn signature_type_imported_interface_against_primitive_is_undetermined() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Named }\n\
+                     pub fn f(n: number) -> number {\n  return n\n}\n\
+                     pub fn g(c: Named) -> number {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert!(
+            entry["because"].as_str().unwrap_or_default().contains("interface"),
+            "the missing declaration is unnamed: {entry}"
+        );
+    }
+
+    /// Cell (imported union argument, prelude application parameter): the
+    /// checker compares an imported declaration only against a primitive or
+    /// a declared union or record. Run against the checker: `f(c)` with
+    /// `f(o: Option<string>)` is silent under `check --no-tsc`.
+    #[test]
+    fn signature_type_imported_union_against_a_prelude_application_is_undetermined() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Cell }\n\
+                     pub fn f(o: Option<string>) -> number {\n  return 1\n}\n\
+                     pub fn g(c: Cell) -> number {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert!(
+            entry["because"].as_str().unwrap_or_default().contains("prelude"),
+            "the parameter's shape is unnamed: {entry}"
+        );
+    }
+
+    /// Cell (imported union argument, local declared parameter): compared by
+    /// declaration across the boundary (G226). Run against the checker:
+    /// `f(c)` with `c: Cell` imported and `f(o: Other)` declared here is E0211.
+    #[test]
+    fn signature_type_imported_union_against_local_named_is_will_fail() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Cell }\npub type Local =\n  | C\n  | D\n\
+                     pub fn f(o: Local) -> Local {\n  return o\n}\n\
+                     pub fn g(c: Cell) -> Local {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`Cell`") && because.contains("`Local`"), "{entry}");
+        assert!(because.contains("G226"), "the rule is unnamed: {entry}");
+    }
+
+    /// Cell (imported union argument, imported union parameter): two
+    /// declarations compared by the address each chain ends at (G226). Run
+    /// against the checker: `f(c)` with `c: Cell` and `f(o: Other)`, both
+    /// imported, is E0211.
+    #[test]
+    fn signature_type_imported_union_against_another_imported_union_is_will_fail() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Cell, Other }\n\
+                     pub fn f(o: Other) -> Other {\n  return o\n}\n\
+                     pub fn g(c: Cell) -> Other {\n  return f(c)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`Cell`") && because.contains("`Other`"), "{entry}");
+        assert!(because.contains("G226"), "the rule is unnamed: {entry}");
+    }
+
+    /// Cell (primitive argument, imported union parameter): the reverse
+    /// direction of G215. Run against the checker: `f("x")` with `f(c: Cell)`
+    /// and `Cell` imported is E0211.
+    #[test]
+    fn signature_type_primitive_against_imported_union_is_will_fail() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Cell }\n\
+                     pub fn f(c: Cell) -> Cell {\n  return c\n}\n\
+                     pub fn g() -> Cell {\n  return f(\"x\")\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        let because = entry["because"].as_str().unwrap_or_default();
+        assert!(because.contains("`string`") && because.contains("`c: Cell`"), "{entry}");
+        assert!(because.contains("G215"), "the rule is unnamed: {entry}");
+        assert!(
+            because.contains("replacement primitive") && because.contains("at least one field"),
+            "the compared classes are unnamed: {entry}"
+        );
+    }
+
+    /// Cell (primitive argument, imported empty record parameter): the
+    /// exclusion holds across the boundary. Run against the checker: `f("x")`
+    /// with `f(b: Blank)`, `pub type Blank = { }` imported, is silent.
+    #[test]
+    fn signature_type_primitive_against_imported_empty_record_is_undetermined() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Blank }\n\
+                     pub fn f(b: Blank) -> number {\n  return 1\n}\n\
+                     pub fn g() -> number {\n  return f(\"x\")\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert!(
+            entry["because"].as_str().unwrap_or_default().contains("no fields"),
+            "the exclusion is unnamed: {entry}"
+        );
+    }
+
+    /// Cell (local declared argument, imported union parameter): compared by
+    /// declaration across the boundary (G226). Run against the checker:
+    /// `f(l)` with `l: Local` declared here and `f(c: Cell)` imported is
+    /// E0211.
+    #[test]
+    fn signature_type_local_named_against_imported_union_is_will_fail() {
+        let entry = signature_call_entry_in(
+            &[
+                CELLS,
+                (
+                    "api.glyph",
+                    "module api\nimport cells { Cell }\npub type Local =\n  | C\n  | D\n\
+                     pub fn f(c: Cell) -> Cell {\n  return c\n}\n\
+                     pub fn g(l: Local) -> Cell {\n  return f(l)\n}\n",
+                ),
+            ],
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+        assert!(entry["because"].as_str().unwrap_or_default().contains("G226"), "{entry}");
     }
 
     /// Cell (primitive argument, local union parameter): the reverse of G201.

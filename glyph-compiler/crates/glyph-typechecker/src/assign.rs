@@ -4869,8 +4869,7 @@ impl Assigner<'_> {
         // from the sibling's own lowering, so it arrives as a `Ty::Imported`
         // and needs the same resolution D30 promises for the direct case.
         if let Ty::Imported { module, name } = ty {
-            let mut seen: HashSet<(String, String)> = HashSet::new();
-            let decl = self.imported_type_body(module.as_str(), name, &mut seen)?;
+            let decl = self.imported_type_body(module.as_str(), name)?;
             let Ty::StringLiteralUnion(values) = decl.body else {
                 return None;
             };
@@ -5046,8 +5045,8 @@ impl Assigner<'_> {
         name: &str,
         args: &[Ty],
     ) -> Option<RecordShape> {
-        let mut seen: HashSet<(String, String)> = HashSet::new();
-        let (owner_module, owner_name) = self.imported_record_decl(module, name, &mut seen)?;
+        let (owner_module, owner_name, _) =
+            imported_decl_chain_end(self.decl_ty_resolver, module, name)?;
         let fields = self.imported_record_fields(&owner_module, &owner_name, args)?;
         Some(RecordShape {
             owner: FieldOwner::Declared {
@@ -5056,30 +5055,6 @@ impl Assigner<'_> {
             },
             fields,
         })
-    }
-
-    /// Follow a cross-module alias chain to the module and name the record is
-    /// actually declared under. The same walk `imported_type_body` does, and it
-    /// reuses it: the chain is followed once and this reports where it stopped.
-    fn imported_record_decl(
-        &self,
-        module: &str,
-        name: &str,
-        seen: &mut HashSet<(String, String)>,
-    ) -> Option<(String, String)> {
-        let decl = self.decl_ty_resolver.imported_type_decl(module, name)?;
-        if let Ty::Imported {
-            module: next_module,
-            name: next_name,
-        } = &decl.body
-        {
-            let (next_module, next_name) = (next_module.as_str().to_string(), next_name.to_string());
-            if !seen.insert((next_module.clone(), next_name.clone())) {
-                return None;
-            }
-            return self.imported_record_decl(&next_module, &next_name, seen);
-        }
-        Some((module.to_string(), name.to_string()))
     }
 
     /// The declaration an imported name reaches, when that declaration is a
@@ -5101,9 +5076,8 @@ impl Assigner<'_> {
         let Ty::Imported { module, name } = ty else {
             return None;
         };
-        let mut seen: HashSet<(String, String)> = HashSet::new();
-        let (module, name) = self.imported_record_decl(module.as_str(), name.as_ref(), &mut seen)?;
-        let decl = self.decl_ty_resolver.imported_type_decl(&module, &name)?;
+        let (module, name, decl) =
+            imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
         matches!(decl.body, Ty::Union { .. } | Ty::Record { .. }).then(|| ImportedUnionOrRecord {
             module,
             name,
@@ -5122,8 +5096,7 @@ impl Assigner<'_> {
         name: &str,
         args: &[Ty],
     ) -> Option<Vec<RecordField>> {
-        let mut seen: HashSet<(String, String)> = HashSet::new();
-        let decl = self.imported_type_body(module, name, &mut seen)?;
+        let decl = self.imported_type_body(module, name)?;
         let Ty::Record { fields } = decl.body else {
             return None;
         };
@@ -5146,30 +5119,10 @@ impl Assigner<'_> {
         )
     }
 
-    /// Resolve `(module, name)` to the sibling's lowered `type` declaration,
-    /// following a cross-module alias chain (`pub type Rows = Sheet` in the
-    /// sibling lowers to a `Ty::Imported` body, which is another hop). The one
-    /// place cross-module type resolution happens. A cycle returns `None`
-    /// rather than looping: permissive, never a hang.
-    fn imported_type_body(
-        &self,
-        module: &str,
-        name: &str,
-        seen: &mut HashSet<(String, String)>,
-    ) -> Option<ImportedTypeDecl> {
-        if !seen.insert((module.to_string(), name.to_string())) {
-            return None;
-        }
-        let decl = self.decl_ty_resolver.imported_type_decl(module, name)?;
-        if let Ty::Imported {
-            module: next_module,
-            name: next_name,
-        } = &decl.body
-        {
-            let (next_module, next_name) = (next_module.clone(), next_name.clone());
-            return self.imported_type_body(next_module.as_str(), &next_name, seen);
-        }
-        Some(decl)
+    /// The sibling's lowered `type` declaration at the end of the chain
+    /// `(module, name)` starts: `imported_decl_chain_end` without the address.
+    fn imported_type_body(&self, module: &str, name: &str) -> Option<ImportedTypeDecl> {
+        imported_decl_chain_end(self.decl_ty_resolver, module, name).map(|(_, _, decl)| decl)
     }
 
     /// The field set of a `Ty::Named` record declaration, with any generic
@@ -6305,6 +6258,49 @@ pub fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
     match ty {
         Ty::App { base, args } => (base.as_ref(), args.as_slice()),
         other => (other, &[]),
+    }
+}
+
+/// Follow `(module, name)` across the sibling's own chain of second names to
+/// the declaration it ends at, and answer where that is beside what it is.
+///
+/// `pub type Rows = Sheet` in a sibling lowers to a `Ty::Imported` body on the
+/// export view, which is another hop, so a caller reading the declaration
+/// behind an imported name reads the one at the end. The address answered is
+/// the pair the chain ends at, which is what two imported declarations are
+/// compared by: one declaration under two names has one address (D46). A
+/// cycle (`pub type A = B` beside `pub type B = A`) answers `None` rather than
+/// looping.
+///
+/// The one place a cross-module chain is walked, for the checker's own field,
+/// literal-set and assignability reads alike. Public so a surface that decides
+/// a pairing the way `imported_incompatible` decides it (the impact tool's
+/// `change_signature_type` cells) reads the declaration through this walk and
+/// the resolver the checker ran with, rather than through a walk of its own.
+pub fn imported_decl_chain_end(
+    resolver: &dyn DeclTyResolver,
+    module: &str,
+    name: &str,
+) -> Option<(String, String, ImportedTypeDecl)> {
+    let mut seen: HashSet<(String, String)> = HashSet::new();
+    let (mut module, mut name) = (module.to_string(), name.to_string());
+    loop {
+        if !seen.insert((module.clone(), name.clone())) {
+            return None;
+        }
+        let decl = resolver.imported_type_decl(&module, &name)?;
+        match &decl.body {
+            Ty::Imported {
+                module: next_module,
+                name: next_name,
+            } => {
+                let (next_module, next_name) =
+                    (next_module.as_str().to_string(), next_name.to_string());
+                module = next_module;
+                name = next_name;
+            }
+            _ => return Some((module, name, decl)),
+        }
     }
 }
 

@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-226 entries, 196 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+226 entries, 197 are fixed, 7 are partly fixed, 11 are decided or resolved, and
 11 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -8621,7 +8621,7 @@ and is the owner's to confirm.
   such a binding as the prelude type it spells, which is what kept the
   corpus's emission unchanged; the checker's side is its own entry.*
 
-- **G214. [HALF FIXED] The emitter re-derives 49 semantic facts the resolver and checker
+- **G214. [FIXED] The emitter re-derives 49 semantic facts the resolver and checker
   already compute, through six families of duplicated rules.** An audit of
   `glyph-emit/src/lib.rs` against `glyph-typechecker/src/assign.rs` found:
   `ProjectTables::from_modules` is called in `glyph-cli/src/build.rs` over
@@ -8704,6 +8704,42 @@ and is the owner's to confirm.
   per commit: the corpus and every app emitted before and after each, 684
   `.ts` files across 32 roots, `diff -r` empty three times.*
 
+  *Change 3, the arm classification. The checker records what every
+  `Pattern::Ident` node of a match arm is, a variant reference or a binding,
+  keyed by the node's span in the `TypeMap` it already hands the emitter
+  (`IdentPattern`, written by `record_pattern_tys`). It is the answer
+  `is_variant_reference` gave against the variant set `required_variants`
+  resolved, so the arm the checker counted as covering `blank` is the arm
+  that runs for it. The walk now visits every node rather than stopping
+  where a payload type does not resolve, and records the reading each
+  position's own check applies: an arm head and a payload sub-pattern
+  against the value's variant set, an object field by `bound_name`, an array
+  element by shape, which is what `is_refutable` reads there. The emitter
+  asks through one method, `ident_pattern_is_variant`, and refuses a node
+  the checker never classified (E0300) rather than falling back to the
+  spelling. Gone: `is_nested_variant_name`, the `is_variant` closure in
+  `emit_match_dispatch`, the catch-all test in `emit_pattern_chain` (which
+  consulted no variant list at all), the `Pattern::Ident` arms of
+  `pattern_conditions` and `emit_pattern_binds`, the element rule in
+  `has_structured_field`, and with them `nested_payload_variants` and
+  `user_variant_payload`. `is_variant_shaped` survives in `glyph-ast` for
+  the resolver and the checker; the emitter has no use of it left, as a
+  lowering detail or otherwise. The one span the checker never saw is the
+  `__pN` grouping binding `degroup_nested_arms` invents, which the emitter
+  records in a table of its own as the binding it made it: every other node
+  the rewritten arms dispatch on is an original sub-pattern carried over
+  with its own span, so the checker's answer for it is the answer for the
+  arm it came from. The emitter's non-test half is flat at 7,120 lines
+  against 7,121, four rules and two walks out and one documented lookup in.
+  Five RED-first emitter tests, one per site plus the refusal; a PascalCase
+  binding has no test because the language has none, D9 fixing a PascalCase
+  head as a variant reference before any type is known. The sibling test
+  harness now runs the checker with the resolver it hands the emitter, as
+  `glyph build` hands both the same `SalsaDeclTy`; it used to check `main`
+  without its siblings and emit it with them, which is the same two answers
+  in the harness. Evidence: every app at its own root and the corpus, 684
+  `.ts` files across 32 roots, `diff -r` empty.*
+
   *Kept, and why: `plain_descriptors` and `descriptorless_aliases` stay
   because descriptor-ness is an emission fact the trait has no query for.
   `resolve_imported_alias_leaf` stays, walking the sibling's exported bodies
@@ -8715,8 +8751,12 @@ and is the owner's to confirm.
   read one level on purpose: they compensate for the narrowing TypeScript
   keeps on the annotated name, a fact about emission. `project_modules` and
   `imported_module_paths` are the reachability facts the resolver has no
-  reverse index for. The four `is_variant_shaped` rules are untouched; that
-  is change 3. Two edges the trait path inherits
+  reverse index for. What stays emitter-owned after all three changes is
+  what the audit listed as emission rather than language: whether a
+  declaration emits a runtime descriptor and its arity, the flat-versus-boxed
+  payload representation, runtime verifiability (E0304), the narrowing
+  compensation above, the duplicate `case`-label guard, and the hoisting
+  analyses. Two edges the trait path inherits
   from the checker rather than from the old scan: a sibling that fails to
   resolve answers nothing (the old tables read its AST anyway), which only
   changes a build that was already red, and a scrutinee typed by an imported
@@ -8766,10 +8806,15 @@ and is the owner's to confirm.
   the published 0.1.119 exits 0 on it with `no diagnostics`, this build exits
   1 with `E0211 expected string, found Status`. Breaking in the checking
   direction. The corpus, every app as its own root and the docs compile
-  unchanged. The `change_signature_type` cells in `glyph-lsp/src/mcp.rs` that
-  answer `UNDETERMINED` for an imported argument (`(A::Imported, _)`) and for
-  an imported parameter (`(_, P::Imported)`) now describe a rule the checker
-  has; flipping them is scheduled with G221 in 0.1.121.*
+  unchanged. The `change_signature_type` cells in `glyph-lsp/src/mcp.rs` are
+  flipped in the same release: an imported argument and an imported parameter
+  each carry what the declaration at the end of their chain of names is, read
+  through the checker's own walk, so the cells answer `WILL_FAIL` with E0211
+  where the checker decides the pairing and `UNDETERMINED` naming the shape
+  where it declines. Eleven `mcp.rs` unit tests, one per cell, each run
+  against the checker first; an `agent_loop` test asks over the protocol,
+  makes the edit the verdict names, and gets E0211 on the site it called
+  `WILL_FAIL`.*
 
 - **G216. A prelude application (`Option<int>`, `Nullable<int>`) where a
   primitive is declared is silent.** `let o: Option<int> = Some(3)` then

@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-224 entries, 193 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-12 are open. G144, the D28 boundary cast that never reached the returns a
+226 entries, 193 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8915,3 +8915,35 @@ and is the owner's to confirm.
   `E0204` under 0.1.118 and is silent here, which `tsc` agrees with. The
   first is the alias spelling of G215 and closes with it; the second was a
   program the checker rejected and `tsc` accepted.*
+
+- **G225. A namespace import of `std/string` shadows the prelude type
+  `string`, and `let x: string = 5` goes silent.** With `import std/string`
+  the resolver binds the type name `string` to the import, the lowerer answers
+  `Unknown` for the annotation, and the mismatch draws nothing; with the named
+  form `import std/string { trim }` the same line is `E0204`. One import
+  spelling switches the checker off for the most common annotation in the
+  language, in every module that uses the namespace form, which the stdlib
+  reference recommends. Likely the same for `import std/array` against
+  `Array<T>`; not verified. Found while landing 0.1.120 change 3, whose first
+  resolution rule exposed it as `E0304` in four apps and the corpus; the emitter
+  now reads a namespace binding as the prelude type it spells, which is the
+  lowerer's own rule for `import std/result { Result }`, and the checker should
+  do the same at the annotation.
+
+  *Reproduced against 0.1.118: the program with `import std/string` is `no diagnostics`, exit 0; with `import std/string { trim }` and `trim(...)` it is `[E0204] type mismatch: expected string, found number`, exit 1.*
+
+- **G226. Canonicalizing an alias to its imported declaration lost a diagnostic
+  the previous release had.** 0.1.120 change 1 made `resolve_alias_chain`
+  cross the module boundary so a match over `type Local = Shape` with `Shape`
+  imported is exhaustiveness-checked (G224). A consequence measured with both
+  binaries: `let l: Local = o` with `o: Other`, a local record, was `E0204` under
+  0.1.118 and is silent under `check --no-tsc` now, because the canonical type
+  is `Ty::Imported` and `definitely_incompatible` has no rule for an imported
+  declaration against a local one (the same gap G215 records for an imported
+  declaration against a primitive). tsc still catches it, so `glyph build` is
+  red either way; the surfaces an agent reads are not. A release that removes a
+  true diagnostic has moved the pillar backwards, so this closes in 0.1.120
+  with G215, by resolving `Ty::Imported` through `imported_type_decl` to the
+  union or record it names and deciding the pairing the way the local rule does.
+
+  *Reproduced against 0.1.118 and the 0.1.120 tree at `0e6f2f3`: `E0204` before, `no diagnostics` after, on the program in `/private/tmp/claude-501/dev120-probe/aliascmp` (a local record assigned to a local alias of an imported union).*

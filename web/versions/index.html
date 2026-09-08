@@ -61,8 +61,42 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.119</span>
+            <span class="rel-ver">0.1.120</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An imported union passed where a string is declared, without tsc</h3>
+            <p>A function imported from another module and a value assigned across that boundary used to get a pass that the same code in one file never got. Passing a union imported from a sibling module where a plain <code>string</code> parameter is declared drew nothing from <code>glyph check --no-tsc</code>; the identical call with the union declared locally has reported <code>E0211</code> since 0.1.116.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>import lib { Status, Pending }
+
+fn shout(s: string) -> string {
+  return s
+}
+
+fn main() {
+  let st: Status = Pending
+  shout(st)
+}
+<span class="del">// 0.1.119: builds clean</span>
+<span class="add">// 0.1.120: [E0211] expected `string`, found `Status`</span></pre>
+            </div>
+            <p>Two more of the same shape close alongside it. A <code>match</code> over a local alias of an imported union (<code>type Local = Shape</code>, then <code>match s: Local { ... }</code>) was not exhaustiveness-checked at all; it now gets the same <code>E0200</code> a match over <code>Shape</code> directly has always gotten. And <code>import std/string</code>, the namespace form the stdlib reference recommends, bound the name <code>string</code> without the checker noticing: <code>let x: string = 5</code> built clean under that import, while the named form <code>import std/string { trim }</code> caught it. Both forms now report <code>E0204</code>. Separately, a user program that declares its own <code>type Option&lt;T&gt;</code> no longer gets the prelude <code>Option</code>'s runtime check stapled onto a type of its own.</p>
+            <h3>What changed underneath: the emitter reads the checker's answers instead of computing its own</h3>
+            <p>All four of the above are one cause. The emitter used to re-derive semantic facts the checker had already worked out: which declaration a name resolves to, whether a field exists on a type, whether a bare identifier in a match arm names a variant or binds a value. An audit of the emitter found 49 sites doing this across six families. Three changes remove them: the emitter now holds the same resolver the checker built for the module, so an imported declaration is read once instead of independently re-discovered; it walks one alias chain instead of four separate copies, and decides a field's runtime check from the resolved type rather than a name's last segment; and it reads the checker's own record of which pattern nodes are variants rather than guessing from capitalisation. Landing each of the three changes is what surfaced the four holes above, because the checker had never been asked those questions from the emitter's position before: the emitter was answering them itself.</p>
+            <p>No program that compiled before emits different TypeScript. Every application under <code>examples/apps/</code> at its own root, plus the full corpus, was emitted before and after each of the three changes: 684 TypeScript files across 32 roots, byte-identical every time.</p>
+            <p class="rel-note"><strong>Breaking.</strong> The four items above each turn a previously silent program red under <code>glyph check --no-tsc</code>. Established by running the published 0.1.119 and this release on the same four programs, under an isolated <code>HOME</code>: the imported-union-as-string call, the match over a local alias of an imported union, and the namespace-import shadowing case each exit 0 under 0.1.119 and 1 under this release, reporting <code>E0211</code>, <code>E0200</code> and <code>E0204</code> in turn; a control program that imports and matches a union correctly stays exit 0 on both.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.119</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

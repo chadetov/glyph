@@ -5335,7 +5335,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G119: `url.join`'s `Err` branch is nearly unreachable and nothing says so; the fix is documentation
 - G178: eleven modules are shipped and importable with no documented signatures
 
-**0.1.119 — Landed on main · The house we live in**
+**0.1.119 — Shipped 2026-09-08 · The house we live in**
 - Four entries about this repository rather than the language, and they share a failure: a thing that cannot be run is reviewed by reading
 - G202: **fixed.** The manifest is the one source: the README says 0.2.127, `build.sh` reads the pin out of `Cargo.toml` and refuses with the exact install line when the installed cli differs, and `check_playground_pin.py` fails if the README, the script or the Pages workflow drifts from the manifest
 - G159: **fixed, and the premise was narrower than recorded.** `slugify` and `load_feed` did not compile as stated, and `parse_user` compiled only without tsc. All three now pass `glyph check` with tsc and `check_benchmark_fixtures.py` keeps it so. The numbers moved: Glyph is 436 tokens to TypeScript's 478 on the three functions, not 341, about 9% fewer rather than 29%, and level with Python; `benchmarks/FINDINGS.md` and the README say so, because a density claim measured on programs the compiler rejects is not a measurement
@@ -5351,7 +5351,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G39 (member set): member access and calls on `string`, `number`, `bool` and `Array<T>` are unchecked against `Ty::Unknown` in `glyph check --no-tsc`, the LSP, the MCP server and the playground. Not a checker hole `tsc` lets through; the four surfaces just don't have `tsc` in the loop. Modelling the member set per primitive is the stdlib-from-`.d.ts` question, Q21/Q40, and waits on that architecture decision rather than growing the hand-written table further
 
 
-**0.1.120 — The emitter consumes facts, it does not rediscover them**
+**0.1.120 — Landed on main · The emitter consumes facts, it does not rediscover them**
 - **The principle, stated once.** The emitter must consume semantic facts computed by the resolver and the typechecker; it must not independently rediscover language semantics. The rule is recorded in `04-transpiler.md` beside the decisions it refines. Three releases in a row found the cost of breaking it: G147, where the emitter's own variant-list rule could not see an imported payload the checker knew; G207, where the `where` refusal grew a second alias walker inside the emitter instead of reading the checker's; and G212, where a pass read a type name the rest of the checker had already resolved through an alias. Each was one spelling with two answers, and each was found by an outside reading rather than by a test, because a test written against the emitter's own reading passes
 - **What the audit found (G214), and what shipped.** 49 rediscovery sites in six families. The three changes landed in order and each one uncovered a hole of the same family in the checker, which is the argument for the principle in one line:
   1. **`decls: &dyn DeclTyResolver` on `EmitContext`.** `build.rs` passes the `SalsaDeclTy` the checker already uses; the playground and the test harness pass a unit resolver, which is the previous single-module behaviour. Four AST-only registries and the spelling-based `ModuleTypeNames` are gone. Landing it found G224: a match over a local alias of an imported union was not exhaustiveness-checked at all

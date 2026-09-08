@@ -1,0 +1,12 @@
+module namespace_import_shadows_prelude_string
+import std/string
+
+// `import std/string` binds the name `string`, and the annotation resolves to
+// that binding. It is still the prelude's `string` (G225): the namespace form
+// must not switch the checker off for the most common annotation in the
+// language, so the mismatch is E0204 here as it is under `import std/string
+// { trim }`.
+pub fn main() -> string {
+  let x: string = 5
+  return string.trim(x)
+}

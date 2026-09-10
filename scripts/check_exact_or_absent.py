@@ -1408,6 +1408,62 @@ def case_signature_type_unparsed_site_is_unindexed() -> tuple[bool, str]:
     return True, "the unparsed file is unindexed, and the two read sites are decided"
 
 
+ASSIGNABLE = pathlib.Path("assignable")
+
+
+def assignable(project: pathlib.Path, frm: str, to: str) -> dict:
+    return call(project, "glyph_assignable",
+                {"path": "src/main.glyph", "from": frm, "to": to})
+
+
+def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
+    """A pairing the checker has no rule for is UNDETERMINED, never compatible.
+
+    `glyph_assignable` is the tool most tempted to answer by the absence of a
+    refusal: the relation underneath returns a bool, and its `false` covers
+    both "a rule accepted this" and "no rule looked". Two function types are
+    where the two come apart, because the relation compares the returns and
+    says nothing at all about the parameters, so a `fn(string) -> bool` where a
+    `fn(number) -> bool` is declared draws nothing and is not thereby correct.
+    That pairing has to come back UNDETERMINED with the missing rule named,
+    while a pairing a rule does read comes back decided either way.
+    """
+    silent = assignable(CORPUS / ASSIGNABLE, "fn(string) -> bool", "fn(number) -> bool")
+    if "error" in silent:
+        return False, f"refused: {silent['error'][:160]}"
+    if silent.get("verdict") != "UNDETERMINED":
+        return False, f"a pairing no rule reads is {silent.get('verdict')}: {silent}"
+    because = silent.get("because") or ""
+    if "no rule" not in because:
+        return False, f"UNDETERMINED does not name the missing rule: {because[:200]}"
+    if silent.get("diagnostics") is not None or not silent.get("diagnostics_absent"):
+        return False, f"an undecided pairing carries a diagnostic list: {silent}"
+
+    # An alias for a primitive in another module is the second shape of the
+    # same thing: the relation reads an imported declaration only when it is a
+    # union or a record, so this one is undecided rather than accepted.
+    alias = assignable(CORPUS / ASSIGNABLE, "number", "lib::Id")
+    if alias.get("verdict") != "UNDETERMINED":
+        return False, f"an imported primitive alias is {alias.get('verdict')}: {alias}"
+
+    refused = assignable(CORPUS / ASSIGNABLE, "Nullable<int>", "int")
+    if refused.get("verdict") != "WILL_FAIL":
+        return False, f"`Nullable<int>` into `int` is {refused.get('verdict')}: {refused}"
+    codes = [d.get("code") for d in refused.get("diagnostics") or []]
+    if codes != ["E0204", "E0211"]:
+        return False, f"a proved refusal names no codes: {refused}"
+
+    accepted = assignable(CORPUS / ASSIGNABLE, "lib::Shape", "lib::Shape")
+    if accepted.get("verdict") != "COMPATIBLE":
+        return False, f"one declaration against itself is {accepted.get('verdict')}: {accepted}"
+
+    # A type nobody resolved is refused, not answered about.
+    unknown = assignable(CORPUS / ASSIGNABLE, "NotAType", "string")
+    if "error" not in unknown:
+        return False, f"an unresolved spelling was answered: {unknown}"
+    return True, "the undecided pairing is undecided, and the decided ones are decided"
+
+
 def case_impact_answers_a_second_hop() -> tuple[bool, str]:
     """A request past hop 1 is answered, not refused.
 
@@ -1495,6 +1551,7 @@ HARD = [
     ("a hop-2 request is answered", case_impact_answers_a_second_hop),
     ("an unparsed call site is unindexed, not judged", case_signature_type_unparsed_site_is_unindexed),
     ("a consequence needs a named change", case_a_change_is_required_for_a_consequence),
+    ("assignability: no rule is not compatible", case_assignable_has_no_rule_and_says_so),
 ]
 
 KNOWN: list[tuple[str, object, str]] = []

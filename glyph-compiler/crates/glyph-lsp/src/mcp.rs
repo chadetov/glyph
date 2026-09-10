@@ -95,6 +95,17 @@ struct Project {
     /// The entry list last pushed to the database, so `set_project` fires only
     /// when the set actually changed (see `refresh`).
     entries: Vec<(String, SourceFile)>,
+    /// The scratch input `glyph_assignable` writes a probe module into, made
+    /// once and rewritten per call.
+    ///
+    /// Deliberately outside `files` and outside `entries`: it holds a copy of
+    /// some member's text with two type aliases appended, and a second file
+    /// claiming that module path would answer another module's `import`. It
+    /// is an input rather than an out-of-band parse so that the resolver, the
+    /// lowerer and the `DeclTyResolver` behind it are the ones the checker
+    /// runs with, and so the probe's own declaration indices are the ones its
+    /// resolver hands out.
+    probe: Option<SourceFile>,
 }
 
 impl Project {
@@ -113,6 +124,24 @@ impl Project {
             files: BTreeMap::new(),
             outsider: None,
             entries: Vec::new(),
+            probe: None,
+        }
+    }
+
+    /// Put `text` into the probe input and hand back its handle. The input is
+    /// created once per database and rewritten afterwards, so a repeated call
+    /// with the same text writes nothing and re-executes no query.
+    fn write_probe(&mut self, text: String) -> SourceFile {
+        match self.probe {
+            Some(file) => {
+                self.db.set_file_text(file, text);
+                file
+            }
+            None => {
+                let file = SourceFile::new(&self.db, PROBE_VIRTUAL_PATH.to_string(), text);
+                self.probe = Some(file);
+                file
+            }
         }
     }
 
@@ -306,6 +335,12 @@ impl Server {
     /// is asking about; it is guaranteed to be in the returned database when it
     /// is readable and under the project root.
     fn project(&mut self, project_root: &Path, target: &Path) -> &Project {
+        self.project_mut(project_root, target)
+    }
+
+    /// The same database, borrowed mutably. Only `glyph_assignable` needs it:
+    /// it writes a probe module into the database as an input.
+    fn project_mut(&mut self, project_root: &Path, target: &Path) -> &mut Project {
         match self.projects.iter().position(|p| p.root == project_root) {
             Some(i) => {
                 let project = self.projects.remove(i);
@@ -349,6 +384,19 @@ pub fn run_stdio(root: PathBuf) {
             }
         }
     }
+}
+
+/// Answer one tool call against a fresh server rooted at `root`, with no
+/// transport in the way.
+///
+/// `glyph query` is the only caller. It exists so an agent with no MCP client
+/// reaches the same `call_tool` an MCP client reaches, rather than a second
+/// implementation of each question that would answer differently the first
+/// time one of them was extended. `Ok` is the tool's JSON; `Err` is the
+/// refusal an MCP client would receive as `isError`.
+pub fn call_tool_once(root: PathBuf, tool: &str, arguments: Value) -> Result<String, String> {
+    let mut server = Server::new(root);
+    call_tool(&json!({ "name": tool, "arguments": arguments }), &mut server)
 }
 
 /// Dispatch one JSON-RPC message. Returns the response for a request, or `None`
@@ -423,6 +471,8 @@ fn initialize_result() -> Value {
 fn tool_specs() -> Value {
     let file = json!({ "type": "string", "description": "Path to a .glyph file, relative to the project root or absolute." });
     let line = json!({ "type": "integer", "description": "0-based line number." });
+    let assignable_from = json!({ "type": "string", "description": "The value's type. A type, either as `module::name` addressing a type declaration of this project or as a Glyph type expression written as it would appear in an annotation in the file at `path` (`string`, `int`, `Nullable<int>`, `Option<Order>`, `Array<string>`, `{ id: string }`, `fn(number) -> bool`). One line." });
+    let assignable_to = json!({ "type": "string", "description": "The declared type the value would go into. A type, either as `module::name` addressing a type declaration of this project or as a Glyph type expression written as it would appear in an annotation in the file at `path` (`string`, `int`, `Nullable<int>`, `Option<Order>`, `Array<string>`, `{ id: string }`, `fn(number) -> bool`). One line." });
     let character = json!({ "type": "integer", "description": "0-based character offset (UTF-16 code units)." });
     let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position. A record field is addressed as `Record.field` (`User.email`), with the record named the way the file at `path` names it: a bare field name is not an address, since two records in one module can each declare a field of that name. The field form answers `{ entity, relation, sites, unkeyed, unindexed, not_indexed }` rather than the relation split, because it reads a different relation, `FIELD_ACCESS`, named on the answer and on every site it keyed: `sites` are the field's own declaration and every member access the checker resolved onto that record, each with `access` (`declaration`, `read`, `write`, `redact`) and a range covering the field's name alone, so a rename can write from it; `unkeyed` holds sites that spell the field on an object whose type never resolved to a field set, which the compiler never joined to any record and which are named rather than dropped, each with `relation` null and `relation_absent` saying so, since a site in no relation must not carry one; `unindexed` names the project files the sweep could not read, one by one, since a file that does not parse holds field sites this answer cannot see; and `not_indexed` names the classes of site the relation does not hold at all, of which a record literal constructing the record is one." });
     let type_name = json!({ "type": "string", "description": "Name of a tagged union, as the file at `path` names it: one it declares, one it imports, or a prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`). The module the name resolves to is what picks out one declaration when several modules declare the same name." });
@@ -506,6 +556,11 @@ fn tool_specs() -> Value {
             "name": "glyph_symbols",
             "description": "Search the project's top-level declarations (and tagged-union variants) by name substring; an empty query lists them all.",
             "inputSchema": { "type": "object", "properties": { "query": { "type": "string", "description": "Case-insensitive name substring; empty matches everything." } } }
+        },
+        {
+            "name": "glyph_assignable",
+            "description": "Can a value of one type go where another is declared. Asks the checker's own assignability relation, the one it runs at a `let`, a `const`, a `return` and a call argument, and reports nothing it did not decide. Use it before you widen a parameter, reach for a cast, or assume a boundary type flows into a scalar: `Nullable<int>` into `int` is refused and TypeScript cannot catch it, because the emitted `number | null` narrows.\\n\\n`path` is a `.glyph` file, and it names the scope both types are read in as well as the project they are counted in. `from` and `to` are each either a `module::name` addressing a type declaration, the same identity `glyph_symbol` and `glyph_impact` use, or a Glyph type expression written exactly as it would appear in an annotation in that file: `string`, `int`, `Nullable<int>`, `Option<Order>`, `Array<string>`, `{ id: string }`, `fn(number) -> bool`, `orders.Order` through a namespace import. Both are resolved by the compiler's own parser, resolver and lowerer in that file's scope, so a second name (D46), an imported declaration and a prelude container all mean here what they mean there. A spelling that is not a type expression, a `module::name` this project does not hold or that names something other than a type, and a name the file's scope does not reach are each refused with the reason rather than answered.\\n\\nThe answer is `{ path, module, from, to, verdict, because, diagnostics, resolved_in }`, with `from` and `to` each carrying `asked`, `form` (`spelling` or `entity`), `read_as` (the type the compiler resolved it to, which is where you see `int` come back as `number`) and `entity`. The verdicts are closed and each means one thing. `WILL_FAIL`: a rule of the relation refuses the pairing, so every site that writes it is a diagnostic, and `diagnostics` names the code per site, E0204 at an annotated `let` or `const` and at a `return`, E0211 at a call argument. `COMPATIBLE`: a rule read the pairing and accepted it. `UNDETERMINED`: no rule covers the pairing, so Glyph reports nothing here and only `tsc` on a full `glyph build` would see a mismatch; `because` names what is missing.\\n\\n`COMPATIBLE` is never the absence of a refusal. The relation refuses only what it can prove wrong, so a silent pass is not an acceptance, and this claims one only where a rule is total over the pairing: it would have refused had the two sides differed in the way it reads. Two function types are the shape of the difference, and they come back `UNDETERMINED`: the relation compares the returns and the `async` flag and says nothing at all about the parameters. A `COMPATIBLE` answer is Glyph accepting, not a proof that `tsc` will.",
+            "inputSchema": { "type": "object", "properties": { "path": file, "from": assignable_from, "to": assignable_to }, "required": ["path", "from", "to"] }
         }
     ])
 }
@@ -539,6 +594,7 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
         "glyph_impact" => tool_impact(&args, server),
         "glyph_symbol" => tool_symbol(&args, server),
         "glyph_symbols" => tool_symbols(&args, server),
+        "glyph_assignable" => tool_assignable(&args, server),
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -4149,6 +4205,11 @@ enum Verdict {
     /// this shape can ever be decided. **Never askable**, which is a fact
     /// about the model rather than about this site.
     NotIndexed,
+    /// A rule of the checker's assignability relation read this pairing and
+    /// accepted it. Produced by `glyph_assignable` and by nothing else: the
+    /// other tools answer about an edit at a site, where the corresponding
+    /// word is `SAFE`, and this one answers about two types.
+    Compatible,
 }
 
 impl Verdict {
@@ -4159,6 +4220,7 @@ impl Verdict {
             Verdict::Safe => "SAFE",
             Verdict::Undetermined => "UNDETERMINED",
             Verdict::NotIndexed => "NOT_INDEXED",
+            Verdict::Compatible => "COMPATIBLE",
         }
     }
 }
@@ -6565,6 +6627,401 @@ enum SymbolAddress {
     Entity { module: String, name: String },
     /// A file and a position in it, what an editor has under its cursor.
     Position,
+}
+
+// ============================================================================
+// glyph_assignable
+// ============================================================================
+
+/// The virtual path the probe input carries. Not a module path and not a file
+/// on disk: nothing resolves an `import` to it, because it is never in the
+/// project's entry list.
+const PROBE_VIRTUAL_PATH: &str = "<glyph_assignable probe>";
+
+/// The two aliases the probe declares. PascalCase because they are types, and
+/// distinctive because a module that already declares one is refused rather
+/// than answered about the wrong declaration.
+const PROBE_FROM: &str = "GlyphAssignableProbeFrom";
+const PROBE_TO: &str = "GlyphAssignableProbeTo";
+
+/// One side of the question: what the caller wrote, how it was read, and the
+/// `Ty` the compiler resolved it to in the anchor module's scope.
+struct TypeSide {
+    /// The argument verbatim.
+    asked: String,
+    /// `spelling` or `entity`.
+    form: &'static str,
+    /// What the probe module writes on the right of the alias. The same string
+    /// as `asked` for a spelling; a namespace-qualified path for an entity
+    /// addressed in another module.
+    spelled: String,
+    /// The `module::name` the entity form addressed, and what the compiler
+    /// says that symbol is. `None` for a spelling.
+    entity: Option<(String, String)>,
+    ty: Ty,
+}
+
+impl TypeSide {
+    fn value(&self) -> Value {
+        let mut out = serde_json::Map::new();
+        out.insert("asked".to_string(), json!(self.asked));
+        out.insert("form".to_string(), json!(self.form));
+        out.insert("read_as".to_string(), json!(display_ty(&self.ty)));
+        fact(
+            &mut out,
+            "entity",
+            self.entity
+                .as_ref()
+                .map(|(m, n)| json!(format!("{m}::{n}"))),
+            "this side was asked as a type expression rather than as a \
+             `module::name`, and a type expression addresses no one declaration"
+                .to_string(),
+        );
+        Value::Object(out)
+    }
+}
+
+/// The kinds `glyph_symbol` reports that are a type, so a `module::name`
+/// naming a function, a const or a variant is refused rather than compared
+/// against as if it were one.
+const TYPE_KINDS: &[&str] = &[
+    "record",
+    "union",
+    "string-literal-union",
+    "alias",
+    "function-type",
+    "extern-ts",
+    "typeof",
+    "interface",
+];
+
+/// Read one `from` / `to` argument, and say which of the two forms it is.
+///
+/// Two spellings are accepted and everything else is refused with the reason.
+/// A `module::name` addresses a declaration the way `glyph_symbol` and
+/// `glyph_impact` address one. Anything else is read as a Glyph type
+/// expression, exactly as it would be written in the file at `path`, and it is
+/// parsed here before anything else looks at it so that a malformed spelling
+/// comes back as a malformed spelling rather than as a resolution failure
+/// somewhere downstream.
+fn read_type_arg(args: &Value, key: &str) -> Result<(String, bool), String> {
+    let raw = match args.get(key) {
+        Some(Value::String(s)) => s.clone(),
+        Some(other) => {
+            return Err(format!(
+                "`{key}` must be a string: either a `module::name` addressing a type \
+                 declaration, or a Glyph type expression as it would be written in the \
+                 file at `path` (`string`, `int`, `Nullable<int>`, `Option<Order>`, \
+                 `Array<string>`, `{{ id: string }}`). Got {other}."
+            ))
+        }
+        None => {
+            return Err(format!(
+                "`{key}` is required. Both sides of an assignability question have to be \
+                 named: this answers whether a value of `from` can go where `to` is \
+                 declared, and neither side has a default."
+            ))
+        }
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err(format!("`{key}` is empty, and an empty string names no type."));
+    }
+    if trimmed.contains('\n') || trimmed.contains('\r') {
+        return Err(format!(
+            "`{key}` spans more than one line. A type expression is read on one line here, \
+             because it is written into a single `type` declaration to be resolved in the \
+             scope of the file at `path`."
+        ));
+    }
+    let entity = trimmed.contains("::");
+    if !entity {
+        // Parse it alone before the project is touched, so a syntax error is
+        // reported as one instead of arriving as an unresolved name.
+        let probe = format!("module probe\ntype {PROBE_FROM} = {trimmed}\n");
+        if let Err(e) = glyph_parser::parse(&probe) {
+            return Err(format!(
+                "`{key}` (`{trimmed}`) is not a Glyph type expression: {e}. Write it as it \
+                 would appear in an annotation (`string`, `int`, `Nullable<int>`, \
+                 `Option<Order>`, `Array<string>`, `{{ id: string }}`, `fn(number) -> \
+                 bool`), or address a declaration as `module::name`."
+            ));
+        }
+    }
+    Ok((trimmed.to_string(), entity))
+}
+
+/// Turn one argument into the text the probe module declares for it, checking
+/// on the way that an entity form addresses a type this project holds.
+///
+/// The entity form is answered through `describe_symbol`, the same query
+/// `glyph_symbol` answers from, so "no file of this project is module `x`" and
+/// "module `x` declares no `y`" are one message here and there rather than two
+/// that drift. A declaration in another module is written into the probe as a
+/// namespace import plus a qualified path, which is a spelling the resolver
+/// and the lowerer already read; a declaration in the anchor's own module is
+/// written bare, because a module cannot import itself.
+fn probe_side(
+    project: &Project,
+    root: &Path,
+    anchor_module: &str,
+    key: &str,
+    asked: &str,
+    is_entity: bool,
+    imports: &mut Vec<String>,
+) -> Result<(String, Option<(String, String)>), String> {
+    if !is_entity {
+        return Ok((asked.to_string(), None));
+    }
+    let (module, name) = asked
+        .rsplit_once("::")
+        .map(|(m, n)| (m.trim().to_string(), n.trim().to_string()))
+        .ok_or_else(|| format!("`{key}` (`{asked}`) is not a `module::name` address."))?;
+    if module.is_empty() || name.is_empty() {
+        return Err(format!(
+            "`{key}` (`{asked}`) has an empty half: a `module::name` address needs both."
+        ));
+    }
+    let described = describe_symbol(project, root, &module, &name)?;
+    let kind = described
+        .get("kind")
+        .and_then(|k| k.as_str())
+        .unwrap_or_default();
+    if !TYPE_KINDS.contains(&kind) {
+        return Err(format!(
+            "`{module}::{name}` is {}, not a type, so there is nothing here to put on \
+             either side of an assignability question. `glyph_symbol` on it describes what \
+             it is.",
+            a_kind(kind)
+        ));
+    }
+    if module == anchor_module {
+        return Ok((name.clone(), Some((module, name))));
+    }
+    if described.get("pub") != Some(&json!(true)) {
+        return Err(format!(
+            "`{module}::{name}` is not `pub`, so no other module can name it, and the \
+             file at `path` is in module `{anchor_module}`. Ask about it from a file of \
+             `{module}`, or export it."
+        ));
+    }
+    let alias = format!("glyph_assignable_ns{}", imports.len());
+    imports.push(format!("import {module} as {alias}"));
+    Ok((format!("{alias}.{name}"), Some((module, name))))
+}
+
+/// Can a value of type `from` go where `to` is declared, asked of the
+/// checker's own comparison and nothing else.
+///
+/// **How the two types are read.** Both are resolved in the scope of the file
+/// at `path`, by writing that file's text plus two `type` aliases into a probe
+/// module and running the real parser, resolver and lowerer over it. A second
+/// resolution written here would be a second reading of what `Nullable<int>`,
+/// `Option<Order>` or a namespace-qualified name means, and the two would
+/// disagree the first time one of them was extended. The probe is a database
+/// input the project never lists, so it resolves imports as the anchor file
+/// does and answers nobody else's.
+///
+/// **What the verdict is.** `WILL_FAIL` is `assign_incompatible` refusing the
+/// pairing: the same call the checker makes at a `let`, a `const`, a `return`
+/// and a call argument. `COMPATIBLE` is a rule of that relation positively
+/// accepting, never the absence of a refusal, which is why a pairing the
+/// relation merely stayed silent about comes back `UNDETERMINED` with the
+/// missing rule named. The split is `glyph_typechecker::assignability`, and
+/// the list of rules total enough to accept from is there.
+fn tool_assignable(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let (path, _) = read_file(args, &root)?;
+    let (from_asked, from_is_entity) = read_type_arg(args, "from")?;
+    let (to_asked, to_is_entity) = read_type_arg(args, "to")?;
+    let project_root = crate::module_root_for(&path, &root);
+    let project = server.project_mut(&project_root, &path);
+
+    let Some(anchor) = project.queried(&path) else {
+        return Err(format!(
+            "{} could not be read, so there is no scope to resolve these types in.",
+            display_path(&root, &path)
+        ));
+    };
+    let anchor_module = anchor.module_path.clone();
+    let anchor_file = anchor.file;
+    let base = {
+        let parsed = glyph_db::parse_module(&project.db, anchor_file);
+        let Some(module_ast) = parsed.module() else {
+            return Err(format!(
+                "{} does not parse, so no type spelling can be resolved in its scope. \
+                 `glyph_diagnostics` on it reports why.",
+                display_path(&root, &path)
+            ));
+        };
+        for decl in &module_ast.items {
+            if let glyph_ast::Decl::Type(t) = decl {
+                if t.name.as_ref() == PROBE_FROM || t.name.as_ref() == PROBE_TO {
+                    return Err(format!(
+                        "{} already declares `{}`, which is the name this tool writes into \
+                         a scratch copy of the module to resolve a type spelling. Rename \
+                         it, or ask from another file of the same project.",
+                        display_path(&root, &path),
+                        t.name
+                    ));
+                }
+            }
+        }
+        anchor_file.source_text(&project.db).clone()
+    };
+
+    let mut imports: Vec<String> = Vec::new();
+    let from_spelled = probe_side(
+        project,
+        &root,
+        &anchor_module,
+        "from",
+        &from_asked,
+        from_is_entity,
+        &mut imports,
+    )?;
+    let to_spelled = probe_side(
+        project,
+        &root,
+        &anchor_module,
+        "to",
+        &to_asked,
+        to_is_entity,
+        &mut imports,
+    )?;
+
+    let mut appendix = String::from("\n");
+    for line in &imports {
+        appendix.push_str(line);
+        appendix.push('\n');
+    }
+    appendix.push_str(&format!("type {PROBE_FROM} = {}\n", from_spelled.0));
+    appendix.push_str(&format!("type {PROBE_TO} = {}\n", to_spelled.0));
+    let cut = base.len() as u32;
+    let probe = project.write_probe(format!("{base}{appendix}"));
+
+    let db = &project.db;
+    let parsed = glyph_db::parse_module(db, probe);
+    let Some(probe_ast) = parsed.module() else {
+        return Err(format!(
+            "the two type spellings did not parse in the scope of {}: {}",
+            display_path(&root, &path),
+            parsed
+                .error()
+                .map(|e| e.to_string())
+                .unwrap_or_else(|| "the module did not parse".to_string())
+        ));
+    };
+    let resolved = glyph_db::resolve(db, probe);
+    if let Some(err) = resolved.errors().iter().find(|e| e.span().start >= cut) {
+        return Err(format!(
+            "a name in these type spellings does not resolve in module `{anchor_module}`: \
+             {err}. A type expression is read exactly as it would be written in the file \
+             at `path`, so a declaration that file does not import has to be addressed as \
+             `module::name`."
+        ));
+    }
+    let Some(probe_resolved) = resolved.resolved() else {
+        return Err(format!(
+            "module `{anchor_module}` does not resolve, so nothing can be compared in its \
+             scope. `glyph_diagnostics` on {} reports why.",
+            display_path(&root, &path)
+        ));
+    };
+
+    let decls = SalsaDeclTy::new(db, probe);
+    let lowerer = Lowerer::with_imports(probe_resolved, db.prelude(), &decls);
+    let body = |name: &str| {
+        probe_ast.items.iter().find_map(|d| match d {
+            glyph_ast::Decl::Type(t) if t.name.as_ref() == name => Some(&t.body),
+            _ => None,
+        })
+    };
+    let (Some(from_body), Some(to_body)) = (body(PROBE_FROM), body(PROBE_TO)) else {
+        return Err(
+            "the probe module lost one of its two type declarations, which is a bug in \
+             this tool rather than a fact about the project"
+                .to_string(),
+        );
+    };
+    let from = TypeSide {
+        asked: from_asked,
+        form: if from_is_entity { "entity" } else { "spelling" },
+        spelled: from_spelled.0,
+        entity: from_spelled.1,
+        ty: lowerer.lower(from_body),
+    };
+    let to = TypeSide {
+        asked: to_asked,
+        form: if to_is_entity { "entity" } else { "spelling" },
+        spelled: to_spelled.0,
+        entity: to_spelled.1,
+        ty: lowerer.lower(to_body),
+    };
+
+    let verdict = glyph_typechecker::assignability(
+        probe_ast,
+        probe_resolved,
+        db.prelude(),
+        &decls,
+        &from.ty,
+        &to.ty,
+    );
+    let from_ty = display_ty(&from.ty);
+    let to_ty = display_ty(&to.ty);
+    let (verdict, because, diagnostics) = match verdict {
+        glyph_typechecker::Assignability::Incompatible => (
+            Verdict::WillFail,
+            format!(
+                "the checker's own comparison refuses a `{from_ty}` value where a \
+                 `{to_ty}` is declared, so every site that writes this pairing is a \
+                 diagnostic"
+            ),
+            Some(json!([
+                { "code": "E0204", "at": "an annotated `let` or `const`, and a `return`" },
+                { "code": "E0211", "at": "a call argument" },
+            ])),
+        ),
+        glyph_typechecker::Assignability::Compatible { rule } => (
+            Verdict::Compatible,
+            format!(
+                "{rule}, so the checker accepts a `{from_ty}` value where a `{to_ty}` is \
+                 declared. This is a rule accepting rather than a rule staying silent"
+            ),
+            None,
+        ),
+        glyph_typechecker::Assignability::NoRule => (
+            Verdict::Undetermined,
+            format!(
+                "the checker has no rule comparing a `{from_ty}` value against a \
+                 `{to_ty}` declaration, so a mismatch here is reported by nothing until \
+                 `tsc` reads the emitted TypeScript on a full `glyph build`"
+            ),
+            None,
+        ),
+    };
+
+    let mut out = serde_json::Map::new();
+    out.insert("path".to_string(), json!(display_path(&root, &path)));
+    out.insert("module".to_string(), json!(anchor_module));
+    out.insert("from".to_string(), from.value());
+    out.insert("to".to_string(), to.value());
+    out.insert("verdict".to_string(), json!(verdict.wire()));
+    out.insert("because".to_string(), json!(because));
+    fact(
+        &mut out,
+        "diagnostics",
+        diagnostics,
+        "the checker refuses nothing for this pairing, so no code is raised for it \
+         anywhere"
+            .to_string(),
+    );
+    out.insert("resolved_in".to_string(), json!(format!(
+        "both types were resolved in the scope of module `{anchor_module}`, by declaring \
+         `{}` and `{}` in a scratch copy of it",
+        from.spelled, to.spelled
+    )));
+    Ok(to_json(&Value::Object(out)))
 }
 
 /// Read the address off the arguments.
@@ -13251,6 +13708,192 @@ pub fn f() -> number {
         assert!(names.contains(&"Order"), "{names:?}");
         assert!(names.contains(&"OrderStatus"), "{names:?}");
         assert!(!names.contains(&"create"), "{names:?}");
+    }
+
+
+    // ---- glyph_assignable ----
+
+    /// A project whose anchor module declares a union and imports a sibling's.
+    fn assignable_root() -> PathBuf {
+        let root = tmp_root();
+        write(&root, "package.json", "{\"name\":\"a\",\"glyph\":{}}");
+        write(
+            &root,
+            "lib.glyph",
+            "module lib\npub type Shape =\n  | Circle\n  | Square\npub type Id = string\n",
+        );
+        write(
+            &root,
+            "main.glyph",
+            "module main\ntype Order = { id: string }\nfn use_it(o: Order) -> string {\n  return o.id\n}\n",
+        );
+        root
+    }
+
+    fn assignable(root: &Path, from: &str, to: &str) -> Value {
+        let (value, is_error) = call(
+            root,
+            "glyph_assignable",
+            json!({ "path": "main.glyph", "from": from, "to": to }),
+        );
+        assert!(!is_error, "{from} -> {to}: {value}");
+        value
+    }
+
+    fn assignable_refused(root: &Path, from: &str, to: &str) -> String {
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.to_path_buf()),
+            "glyph_assignable",
+            json!({ "path": "main.glyph", "from": from, "to": to }),
+        );
+        assert!(is_error, "the call answered instead of refusing: {text}");
+        text
+    }
+
+    /// The audit's own question. `Nullable<int>` into `int` is refused by the
+    /// checker (G216) and `tsc` cannot catch it, because the emitted `number |
+    /// null` narrows.
+    #[test]
+    fn assignable_refuses_a_nullable_where_the_scalar_is_declared() {
+        let a = assignable(&assignable_root(), "Nullable<int>", "int");
+        assert_eq!(a["verdict"], "WILL_FAIL", "{a}");
+        // The types come back as the compiler read them, which is where `int`
+        // is visibly a `number`.
+        assert_eq!(a["from"]["read_as"], "Nullable<number>", "{a}");
+        assert_eq!(a["to"]["read_as"], "number", "{a}");
+        let codes: Vec<&str> = a["diagnostics"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{a}"))
+            .iter()
+            .map(|d| d["code"].as_str().unwrap_or_default())
+            .collect();
+        assert_eq!(codes, vec!["E0204", "E0211"], "{a}");
+    }
+
+    /// `COMPATIBLE` is a rule accepting, never the relation staying silent.
+    /// Two function types are the shape of the difference: the relation
+    /// compares the returns and says nothing about the parameters, so a pass
+    /// there proves nothing and comes back `UNDETERMINED`.
+    #[test]
+    fn assignable_accepts_only_where_a_rule_looked() {
+        let root = assignable_root();
+        let same = assignable(&root, "string", "string");
+        assert_eq!(same["verdict"], "COMPATIBLE", "{same}");
+        assert!(
+            same["because"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("two primitives are compared"),
+            "the accepting rule is unnamed: {same}"
+        );
+        assert!(same["diagnostics"].is_null(), "{same}");
+        assert!(!same["diagnostics_absent"].is_null(), "{same}");
+
+        let fns = assignable(&root, "fn(string) -> bool", "fn(number) -> bool");
+        assert_eq!(fns["verdict"], "UNDETERMINED", "{fns}");
+        let because = fns["because"].as_str().unwrap_or_default();
+        assert!(because.contains("no rule"), "{fns}");
+        assert!(because.contains("tsc"), "the fallback is unnamed: {fns}");
+    }
+
+    /// Both sides are resolved in the anchor file's own scope, so a name that
+    /// file declares is the declaration it declares, and a prelude container
+    /// over it is read the way the checker reads it.
+    #[test]
+    fn assignable_reads_both_sides_in_the_files_scope() {
+        let root = assignable_root();
+        let local = assignable(&root, "Order", "string");
+        assert_eq!(local["verdict"], "WILL_FAIL", "{local}");
+        let container = assignable(&root, "Option<Order>", "string");
+        assert_eq!(container["verdict"], "WILL_FAIL", "{container}");
+        assert_eq!(container["from"]["read_as"], "Option<Order>", "{container}");
+    }
+
+    /// The `module::name` form addresses a declaration this file does not
+    /// import, and the answer carries the identity it was asked by.
+    #[test]
+    fn assignable_takes_an_identity_on_either_side() {
+        let root = assignable_root();
+        let a = assignable(&root, "lib::Shape", "string");
+        assert_eq!(a["verdict"], "WILL_FAIL", "{a}");
+        assert_eq!(a["from"]["form"], "entity", "{a}");
+        assert_eq!(a["from"]["entity"], "lib::Shape", "{a}");
+        // One declaration under one address is the same type.
+        let same = assignable(&root, "lib::Shape", "lib::Shape");
+        assert_eq!(same["verdict"], "COMPATIBLE", "{same}");
+        // An imported alias for a primitive is a shape the relation declines,
+        // and it says so rather than guessing from the name.
+        let alias = assignable(&root, "number", "lib::Id");
+        assert_eq!(alias["verdict"], "UNDETERMINED", "{alias}");
+    }
+
+    /// Every spelling this cannot read is refused with the reason, because an
+    /// answer about a type nobody resolved is an answer about nothing.
+    #[test]
+    fn assignable_refuses_what_it_cannot_read() {
+        let root = assignable_root();
+        let cases = [
+            ("Array<", "string", "not a Glyph type expression"),
+            ("Nope", "string", "does not resolve"),
+            ("lib::Missing", "string", "declares no top-level name"),
+            ("nosuch::T", "string", "no file of this project is module"),
+            ("lib::Shape", "main::use_it", "not a type"),
+            ("string\nbool", "string", "more than one line"),
+        ];
+        for (from, to, needle) in cases {
+            let text = assignable_refused(&root, from, to);
+            assert!(
+                text.contains(needle),
+                "`{from}` -> `{to}` was refused without `{needle}`: {text}"
+            );
+        }
+        // A missing side is a malformed request, not an undecided pairing.
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_assignable",
+            json!({ "path": "main.glyph", "from": "string" }),
+        );
+        assert!(is_error, "{text}");
+        assert!(text.contains("`to` is required"), "{text}");
+    }
+
+    /// The probe module is a scratch input and never a member of the project:
+    /// the two names it declares must not turn up in a symbol search, and the
+    /// file's diagnostics must be what they were before it was written.
+    #[test]
+    fn assignable_leaves_the_project_as_it_found_it() {
+        let root = assignable_root();
+        let mut server = Server::new(root.clone());
+        let before = call_on(&mut server, "glyph_diagnostics", json!({ "path": "main.glyph" }));
+        let (answer, is_error) = call_on(
+            &mut server,
+            "glyph_assignable",
+            json!({ "path": "main.glyph", "from": "Nullable<int>", "to": "int" }),
+        );
+        assert!(!is_error, "{answer}");
+        let after = call_on(&mut server, "glyph_diagnostics", json!({ "path": "main.glyph" }));
+        assert_eq!(before, after, "the probe changed what the file reports");
+        let (symbols, _) = call_on(&mut server, "glyph_symbols", json!({ "query": "" }));
+        let names: Vec<&str> = symbols
+            .as_array()
+            .unwrap_or_else(|| panic!("{symbols}"))
+            .iter()
+            .map(|s| s["name"].as_str().unwrap_or_default())
+            .collect();
+        assert!(
+            !names.iter().any(|n| n.starts_with("GlyphAssignableProbe")),
+            "the probe's declarations are members of the project: {names:?}"
+        );
+    }
+
+    /// Every fact on the answer is a pair, so "this surface does not report
+    /// it" is never read as "this pairing has none".
+    #[test]
+    fn assignable_pairs_every_fact() {
+        let a = assignable(&assignable_root(), "lib::Shape", "string");
+        assert_paired(&a);
+        assert_paired(&a["from"]);
+        assert_paired(&a["to"]);
     }
 
 }

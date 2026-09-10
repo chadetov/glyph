@@ -230,6 +230,26 @@ impl McpProcess {
             .unwrap_or_else(|e| panic!("`{name}` answered with non-JSON text ({e}): {text}"))
     }
 
+    /// The same call, with the tool's text handed back unparsed. Used where
+    /// the assertion is about the bytes rather than about the answer.
+    fn call_tool_text(&mut self, id: u64, name: &str, arguments: Value) -> String {
+        let answer = self.request(
+            id,
+            "tools/call",
+            json!({ "name": name, "arguments": arguments }),
+        );
+        let text = answer["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_else(|| panic!("`{name}` returned no text content: {answer}"))
+            .to_string();
+        assert_eq!(
+            answer["result"]["isError"],
+            json!(false),
+            "`{name}` failed: {text}"
+        );
+        text
+    }
+
     /// Close stdin and wait. `run_stdio` returns when stdin closes, so a
     /// process that exits here is one whose read loop was still running.
     fn finish(mut self) -> i32 {
@@ -1436,4 +1456,108 @@ fn one_diagnostic_has_one_shape_on_both_surfaces() {
     }
 
     assert_eq!(mcp.finish(), 0);
+}
+
+// ---------------------------------------------------------------------------
+// G221: the same compiler from the command line.
+// ---------------------------------------------------------------------------
+
+/// Run `glyph query ...` and hand back its exit code, stdout and stderr.
+fn glyph_query(root: &Path, args: &[&str]) -> (i32, String, String) {
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .arg("query")
+        .arg("--root")
+        .arg(root)
+        .args(args)
+        .output()
+        .expect("run `glyph query`");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+/// A `glyph query` verb answers the bytes its MCP tool answers.
+///
+/// The point of the verb is that an agent with no MCP client has the same
+/// compiler, and "the same" is only worth anything if it is checked against
+/// the tool rather than against a fixture. So both surfaces are asked the same
+/// question in the same project and the answers are compared as text: a verb
+/// that reformatted, reordered or summarized would pass a parsed comparison
+/// and fail this one.
+#[test]
+fn a_query_verb_answers_what_its_mcp_tool_answers() {
+    let root = unique_tmp("query_verb");
+    std::fs::write(
+        root.join("package.json"),
+        "{\"name\":\"q\",\"private\":true,\"glyph\":{}}",
+    )
+    .expect("write the manifest");
+    std::fs::write(
+        root.join("orders.glyph"),
+        "module orders\n\npub type Order = { id: string }\n\n\
+         pub fn label(o: Order) -> string {\n  return o.id\n}\n",
+    )
+    .expect("write the fixture");
+
+    let mut mcp = McpProcess::start(&root);
+    mcp.handshake(1);
+    let symbol = mcp.call_tool_text(2, "glyph_symbol", json!({ "entity": "orders::Order" }));
+    let assignable = mcp.call_tool_text(
+        3,
+        "glyph_assignable",
+        json!({ "path": "orders.glyph", "from": "Nullable<int>", "to": "int" }),
+    );
+    assert_eq!(mcp.finish(), 0);
+
+    let (code, stdout, stderr) =
+        glyph_query(&root, &["symbol", "--entity", "orders::Order"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.trim_end_matches('\n'),
+        symbol,
+        "`glyph query symbol` and `glyph_symbol` answered differently"
+    );
+
+    let (code, stdout, stderr) = glyph_query(
+        &root,
+        &[
+            "assignable",
+            "--path",
+            "orders.glyph",
+            "--from",
+            "Nullable<int>",
+            "--to",
+            "int",
+        ],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.trim_end_matches('\n'),
+        assignable,
+        "`glyph query assignable` and `glyph_assignable` answered differently"
+    );
+    let answer: Value = serde_json::from_str(&stdout).expect("the verb prints JSON");
+    assert_eq!(answer["verdict"], json!("WILL_FAIL"), "{answer}");
+}
+
+/// A tool refusal is an exit code and a reason on stderr, not a JSON body a
+/// caller has to inspect to find out the question was not answered.
+#[test]
+fn a_refused_query_exits_two_with_the_reason_on_stderr() {
+    let root = unique_tmp("query_refusal");
+    std::fs::write(
+        root.join("orders.glyph"),
+        "module orders\n\npub type Order = { id: string }\n",
+    )
+    .expect("write the fixture");
+
+    let (code, stdout, stderr) = glyph_query(&root, &["symbol", "--entity", "orders::Nope"]);
+    assert_eq!(code, 2, "stdout: {stdout} stderr: {stderr}");
+    assert!(stdout.is_empty(), "a refusal wrote to stdout: {stdout}");
+    assert!(
+        stderr.contains("declares no top-level name"),
+        "the refusal carries no reason: {stderr}"
+    );
 }

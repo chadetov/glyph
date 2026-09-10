@@ -46,6 +46,7 @@ glyph gen zod schemas.ts --out src/     # generate committed Glyph types from zo
 glyph llms                          # reprint this bootstrap offline (alias: glyph docs)
 glyph --explain E0204               # long-form explanation + fix for any error code
 glyph mcp [root]                    # run an MCP server (stdio) exposing analysis to an agent as tools
+glyph query <tool> ...              # ask one of those tools from the command line and print its JSON
 glyph doctor                        # check node/tsx/tsc, and this compiler against the latest release (--offline to skip the lookup)
 glyph upgrade [dir]                 # move the project's exact Glyph pin to the latest release and npm install it (--to <version>, --dry-run)
 glyph --update                      # move this installed compiler to the newest release (--update-dry-run). Acts on the tool; `upgrade` acts on a project
@@ -64,7 +65,7 @@ not importable but does not stop the run, and today does not change the exit
 code: `glyph run` exits with whatever `main` returned.
 
 If you drive Glyph through the Model Context Protocol, `glyph mcp [root]` speaks
-MCP over stdio and exposes eight tools over the project:
+MCP over stdio and exposes nine tools over the project:
 
 - `glyph_symbol` — everything the compiler holds about one symbol, addressed by
   its `module::name` identity or by a position: kind, visibility, a record's
@@ -92,10 +93,29 @@ MCP over stdio and exposes eight tools over the project:
   signature.
 - `glyph_diagnostics` — type-check one file, returning coded diagnostics with
   ranges.
+- `glyph_assignable` — can a value of one type go where another is declared,
+  asked of the checker's own comparison. `WILL_FAIL` with the code it raises,
+  `COMPATIBLE` only where a rule accepted, `UNDETERMINED` where no rule covers
+  the pairing.
 
 Positions are 0-based `line`/`character` (UTF-16). This is the interactive
 complement to `glyph build --json`, which remains the batch path for coded
 diagnostics.
+
+Without an MCP client, `glyph query` asks the same tools from the command line
+and prints the same JSON: one verb per tool, taking the tool's own arguments as
+flags.
+
+```sh
+glyph query symbol --entity orders::Order
+glyph query assignable --path src/main.glyph --from 'Nullable<int>' --to int
+glyph query impact --entity orders::Order --change change_signature_type
+glyph query hover --path src/main.glyph --line 12 --character 6
+```
+
+The JSON goes to stdout and the exit code is 0. A refused question (a symbol
+this project does not hold, a type spelling that does not parse) writes the
+reason to stderr and exits 2.
 
 ## The canonical program shape
 

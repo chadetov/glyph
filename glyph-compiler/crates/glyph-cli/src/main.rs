@@ -20,6 +20,8 @@
 //! - `glyph gen zod <file.ts | package> --out <dir>`  generate committed Glyph types from a
 //!   module of zod schemas (needs tsx + zod)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
+//! - `glyph query <tool> ...`       ask one MCP tool from the command line and
+//!   print its JSON (`glyph query symbol --entity orders::Order`)
 //! - `glyph --explain E0042`         long-form error documentation
 //!
 //! One stage, one flag name: `--no-tsc` skips the TypeScript stage on `build`,
@@ -198,6 +200,17 @@ enum Command {
     Mcp {
         #[arg(value_name = "ROOT")]
         root: Option<std::path::PathBuf>,
+    },
+    /// Ask the compiler one question about a project and print its JSON.
+    ///
+    /// One verb per MCP tool, taking the same arguments and returning the same
+    /// bytes, so an agent with no MCP client has the same compiler. ROOT is
+    /// the project to query (default: the current directory).
+    Query {
+        #[arg(long, value_name = "ROOT")]
+        root: Option<std::path::PathBuf>,
+        #[command(subcommand)]
+        query: glyph_cli::query::QueryCommand,
     },
     /// Print the agent bootstrap (the AGENTS.md / llms.txt reference) to stdout.
     /// Works offline: zero to correct, runnable Glyph in one document.
@@ -741,6 +754,9 @@ fn main() {
                 .unwrap_or_else(|| std::path::PathBuf::from("."));
             glyph_lsp::run_mcp_stdio(root);
             std::process::exit(0);
+        }
+        Some(Command::Query { root, query }) => {
+            std::process::exit(glyph_cli::query::run(root, &query));
         }
         Some(Command::Llms) => {
             // The bootstrap is embedded at compile time, so this works with no

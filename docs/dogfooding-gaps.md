@@ -9191,18 +9191,36 @@ and is the owner's to confirm.
   direction against the 0.1.120 tree; against 0.1.119 it removes a false
   positive and keeps the true one.*
 
-- **G227. Hover on a field read from an imported record answers nothing.** In
-  a module that imports `Order` from a sibling, `glyph_hover` on the `id` of
-  `o.id` (with `o: Order`) returns `null`, while the same access on a record
-  declared in the module returns `string`. The checker does type the access:
-  `let n: int = o.id` draws `E0204 expected number, found string` with and
-  without tsc, so this is not a checker hole. The member-access expression on
-  a `Ty::Imported` record is never recorded in the `TypeMap` the hover reads,
-  and the tool reports null rather than derive a field type nothing recorded.
-  Found while re-running the audit's fourteen hover probes for G218; it is the
-  one position of fourteen that still answers nothing.
+- **G227. Hover answers nothing at a name declared in another module.** Four
+  positions, one shape. In a module that imports from a sibling, `glyph_hover`
+  returns `null` at the import binding itself (`Order` and `create` inside
+  `import orders { Order, create }`, and the `checkout` of `import checkout`),
+  at an imported function where it is called (`create(id)`, and
+  `checkout.announce(...)` through a namespace), at an imported variant used as
+  a value (`let st: OrderStatus = Pending`), and at a field read from an
+  imported record (the `id` of `o.id` with `o: Order`). The local equivalent of
+  each answers: a local callee is `"fn(Order) -> number"`, a local variant is
+  `"Pending"`, and `o.id` on a record declared in the module is `"string"`. The
+  one imported position that does answer is a type name written as an
+  annotation, because the annotation is lowered rather than looked up and
+  `Ty::Imported` renders as the name.
 
-  *Reproduced against 0.1.120 with the 0.1.121 tree at `2b1712a` (the G218 hover changes included) on the three-module shop project: `glyph_hover` at `src/checkout.glyph` line 10 character 11 (`o.id`, `Order` imported) is `null`; at character 9 (`o`) it is `"Order"`; the same `o.id` on a local `Order` is `"string"`.*
+  Two causes, and neither is a checker hole. `declaration_hover_at` leaves an
+  imported name unanswered on purpose: its declaration is in another file, the
+  reading holds one file, and a shape guessed from the import binding would be
+  a claim about a declaration nothing there read. Separately, the member access
+  on a `Ty::Imported` record is never recorded in the `TypeMap` the expression
+  reading uses, though the checker does type it: `let n: int = o.id` draws
+  `E0204 expected number, found string` with and without tsc. The fix is the
+  project-wide reading the MCP server already holds, so hover answers from the
+  declaring module rather than from the import binding.
+
+  Found while re-running the audit's fourteen hover probes for G218, where the
+  imported record's field is the one position of fourteen that still answers
+  nothing. The other three are not in that probe set, which is why the entry
+  named one position before.
+
+  *Reproduced against the 0.1.121 tree at `b4c1fd6` on the three-module shop project, `glyph query hover`: `src/checkout.glyph` 2:16 (the `Order` import binding) `null`, 2:23 (`create` in the same list) `null`, 5:9 (`create` at a call) `null`, 9:17 (`create` at a second call) `null`, 10:11 (`o.id`) `null`, `src/main.glyph` 3:7 (the `checkout` namespace binding) `null` and 6:22 (`checkout.announce`) `null`; against 4:33 and 9:9 (the `Order` annotation) `"Order"` and 10:9 (`o`) `"Order"`. On the two-module project at `/private/tmp/claude-501/scratch-linus/p1`, `src/main.glyph` 11:24 (the imported variant `Pending` as a value) is `null` and 11:10 (the `OrderStatus` annotation) is `"OrderStatus"`.*
 
 - **G228. The impact table says the checker has no rule for a container against
   a container, and the checker has one.** With `pub fn f(o: Option<int>)` and a

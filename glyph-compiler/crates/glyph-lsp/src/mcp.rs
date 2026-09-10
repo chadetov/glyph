@@ -29,7 +29,7 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 
 use glyph_db::{
-    project_match_coverage, CompilerDb, CoverageTypeRef, DeclIndex, EventSink,
+    project_match_coverage, CompilerDb, CoverageTypeRef, Db, DeclIndex, EventSink,
     ProjectCoverageSite, SalsaDeclTy, SourceFile,
 };
 use glyph_resolver::{
@@ -38,7 +38,7 @@ use glyph_resolver::{
 };
 use glyph_typechecker::{
     display_ty, imported_decl_chain_end, CoverageSiteRef, CoverageState, CoverageTypeName,
-    DeclTyResolver, FieldAccess, FieldOwner, FieldSite, FnParam, Primitive, Ty, TypeMap,
+    DeclTyResolver, FieldAccess, FieldOwner, FieldSite, FnParam, Lowerer, Primitive, Ty, TypeMap,
 };
 
 use crate::analysis::{
@@ -463,6 +463,8 @@ fn tool_specs() -> Value {
     let depth = json!({ "type": "integer", "description": "Optional, counting hops from the entity, default 1. Every carrier here is exact at hop 1 and empty at hop 2, so 2 or more is answered rather than refused: the hop-1 answer comes back with `next_query` naming the question that would be exact." });
     let impact_path = json!({ "type": "string", "description": "Optional. A file in the project the entity belongs to, which is only needed when the server was started above more than one project, since a bare `module::name` names a different declaration in each. With one project under the root it is worked out from the root itself." });
     let proposed_variant = json!({ "type": "string", "description": "Optional. The name of a variant you are about to add to this union. Sending it makes the answer about that edit: every site carries a `consequence` beside its state, and a name the union already has is refused rather than answered." });
+    let symbol_entity = json!({ "type": "string", "description": "The symbol's `module::name` identity (`orders::OrderStatus`), the same one a diagnostic, `glyph_references` and `glyph_impact` report. Send this or a position, never both. A record field (`module::Record.field`) is not an address here: ask for the record and read the field out of `fields`." });
+    let symbol_path = json!({ "type": "string", "description": "With a position, the file the position is in. With `entity`, optional, and only needed when the server was started above more than one project, since a bare `module::name` names a different declaration in each." });
     json!([
         {
             "name": "glyph_diagnostics",
@@ -493,6 +495,11 @@ fn tool_specs() -> Value {
             "name": "glyph_impact",
             "description": "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), and a `string`, `number` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both). `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects; and the `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.",
             "inputSchema": { "type": "object", "properties": { "entity": entity, "change": change, "relations": impact_relations, "depth": depth, "path": impact_path }, "required": ["entity", "change"] }
+        },
+        {
+            "name": "glyph_symbol",
+            "description": "Everything the compiler holds about one symbol, in one call: what it is, how it is written, and what a `match` over it must do. Address it by its `module::name` identity, the same one a diagnostic, `glyph_references` and `glyph_impact` report, or by a position (`path`, `line`, `character`). Ask this before writing a call, a record literal or a `match` over a type you did not declare; it is the answer grep cannot give, because the compiler resolved the name to emit the program.\n\nThe answer is one object. `kind` is the vocabulary the rest of it is read by: `record`, `union`, `string-literal-union`, `alias`, `function-type`, `extern-ts`, `typeof`, `function`, `component`, `const`, `interface`, `variant`. An `interface` is never reported as a `type`, because its members are a different fact from a record's fields. `entity`, `module` and `name` are the identity; `pub` is whether the symbol is exported from its module; `generics` are the type parameters it takes, in order; `path` and `range` are where it is declared; `origin` is what kind of declaration the compiler read, exactly as the other tools define it.\n\n`type` is the whole symbol lowered and rendered by the compiler. `fields` carries a record's fields with their types and whether each is optional. `variants` carries a tagged union's variants, each with its `payload` and the `construct` string that writes one (`Paid({ transaction_id: string })`, `Pending`), so a caller never has to guess the constructor's shape. `literals` carries a string-literal union's values. `parameters` and `returns` carry a callable's signature, each parameter with its ordinal, name, type, `owned` and `optional`. `members` carries an interface's members, each marked `method` or `property`. `owner` names the union a variant belongs to. `construct` is the syntax that builds a value: a variant has one, a record does not (a record is a bare object literal typed by its annotation, and the reason says so). `exhaustive_match` is whether a `match` whose scrutinee has this type must name every case. `examples` are the `@example` expressions written above the declaration, verbatim: each one is compiled and run by `glyph check`, so it is a use of this symbol known to work.\n\nEvery fact is a pair. A key is always present, and beside it `<key>_absent` says why it is null: `fields` is null on a union, `variants` is null on a record, and each says which. Absent is never omission and never a guess. `exhaustive_match` has three answers rather than two: `true` and `false` are what the exhaustiveness check does, and `null` is where the answer belongs to a declaration this one only names (an alias, an `extern_ts` body), where `false` would be a caller dropping an arm believing nothing stops it.\n\nWhat it refuses. A name the module does not declare is refused rather than answered with an empty shape. An import binding is refused, with the instruction to ask under the module that declares it. `module::Record.field` is refused: a field is read out of `fields`, and `glyph_references` and `glyph_impact` are the two that take the field form. A position on a file-private binding is refused, because it has no identity; `glyph_hover` answers there instead.",
+            "inputSchema": { "type": "object", "properties": { "entity": symbol_entity, "path": symbol_path, "line": line, "character": character } }
         },
         {
             "name": "glyph_symbols",
@@ -529,6 +536,7 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
         "glyph_references" => tool_references(&args, server),
         "glyph_variants" => tool_variants(&args, server),
         "glyph_impact" => tool_impact(&args, server),
+        "glyph_symbol" => tool_symbol(&args, server),
         "glyph_symbols" => tool_symbols(&args, &root),
         other => Err(format!("unknown tool: {other}")),
     }
@@ -648,7 +656,7 @@ fn tool_hover(args: &Value, root: &Path) -> Result<String, String> {
         return Ok("null".to_string());
     };
     let offset = LineIndex::new(&text).offset(&text, line, character);
-    Ok(to_json(&a.hover(offset)))
+    Ok(to_json(&a.hover(&text, offset)))
 }
 
 fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
@@ -6313,6 +6321,762 @@ fn next_query(answer: &Value, change: &Change) -> Value {
 /// name — and the per-project databases cannot answer a question that crosses
 /// them. Changing what a tool returns as a side effect of a caching change is
 /// the wrong way to decide that, so its behaviour is untouched.
+// ---------------------------------------------------------------------------
+// glyph_symbol
+// ---------------------------------------------------------------------------
+
+/// How one `glyph_symbol` call names the symbol it is about.
+enum SymbolAddress {
+    /// `module::name`, the identity a diagnostic, `glyph_references` and
+    /// `glyph_impact` all report.
+    Entity { module: String, name: String },
+    /// A file and a position in it, what an editor has under its cursor.
+    Position,
+}
+
+/// Read the address off the arguments.
+///
+/// A position wins when one is sent, because `path` alone is also how a call
+/// addressed by identity says which project to count that identity in, exactly
+/// as `glyph_impact` reads it.
+fn read_symbol_address(args: &Value) -> Result<SymbolAddress, String> {
+    let has_line = !matches!(args.get("line"), None | Some(Value::Null));
+    let has_char = !matches!(args.get("character"), None | Some(Value::Null));
+    let entity = args.get("entity");
+    let has_entity = !matches!(entity, None | Some(Value::Null));
+
+    if has_line || has_char {
+        if has_entity {
+            return Err(
+                "send either `entity` or a position, not both. `path` beside `entity` names \
+                 which project to count the identity in; `line` and `character` beside it are \
+                 a second address, and two addresses can name two symbols."
+                    .to_string(),
+            );
+        }
+        if !(has_line && has_char) {
+            return Err(
+                "a position is `path`, `line` and `character` together. One half of a \
+                 position addresses nothing."
+                    .to_string(),
+            );
+        }
+        return Ok(SymbolAddress::Position);
+    }
+
+    let (module, name, field) = read_entity(args)?;
+    if let Some(field) = field {
+        return Err(format!(
+            "`{module}::{name}.{field}` addresses a record field, and this tool describes a \
+             declaration. Ask for `{module}::{name}` and read the field out of `fields`, \
+             which carries every field of the record with its type. `glyph_references` and \
+             `glyph_impact` are the two that take the field form."
+        ));
+    }
+    Ok(SymbolAddress::Entity { module, name })
+}
+
+/// What `module::name` turns out to be in the declaring module's AST.
+enum DeclaredAs<'m> {
+    /// A top-level declaration.
+    Decl(&'m glyph_ast::Decl),
+    /// A tagged-union variant, hoisted into module scope by the union that
+    /// declares it.
+    Variant {
+        owner: &'m glyph_ast::TypeDecl,
+        variant: &'m glyph_ast::UnionVariant,
+    },
+}
+
+impl DeclaredAs<'_> {
+    /// The span the answer reports as the symbol's range: the declaration's
+    /// own extent, or the variant's.
+    fn span(&self) -> glyph_ast::Span {
+        match self {
+            DeclaredAs::Decl(d) => d.span(),
+            DeclaredAs::Variant { variant, .. } => variant.span,
+        }
+    }
+
+    /// Whether the symbol is exported from its module. A variant is exported
+    /// exactly when the union that hoists it is.
+    fn is_public(&self) -> bool {
+        match self {
+            DeclaredAs::Decl(d) => d.is_public(),
+            DeclaredAs::Variant { owner, .. } => owner.is_public,
+        }
+    }
+
+    /// The annotations written above the declaration, which is where an
+    /// `@example` is. A variant carries none of its own; the union's belong to
+    /// the union.
+    fn annotations(&self) -> &[glyph_ast::Annotation] {
+        match self {
+            DeclaredAs::Decl(d) => decl_annotations(d),
+            DeclaredAs::Variant { .. } => &[],
+        }
+    }
+}
+
+/// The annotations of a declaration. A field read, one arm per `Decl`, so a
+/// new declaration form has to decide rather than silently carry none.
+fn decl_annotations(d: &glyph_ast::Decl) -> &[glyph_ast::Annotation] {
+    match d {
+        glyph_ast::Decl::Fn(x) => &x.annotations,
+        glyph_ast::Decl::Type(x) => &x.annotations,
+        glyph_ast::Decl::Const(x) => &x.annotations,
+        glyph_ast::Decl::Component(x) => &x.annotations,
+        glyph_ast::Decl::Interface(x) => &x.annotations,
+        glyph_ast::Decl::Import(_) => &[],
+    }
+}
+
+/// Find what `name` is declared as in `module`'s AST, resolved through the
+/// module's own symbol table rather than by scanning for a spelling: that is
+/// what makes a hoisted union variant answer with the union that declares it.
+fn declared_as<'m>(
+    module_ast: &'m glyph_ast::Module,
+    symbols: &glyph_resolver::SymbolTable,
+    by_name: &std::collections::HashMap<glyph_ast::Ident, SymbolId>,
+    module: &str,
+    name: &str,
+) -> Result<DeclaredAs<'m>, String> {
+    let Some(sym) = by_name.get(name).and_then(|id| symbols.get(*id)) else {
+        return Err(format!(
+            "module `{module}` declares no top-level name `{name}`, so `{module}::{name}` is \
+             not a symbol of this project. Nothing is described here rather than an empty \
+             description, which would read as a symbol with no shape."
+        ));
+    };
+    let decl_idx = match &sym.kind {
+        SymbolKind::Function { decl_idx }
+        | SymbolKind::Component { decl_idx }
+        | SymbolKind::Type { decl_idx }
+        | SymbolKind::Const { decl_idx }
+        | SymbolKind::Variant { decl_idx } => *decl_idx,
+        // An import re-binds another module's declaration. The symbol is that
+        // declaration, under the module that declares it, which is the same
+        // rule `glyph_impact` applies.
+        _ => {
+            return Err(format!(
+                "`{name}` in module `{module}` is an import binding rather than a \
+                 declaration. A symbol is described where it is declared, so ask about it \
+                 under the module that declares it."
+            ))
+        }
+    };
+    let Some(decl) = module_ast.items.get(decl_idx as usize) else {
+        return Err(format!(
+            "`{module}::{name}` resolves to a declaration index this module's AST does not \
+             hold, so there is nothing to read."
+        ));
+    };
+    if !matches!(sym.kind, SymbolKind::Variant { .. }) {
+        return Ok(DeclaredAs::Decl(decl));
+    }
+    let glyph_ast::Decl::Type(owner) = decl else {
+        return Err(format!(
+            "`{module}::{name}` is recorded as a variant of a declaration that is not a \
+             `type`, so its union cannot be read."
+        ));
+    };
+    let glyph_ast::TypeExpr::Union { variants, .. } = &owner.body else {
+        return Err(format!(
+            "`{module}::{name}` is recorded as a variant of `{}`, whose body is not a \
+             variant list, so the variant cannot be read from it.",
+            owner.name
+        ));
+    };
+    let Some(variant) = variants.iter().find(|v| v.name.as_ref() == name) else {
+        return Err(format!(
+            "`{}` declares no variant `{name}`, though the module's symbol table records \
+             one.",
+            owner.name
+        ));
+    };
+    Ok(DeclaredAs::Variant { owner, variant })
+}
+
+/// What kind of symbol this is, in the vocabulary the answer reports.
+///
+/// A `type` is named by its body rather than by the keyword: a caller acts on
+/// a record differently from a tagged union, and both are written `type`. An
+/// `interface` is its own kind and never `type`, because its members are a
+/// different fact from a record's fields.
+fn symbol_kind_str(what: &DeclaredAs<'_>) -> &'static str {
+    match what {
+        DeclaredAs::Variant { .. } => "variant",
+        DeclaredAs::Decl(glyph_ast::Decl::Fn(_)) => "function",
+        DeclaredAs::Decl(glyph_ast::Decl::Component(_)) => "component",
+        DeclaredAs::Decl(glyph_ast::Decl::Const(_)) => "const",
+        DeclaredAs::Decl(glyph_ast::Decl::Interface(_)) => "interface",
+        DeclaredAs::Decl(glyph_ast::Decl::Import(_)) => "import",
+        DeclaredAs::Decl(glyph_ast::Decl::Type(t)) => match &t.body {
+            glyph_ast::TypeExpr::Union { .. } => "union",
+            glyph_ast::TypeExpr::Record { .. } => "record",
+            glyph_ast::TypeExpr::StringLiteralUnion { .. } => "string-literal-union",
+            glyph_ast::TypeExpr::Fn { .. } => "function-type",
+            glyph_ast::TypeExpr::Extern { .. } => "extern-ts",
+            glyph_ast::TypeExpr::TypeOf { .. } => "typeof",
+            glyph_ast::TypeExpr::Path { .. } | glyph_ast::TypeExpr::Generic { .. } => "alias",
+        },
+    }
+}
+
+/// Whether a `match` whose scrutinee has this symbol's type must name every
+/// case, as `(answer, reason it is absent)`.
+///
+/// Three answers, not two. `true` and `false` are what the exhaustiveness
+/// check does; `null` is where the answer belongs to a declaration this one
+/// only names, and stating `false` there would be the manufactured answer:
+/// a match over an alias for a tagged union is checked, and a caller told
+/// `false` would drop an arm believing nothing stops it.
+fn exhaustive_match_pair(what: &DeclaredAs<'_>, ty: Option<&Ty>) -> (Value, Value) {
+    let absent = |why: String| (Value::Null, json!(why));
+    match what {
+        DeclaredAs::Variant { owner, .. } => absent(format!(
+            "a variant is a constructor of `{}`, not a type of its own. Ask about `{}` for \
+             the rule that governs a `match` over it.",
+            owner.name, owner.name
+        )),
+        DeclaredAs::Decl(glyph_ast::Decl::Type(t)) => match &t.body {
+            glyph_ast::TypeExpr::Union { .. } | glyph_ast::TypeExpr::StringLiteralUnion { .. } => {
+                (json!(true), Value::Null)
+            }
+            glyph_ast::TypeExpr::Record { .. } | glyph_ast::TypeExpr::Fn { .. } => {
+                (json!(false), Value::Null)
+            }
+            glyph_ast::TypeExpr::Path { .. } | glyph_ast::TypeExpr::Generic { .. } => {
+                absent(format!(
+                    "`{}` is declared as another type rather than as a case list, so whether \
+                     a `match` over it must be exhaustive belongs to whatever that names.",
+                    t.name
+                ))
+            }
+            glyph_ast::TypeExpr::Extern { .. } => absent(format!(
+                "`{}` is an `extern_ts` escape. What is inside the string is checked by \
+                 `tsc` and Glyph's own checker reads no cases in it.",
+                t.name
+            )),
+            glyph_ast::TypeExpr::TypeOf { .. } => absent(format!(
+                "`{}` is a `typeof` body, whose cases belong to the value it names.",
+                t.name
+            )),
+        },
+        // A value of any other declared type carries no case list, so the
+        // exhaustiveness check requires no coverage over it. Read from the
+        // lowered type rather than from the keyword, because a `const` can be
+        // annotated with a union and `match CONST { ... }` is checked.
+        DeclaredAs::Decl(_) => match ty {
+            Some(Ty::Union { .. }) | Some(Ty::StringLiteralUnion(_)) => (json!(true), Value::Null),
+            Some(Ty::Named { .. }) | Some(Ty::Imported { .. }) => absent(
+                "this symbol's type is another declaration's name, so whether a `match` over \
+                 it must be exhaustive belongs to that declaration."
+                    .to_string(),
+            ),
+            Some(Ty::Unknown) | None => absent(
+                "the compiler did not lower a type for this symbol, so it holds no case list \
+                 to answer from."
+                    .to_string(),
+            ),
+            Some(_) => (json!(false), Value::Null),
+        },
+    }
+}
+
+/// The symbol's own type, from the queries the checker runs.
+///
+/// A `fn`, a `component` and a `const` go through `glyph_db::decl_ty`, the
+/// memoized query the checker itself reads a signature out of. `decl_ty`
+/// answers `Unknown` for a `type` and an `interface` by design (their bodies
+/// are not signatures), so those are lowered here by the same `Lowerer` that
+/// query is built on, applied to the body instead of to the signature. An
+/// unannotated `const` has no written type at all and falls back to the
+/// checker's type for its initializer.
+fn declared_ty(project: &Project, file: SourceFile, what: &DeclaredAs<'_>, name: &str) -> Option<Ty> {
+    let db = &project.db;
+    let ident: glyph_ast::Ident = Arc::from(name);
+    match what {
+        DeclaredAs::Decl(decl @ (glyph_ast::Decl::Fn(_) | glyph_ast::Decl::Component(_))) => {
+            match glyph_db::decl_ty(db, file, ident).ty() {
+                Ty::Unknown => body_lowered(project, file, decl),
+                ty => Some(ty.clone()),
+            }
+        }
+        DeclaredAs::Decl(decl @ glyph_ast::Decl::Const(_)) => {
+            match glyph_db::decl_ty(db, file, ident).ty() {
+                Ty::Unknown => body_lowered(project, file, decl),
+                ty => Some(ty.clone()),
+            }
+        }
+        DeclaredAs::Decl(decl) => body_lowered(project, file, decl),
+        DeclaredAs::Variant { variant, .. } => {
+            let resolved = glyph_db::resolve(db, file);
+            let resolved_module = resolved.resolved()?;
+            let imports = SalsaDeclTy::new(db, file);
+            let lowerer = Lowerer::with_imports(resolved_module, db.prelude(), &imports);
+            Some(crate::analysis::variant_ty(
+                &variant.name,
+                variant.payload.as_ref(),
+                &lowerer,
+            ))
+        }
+    }
+}
+
+/// The declaration's type lowered from its body, through the `Lowerer` the
+/// `decl_ty` query is built on.
+fn body_lowered(project: &Project, file: SourceFile, decl: &glyph_ast::Decl) -> Option<Ty> {
+    let db = &project.db;
+    let resolved = glyph_db::resolve(db, file);
+    let resolved_module = resolved.resolved()?;
+    let imports = SalsaDeclTy::new(db, file);
+    let lowerer = Lowerer::with_imports(resolved_module, db.prelude(), &imports);
+    let types = glyph_db::type_map(db, file);
+    crate::analysis::declaration_ty(decl, &lowerer, types.type_map())
+}
+
+/// A key that is always present, carrying either the fact or the reason it is
+/// not held. Both halves are written for every symbol, so a caller checking
+/// for a key never has to tell "this surface does not report it" apart from
+/// "this symbol has none".
+fn fact(out: &mut serde_json::Map<String, Value>, key: &str, value: Option<Value>, absent: String) {
+    match value {
+        Some(v) => {
+            out.insert(key.to_string(), v);
+            out.insert(format!("{key}_absent"), Value::Null);
+        }
+        None => {
+            out.insert(key.to_string(), Value::Null);
+            out.insert(format!("{key}_absent"), json!(absent));
+        }
+    }
+}
+
+/// The record's fields, when the symbol is one.
+fn fields_value(kind: &str, ty: Option<&Ty>) -> Option<Value> {
+    if kind != "record" {
+        return None;
+    }
+    let Some(Ty::Record { fields }) = ty else {
+        return None;
+    };
+    Some(Value::Array(
+        fields
+            .iter()
+            .map(|f| {
+                json!({
+                    "name": f.name.as_ref(),
+                    "type": display_ty(&f.ty),
+                    "optional": f.optional,
+                })
+            })
+            .collect(),
+    ))
+}
+
+/// The union's variants, each with its payload and the syntax that constructs
+/// it.
+///
+/// `construct` is the string `display_ty` prints for that variant inside its
+/// own union, so the syntax handed over is the compiler's rendering of the
+/// declaration rather than a second spelling of it.
+fn variants_value(ty: Option<&Ty>) -> Option<Value> {
+    let Some(Ty::Union { variants }) = ty else {
+        return None;
+    };
+    Some(Value::Array(
+        variants.iter().map(|v| variant_value(v)).collect(),
+    ))
+}
+
+fn variant_value(v: &glyph_typechecker::UnionVariant) -> Value {
+    let mut out = serde_json::Map::new();
+    out.insert("name".to_string(), json!(v.name.as_ref()));
+    fact(
+        &mut out,
+        "payload",
+        v.payload.as_ref().map(|p| json!(display_ty(p))),
+        format!("`{}` is declared with no payload.", v.name),
+    );
+    out.insert(
+        "construct".to_string(),
+        json!(display_ty(&Ty::Union {
+            variants: vec![v.clone()],
+        })),
+    );
+    Value::Object(out)
+}
+
+/// The literal set of a string-literal union (D30). Its members are values
+/// rather than named constructors, so they are reported as their own field
+/// instead of under `variants`.
+fn literals_value(ty: Option<&Ty>) -> Option<Value> {
+    let Some(Ty::StringLiteralUnion(values)) = ty else {
+        return None;
+    };
+    Some(json!(values))
+}
+
+/// A callable's parameters, in order, as the checker lowered them.
+fn parameters_value(kind: &str, ty: Option<&Ty>) -> Option<Value> {
+    if kind != "function" && kind != "component" && kind != "function-type" {
+        return None;
+    }
+    let Some(Ty::Fn { params, .. }) = ty else {
+        return None;
+    };
+    Some(Value::Array(
+        params
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                let mut out = serde_json::Map::new();
+                out.insert("ordinal".to_string(), json!(i + 1));
+                fact(
+                    &mut out,
+                    "name",
+                    p.name.as_ref().map(|n| json!(n.as_ref())),
+                    "this parameter is declared without a name. Glyph's own `fn` always \
+                     names one; the standard library's surface does not always."
+                        .to_string(),
+                );
+                out.insert("type".to_string(), json!(display_ty(&p.ty)));
+                out.insert("owned".to_string(), json!(p.owned));
+                out.insert("optional".to_string(), json!(p.optional));
+                Value::Object(out)
+            })
+            .collect(),
+    ))
+}
+
+/// An interface's members: each one's name, whether it is a method or a
+/// property, and its type.
+fn members_value(what: &DeclaredAs<'_>, ty: Option<&Ty>) -> Option<Value> {
+    let DeclaredAs::Decl(glyph_ast::Decl::Interface(i)) = what else {
+        return None;
+    };
+    // The lowered form is the record shape a value satisfying the interface
+    // carries, in member order, so the two lists index together.
+    let Some(Ty::Record { fields }) = ty else {
+        return None;
+    };
+    Some(Value::Array(
+        i.members
+            .iter()
+            .zip(fields.iter())
+            .map(|(m, f)| {
+                json!({
+                    "name": f.name.as_ref(),
+                    "kind": match m {
+                        glyph_ast::InterfaceMember::Method { .. } => "method",
+                        glyph_ast::InterfaceMember::Field(_) => "property",
+                    },
+                    "type": display_ty(&f.ty),
+                    "optional": f.optional,
+                })
+            })
+            .collect(),
+    ))
+}
+
+/// The `@example` expressions written above the declaration, verbatim.
+///
+/// Verbatim because each one is a Glyph expression the compiler compiles and
+/// runs as part of `glyph check`: it is a usage of this symbol that is known
+/// to work, which is exactly what makes it worth handing over.
+fn examples_value(what: &DeclaredAs<'_>) -> Option<Value> {
+    let examples: Vec<Value> = what
+        .annotations()
+        .iter()
+        .filter(|a| a.name.as_ref() == "example")
+        .map(|a| json!(a.raw_args.trim()))
+        .collect();
+    (!examples.is_empty()).then(|| Value::Array(examples))
+}
+
+/// The generic parameters the declaration takes, in order.
+fn generics_value(what: &DeclaredAs<'_>) -> Vec<String> {
+    let names = |gs: &[glyph_ast::GenericParam]| gs.iter().map(|g| g.name.to_string()).collect();
+    match what {
+        DeclaredAs::Decl(glyph_ast::Decl::Fn(f)) => names(&f.generics),
+        DeclaredAs::Decl(glyph_ast::Decl::Component(c)) => names(&c.generics),
+        DeclaredAs::Decl(glyph_ast::Decl::Type(t)) => names(&t.generics),
+        DeclaredAs::Decl(glyph_ast::Decl::Interface(i)) => names(&i.generics),
+        DeclaredAs::Decl(_) | DeclaredAs::Variant { .. } => Vec::new(),
+    }
+}
+
+/// Why a record has no `construct` string of its own.
+const RECORD_CONSTRUCT: &str =
+    "a record is not constructed by naming it. Write a bare object literal and let the \
+     annotation carry the type (`let o: Order = { id: \"a\", total: 0, }`), with every field \
+     of `fields` present and a trailing comma. There is no `Order { ... }` form.";
+
+/// The whole description of one symbol.
+fn describe_symbol(
+    project: &Project,
+    root: &Path,
+    module: &str,
+    name: &str,
+) -> Result<Value, String> {
+    let db = &project.db;
+    let Some((fpath, entry)) = project
+        .searched()
+        .into_iter()
+        .find(|(_, f)| f.module_path == module)
+    else {
+        let held: Vec<&str> = project
+            .files
+            .values()
+            .map(|f| f.module_path.as_str())
+            .collect();
+        return Err(format!(
+            "no file of this project is module `{module}`, so `{module}::{name}` names no \
+             declaration here. The project holds {}.",
+            if held.is_empty() {
+                "no modules".to_string()
+            } else {
+                held.join(", ")
+            }
+        ));
+    };
+    let file = entry.file;
+    let parsed = glyph_db::parse_module(db, file);
+    let Some(module_ast) = parsed.module() else {
+        return Err(format!(
+            "module `{module}` does not parse, so nothing in it has a shape to describe. \
+             `glyph_diagnostics` on its file reports why."
+        ));
+    };
+    let symbols = glyph_db::module_symbols(db, file);
+    let Some(table) = symbols.symbols() else {
+        return Err(format!(
+            "module `{module}` does not resolve, so `{module}::{name}` is not keyed to a \
+             declaration and nothing here can be read off it."
+        ));
+    };
+    let what = declared_as(module_ast, &table.table, &table.by_name, module, name)?;
+
+    let ty = declared_ty(project, file, &what, name);
+    let kind = symbol_kind_str(&what);
+    let origin = symbol_origin(project, root, module, name);
+    let (origin_wire, origin_absent) = Origin::pair(origin.as_ref());
+    let (exhaustive, exhaustive_absent) = exhaustive_match_pair(&what, ty.as_ref());
+
+    let text = file.source_text(db);
+    let index = LineIndex::new(text);
+    let span = what.span();
+
+    let mut out = serde_json::Map::new();
+    out.insert("entity".to_string(), json!(format!("{module}::{name}")));
+    out.insert("module".to_string(), json!(module));
+    out.insert("name".to_string(), json!(name));
+    out.insert("kind".to_string(), json!(kind));
+    out.insert("pub".to_string(), json!(what.is_public()));
+    out.insert("generics".to_string(), json!(generics_value(&what)));
+    out.insert("path".to_string(), json!(display_path(root, fpath)));
+    out.insert(
+        "range".to_string(),
+        range_json(&index, text, span.start, span.end),
+    );
+    out.insert("origin".to_string(), origin_wire);
+    out.insert("origin_absent".to_string(), origin_absent);
+    out.insert(
+        "origin_detail".to_string(),
+        json!(origin.as_ref().map(Origin::detail)),
+    );
+
+    fact(
+        &mut out,
+        "type",
+        ty.as_ref()
+            .filter(|t| !matches!(t, Ty::Unknown))
+            .map(|t| json!(display_ty(t))),
+        format!(
+            "the compiler lowered no type for `{module}::{name}`. A declaration whose body \
+             is an `extern_ts` escape or a `typeof` has none in Glyph's own type system, and \
+             an unannotated `const` has none written."
+        ),
+    );
+    fact(
+        &mut out,
+        "fields",
+        fields_value(kind, ty.as_ref()),
+        format!("`{module}::{name}` is {} and declares no record fields.", a_kind(kind)),
+    );
+    fact(
+        &mut out,
+        "variants",
+        variants_value(ty.as_ref()),
+        format!(
+            "`{module}::{name}` is {} and has no variant list. A variant is a named \
+             constructor of a tagged union.",
+            a_kind(kind)
+        ),
+    );
+    fact(
+        &mut out,
+        "literals",
+        literals_value(ty.as_ref()),
+        format!(
+            "`{module}::{name}` is {} rather than a union of string literals, so it has no \
+             literal set.",
+            a_kind(kind)
+        ),
+    );
+    fact(
+        &mut out,
+        "parameters",
+        parameters_value(kind, ty.as_ref()),
+        format!("`{module}::{name}` is {} and takes no parameters.", a_kind(kind)),
+    );
+    fact(
+        &mut out,
+        "returns",
+        match (kind, ty.as_ref()) {
+            ("function" | "component" | "function-type", Some(Ty::Fn { return_ty, .. })) => {
+                Some(json!(display_ty(return_ty)))
+            }
+            _ => None,
+        },
+        format!("`{module}::{name}` is {} and returns nothing to a caller.", a_kind(kind)),
+    );
+    fact(
+        &mut out,
+        "async",
+        match (kind, ty.as_ref()) {
+            ("function" | "component" | "function-type", Some(Ty::Fn { is_async, .. })) => {
+                Some(json!(is_async))
+            }
+            _ => None,
+        },
+        format!("`{module}::{name}` is {} and is not called, so it is neither async nor not.", a_kind(kind)),
+    );
+    fact(
+        &mut out,
+        "members",
+        members_value(&what, ty.as_ref()),
+        format!(
+            "`{module}::{name}` is {} rather than an interface, so it declares no members.",
+            a_kind(kind)
+        ),
+    );
+    fact(
+        &mut out,
+        "owner",
+        match &what {
+            DeclaredAs::Variant { owner, .. } => Some(json!(format!("{module}::{}", owner.name))),
+            DeclaredAs::Decl(_) => None,
+        },
+        format!(
+            "`{module}::{name}` is {} and is declared at a module's top level, so no other \
+             declaration owns it.",
+            a_kind(kind)
+        ),
+    );
+    fact(
+        &mut out,
+        "construct",
+        match (&what, ty.as_ref()) {
+            (DeclaredAs::Variant { .. }, Some(t)) => Some(json!(display_ty(t))),
+            _ => None,
+        },
+        match kind {
+            "record" => RECORD_CONSTRUCT.to_string(),
+            "union" => format!(
+                "a tagged union is constructed through one of its variants. \
+                 `variants[].construct` carries the syntax of each."
+            ),
+            _ => format!(
+                "`{module}::{name}` is {} and has no construction syntax of its own.",
+                a_kind(kind)
+            ),
+        },
+    );
+    out.insert("exhaustive_match".to_string(), exhaustive);
+    out.insert("exhaustive_match_absent".to_string(), exhaustive_absent);
+    fact(
+        &mut out,
+        "examples",
+        examples_value(&what),
+        format!("no `@example` is written above `{module}::{name}`."),
+    );
+    Ok(Value::Object(out))
+}
+
+/// A kind with its article, for a sentence that says what a symbol is instead
+/// of what it is not.
+fn a_kind(kind: &str) -> String {
+    match kind {
+        "interface" => "an interface".to_string(),
+        "alias" => "an alias".to_string(),
+        "extern-ts" => "an `extern_ts` escape".to_string(),
+        "import" => "an import".to_string(),
+        other => format!("a {other}"),
+    }
+}
+
+fn tool_symbol(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    match read_symbol_address(args)? {
+        SymbolAddress::Entity { module, name } => {
+            // Addressed by identity, with a file accepted as a way of naming
+            // which project to count that identity in. The same rule
+            // `glyph_impact` reads.
+            let (project_root, target) = match args.get("path") {
+                None | Some(Value::Null) => {
+                    let found = impact_root(&root)?;
+                    (found.clone(), found)
+                }
+                Some(_) => {
+                    let (path, _) = read_file(args, &root)?;
+                    (crate::module_root_for(&path, &root), path)
+                }
+            };
+            let project = server.project(&project_root, &target);
+            Ok(to_json(&describe_symbol(project, &root, &module, &name)?))
+        }
+        SymbolAddress::Position => {
+            let (path, text) = read_file(args, &root)?;
+            let (line, character) = position(args)?;
+            let offset = LineIndex::new(&text).offset(&text, line, character);
+            let this_module = module_key(&path, &root);
+            let Some(a) = analyze_full(&text) else {
+                return Err(format!(
+                    "{} does not parse, so no name at that position is resolved to a symbol. \
+                     `glyph_diagnostics` on it reports why.",
+                    display_path(&root, &path)
+                ));
+            };
+            let target = a.symbol_target(offset as usize, &text, &this_module);
+            let (module, name) = match target {
+                Some(SymbolTarget::Global { module, name }) => (module, name),
+                Some(SymbolTarget::Local) => {
+                    return Err(
+                        "that position is on a file-private binding: a `let`, a parameter, a \
+                         `match` binding or a lambda parameter. It has no `module::name` \
+                         identity, so there is no symbol here to describe. `glyph_hover` at \
+                         the same position answers with its type."
+                            .to_string(),
+                    )
+                }
+                None => {
+                    return Err(
+                        "that position is not on a name the resolver bound. A keyword, a \
+                         literal, whitespace and a prelude built-in each address no symbol \
+                         of this project."
+                            .to_string(),
+                    )
+                }
+            };
+            let project_root = crate::module_root_for(&path, &root);
+            let project = server.project(&project_root, &path);
+            Ok(to_json(&describe_symbol(project, &root, &module, &name)?))
+        }
+    }
+}
+
 fn tool_symbols(args: &Value, root: &Path) -> Result<String, String> {
     let query = args
         .get("query")

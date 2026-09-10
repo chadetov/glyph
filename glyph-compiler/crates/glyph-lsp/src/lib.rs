@@ -229,7 +229,7 @@ impl LanguageServer for Backend {
         };
         let index = LineIndex::new(text);
         let offset = index.offset(text, pos.position.line, pos.position.character);
-        Ok(analysis.hover(offset).map(|ty| Hover {
+        Ok(analysis.hover(text, offset).map(|ty| Hover {
             contents: HoverContents::Markup(MarkupContent {
                 kind: MarkupKind::Markdown,
                 value: format!("```glyph\n{ty}\n```"),

@@ -42,7 +42,7 @@ use glyph_typechecker::{
 };
 
 use crate::analysis::{
-    analyze, analyze_full, call_argument_spans, enclosing_decl_name, extern_ts_escape,
+    analyze_full, call_argument_spans, enclosing_decl_name, extern_ts_escape,
     global_relations_in, module_outline, outline_of, relations_at, symbol_target_at,
     Definition, LineIndex, OutlineKind, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
 };
@@ -202,6 +202,18 @@ impl Project {
         };
         let file = load(&mut self.db, existing, module_path, text);
         self.outsider = Some((target.to_path_buf(), file));
+    }
+
+    /// The handle for the file this call is about: a member, or the outsider
+    /// slot the refresh just loaded it into. `None` only for a path the
+    /// refresh could not read at all.
+    fn queried(&self, target: &Path) -> Option<&ProjectFile> {
+        self.files.get(target).or_else(|| {
+            self.outsider
+                .as_ref()
+                .filter(|(p, _)| p == target)
+                .map(|(_, f)| f)
+        })
     }
 
     /// Every file this call may read, in path order: the project's members,
@@ -454,7 +466,7 @@ fn tool_specs() -> Value {
     json!([
         {
             "name": "glyph_diagnostics",
-            "description": "Type-check one Glyph file and return its diagnostics (compiler errors and warnings) with stable codes (E0xxx) and source ranges.",
+            "description": "Every diagnostic the compiler reports for one file, checked inside its project. The answer is `{ path, module, project_root, member, diagnostics, unindexed, not_run }`, and each entry of `diagnostics` is the structured diagnostic `glyph check --json` prints, field for field, from the same type: `code`, `severity` (`error` or `warning`), `message`, `help`, `note`, `file` (the module half of the file's identity, the same spelling `entity` is counted from), `range` (1-based `line` and `col`, with the byte `offset`), `stage` (`parse`, `collect`, `import`, `resolve`, `typecheck`, `lint`, `emit`), and `entity`, the `module::name` declaration the diagnostic sits in or null when there is none. An exhaustiveness error also carries `union` and `missing_variants`, which address the union rather than describing it: `union.name` is what `glyph_variants` takes and `union.declaration` is what `glyph_impact` takes, so the repair continues without a regex over the message. The file is checked in its project, so a non-exhaustive match over an imported union, a wrong field on an imported record, and an unknown export are all answered the way the compiler answers them; a reading of the file on its own reports none of the three, and reports the import of a variant the missing arms would have named as unused. Coverage is stated on the answer. `member` is false for a file the project walk does not reach (a dot directory, `target/`, `node_modules/`), which is still checked from its own contents against the project's modules, with `member_detail` saying so. `unindexed` names the project files that could not be read, one by one, because a sibling that does not parse declares nothing this file's check can see. `not_run` names the two checks `glyph check` makes and this does not: `tsc`, which reads emitted TypeScript on disk, and `E0104`, an import naming no module, where telling a mistyped sibling from an installed package needs the build's view of `node_modules`. A file that does not parse answers with its parse error alone, since every stage after it needs an AST. A path that is not a readable `.glyph` file is an error rather than an empty answer.",
             "inputSchema": { "type": "object", "properties": { "path": file }, "required": ["path"] }
         },
         {
@@ -501,10 +513,17 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
     let args = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
     let root = server.root.clone();
     match name {
-        // The three single-file tools answer in well under a millisecond from a
-        // fresh parse, so they stay off the database: routing them through it
-        // would buy nothing and charge them the project-wide directory walk.
-        "glyph_diagnostics" => tool_diagnostics(&args, &root),
+        // `glyph_diagnostics` is a project question wearing a file's clothes:
+        // whether a match over an imported union is exhaustive is decided by
+        // the module that declares it, so the tool reads the same database
+        // `glyph_impact` and `glyph_variants` do. It cost a directory walk and
+        // bought the cross-module half of the compiler's answer, which the
+        // single-file front end could not see at all (G219).
+        //
+        // Hover and definition stay off the database: both answer from one
+        // file's own parse in well under a millisecond, and routing them
+        // through it would charge them the walk for nothing.
+        "glyph_diagnostics" => tool_diagnostics(&args, server),
         "glyph_hover" => tool_hover(&args, &root),
         "glyph_definition" => tool_definition(&args, &root),
         "glyph_references" => tool_references(&args, server),
@@ -515,31 +534,111 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
     }
 }
 
-fn tool_diagnostics(args: &Value, root: &Path) -> Result<String, String> {
-    let (path, text) = read_file(args, root)?;
-    let index = LineIndex::new(&text);
-    // The same `module::name` identity `glyph_variants` reports for a match
-    // site over a declaration (0.1.107), so an agent can act on a batch of
-    // diagnostics by entity instead of re-deriving "which function is this"
-    // from a line number that shifts under every unrelated edit above the
-    // site. This tool stays off the project database (see the module docs),
-    // so the module half is a pure transform of the path already given to the
-    // tool rather than a minted `ModuleId`. It is counted from the file's
-    // project, never from the server's root: see `module_key`.
-    let module_str = module_key(&path, root);
-    let items: Vec<Value> = analyze(&text)
-        .into_iter()
-        .map(|d| {
-            let entity = d.decl_name.map(|name| format!("{module_str}::{name}"));
-            json!({
-                "code": d.code,
-                "message": d.message,
-                "range": range_json(&index, &text, d.start, d.end),
-                "entity": entity,
-            })
-        })
+/// Every diagnostic the compiler reports for one file, checked inside its
+/// project.
+///
+/// The answer's `diagnostics` are `glyph check --json`'s own `Diagnostic`
+/// values, serialized from the same Rust type
+/// (`crate::diagnostic::project_file_diagnostics`), so the two surfaces cannot
+/// carry different fields for one error. Before 0.1.121 this ran the
+/// single-file front end on the text alone: a non-exhaustive match over an
+/// imported union came back clean, and the unused-import lint fired on the
+/// variants the missing arms would have named (G219).
+///
+/// Coverage is stated on the answer rather than assumed. `member` says whether
+/// the project walk reaches the file; `unindexed` names the project files that
+/// could not be read, one by one, because a sibling that does not parse
+/// exports nothing this file's check can see; and `not_run` names the two
+/// checks `glyph check` makes and this does not.
+fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let (path, _) = read_file(args, &root)?;
+    let project_root = crate::module_root_for(&path, &root);
+    let project = server.project(&project_root, &path);
+    let db = &project.db;
+
+    // A file the walk does not reach is still checked, from its own contents
+    // against the project's modules: the caller named it, and "diagnostics for
+    // this file" is answerable for it. What it is not is a member, and the
+    // answer says so rather than letting a `target/` copy pass for the source.
+    let member = project.files.contains_key(&path);
+    let Some(entry) = project.queried(&path) else {
+        return Err(format!(
+            "{} could not be read as a module of the project at {}",
+            display_path(&root, &path),
+            display_path(&root, &project_root),
+        ));
+    };
+    // The same rule every other identity here is counted by: the file's path
+    // under its own project root, never under the server's (G180).
+    let module_path = module_key(&path, &root);
+    let file = entry.file;
+
+    // The project scan every module's emission needs, over the same file set
+    // `glyph build` scans: one pass per AST, and the ASTs are already parsed.
+    let searched = project.searched();
+    let parsed_all: Vec<glyph_db::ParsedModule> = searched
+        .iter()
+        .map(|(_, f)| glyph_db::parse_module(db, f.file))
         .collect();
-    Ok(to_json(&items))
+    let tables = glyph_emit::ProjectTables::from_modules(
+        searched
+            .iter()
+            .zip(parsed_all.iter())
+            .map(|((_, f), parsed)| (f.module_path.as_str(), parsed.module())),
+    );
+
+    let diagnostics = crate::diagnostic::project_file_diagnostics(db, file, &module_path, &tables);
+
+    // What the project could not be read from. The queried file is not in this
+    // list: its own parse failure is the first diagnostic above, which is a
+    // stronger statement than "unreadable".
+    let mut unindexed: Vec<Value> = Vec::new();
+    for ((fpath, entry), parsed) in searched.iter().zip(parsed_all.iter()) {
+        if *fpath == path {
+            continue;
+        }
+        let why = if parsed.module().is_none() {
+            "the file does not parse, so nothing it declares is visible to this file's check"
+        } else if glyph_db::resolve(db, entry.file).resolved().is_none() {
+            "the file does not resolve, so nothing it declares is visible to this file's check"
+        } else {
+            continue;
+        };
+        unindexed.push(json!({ "path": display_path(&root, fpath), "why": why }));
+    }
+
+    let answer = json!({
+        "path": display_path(&root, &path),
+        "module": module_path,
+        "project_root": display_path(&root, &project_root),
+        "member": member,
+        "member_detail": if member {
+            Value::Null
+        } else {
+            json!(format!(
+                "the project walk does not reach {}, so it is checked from its own \
+                 contents against the project's modules and no module can import it",
+                display_path(&root, &path),
+            ))
+        },
+        "diagnostics": diagnostics,
+        "unindexed": unindexed,
+        "not_run": [
+            {
+                "what": "tsc",
+                "why": "the TypeScript back-end checks emitted files on disk, and this \
+                        reads a project without writing one. Run `glyph check` for that half."
+            },
+            {
+                "what": "E0104, a local import naming no module",
+                "why": "telling a mistyped sibling import from an installed npm package \
+                        needs the build's view of `node_modules` and `package.json`, which \
+                        this server does not read."
+            }
+        ],
+    });
+    Ok(to_json(&answer))
 }
 
 fn tool_hover(args: &Value, root: &Path) -> Result<String, String> {
@@ -6496,6 +6595,14 @@ mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU64, Ordering};
 
+    /// The `diagnostics` array of a `glyph_diagnostics` answer. The tool's
+    /// reply is an envelope: the list plus what it could not read.
+    fn reported(answer: &Value) -> &Vec<Value> {
+        answer["diagnostics"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `diagnostics` array: {answer}"))
+    }
+
     fn tmp_root() -> PathBuf {
         static N: AtomicU64 = AtomicU64::new(0);
         let dir = std::env::temp_dir().join(format!(
@@ -6681,9 +6788,7 @@ mod tests {
         );
         let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
         assert!(!is_error);
-        let codes: Vec<&str> = value
-            .as_array()
-            .unwrap()
+        let codes: Vec<&str> = reported(&value)
             .iter()
             .map(|d| d["code"].as_str().unwrap())
             .collect();
@@ -6708,26 +6813,295 @@ mod tests {
         );
         let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
         assert!(!is_error);
-        let items = value.as_array().unwrap();
+        let items = reported(&value);
         assert_eq!(items.len(), 1, "{value}");
         assert_eq!(items[0]["entity"], "a::f", "{value}");
     }
 
-    /// A diagnostic that has no enclosing declaration to name — here, a parse
-    /// failure, which has no AST to look one up in — must say so with an
-    /// absent field, not a guessed value. `glyph_diagnostics` is a
-    /// single-file, off-the-database tool, so the entity is derived only from
-    /// this file's own parsed module; it is never wrong, only sometimes
-    /// unavailable.
+    /// A diagnostic that has no enclosing declaration to name (here a parse
+    /// failure, which has no AST to look one up in) must say so with an
+    /// explicit null, not a guessed value. A file that does not parse also
+    /// answers with that one diagnostic and no other, because every stage
+    /// after the parse needs an AST.
     #[test]
     fn diagnostics_tool_names_no_entity_for_a_parse_failure() {
         let root = tmp_root();
         write(&root, "a.glyph", "module a\nfn f(\n");
         let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
         assert!(!is_error);
-        let items = value.as_array().unwrap();
-        assert!(!items.is_empty(), "{value}");
+        let items = reported(&value);
+        assert_eq!(items.len(), 1, "{value}");
+        assert_eq!(items[0]["stage"], "parse", "{value}");
         assert!(items[0]["entity"].is_null(), "{value}");
+    }
+
+    /// G219, the case the audit fell into. The union is declared in one
+    /// module and matched in another, so nothing about the match is decidable
+    /// from `main.glyph` alone. The single-file front end answered `[]` here,
+    /// and worse: with the error invisible the advisory lint tier ran and
+    /// reported the two variants the missing arms would have named as unused
+    /// imports. Two of the three answers were wrong and the third was missing.
+    #[test]
+    fn a_match_over_an_imported_union_is_reported() {
+        let root = tmp_root();
+        write(
+            &root,
+            "orders.glyph",
+            "module orders
+pub type OrderStatus =
+  | Pending
+  | Paid
+  | Cancelled
+",
+        );
+        write(
+            &root,
+            "main.glyph",
+            "module main
+import orders { OrderStatus, Pending, Paid, Cancelled }
+             pub fn describe(s: OrderStatus) -> string {
+  return match s {
+    Pending => \"p\",
+  }
+}
+",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "main.glyph" }));
+        assert!(!is_error, "{value}");
+        let items = reported(&value);
+        assert_eq!(items.len(), 1, "{value}");
+        let d = &items[0];
+        assert_eq!(d["code"], "E0200", "{value}");
+        assert_eq!(d["entity"], "main::describe", "{value}");
+        // The union is addressed, not described: `union.name` is what
+        // `glyph_variants` takes and `union.declaration` what `glyph_impact`
+        // takes, so the repair continues without a regex over the sentence.
+        assert_eq!(d["union"]["name"], "OrderStatus", "{value}");
+        assert_eq!(d["union"]["declaration"], "orders::OrderStatus", "{value}");
+        assert_eq!(d["missing_variants"], json!(["Paid", "Cancelled"]), "{value}");
+    }
+
+    /// The other half of G219: a field on a record the file imports. The
+    /// checker needs the declaring module to know the field set, so the
+    /// single-file reading reported nothing at all.
+    #[test]
+    fn a_field_on_an_imported_record_is_reported() {
+        let root = tmp_root();
+        write(
+            &root,
+            "orders.glyph",
+            "module orders
+pub type Order = {
+  id: string,
+  total: number,
+}
+",
+        );
+        write(
+            &root,
+            "main.glyph",
+            "module main
+import orders { Order }
+             pub fn total_of(o: Order) -> number {
+  return o.totl
+}
+",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "main.glyph" }));
+        assert!(!is_error, "{value}");
+        let items = reported(&value);
+        assert_eq!(items.len(), 1, "{value}");
+        assert_eq!(items[0]["code"], "E0210", "{value}");
+        assert_eq!(items[0]["entity"], "main::total_of", "{value}");
+    }
+
+    /// The fields the answer carries are `glyph check --json`'s, by name and
+    /// by meaning, because they are one Rust type. The four-field object this
+    /// replaced dropped `severity`, `stage`, `file`, `union` and
+    /// `missing_variants` and glued `help` onto the end of `message` after a
+    /// newline, so an agent reading both surfaces had to parse one shape out
+    /// of the other.
+    #[test]
+    fn a_diagnostic_carries_the_fields_the_cli_carries() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a
+type U = { name: string }
+pub fn f(u: U) -> string {
+  return u.naem
+}
+",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
+        assert!(!is_error, "{value}");
+        let d = &reported(&value)[0];
+        let keys: BTreeSet<&str> = d.as_object().unwrap().keys().map(String::as_str).collect();
+        let want: BTreeSet<&str> = [
+            "code",
+            "severity",
+            "message",
+            "file",
+            "range",
+            "stage",
+            "entity",
+            "union",
+            "missing_variants",
+            "help",
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(keys, want, "{value}");
+        assert_eq!(d["severity"], "error", "{value}");
+        assert_eq!(d["stage"], "typecheck", "{value}");
+        assert_eq!(d["file"], "a", "{value}");
+        // `help` is its own field. The message is the sentence the compiler
+        // wrote and nothing else.
+        assert_eq!(d["message"], "type `U` has no field `naem`", "{value}");
+        assert!(
+            d["help"].as_str().unwrap().starts_with("Check the field name"),
+            "{value}"
+        );
+        // A 1-based line and column with the byte offset beside it, which is
+        // the CLI's range and not the editor's 0-based one.
+        assert_eq!(d["range"]["start"]["line"], 4, "{value}");
+        assert!(d["range"]["start"]["offset"].is_number(), "{value}");
+    }
+
+    /// A file that does not parse holds declarations nothing can see, so this
+    /// file's check is answered against a project with a hole in it. The hole
+    /// is named rather than left for the caller to notice: without `orders`,
+    /// `OrderStatus` resolves to nothing and the non-exhaustive match reports
+    /// nothing, which reads exactly like a clean file.
+    #[test]
+    fn a_sibling_that_does_not_parse_is_named() {
+        let root = tmp_root();
+        write(&root, "orders.glyph", "module orders
+pub type OrderStatus =
+  | \n");
+        write(
+            &root,
+            "main.glyph",
+            "module main
+import orders { OrderStatus }
+             pub fn describe(s: OrderStatus) -> string {
+  return match s {
+    Pending => \"p\",
+  }
+}
+",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "main.glyph" }));
+        assert!(!is_error, "{value}");
+        let unindexed = value["unindexed"].as_array().unwrap();
+        assert_eq!(unindexed.len(), 1, "{value}");
+        assert_eq!(unindexed[0]["path"], "orders.glyph", "{value}");
+        assert!(
+            unindexed[0]["why"].as_str().unwrap().contains("does not parse"),
+            "{value}"
+        );
+        // The file being asked about is never in this list: its own parse
+        // error is a diagnostic, which says more than "unreadable".
+        let (value, _) = call(&root, "glyph_diagnostics", json!({ "path": "orders.glyph" }));
+        assert!(value["unindexed"].as_array().unwrap().is_empty(), "{value}");
+        assert_eq!(reported(&value)[0]["stage"], "parse", "{value}");
+    }
+
+    /// A file the project walk does not reach is still checked, because the
+    /// caller named it and its diagnostics are answerable from its own
+    /// contents against the project's modules. What it is not is a member, and
+    /// the answer says so rather than letting a copy under `node_modules`
+    /// stand in for the source.
+    #[test]
+    fn a_file_the_walk_does_not_reach_is_checked_and_said_not_to_be_a_member() {
+        let root = tmp_root();
+        let src = root.join("src");
+        std::fs::create_dir_all(src.join("node_modules")).unwrap();
+        std::fs::write(
+            root.join("package.json"),
+            r#"{"name":"p","glyph":{"src":"src"}}"#,
+        )
+        .unwrap();
+        write(&src, "a.glyph", "module a
+pub fn f() -> number {
+  return 1
+}
+");
+        write(
+            &src.join("node_modules"),
+            "vendored.glyph",
+            "module vendored
+pub fn g() -> number {
+  return \"x\"
+}
+",
+        );
+
+        let (value, is_error) = call(
+            &root,
+            "glyph_diagnostics",
+            json!({ "path": "src/node_modules/vendored.glyph" }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["member"], false, "{value}");
+        assert!(!value["member_detail"].is_null(), "{value}");
+        assert_eq!(reported(&value)[0]["code"], "E0204", "{value}");
+
+        // A member says so, with nothing to explain.
+        let (value, _) = call(&root, "glyph_diagnostics", json!({ "path": "src/a.glyph" }));
+        assert_eq!(value["member"], true, "{value}");
+        assert!(value["member_detail"].is_null(), "{value}");
+    }
+
+    /// The emitter refuses programs the checker accepts, and those refusals
+    /// are errors of `glyph check`, so they are errors here. Two arms lowering
+    /// to one `case` is the case that matters most: the emitted `switch` would
+    /// run first-one-wins and the later arm would be dead code, which is how
+    /// three miscompiles shipped green through `tsc`.
+    #[test]
+    fn an_emitter_refusal_is_reported_like_any_other_diagnostic() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a
+pub type U =
+  | A
+  | B
+pub fn f(u: U) -> number {
+  return match u {
+    A => 1,
+    A => 2,
+    B => 3,
+  }
+}
+",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
+        assert!(!is_error, "{value}");
+        let d = &reported(&value)[0];
+        assert_eq!(d["code"], "E0305", "{value}");
+        assert_eq!(d["stage"], "emit", "{value}");
+        assert_eq!(d["entity"], "a::f", "{value}");
+    }
+
+    /// What this tool does not run, named on every answer rather than left to
+    /// be discovered by an agent that concluded a file was clean.
+    #[test]
+    fn the_answer_names_what_it_did_not_run() {
+        let root = tmp_root();
+        write(&root, "a.glyph", "module a
+pub fn f() -> number {
+  return 1
+}
+");
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
+        assert!(!is_error, "{value}");
+        let not_run = value["not_run"].as_array().unwrap();
+        let what: Vec<&str> = not_run.iter().map(|e| e["what"].as_str().unwrap()).collect();
+        assert!(what.iter().any(|w| *w == "tsc"), "{value}");
+        assert!(what.iter().any(|w| w.contains("E0104")), "{value}");
     }
 
     #[test]
@@ -9955,7 +10329,7 @@ mod tests {
             json!({ "path": "src/a.glyph" }),
         );
         assert!(!is_error, "{diags}");
-        assert_eq!(diags[0]["entity"], "a::handle", "{diags}");
+        assert_eq!(reported(&diags)[0]["entity"], "a::handle", "{diags}");
 
         let answer = variants(&mut server, "src/a.glyph", "Command");
         assert_eq!(answer["sites"][0]["declaration"], "a::run", "{answer}");
@@ -9982,7 +10356,7 @@ mod tests {
             json!({ "path": "sub/a.glyph" }),
         );
         assert!(!is_error, "{diags}");
-        assert_eq!(diags[0]["entity"], "a::handle", "{diags}");
+        assert_eq!(reported(&diags)[0]["entity"], "a::handle", "{diags}");
 
         let answer = variants(&mut server, "sub/a.glyph", "Command");
         assert_eq!(answer["sites"][0]["declaration"], "a::run", "{answer}");
@@ -9998,7 +10372,7 @@ mod tests {
         write(&root, "broken.glyph", "module a\npub fn (\n");
         let (diags, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "broken.glyph" }));
         assert!(!is_error, "{diags}");
-        let entity = diags[0]
+        let entity = reported(&diags)[0]
             .get("entity")
             .unwrap_or_else(|| panic!("the `entity` key must be present: {diags}"));
         assert!(entity.is_null(), "{diags}");

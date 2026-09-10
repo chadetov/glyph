@@ -1286,3 +1286,143 @@ fn an_imported_union_call_site_is_where_e0211_lands() {
 
     assert_eq!(mcp.finish(), 0);
 }
+
+// ---------------------------------------------------------------------------
+// G219: the two surfaces are one shape.
+// ---------------------------------------------------------------------------
+
+/// One project per case, each drawing a diagnostic from a different stage, and
+/// for each one the two agent-facing surfaces are asked the same question.
+///
+/// This is the gate on the type being shared rather than merely similar. The
+/// `glyph_diagnostics` answer used to be assembled inside the MCP server from
+/// four of the eleven fields, with `help` glued onto `message`, and it ran the
+/// single-file front end, so a diagnostic that needed the declaring module was
+/// absent from it entirely. Both are the kind of drift a test that only asked
+/// "did it report E0200" would let back in, so this compares the serialized
+/// JSON: same keys, same values, same order, per diagnostic.
+///
+/// The comparison is confined to the queried file, because `glyph check`
+/// reports the whole project and the tool answers about one module.
+#[test]
+fn one_diagnostic_has_one_shape_on_both_surfaces() {
+    struct Case {
+        /// The subdirectory, which is also the project root for its files.
+        dir: &'static str,
+        /// What the case is here to draw, asserted so a fixture that stops
+        /// producing it fails instead of comparing two empty lists.
+        code: &'static str,
+        main: &'static str,
+        orders: Option<&'static str>,
+    }
+
+    const ORDERS_UNION: &str =
+        "module orders\npub type OrderStatus =\n  | Pending\n  | Paid\n  | Cancelled\n";
+    const ORDERS_RECORD: &str = "module orders\npub type Order = {\n  id: string,\n  total: number,\n}\n";
+
+    let cases = [
+        // typecheck, across a module boundary, with `union` and
+        // `missing_variants` on the diagnostic.
+        Case {
+            dir: "exhaustive",
+            code: "E0200",
+            main: "module main\nimport orders { OrderStatus, Pending, Paid, Cancelled }\n\n\
+                   pub fn describe(s: OrderStatus) -> string {\n  return match s {\n    Pending => \"p\",\n  }\n}\n",
+            orders: Some(ORDERS_UNION),
+        },
+        // typecheck, across a module boundary, about no union.
+        Case {
+            dir: "field",
+            code: "E0210",
+            main: "module main\nimport orders { Order }\n\n\
+                   pub fn total_of(o: Order) -> number {\n  return o.totl\n}\n",
+            orders: Some(ORDERS_RECORD),
+        },
+        // import, which is a different stage tag from the resolve one.
+        Case {
+            dir: "export",
+            code: "E0105",
+            main: "module main\nimport orders { Nope }\n\n\
+                   pub fn f() -> number {\n  return 1\n}\n",
+            orders: Some(ORDERS_RECORD),
+        },
+        // The advisory tier: a warning, which the tool has to carry with the
+        // severity the CLI gives it rather than as an error.
+        Case {
+            dir: "lint",
+            code: "E0106",
+            main: "module main\nimport orders { Order }\n\n\
+                   pub fn f() -> number {\n  return 1\n}\n",
+            orders: Some(ORDERS_RECORD),
+        },
+        // emit: a refusal the checker does not make.
+        Case {
+            dir: "emit",
+            code: "E0305",
+            main: "module main\npub type U =\n  | A\n  | B\n\n\
+                   pub fn f(u: U) -> number {\n  return match u {\n    A => 1,\n    A => 2,\n    B => 3,\n  }\n}\n",
+            orders: None,
+        },
+        // parse: no AST, so no entity, and nothing after it runs.
+        Case {
+            dir: "parse",
+            code: "E0002",
+            main: "module main\npub fn f(\n",
+            orders: None,
+        },
+    ];
+
+    let root = unique_tmp("one_shape");
+    for case in &cases {
+        let src = root.join(case.dir);
+        std::fs::create_dir_all(&src).expect("create case dir");
+        std::fs::write(src.join("main.glyph"), case.main).expect("write main.glyph");
+        if let Some(orders) = case.orders {
+            std::fs::write(src.join("orders.glyph"), orders).expect("write orders.glyph");
+        }
+    }
+
+    let mut mcp = McpProcess::start(&root);
+    mcp.handshake(0);
+
+    for (i, case) in cases.iter().enumerate() {
+        let src = root.join(case.dir);
+        let (_, report) = check_json(&src);
+        // `glyph check` answers for the whole project; the tool answers for
+        // one module. `file` is the module half, which both spell the same way.
+        let from_cli: Vec<Value> = report["diagnostics"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no diagnostics from `glyph check`: {report}"))
+            .iter()
+            .filter(|d| d["file"] == json!("main"))
+            .cloned()
+            .collect();
+
+        let answer = mcp.call_tool(
+            (i + 1) as u64,
+            "glyph_diagnostics",
+            json!({ "path": format!("{}/main.glyph", case.dir) }),
+        );
+        let from_tool = answer["diagnostics"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `diagnostics` in the tool's answer: {answer}"))
+            .clone();
+
+        let codes: Vec<&str> = from_cli.iter().filter_map(|d| d["code"].as_str()).collect();
+        assert!(
+            codes.contains(&case.code),
+            "the `{}` fixture no longer draws {}: {report}",
+            case.dir,
+            case.code,
+        );
+        assert_eq!(
+            Value::Array(from_cli),
+            Value::Array(from_tool),
+            "`{}`: `glyph check --json` and `glyph_diagnostics` disagree about the \
+             diagnostics of one file",
+            case.dir,
+        );
+    }
+
+    assert_eq!(mcp.finish(), 0);
+}

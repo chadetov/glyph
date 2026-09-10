@@ -42,11 +42,18 @@ pub struct GlyphDiagnostic {
     /// declaration in hand (`TypeError::decl_name`), otherwise the declaration
     /// whose span contains the diagnostic (see `enclosing_decl_name`). `None`
     /// for a diagnostic with no declaration to name: a parse failure (no AST
-    /// exists yet), or a span on the `module` line or an import. This tool has
-    /// no project index to qualify the name with a
-    /// module path — the caller (`glyph_diagnostics`), which does know the
-    /// file's own path, assembles the qualified `module::name` form the same
-    /// way `glyph_variants` addresses a declaration site.
+    /// exists yet), or a span on the `module` line or an import. Carried
+    /// unqualified: the module half is counted from a root only the caller
+    /// knows.
+    ///
+    /// Unread since 0.1.121, when `glyph_diagnostics` moved onto the project
+    /// database and the `crate::diagnostic::Diagnostic` the CLI serializes.
+    /// This type is now the editor's alone, and the language server puts a
+    /// code, a range and a message on the wire. Kept because it is the same
+    /// fact `entity` carries on the other surface and the protocol has a
+    /// `data` field to put it in; the attribute is what says nothing reads it
+    /// yet.
+    #[allow(dead_code)]
     pub decl_name: Option<String>,
     /// The union this diagnostic is about, when it is about one: the
     /// exhaustiveness errors, which name a union and a set of its variants in
@@ -59,12 +66,10 @@ pub struct GlyphDiagnostic {
     /// `DiagnosticUnion::declaration`, which assembles the `module::name`
     /// form.
     ///
-    /// `analysis` is a private module, so a field with no in-crate reader is
-    /// dead code, and the reader these two are for is `tool_diagnostics`,
-    /// which renders a `GlyphDiagnostic` into the `glyph_diagnostics` reply
-    /// the way it already renders `decl_name`. Delete both attributes in the
-    /// change that adds those two keys; they are the marker for it, not a
-    /// judgement that the fields can stay unread.
+    /// Unread, for the reason on `decl_name`: `tool_diagnostics` was the
+    /// reader these were added for, and it answers from
+    /// `crate::diagnostic::Diagnostic` since 0.1.121 rather than from this
+    /// type.
     #[allow(dead_code)]
     pub union: Option<DiagnosticUnion>,
     /// The variants the match leaves unmentioned, in declaration order and

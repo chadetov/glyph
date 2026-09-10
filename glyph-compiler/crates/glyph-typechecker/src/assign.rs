@@ -21,7 +21,7 @@ use glyph_ast::{
     LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField, ObjectPatternField, Param, Pattern,
     PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
-use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
+use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
 use crate::ty::{
@@ -318,6 +318,7 @@ pub fn assign_types_with_relations(
             coverage: &mut coverage,
             field_uses: &mut field_uses,
             assign_target: None,
+            member_object: None,
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -997,6 +998,17 @@ struct Assigner<'a> {
     /// target's span still set, and a flag would call `c.d` a write. The arm
     /// compares its own span, so only the target itself matches.
     assign_target: Option<Span>,
+    /// The span of the identifier currently standing as a member access's
+    /// object, so the one `Expr::Ident` arm can tell a type name used as a
+    /// value from a type name used as its own descriptor's receiver (G217).
+    ///
+    /// `Order.parse(json)` and `Order.is(v)` are the two forms where naming a
+    /// type in an expression is the point, and both reach the identifier arm
+    /// through the member arm's walk of its object. A span rather than a flag,
+    /// for the reason `assign_target` is one: the object's subexpressions are
+    /// walked with it still set, and a flag would exempt every identifier
+    /// underneath.
+    member_object: Option<Span>,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
     /// the Assigner doesn't keep a local `decl_ty` map any more.
@@ -1586,7 +1598,16 @@ impl Assigner<'_> {
                 self.tm.insert(*span, Ty::Unknown);
             }
             Expr::Member { object, field, span, .. } => {
+                // The object of a member access is the one expression position
+                // a type name belongs in: `Order.parse(json)` and `Order.is(v)`
+                // are the descriptor forms (G217). Marked before the walk and
+                // restored after, so nothing outside this object is exempt.
+                let outer_member_object = match object.as_ref() {
+                    Expr::Ident { span, .. } => self.member_object.replace(*span),
+                    _ => self.member_object,
+                };
                 self.walk_expr(object);
+                self.member_object = outer_member_object;
                 let obj_ty = self.tm.get(object.span()).clone();
                 let access = if self.assign_target == Some(*span) {
                     FieldAccess::Write
@@ -2102,21 +2123,151 @@ impl Assigner<'_> {
                         // same way, so the guarantee does not depend on
                         // whether the value was declared as a function or a
                         // constant.
-                        self.decl_ty_resolver
+                        let value = self
+                            .decl_ty_resolver
                             .imported_fn_decl(&key, original.as_ref())
                             .or_else(|| {
                                 self.decl_ty_resolver
                                     .imported_const_decl(&key, original.as_ref())
                             })
-                            .or_else(|| self.stdlib_fn_ty(&key, original.as_ref()))
-                            .unwrap_or(Ty::Unknown)
+                            .or_else(|| self.stdlib_fn_ty(&key, original.as_ref()));
+                        match value {
+                            Some(ty) => ty,
+                            // G217 across the module boundary. A named import
+                            // binds one name to whatever the sibling declares,
+                            // and when none of the three value kinds answered
+                            // it may be a type. The declaration is one query
+                            // away, and asking it is what keeps the diagnostic
+                            // from depending on whether the record was
+                            // declared here or imported.
+                            None => {
+                                if let Some(decl) = self
+                                    .decl_ty_resolver
+                                    .imported_type_decl(&key, original.as_ref())
+                                {
+                                    let construction = self.construction_of_ty(&decl.body);
+                                    self.report_type_name_as_value(
+                                        ref_span,
+                                        original.as_ref(),
+                                        construction,
+                                    );
+                                }
+                                Ty::Unknown
+                            }
+                        }
+                    }
+                    // G217. The name is a type declared in this module (a
+                    // `type` or an `interface`, which collect interns in the
+                    // same namespace), standing where a value is wanted.
+                    SymbolKind::Type { decl_idx } => {
+                        let construction = self.construction_of_local_type(*decl_idx);
+                        self.report_type_name_as_value(
+                            ref_span,
+                            sym.name.as_ref(),
+                            construction,
+                        );
+                        Ty::Unknown
                     }
                     _ => Ty::Unknown,
                 }
             }
             // Prelude values (`Ok`, `Err`, etc.) need use-site generic
-            // instantiation — week-3 bidirectional checker work.
-            ResolvedRef::Prelude(_) => Ty::Unknown,
+            // instantiation — week-3 bidirectional checker work. A prelude
+            // *type* is G217's error, the same as a declared one: `string` and
+            // `Option` name types, and neither is a value.
+            ResolvedRef::Prelude(id) => {
+                if let Some(sym) = self.lowerer.prelude.table.get(id) {
+                    if let SymbolKind::Prelude { kind } = sym.kind {
+                        if let Some(construction) = prelude_type_construction(kind) {
+                            let name = sym.name.as_ref().to_string();
+                            self.report_type_name_as_value(
+                                ref_span,
+                                &name,
+                                construction.to_string(),
+                            );
+                        }
+                    }
+                }
+                Ty::Unknown
+            }
+        }
+    }
+
+    /// Record a type's name standing where a value is wanted (G217, E0228).
+    ///
+    /// Silent for the one legal expression use of a type name, its own
+    /// descriptor's receiver: `member_object` carries the span of the
+    /// identifier the enclosing member access is reading through, so
+    /// `Order.parse(json)` and `Order.is(v)` report nothing while `Order` on
+    /// its own does.
+    fn report_type_name_as_value(&mut self, span: Span, name: &str, construction: String) {
+        if self.member_object == Some(span) {
+            return;
+        }
+        self.errors.push(TypeError::TypeNameAsValue {
+            name: name.to_string(),
+            construction,
+            span,
+        });
+    }
+
+    /// How a value of the type declared at `decl_idx` is written, for E0228's
+    /// message. An `interface` answers for itself; every other declaration
+    /// answers from its lowered body, so one reading of "what shape is this"
+    /// serves the local and the imported case alike.
+    fn construction_of_local_type(&self, decl_idx: u32) -> String {
+        match self.module.items.get(decl_idx as usize) {
+            Some(Decl::Interface(_)) => {
+                "an `interface` is a shape a record satisfies, not a value to construct".to_string()
+            }
+            Some(Decl::Type(td)) => self.construction_of_ty(&self.lowerer.lower(&td.body)),
+            _ => GENERIC_CONSTRUCTION.to_string(),
+        }
+    }
+
+    /// How a value of `ty` is written, in one clause. The record and the
+    /// tagged union are the two an agent reaches for by name, so both list
+    /// what they actually hold: the field names for the literal, the variants
+    /// with their payload shapes for the constructor call. Anything the
+    /// checker cannot see into (an `extern_ts` body, a `typeof`, an
+    /// unresolved name) gets the general sentence rather than a guess.
+    fn construction_of_ty(&self, ty: &Ty) -> String {
+        match ty {
+            Ty::Record { fields } if !fields.is_empty() => {
+                let shape = fields
+                    .iter()
+                    .map(|f| format!("{}: ...", f.name))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("a value is the record literal `{{ {shape} }}`, with the type on the annotation")
+            }
+            Ty::Union { variants } if !variants.is_empty() => {
+                let shape = variants
+                    .iter()
+                    .map(|v| match &v.payload {
+                        Some(p) => format!("`{}({})`", v.name, ty_display(p)),
+                        None => format!("`{}`", v.name),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("a value is one of its variants: {shape}")
+            }
+            Ty::StringLiteralUnion(values) if !values.is_empty() => {
+                let shape = values
+                    .iter()
+                    .map(|v| format!("`\"{v}\"`"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("a value is one of its literals: {shape}")
+            }
+            Ty::Prim(_) => format!(
+                "a value is a `{}` literal, with the type on the annotation",
+                ty_display(ty)
+            ),
+            Ty::Fn { .. } => {
+                "a value is a function, with the type on the annotation".to_string()
+            }
+            _ => GENERIC_CONSTRUCTION.to_string(),
         }
     }
 
@@ -6052,6 +6203,52 @@ impl ImportedUnionOrRecord {
 /// assignability in return and callback positions is subtler.
 fn is_concrete_scalar(p: Primitive) -> bool {
     matches!(p, Primitive::String | Primitive::Number | Primitive::Bool)
+}
+
+/// E0228's clause for a type whose shape the checker cannot see into: an
+/// `extern_ts` or `typeof` body, an unresolved name, a prelude type with no
+/// literal form of its own. It says the one thing that is true of every type
+/// name without claiming a construction that may not exist.
+const GENERIC_CONSTRUCTION: &str = "a value is written in its own form, with the type on the annotation";
+
+/// How a value of a prelude type is written, or `None` for a prelude *value*
+/// (`Ok`, `Err`, `Some`, `None`, `par`, `print`, `assert`), which is a legal
+/// expression and not G217's error at all.
+///
+/// Matched without a wildcard: a new prelude entry has to be classified as a
+/// type or a value here, which is the question E0228 turns on.
+fn prelude_type_construction(kind: PreludeKind) -> Option<&'static str> {
+    Some(match kind {
+        PreludeKind::String => "a value is a string literal, with the type on the annotation",
+        PreludeKind::Number | PreludeKind::Int => {
+            "a value is a number literal, with the type on the annotation"
+        }
+        PreludeKind::BigInt => "a value is a `bigint`, with the type on the annotation",
+        PreludeKind::Bool => "a value is `true` or `false`",
+        PreludeKind::Void => "`void` is the absence of a value; there is nothing to write",
+        PreludeKind::Never => "`never` has no values (D43); nothing can be written here",
+        PreludeKind::UnknownTop => {
+            "a value of any type is an `unknown`, with the type on the annotation"
+        }
+        PreludeKind::Result => "a value is `Ok(v)` or `Err(e)`",
+        PreludeKind::Option => "a value is `Some(v)` or `None`",
+        PreludeKind::Nullable => {
+            "a value is a plain `T`, or the null a boundary produced (D45); `nullable.from_option` makes one"
+        }
+        PreludeKind::Array => "a value is an array literal such as `[a, b]`",
+        PreludeKind::Record => "a value is an object literal such as `{ key: value }`",
+        PreludeKind::Schema
+        | PreludeKind::Component
+        | PreludeKind::Issue
+        | PreludeKind::InferOutput => GENERIC_CONSTRUCTION,
+        PreludeKind::Ok
+        | PreludeKind::Err
+        | PreludeKind::Some
+        | PreludeKind::None
+        | PreludeKind::Par
+        | PreludeKind::Print
+        | PreludeKind::Assert => return None,
+    })
 }
 
 /// True when `ty` is resolved enough to compare for equality or to judge
@@ -12094,6 +12291,7 @@ component View(s: Status) -> Component {
             coverage: &mut coverage,
             field_uses: &mut field_uses,
             assign_target: None,
+            member_object: None,
             decl_ty_resolver: resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -12868,6 +13066,17 @@ fn f(a: Answer) -> number {
 
     // ----- G216: a prelude container against a primitive -----
 
+    fn has_type_name_as_value(errs: &[TypeError], name: &str) -> Option<String> {
+        errs.iter().find_map(|e| match e {
+            TypeError::TypeNameAsValue {
+                name: n,
+                construction,
+                ..
+            } if n == name => Some(construction.clone()),
+            _ => None,
+        })
+    }
+
     #[test]
     fn an_option_into_a_string_annotation_is_flagged() {
         // The ledger program. `Option<int>` emits as a tagged object, so the
@@ -12974,4 +13183,129 @@ fn f(a: Answer) -> number {
         assert!(errs.is_empty(), "errs: {errs:?}");
     }
 
+    // ----- G217: a type name where a value is wanted -----
+
+    #[test]
+    fn a_record_type_name_in_expression_position_names_the_literal() {
+        let errs = ty_errors_of(
+            "module x\ntype Order = {\n  id: string,\n  total: int,\n}\nfn make() -> Order {\n  return Order { id: \"a\", total: 1 }\n}\n",
+        );
+        let construction =
+            has_type_name_as_value(&errs, "Order").unwrap_or_else(|| panic!("errs: {errs:?}"));
+        assert!(
+            construction.contains("{ id: ..., total: ... }"),
+            "construction: {construction}"
+        );
+    }
+
+    #[test]
+    fn a_union_type_name_in_expression_position_names_its_variants() {
+        let errs = ty_errors_of(
+            "module x\ntype Status =\n  | Pending\n  | Paid({ transaction_id: string })\nfn make() -> Status {\n  return Status\n}\n",
+        );
+        let construction =
+            has_type_name_as_value(&errs, "Status").unwrap_or_else(|| panic!("errs: {errs:?}"));
+        assert!(
+            construction.contains("`Pending`") && construction.contains("`Paid(record)`"),
+            "construction: {construction}"
+        );
+    }
+
+    #[test]
+    fn a_string_literal_union_type_name_names_its_literals() {
+        let errs = ty_errors_of(
+            "module x\ntype Tier = \"free\" | \"pro\"\nfn make() -> Tier {\n  return Tier\n}\n",
+        );
+        let construction =
+            has_type_name_as_value(&errs, "Tier").unwrap_or_else(|| panic!("errs: {errs:?}"));
+        assert!(
+            construction.contains("\"free\"") && construction.contains("\"pro\""),
+            "construction: {construction}"
+        );
+    }
+
+    #[test]
+    fn an_interface_name_in_expression_position_says_it_is_a_shape() {
+        let errs = ty_errors_of(
+            "module x\ninterface Describable {\n  fn describe() -> string\n}\nfn make() -> unknown {\n  return Describable\n}\n",
+        );
+        let construction =
+            has_type_name_as_value(&errs, "Describable").unwrap_or_else(|| panic!("errs: {errs:?}"));
+        assert!(construction.contains("interface"), "construction: {construction}");
+    }
+
+    #[test]
+    fn a_prelude_type_name_in_expression_position_is_flagged() {
+        let errs = ty_errors_of("module x\nfn make() -> unknown {\n  return string\n}\n");
+        assert!(
+            has_type_name_as_value(&errs, "string").is_some(),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_descriptor_receiver_is_not_a_type_name_used_as_a_value() {
+        // `Order.parse(json)` and `Order.is(v)` are the two forms where naming
+        // the type in an expression is the point.
+        let errs = ty_errors_of(
+            "module x\ntype Order = {\n  id: string,\n}\nfn read(raw: unknown) -> Result<Order, Array<Issue>> {\n  return Order.parse(raw)\n}\n",
+        );
+        assert!(
+            has_type_name_as_value(&errs, "Order").is_none(),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_variant_name_used_as_a_value_is_not_flagged() {
+        let errs = ty_errors_of(
+            "module x\ntype Status =\n  | Pending\n  | Done\nfn make() -> Status {\n  let s: Status = Pending\n  return s\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_function_name_used_as_a_value_is_not_flagged() {
+        let errs = ty_errors_of(
+            "module x\nfn helper(n: int) -> int {\n  return n\n}\nfn make() -> fn(n: int) -> int {\n  return helper\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_prelude_value_name_used_as_a_value_is_not_flagged() {
+        // `None` is a prelude *value*: the classification table has to keep
+        // the two halves of the prelude apart.
+        let errs = ty_errors_of(
+            "module x\nfn make() -> Option<int> {\n  return None\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_imported_record_type_name_in_expression_position_is_flagged() {
+        // The same mistake with the declaration in a sibling: the answer comes
+        // from `imported_type_decl`, so it does not depend on which file the
+        // record was declared in.
+        let errs = lib_errors_of(
+            "module x\nimport lib { Point }\nfn make() -> Point {\n  return Point { x: 1 }\n}\n",
+        );
+        let construction =
+            has_type_name_as_value(&errs, "Point").unwrap_or_else(|| panic!("errs: {errs:?}"));
+        assert!(
+            construction.contains("{ x: ... }"),
+            "construction: {construction}"
+        );
+    }
+
+    #[test]
+    fn an_imported_type_name_as_a_descriptor_receiver_is_not_flagged() {
+        let errs = lib_errors_of(
+            "module x\nimport lib { Point }\nfn read(raw: unknown) -> unknown {\n  return Point.parse(raw)\n}\n",
+        );
+        assert!(
+            has_type_name_as_value(&errs, "Point").is_none(),
+            "errs: {errs:?}"
+        );
+    }
 }

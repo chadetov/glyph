@@ -432,6 +432,27 @@ pub enum TypeError {
     #[error("`Nullable<{inner}>`: the argument of `Nullable` may not itself be `Nullable` or `Option`")]
     NullableNested { inner: String, span: Span },
 
+    /// G217. A type's name standing where a value is wanted. `return Order {
+    /// id: "a", total: 1 }` is the TypeScript-adjacent guess for constructing a
+    /// record, and Glyph has no such form: the value is the record literal on
+    /// its own and the name belongs on the `let`, the parameter, or the return
+    /// type. Before this the name typed as `Unknown`, the braces after it
+    /// parsed as a second statement, and the only thing the compiler said about
+    /// the whole program was an `E0108 unreachable code` warning on an exit-0
+    /// build.
+    ///
+    /// `construction` is how a value of this type is actually written, read off
+    /// the declaration the name reaches, so the message carries the repair
+    /// rather than only the refusal. A type name that is the object of a member
+    /// access is not this error: `Order.parse(json)` and `Order.is(v)` are the
+    /// descriptor forms, where naming the type is the point.
+    #[error("`{name}` is a type, not a value; {construction}")]
+    TypeNameAsValue {
+        name: String,
+        construction: String,
+        span: Span,
+    },
+
     /// A `@redact fields: [...]` annotation (D24) names a field the type does
     /// not have — a typo or a renamed field. Redaction is type-level
     /// enforcement, so an unknown field name is a hard error: it would silently
@@ -569,6 +590,7 @@ impl TypeError {
             TypeError::NonExhaustiveValueMatch { span, .. } => *span,
             TypeError::NonExhaustiveFieldMatch { span } => *span,
             TypeError::NullableNested { span, .. } => *span,
+            TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
@@ -604,6 +626,7 @@ impl TypeError {
             TypeError::NonExhaustiveValueMatch { .. } => "E0218",
             TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
             TypeError::NullableNested { .. } => "E0227",
+            TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
             TypeError::UnknownField { .. } => "E0210",
@@ -644,6 +667,9 @@ impl TypeError {
             }
             TypeError::NullableNested { .. } => {
                 "Write `Nullable` over the plain type (`Nullable<int>`) for a field the wire sends as null, or `Option<T>` alone inside the program; `nullable.to_option` and `nullable.from_option` convert between them."
+            }
+            TypeError::TypeNameAsValue { .. } => {
+                "Write the value in its own form and move the type's name to the annotation on the `let`, the parameter, or the return type."
             }
             TypeError::OwnedRequiresResourceType { .. } => {
                 "`owned` is only for `resource`-marked types. Drop `owned`, or mark the type `resource`."
@@ -732,6 +758,9 @@ impl TypeError {
             ),
             TypeError::NullableNested { .. } => Some(
                 "`Nullable<T>` is `T | null` at run time (D45): null is the whole of its absent state, so a nested `Nullable` or `Option` has no second thing to say.",
+            ),
+            TypeError::TypeNameAsValue { .. } => Some(
+                "Glyph has no `TypeName { ... }` construction form. A type name appears in an annotation; the only place it stands in an expression is as the receiver of its own descriptor, `T.parse` and `T.is`.",
             ),
             TypeError::NonExhaustiveFieldMatch { .. } => Some(
                 "Coverage is proved over a set of tags, not over a product of fields (D44), so two field tests are never read as leaving nothing between them.",

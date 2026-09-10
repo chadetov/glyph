@@ -559,6 +559,25 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Inside the program, convert with `nullable.to_option(f.s)` to get an \
             `Option<int>` to match on; `nullable.from_option` goes the other way. \
             The call is the greppable record of where null enters the program.",
+        "E0228" => "E0228: a type name where a value is expected\n\n\
+            `Order` names a type. Writing it in an expression is the \
+            TypeScript-adjacent guess for constructing a record, and Glyph has \
+            no `TypeName { ... }` form: the value is the record literal on its \
+            own, and the annotation on the `let`, the parameter or the return \
+            type is what says it is an `Order`. The message names the \
+            construction the declaration actually has, so a tagged union says \
+            which variants it has and a string-literal union says which \
+            literals.\n\n\
+            Before:  return Order { id: \"a\", total: 1 }\n\
+            After:   return { id: \"a\", total: 1 }\n\n\
+            The one expression position a type name belongs in is its own \
+            descriptor: `Order.parse(raw)` validates an unknown value into a \
+            `Result<Order, Array<Issue>>`, and `Order.is(v)` tests one. Those \
+            are not this error.\n\n\
+            Until 0.1.121 the compiler said nothing about the mistake. \
+            `return Order { ... }` parsed as a `return` followed by an object \
+            literal, so the only diagnostic was `E0108 unreachable code` on the \
+            literal, and the build exited 0.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -684,7 +703,8 @@ pub const ALL_CODES: &[&str] = &[
     "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
-    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0227", "E0300", "E0301",
+    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0227", "E0228",
+    "E0300", "E0301",
     "E0302", "E0303", "E0305", "E0310",
 ];
 

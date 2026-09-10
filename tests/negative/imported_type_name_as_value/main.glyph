@@ -1,0 +1,9 @@
+module main
+import lib { Order }
+
+// The same mistake with the record declared in a sibling. A named import binds
+// one name to whatever the sibling declares, so the diagnostic has to come
+// from the declaration rather than from which file the name was written in.
+pub fn make() -> Order {
+  return Order { id: "a", total: 1 }
+}

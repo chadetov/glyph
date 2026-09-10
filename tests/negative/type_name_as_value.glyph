@@ -1,0 +1,14 @@
+module neg
+
+// G217. `Order { ... }` is the TypeScript-adjacent guess for constructing a
+// record and Glyph has no such form: the value is the record literal alone and
+// the annotation carries the type. Before E0228 this drew one `E0108
+// unreachable code` warning on the braces and exited 0.
+type Order = {
+  id: string,
+  total: int,
+}
+
+pub fn make() -> Order {
+  return Order { id: "a", total: 1 }
+}

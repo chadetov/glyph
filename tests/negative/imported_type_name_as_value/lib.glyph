@@ -1,0 +1,6 @@
+module lib
+
+pub type Order = {
+  id: string,
+  total: int,
+}

@@ -5630,9 +5630,12 @@ impl Assigner<'_> {
     /// - two generic applications, when the arity matches and the base and
     ///   every argument are themselves accepted here;
     /// - two structural records, when every required field of the declared
-    ///   type is present in the value's type and every shared field is itself
-    ///   accepted here. Width subtyping is the rule, so an extra field in the
-    ///   value's type is fine.
+    ///   type is present in the value's type, is not optional there, and is
+    ///   itself accepted here. Width subtyping is the rule, so an extra field
+    ///   in the value's type is fine. `optional` is read on both sides: a
+    ///   value whose field is optional where the declaration requires one
+    ///   draws nothing from this relation and `TS2345` from TypeScript, so the
+    ///   silence is not an acceptance and the pairing is left uncovered.
     ///
     /// What is deliberately not here. Two function types: the relation
     /// compares the returns and the `async` flag and says nothing at all about
@@ -5722,6 +5725,12 @@ impl Assigner<'_> {
             (Ty::Record { fields: ff }, Ty::Record { fields: ef }) => {
                 for e in ef.iter() {
                     match ff.iter().find(|f| f.name == e.name) {
+                        // A field the value may not carry, where the
+                        // declaration requires one. The relation is silent
+                        // here and TypeScript is not (TS2345), so this is a
+                        // pairing the rule does not read rather than one it
+                        // accepts, and no acceptance is claimed for it.
+                        Some(f) if f.optional && !e.optional => return None,
                         Some(f) => {
                             self.accepting_rule(&f.ty, &e.ty)?;
                         }
@@ -5731,8 +5740,8 @@ impl Assigner<'_> {
                 }
                 Some(
                     "two structural records are compared field by field with width \
-                     subtyping, and every required field of the declared type is present \
-                     with an accepted type",
+                     subtyping, and every required field of the declared type is present, \
+                     not optional on the value's side, and of an accepted type",
                 )
             }
             _ => None,
@@ -7394,6 +7403,38 @@ mod tests {
         assert_eq!(
             assignability_of(UNION, "{ id: string }", "{ id: string, n: number }"),
             Assignability::Incompatible
+        );
+    }
+
+    /// `optional` is read on both sides of the record rule.
+    ///
+    /// A value whose field is optional where the declaration requires one is
+    /// `TS2345` under `tsc` and draws nothing from this relation, so the
+    /// relation's silence proves nothing and no acceptance is claimed. The
+    /// tell that the old rule was wrong is that it was symmetric in a flag
+    /// TypeScript is not: both directions came back accepted.
+    #[test]
+    fn an_optional_value_field_is_not_accepted_where_a_required_one_is_declared() {
+        assert_eq!(
+            assignability_of(UNION, "{ a?: string }", "{ a: string }"),
+            Assignability::NoRule
+        );
+        // The other direction is TypeScript's own: a value that always
+        // carries the field satisfies a declaration that may go without it.
+        assert!(matches!(
+            assignability_of(UNION, "{ a: string }", "{ a?: string }"),
+            Assignability::Compatible { .. }
+        ));
+        // Optional on both sides is accepted, and so is required on both.
+        assert!(matches!(
+            assignability_of(UNION, "{ a?: string }", "{ a?: string }"),
+            Assignability::Compatible { .. }
+        ));
+        // The rule reads nested records the same way, because the field's own
+        // pairing is asked through this relation.
+        assert_eq!(
+            assignability_of(UNION, "{ r: { a?: string } }", "{ r: { a: string } }"),
+            Assignability::NoRule
         );
     }
 

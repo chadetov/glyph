@@ -44,21 +44,22 @@
         <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
         <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
         <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
-        <a href="/answers/debugging/"><span class="n">16</span> Debugging &amp; ops</a>
-        <a href="/answers/language/"><span class="n">17</span> The language</a>
-        <a href="/answers/finance/"><span class="n">18</span> Money &amp; safety</a>
-        <a href="/answers/web-serving/"><span class="n">19</span> Serving the web</a>
-        <a href="/answers/early-errors/" class="active"><span class="n">20</span> Caught earlier</a>
-        <a href="/answers/parse-errors/"><span class="n">21</span> Why a parse failed</a>
-        <a href="/answers/interactive-cli/"><span class="n">22</span> Programs you type into</a>
-        <a href="/answers/long-running/"><span class="n">23</span> Servers &amp; daemons</a>
-        <a href="/answers/upgrades/"><span class="n">24</span> Upgrades</a>
-        <a href="/answers/binary/"><span class="n">25</span> Binary data</a>
+        <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
+        <a href="/answers/debugging/"><span class="n">17</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">18</span> The language</a>
+        <a href="/answers/finance/"><span class="n">19</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">20</span> Serving the web</a>
+        <a href="/answers/early-errors/" class="active"><span class="n">21</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">22</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">23</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">24</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">25</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">26</span> Binary data</a>
       </div>
     </div>
 
     <article class="answer-page">
-      <p class="q-eyebrow">20 &middot; Caught earlier</p>
+      <p class="q-eyebrow">21 &middot; Caught earlier</p>
       <h1 class="q-title">Why does Glyph catch what tsc catches, but earlier?</h1>
 
       <p class="short-answer">
@@ -371,6 +372,54 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Two more the checker took over in 0.1.121</p>
+        <p>
+          <code>Order { id: "a", total: 1 }</code> is what someone coming from TypeScript
+          writes to build a record, and Glyph has no such form: a value is written on its
+          own and the type goes on the annotation. What the compiler used to say about that
+          line was <code>E0108</code>, unreachable code, on a build that exited 0, because
+          the name resolved to the type and the braces parsed as a block after the
+          <code>return</code>. It is <code>E0228</code> now, and the message is read off the
+          declaration, so a record lists its fields, a tagged union lists its variants with
+          their payload shapes, and a string-literal union lists its literals.
+          <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay legal, since the
+          receiver of a type's own descriptor is the one expression position a type name
+          belongs in.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check, on a record built the TypeScript way</span>
+<pre><span class="del">[E0228] `Order` is a type, not a value; a value is the record literal
+        `{ id: ..., total: ... }`, with the type on the annotation</span>
+   ╰─ Write the value in its own form and move the type&rsquo;s name to the
+      annotation on the `let`, the parameter, or the return type.
+
+<span class="cm">// before: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The other one is a prelude container assigned to a primitive.
+          <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing
+          from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code>
+          to a parameter declared <code>int</code>. Five containers are covered in both
+          directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>,
+          <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a
+          <code>number</code> or a <code>bool</code>, whatever their arguments, and
+          <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against
+          <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and
+          <code>let v: Nullable&lt;int&gt; = "three"</code> is <code>E0204</code>. The
+          <code>Nullable</code> case belongs on this page more than the others, because it
+          is one <code>tsc</code> cannot make: the emitted <code>const v: number | null = 3</code>
+          narrows back to <code>number</code> before the call is checked, so a boundary type
+          that exists to make <code>null</code> visible was passing silently where an
+          <code>int</code> was declared, and the Glyph checker was the only place it could
+          have been caught.
+        </p>
+      </div>
+
       <p class="block-label">When neither compiler is wrong</p>
       <div class="detail">
         <p>
@@ -483,7 +532,7 @@ string.repeeat(s, 2)
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, and <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, and <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>

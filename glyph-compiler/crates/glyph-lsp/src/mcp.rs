@@ -7668,6 +7668,18 @@ mod tests {
         out
     }
 
+    /// The names of a `type` block's variants, in declaration order. A variant
+    /// is an object carrying its payload and the syntax that constructs it, so
+    /// a test about the variant *set* names the half it is about.
+    fn variant_names(block: &Value) -> Vec<String> {
+        block["variants"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no variant list in {block}"))
+            .iter()
+            .map(|v| v["name"].as_str().unwrap().to_string())
+            .collect()
+    }
+
     /// The reference locations for a position, as `(path, start line)` pairs.
     fn refs_at(server: &mut Server, path: &str, line: u32, character: u32) -> Vec<(String, u64)> {
         let (value, is_error) = call_on(
@@ -10816,7 +10828,7 @@ pub fn f() -> number {
         let mut server = Server::new(root.clone());
 
         let answer = variants(&mut server, "a.glyph", "Command");
-        assert_eq!(answer["type"]["variants"], json!(["Up", "Down"]), "{answer}");
+        assert_eq!(variant_names(&answer["type"]), ["Up", "Down"], "{answer}");
         assert!(answer["type"]["variants_unavailable"].is_null(), "{answer}");
     }
 
@@ -10938,7 +10950,7 @@ pub fn f() -> number {
         let mut server = Server::new(root.clone());
 
         let answer = proposing(&mut server, "a.glyph", "Inner", "Z");
-        assert_eq!(answer["type"]["variants"], json!(["X", "Y"]), "{answer}");
+        assert_eq!(variant_names(&answer["type"]), ["X", "Y"], "{answer}");
         let nested = answer["nested"].as_array().unwrap();
         assert_eq!(nested.len(), 1, "{answer}");
         assert_eq!(nested[0]["declaration"], "a::f", "{answer}");
@@ -11222,7 +11234,7 @@ pub fn f() -> number {
         // real answer and still answers.
         let answer = variants(&mut server, "u.glyph", "Command");
         assert_eq!(answer["sites"], json!([]), "{answer}");
-        assert_eq!(answer["type"]["variants"], json!(["Up", "Down"]), "{answer}");
+        assert_eq!(variant_names(&answer["type"]), ["Up", "Down"], "{answer}");
     }
 
 
@@ -12476,4 +12488,478 @@ pub fn f() -> number {
             assert!(instructions.contains(word), "`{word}` is missing: {instructions}");
         }
     }
+
+    // -----------------------------------------------------------------------
+    // glyph_symbol
+    // -----------------------------------------------------------------------
+
+    /// The three-module shape the agent-surface audit probed: a tagged union
+    /// with one payload variant, a record, an interface, a function with an
+    /// `@example`, and a consumer that imports across the boundary.
+    const SHOP_ORDERS: &str = "module orders\n\
+        \n\
+        pub type OrderStatus =\n\
+        \x20 | Pending\n\
+        \x20 | Paid({ transaction_id: string })\n\
+        \x20 | Cancelled\n\
+        \n\
+        pub type Order = {\n\
+        \x20 id: string,\n\
+        \x20 status: OrderStatus,\n\
+        \x20 total: number,\n\
+        }\n\
+        \n\
+        pub type Status = OrderStatus\n\
+        \n\
+        pub interface Describable {\n\
+        \x20 fn describe() -> string\n\
+        }\n\
+        \n\
+        @example create(\"a-1\").total == 0\n\
+        pub fn create(id: string) -> Order {\n\
+        \x20 let o: Order = {\n\
+        \x20   id: id,\n\
+        \x20   status: Pending,\n\
+        \x20   total: 0,\n\
+        \x20 }\n\
+        \x20 return o\n\
+        }\n\
+        \n\
+        fn label(s: OrderStatus) -> string {\n\
+        \x20 match s {\n\
+        \x20   Pending => \"pending\",\n\
+        \x20   Paid({ transaction_id }) => transaction_id,\n\
+        \x20   Cancelled => \"cancelled\",\n\
+        \x20 }\n\
+        }\n";
+
+    const SHOP_CHECKOUT: &str = "module checkout\n\
+        \n\
+        import orders { Order, create }\n\
+        \n\
+        pub fn open_order(id: string) -> Order {\n\
+        \x20 return create(id)\n\
+        }\n";
+
+    fn shop_root() -> PathBuf {
+        let root = tmp_root();
+        write(&root, "orders.glyph", SHOP_ORDERS);
+        write(&root, "checkout.glyph", SHOP_CHECKOUT);
+        root
+    }
+
+    fn symbol(root: &Path, entity: &str) -> Value {
+        let (value, is_error) = call(root, "glyph_symbol", json!({ "entity": entity }));
+        assert!(!is_error, "{entity}: {value}");
+        value
+    }
+
+    /// Every fact in an answer is a pair. A caller checking for a key must
+    /// never have to tell "this surface does not report it" apart from "this
+    /// symbol has none", so a null value carries a reason and a real value
+    /// carries an explicit null beside it.
+    fn assert_paired(value: &Value) {
+        let obj = value.as_object().unwrap_or_else(|| panic!("{value}"));
+        for (key, v) in obj {
+            let Some(reason) = obj.get(&format!("{key}_absent")) else {
+                continue;
+            };
+            if v.is_null() {
+                assert!(
+                    reason.as_str().is_some_and(|s| !s.is_empty()),
+                    "`{key}` is null and `{key}_absent` says nothing: {value}"
+                );
+            } else {
+                assert!(
+                    reason.is_null(),
+                    "`{key}` is answered and `{key}_absent` also speaks: {value}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn symbol_describes_a_record() {
+        let root = shop_root();
+        let value = symbol(&root, "orders::Order");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "record", "{value}");
+        assert_eq!(value["entity"], "orders::Order", "{value}");
+        assert_eq!(value["module"], "orders", "{value}");
+        assert_eq!(value["pub"], true, "{value}");
+        assert_eq!(value["path"], "orders.glyph", "{value}");
+        assert_eq!(
+            value["type"], "{ id: string, status: OrderStatus, total: number }",
+            "{value}"
+        );
+        let fields = value["fields"].as_array().unwrap();
+        assert_eq!(fields.len(), 3, "{value}");
+        assert_eq!(fields[0]["name"], "id", "{value}");
+        assert_eq!(fields[0]["type"], "string", "{value}");
+        assert_eq!(fields[0]["optional"], false, "{value}");
+        assert_eq!(fields[1]["type"], "OrderStatus", "{value}");
+        // A record has no variants and no construction syntax of its own, and
+        // both say so rather than coming back empty.
+        assert!(value["variants"].is_null(), "{value}");
+        assert!(
+            value["construct_absent"]
+                .as_str()
+                .unwrap()
+                .contains("bare object literal"),
+            "{value}"
+        );
+        assert_eq!(value["exhaustive_match"], false, "{value}");
+    }
+
+    /// The failure this closes: an agent handed the bare name `Paid` writes
+    /// `Paid("tx_1")` and gets a diagnostic instead of a program.
+    #[test]
+    fn symbol_describes_a_union_with_construction_syntax() {
+        let root = shop_root();
+        let value = symbol(&root, "orders::OrderStatus");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "union", "{value}");
+        assert_eq!(
+            value["type"], "Pending | Paid({ transaction_id: string }) | Cancelled",
+            "{value}"
+        );
+        let variants = value["variants"].as_array().unwrap();
+        assert_eq!(variants.len(), 3, "{value}");
+        assert_eq!(variants[0]["name"], "Pending", "{value}");
+        assert!(variants[0]["payload"].is_null(), "{value}");
+        assert_eq!(variants[0]["construct"], "Pending", "{value}");
+        assert_eq!(variants[1]["name"], "Paid", "{value}");
+        assert_eq!(variants[1]["payload"], "{ transaction_id: string }", "{value}");
+        assert_eq!(
+            variants[1]["construct"], "Paid({ transaction_id: string })",
+            "{value}"
+        );
+        assert_eq!(value["exhaustive_match"], true, "{value}");
+        assert!(value["fields"].is_null(), "{value}");
+    }
+
+    #[test]
+    fn symbol_describes_a_function() {
+        let root = shop_root();
+        let value = symbol(&root, "orders::create");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "function", "{value}");
+        assert_eq!(value["type"], "fn(string) -> Order", "{value}");
+        assert_eq!(value["returns"], "Order", "{value}");
+        assert_eq!(value["async"], false, "{value}");
+        let params = value["parameters"].as_array().unwrap();
+        assert_eq!(params.len(), 1, "{value}");
+        assert_eq!(params[0]["ordinal"], 1, "{value}");
+        assert_eq!(params[0]["name"], "id", "{value}");
+        assert_eq!(params[0]["type"], "string", "{value}");
+        assert_eq!(params[0]["owned"], false, "{value}");
+        // The `@example` is a use of this symbol `glyph check` compiles and
+        // runs, which is what makes it worth handing over verbatim.
+        assert_eq!(
+            value["examples"],
+            json!(["create(\"a-1\").total == 0"]),
+            "{value}"
+        );
+    }
+
+    /// An interface reported as `type` is indistinguishable from a record and
+    /// its members are nowhere. Both halves are asserted.
+    #[test]
+    fn symbol_describes_an_interface() {
+        let root = shop_root();
+        let value = symbol(&root, "orders::Describable");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "interface", "{value}");
+        let members = value["members"].as_array().unwrap();
+        assert_eq!(members.len(), 1, "{value}");
+        assert_eq!(members[0]["name"], "describe", "{value}");
+        assert_eq!(members[0]["kind"], "method", "{value}");
+        assert_eq!(members[0]["type"], "fn() -> string", "{value}");
+        assert!(value["fields"].is_null(), "{value}");
+    }
+
+    #[test]
+    fn symbol_describes_a_variant_and_names_its_union() {
+        let root = shop_root();
+        let value = symbol(&root, "orders::Paid");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "variant", "{value}");
+        assert_eq!(value["owner"], "orders::OrderStatus", "{value}");
+        assert_eq!(value["construct"], "Paid({ transaction_id: string })", "{value}");
+        // A variant is a constructor, not a type, so the exhaustiveness rule
+        // belongs to the union and this answer says which one to ask about.
+        assert!(value["exhaustive_match"].is_null(), "{value}");
+        assert!(
+            value["exhaustive_match_absent"]
+                .as_str()
+                .unwrap()
+                .contains("OrderStatus"),
+            "{value}"
+        );
+    }
+
+    /// A match over an alias for a tagged union **is** exhaustiveness-checked.
+    /// Answering `false` here would be the manufactured answer in its most
+    /// expensive form: a caller drops an arm believing nothing stops it.
+    #[test]
+    fn symbol_declines_the_exhaustiveness_rule_for_an_alias() {
+        let root = shop_root();
+        let value = symbol(&root, "orders::Status");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "alias", "{value}");
+        assert!(value["exhaustive_match"].is_null(), "{value}");
+        assert!(
+            value["exhaustive_match_absent"]
+                .as_str()
+                .unwrap()
+                .contains("belongs to"),
+            "{value}"
+        );
+    }
+
+    #[test]
+    fn symbol_answers_at_a_position() {
+        let root = shop_root();
+        let line = SHOP_ORDERS
+            .lines()
+            .position(|l| l.starts_with("pub fn create"))
+            .unwrap() as u64;
+        let (value, is_error) = call(
+            &root,
+            "glyph_symbol",
+            json!({ "path": "orders.glyph", "line": line, "character": 8 }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["entity"], "orders::create", "{value}");
+        assert_eq!(value["kind"], "function", "{value}");
+    }
+
+    /// A position on an imported name describes the declaration, under the
+    /// module that declares it, so the answer does not depend on which file
+    /// the cursor was in.
+    #[test]
+    fn symbol_at_an_imported_name_answers_under_the_declaring_module() {
+        let root = shop_root();
+        let line = SHOP_CHECKOUT
+            .lines()
+            .position(|l| l.contains("return create(id)"))
+            .unwrap() as u64;
+        let (value, is_error) = call(
+            &root,
+            "glyph_symbol",
+            json!({ "path": "checkout.glyph", "line": line, "character": 10 }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["entity"], "orders::create", "{value}");
+        assert_eq!(value["path"], "orders.glyph", "{value}");
+    }
+
+    /// A name the module does not declare is refused. An answer shaped like a
+    /// symbol with no fields, no variants and no parameters reads as a symbol
+    /// with no shape, which is a different and much stronger claim.
+    #[test]
+    fn symbol_refuses_a_name_the_module_does_not_declare() {
+        let root = shop_root();
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_symbol",
+            json!({ "entity": "orders::Nope" }),
+        );
+        assert!(is_error, "{text}");
+        assert!(text.contains("declares no top-level name"), "{text}");
+    }
+
+    #[test]
+    fn symbol_refuses_an_import_binding() {
+        let root = shop_root();
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_symbol",
+            json!({ "entity": "checkout::Order" }),
+        );
+        assert!(is_error, "{text}");
+        assert!(text.contains("import binding"), "{text}");
+    }
+
+    #[test]
+    fn symbol_refuses_the_field_form_and_says_where_a_field_is() {
+        let root = shop_root();
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_symbol",
+            json!({ "entity": "orders::Order.total" }),
+        );
+        assert!(is_error, "{text}");
+        assert!(text.contains("`fields`"), "{text}");
+    }
+
+    #[test]
+    fn symbol_refuses_a_position_on_a_local_binding() {
+        let root = shop_root();
+        let line = SHOP_ORDERS
+            .lines()
+            .position(|l| l.contains("let o: Order"))
+            .unwrap() as u64;
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_symbol",
+            json!({ "path": "orders.glyph", "line": line, "character": 6 }),
+        );
+        assert!(is_error, "{text}");
+        assert!(text.contains("file-private binding"), "{text}");
+    }
+
+    #[test]
+    fn symbol_refuses_two_addresses_at_once() {
+        let root = shop_root();
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_symbol",
+            json!({ "entity": "orders::create", "path": "orders.glyph", "line": 0, "character": 0 }),
+        );
+        assert!(is_error, "{text}");
+        assert!(text.contains("not both"), "{text}");
+    }
+
+    #[test]
+    fn tools_list_serves_glyph_symbol() {
+        let mut server = Server::new(tmp_root());
+        let list = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }),
+            &mut server,
+        )
+        .unwrap();
+        let names: Vec<&str> = list["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"glyph_symbol"), "{names:?}");
+    }
+
+    // -----------------------------------------------------------------------
+    // the older answers, carrying what the compiler held
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn variants_carry_the_payload_and_the_construction_syntax() {
+        let root = shop_root();
+        let (value, is_error) = call(
+            &root,
+            "glyph_variants",
+            json!({ "path": "orders.glyph", "name": "OrderStatus" }),
+        );
+        assert!(!is_error, "{value}");
+        let variants = value["type"]["variants"].as_array().unwrap();
+        assert_eq!(variants.len(), 3, "{value}");
+        assert_eq!(variants[1]["name"], "Paid", "{value}");
+        assert_eq!(variants[1]["payload"], "{ transaction_id: string }", "{value}");
+        assert_eq!(
+            variants[1]["construct"], "Paid({ transaction_id: string })",
+            "{value}"
+        );
+        assert!(variants[0]["payload"].is_null(), "{value}");
+        assert!(
+            variants[0]["payload_absent"]
+                .as_str()
+                .unwrap()
+                .contains("no payload"),
+            "{value}"
+        );
+    }
+
+    /// A definition answer that carries no identity has to be re-keyed from
+    /// the file it landed in before it can be asked about again.
+    #[test]
+    fn definition_carries_the_identity() {
+        let root = shop_root();
+        let line = SHOP_CHECKOUT
+            .lines()
+            .position(|l| l.contains("return create(id)"))
+            .unwrap() as u64;
+        let (value, is_error) = call(
+            &root,
+            "glyph_definition",
+            json!({ "path": "checkout.glyph", "line": line, "character": 10 }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["path"], "orders.glyph", "{value}");
+        assert_eq!(value["entity"], "orders::create", "{value}");
+        assert!(value["entity_absent"].is_null(), "{value}");
+    }
+
+    #[test]
+    fn definition_says_why_a_local_binding_has_no_identity() {
+        let root = shop_root();
+        let line = SHOP_ORDERS
+            .lines()
+            .position(|l| l.contains("return o"))
+            .unwrap() as u64;
+        let (value, is_error) = call(
+            &root,
+            "glyph_definition",
+            json!({ "path": "orders.glyph", "line": line, "character": 9 }),
+        );
+        assert!(!is_error, "{value}");
+        assert!(value["entity"].is_null(), "{value}");
+        assert!(
+            value["entity_absent"]
+                .as_str()
+                .unwrap()
+                .contains("file-private"),
+            "{value}"
+        );
+    }
+
+    #[test]
+    fn symbols_carry_identity_visibility_kind_and_signature() {
+        let root = shop_root();
+        let (value, is_error) = call(&root, "glyph_symbols", json!({ "query": "" }));
+        assert!(!is_error, "{value}");
+        let entries = value.as_array().unwrap();
+        let by_entity = |e: &str| {
+            entries
+                .iter()
+                .find(|s| s["entity"] == e)
+                .unwrap_or_else(|| panic!("no `{e}` in {value}"))
+                .clone()
+        };
+
+        let create = by_entity("orders::create");
+        assert_eq!(create["kind"], "function", "{create}");
+        assert_eq!(create["pub"], true, "{create}");
+        assert_eq!(create["signature"], "fn(string) -> Order", "{create}");
+
+        let label = by_entity("orders::label");
+        assert_eq!(label["pub"], false, "{label}");
+
+        // An interface is its own kind. Reported as `type` it is
+        // indistinguishable from a record.
+        let describable = by_entity("orders::Describable");
+        assert_eq!(describable["kind"], "interface", "{describable}");
+        assert_eq!(describable["signature"], "{ describe: fn() -> string }", "{describable}");
+
+        let paid = by_entity("orders::Paid");
+        assert_eq!(paid["kind"], "variant", "{paid}");
+        assert_eq!(paid["container"], "OrderStatus", "{paid}");
+        assert_eq!(paid["signature"], "Paid({ transaction_id: string })", "{paid}");
+    }
+
+    #[test]
+    fn symbols_filters_by_name_substring() {
+        let root = shop_root();
+        let (value, is_error) = call(&root, "glyph_symbols", json!({ "query": "order" }));
+        assert!(!is_error, "{value}");
+        let names: Vec<&str> = value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["name"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"Order"), "{names:?}");
+        assert!(names.contains(&"OrderStatus"), "{names:?}");
+        assert!(!names.contains(&"create"), "{names:?}");
+    }
+
 }

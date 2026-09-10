@@ -248,19 +248,93 @@ def case_variants_are_named_or_explicitly_unread() -> tuple[bool, str]:
     did not reach them" the same way, which is the ambiguity the empty site
     list carried. A caller adding a variant needs the current list to see what
     it is changing.
+
+    Each variant carries its payload and the syntax that constructs it (0.1.121)
+    rather than only its name, and the payload half is the same pair: null with
+    a reason, never an omission. A bare name was a partial answer shaped like a
+    complete one, since a caller handed `Paid` writes `Paid("tx_1")`.
     """
     a = ask(CORPUS / "ambiguous-identity", "src/a.glyph", "Status")
     if "error" in a:
         return False, f"refused: {a['error'][:120]}"
     ty = a.get("type") or {}
-    if ty.get("variants") == ["Open", "Closed"]:
-        return True, "names the union's own variants, in declaration order"
-    if ty.get("variants") is None and ty.get("variants_unavailable"):
-        return False, (
-            "could not read the variants of a declaration this project holds: "
-            f"{ty['variants_unavailable'][:100]}"
-        )
-    return False, f"no variant list and no reason for its absence: {ty}"
+    variants = ty.get("variants")
+    if variants is None:
+        if ty.get("variants_unavailable"):
+            return False, (
+                "could not read the variants of a declaration this project holds: "
+                f"{ty['variants_unavailable'][:100]}"
+            )
+        return False, f"no variant list and no reason for its absence: {ty}"
+    if [v.get("name") for v in variants] != ["Open", "Closed"]:
+        return False, f"wrong variant set: {variants}"
+    for v in variants:
+        if v.get("payload") is None and not v.get("payload_absent"):
+            return False, f"a payload is null with no reason beside it: {v}"
+        if v.get("construct") is None and not v.get("construct_absent"):
+            return False, f"a construction syntax is null with no reason beside it: {v}"
+    if [v.get("construct") for v in variants] != ["Open", "Closed"]:
+        return False, f"the construction syntax is not what writes one: {variants}"
+    return True, "names the variants in declaration order, each with payload and construction"
+
+
+def case_symbol_refuses_an_unkeyable_identity() -> tuple[bool, str]:
+    """`glyph_symbol` on an identity this project cannot key must refuse.
+
+    `src/models.glyph` writes `module app/models` and sits at a path the
+    project counts as `models`, so one declaration has two spellings and only
+    one of them is an address here. `app/models::Status` is the spelling a
+    caller reads off a `glyph_variants` unkeyed site, and answering it from the
+    other module's declaration would hand back a description of a symbol the
+    query never reached.
+
+    Both halves are asserted, because a refusal that fired on everything would
+    pass the first and destroy the tool. `models::Status` is the same
+    declaration under the identity this project does key, and it still answers.
+    """
+    root = CORPUS / "missing-identity"
+    a = call(root, "glyph_symbol", {"entity": "app/models::Status"})
+    if "error" not in a:
+        return False, f"described a symbol under an identity it cannot key: {a}"
+    if "app/models" not in a["error"]:
+        return False, f"refused without naming the identity asked for: {a['error'][:120]}"
+    b = call(root, "glyph_symbol", {"entity": "models::Status"})
+    if "error" in b:
+        return False, f"refused the identity this project does key: {b['error'][:120]}"
+    if b.get("kind") != "union" or [v["name"] for v in b.get("variants") or []] != ["Open", "Closed"]:
+        return False, f"the keyed identity answered with the wrong shape: {b}"
+    if b.get("exhaustive_match") is not True:
+        return False, f"a tagged union is not reported as requiring exhaustive match: {b}"
+    return True, "refuses the unkeyable spelling; the keyed one still describes the union"
+
+
+def case_symbol_absent_is_never_omission() -> tuple[bool, str]:
+    """Every fact in a `glyph_symbol` answer is a pair.
+
+    A key that is null carries a reason, and a key that is answered carries an
+    explicit null beside it. Without both, a caller checking for a key cannot
+    tell "this surface does not report it" from "this symbol has none", which
+    are opposite claims. The record here has no variants and the union has no
+    fields, so one call each exercises both directions.
+    """
+    root = CORPUS / "unsupported-entity"
+    for entity in ("m::User", "m::Status"):
+        a = call(root, "glyph_symbol", {"entity": entity})
+        if "error" in a:
+            return False, f"{entity}: refused: {a['error'][:120]}"
+        for key, value in a.items():
+            if key.endswith("_absent"):
+                continue
+            if f"{key}_absent" not in a:
+                continue
+            reason = a[f"{key}_absent"]
+            if value is None and not reason:
+                return False, f"{entity}: `{key}` is null and `{key}_absent` says nothing"
+            if value is not None and reason is not None:
+                return False, f"{entity}: `{key}` is answered and `{key}_absent` also speaks"
+        if a.get("kind") == "record" and a.get("variants") is not None:
+            return False, f"{entity}: a record came back with a variant list"
+    return True, "null carries a reason, answered carries an explicit null, both directions"
 
 
 def case_missing_identity_change() -> tuple[bool, str]:
@@ -1399,6 +1473,8 @@ HARD = [
     ("unresolved import (compiler)", case_unresolved_import_compiles),
     ("unsupported entity (record)", case_unsupported_entity_record),
     ("variants named or unread", case_variants_are_named_or_explicitly_unread),
+    ("a symbol under an unkeyable identity", case_symbol_refuses_an_unkeyable_identity),
+    ("a symbol's absent is never omission", case_symbol_absent_is_never_omission),
     ("missing identity (as a change)", case_missing_identity_change),
     ("references under either import spelling", case_import_spelling),
     ("CALLS is the applied sites, with coverage", case_calls_relation),

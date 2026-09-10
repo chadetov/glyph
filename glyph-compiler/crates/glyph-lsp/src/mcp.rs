@@ -6647,6 +6647,14 @@ enum SymbolAddress {
     /// `module::name`, the identity a diagnostic, `glyph_references` and
     /// `glyph_impact` all report.
     Entity { module: String, name: String },
+    /// `module::name.member`, which this tool does not take. Carried rather
+    /// than refused here, because what to say about it depends on what
+    /// `module::name` turns out to be, and reading that needs the project.
+    Member {
+        module: String,
+        name: String,
+        member: String,
+    },
     /// A file and a position in it, what an editor has under its cursor.
     Position,
 }
@@ -7212,15 +7220,70 @@ fn read_symbol_address(args: &Value) -> Result<SymbolAddress, String> {
     }
 
     let (module, name, field) = read_entity(args)?;
-    if let Some(field) = field {
-        return Err(format!(
-            "`{module}::{name}.{field}` addresses a record field, and this tool describes a \
-             declaration. Ask for `{module}::{name}` and read the field out of `fields`, \
-             which carries every field of the record with its type. `glyph_references` and \
-             `glyph_impact` are the two that take the field form."
-        ));
+    match field {
+        Some(member) => Ok(SymbolAddress::Member {
+            module,
+            name,
+            member,
+        }),
+        None => Ok(SymbolAddress::Entity { module, name }),
     }
-    Ok(SymbolAddress::Entity { module, name })
+}
+
+/// Why `module::name.member` is not an address this tool takes, said from what
+/// `module::name` turns out to be.
+///
+/// The refusal used to say "addresses a record field" for every dotted form
+/// without reading the base, so `orders::OrderStatus.Paid` was called a record
+/// field of a union and the caller was sent to `fields`, which is null on a
+/// union with a `fields_absent` sentence saying the union declares none. A
+/// refusal that states a false fact about the symbol and points at a null key
+/// is the same error class as an answer that states a false fact.
+fn member_is_not_an_address(
+    project: &Project,
+    root: &Path,
+    module: &str,
+    name: &str,
+    member: &str,
+) -> String {
+    let head = format!(
+        "`{module}::{name}.{member}` addresses a member of `{module}::{name}`, and this \
+         tool describes a declaration."
+    );
+    let described = match describe_symbol(project, root, module, name) {
+        Ok(d) => d,
+        // The base does not resolve either, and that is the more useful thing
+        // to say than anything about the member.
+        Err(e) => return e,
+    };
+    let kind = described
+        .get("kind")
+        .and_then(|k| k.as_str())
+        .unwrap_or_default();
+    match kind {
+        "record" => format!(
+            "{head} Ask for `{module}::{name}` and read `{member}` out of `fields`, which \
+             carries every field of the record with its type. `glyph_references` and \
+             `glyph_impact` are the two that take the `Record.field` form."
+        ),
+        "union" => format!(
+            "{head} `{module}::{name}` is a union, so `{member}` is a variant rather than a \
+             field, and a variant is hoisted into module scope: ask for `{module}::{member}`, \
+             which is the identity `glyph_references` and `glyph_impact` take for it too. \
+             `glyph_symbol` on `{module}::{name}` lists every variant with its payload and \
+             the syntax that constructs it."
+        ),
+        "interface" => format!(
+            "{head} `{module}::{name}` is an interface, so `{member}` is a member rather \
+             than a field: ask for `{module}::{name}` and read it out of `members`."
+        ),
+        other => format!(
+            "{head} `{module}::{name}` is {}, which has no `{member}` to address. Only a \
+             record takes the `Record.field` form, and `glyph_references` and `glyph_impact` \
+             are the two tools that take it.",
+            a_kind(other)
+        ),
+    }
 }
 
 /// What `module::name` turns out to be in the declaring module's AST.
@@ -7888,6 +7951,26 @@ fn tool_symbol(args: &Value, server: &mut Server) -> Result<String, String> {
             };
             let project = server.project(&project_root, &target);
             Ok(to_json(&describe_symbol(project, &root, &module, &name)?))
+        }
+        SymbolAddress::Member {
+            module,
+            name,
+            member,
+        } => {
+            let (project_root, target) = match args.get("path") {
+                None | Some(Value::Null) => {
+                    let found = impact_root(&root)?;
+                    (found.clone(), found)
+                }
+                Some(_) => {
+                    let (path, _) = read_file(args, &root)?;
+                    (crate::module_root_for(&path, &root), path)
+                }
+            };
+            let project = server.project(&project_root, &target);
+            Err(member_is_not_an_address(
+                project, &root, &module, &name, &member,
+            ))
         }
         SymbolAddress::Position => {
             let (path, text) = read_file(args, &root)?;
@@ -8871,6 +8954,83 @@ pub fn f() -> number {
             "{value}"
         );
         assert!(!entry["why"].as_str().unwrap().is_empty(), "{value}");
+    }
+
+    /// A dotted address is refused from what its base turns out to be.
+    ///
+    /// The refusal called every dotted form a record field without reading the
+    /// base, so `orders::OrderStatus.Paid` was told it addressed a record
+    /// field of a union and sent to `fields`, which is null on a union with a
+    /// sentence saying the union declares none. A refusal that states a false
+    /// fact and points at a null key is the same error class as an answer that
+    /// states a false fact.
+    #[test]
+    fn a_dotted_address_is_refused_from_what_its_base_is() {
+        let root = tmp_root();
+        write(
+            &root,
+            "orders.glyph",
+            "module orders\n\
+             \n\
+             pub type OrderStatus =\n\
+             \x20 | Pending\n\
+             \x20 | Paid({ transaction_id: string })\n\
+             \n\
+             pub type Order = { id: string }\n\
+             \n\
+             pub interface Describable {\n\
+             \x20 fn describe() -> string\n\
+             }\n\
+             \n\
+             pub fn create(id: string) -> Order {\n\
+             \x20 return { id: id }\n\
+             }\n",
+        );
+        let mut server = Server::new(root.clone());
+        let refusal = |server: &mut Server, entity: &str| {
+            let (text, is_error) = call_raw(
+                server,
+                "glyph_symbol",
+                json!({ "path": "orders.glyph", "entity": entity }),
+            );
+            assert!(is_error, "`{entity}` was answered: {text}");
+            text
+        };
+
+        // A union: the member is a variant, and a variant has its own
+        // `module::name`, which is what the other two tools take.
+        let text = refusal(&mut server, "orders::OrderStatus.Paid");
+        assert!(text.contains("is a union"), "{text}");
+        assert!(text.contains("`orders::Paid`"), "{text}");
+        assert!(!text.contains("addresses a record field"), "{text}");
+        // The identity the refusal points at answers.
+        let (value, is_error) = call_on(
+            &mut server,
+            "glyph_symbol",
+            json!({ "path": "orders.glyph", "entity": "orders::Paid" }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["kind"], json!("variant"), "{value}");
+
+        // A record keeps the field wording, and the key it points at is real.
+        let text = refusal(&mut server, "orders::Order.id");
+        assert!(text.contains("`fields`"), "{text}");
+        let (value, is_error) = call_on(
+            &mut server,
+            "glyph_symbol",
+            json!({ "path": "orders.glyph", "entity": "orders::Order" }),
+        );
+        assert!(!is_error, "{value}");
+        assert!(!value["fields"].is_null(), "{value}");
+
+        // An interface points at `members`, and anything else says what it is.
+        let text = refusal(&mut server, "orders::Describable.describe");
+        assert!(text.contains("is an interface") && text.contains("`members`"), "{text}");
+        let text = refusal(&mut server, "orders::create.id");
+        assert!(text.contains("is a function"), "{text}");
+        // A base that does not resolve is refused as that, not as a member.
+        let text = refusal(&mut server, "orders::Nope.id");
+        assert!(text.contains("Nope"), "{text}");
     }
 
     /// A spelling that reaches something other than a type is refused, the

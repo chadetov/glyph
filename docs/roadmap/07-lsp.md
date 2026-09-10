@@ -9,11 +9,17 @@ binding, by `(module path, name)` for a module-level symbol, over an on-demand
 cross-file index) and a **first-party MCP server** (`glyph mcp`) exposing the same
 analysis to an agent. The two servers share the analysis functions and not a
 database: the editor's truth is the buffer it last sent, the agent's is what is
-on disk. `glyph_diagnostics` reads the agent server's project database, so a
-file is checked inside its project and answers with the same structured
-diagnostic `glyph check --json` prints (0.1.121); hover and definition still
-answer from one file's own parse. Follow-ups: caching/incrementality of the
-workspace index and a rename *tool* on the MCP side. Full discussion in
+on disk. The MCP server serves nine tools (0.1.121): `glyph_symbol`,
+`glyph_impact`, `glyph_assignable`, `glyph_diagnostics`, `glyph_hover`,
+`glyph_definition`, `glyph_references`, `glyph_variants` and `glyph_symbols`,
+each with a `glyph query <tool>` CLI verb routed through the same `call_tool`
+an MCP client reaches. `glyph_diagnostics` reads the agent server's project
+database, so a file is checked inside its project and answers with the same
+structured diagnostic `glyph check --json` prints, from the same Rust type
+(`glyph_lsp::diagnostic::Diagnostic`); hover and definition still answer from
+one file's own parse. Follow-ups: caching/incrementality of the workspace
+index, `glyph_dependencies` and `glyph_exports`, and a rename *tool* on the
+MCP side. Full discussion in
 `archive/glyph-lsp-discussion.md`.
 
 ## Increment 1 (shipped): diagnostics + formatting

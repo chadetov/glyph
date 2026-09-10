@@ -16,16 +16,21 @@
 //! type using `LineIndex`.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use glyph_ast::{
-    Block, Decl, Expr, ImportKind, JsxAttr, JsxChild, JsxElement, Module, Span, TypeExpr,
+    Block, Decl, Expr, ImportKind, InterfaceMember, JsxAttr, JsxChild, JsxElement, Module, Param,
+    Span, TypeExpr,
 };
 use glyph_db::{Db, ParsedModule, Resolved, SourceFile, Types};
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, module_lints, resolve_module, verify_imports,
+    build_prelude, collect_module_symbols, module_lints, resolve_module, verify_imports, Prelude,
     QualifiedTypeRef, ResolvedModule, ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
 };
-use glyph_typechecker::{assign_types, display_ty, DiagnosticUnion, TypeMap};
+use glyph_typechecker::{
+    assign_types, display_ty, DiagnosticUnion, Lowerer, RecordField, Ty, TypeMap,
+    UnionVariant as TyUnionVariant,
+};
 
 /// One diagnostic in source-byte coordinates, independent of the LSP protocol.
 pub struct GlyphDiagnostic {
@@ -239,6 +244,10 @@ pub struct Analysis {
     parsed: ParsedModule,
     resolved: Resolved,
     types: Types,
+    /// The prelude the resolution above was produced against. Held because
+    /// hover lowers a written annotation, and a `Lowerer` needs the same
+    /// prelude the resolver used: a `ResolvedRef::Prelude` id indexes into it.
+    prelude: Arc<Prelude>,
 }
 
 /// Why the accessors below cannot fail. See the invariant on [`Analysis`].
@@ -253,13 +262,14 @@ const ANALYSIS_INVARIANT: &str = "an Analysis is only built for a document that 
 pub fn analyze_full(text: &str) -> Option<Analysis> {
     let module = glyph_parser::parse(text).ok()?;
     let symbols = collect_module_symbols(&module).ok()?;
-    let prelude = build_prelude();
+    let prelude = Arc::new(build_prelude());
     let (resolved, resolve_errors) = resolve_module(&module, symbols, &prelude);
     let (types, type_errors) = assign_types(&module, &resolved, &prelude);
     Some(Analysis {
         parsed: ParsedModule::ok(module),
         resolved: Resolved::new(resolved, resolve_errors),
         types: Types::new(types, type_errors),
+        prelude,
     })
 }
 
@@ -276,6 +286,7 @@ pub fn analysis_in(db: &dyn Db, file: SourceFile) -> Option<Analysis> {
         parsed,
         resolved,
         types,
+        prelude: Arc::new(db.prelude().clone()),
     })
 }
 
@@ -508,10 +519,35 @@ const KEYWORDS: &[&str] = &[
 // `Analysis` below is a convenience wrapper over exactly these functions.
 // ---------------------------------------------------------------------------
 
-/// The rendered type of the innermost typed expression covering `offset`, for
-/// hover. `None` when no typed expression is there or its type is the
+/// The rendered type at `offset`, for hover.
+///
+/// Two readings, in that order. The checker's `TypeMap` answers wherever it
+/// recorded an expression, which is what hover has always done. Everything
+/// else a file is made of carries a type the compiler also computed and never
+/// wrote into that table: a declaration's own name, a parameter, a written
+/// annotation, a union variant, a binding's definition site. Those are read by
+/// `declaration_hover_at` below.
+///
+/// The expression table goes first so that no position this already answered
+/// changes its answer. `None` when neither reading reaches the offset, or when
+/// the type there is the not-yet-inferred placeholder.
+pub fn hover_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    types: &TypeMap,
+    text: &str,
+    offset: usize,
+) -> Option<String> {
+    expression_hover_at(types, offset).or_else(|| {
+        declaration_hover_at(module, resolved, prelude, types, text, offset)
+    })
+}
+
+/// The rendered type of the innermost typed expression covering `offset`.
+/// `None` when no typed expression is there or its type is the
 /// not-yet-inferred placeholder.
-pub fn hover_at(types: &TypeMap, offset: usize) -> Option<String> {
+fn expression_hover_at(types: &TypeMap, offset: usize) -> Option<String> {
     let mut best: Option<(u32, String)> = None;
     for (span, ty) in types.iter() {
         if (span.start as usize) <= offset && offset < (span.end as usize) {
@@ -522,6 +558,395 @@ pub fn hover_at(types: &TypeMap, offset: usize) -> Option<String> {
         }
     }
     best.map(|(_, rendered)| rendered).filter(|s| s != "?")
+}
+
+/// The rendered type at a position the expression table does not cover.
+///
+/// Every branch answers from the compiler's own lowering (`Lowerer`, the one
+/// the checker runs) or from the checker's own type for a use of the binding
+/// under the cursor. Nothing here reads the source text for a type: a written
+/// annotation is lowered, never echoed, so hover cannot report a shape the
+/// checker disagrees with.
+///
+/// The order is narrowest-first. A written annotation is the most specific
+/// thing an offset can be inside, then a declaration's own name, then a name
+/// the resolver bound.
+pub fn declaration_hover_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    types: &TypeMap,
+    text: &str,
+    offset: usize,
+) -> Option<String> {
+    let lowerer = Lowerer::new(resolved, prelude);
+
+    // 1. A tagged-union variant's name, at its declaration. Before the
+    //    annotation reading below, because a variant name sits inside the
+    //    union body's own span and the narrowest annotation covering it is
+    //    that whole union. The answer is the variant as it is written to
+    //    construct one, which is the string `display_ty` already prints for
+    //    that variant inside its union.
+    for decl in &module.items {
+        let Decl::Type(t) = decl else { continue };
+        let TypeExpr::Union { variants, .. } = &t.body else {
+            continue;
+        };
+        for v in variants {
+            if covers(whole_word_span(text, v.span.start, v.span.end, v.name.as_ref()), offset) {
+                return render(variant_ty(&v.name, v.payload.as_ref(), &lowerer));
+            }
+        }
+    }
+
+    // 2. Inside a written type annotation, anywhere one can be written.
+    if let Some(te) = type_expr_at(module, offset) {
+        return render(lowerer.lower(te));
+    }
+
+    // 3. A top-level declaration's own name.
+    for decl in &module.items {
+        if let Some((name, span)) = top_decl_name_and_span(decl) {
+            if covers(whole_word_span(text, span.0, span.1, name), offset) {
+                return declaration_ty(decl, &lowerer, types).and_then(render);
+            }
+        }
+    }
+
+    // 4. A parameter's name, in a `fn`, a `component`, or an interface method.
+    //    Read here rather than through the resolution table because a
+    //    parameter that the body never uses records no resolution at all.
+    for params in every_param_list(module) {
+        for p in params {
+            if covers(whole_word_span(text, p.span.start, p.span.end, p.name.as_ref()), offset) {
+                return render(lowerer.lower(&p.ty));
+            }
+        }
+    }
+
+    // 5. A local binding's definition site: a `let`, a `match` binding, a
+    //    `for` binding, a lambda parameter. The type is the checker's own type
+    //    for a use of that binding, so an inferred `let` answers with what the
+    //    checker inferred rather than with a second inference.
+    if let Some(def_start) = local_definition_at(resolved, text, offset) {
+        if let Some(rendered) = local_binding_ty(resolved, types, def_start) {
+            return Some(rendered);
+        }
+    }
+
+    // 6. A name the resolver bound to a module-level symbol: a variant used in
+    //    an expression, a call's callee, a constant. An imported name is left
+    //    unanswered on purpose: its declaration is in another file, this
+    //    reading holds one, and a shape guessed from the import binding would
+    //    be a claim about a declaration nothing here read.
+    match innermost_ref(resolved, offset)? {
+        ResolvedRef::Module(id) => module_symbol_ty(module, resolved, id, &lowerer, types),
+        ResolvedRef::Local(def_start) => local_binding_ty(resolved, types, def_start),
+        ResolvedRef::Prelude(_) => None,
+    }
+}
+
+/// Whether a located name span covers `offset`.
+fn covers(span: Option<(u32, u32)>, offset: usize) -> bool {
+    matches!(span, Some((s, e)) if (s as usize) <= offset && offset < (e as usize))
+}
+
+/// A lowered type as hover prints it, or `None` when the lowering did not
+/// reach one. `?` is the checker's not-yet-inferred placeholder and is not an
+/// answer.
+fn render(ty: Ty) -> Option<String> {
+    let rendered = display_ty(&ty);
+    (rendered != "?").then_some(rendered)
+}
+
+/// The declaration's own type, as its name hovers.
+///
+/// A `fn`, a `component` and an annotated `const` lower through
+/// `lower_decl_signature`, the same query `glyph_db::decl_ty` runs. A `type`
+/// is its body. An `interface` has no lowered form of its own, so its members
+/// are assembled into the record shape a value satisfying it has, each member
+/// lowered by the same `Lowerer`. An unannotated `const` has no written type
+/// at all, and its answer is the checker's type for its initializer.
+pub fn declaration_ty(decl: &Decl, lowerer: &Lowerer<'_>, types: &TypeMap) -> Option<Ty> {
+    match decl {
+        Decl::Fn(_) | Decl::Component(_) => Some(lowerer.lower_decl_signature(decl)),
+        Decl::Const(c) => match &c.ty {
+            Some(te) => Some(lowerer.lower(te)),
+            None => exact_ty(types, c.value.span()),
+        },
+        Decl::Type(t) => Some(lowerer.lower(&t.body)),
+        Decl::Interface(i) => Some(Ty::Record {
+            fields: i.members.iter().map(|m| interface_field(m, lowerer)).collect(),
+        }),
+        Decl::Import(_) => None,
+    }
+}
+
+/// One interface member as a record field: a method is a field of function
+/// type, which is what a value satisfying the interface carries.
+pub fn interface_field(member: &InterfaceMember, lowerer: &Lowerer<'_>) -> RecordField {
+    match member {
+        InterfaceMember::Method {
+            name,
+            params,
+            return_ty,
+            span,
+        } => RecordField {
+            name: name.clone(),
+            ty: lowerer.lower(&TypeExpr::Fn {
+                params: params
+                    .iter()
+                    .map(|p| glyph_ast::FnTypeParam {
+                        name: Some(p.name.clone()),
+                        ty: p.ty.clone(),
+                        span: p.span,
+                    })
+                    .collect(),
+                return_ty: return_ty.clone().map(Box::new),
+                is_async: false,
+                span: *span,
+            }),
+            optional: false,
+        },
+        InterfaceMember::Field(f) => RecordField {
+            name: f.name.clone(),
+            ty: lowerer.lower(&f.ty),
+            optional: f.optional,
+        },
+    }
+}
+
+/// One variant as a one-variant union, so its rendering is the string
+/// `display_ty` already prints for it rather than a second spelling of the
+/// same syntax.
+pub fn variant_ty(name: &glyph_ast::Ident, payload: Option<&TypeExpr>, lowerer: &Lowerer<'_>) -> Ty {
+    Ty::Union {
+        variants: vec![TyUnionVariant {
+            name: name.clone(),
+            payload: payload.map(|p| lowerer.lower(p)),
+        }],
+    }
+}
+
+/// The type of the module-level symbol `id`, for a name the resolver bound to
+/// it. `None` for an import binding and for anything with no declaration in
+/// this file.
+fn module_symbol_ty(
+    module: &Module,
+    resolved: &ResolvedModule,
+    id: SymbolId,
+    lowerer: &Lowerer<'_>,
+    types: &TypeMap,
+) -> Option<String> {
+    let sym = resolved.symbols.table.get(id)?;
+    match &sym.kind {
+        SymbolKind::Function { decl_idx }
+        | SymbolKind::Component { decl_idx }
+        | SymbolKind::Const { decl_idx }
+        | SymbolKind::Type { decl_idx } => {
+            let decl = module.items.get(*decl_idx as usize)?;
+            declaration_ty(decl, lowerer, types).and_then(render)
+        }
+        SymbolKind::Variant { decl_idx } => {
+            let Decl::Type(t) = module.items.get(*decl_idx as usize)? else {
+                return None;
+            };
+            let TypeExpr::Union { variants, .. } = &t.body else {
+                return None;
+            };
+            let v = variants.iter().find(|v| v.name == sym.name)?;
+            render(variant_ty(&v.name, v.payload.as_ref(), lowerer))
+        }
+        _ => None,
+    }
+}
+
+/// The definition-site start of the local binding whose *name* `offset` sits
+/// on, or `None` when it sits on something else.
+///
+/// The resolution table is what makes this reachable: every use of a binding
+/// records its definition's start, and `local_name_span` turns that start back
+/// into the name's own span. A binding nothing uses records nothing and is not
+/// found here, which is why parameters are read from the AST above.
+fn local_definition_at(resolved: &ResolvedModule, text: &str, offset: usize) -> Option<u32> {
+    for (span, r) in resolved.resolutions.iter() {
+        let ResolvedRef::Local(def_start) = r else {
+            continue;
+        };
+        let name = text.get(span.start as usize..span.end as usize)?;
+        if covers(local_name_span(text, def_start, name), offset) {
+            return Some(def_start);
+        }
+    }
+    None
+}
+
+/// The checker's type for the binding defined at `def_start`, read off any use
+/// of it. Uses are expressions, so this is the checker's own answer rather
+/// than a second inference over the initializer.
+fn local_binding_ty(resolved: &ResolvedModule, types: &TypeMap, def_start: u32) -> Option<String> {
+    for (span, r) in resolved.resolutions.iter() {
+        if r != ResolvedRef::Local(def_start) {
+            continue;
+        }
+        if let Some(ty) = exact_ty(types, span) {
+            if let Some(rendered) = render(ty) {
+                return Some(rendered);
+            }
+        }
+    }
+    None
+}
+
+/// The type recorded for exactly `span`, if one was.
+fn exact_ty(types: &TypeMap, span: Span) -> Option<Ty> {
+    types
+        .iter()
+        .find(|(sp, _)| sp.start == span.start && sp.end == span.end)
+        .map(|(_, ty)| ty.clone())
+}
+
+/// The innermost written type annotation covering `offset`, anywhere in the
+/// module one can be written.
+fn type_expr_at(module: &Module, offset: usize) -> Option<&TypeExpr> {
+    let mut best: Option<&TypeExpr> = None;
+    for te in every_type_expr(module) {
+        narrow_type_expr(te, offset, &mut best);
+    }
+    best
+}
+
+/// Descend `te`, keeping the narrowest node that covers `offset`.
+fn narrow_type_expr<'a>(te: &'a TypeExpr, offset: usize, best: &mut Option<&'a TypeExpr>) {
+    let span = te.span();
+    if (span.start as usize) > offset || offset >= (span.end as usize) {
+        return;
+    }
+    let width = span.end - span.start;
+    if best.is_none_or(|b| width < b.span().end - b.span().start) {
+        *best = Some(te);
+    }
+    match te {
+        TypeExpr::Generic { base, args, .. } => {
+            narrow_type_expr(base, offset, best);
+            for a in args {
+                narrow_type_expr(a, offset, best);
+            }
+        }
+        TypeExpr::Fn {
+            params, return_ty, ..
+        } => {
+            for p in params {
+                narrow_type_expr(&p.ty, offset, best);
+            }
+            if let Some(rt) = return_ty {
+                narrow_type_expr(rt, offset, best);
+            }
+        }
+        TypeExpr::Record { fields, .. } => {
+            for f in fields {
+                narrow_type_expr(&f.ty, offset, best);
+            }
+        }
+        TypeExpr::Union { variants, .. } => {
+            for v in variants {
+                if let Some(p) = &v.payload {
+                    narrow_type_expr(p, offset, best);
+                }
+            }
+        }
+        TypeExpr::Path { .. }
+        | TypeExpr::Extern { .. }
+        | TypeExpr::StringLiteralUnion { .. }
+        | TypeExpr::TypeOf { .. } => {}
+    }
+}
+
+/// Every type annotation written at a declaration's surface: parameters,
+/// return types, generic bounds, a `const`'s annotation, a `type`'s body and
+/// an interface's members. Annotations inside a body (`let x: T`) are reached
+/// through the block walk below.
+fn every_type_expr(module: &Module) -> Vec<&TypeExpr> {
+    let mut out = Vec::new();
+    for decl in &module.items {
+        match decl {
+            Decl::Fn(f) => {
+                for g in &f.generics {
+                    out.extend(g.bounds.iter());
+                }
+                out.extend(f.params.iter().map(|p| &p.ty));
+                out.extend(f.return_ty.iter());
+                block_type_exprs(&f.body, &mut out);
+            }
+            Decl::Component(c) => {
+                for g in &c.generics {
+                    out.extend(g.bounds.iter());
+                }
+                out.extend(c.params.iter().map(|p| &p.ty));
+                out.extend(c.return_ty.iter());
+                block_type_exprs(&c.body, &mut out);
+            }
+            Decl::Const(c) => out.extend(c.ty.iter()),
+            Decl::Type(t) => {
+                for g in &t.generics {
+                    out.extend(g.bounds.iter());
+                }
+                out.push(&t.body);
+            }
+            Decl::Interface(i) => {
+                for g in &i.generics {
+                    out.extend(g.bounds.iter());
+                }
+                for m in &i.members {
+                    match m {
+                        InterfaceMember::Method {
+                            params, return_ty, ..
+                        } => {
+                            out.extend(params.iter().map(|p| &p.ty));
+                            out.extend(return_ty.iter());
+                        }
+                        InterfaceMember::Field(f) => out.push(&f.ty),
+                    }
+                }
+            }
+            Decl::Import(_) => {}
+        }
+    }
+    out
+}
+
+/// The `let` annotations written inside a block, including the blocks nested
+/// in a `for` or a `loop`.
+fn block_type_exprs<'a>(block: &'a Block, out: &mut Vec<&'a TypeExpr>) {
+    for stmt in &block.stmts {
+        match stmt {
+            glyph_ast::Stmt::Let(l) => out.extend(l.ty.iter()),
+            glyph_ast::Stmt::For(f) => block_type_exprs(&f.body, out),
+            glyph_ast::Stmt::Loop(l) => block_type_exprs(&l.body, out),
+            _ => {}
+        }
+    }
+}
+
+/// Every parameter list a declaration writes: `fn`, `component`, and each
+/// method of an `interface`.
+fn every_param_list(module: &Module) -> Vec<&[Param]> {
+    let mut out: Vec<&[Param]> = Vec::new();
+    for decl in &module.items {
+        match decl {
+            Decl::Fn(f) => out.push(&f.params),
+            Decl::Component(c) => out.push(&c.params),
+            Decl::Interface(i) => {
+                for m in &i.members {
+                    if let InterfaceMember::Method { params, .. } = m {
+                        out.push(params);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    out
 }
 
 /// Where the name reference covering `offset` is defined, for go-to-definition:
@@ -1220,8 +1645,15 @@ impl Analysis {
     }
 
     /// See [`hover_at`].
-    pub fn hover(&self, offset: usize) -> Option<String> {
-        hover_at(self.type_map(), offset)
+    pub fn hover(&self, text: &str, offset: usize) -> Option<String> {
+        hover_at(
+            self.module(),
+            self.resolution(),
+            &self.prelude,
+            self.type_map(),
+            text,
+            offset,
+        )
     }
 
     /// Inlay type hints: for each `let` with no written type annotation, the

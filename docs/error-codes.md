@@ -151,6 +151,7 @@ only what it can prove: an import some `.glyph` file under the root answers to.
 | `E0225` | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await` |
 | `E0226` | A `match` whose scrutinee has no variant set to count against, where every arm's pattern can fail and no arm is a catch-all. Add an `else` |
 | `E0227` | `Nullable<T>` where `T` is itself `Nullable` or `Option` (D45). Two states would share one runtime spelling, or a tagged object would sit under a null-tolerant field. Write `Nullable` over the plain type |
+| `E0228` | A type's name where a value is expected (`return Order { id: "a" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error |
 
 ### Emitter — `E03xx`
 

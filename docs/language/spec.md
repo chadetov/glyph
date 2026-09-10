@@ -43,7 +43,7 @@ Principle: **prefer the choice an established language has already validated, un
 
 ## Composite literals
 
-- **D10. No object literal shorthand.** `{ post, comments }` is a syntax error; write `{ post: post, comments: comments }`. Cost: keystrokes. Benefit: `grep -n "post:"` finds every field assignment. *[greppability]*
+- **D10. No object literal shorthand.** `{ post, comments }` is a syntax error; write `{ post: post, comments: comments }`. Cost: keystrokes. Benefit: `grep -n "post:"` finds every field assignment. There is also no `TypeName { ... }` prefix on the literal: the value is the braces alone and the annotation on the `let`, the parameter or the return type is what says which record it is. Writing the name in expression position is E0228, and the message names the construction the declaration has. *[greppability]*
 - **D11. Spread allowed in arrays and objects, position-flexible.** `[...xs, a, b]`, `[a, ...xs, b]`, `[a, b, ...xs]`. Same for objects. Multiple spreads in one literal allowed. *[TS compatibility]*
 - **Object keys: an identifier or a quoted string.** A key is an identifier/keyword, or a quoted string for names that are not identifiers (`{"Content-Type": x}`). The canonical form quotes a key iff it is not a valid identifier, so `{"foo": x}` formats to `{ foo: x }`. Interpolation in a key (`{"${e}": x}`) is rejected — there are no computed keys. Shorthand is still forbidden (D10): the value is always written.
 

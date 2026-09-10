@@ -402,6 +402,49 @@ fn regen_reports_when_nothing_is_generated() {
 }
 
 #[test]
+fn a_type_name_as_a_value_is_e0228_with_no_unreachable_code_warning() {
+    // G217, end to end. `Order { ... }` parses as a `return Order` followed by
+    // an object literal, so before E0228 the only thing the compiler said about
+    // this program was that the literal was unreachable, and it exited 0.
+    //
+    // The second assertion is the other half of the finding: an unreachable-code
+    // warning about a statement that follows a refused one is noise, and the
+    // lint tier is computed only for a module that produced no errors, so
+    // raising E0228 is what keeps E0108 off it.
+    let root = unique_tmp("type_name_as_value");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type Order = {\n  \
+           id: string,\n  \
+           total: int,\n\
+         }\n\
+         fn make() -> Order {\n  \
+           return Order { id: \"a\", total: 1 }\n\
+         }\n\
+         fn main(argv: Array<string>) -> string { return make().id }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ran");
+    assert!(report.has_errors(), "{:?}", report.diagnostics);
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("[E0228]")
+            && d.contains("`Order` is a type, not a value")
+            && d.contains("{ id: ..., total: ... }")),
+        "{:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("[E0108]")),
+        "an unreachable-code warning about a refused statement is noise: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn build_warns_on_unused_import_binding_and_unreachable_code() {
     // The lint tier (warnings): an unused import (E0106), an unused `let`
     // (E0107), and a statement after `return` (E0108). All are warnings — the

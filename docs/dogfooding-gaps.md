@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-226 entries, 200 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-8 are open. G144, the D28 boundary cast that never reached the returns a
+226 entries, 201 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+7 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8880,40 +8880,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.117, `npx -y @glyphlang/glyph@0.1.117 check --no-tsc` on a two-module project: exit 0 with three lint warnings (`E0106`, `E0108`, `E0107`) and no error, where `glyph check` with tsc reports `TS2739`, `TS2345` and `TS2322` for the same file.*
 
-  *Fixed in 0.1.121, as E0228. `type_of_ident_ref` is where an identifier
-  expression resolves and where a type symbol is distinguishable from a value
-  symbol, so the diagnostic is raised there, for a `type` or an `interface`
-  declared in this module (`SymbolKind::Type`, which `collect` interns for
-  both), for a named import the sibling declares as a type (asked through
-  `imported_type_decl` after the three value queries miss, so the answer does
-  not depend on which file the record was declared in), and for a prelude type
-  name, classified by `PreludeKind` in a match with no wildcard so a new
-  prelude entry has to be called a type or a value. The message names the
-  construction the declaration actually has, read off the lowered body: a
-  record lists its fields (`a value is the record literal `{ id: ..., total:
-  ... }``), a tagged union its variants with payload shapes, a string-literal
-  union its literals, an `interface` says it is a shape a record satisfies, and
-  anything the checker cannot see into gets the general sentence rather than a
-  guess. The one expression position a type name belongs in stays legal: a
-  `member_object` span, set the way `assign_target` is set, exempts the
-  receiver of a type's own descriptor, so `Order.parse(raw)` and `Order.is(v)`
-  report nothing. A union variant used as a value and a function used as a
-  value keep working, with a regression test each, and so does the prelude
-  value `None`. The E0108 half needed no code: the lint tier is computed only
-  for a module that produced no errors, in `build.rs`, the language server and
-  the playground alike, so raising the error is what takes the unreachable-code
-  warning off the program; an integration test asserts E0228 fires and E0108
-  does not. Two-binary: the published 0.1.120 exits 0 on `return Order { id:
-  "a", total: 1 }` with one `E0108 lint: unreachable code` warning, this build
-  exits 1 with `E0228 `Order` is a type, not a value; a value is the record
-  literal `{ id: ..., total: ... }`, with the type on the annotation`. Breaking
-  in the checking direction. `tests/negative/type_name_as_value` and
-  `tests/negative/imported_type_name_as_value` hold both spellings, and eleven
-  checker unit tests cover the shapes and the four things that must keep
-  working. The code is in `docs/error-codes.md`, `AGENTS.md` and `--explain`,
-  and D10 in the spec now says the record literal carries no type name.*
-
-- **G218. No tool describes a symbol.** On a three-module project, `glyph_hover`
+- **G218. [FIXED] No tool describes a symbol.** On a three-module project, `glyph_hover`
   answered one of fourteen probed positions (`return o` gave the bare string
   `"Order"`) and `null` on every declaration name, parameter, annotation and
   variant, because `hover_at` reads only expression spans of the `TypeMap`.
@@ -8934,6 +8901,42 @@ and is the owner's to confirm.
   identity, visibility and its `@example`, closes eight of the audit's items.
 
   *Reproduced against 0.1.117 over `glyph mcp` on a three-module project: fourteen `glyph_hover` probes, one non-null answer; `glyph_variants` payloads absent; `glyph_symbols` fields as listed.*
+
+  *Fixed in 0.1.121. `glyph_symbol` is the one call: address it by `module::name`
+  or by a position, and it answers with the symbol's kind, identity, visibility,
+  generics, a record's fields with types, a tagged union's variants each with its
+  payload and the syntax that constructs it, a string-literal union's values, a
+  callable's parameters and return, an interface's members, whether a `match`
+  over it must be exhaustive, and its `@example` text. It reads `glyph_db::decl_ty`
+  for a signature and the same `Lowerer` that query is built on for a body, so
+  what it prints is the compiler's own lowering. Every fact is a pair: null
+  carries a `<key>_absent` reason, answered carries an explicit null.
+  `exhaustive_match` has three answers rather than two, because a `match` over an
+  alias for a tagged union is checked and `false` there would be a caller
+  dropping an arm believing nothing stops it. `hover_at` now reads a declaration
+  name, a parameter, a written annotation, a variant and a binding's definition
+  site beside the expression table, and the language server gets the same. The
+  `type` block of `glyph_variants` carries each variant's payload and
+  construction syntax; `glyph_definition` carries the `module::name` identity so
+  its answer chains into `glyph_impact`; `glyph_symbols` entries carry the
+  identity, `pub`, the kind (an `interface` is `interface`, not `type`) and a
+  one-line signature, answered from the project database rather than from a
+  parse-only walk.*
+
+  *Measured against the audit's own probes, re-run over `glyph mcp` on a
+  three-module project rebuilt from the audit's description: `glyph_hover`
+  answers thirteen of the fourteen positions, against two on the 0.1.120 binary
+  in the same worktree. The fourteenth is `o.id` where `Order` is imported,
+  which the checker does not type: a member access on a `Ty::Imported` record is
+  absent from the `TypeMap` in the consuming module, and hover reports null
+  rather than deriving a field type nothing checked. `glyph_variants` on
+  `OrderStatus` returns `Paid` with `"payload": "{ transaction_id: string }"` and
+  `"construct": "Paid({ transaction_id: string })"`. `glyph_symbols` with an
+  empty query returns twelve entries, each with `entity`, `pub`, `kind` and
+  `signature`, with `Describable` as `"kind": "interface"`. `glyph_definition`
+  on the cross-module call returns `"entity": "orders::create"` beside the
+  location. `glyph_symbol` answers on `orders::Order`, `orders::OrderStatus`,
+  `orders::create` and `orders::Describable`, and on a position.*
 
 - **G219. [FIXED] `glyph_diagnostics` is single-file and disagrees with `check --json`.**
   On a project whose `main.glyph` has a real `E0200` (a non-exhaustive match

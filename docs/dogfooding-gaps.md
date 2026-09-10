@@ -9220,7 +9220,7 @@ and is the owner's to confirm.
   nothing. The other three are not in that probe set, which is why the entry
   named one position before.
 
-  *Reproduced against the 0.1.121 tree at `b4c1fd6` on the three-module shop project, `glyph query hover`: `src/checkout.glyph` 2:16 (the `Order` import binding) `null`, 2:23 (`create` in the same list) `null`, 5:9 (`create` at a call) `null`, 9:17 (`create` at a second call) `null`, 10:11 (`o.id`) `null`, `src/main.glyph` 3:7 (the `checkout` namespace binding) `null` and 6:22 (`checkout.announce`) `null`; against 4:33 and 9:9 (the `Order` annotation) `"Order"` and 10:9 (`o`) `"Order"`. On the two-module project at `/private/tmp/claude-501/scratch-linus/p1`, `src/main.glyph` 11:24 (the imported variant `Pending` as a value) is `null` and 11:10 (the `OrderStatus` annotation) is `"OrderStatus"`.*
+  *Reproduced against 0.1.120, the version the 0.1.121 tree at `b4c1fd6` still reports before the bump, on the three-module shop project, `glyph query hover`: `src/checkout.glyph` 2:16 (the `Order` import binding) `null`, 2:23 (`create` in the same list) `null`, 5:9 (`create` at a call) `null`, 9:17 (`create` at a second call) `null`, 10:11 (`o.id`) `null`, `src/main.glyph` 3:7 (the `checkout` namespace binding) `null` and 6:22 (`checkout.announce`) `null`; against 4:33 and 9:9 (the `Order` annotation) `"Order"` and 10:9 (`o`) `"Order"`. On the two-module project at `/private/tmp/claude-501/scratch-linus/p1`, `src/main.glyph` 11:24 (the imported variant `Pending` as a value) is `null` and 11:10 (the `OrderStatus` annotation) is `"OrderStatus"`.*
 
 - **G228. The impact table says the checker has no rule for a container against
   a container, and the checker has one.** With `pub fn f(o: Option<int>)` and a
@@ -9251,5 +9251,5 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.120 with the 0.1.121 tree at `b0d33f6` on a two-module project: `glyph query impact --entity lib::f --change change_signature_type` gives the argument entry above verbatim; `glyph query assignable --from 'Option<int>' --to 'Nullable<int>'` on the same tree is `WILL_FAIL`.*
 
-  *The record shape reproduced against the 0.1.121 tree at `92def97` on a one-module project: `glyph query impact --entity main::takes_rec --change change_signature_type` gives `UNDETERMINED` with the `because` above, `glyph query assignable --from '{ a: string, b: int }' --to '{ a: string }'` gives `COMPATIBLE`, and `glyph check --no-tsc --no-test` on the narrowing direction gives `[E0211] argument type mismatch: expected \`record\`, found \`record\``.*
+  *The record shape reproduced against 0.1.120, the version the 0.1.121 tree at `92def97` still reports before the bump, on a one-module project: `glyph query impact --entity main::takes_rec --change change_signature_type` gives `UNDETERMINED` with the `because` above, `glyph query assignable --from '{ a: string, b: int }' --to '{ a: string }'` gives `COMPATIBLE`, and `glyph check --no-tsc --no-test` on the narrowing direction gives `[E0211] argument type mismatch: expected \`record\`, found \`record\``.*
 

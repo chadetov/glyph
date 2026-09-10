@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-226 entries, 201 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-7 are open. G144, the D28 boundary cast that never reached the returns a
+227 entries, 201 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+8 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9157,3 +9157,15 @@ and is the owner's to confirm.
   direction against the 0.1.120 tree; against 0.1.119 it removes a false
   positive and keeps the true one.*
 
+- **G227. Hover on a field read from an imported record answers nothing.** In
+  a module that imports `Order` from a sibling, `glyph_hover` on the `id` of
+  `o.id` (with `o: Order`) returns `null`, while the same access on a record
+  declared in the module returns `string`. The checker does type the access:
+  `let n: int = o.id` draws `E0204 expected number, found string` with and
+  without tsc, so this is not a checker hole. The member-access expression on
+  a `Ty::Imported` record is never recorded in the `TypeMap` the hover reads,
+  and the tool reports null rather than derive a field type nothing recorded.
+  Found while re-running the audit's fourteen hover probes for G218; it is the
+  one position of fourteen that still answers nothing.
+
+  *Reproduced against 0.1.120 with the 0.1.121 tree at `2b1712a` (the G218 hover changes included) on the three-module shop project: `glyph_hover` at `src/checkout.glyph` line 10 character 11 (`o.id`, `Order` imported) is `null`; at character 9 (`o`) it is `"Order"`; the same `o.id` on a local `Order` is `"string"`.*

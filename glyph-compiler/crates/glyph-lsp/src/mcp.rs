@@ -519,7 +519,7 @@ fn tool_specs() -> Value {
     json!([
         {
             "name": "glyph_diagnostics",
-            "description": "Every diagnostic the compiler reports for one file, checked inside its project. The answer is `{ path, module, project_root, member, diagnostics, unindexed, not_run }`, and each entry of `diagnostics` is the structured diagnostic `glyph check --json` prints, field for field, from the same type: `code`, `severity` (`error` or `warning`), `message`, `help`, `note`, `file` (the module half of the file's identity, the same spelling `entity` is counted from), `range` (1-based `line` and `col`, with the byte `offset`), `stage` (`parse`, `collect`, `import`, `resolve`, `typecheck`, `lint`, `emit`), and `entity`, the `module::name` declaration the diagnostic sits in or null when there is none. An exhaustiveness error also carries `union` and `missing_variants`, which address the union rather than describing it: `union.name` is what `glyph_variants` takes and `union.declaration` is what `glyph_impact` takes, so the repair continues without a regex over the message. The file is checked in its project, so a non-exhaustive match over an imported union, a wrong field on an imported record, and an unknown export are all answered the way the compiler answers them; a reading of the file on its own reports none of the three, and reports the import of a variant the missing arms would have named as unused. Coverage is stated on the answer. `member` is false for a file the project walk does not reach (a dot directory, `target/`, `node_modules/`), which is still checked from its own contents against the project's modules, with `member_detail` saying so. `unindexed` names the project files that could not be read, one by one, because a sibling that does not parse declares nothing this file's check can see. `not_run` names the two checks `glyph check` makes and this does not: `tsc`, which reads emitted TypeScript on disk, and `E0104`, an import naming no module, where telling a mistyped sibling from an installed package needs the build's view of `node_modules`. A file that does not parse answers with its parse error alone, since every stage after it needs an AST. A path that is not a readable `.glyph` file is an error rather than an empty answer.",
+            "description": "Every diagnostic the compiler reports for one file, checked inside its project. The answer is `{ path, module, project_root, member, diagnostics, unindexed, not_run }`, and each entry of `diagnostics` is the structured diagnostic `glyph check --json` prints, field for field, from the same type: `code`, `severity` (`error` or `warning`), `message`, `help`, `note`, `file` (the module half of the file's identity, the same spelling `entity` is counted from), `range` (1-based `line` and `col`, with the byte `offset`), `stage` (`parse`, `collect`, `import`, `resolve`, `typecheck`, `lint`, `emit`), and `entity`, the `module::name` declaration the diagnostic sits in or null when there is none. An exhaustiveness error also carries `union` and `missing_variants`, which address the union rather than describing it: `union.name` is what `glyph_variants` takes and `union.declaration` is what `glyph_impact` takes, so the repair continues without a regex over the message. The file is checked in its project, so a non-exhaustive match over an imported union, a wrong field on an imported record, and an unknown export are all answered the way the compiler answers them; a reading of the file on its own reports none of the three, and reports the import of a variant the missing arms would have named as unused. Coverage is stated on the answer. `member` is false for a file the project walk does not reach (a dot directory, `target/`, `node_modules/`), which is still checked from its own contents against the project's modules, with `member_detail` saying so. `unindexed` names the project files that could not be read, one by one, because a sibling that does not parse declares nothing this file's check can see. `not_run` names the three checks `glyph check` makes and this does not: `tsc`, which reads emitted TypeScript on disk; `E0104`, an import naming no module, where telling a mistyped sibling from an installed package needs the build's view of `node_modules`; and `E0400`, a failing `@example` or `@doc @run`, which is decided by emitting the project and running the example rather than by reading it. A file that does not parse answers with its parse error alone, since every stage after it needs an AST. A path that is not a readable `.glyph` file is an error rather than an empty answer.",
             "inputSchema": { "type": "object", "properties": { "path": file }, "required": ["path"] }
         },
         {
@@ -613,7 +613,7 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
 /// Coverage is stated on the answer rather than assumed. `member` says whether
 /// the project walk reaches the file; `unindexed` names the project files that
 /// could not be read, one by one, because a sibling that does not parse
-/// exports nothing this file's check can see; and `not_run` names the two
+/// exports nothing this file's check can see; and `not_run` names the three
 /// checks `glyph check` makes and this does not.
 fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String> {
     let root = server.root.clone();
@@ -700,6 +700,14 @@ fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String>
                 "why": "telling a mistyped sibling import from an installed npm package \
                         needs the build's view of `node_modules` and `package.json`, which \
                         this server does not read."
+            },
+            {
+                "what": "E0400, a failing `@example` or `@doc @run`",
+                "why": "an example is a claim about what the code does at run time (D23, \
+                        D26), so `glyph check` decides it by emitting the project and \
+                        running the example, and this reads a project without writing or \
+                        running one. A project whose examples fail exits 1 under `glyph \
+                        check` with every file here reported clean."
             }
         ],
     });
@@ -6824,6 +6832,119 @@ fn probe_side(
     Ok((format!("{alias}.{name}"), Some((module, name))))
 }
 
+/// A module path as the project spells it, for looking a declaration up by
+/// `module::name`.
+fn module_segments(path: &glyph_ast::ModulePath) -> String {
+    path.segments
+        .iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// Why one side of an assignability question names no type, or `None` when it
+/// names one.
+///
+/// The entity form checks this before the probe is written: a `module::name`
+/// `glyph_symbol` reports as a function, a constant, a component or a variant
+/// is refused with what it is. The spelling form reaches the same bindings
+/// through the file's own scope, and it used to answer about them: on a file
+/// importing `orders`, `lib` (a namespace import), `create` (an imported
+/// function) and `Pending` (a variant) each came back `UNDETERMINED`, and the
+/// namespace import came back carrying `read_as: "?"`, the checker's
+/// not-yet-inferred placeholder, inside a verdict. A guarantee that changes
+/// with which spelling reached the same binding is the thing this surface
+/// exists to remove, so both forms refuse and the reason names what the
+/// spelling turned out to be.
+///
+/// Two readings, and the second is the backstop. The head of a one-segment
+/// path is looked up in the scope the probe resolved it in, which is what
+/// names a namespace import as a module and an imported name as whatever its
+/// declaring module declares. Anything else that lowered to `Ty::Unknown` is
+/// refused too, because `Unknown` is the placeholder `render` filters out of a
+/// hover answer for the same reason: it is not a type, and a verdict about it
+/// is a verdict about nothing.
+#[allow(clippy::too_many_arguments)]
+fn spelling_names_no_type(
+    project: &Project,
+    root: &Path,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    anchor_module: &str,
+    key: &str,
+    asked: &str,
+    body: &glyph_ast::TypeExpr,
+    ty: &Ty,
+) -> Option<String> {
+    let head = match body {
+        glyph_ast::TypeExpr::Path { segments, span } if segments.len() == 1 => resolved
+            .resolutions
+            .get(*span)
+            .map(|r| (segments[0].clone(), r)),
+        _ => None,
+    };
+    if let Some((name, glyph_resolver::ResolvedRef::Module(id))) = head {
+        let what = resolved.symbols.table.get(id).and_then(|sym| match &sym.kind {
+            SymbolKind::Type { .. } => None,
+            SymbolKind::Function { .. } => Some("a function".to_string()),
+            SymbolKind::Const { .. } => Some("a constant".to_string()),
+            SymbolKind::Component { .. } => Some("a component".to_string()),
+            SymbolKind::Variant { .. } => Some("a variant".to_string()),
+            // `import std/string` binds `string`, so the annotation `string`
+            // in such a module resolves to the import rather than to the
+            // prelude and is still the prelude type (G225). Only a binding
+            // whose name is not a prelude type is a module here.
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => prelude
+                .lookup(name.as_ref())
+                .is_none()
+                .then(|| format!("a namespace import of module `{}`", module_segments(path))),
+            SymbolKind::ImportDefault { path, .. } => prelude
+                .lookup(name.as_ref())
+                .is_none()
+                .then(|| format!("the default export of `{}`", module_segments(path))),
+            SymbolKind::ImportNamed { path, original } => {
+                let module = module_segments(path);
+                // What the declaring module declares, read the way the entity
+                // form reads it, so `orders::create` and an imported `create`
+                // are refused in the same words. A module no Glyph file of
+                // this project holds (an npm package, a `.d.ts`) is not read
+                // here and the question stands.
+                let described = describe_symbol(project, root, &module, original).ok()?;
+                let kind = described
+                    .get("kind")
+                    .and_then(|k| k.as_str())
+                    .unwrap_or_default();
+                (!TYPE_KINDS.contains(&kind))
+                    .then(|| format!("{}, imported from `{module}`", a_kind(kind)))
+            }
+            SymbolKind::Prelude { .. } => None,
+        });
+        if let Some(what) = what {
+            return Some(format!(
+                "`{key}` (`{asked}`) resolves in module `{anchor_module}` to {what}, not to a \
+                 type, so there is nothing here to put on either side of an assignability \
+                 question. `glyph_symbol` on it describes what it is."
+            ));
+        }
+    }
+    if !matches!(ty, Ty::Unknown) {
+        return None;
+    }
+    let what = match body {
+        glyph_ast::TypeExpr::Extern { .. } => {
+            "an `extern_ts` escape, whose body is TypeScript this checker does not read"
+        }
+        glyph_ast::TypeExpr::TypeOf { .. } => {
+            "a `typeof` type, which Glyph leaves opaque for `tsc` to reduce"
+        }
+        _ => "a spelling the checker holds no type for",
+    };
+    Some(format!(
+        "`{key}` (`{asked}`) is {what}, so there is no type here to compare. Answering would \
+         report the checker's not-yet-inferred placeholder as if it were one."
+    ))
+}
+
 /// Can a value of type `from` go where `to` is declared, asked of the
 /// checker's own comparison and nothing else.
 ///
@@ -6972,6 +7093,28 @@ fn tool_assignable(args: &Value, server: &mut Server) -> Result<String, String> 
         entity: to_spelled.1,
         ty: lowerer.lower(to_body),
     };
+
+    // Both sides name a type, or the question is refused rather than
+    // answered. This is the spelling form's half of the check the entity form
+    // makes before the probe is written.
+    for (key, side, body) in [("from", &from, from_body), ("to", &to, to_body)] {
+        if side.form != "spelling" {
+            continue;
+        }
+        if let Some(reason) = spelling_names_no_type(
+            project,
+            &root,
+            probe_resolved,
+            db.prelude(),
+            &anchor_module,
+            key,
+            &side.asked,
+            body,
+            &side.ty,
+        ) {
+            return Err(reason);
+        }
+    }
 
     let verdict = glyph_typechecker::assignability(
         probe_ast,
@@ -8695,6 +8838,459 @@ pub fn f() -> number {
         let what: Vec<&str> = not_run.iter().map(|e| e["what"].as_str().unwrap()).collect();
         assert!(what.contains(&"tsc"), "{value}");
         assert!(what.iter().any(|w| w.contains("E0104")), "{value}");
+        // A failing `@example` is the third: `glyph check` emits the project
+        // and runs it, exits 1 on E0400, and this tool reports every file of
+        // that project clean.
+        assert!(what.iter().any(|w| w.contains("E0400")), "{value}");
+        assert_eq!(not_run.len(), 3, "{value}");
+    }
+
+    /// The three `not_run` entries are the three checks `glyph check` makes
+    /// and this does not, and a project whose only failure is an `@example` is
+    /// the one that motivated the third: every file reads clean here while
+    /// `glyph check` exits 1.
+    #[test]
+    fn a_failing_example_is_named_as_not_run() {
+        let root = tmp_root();
+        write(
+            &root,
+            "lib.glyph",
+            "module lib\n@example double(2) == 5\npub fn double(n: int) -> int {\n  return n * 2\n}\n",
+        );
+        let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "lib.glyph" }));
+        assert!(!is_error, "{value}");
+        assert_eq!(value["diagnostics"].as_array().unwrap().len(), 0, "{value}");
+        let entry = value["not_run"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["what"].as_str().unwrap().contains("E0400"))
+            .unwrap_or_else(|| panic!("no E0400 entry: {value}"));
+        assert!(
+            entry["what"].as_str().unwrap().contains("@example"),
+            "{value}"
+        );
+        assert!(!entry["why"].as_str().unwrap().is_empty(), "{value}");
+    }
+
+    /// A spelling that reaches something other than a type is refused, the
+    /// way the `module::name` form already refused one.
+    ///
+    /// The contract says a spelling naming something other than a type is
+    /// refused with the reason. The entity form checked it and the spelling
+    /// form did not, so `orders::Pending` was refused as a variant while
+    /// `Pending`, the same declaration reached through the file's own scope,
+    /// came back UNDETERMINED. A namespace import came back carrying
+    /// `read_as: "?"`, the checker's not-yet-inferred placeholder, inside a
+    /// verdict.
+    #[test]
+    fn a_spelling_that_is_not_a_type_is_refused() {
+        let root = tmp_root();
+        write(
+            &root,
+            "orders.glyph",
+            "module orders\n\
+             \n\
+             pub type OrderStatus =\n\
+             \x20 | Pending\n\
+             \x20 | Paid\n\
+             \n\
+             pub type Order = { id: string }\n\
+             \n\
+             pub fn create(id: string) -> Order {\n\
+             \x20 return { id: id }\n\
+             }\n",
+        );
+        write(
+            &root,
+            "main.glyph",
+            "module main\n\
+             \n\
+             import orders\n\
+             import orders { Order, OrderStatus, Pending, create }\n\
+             \n\
+             pub fn go(o: Order, s: OrderStatus) -> string {\n\
+             \x20 return o.id\n\
+             }\n",
+        );
+        let mut server = Server::new(root.clone());
+        let ask = |server: &mut Server, from: &str| {
+            call_raw(
+                server,
+                "glyph_assignable",
+                json!({ "path": "main.glyph", "from": from, "to": "string" }),
+            )
+        };
+
+        // A namespace import binding. This one used to answer with `?`.
+        let (text, is_error) = ask(&mut server, "orders");
+        assert!(is_error, "a namespace import was answered: {text}");
+        assert!(
+            text.contains("namespace import of module `orders`") && text.contains("not to a type"),
+            "{text}"
+        );
+        assert!(!text.contains('?'), "the refusal ships the placeholder: {text}");
+
+        // An imported function, and an imported variant.
+        let (text, is_error) = ask(&mut server, "create");
+        assert!(is_error, "an imported function was answered: {text}");
+        assert!(
+            text.contains("a function, imported from `orders`"),
+            "{text}"
+        );
+        let (text, is_error) = ask(&mut server, "Pending");
+        assert!(is_error, "an imported variant was answered: {text}");
+        assert!(text.contains("a variant, imported from `orders`"), "{text}");
+
+        // A variant reached in its own module is refused in the same words as
+        // the `module::name` form, because which spelling reached the
+        // declaration is not allowed to decide whether the tool answers.
+        let (text, is_error) = call_raw(
+            &mut server,
+            "glyph_assignable",
+            json!({ "path": "orders.glyph", "from": "Pending", "to": "string" }),
+        );
+        assert!(is_error, "a local variant was answered: {text}");
+        assert!(text.contains("a variant"), "{text}");
+
+        // A type still answers, whichever way it was spelled.
+        for from in ["Order", "OrderStatus", "orders::Order"] {
+            let (value, is_error) = call_on(
+                &mut server,
+                "glyph_assignable",
+                json!({ "path": "main.glyph", "from": from, "to": "string" }),
+            );
+            assert!(!is_error, "`{from}` was refused: {value}");
+            assert_ne!(value["from"]["read_as"], json!("?"), "{value}");
+        }
+    }
+
+    /// A spelling whose lowering is the placeholder is refused too, and the
+    /// refusal says which spelling it was.
+    ///
+    /// `extern_ts` and `typeof` are types, and the checker holds no shape for
+    /// either on purpose. That makes them a question with no answer rather
+    /// than a pairing no rule covers, and `read_as: "?"` inside a verdict is
+    /// the same placeholder leak the hover surface filters out. The
+    /// `module::name` form is unaffected: an `extern_ts` declaration lowers to
+    /// its own declared name, not to the placeholder.
+    #[test]
+    fn a_spelling_the_checker_holds_no_type_for_is_refused() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\n\
+             \n\
+             pub const RATE = 3\n\
+             \n\
+             pub type Raw = extern_ts(\"{ kind: string }\")\n",
+        );
+        let mut server = Server::new(root.clone());
+        for (from, want) in [
+            ("extern_ts(\"{ k: string }\")", "`extern_ts` escape"),
+            ("typeof RATE", "`typeof` type"),
+        ] {
+            let (text, is_error) = call_raw(
+                &mut server,
+                "glyph_assignable",
+                json!({ "path": "a.glyph", "from": from, "to": "string" }),
+            );
+            assert!(is_error, "`{from}` was answered: {text}");
+            assert!(text.contains(want), "{text}");
+        }
+        // The declaration form of the same thing keeps answering.
+        let (value, is_error) = call_on(
+            &mut server,
+            "glyph_assignable",
+            json!({ "path": "a.glyph", "from": "a::Raw", "to": "string" }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["from"]["read_as"], json!("Raw"), "{value}");
+    }
+
+    /// The three-module project the G218 audit probed, so a claim about it is
+    /// a fixture rather than a number only its author can reproduce.
+    ///
+    /// The audit reported hover answering one of fourteen positions, the
+    /// release note reports thirteen, and until this test the fourteen
+    /// positions existed nowhere in the tree. They are here, each with the
+    /// exact string hover answers or the null it does not, so the ratio moves
+    /// only when the code does and a regression at any one of them fails the
+    /// suite rather than the next audit.
+    fn shop_project(root: &Path) {
+        write(
+            root,
+            "orders.glyph",
+            "module orders\n\
+             \n\
+             pub type OrderStatus =\n\
+             \x20 | Pending\n\
+             \x20 | Paid({ transaction_id: string })\n\
+             \x20 | Cancelled\n\
+             \n\
+             pub type Order = {\n\
+             \x20 id: string,\n\
+             \x20 status: OrderStatus,\n\
+             \x20 total: int,\n\
+             }\n\
+             \n\
+             pub interface Describable {\n\
+             \x20 fn describe() -> string\n\
+             }\n\
+             \n\
+             pub type Receipt = {\n\
+             \x20 order: Order,\n\
+             \x20 note: string,\n\
+             }\n\
+             \n\
+             @example create(\"a-1\").total == 0\n\
+             pub fn create(id: string) -> Order {\n\
+             \x20 let o: Order = {\n\
+             \x20   id: id,\n\
+             \x20   status: Pending,\n\
+             \x20   total: 0,\n\
+             \x20 }\n\
+             \x20 return o\n\
+             }\n\
+             \n\
+             pub fn label(s: OrderStatus) -> string {\n\
+             \x20 match s {\n\
+             \x20   Pending => \"pending\",\n\
+             \x20   Paid({ transaction_id }) => transaction_id,\n\
+             \x20   Cancelled => \"cancelled\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        write(
+            root,
+            "checkout.glyph",
+            "module checkout\n\
+             \n\
+             import orders { Order, create }\n\
+             \n\
+             pub fn open_order(id: string) -> Order {\n\
+             \x20 return create(id)\n\
+             }\n\
+             \n\
+             pub fn announce(id: string) -> string {\n\
+             \x20 let o: Order = create(id)\n\
+             \x20 return o.id\n\
+             }\n",
+        );
+        write(
+            root,
+            "main.glyph",
+            "module main\n\
+             \n\
+             import std/io\n\
+             import checkout\n\
+             \n\
+             fn main(argv: Array<string>) -> number {\n\
+             \x20 io.println(checkout.announce(\"a-1\"))\n\
+             \x20 return 0\n\
+             }\n",
+        );
+    }
+
+    /// The 0-based line and UTF-16 character of `needle` in `root/name`, plus
+    /// `offset` characters, which is how the audit's probe addressed each
+    /// position.
+    fn at(root: &Path, name: &str, needle: &str, offset: u32) -> (u64, u64) {
+        let text = std::fs::read_to_string(root.join(name)).unwrap();
+        let byte = text
+            .find(needle)
+            .unwrap_or_else(|| panic!("`{needle}` is not in {name}"));
+        let line = text[..byte].matches('\n').count() as u64;
+        let col = text[..byte].rfind('\n').map_or(byte, |nl| byte - nl - 1) as u64;
+        (line, col + offset as u64)
+    }
+
+    #[test]
+    fn hover_answers_thirteen_of_the_audits_fourteen_positions() {
+        let root = tmp_root();
+        shop_project(&root);
+        // Label, file, the text the position is found from, and how far into
+        // it, then the exact answer: a string, or `null` where hover has none.
+        let probes: [(&str, &str, &str, u32, Value); 14] = [
+            (
+                "the union's declaration name",
+                "orders.glyph",
+                "OrderStatus",
+                1,
+                json!("Pending | Paid({ transaction_id: string }) | Cancelled"),
+            ),
+            (
+                "the union's declaration name, four in",
+                "orders.glyph",
+                "OrderStatus",
+                4,
+                json!("Pending | Paid({ transaction_id: string }) | Cancelled"),
+            ),
+            (
+                "the record's declaration name",
+                "orders.glyph",
+                "pub type Order = {",
+                9,
+                json!("{ id: string, status: OrderStatus, total: number }"),
+            ),
+            (
+                "the record's declaration name, two in",
+                "orders.glyph",
+                "pub type Order = {",
+                11,
+                json!("{ id: string, status: OrderStatus, total: number }"),
+            ),
+            (
+                "the function's declaration name",
+                "orders.glyph",
+                "pub fn create",
+                8,
+                json!("fn(string) -> Order"),
+            ),
+            (
+                "the function's declaration name, five in",
+                "orders.glyph",
+                "pub fn create",
+                11,
+                json!("fn(string) -> Order"),
+            ),
+            (
+                "a parameter's name",
+                "orders.glyph",
+                "create(id: string)",
+                7,
+                json!("string"),
+            ),
+            (
+                "a written return annotation",
+                "orders.glyph",
+                "-> Order {",
+                4,
+                json!("Order"),
+            ),
+            (
+                "a variant's name at its declaration",
+                "orders.glyph",
+                "| Paid(",
+                3,
+                json!("Paid({ transaction_id: string })"),
+            ),
+            (
+                "a variant used as a value",
+                "orders.glyph",
+                "status: Pending",
+                9,
+                json!("Pending"),
+            ),
+            (
+                "a local binding at its definition site",
+                "checkout.glyph",
+                "let o: Order",
+                4,
+                json!("Order"),
+            ),
+            (
+                "the receiver of a member access",
+                "checkout.glyph",
+                "return o.id",
+                7,
+                json!("Order"),
+            ),
+            // G227, the one position that answers nothing: `Order` is
+            // imported, the checker records no type for a member access on a
+            // `Ty::Imported` record in the consuming module, and hover reports
+            // null rather than deriving a field type nothing checked.
+            (
+                "a field read from an imported record",
+                "checkout.glyph",
+                "return o.id",
+                9,
+                Value::Null,
+            ),
+            (
+                "a returned local",
+                "orders.glyph",
+                "return o\n",
+                7,
+                json!("Order"),
+            ),
+        ];
+
+        let mut server = Server::new(root.clone());
+        let mut answered = 0;
+        for (label, name, needle, offset, want) in probes {
+            let (line, character) = at(&root, name, needle, offset);
+            let (got, is_error) = call_on(
+                &mut server,
+                "glyph_hover",
+                json!({ "path": name, "line": line, "character": character }),
+            );
+            assert!(!is_error, "{label}: {got}");
+            assert_eq!(got, want, "{label} at {name}:{line}:{character}");
+            if !got.is_null() {
+                answered += 1;
+            }
+        }
+        assert_eq!(answered, 13, "the ratio the release note cites has moved");
+    }
+
+    /// A record field's name is not an annotation, and hover does not answer
+    /// the enclosing shape there.
+    ///
+    /// 0.1.121 briefly did: `type_expr_at` returns the narrowest `TypeExpr`
+    /// covering an offset, a field name belongs to no `TypeExpr` of its own,
+    /// and so the whole record covered it. That turned a null into a wrong
+    /// answer on the release whose rule is that an answer is exact or absent.
+    #[test]
+    fn hover_at_a_name_inside_a_type_answers_that_name() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\n\
+             \n\
+             pub type Order = {\n\
+             \x20 id: string,\n\
+             \x20 total: int,\n\
+             }\n\
+             \n\
+             pub type Status =\n\
+             \x20 | Pending\n\
+             \x20 | Paid({ transaction_id: string })\n",
+        );
+        let mut server = Server::new(root.clone());
+        let hover = |server: &mut Server, needle: &str, offset: u32| {
+            let (line, character) = at(&root, "a.glyph", needle, offset);
+            let (got, is_error) = call_on(
+                server,
+                "glyph_hover",
+                json!({ "path": "a.glyph", "line": line, "character": character }),
+            );
+            assert!(!is_error, "{got}");
+            got
+        };
+        // A record field's name answers the field's own declared type.
+        assert_eq!(hover(&mut server, "id: string", 0), json!("string"));
+        assert_eq!(hover(&mut server, "total: int", 0), json!("number"));
+        // A variant payload's field name answers that field, not the payload.
+        assert_eq!(
+            hover(&mut server, "transaction_id: string", 0),
+            json!("string")
+        );
+        // A variant's name answers the variant, not the union.
+        assert_eq!(hover(&mut server, "| Pending", 2), json!("Pending"));
+        assert_eq!(
+            hover(&mut server, "| Paid(", 2),
+            json!("Paid({ transaction_id: string })")
+        );
+        // The written annotation beside the field name still answers, and so
+        // does the declaration's own name.
+        assert_eq!(hover(&mut server, "id: string", 4), json!("string"));
+        assert_eq!(
+            hover(&mut server, "pub type Order", 9),
+            json!("{ id: string, total: number }")
+        );
     }
 
     #[test]

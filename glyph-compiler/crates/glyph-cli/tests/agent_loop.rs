@@ -1542,6 +1542,56 @@ fn a_query_verb_answers_what_its_mcp_tool_answers() {
     assert_eq!(answer["verdict"], json!("WILL_FAIL"), "{answer}");
 }
 
+/// A `glyph_assignable` spelling naming something that is not a type exits 2
+/// with the reason, the way the `module::name` form already did.
+///
+/// The two forms disagreed: `orders::Pending` was refused as a variant while
+/// `Pending`, the same declaration reached through the importing file's own
+/// scope, was answered UNDETERMINED. A guarantee that depends on which
+/// spelling reached the declaration is not a guarantee, and the namespace-import
+/// case shipped the checker's not-yet-inferred placeholder inside the verdict.
+#[test]
+fn an_assignable_spelling_that_is_not_a_type_exits_two() {
+    let root = unique_tmp("assignable_non_type");
+    std::fs::write(
+        root.join("orders.glyph"),
+        "module orders\n\npub type Status =\n  | Pending\n  | Paid\n\n\
+         pub type Order = { id: string }\n\n\
+         pub fn create(id: string) -> Order {\n  return { id: id }\n}\n",
+    )
+    .expect("write orders");
+    std::fs::write(
+        root.join("main.glyph"),
+        "module main\n\nimport orders\nimport orders { Order, Status, Pending, create }\n\n\
+         pub fn go(o: Order, s: Status) -> string {\n  return o.id\n}\n",
+    )
+    .expect("write main");
+
+    for (from, want) in [
+        ("orders", "namespace import of module `orders`"),
+        ("create", "a function, imported from `orders`"),
+        ("Pending", "a variant, imported from `orders`"),
+    ] {
+        let (code, stdout, stderr) = glyph_query(
+            &root,
+            &["assignable", "--path", "main.glyph", "--from", from, "--to", "string"],
+        );
+        assert_eq!(code, 2, "`{from}` was answered: {stdout}{stderr}");
+        assert!(stdout.is_empty(), "a refusal wrote to stdout: {stdout}");
+        assert!(stderr.contains(want), "`{from}`: {stderr}");
+        assert!(stderr.contains("not to a type"), "`{from}`: {stderr}");
+    }
+
+    // A type still answers through the same verb.
+    let (code, stdout, stderr) = glyph_query(
+        &root,
+        &["assignable", "--path", "main.glyph", "--from", "Order", "--to", "string"],
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer: Value = serde_json::from_str(&stdout).expect("the verb prints JSON");
+    assert_ne!(answer["from"]["read_as"], json!("?"), "{answer}");
+}
+
 /// A tool refusal is an exit code and a reason on stderr, not a JSON body a
 /// caller has to inspect to find out the question was not answered.
 #[test]

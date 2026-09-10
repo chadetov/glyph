@@ -648,14 +648,24 @@ fn the_repair_loop_closes_with_every_hop_fed_from_the_previous_answer() {
         told.declaration,
         "{answer}"
     );
-    assert!(
-        answer["type"]["variants"]
-            .as_array()
-            .unwrap_or_else(|| panic!("no variant list: {answer}"))
-            .iter()
-            .any(|v| v == &json!(told.variant.as_str())),
-        "the union the query answered about has to hold the variant the \
-         diagnostic says is missing: {answer}"
+    // A variant carries its payload and the syntax that constructs one, so the
+    // repair the agent writes next is a form the compiler accepts rather than
+    // a bare name it has to guess an argument list for.
+    let missing = answer["type"]["variants"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no variant list: {answer}"))
+        .iter()
+        .find(|v| v["name"] == json!(told.variant.as_str()));
+    let missing = missing.unwrap_or_else(|| {
+        panic!(
+            "the union the query answered about has to hold the variant the \
+             diagnostic says is missing: {answer}"
+        )
+    });
+    assert_eq!(
+        missing["construct"],
+        json!(told.variant.as_str()),
+        "a payload-free variant is constructed by its own name: {answer}"
     );
 
     // Hop 4. The sites. This is where the query earns its place: it names

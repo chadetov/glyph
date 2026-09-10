@@ -2117,7 +2117,120 @@ mod tests {
         let text = "module x\nfn f() -> number {\n  let n = 41\n  return n\n}\n";
         let a = analyze_full(text).expect("parses");
         let off = text.find("41").unwrap();
-        assert_eq!(a.hover(off), Some("number".to_string()));
+        assert_eq!(a.hover(text, off), Some("number".to_string()));
+    }
+
+    /// The file the agent-surface audit probed, cut down to the positions
+    /// hover used to answer `null` at.
+    const HOVER_SRC: &str = "module orders\n\
+        \n\
+        pub type OrderStatus =\n\
+        \x20 | Pending\n\
+        \x20 | Paid({ transaction_id: string })\n\
+        \n\
+        pub type Order = {\n\
+        \x20 id: string,\n\
+        \x20 status: OrderStatus,\n\
+        }\n\
+        \n\
+        pub interface Describable {\n\
+        \x20 fn describe() -> string\n\
+        }\n\
+        \n\
+        pub fn create(id: string) -> Order {\n\
+        \x20 let o: Order = {\n\
+        \x20   id: id,\n\
+        \x20   status: Pending,\n\
+        \x20 }\n\
+        \x20 return o\n\
+        }\n";
+
+    /// Hover `into` bytes past the start of the first occurrence of `needle`.
+    fn hover_at_text(text: &str, needle: &str, into: usize) -> Option<String> {
+        let a = analyze_full(text).expect("parses");
+        let at = text.find(needle).expect("needle") + into;
+        a.hover(text, at)
+    }
+
+    #[test]
+    fn hover_answers_at_a_declaration_name() {
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "OrderStatus", 0),
+            Some("Pending | Paid({ transaction_id: string })".to_string())
+        );
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "Order = {", 0),
+            Some("{ id: string, status: OrderStatus }".to_string())
+        );
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "create", 0),
+            Some("fn(string) -> Order".to_string())
+        );
+    }
+
+    /// An interface has no lowered form of its own, so it hovers as the record
+    /// shape a value satisfying it carries. `null` here was the whole reason
+    /// an interface's members were reachable from nowhere.
+    #[test]
+    fn hover_answers_at_an_interface_name() {
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "Describable", 0),
+            Some("{ describe: fn() -> string }".to_string())
+        );
+    }
+
+    #[test]
+    fn hover_answers_at_a_parameter_and_a_written_annotation() {
+        // The parameter's own name, which the checker's expression table does
+        // not hold.
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "create(id: string)", 7),
+            Some("string".to_string())
+        );
+        // The return annotation.
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "-> Order {", 3),
+            Some("Order".to_string())
+        );
+    }
+
+    /// A variant hovers as the syntax that constructs it, not as the union it
+    /// sits in: `Paid` alone is what an agent writes, and writing it without
+    /// the payload is the error this closes.
+    #[test]
+    fn hover_answers_at_a_variant_with_its_construction_syntax() {
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "Paid(", 0),
+            Some("Paid({ transaction_id: string })".to_string())
+        );
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "Pending", 0),
+            Some("Pending".to_string())
+        );
+        // The same variant used in an expression, which resolves rather than
+        // being declared there.
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "status: Pending", 8),
+            Some("Pending".to_string())
+        );
+    }
+
+    #[test]
+    fn hover_answers_at_a_local_bindings_definition() {
+        assert_eq!(
+            hover_at_text(HOVER_SRC, "let o: Order", 4),
+            Some("Order".to_string())
+        );
+    }
+
+    /// Hover reads the compiler's lowering, never the source text, so a
+    /// position that resolves to nothing stays `null` rather than echoing the
+    /// word under the cursor.
+    #[test]
+    fn hover_stays_null_where_nothing_resolves() {
+        let text = "module x\nfn f() -> number {\n  return 1\n}\n";
+        let a = analyze_full(text).expect("parses");
+        assert_eq!(a.hover(text, text.find("module").unwrap()), None);
     }
 
     #[test]

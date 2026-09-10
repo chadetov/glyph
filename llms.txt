@@ -64,14 +64,38 @@ not importable but does not stop the run, and today does not change the exit
 code: `glyph run` exits with whatever `main` returned.
 
 If you drive Glyph through the Model Context Protocol, `glyph mcp [root]` speaks
-MCP over stdio and exposes five tools over the project: `glyph_diagnostics`
-(type-check one file → coded diagnostics with ranges), `glyph_hover` (the
-inferred type at a position), `glyph_definition` (where a name is defined,
-following imports), `glyph_references` (every reference to a symbol across the
-whole project — declaration, uses, and each importing module's import binding),
-and `glyph_symbols` (search declarations by name). Positions are 0-based
-`line`/`character` (UTF-16). This is the interactive complement to
-`glyph build --json`, which remains the batch path for coded diagnostics.
+MCP over stdio and exposes eight tools over the project:
+
+- `glyph_symbol` — everything the compiler holds about one symbol, addressed by
+  its `module::name` identity or by a position: kind, visibility, a record's
+  fields with types, a union's variants with payloads and the syntax that
+  constructs each, a callable's parameters and return, an interface's members,
+  whether a `match` over it must be exhaustive, and its `@example` text. Ask
+  this before writing a call, a record literal or a `match` over a type you did
+  not declare.
+- `glyph_impact` — what breaks if you make one named change to one declaration
+  (`add_variant`, `remove_variant`, `rename`, `change_arity`,
+  `change_signature_type`, `remove`), per site, with the diagnostic each will
+  raise. Call it before changing a declaration, not after.
+- `glyph_variants` — every `match` site in the project over one tagged union and
+  which variants each site's arms name, with the union's own variants and their
+  construction syntax.
+- `glyph_references` — every edge into a symbol across the project, split by
+  relation (`CALLS`, `REFERENCES`, `GENERATED_FROM`), each with its provenance.
+- `glyph_definition` — where the name at a position is defined, following
+  imports, with the `module::name` identity so the answer chains into
+  `glyph_impact`.
+- `glyph_hover` — the type at a position: an expression, a declaration name, a
+  parameter, an annotation, a variant, or a binding.
+- `glyph_symbols` — search the project's declarations by name substring; each
+  entry carries the identity, whether it is exported, its kind and its
+  signature.
+- `glyph_diagnostics` — type-check one file, returning coded diagnostics with
+  ranges.
+
+Positions are 0-based `line`/`character` (UTF-16). This is the interactive
+complement to `glyph build --json`, which remains the batch path for coded
+diagnostics.
 
 ## The canonical program shape
 

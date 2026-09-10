@@ -1,0 +1,10 @@
+module m
+
+fn takes_int(n: int) -> int {
+  return n
+}
+
+pub fn run() -> int {
+  let v: Nullable<int> = 3
+  return takes_int(v)
+}

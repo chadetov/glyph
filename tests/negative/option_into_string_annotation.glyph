@@ -1,0 +1,10 @@
+module neg
+
+// G216. A prelude container is never a `string`, a `number` or a `bool`,
+// whatever its type argument is: `Option<int>` emits as a tagged object, so a
+// `let` annotated `string` cannot be holding one.
+pub fn main() -> string {
+  let o: Option<int> = Some(3)
+  let x: string = o
+  return x
+}

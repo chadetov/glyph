@@ -4229,6 +4229,38 @@ impl Assigner<'_> {
         prelude_app(self.lowerer.prelude, ty, name)
     }
 
+    /// The prelude container `ty` applies, when it is one whose runtime value
+    /// is never a `string`, a `number` or a `bool` (G216). The name is returned
+    /// beside the arguments because the reverse direction has to tell
+    /// `Nullable` from the other four.
+    ///
+    /// Five names, and the claim is about each one's emitted value.
+    /// `Option<T>` and `Result<T, E>` emit as tagged objects, `Array<T>` as a
+    /// JavaScript array, `Record<K, V>` as an object, so none of them is a
+    /// scalar whatever their arguments are. `Nullable<T>` emits as `T | null`
+    /// (D45), and `null` is not a `string`, a `number` or a `bool`, so the
+    /// union as a whole is not one either however `T` is filled in. That last
+    /// one is the case `tsc` cannot make: the emitted `const v: number | null =
+    /// 3` narrows to `number` under TypeScript's control flow, so a later
+    /// `takes_int(v)` type-checks there and this relation is the only place it
+    /// can be refused.
+    ///
+    /// What is deliberately left out. `Schema<T>`, `Component<P>` and `Issue`
+    /// are interop surface types whose shape comes from a library rather than
+    /// from the emitter, and `infer_output<S>` (D28) is a type-level operator
+    /// whose result is whatever the schema yields, a `string` included. A
+    /// user's own generic (`type Box<T> = T`) is out for the same reason: its
+    /// body may be its argument, so deciding it needs the declaration read and
+    /// the parameter substituted, which is a different rule.
+    fn prelude_container<'a>(&self, ty: &'a Ty) -> Option<(&'static str, &'a [Ty])> {
+        for name in ["Option", "Result", "Array", "Record", "Nullable"] {
+            if let Some(args) = self.prelude_app(ty, name) {
+                return Some((name, args));
+            }
+        }
+        None
+    }
+
     /// True if `ty` is an application of the prelude `Array` type
     /// (`Array<T>` → `App(Array, [T])`).
     fn is_prelude_array(&self, ty: &Ty) -> bool {
@@ -5338,7 +5370,61 @@ impl Assigner<'_> {
         if self.imported_incompatible(&found, &expected) {
             return true;
         }
+        if self.prelude_container_incompatible(&found, &expected) {
+            return true;
+        }
         definitely_incompatible(&found, &expected)
+    }
+
+    /// The pairings of a prelude container against a primitive the relation
+    /// decides, on canonical types (G216).
+    ///
+    /// `definitely_incompatible` has no arm for `Ty::App` against `Ty::Prim`
+    /// and falls through to "not provably incompatible", so `let o: Option<int>
+    /// = Some(3)` followed by `let x: string = o` drew nothing, and neither did
+    /// `takes_int(v)` with `v: Nullable<int>`. A boundary type that exists to
+    /// make `null` visible and then passes silently where an `int` is declared
+    /// is the pillar failing at the type it was added for.
+    ///
+    /// Forward, a container is never a `string`, a `number` or a `bool`: the
+    /// argument is in `prelude_container`, and it holds for every argument, so
+    /// nothing here reads the type arguments.
+    ///
+    /// Backward, four of the five are decided the same way, and `Nullable<T>`
+    /// is not. A `string` where a `Nullable<string>` is declared is correct
+    /// (`let v: Nullable<int> = 3` is the intended spelling of a value that
+    /// may also arrive as null), so the pairing is the one against `T`, asked
+    /// through this same relation so an alias, a declaration and a nested
+    /// container are all read the way they are read anywhere else. That is how
+    /// `let v: Nullable<int> = "a"` becomes a mismatch while `let v:
+    /// Nullable<int> = 3` stays correct.
+    ///
+    /// Undetermined, and left that way: a container against `void` (excluded
+    /// by `is_concrete_scalar` for the same reason the scalar-versus-record arm
+    /// excludes it), a container against a name whose declaration this does not
+    /// read, and an alias of a container against anything, because
+    /// `alias_target` does not follow a body that is a generic application and
+    /// so `type MaybeInt = Option<int>` never reaches here as an `App`.
+    fn prelude_container_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
+        if let Ty::Prim(p) = expected {
+            if is_concrete_scalar(*p) && self.prelude_container(found).is_some() {
+                return true;
+            }
+        }
+        if let Ty::Prim(p) = found {
+            if is_concrete_scalar(*p) {
+                match self.prelude_container(expected) {
+                    Some(("Nullable", args)) => {
+                        return args
+                            .first()
+                            .is_some_and(|inner| self.assign_incompatible(found, inner));
+                    }
+                    Some(_) => return true,
+                    None => {}
+                }
+            }
+        }
+        false
     }
 
     /// The pairings of an imported declaration the relation decides, on
@@ -9749,7 +9835,7 @@ fn main(t: Tree<number>) -> string {
             errs.iter().any(|e| matches!(
                 e,
                 TypeError::ArgumentTypeMismatch { expected, found, .. }
-                    if expected == "string" && found == "Tree"
+                    if expected == "string" && found == "Tree<number>"
             )),
             "errs: {errs:?}"
         );
@@ -9880,7 +9966,7 @@ fn main() -> number {
             errs.iter().any(|e| matches!(
                 e,
                 TypeError::ArgumentTypeMismatch { expected, found, .. }
-                    if expected == "Tree" && found == "string"
+                    if expected == "Tree<number>" && found == "string"
             )),
             "errs: {errs:?}"
         );
@@ -10191,7 +10277,7 @@ fn main(b: Box<number>) -> number {
 }
 "#;
         let errs = lib_errors_of(src);
-        assert!(has_argument_mismatch(&errs, "number", "Box"), "errs: {errs:?}");
+        assert!(has_argument_mismatch(&errs, "number", "Box<number>"), "errs: {errs:?}");
     }
 
     #[test]
@@ -12779,4 +12865,113 @@ fn f(a: Answer) -> number {
             .collect();
         assert_eq!(typos.len(), 2, "one per annotated spelling, none for the unannotated const: {errs:?}");
     }
+
+    // ----- G216: a prelude container against a primitive -----
+
+    #[test]
+    fn an_option_into_a_string_annotation_is_flagged() {
+        // The ledger program. `Option<int>` emits as a tagged object, so the
+        // `let` annotated `string` is holding something that is not one, and
+        // `definitely_incompatible` had no arm to say so.
+        let errs = ty_errors_of(
+            "module x\nfn main() -> void {\n  let o: Option<int> = Some(3)\n  let x: string = o\n  print(x)\n}\n",
+        );
+        assert!(
+            has_type_mismatch(&errs, "string", "Option<number>"),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_nullable_argument_into_an_int_parameter_is_flagged() {
+        // The case tsc cannot make: the emitted `const v: number | null = 3`
+        // narrows back to `number` before the call is checked there.
+        let errs = ty_errors_of(
+            "module x\nfn takes_int(n: int) -> int {\n  return n\n}\nfn main() -> int {\n  let v: Nullable<int> = 3\n  return takes_int(v)\n}\n",
+        );
+        assert!(
+            has_argument_mismatch(&errs, "number", "Nullable<number>"),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn an_array_into_a_string_return_is_flagged() {
+        let errs = ty_errors_of(
+            "module x\nfn names(xs: Array<string>) -> string {\n  return xs\n}\n",
+        );
+        assert!(
+            has_type_mismatch(&errs, "string", "Array<string>"),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_string_into_an_option_annotation_is_flagged() {
+        // The reverse direction for the four containers that are decided by
+        // the container alone.
+        let errs = ty_errors_of(
+            "module x\nfn main() -> void {\n  let o: Option<int> = \"three\"\n  print(o)\n}\n",
+        );
+        assert!(
+            has_type_mismatch(&errs, "Option<number>", "string"),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_string_into_a_nullable_int_annotation_is_flagged() {
+        // `Nullable<T>` is decided against `T`, not against the container.
+        let errs = ty_errors_of(
+            "module x\nfn main() -> void {\n  let v: Nullable<int> = \"three\"\n  print(v)\n}\n",
+        );
+        assert!(
+            has_type_mismatch(&errs, "Nullable<number>", "string"),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_number_into_a_nullable_int_annotation_is_accepted() {
+        // The whole point of D45: a `Nullable<int>` holds an `int` or null, so
+        // writing the `int` is the intended spelling and must stay silent.
+        let errs = ty_errors_of(
+            "module x\nfn main() -> void {\n  let v: Nullable<int> = 3\n  print(v)\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_schema_application_against_a_string_stays_undetermined() {
+        // `Schema<T>` is an interop surface type whose shape comes from a
+        // library rather than from the emitter, so `prelude_container` leaves
+        // it out and the pairing is not decided here.
+        let errs = ty_errors_of(
+            "module x\nfn f(s: Schema<int>) -> string {\n  return s\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_container_against_a_named_type_stays_undetermined() {
+        // A name whose declaration this rule does not read. `type Id = string`
+        // is a primitive alias, which the local G201 reading excludes too.
+        let errs = ty_errors_of(
+            "module x\ntype Id = string\nfn f(o: Option<int>) -> Id {\n  return o\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn an_alias_of_a_container_stays_undetermined() {
+        // `alias_target` does not follow a body that is a generic application,
+        // so `MaybeInt` never reaches the relation as an `App`. Recorded as a
+        // test because it is the reading the rule declines, not an oversight
+        // waiting to be found again.
+        let errs = ty_errors_of(
+            "module x\ntype MaybeInt = Option<int>\nfn f(o: MaybeInt) -> string {\n  return o\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
 }

@@ -44,7 +44,7 @@ use glyph_typechecker::{
 use crate::analysis::{
     analyze_full, call_argument_spans, enclosing_decl_name, extern_ts_escape,
     global_relations_in, module_outline, outline_of, relations_at, symbol_target_at,
-    Definition, LineIndex, OutlineKind, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
+    Definition, LineIndex, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
@@ -537,7 +537,7 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
         "glyph_variants" => tool_variants(&args, server),
         "glyph_impact" => tool_impact(&args, server),
         "glyph_symbol" => tool_symbol(&args, server),
-        "glyph_symbols" => tool_symbols(&args, &root),
+        "glyph_symbols" => tool_symbols(&args, server),
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -666,7 +666,31 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
         return Ok("null".to_string());
     };
     let offset = LineIndex::new(&text).offset(&text, line, character);
-    let value = match a.definition(offset) {
+    // The identity of what the position names, minted the same way
+    // `glyph_references` mints one, so a definition answer chains straight into
+    // `glyph_impact` instead of being re-derived from the file it landed in.
+    let this_module = module_key(&path, root);
+    let (entity, entity_absent) = match a.symbol_target(offset, &text, &this_module) {
+        Some(SymbolTarget::Global { module, name }) => {
+            (json!(format!("{module}::{name}")), Value::Null)
+        }
+        Some(SymbolTarget::Local) => (
+            Value::Null,
+            json!(
+                "the definition is a file-private binding: a `let`, a parameter, a `match` \
+                 binding or a lambda parameter. It has no `module::name` identity, because \
+                 nothing outside this file can name it."
+            ),
+        ),
+        None => (
+            Value::Null,
+            json!(
+                "the position is not on a name the resolver bound to a module-level symbol, \
+                 so this location carries no identity to key a further query by."
+            ),
+        ),
+    };
+    let mut value = match a.definition(offset) {
         None => Value::Null,
         Some(Definition::Here(start, _)) => {
             let index = LineIndex::new(&text);
@@ -687,6 +711,10 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
             location_value(FileCtx { path: &file, root, text: &ftext }, &index, start, end)
         }
     };
+    if value.is_object() {
+        value["entity"] = entity;
+        value["entity_absent"] = entity_absent;
+    }
     Ok(to_json(&value))
 }
 
@@ -2762,13 +2790,17 @@ fn tool_variants(args: &Value, server: &mut Server) -> Result<String, String> {
     }
     if let Some(proposed) = &proposed {
         match &shape {
-            UnionShape::Variants(existing) if existing.iter().any(|v| v == proposed) => {
+            UnionShape::Variants(existing) if existing.iter().any(|v| v.name == *proposed) => {
                 return Err(format!(
                     "`{proposed}` is already a variant of `{}`, whose variants are {}. \
                      Adding a name the union already has is not the change this answers \
                      about.",
                     render_type_end(decls, &end),
-                    existing.join(", "),
+                    existing
+                        .iter()
+                        .map(|v| v.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "),
                 ));
             }
             UnionShape::Unread(why) => {
@@ -2934,10 +2966,85 @@ fn is_variant_name(s: &str) -> bool {
         && chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
+/// One variant of a tagged union, as an answer reports it.
+struct VariantShape {
+    name: String,
+    /// The payload the variant carries, lowered and rendered by the compiler.
+    /// `None` for a variant declared without one, and for one whose payload
+    /// this answer could not lower, which `payload_unread` tells apart.
+    payload: Option<String>,
+    /// Why a declared payload is not reported. `None` when there is nothing
+    /// to report or nothing went unread.
+    payload_unread: Option<String>,
+    /// The syntax that constructs this variant, which is the string
+    /// `display_ty` prints for it inside its own union. `None` only when the
+    /// payload went unread, since the construction includes it.
+    construct: Option<String>,
+}
+
+impl VariantShape {
+    /// Read one variant through `lowerer`, or without one when the declaring
+    /// module did not resolve.
+    fn read(v: &glyph_ast::UnionVariant, lowerer: Option<&Lowerer<'_>>, why_unread: &str) -> Self {
+        let name = v.name.to_string();
+        match (&v.payload, lowerer) {
+            (None, _) => VariantShape {
+                construct: Some(name.clone()),
+                name,
+                payload: None,
+                payload_unread: None,
+            },
+            (Some(payload), Some(lowerer)) => {
+                let ty = crate::analysis::variant_ty(&v.name, Some(payload), lowerer);
+                let rendered = match &ty {
+                    Ty::Union { variants } => variants
+                        .first()
+                        .and_then(|v| v.payload.as_ref())
+                        .map(display_ty),
+                    _ => None,
+                };
+                VariantShape {
+                    name,
+                    payload: rendered,
+                    payload_unread: None,
+                    construct: Some(display_ty(&ty)),
+                }
+            }
+            // The declaration has a payload and this answer cannot lower it.
+            // Naming the variant without it would spell "no payload" and "not
+            // read" the same way, and the construction syntax is exactly the
+            // half that is missing.
+            (Some(_), None) => VariantShape {
+                name,
+                payload: None,
+                payload_unread: Some(why_unread.to_string()),
+                construct: None,
+            },
+        }
+    }
+
+    fn value(&self) -> Value {
+        json!({
+            "name": self.name,
+            "payload": self.payload,
+            "payload_absent": match (&self.payload, &self.payload_unread) {
+                (Some(_), _) => Value::Null,
+                (None, Some(why)) => json!(why),
+                (None, None) => json!(format!("`{}` is declared with no payload.", self.name)),
+            },
+            "construct": self.construct,
+            "construct_absent": match &self.construct {
+                Some(_) => Value::Null,
+                None => json!(self.payload_unread.clone().unwrap_or_default()),
+            },
+        })
+    }
+}
+
 /// What the declaration behind a type end turns out to be.
 enum UnionShape {
     /// A tagged union, and these are its variants in declaration order.
-    Variants(Vec<String>),
+    Variants(Vec<VariantShape>),
     /// A declaration that is not a tagged union, so the match-coverage
     /// relation does not reach it and the question does not apply. The string
     /// names what it is instead.
@@ -3000,7 +3107,26 @@ fn union_shape(
     };
     match &decl.body {
         glyph_ast::TypeExpr::Union { variants, .. } => {
-            UnionShape::Variants(variants.iter().map(|v| v.name.to_string()).collect())
+            // The payload is lowered by the same `Lowerer` the `decl_ty` query
+            // is built on, so what the answer prints for a variant is the
+            // compiler's rendering of the declaration rather than a second
+            // reading of the source. The names survive a module whose symbols
+            // do not collect; the payloads say so rather than going quiet.
+            let resolved = glyph_db::resolve(db, file.file);
+            let imports = SalsaDeclTy::new(db, file.file);
+            let lowerer = resolved
+                .resolved()
+                .map(|rm| Lowerer::with_imports(rm, db.prelude(), &imports));
+            let why = format!(
+                "module `{module}` does not resolve, so the payload of this variant was \
+                 never lowered and the syntax that constructs it is not known here"
+            );
+            UnionShape::Variants(
+                variants
+                    .iter()
+                    .map(|v| VariantShape::read(v, lowerer.as_ref(), &why))
+                    .collect(),
+            )
         }
         glyph_ast::TypeExpr::Record { .. } => UnionShape::NotAUnion("a record"),
         glyph_ast::TypeExpr::Fn { .. } => UnionShape::NotAUnion("a function type"),
@@ -3039,7 +3165,9 @@ fn type_block(
     out["origin_absent"] = absent;
     out["origin_detail"] = json!(origin.map(Origin::detail));
     match shape {
-        UnionShape::Variants(names) => out["variants"] = json!(names),
+        UnionShape::Variants(variants) => {
+            out["variants"] = Value::Array(variants.iter().map(VariantShape::value).collect())
+        }
         UnionShape::Unread(why) => {
             out["variants"] = Value::Null;
             out["variants_unavailable"] = json!(why);
@@ -4532,7 +4660,7 @@ fn union_variants_of(project: &Project, module: &str, name: &str) -> Result<Vec<
         ));
     };
     match union_shape(db, decls, &project.files, &CoverageTypeRef::Decl(key)) {
-        UnionShape::Variants(names) => Ok(names),
+        UnionShape::Variants(variants) => Ok(variants.into_iter().map(|v| v.name).collect()),
         UnionShape::NotAUnion(what) => Err(format!(
             "`{module}::{name}` is {what}, not a tagged union, so no match site is ever \
              filed over it and there is no variant set to change. That is a different \
@@ -7077,56 +7205,160 @@ fn tool_symbol(args: &Value, server: &mut Server) -> Result<String, String> {
     }
 }
 
-fn tool_symbols(args: &Value, root: &Path) -> Result<String, String> {
+fn tool_symbols(args: &Value, server: &mut Server) -> Result<String, String> {
     let query = args
         .get("query")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_lowercase();
+    let root = server.root.clone();
+
+    // Every project under the server root, each answered from its own
+    // database. Module paths are counted per project (D41), so an entity
+    // identity is only meaningful inside one, and merging two projects into a
+    // single walk would report two declarations under one `module::name`.
+    let mut files = Vec::new();
+    collect_glyph_files(&root, &mut files);
+    let roots: BTreeSet<PathBuf> = files
+        .iter()
+        .map(|f| crate::module_root_for(f, &root))
+        .collect();
+
     let mut out: Vec<Value> = Vec::new();
-    for (fpath, ftext) in workspace_files(root) {
-        let index = LineIndex::new(&ftext);
-        let file = FileCtx { path: &fpath, root, text: &ftext };
-        for top in outline_of(&ftext) {
-            push_symbol(&mut out, &query, file, &index, &top, None);
-            for child in &top.children {
-                push_symbol(&mut out, &query, file, &index, child, Some(top.name.as_str()));
-            }
+    for project_root in roots {
+        let project = server.project(&project_root, &project_root);
+        for (fpath, entry) in project.searched() {
+            project_file_symbols(project, &root, fpath, entry, &query, &mut out);
         }
     }
     Ok(to_json(&out))
 }
 
+/// Every top-level declaration of one file, and every variant a tagged union
+/// in it hoists, as symbol entries.
+fn project_file_symbols(
+    project: &Project,
+    root: &Path,
+    fpath: &Path,
+    entry: &ProjectFile,
+    query: &str,
+    out: &mut Vec<Value>,
+) {
+    let db = &project.db;
+    let parsed = glyph_db::parse_module(db, entry.file);
+    let Some(module_ast) = parsed.module() else {
+        return;
+    };
+    let text = entry.file.source_text(db);
+    let index = LineIndex::new(text);
+    let file = FileCtx { path: fpath, root, text };
+    let module = entry.module_path.as_str();
+
+    for decl in &module_ast.items {
+        let Some(name) = decl.name() else { continue };
+        let what = DeclaredAs::Decl(decl);
+        push_symbol(
+            out,
+            query,
+            file,
+            &index,
+            SymbolEntry {
+                project,
+                module,
+                name: name.as_ref(),
+                what: &what,
+                container: None,
+            },
+        );
+        let glyph_ast::Decl::Type(t) = decl else {
+            continue;
+        };
+        let glyph_ast::TypeExpr::Union { variants, .. } = &t.body else {
+            continue;
+        };
+        for variant in variants {
+            let what = DeclaredAs::Variant { owner: t, variant };
+            push_symbol(
+                out,
+                query,
+                file,
+                &index,
+                SymbolEntry {
+                    project,
+                    module,
+                    name: variant.name.as_ref(),
+                    what: &what,
+                    container: Some(name.as_ref()),
+                },
+            );
+        }
+    }
+}
+
+/// One candidate entry for the symbol list.
+struct SymbolEntry<'a> {
+    project: &'a Project,
+    module: &'a str,
+    name: &'a str,
+    what: &'a DeclaredAs<'a>,
+    container: Option<&'a str>,
+}
+
+/// Append one symbol to the list, when the query matches its name.
+///
+/// The entry carries what a caller needs to act without a second call: the
+/// `module::name` identity every other tool is keyed by, whether the symbol is
+/// exported, the kind in `glyph_symbol`'s vocabulary (so an `interface` is not
+/// reported as a `type`), and the symbol's own type on one line. `glyph_symbol`
+/// on the identity is the rest of the description.
 fn push_symbol(
     out: &mut Vec<Value>,
     query: &str,
     file: FileCtx<'_>,
     index: &LineIndex,
-    sym: &OutlineSymbol,
-    container: Option<&str>,
+    entry: SymbolEntry<'_>,
 ) {
-    if !query.is_empty() && !sym.name.to_lowercase().contains(query) {
+    if !query.is_empty() && !entry.name.to_lowercase().contains(query) {
         return;
     }
+    let span = entry.what.span();
+    let ty = declared_ty(entry.project, file_of(entry.project, file.path), entry.what, entry.name);
     let mut value = json!({
-        "name": sym.name,
-        "kind": outline_kind_str(sym.kind),
-        "location": location_value(file, index, sym.span.0, sym.span.1),
+        "name": entry.name,
+        "entity": format!("{}::{}", entry.module, entry.name),
+        "module": entry.module,
+        "kind": symbol_kind_str(entry.what),
+        "pub": entry.what.is_public(),
+        "location": location_value(file, index, span.start, span.end),
     });
-    if let Some(c) = container {
-        value["container"] = json!(c);
+    let mut map = value.as_object_mut().expect("object literal").clone();
+    fact(
+        &mut map,
+        "signature",
+        ty.as_ref()
+            .filter(|t| !matches!(t, Ty::Unknown))
+            .map(|t| json!(display_ty(t))),
+        format!(
+            "the compiler lowered no type for `{}::{}`, so there is no signature to print. \
+             `glyph_symbol` on it says why.",
+            entry.module, entry.name
+        ),
+    );
+    if let Some(c) = entry.container {
+        map.insert("container".to_string(), json!(c));
     }
+    value = Value::Object(map);
     out.push(value);
 }
 
-/// Every `.glyph` file under `root` as `(path, text)`, skipping unreadable ones.
-fn workspace_files(root: &Path) -> Vec<(PathBuf, String)> {
-    let mut files = Vec::new();
-    collect_glyph_files(root, &mut files);
-    files
+/// The database handle for `path` inside `project`.
+fn file_of(project: &Project, path: &Path) -> SourceFile {
+    project
+        .searched()
         .into_iter()
-        .filter_map(|p| std::fs::read_to_string(&p).ok().map(|t| (p, t)))
-        .collect()
+        .find(|(p, _)| *p == path)
+        .map(|(_, f)| f.file)
+        .expect("the file being listed is a member of the project being listed")
 }
 
 // ----- argument + result helpers -----
@@ -7339,15 +7571,6 @@ fn display_path(root: &Path, file: &Path) -> String {
                 .join("/")
         })
         .unwrap_or_else(|| file.to_string_lossy().into_owned())
-}
-
-fn outline_kind_str(kind: OutlineKind) -> &'static str {
-    match kind {
-        OutlineKind::Function => "function",
-        OutlineKind::Type => "type",
-        OutlineKind::Constant => "constant",
-        OutlineKind::Variant => "variant",
-    }
 }
 
 fn to_json(value: &impl serde::Serialize) -> String {

@@ -665,15 +665,19 @@ fn render(ty: Ty) -> Option<String> {
 /// `lower_decl_signature`, the same query `glyph_db::decl_ty` runs. A `type`
 /// is its body. An `interface` has no lowered form of its own, so its members
 /// are assembled into the record shape a value satisfying it has, each member
-/// lowered by the same `Lowerer`. An unannotated `const` has no written type
-/// at all, and its answer is the checker's type for its initializer.
-pub fn declaration_ty(decl: &Decl, lowerer: &Lowerer<'_>, types: &TypeMap) -> Option<Ty> {
+/// lowered by the same `Lowerer`.
+///
+/// An unannotated `const` answers `None`, and the initializer beside it is
+/// deliberately not read. The checker lowers such a declaration to
+/// `Ty::Unknown` on purpose rather than inferring one from the value (G39), so
+/// no check reads a declared type for it. Handing back the initializer's type
+/// would report a type the checker does not hold the declaration to, which is
+/// the one thing this surface must never do: a caller would read it as the
+/// type its uses are checked against, and nothing checks them.
+pub fn declaration_ty(decl: &Decl, lowerer: &Lowerer<'_>, _types: &TypeMap) -> Option<Ty> {
     match decl {
         Decl::Fn(_) | Decl::Component(_) => Some(lowerer.lower_decl_signature(decl)),
-        Decl::Const(c) => match &c.ty {
-            Some(te) => Some(lowerer.lower(te)),
-            None => exact_ty(types, c.value.span()),
-        },
+        Decl::Const(c) => c.ty.as_ref().map(|te| lowerer.lower(te)),
         Decl::Type(t) => Some(lowerer.lower(&t.body)),
         Decl::Interface(i) => Some(Ty::Record {
             fields: i.members.iter().map(|m| interface_field(m, lowerer)).collect(),
@@ -2226,6 +2230,19 @@ mod tests {
     /// Hover reads the compiler's lowering, never the source text, so a
     /// position that resolves to nothing stays `null` rather than echoing the
     /// word under the cursor.
+    /// The checker lowers an unannotated `const`'s declaration to `Unknown`
+    /// on purpose. Hovering it as the initializer's type would say the binding
+    /// is a `string` and that its uses are checked against one; neither is so.
+    #[test]
+    fn hover_declines_an_unannotated_const() {
+        let text = "module k\npub const LIMIT: int = 10\npub const NAMED = \"x\"\n";
+        assert_eq!(
+            hover_at_text(text, "LIMIT", 0),
+            Some("number".to_string())
+        );
+        assert_eq!(hover_at_text(text, "NAMED", 0), None);
+    }
+
     #[test]
     fn hover_stays_null_where_nothing_resolves() {
         let text = "module x\nfn f() -> number {\n  return 1\n}\n";

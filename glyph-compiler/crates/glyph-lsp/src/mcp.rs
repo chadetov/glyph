@@ -6723,9 +6723,12 @@ fn declared_ty(project: &Project, file: SourceFile, what: &DeclaredAs<'_>, name:
                 ty => Some(ty.clone()),
             }
         }
-        DeclaredAs::Decl(decl @ glyph_ast::Decl::Const(_)) => {
+        // An unannotated `const` lowers to `Ty::Unknown` on purpose (G39), and
+        // that is the answer: `None` here becomes a stated absence rather than
+        // the initializer's type dressed as a declared one.
+        DeclaredAs::Decl(glyph_ast::Decl::Const(_)) => {
             match glyph_db::decl_ty(db, file, ident).ty() {
-                Ty::Unknown => body_lowered(project, file, decl),
+                Ty::Unknown => None,
                 ty => Some(ty.clone()),
             }
         }
@@ -7015,8 +7018,11 @@ fn describe_symbol(
             .map(|t| json!(display_ty(t))),
         format!(
             "the compiler lowered no type for `{module}::{name}`. A declaration whose body \
-             is an `extern_ts` escape or a `typeof` has none in Glyph's own type system, and \
-             an unannotated `const` has none written."
+             is an `extern_ts` escape or a `typeof` has none in Glyph's own type system: what \
+             is inside is checked by `tsc`. An unannotated `const` has none either, and that \
+             is a decision rather than a gap: the checker declines to infer one from the \
+             initializer, so no check reads a declared type for it. Write the annotation to \
+             get one."
         ),
     );
     fact(
@@ -7263,6 +7269,7 @@ fn project_file_symbols(
             &index,
             SymbolEntry {
                 project,
+                file: entry.file,
                 module,
                 name: name.as_ref(),
                 what: &what,
@@ -7284,6 +7291,7 @@ fn project_file_symbols(
                 &index,
                 SymbolEntry {
                     project,
+                    file: entry.file,
                     module,
                     name: variant.name.as_ref(),
                     what: &what,
@@ -7297,6 +7305,7 @@ fn project_file_symbols(
 /// One candidate entry for the symbol list.
 struct SymbolEntry<'a> {
     project: &'a Project,
+    file: SourceFile,
     module: &'a str,
     name: &'a str,
     what: &'a DeclaredAs<'a>,
@@ -7321,7 +7330,7 @@ fn push_symbol(
         return;
     }
     let span = entry.what.span();
-    let ty = declared_ty(entry.project, file_of(entry.project, file.path), entry.what, entry.name);
+    let ty = declared_ty(entry.project, entry.file, entry.what, entry.name);
     let mut value = json!({
         "name": entry.name,
         "entity": format!("{}::{}", entry.module, entry.name),
@@ -7348,16 +7357,6 @@ fn push_symbol(
     }
     value = Value::Object(map);
     out.push(value);
-}
-
-/// The database handle for `path` inside `project`.
-fn file_of(project: &Project, path: &Path) -> SourceFile {
-    project
-        .searched()
-        .into_iter()
-        .find(|(p, _)| *p == path)
-        .map(|(_, f)| f.file)
-        .expect("the file being listed is a member of the project being listed")
 }
 
 // ----- argument + result helpers -----
@@ -12818,6 +12817,66 @@ pub fn f() -> number {
         );
         assert!(is_error, "{text}");
         assert!(text.contains("not both"), "{text}");
+    }
+
+    /// An unannotated `const` lowers to `Ty::Unknown` on purpose: the checker
+    /// declines to infer one from the initializer, so nothing reads a declared
+    /// type for it. Reporting the initializer's type would say the uses are
+    /// checked against a `string`, and they are not.
+    #[test]
+    fn symbol_declines_an_unannotated_consts_type() {
+        let root = tmp_root();
+        write(
+            &root,
+            "k.glyph",
+            "module k\npub const LIMIT: int = 10\npub const NAMED = \"x\"\n",
+        );
+        let annotated = symbol(&root, "k::LIMIT");
+        assert_paired(&annotated);
+        assert_eq!(annotated["kind"], "const", "{annotated}");
+        assert_eq!(annotated["type"], "number", "{annotated}");
+
+        let inferred = symbol(&root, "k::NAMED");
+        assert_paired(&inferred);
+        assert!(inferred["type"].is_null(), "{inferred}");
+        assert!(
+            inferred["type_absent"]
+                .as_str()
+                .unwrap()
+                .contains("declines to infer"),
+            "{inferred}"
+        );
+    }
+
+    /// A `type` whose body is an `extern_ts` escape is keyed and addressable
+    /// and has no shape in Glyph's own type system. Both are reported.
+    #[test]
+    fn symbol_describes_an_extern_ts_body_as_shapeless() {
+        let root = tmp_root();
+        write(
+            &root,
+            "k.glyph",
+            "module k\npub type Raw = extern_ts(\"Record<string, unknown>\")\n",
+        );
+        let value = symbol(&root, "k::Raw");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "extern-ts", "{value}");
+        assert!(value["type"].is_null(), "{value}");
+        assert!(value["exhaustive_match"].is_null(), "{value}");
+    }
+
+    #[test]
+    fn symbol_describes_a_string_literal_union_by_its_values() {
+        let root = tmp_root();
+        write(&root, "k.glyph", "module k\npub type Tier = \"free\" | \"pro\"\n");
+        let value = symbol(&root, "k::Tier");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "string-literal-union", "{value}");
+        assert_eq!(value["literals"], json!(["free", "pro"]), "{value}");
+        // Its members are values rather than named constructors, so they are
+        // not variants, and a `match` over it is still exhaustiveness-checked.
+        assert!(value["variants"].is_null(), "{value}");
+        assert_eq!(value["exhaustive_match"], true, "{value}");
     }
 
     #[test]

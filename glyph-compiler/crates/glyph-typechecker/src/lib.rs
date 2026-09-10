@@ -36,8 +36,8 @@ pub mod type_map;
 
 pub use assign::{
     alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
-    assign_types_with_resolver, direct_type_decl, imported_decl_chain_end, prelude_app,
-    resolve_alias_chain, split_type_app,
+    assign_types_with_resolver, assignability, direct_type_decl, imported_decl_chain_end,
+    prelude_app, prelude_container, resolve_alias_chain, split_type_app, Assignability,
     CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention, CoverageSite,
     CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,
     FieldSite, FileFieldUses, FileMatchCoverage, LocalDeclTy,

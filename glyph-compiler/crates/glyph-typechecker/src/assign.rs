@@ -338,6 +338,91 @@ pub fn assign_types_with_relations(
     (tm, errors, coverage, field_uses)
 }
 
+/// What the checker's assignability relation says about one pairing, three
+/// ways where `assign_incompatible` says two.
+///
+/// The relation refuses only what it can prove wrong, so its `false` means
+/// "not refused" and not "accepted". A surface that reported the two as one
+/// word would be answering a question the compiler never asked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Assignability {
+    /// A rule read this pairing and refused it. This is exactly what the
+    /// checker reports at the site: E0204 at a `let`, a `const` or a `return`,
+    /// E0211 at a call argument.
+    Incompatible,
+    /// A rule read this pairing and accepted it. `rule` says which rule, in
+    /// the words the relation's own documentation uses.
+    Compatible { rule: &'static str },
+    /// No rule covers the pairing. Nothing in Glyph reports a mismatch here;
+    /// only `tsc` reading the emitted TypeScript on a full `glyph build`
+    /// would.
+    NoRule,
+}
+
+/// Ask the checker's own assignability relation whether a value of type
+/// `found` can go where `expected` is declared, in the scope of `module`.
+///
+/// **This is `assign_incompatible`, not `definitely_incompatible`.** The free
+/// function underneath is only the part of the relation decidable from two
+/// `Ty` values with no declaration in hand, and three of the rules that matter
+/// most are decided above it, by reading a declaration it cannot reach: a
+/// declared union or record against a primitive (G201), a prelude container
+/// against a primitive (G216), and an imported declaration against a
+/// primitive, a local declaration or another imported one (G215, G226). A
+/// surface built on `definitely_incompatible` would report "no rule" for every
+/// one of those and be wrong in the direction that matters.
+///
+/// **What the `Compatible` half is, and is not.** `Incompatible` is the
+/// relation's own answer, unchanged. `Compatible` is not its complement: it is
+/// claimed only where a *total* rule covers the pairing, one that refuses
+/// whenever the two sides differ in the way it reads, so a refusal that did
+/// not happen is a positive acceptance rather than a rule that never looked.
+/// Those rules are enumerated in `Assigner::accepting_rule` and nowhere else,
+/// and every pairing outside them is `NoRule` however permissive the relation
+/// was. A function type against a function type is the shape of the
+/// distinction: the relation compares the returns and skips the parameters, so
+/// its silence there is not an acceptance and this answers `NoRule`.
+///
+/// It is not a full assignability decision procedure, and it is not `tsc`. A
+/// `NoRule` answer says Glyph has nothing to say, not that the program is
+/// correct.
+pub fn assignability(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    decl_ty_resolver: &dyn DeclTyResolver,
+    found: &Ty,
+    expected: &Ty,
+) -> Assignability {
+    // The relation reads the module, the resolver and the lowerer; the four
+    // side channels below are written by the walk, and no walk runs here.
+    let mut tm = TypeMap::new();
+    let mut errors: Vec<TypeError> = Vec::new();
+    let mut coverage = FileMatchCoverage::default();
+    let mut field_uses = FileFieldUses::default();
+    let assigner = Assigner {
+        module,
+        lowerer: Lowerer::with_imports(resolved, prelude, decl_ty_resolver),
+        resolved,
+        tm: &mut tm,
+        errors: &mut errors,
+        coverage: &mut coverage,
+        field_uses: &mut field_uses,
+        assign_target: None,
+        member_object: None,
+        decl_ty_resolver,
+        return_stack: Vec::new(),
+        local_tys: HashMap::new(),
+    };
+    if assigner.assign_incompatible(found, expected) {
+        return Assignability::Incompatible;
+    }
+    match assigner.accepting_rule(found, expected) {
+        Some(rule) => Assignability::Compatible { rule },
+        None => Assignability::NoRule,
+    }
+}
+
 // ============================================================================
 // Match coverage: the side channel the exhaustiveness dispatch fills
 // ============================================================================
@@ -4404,12 +4489,7 @@ impl Assigner<'_> {
     /// body may be its argument, so deciding it needs the declaration read and
     /// the parameter substituted, which is a different rule.
     fn prelude_container<'a>(&self, ty: &'a Ty) -> Option<(&'static str, &'a [Ty])> {
-        for name in ["Option", "Result", "Array", "Record", "Nullable"] {
-            if let Some(args) = self.prelude_app(ty, name) {
-                return Some((name, args));
-            }
-        }
-        None
+        prelude_container(self.lowerer.prelude, ty)
     }
 
     /// True if `ty` is an application of the prelude `Array` type
@@ -5527,6 +5607,138 @@ impl Assigner<'_> {
         definitely_incompatible(&found, &expected)
     }
 
+    /// The rule that positively accepts `found` where `expected` is declared,
+    /// or `None` when no rule covers the pairing.
+    ///
+    /// The other half of [`assignability`], and the half `assign_incompatible`
+    /// cannot express. Read its doc first: a rule is listed here only when it
+    /// is **total** over the pairing, meaning it refuses whenever the two
+    /// sides differ in the way it reads, so its silence is an acceptance. A
+    /// rule that reads one side and stays permissive about the other is not
+    /// total and is deliberately absent, whatever the relation returned.
+    ///
+    /// The seven that are total, each the accepting face of an arm of
+    /// `definitely_incompatible` or of `imported_incompatible`:
+    ///
+    /// - `unknown` as the declared type accepts any value;
+    /// - `never` as the value's type fits any declaration (D43);
+    /// - two primitives, when they are the same primitive;
+    /// - two declared names, when both resolve to the same declaration (the
+    ///   nominal rule, D46's second names followed first);
+    /// - two imported declarations, when both chains of second names end at
+    ///   the same `(module, name)` (G226);
+    /// - two generic applications, when the arity matches and the base and
+    ///   every argument are themselves accepted here;
+    /// - two structural records, when every required field of the declared
+    ///   type is present in the value's type and every shared field is itself
+    ///   accepted here. Width subtyping is the rule, so an extra field in the
+    ///   value's type is fine.
+    ///
+    /// What is deliberately not here. Two function types: the relation
+    /// compares the returns and the `async` flag and says nothing at all about
+    /// the parameters, so a silent pass proves nothing about a parameter
+    /// mismatch. An interface as the declared type: the member-shape branch
+    /// returns "not refused" for a value whose field set it could not read at
+    /// all, which is the exact shape of a rule that did not look. A pairing
+    /// with `Ty::Unknown` or an open `Ty::Param` on either side, which
+    /// `ty_is_decidable` declines. And a container against a name, or an
+    /// application against a bare name, which no arm reads in either
+    /// direction.
+    fn accepting_rule(&self, found: &Ty, expected: &Ty) -> Option<&'static str> {
+        if matches!(expected, Ty::UnknownTop) {
+            return Some(
+                "`unknown` is the top type, and the relation accepts a value of any type \
+                 where it is declared",
+            );
+        }
+        if matches!(found, Ty::Never) {
+            return Some(
+                "`never` is the bottom type (D43): no value has it, so an expression of it \
+                 stands wherever a value is wanted",
+            );
+        }
+        if matches!(expected, Ty::Never) {
+            return None;
+        }
+        // An interface is matched by member shape, and that branch answers
+        // "not refused" for a value it could not read a field set from, so no
+        // silence under it is an acceptance.
+        if self.interface_member_fields(expected).is_some() {
+            return None;
+        }
+        // Mirrors `assign_incompatible`'s own application arm, which runs
+        // before canonicalization and recurses through the whole relation.
+        if let (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) = (found, expected) {
+            if fa.len() != ea.len() {
+                return None;
+            }
+            self.accepting_rule(fb, eb)?;
+            for (f, e) in fa.iter().zip(ea.iter()) {
+                self.accepting_rule(f, e)?;
+            }
+            return Some(
+                "two generic applications are compared by arity, by base and by argument, \
+                 and every one of those pairings is itself accepted",
+            );
+        }
+        let found = self.canonicalize_aliases(found);
+        let expected = self.canonicalize_aliases(expected);
+        match (&found, &expected) {
+            (Ty::Prim(a), Ty::Prim(b)) if a == b => Some(
+                "two primitives are compared, and these are the same primitive",
+            ),
+            // G216's backward direction. A `string`, a `number` or a `bool`
+            // where a prelude container is declared is refused outright for
+            // four of the five, and for `Nullable<T>` the whole pairing is
+            // asked again against `T`, so the rule is total exactly as far as
+            // that inner pairing is.
+            (Ty::Prim(p), _) if is_concrete_scalar(*p) => {
+                let ("Nullable", args) = self.prelude_container(&expected)? else {
+                    return None;
+                };
+                self.accepting_rule(&found, args.first()?)?;
+                Some(
+                    "a `string`, a `number` or a `bool` where a `Nullable<T>` is declared                      is compared against `T` (G216), and that pairing is itself accepted",
+                )
+            }
+            (Ty::Named { path: a, .. }, Ty::Named { path: b, .. })
+                if !a.is_empty() && a == b =>
+            {
+                Some(
+                    "two declared types are compared by the name each resolves to (Q15, \
+                     nominal, with a chain of second names followed first under D46), and \
+                     both reach the same declaration",
+                )
+            }
+            (Ty::Imported { .. }, Ty::Imported { .. }) => {
+                let f = self.imported_union_or_record(&found)?;
+                let e = self.imported_union_or_record(&expected)?;
+                (f.identity() == e.identity()).then_some(
+                    "two imported declarations are compared by the module and name each \
+                     chain of second names ends at (G226), and both chains end at the same \
+                     declaration",
+                )
+            }
+            (Ty::Record { fields: ff }, Ty::Record { fields: ef }) => {
+                for e in ef.iter() {
+                    match ff.iter().find(|f| f.name == e.name) {
+                        Some(f) => {
+                            self.accepting_rule(&f.ty, &e.ty)?;
+                        }
+                        None if e.optional => {}
+                        None => return None,
+                    }
+                }
+                Some(
+                    "two structural records are compared field by field with width \
+                     subtyping, and every required field of the declared type is present \
+                     with an accepted type",
+                )
+            }
+            _ => None,
+        }
+    }
+
     /// The pairings of a prelude container against a primitive the relation
     /// decides, on canonical types (G216).
     ///
@@ -6537,6 +6749,21 @@ pub fn prelude_app<'a>(prelude: &Prelude, ty: &'a Ty, name: &str) -> Option<&'a 
     (prelude.lookup(name) == Some(SymbolId(symbol.0))).then_some(args.as_slice())
 }
 
+/// The prelude container `ty` applies, with its type arguments, or `None`.
+///
+/// The five names are the closed list `prelude_container_incompatible` is
+/// stated against, and the list lives here so a surface that has to name the
+/// same set (the impact tool's `change_signature_type` cells) reads it rather
+/// than writing a sixth copy that drifts.
+pub fn prelude_container<'a>(prelude: &Prelude, ty: &'a Ty) -> Option<(&'static str, &'a [Ty])> {
+    for name in ["Option", "Result", "Array", "Record", "Nullable"] {
+        if let Some(args) = prelude_app(prelude, ty, name) {
+            return Some((name, args));
+        }
+    }
+    None
+}
+
 pub fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
     match ty {
         Ty::App { base, args } => (base.as_ref(), args.as_slice()),
@@ -7069,6 +7296,105 @@ mod tests {
             _ => panic!("first stmt is not a Let"),
         };
         l.value.span()
+    }
+
+    /// Ask [`assignability`] about two type spellings read in the scope of
+    /// `src`, by declaring each as a second name and lowering its body.
+    fn assignability_of(src: &str, from: &str, to: &str) -> Assignability {
+        let full = format!("{src}\ntype ProbeFrom = {from}\ntype ProbeTo = {to}\n");
+        let m = glyph_parser::parse(&full).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let lowerer = Lowerer::new(&resolved, &prelude);
+        let resolver = LocalDeclTy::new(&m, &lowerer);
+        let body = |name: &str| {
+            m.items
+                .iter()
+                .find_map(|d| match d {
+                    Decl::Type(t) if t.name.as_ref() == name => Some(&t.body),
+                    _ => None,
+                })
+                .expect("probe declaration")
+        };
+        let from_ty = lowerer.lower(body("ProbeFrom"));
+        let to_ty = lowerer.lower(body("ProbeTo"));
+        assignability(&m, &resolved, &prelude, &resolver, &from_ty, &to_ty)
+    }
+
+    const UNION: &str = "module m\ntype Order = Paid | Shipped\n";
+
+    /// G216's pairing, asked as a question about two types rather than about a
+    /// program: the container is refused where the scalar is declared, and the
+    /// scalar is accepted where the container's argument accepts it.
+    #[test]
+    fn assignability_decides_the_nullable_pairing_both_ways() {
+        assert_eq!(
+            assignability_of("module m\n", "Nullable<int>", "int"),
+            Assignability::Incompatible
+        );
+        assert_eq!(
+            assignability_of("module m\n", "string", "Nullable<int>"),
+            Assignability::Incompatible
+        );
+        // `Nullable<int>` accepts an `int`, and the acceptance is the inner
+        // pairing's, not the absence of a refusal.
+        assert!(matches!(
+            assignability_of("module m\n", "int", "Nullable<int>"),
+            Assignability::Compatible { .. }
+        ));
+        // Nothing is claimed one level in where the inner pairing is not
+        // decided either. `type T = { }` is the body the relation compares a
+        // primitive against by nothing, because tsc lets a `string` satisfy
+        // the empty object type.
+        assert!(matches!(
+            assignability_of("module m\ntype Empty = { }\n", "string", "Nullable<Empty>"),
+            Assignability::NoRule
+        ));
+    }
+
+    /// The rule that outranks the rest: a pairing no rule reads comes back as
+    /// no rule, never as an acceptance. Two function types are the shape of
+    /// it, because the relation compares the returns and skips the parameters.
+    #[test]
+    fn assignability_reports_no_rule_where_the_relation_only_stayed_silent() {
+        assert!(matches!(
+            assignability_of("module m\n", "fn(string) -> bool", "fn(number) -> bool"),
+            Assignability::NoRule
+        ));
+        assert!(matches!(
+            assignability_of(UNION, "Order", "Array<string>"),
+            Assignability::NoRule
+        ));
+    }
+
+    /// The `Compatible` half is claimed only from a total rule, and each of
+    /// the ones that are total is exercised here.
+    #[test]
+    fn assignability_accepts_only_from_a_total_rule() {
+        for (from, to) in [
+            ("string", "string"),
+            ("int", "number"),
+            ("Order", "Order"),
+            ("Array<string>", "Array<string>"),
+            ("{ id: string, extra: bool }", "{ id: string }"),
+            ("never", "string"),
+            ("string", "unknown"),
+        ] {
+            assert!(
+                matches!(
+                    assignability_of(UNION, from, to),
+                    Assignability::Compatible { .. }
+                ),
+                "`{from}` into `{to}` was not accepted"
+            );
+        }
+        // A record missing a required field is refused, not accepted.
+        assert_eq!(
+            assignability_of(UNION, "{ id: string }", "{ id: string, n: number }"),
+            Assignability::Incompatible
+        );
     }
 
     fn errors_of(src: &str) -> Vec<TypeError> {

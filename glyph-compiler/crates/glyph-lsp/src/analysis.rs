@@ -581,22 +581,18 @@ pub fn declaration_hover_at(
 ) -> Option<String> {
     let lowerer = Lowerer::new(resolved, prelude);
 
-    // 1. A tagged-union variant's name, at its declaration. Before the
-    //    annotation reading below, because a variant name sits inside the
-    //    union body's own span and the narrowest annotation covering it is
-    //    that whole union. The answer is the variant as it is written to
-    //    construct one, which is the string `display_ty` already prints for
-    //    that variant inside its union.
-    for decl in &module.items {
-        let Decl::Type(t) = decl else { continue };
-        let TypeExpr::Union { variants, .. } = &t.body else {
-            continue;
-        };
-        for v in variants {
-            if covers(whole_word_span(text, v.span.start, v.span.end, v.name.as_ref()), offset) {
-                return render(variant_ty(&v.name, v.payload.as_ref(), &lowerer));
-            }
-        }
+    // 1. A name written inside a type expression that is not itself a type
+    //    expression: a record field's name, or a tagged union variant's name.
+    //    Before the annotation reading below, and the reason the two are read
+    //    apart from it. Neither name carries a `TypeExpr` of its own, so the
+    //    narrowest annotation covering a field's name is the whole record and
+    //    the narrowest covering a variant's name is the whole union, and
+    //    answering with either reports a shape that is not the type at the
+    //    position. A field answers its own declared type; a variant answers
+    //    the variant as it is written to construct one, which is the string
+    //    `display_ty` already prints for it inside its union.
+    if let Some(ty) = name_inside_type_expr_at(module, text, offset, &lowerer) {
+        return render(ty);
     }
 
     // 2. Inside a written type annotation, anywhere one can be written.
@@ -812,6 +808,99 @@ fn exact_ty(types: &TypeMap, span: Span) -> Option<Ty> {
 
 /// The innermost written type annotation covering `offset`, anywhere in the
 /// module one can be written.
+/// The type at `offset` when `offset` is on a name written inside a type
+/// expression rather than on a type expression itself.
+///
+/// Two such names exist in Glyph's syntax and neither has a `TypeExpr` of its
+/// own: a record type's field name, and a tagged union's variant name. Both
+/// sit inside their enclosing shape's span, so `type_expr_at` returns that
+/// enclosing shape for either, and hover answered `{ id: string, total: number
+/// }` at the `id` of `pub type Order = { id: string, total: number }`. That is
+/// not the type at the position, and it is the one thing this surface must not
+/// do. A field answers the type it declares; a variant answers the variant.
+///
+/// The walk covers every annotation a module writes, not only a `type`
+/// declaration's body, because a record or a union written inside a parameter,
+/// a return type or a `let` annotation has the same two names in it.
+fn name_inside_type_expr_at(
+    module: &Module,
+    text: &str,
+    offset: usize,
+    lowerer: &Lowerer<'_>,
+) -> Option<Ty> {
+    for te in every_type_expr(module) {
+        if let Some(ty) = name_inside_one_type_expr(te, text, offset, lowerer) {
+            return Some(ty);
+        }
+    }
+    None
+}
+
+/// Descend `te` looking for the field or variant name `offset` sits on.
+fn name_inside_one_type_expr(
+    te: &TypeExpr,
+    text: &str,
+    offset: usize,
+    lowerer: &Lowerer<'_>,
+) -> Option<Ty> {
+    let span = te.span();
+    if (span.start as usize) > offset || offset >= (span.end as usize) {
+        return None;
+    }
+    match te {
+        TypeExpr::Record { fields, .. } => {
+            for f in fields {
+                if covers(
+                    whole_word_span(text, f.span.start, f.span.end, f.name.as_ref()),
+                    offset,
+                ) {
+                    return Some(lowerer.lower(&f.ty));
+                }
+                if let Some(ty) = name_inside_one_type_expr(&f.ty, text, offset, lowerer) {
+                    return Some(ty);
+                }
+            }
+            None
+        }
+        TypeExpr::Union { variants, .. } => {
+            for v in variants {
+                if covers(
+                    whole_word_span(text, v.span.start, v.span.end, v.name.as_ref()),
+                    offset,
+                ) {
+                    return Some(variant_ty(&v.name, v.payload.as_ref(), lowerer));
+                }
+                if let Some(p) = &v.payload {
+                    if let Some(ty) = name_inside_one_type_expr(p, text, offset, lowerer) {
+                        return Some(ty);
+                    }
+                }
+            }
+            None
+        }
+        TypeExpr::Generic { base, args, .. } => {
+            name_inside_one_type_expr(base, text, offset, lowerer).or_else(|| {
+                args.iter()
+                    .find_map(|a| name_inside_one_type_expr(a, text, offset, lowerer))
+            })
+        }
+        TypeExpr::Fn {
+            params, return_ty, ..
+        } => params
+            .iter()
+            .find_map(|p| name_inside_one_type_expr(&p.ty, text, offset, lowerer))
+            .or_else(|| {
+                return_ty
+                    .as_deref()
+                    .and_then(|rt| name_inside_one_type_expr(rt, text, offset, lowerer))
+            }),
+        TypeExpr::Path { .. }
+        | TypeExpr::Extern { .. }
+        | TypeExpr::StringLiteralUnion { .. }
+        | TypeExpr::TypeOf { .. } => None,
+    }
+}
+
 fn type_expr_at(module: &Module, offset: usize) -> Option<&TypeExpr> {
     let mut best: Option<&TypeExpr> = None;
     for te in every_type_expr(module) {

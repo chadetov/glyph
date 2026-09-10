@@ -5517,10 +5517,12 @@ fn impact_occurrences(
                         args,
                         view.params.as_deref(),
                         view.types.type_map(),
-                        &view.decls,
-                        fmodule,
-                        fresolved,
-                        db.prelude(),
+                        &CellScope {
+                            module: fmodule,
+                            resolved: fresolved,
+                            decls: &view.decls,
+                            prelude: db.prelude(),
+                        },
                         ftext,
                     );
                     out.insert("arguments".to_string(), json!(site.arguments));
@@ -5869,13 +5871,28 @@ fn local_type_body<'m>(
     Some(&td.body)
 }
 
-fn classify_argument(
-    ty: &Ty,
-    module: &glyph_ast::Module,
-    resolved: &ResolvedModule,
-    decls: &dyn DeclTyResolver,
-    prelude: &Prelude,
-) -> ArgKind {
+/// The file-scope reads the `change_signature_type` table needs to classify a
+/// type: the module and its resolution for a declared name, the project
+/// resolver for an imported one, and the prelude for a container. One struct
+/// rather than four parameters repeated at every hop, because every one of
+/// them has to be the *calling* file's, and a call that passed three of the
+/// four from one file and the fourth from another would answer about a scope
+/// that does not exist.
+struct CellScope<'a> {
+    module: &'a glyph_ast::Module,
+    resolved: &'a ResolvedModule,
+    decls: &'a dyn DeclTyResolver,
+    prelude: &'a Prelude,
+}
+
+fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
+    let CellScope {
+        module,
+        resolved,
+        decls,
+        prelude,
+    } = scope;
+    let decls: &dyn DeclTyResolver = *decls;
     // Read before the `Ty::App` arm below: a prelude container's base is a
     // `Ty::Named` carrying a prelude symbol, so the arm that classifies an
     // application by its base would send it to `Other` and lose the one rule
@@ -5918,21 +5935,21 @@ fn classify_argument(
     }
 }
 
-fn classify_parameter(
-    ty: &Ty,
-    module: &glyph_ast::Module,
-    resolved: &ResolvedModule,
-    decls: &dyn DeclTyResolver,
-    prelude: &Prelude,
-) -> ParamKind {
+fn classify_parameter(ty: &Ty, scope: &CellScope<'_>) -> ParamKind {
+    let CellScope {
+        module,
+        resolved,
+        decls,
+        prelude,
+    } = scope;
+    let decls: &dyn DeclTyResolver = *decls;
     // Before the `Ty::App` arm, for the reason `classify_argument` reads it
     // first.
     if let Some((name, args)) = prelude_container(prelude, ty) {
         let first = args.first();
         return ParamKind::PreludeContainer {
             name,
-            inner: first
-                .map(|t| Box::new(classify_parameter(t, module, resolved, decls, prelude))),
+            inner: first.map(|t| Box::new(classify_parameter(t, scope))),
             inner_ty: first.map(display_ty).unwrap_or_default(),
         };
     }
@@ -6289,10 +6306,7 @@ fn signature_type_site(
     args: &[glyph_ast::Span],
     params: Option<&[FnParam]>,
     types: &TypeMap,
-    decls: &dyn DeclTyResolver,
-    module: &glyph_ast::Module,
-    resolved: &ResolvedModule,
-    prelude: &Prelude,
+    scope: &CellScope<'_>,
     text: &str,
 ) -> SiteVerdict {
     const ABSENT: &str = "Glyph raises none for the pairing named in `because`; `tsc` on the \
@@ -6332,13 +6346,13 @@ fn signature_type_site(
         let arg_ty = display_ty(ty);
         let param_ty = display_ty(&param.ty);
         let kind = if types.has_entry(*span) {
-            classify_argument(ty, module, resolved, decls, prelude)
+            classify_argument(ty, scope)
         } else {
             ArgKind::Unknown
         };
         let (verdict, rule) = signature_type_cell(
             &kind,
-            &classify_parameter(&param.ty, module, resolved, decls, prelude),
+            &classify_parameter(&param.ty, scope),
             &arg_ty,
             &param_ty,
         );

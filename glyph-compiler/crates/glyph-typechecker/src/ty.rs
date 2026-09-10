@@ -317,6 +317,15 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
         // as when it lives in the consuming file, so a type's diagnostics do
         // not change when it moves files.
         Ty::Imported { name, .. } => name.to_string(),
+        // With the arguments: `Option<int>` and `Option<string>` are two
+        // types, and G216 made the pairing between an application and a
+        // primitive a diagnostic, where "expected `number`, found `Nullable`"
+        // would name the container and drop the thing the reader has to check.
+        // An application with no arguments renders as its base alone.
+        Ty::App { base, args } if !args.is_empty() => {
+            let rendered = args.iter().map(ty_display).collect::<Vec<_>>().join(", ");
+            format!("{}<{}>", ty_display(base), rendered)
+        }
         Ty::App { base, .. } => ty_display(base),
         _ => "?".to_string(),
     }

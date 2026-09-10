@@ -1,0 +1,14 @@
+module neg
+
+// G216, and the case `tsc` cannot make. `Nullable<int>` emits as `number |
+// null`, which TypeScript narrows back to `number` at a `const` initialized
+// with one, so the call passes there. The null half of the type is still
+// declared, and Glyph's own checker is the only place it is refused.
+fn takes_int(n: int) -> int {
+  return n
+}
+
+pub fn main() -> int {
+  let v: Nullable<int> = 3
+  return takes_int(v)
+}

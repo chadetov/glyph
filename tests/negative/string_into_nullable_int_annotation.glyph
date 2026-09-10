@@ -1,0 +1,9 @@
+module neg
+
+// The reverse direction, decided against the argument rather than against the
+// container. `let v: Nullable<int> = 3` is correct, because a `Nullable<T>` is
+// a `T` or null; a `string` is neither.
+pub fn main() -> void {
+  let v: Nullable<int> = "three"
+  print(v)
+}

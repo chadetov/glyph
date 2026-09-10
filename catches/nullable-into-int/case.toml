@@ -1,0 +1,4 @@
+code = "E0211"
+pillar = "verifiability"
+title = "A `Nullable<int>` passed where an `int` is declared, after TypeScript has narrowed the null away"
+note = "The emitted `const v: number | null = 3` is narrowed back to `number` by TypeScript's control flow, so tsc checks the call against `number` and never sees the null case. Glyph's own checker is the only place this can be refused."

@@ -721,7 +721,7 @@ mod tests {
             "fn use_it(r: Result<number, number>) -> void {\n  let owned x: Result<number, number> = r\n}\n",
         );
         assert!(
-            matches!(errs.as_slice(), [TypeError::OwnedRequiresResourceType { name, ty, .. }] if name == "x" && ty == "Result"),
+            matches!(errs.as_slice(), [TypeError::OwnedRequiresResourceType { name, ty, .. }] if name == "x" && ty == "Result<number, number>"),
             "got {errs:?}"
         );
     }

@@ -5386,13 +5386,13 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - `glyph fix` grows the repairs that are fully determined: the `E0200` missing arms from `missing_variants` at the arm span, the `E0220` suggestion, the `E0210` did-you-mean when one field is within edit distance one. Each is a rule with a test that the fix compiles, and none guesses
 - G221 (rest): `glyph_dependencies(entity)` and `glyph_exports(module)` over the import edges the resolver already walks and `glyph_db::module_exports`
 - G227: `glyph_hover` on a field read from an imported record answers `null` although the checker types the access; the member-access expression on a `Ty::Imported` record is recorded in the `TypeMap` like a local one, so the last of the audit's fourteen hover positions answers
-- G228: `glyph_impact`'s `change_signature_type` table answers a prelude container argument against a prelude container parameter as `UNDETERMINED` with a `because` saying the checker has no rule, and the checker has one (two applications compared by arity, base and argument, the rule `glyph_assignable` already reads); the pairing gets its own cell decided by that comparison, so the two tools cannot disagree
+- G228: `glyph_impact`'s `change_signature_type` table answers `UNDETERMINED` with a `because` saying the checker has no rule for two pairings the checker does read, a prelude container against a prelude container, and a structural record against a structural record; the first is two applications compared by arity, base and argument, and the second is field by field with width subtyping, and `glyph_assignable` reads both. Each pairing gets its own cell decided by that comparison, so the two tools cannot disagree
 
 **0.1.123 — A knowledge surface generated from the compiler**
 - G222: `glyph llms --json` emits, from the compiler and not from prose: the diagnostic catalogue (code, meaning, help, note, counter-example) from one source that `explain.rs`, `docs/error-codes.md` and `AGENTS.md` are then generated from or gated against; the prelude and stdlib signatures from the checker's own tables (`stdlib_*_fn_ty`) rather than hand-written blocks; the D-decision index from `docs/language/spec.md`'s headings; the tool catalogue from `tool_specs()`. A gate fails when `AGENTS.md` names a tool count or a tool the server does not serve, which is how "five tools" survived two releases
 - Every Glyph fence in `AGENTS.md` and `docs/reference/stdlib.md` becomes self-contained or is marked as a fragment of a named complete example that is compiled, so the count `2 of 19 compiled` becomes `19 of 19`; the `expect-error` marker is used for every wrong form the bootstrap warns against, starting with the `Order { ... }` construction G217 is about, so the document carries wrong programs paired with the diagnostic each draws
 - `tests/negative/` and `catches/` become part of what `glyph llms` can print on request (`glyph llms --negative E0200`), so the corpus of wrong programs is read by agents and not only by `cargo test`
-- `tools/list` stops costing 7,090 tokens per session: tool descriptions carry the contract in one paragraph and point at `glyph llms --json` for the rest, measured before and after
+- `tools/list` stops costing what it costs: tool descriptions carry the contract in one paragraph and point at `glyph llms --json` for the rest, measured before and after. The baseline is 0.1.121, not the 7,090 tokens this lane was written against: nine tools, 27,386 bytes of description and a 39,077-byte `tools/list` result, up from seven tools, 18,854 and 28,685 on 0.1.120. The release before the one that shrinks it grew it by a third, which is what the target has to be re-based on
 - What this lane does not build: a retrieval layer, embeddings, a chat surface, or documentation written by hand about the compiler when the compiler can be asked
 
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps
@@ -7987,6 +7987,15 @@ decides it in only some positions. Either a named record is nominal, and the
 because it teaches a guarantee that a reader disproves in one line. It also
 happens to be the encoding a state machine must use, since Glyph has no
 transition construct and `typestate` is abandoned.
+
+**E0211 between two structural records prints no shapes.** `takes_rec(narrow)`
+where the parameter is `{ a: string, b: int }` and the argument is `{ a: string }`
+reports `argument type mismatch: expected \`record\`, found \`record\``, which
+names neither side. This is the argument 0.1.121 made for printing an
+application's arguments ("expected `number`, found `Nullable`" names the
+container and drops the thing the reader has to check), one arm over.
+`ty_display` should print the field shapes. Present on 0.1.120 as well, so it is
+not a regression.
 
 **G157. `spec.md` D44 still calls G143 open.** It closed in 0.1.97. Cheap to
 fix, and it sits in the document a sceptical reader opens right after a claim

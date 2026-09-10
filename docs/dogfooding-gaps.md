@@ -8964,9 +8964,11 @@ and is the owner's to confirm.
   emitter included, so an E0305 duplicate match case is reported here as it is
   there. The reply is an envelope, because coverage belongs on the answer:
   `member` says whether the project walk reaches the file, `unindexed` names
-  the project files that do not parse or resolve, and `not_run` names the two
-  checks `glyph check` makes and this does not, `tsc` and the E0104 import
-  naming no module, which needs the build's view of `node_modules`.*
+  the project files that do not parse or resolve, and `not_run` names the three
+  checks `glyph check` makes and this does not: `tsc`, the E0104 import naming
+  no module, which needs the build's view of `node_modules`, and E0400, a
+  failing `@example` or `@doc @run`, which is decided by emitting the project
+  and running the example rather than by reading it.*
 
   *Two binaries, on the audit's own two projects. Published 0.1.120:
   `glyph_diagnostics` on `src/main.glyph` answers `[]` for the E0210 project

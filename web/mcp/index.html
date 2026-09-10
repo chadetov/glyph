@@ -187,9 +187,10 @@ glyph_symbols(query)</pre>
           <code>glyph check</code> reports them. What the tool could not cover is on the answer
           rather than left for you to assume: <code>member</code> says whether the project walk
           reaches the file, <code>unindexed</code> names project files that don't parse, and
-          <code>not_run</code> names the two checks <code>glyph check</code> makes and this one
-          doesn't, <code>tsc</code> and <code>E0104</code> for an import naming no module, which
-          needs the build's view of <code>node_modules</code>. A test runs both surfaces on six
+          <code>not_run</code> names the three checks <code>glyph check</code> makes and this one
+          doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which
+          needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a
+          failing <code>@example</code>, which is decided by running the emitted project. A test runs both surfaces on six
           projects and compares the JSON key for key, so the two can't drift.
         </p>
         <p>

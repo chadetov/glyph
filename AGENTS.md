@@ -91,8 +91,13 @@ MCP over stdio and exposes nine tools over the project:
 - `glyph_symbols` — search the project's declarations by name substring; each
   entry carries the identity, whether it is exported, its kind and its
   signature.
-- `glyph_diagnostics` — type-check one file, returning coded diagnostics with
-  ranges.
+- `glyph_diagnostics` — check one file inside its project, returning
+  `{ diagnostics, unindexed, not_run }` and the file's identity. `diagnostics`
+  holds `glyph check --json`'s own coded diagnostics with ranges; `unindexed`
+  names the project files that could not be read; `not_run` names the three
+  checks `glyph check` makes and this does not, `tsc`, the `E0104` import
+  naming no module, and `E0400` for a failing `@example`. A client that read a
+  top-level array reads `diagnostics` now.
 - `glyph_assignable` — can a value of one type go where another is declared,
   asked of the checker's own comparison. `WILL_FAIL` with the code it raises,
   `COMPATIBLE` only where a rule accepted, `UNDETERMINED` where no rule covers

@@ -1426,7 +1426,10 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
     says nothing at all about the parameters, so a `fn(string) -> bool` where a
     `fn(number) -> bool` is declared draws nothing and is not thereby correct.
     That pairing has to come back UNDETERMINED with the missing rule named,
-    while a pairing a rule does read comes back decided either way.
+    while a pairing a rule does read comes back decided either way. A record
+    whose field is optional against a declaration that requires it is the same
+    shape one level down, and a spelling that reaches a module or a function
+    rather than a type is refused rather than answered about.
     """
     silent = assignable(CORPUS / ASSIGNABLE, "fn(string) -> bool", "fn(number) -> bool")
     if "error" in silent:
@@ -1461,7 +1464,31 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
     unknown = assignable(CORPUS / ASSIGNABLE, "NotAType", "string")
     if "error" not in unknown:
         return False, f"an unresolved spelling was answered: {unknown}"
-    return True, "the undecided pairing is undecided, and the decided ones are decided"
+
+    # A record field the value may not carry, where the declaration requires
+    # one. The relation reads `optional` on both sides now: it says nothing
+    # about this pairing, TypeScript says TS2345, and a silence that is not an
+    # acceptance must not be reported as one. The other direction, a value that
+    # always carries the field, is TypeScript's own rule and stays accepted.
+    loose = assignable(CORPUS / ASSIGNABLE, "{ id?: string }", "{ id: string }")
+    if loose.get("verdict") != "UNDETERMINED":
+        return False, f"an optional field into a required one is {loose.get('verdict')}: {loose}"
+    if "no rule" not in (loose.get("because") or ""):
+        return False, f"the optional-field pairing names no missing rule: {loose}"
+    tight = assignable(CORPUS / ASSIGNABLE, "{ id: string }", "{ id?: string }")
+    if tight.get("verdict") != "COMPATIBLE":
+        return False, f"a required field into an optional one is {tight.get('verdict')}: {tight}"
+
+    # A spelling that reaches something other than a type is refused, not
+    # answered. The `module::name` form always refused one; the spelling form
+    # answered UNDETERMINED, one of them carrying the checker's not-yet-inferred
+    # `?` inside a verdict.
+    for spelling in ("lib", "label", "main::label"):
+        named = assignable(CORPUS / ASSIGNABLE, spelling, "string")
+        if "error" not in named:
+            return False, f"`{spelling}` is not a type and was answered: {named}"
+
+    return True, "the undecided pairings are undecided, and the decided ones are decided"
 
 
 def case_impact_answers_a_second_hop() -> tuple[bool, str]:

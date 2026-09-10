@@ -1,12 +1,29 @@
 module main
 
+import lib
+
 type Order = { id: string }
+
+// A record whose field may be absent. `{ id?: string }` into `{ id: string }`
+// is TS2345 and draws nothing from Glyph's own relation, so it is the pairing
+// `accepting_rule` must not claim to accept.
+type Loose = { id?: string }
 
 fn label(o: Order) -> string {
   return o.id
 }
 
+fn tag(v: lib.Id) -> string {
+  return v
+}
+
+fn widen(o: Order) -> Loose {
+  return { id: o.id }
+}
+
 fn main(argv: Array<string>) -> number {
   print(label({ id: "a" }))
+  print(tag("b"))
+  print(widen({ id: "c" }).id)
   return 0
 }

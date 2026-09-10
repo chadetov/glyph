@@ -89,9 +89,41 @@ one-line count. A sibling module that failed to compile does not stop the run
 | `glyph doctor` | Check the JavaScript toolchain (node/tsx/tsc present + new enough), and report this compiler against the latest published release. `--offline` skips the registry lookup |
 | `glyph upgrade [dir]` | Move the project's pinned Glyph version to the latest release and `npm install` it. `--to <version>` for a specific one, `--dry-run` to preview |
 | `glyph lsp` | Run the language server (an editor extension spawns this) |
+| `glyph mcp [root]` | Run the MCP server over stdio, exposing the compiler's analysis to an agent as tools |
+| `glyph query <tool> ...` | Ask one of those tools from the command line and print its JSON. `--root <dir>` names the project (default: the current directory) |
 | `glyph llms` | Print the agent bootstrap (the `AGENTS.md` reference) offline; alias `glyph docs` |
 | `glyph --explain <code>` | Long-form explanation and fix for an error code |
 | `glyph --update` | Move this installed compiler to the newest published release. `--update-dry-run` to preview. Only a global npm install is touched, checked against `npm root -g`; a project's own `node_modules` is pointed at `glyph upgrade`, and anything else is told what to run |
+
+### Asking the compiler a question
+
+`glyph query` is one verb per MCP tool, so an agent (or you) with no MCP client
+reaches the same answers. Each verb takes the tool's own arguments as flags and
+prints the tool's JSON on stdout.
+
+```sh
+glyph query symbols --query order                  # find a declaration by name
+glyph query symbol --entity orders::Order          # its kind, fields, variants, signature
+glyph query assignable --path src/main.glyph --from 'Nullable<int>' --to int
+glyph query impact --entity orders::Order --change change_signature_type
+glyph query diagnostics --path src/main.glyph
+glyph query hover --path src/main.glyph --line 12 --character 6
+glyph query definition --path src/main.glyph --line 12 --character 6
+glyph query references --path src/main.glyph --name Order
+glyph query variants --path src/main.glyph --name OrderStatus
+```
+
+A question the compiler answers exits 0 with the JSON. A question it refuses,
+such as a symbol the project does not hold or a type spelling that does not
+parse, writes the reason to stderr and exits 2.
+
+`glyph query assignable` is the one with no counterpart anywhere else: it asks
+the checker's own comparison whether a value of one type can go where another
+is declared. `WILL_FAIL` means a rule refuses the pairing, and the answer names
+the code you would get. `COMPATIBLE` means a rule read it and accepted.
+`UNDETERMINED` means no rule covers it, so Glyph reports nothing and only `tsc`
+on a full `glyph build` would see a mismatch. The third is not a softer version
+of the second, and the tool never rounds one to the other.
 
 The scaffolded `package.json` pins `typescript` and `tsx` in `devDependencies`,
 so after `glyph init` you can run `npm install` in the project to get a

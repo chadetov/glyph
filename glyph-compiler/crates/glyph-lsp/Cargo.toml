@@ -16,6 +16,7 @@ glyph-parser.workspace = true
 glyph-resolver.workspace = true
 glyph-db.workspace = true
 glyph-typechecker.workspace = true
+glyph-emit.workspace = true
 glyph-formatter.workspace = true
 serde.workspace = true
 serde_json.workspace = true

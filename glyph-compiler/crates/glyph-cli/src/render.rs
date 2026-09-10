@@ -150,28 +150,12 @@ pub fn render_tsc_error(
     )
 }
 
-/// Map each `ResolveError` variant to a stage tag that appears in the
-/// label text. Stages let the reader distinguish "collect-time" issues
-/// (duplicate names) from "resolve-time" (unresolved name) from
-/// "import-time" (unknown export). Day 11 used these as inline prefixes
-/// in the one-line diagnostics; here they live on the label.
-pub fn stage_label_for(err: &ResolveError) -> &'static str {
-    match err {
-        ResolveError::DuplicateName { .. } => "collect",
-        ResolveError::RelativeImport { .. } => "collect",
-        ResolveError::BarrelFile { .. } => "collect",
-        ResolveError::UnknownExportedName { .. } => "import",
-        ResolveError::UnresolvedName { .. } => "resolve",
-        ResolveError::UnresolvedModule { .. } => "import",
-        ResolveError::UnusedImport { .. } => "lint",
-        ResolveError::UnusedBinding { .. } => "lint",
-        ResolveError::UnreachableCode { .. } => "lint",
-        ResolveError::ReservedWordName { .. } => "collect",
-        ResolveError::ShadowedGlobalName { .. } => "collect",
-        ResolveError::PrimitiveUnionType { .. } => "collect",
-        ResolveError::NoExportSurface { .. } => "lint",
-    }
-}
+/// The stage tag a `ResolveError` is reported under, re-exported from the one
+/// table that decides it (`glyph_lsp::diagnostic`). The renderer puts it on the
+/// label and the `--json` shape puts it in `stage`; a diagnostic that said
+/// `resolve` in the terminal and `collect` in the JSON would be two answers
+/// about one error.
+pub use glyph_lsp::diagnostic::stage_label_for;
 
 /// Build and render an ariadne report for one diagnostic, including its stable
 /// code (`[E0042]` in the header), an actionable `help` line, and an optional

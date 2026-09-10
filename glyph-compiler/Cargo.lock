@@ -496,6 +496,7 @@ version = "0.1.120"
 dependencies = [
  "glyph-ast",
  "glyph-db",
+ "glyph-emit",
  "glyph-formatter",
  "glyph-lexer",
  "glyph-parser",

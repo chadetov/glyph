@@ -335,8 +335,9 @@ fn a_tools_call_over_stdio_answers_from_the_project_on_disk() {
     mcp.handshake(1);
     let answer = mcp.call_tool(2, "glyph_diagnostics", json!({ "path": file }));
 
-    // `glyph_diagnostics` answers with the list itself.
-    let diagnostics = answer
+    // The answer is an envelope: the diagnostics, plus what the check could
+    // not read and what it did not run.
+    let diagnostics = answer["diagnostics"]
         .as_array()
         .unwrap_or_else(|| panic!("`glyph_diagnostics` answered with no list: {answer}"));
     assert_eq!(diagnostics.len(), 1, "{answer}");

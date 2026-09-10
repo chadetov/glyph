@@ -611,7 +611,7 @@ fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String>
     let answer = json!({
         "path": display_path(&root, &path),
         "module": module_path,
-        "project_root": display_path(&root, &project_root),
+        "project_root": project_root_label(&root, &project_root),
         "member": member,
         "member_detail": if member {
             Value::Null
@@ -6551,6 +6551,18 @@ fn module_key(file: &Path, workspace: &Path) -> String {
     })
 }
 
+/// A project root reported to the agent, which is `display_path` except that a
+/// root that *is* the server root renders as `.` rather than as the empty
+/// string a strip of a path against itself leaves behind.
+fn project_root_label(root: &Path, project_root: &Path) -> String {
+    let shown = display_path(root, project_root);
+    if shown.is_empty() {
+        ".".to_string()
+    } else {
+        shown
+    }
+}
+
 /// A file path reported to the agent: relative to `root` with `/` separators
 /// when the file is under it, else the absolute path.
 fn display_path(root: &Path, file: &Path) -> String {
@@ -7100,7 +7112,7 @@ pub fn f() -> number {
         assert!(!is_error, "{value}");
         let not_run = value["not_run"].as_array().unwrap();
         let what: Vec<&str> = not_run.iter().map(|e| e["what"].as_str().unwrap()).collect();
-        assert!(what.iter().any(|w| *w == "tsc"), "{value}");
+        assert!(what.contains(&"tsc"), "{value}");
         assert!(what.iter().any(|w| w.contains("E0104")), "{value}");
     }
 

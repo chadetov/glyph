@@ -8913,7 +8913,11 @@ and is the owner's to confirm.
   carries a `<key>_absent` reason, answered carries an explicit null.
   `exhaustive_match` has three answers rather than two, because a `match` over an
   alias for a tagged union is checked and `false` there would be a caller
-  dropping an arm believing nothing stops it. `hover_at` now reads a declaration
+  dropping an arm believing nothing stops it. An unannotated `const` reports no
+  type, for the same reason: the checker lowers its declaration to `Ty::Unknown`
+  on purpose (G39) rather than inferring one from the initializer, and handing
+  back the initializer's type would say the uses are checked against it when
+  nothing checks them. `hover_at` now reads a declaration
   name, a parameter, a written annotation, a variant and a binding's definition
   site beside the expression table, and the language server gets the same. The
   `type` block of `glyph_variants` carries each variant's payload and

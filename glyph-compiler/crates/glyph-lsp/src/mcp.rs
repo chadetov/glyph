@@ -6441,14 +6441,6 @@ fn next_query(answer: &Value, change: &Change) -> Value {
     })
 }
 
-/// Search the whole server root's top-level declarations.
-///
-/// Deliberately still an uncached walk. This tool spans project boundaries by
-/// design — an agent asking "where is `parse_row`" wants the answer from every
-/// project under the root, not just the one holding some file it happened to
-/// name — and the per-project databases cannot answer a question that crosses
-/// them. Changing what a tool returns as a side effect of a caching change is
-/// the wrong way to decide that, so its behaviour is untouched.
 // ---------------------------------------------------------------------------
 // glyph_symbol
 // ---------------------------------------------------------------------------
@@ -6814,7 +6806,7 @@ fn variants_value(ty: Option<&Ty>) -> Option<Value> {
         return None;
     };
     Some(Value::Array(
-        variants.iter().map(|v| variant_value(v)).collect(),
+        variants.iter().map(variant_value).collect(),
     ))
 }
 
@@ -6920,7 +6912,7 @@ fn examples_value(what: &DeclaredAs<'_>) -> Option<Value> {
         .filter(|a| a.name.as_ref() == "example")
         .map(|a| json!(a.raw_args.trim()))
         .collect();
-    (!examples.is_empty()).then(|| Value::Array(examples))
+    (!examples.is_empty()).then_some(Value::Array(examples))
 }
 
 /// The generic parameters the declaration takes, in order.
@@ -7112,10 +7104,9 @@ fn describe_symbol(
         },
         match kind {
             "record" => RECORD_CONSTRUCT.to_string(),
-            "union" => format!(
-                "a tagged union is constructed through one of its variants. \
+            "union" => "a tagged union is constructed through one of its variants. \
                  `variants[].construct` carries the syntax of each."
-            ),
+                .to_string(),
             _ => format!(
                 "`{module}::{name}` is {} and has no construction syntax of its own.",
                 a_kind(kind)
@@ -7177,7 +7168,7 @@ fn tool_symbol(args: &Value, server: &mut Server) -> Result<String, String> {
                     display_path(&root, &path)
                 ));
             };
-            let target = a.symbol_target(offset as usize, &text, &this_module);
+            let target = a.symbol_target(offset, &text, &this_module);
             let (module, name) = match target {
                 Some(SymbolTarget::Global { module, name }) => (module, name),
                 Some(SymbolTarget::Local) => {
@@ -7205,6 +7196,14 @@ fn tool_symbol(args: &Value, server: &mut Server) -> Result<String, String> {
     }
 }
 
+/// Search the whole server root's top-level declarations.
+///
+/// This tool spans project boundaries by design: an agent asking "where is
+/// `parse_row`" wants the answer from every project under the root, not just
+/// the one holding some file it happened to name. Each project is answered
+/// from its own database, because a module path is counted per project (D41)
+/// and one walk over the lot would report two declarations under a single
+/// `module::name`.
 fn tool_symbols(args: &Value, server: &mut Server) -> Result<String, String> {
     let query = args
         .get("query")

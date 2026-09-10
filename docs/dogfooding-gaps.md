@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-226 entries, 197 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-11 are open. G144, the D28 boundary cast that never reached the returns a
+226 entries, 198 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+10 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8866,7 +8866,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.117 over `glyph mcp` on a three-module project: fourteen `glyph_hover` probes, one non-null answer; `glyph_variants` payloads absent; `glyph_symbols` fields as listed.*
 
-- **G219. `glyph_diagnostics` is single-file and disagrees with `check --json`.**
+- **G219. [FIXED] `glyph_diagnostics` is single-file and disagrees with `check --json`.**
   On a project whose `main.glyph` has a real `E0200` (a non-exhaustive match
   over an imported union) and on one with a real `E0210`, the MCP tool returned
   `[]` for both, because `tool_diagnostics` calls `analyze(&text)` on one file
@@ -8879,6 +8879,33 @@ and is the owner's to confirm.
   project database the other tools use is in the same process.
 
   *Reproduced against 0.1.117: `glyph_diagnostics` on `src/main.glyph` of the E0200 project returned `[]`; `glyph check --json --no-tsc` on the same project returned the `E0200` with `union` and `missing_variants`.*
+
+  *Fixed in 0.1.121. The tool reads the project database `glyph_impact` and
+  `glyph_variants` already use, and answers with `glyph check --json`'s own
+  `Diagnostic`: the type moved to `glyph_lsp::diagnostic`, the lowest crate
+  both surfaces reach, and `glyph-cli` re-exports it, so there is one Rust
+  type and no second assembly of the JSON. The stages are the compiler's, the
+  emitter included, so an E0305 duplicate match case is reported here as it is
+  there. The reply is an envelope, because coverage belongs on the answer:
+  `member` says whether the project walk reaches the file, `unindexed` names
+  the project files that do not parse or resolve, and `not_run` names the two
+  checks `glyph check` makes and this does not, `tsc` and the E0104 import
+  naming no module, which needs the build's view of `node_modules`.*
+
+  *Two binaries, on the audit's own two projects. Published 0.1.120:
+  `glyph_diagnostics` on `src/main.glyph` answers `[]` for the E0210 project
+  and, for the E0200 project, two `E0106` unused-import warnings on `Paid` and
+  `Cancelled`, the two variants the missing arms would have named, while
+  `glyph check --json --no-tsc` reports `E0210` and `E0200`. This build: the
+  tool's `diagnostics` are byte-for-byte the objects `check --json` prints for
+  that file, `E0200` with `union.declaration` `orders::OrderStatus` and
+  `missing_variants` `["Paid", "Cancelled"]`, and `E0210` with entity
+  `main::total_of`. The gate is
+  `one_diagnostic_has_one_shape_on_both_surfaces` in
+  `crates/glyph-cli/tests/agent_loop.rs`: six projects, one diagnostic each
+  from parse, import, lint, typecheck (twice) and emit, each compared as
+  serialized JSON, keys and values. Breaking it on purpose (dropping `help`
+  from the tool's answer) fails it.*
 
 - **G220. A diagnostic carries its facts as prose.** For `E0211` the JSON is
   `"message": "argument type mismatch: expected \`string\`, found \`OrderStatus\`"`

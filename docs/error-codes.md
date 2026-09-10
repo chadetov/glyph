@@ -4,7 +4,10 @@ Every diagnostic the compiler emits carries a stable code. The code appears in
 the rendered error (`[E0200] Error: ...`), and `glyph --explain <code>` prints a
 longer explanation with a fix example. `glyph build` and `glyph run` report the
 same set on the same tree, warnings included; `glyph build --json` gives you the
-machine-readable form. Codes are allocated by compiler phase:
+machine-readable form, and the `glyph_diagnostics` MCP tool answers with that
+same structured diagnostic for one file, from the same Rust type, so the two
+surfaces cannot carry different fields for one error. Codes are allocated by
+compiler phase:
 
 | Range | Phase | Source |
 |-------|-------|--------|

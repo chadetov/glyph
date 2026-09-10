@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-227 entries, 201 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-8 are open. G144, the D28 boundary cast that never reached the returns a
+227 entries, 201 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+7 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9001,7 +9001,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.117: `glyph check --json --no-tsc` on the four wrong programs; field table in the audit on file.*
 
-- **G221. No tool answers assignability, dependencies or a module's exports.**
+- **G221. [HALF FIXED] No tool answers assignability, dependencies or a module's exports.**
   "Can a `Nullable<int>` go where an `int` is declared" has no tool, and per G216
   neither stage answers it. "What does `Order` depend on" and "what does module
   `orders` export" have no tool; the import edges are in every parsed AST and
@@ -9009,6 +9009,38 @@ and is the owner's to confirm.
   is private and called only from the return and argument checks.
 
   *Reproduced against 0.1.117: the seven MCP tools listed by `tools/list` are `glyph_diagnostics`, `glyph_hover`, `glyph_definition`, `glyph_references`, `glyph_variants`, `glyph_impact`, `glyph_symbols`; none takes two types or returns edges of an import graph.*
+
+  *The assignability half closed in 0.1.121.* `glyph_assignable(path, from, to)`
+  asks the relation the checker actually runs, and the entry point exposed is
+  `assign_incompatible` rather than `definitely_incompatible`: the free function
+  is only the part decidable from two `Ty` values with no declaration in hand,
+  and the rules for a declared union against a primitive (G201), a prelude
+  container against a primitive (G216) and an imported declaration (G215, G226)
+  all live above it. The relation answers a bool, so the surface would have had
+  to read its `false` as an acceptance; `glyph_typechecker::assignability`
+  answers three ways instead, and `COMPATIBLE` is claimed only where a rule is
+  total over the pairing. Two function types are where that matters: the
+  relation compares the returns and says nothing about the parameters, so they
+  come back `UNDETERMINED`, and `tests/exact-or-absent/assignable` holds that
+  case. The audit's own question, verbatim, on
+  `tests/exact-or-absent/assignable`:
+
+  ```
+  $ glyph query assignable --path src/main.glyph --from 'Nullable<int>' --to int
+  "verdict": "WILL_FAIL"
+  "because": "the checker's own comparison refuses a `Nullable<number>` value where a `number` is declared, so every site that writes this pairing is a diagnostic"
+  "diagnostics": [{"code": "E0204", "at": "an annotated `let` or `const`, and a `return`"},
+                  {"code": "E0211", "at": "a call argument"}]
+  "from": {"asked": "Nullable<int>", "form": "spelling", "read_as": "Nullable<number>"}
+  "to":   {"asked": "int", "form": "spelling", "read_as": "number"}
+  ```
+
+  The same release gave every MCP tool a command-line verb (`glyph query symbol`,
+  `glyph query assignable`, and one per tool), routed through the same
+  `call_tool` an MCP client reaches, so the tools are reachable without an MCP
+  client at all. What is left is the other two questions: `glyph_dependencies(entity)`
+  and `glyph_exports(module)` over the import edges the resolver already walks
+  and `glyph_db::module_exports`, scheduled for 0.1.122.
 
 - **G222. The knowledge surface is hand-written, drifting, and mostly
   unverified.** `glyph llms` prints `AGENTS.md`, 1,419 lines embedded by

@@ -1,0 +1,7 @@
+module lib
+
+pub type Shape =
+  | Circle
+  | Square
+
+pub type Id = string

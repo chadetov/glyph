@@ -1,0 +1,12 @@
+module main
+
+type Order = { id: string }
+
+fn label(o: Order) -> string {
+  return o.id
+}
+
+fn main(argv: Array<string>) -> number {
+  print(label({ id: "a" }))
+  return 0
+}

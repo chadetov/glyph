@@ -49,6 +49,20 @@ pub fn run_mcp_stdio(root: std::path::PathBuf) {
     mcp::run_stdio(root);
 }
 
+/// Answer one MCP tool call and return its JSON, without a transport.
+///
+/// The CLI's `glyph query` verbs route through here, so a tool asked from the
+/// command line and the same tool asked over stdio run the same code and
+/// return the same bytes. `Err` is the refusal an MCP client would receive as
+/// an `isError` result.
+pub fn call_mcp_tool(
+    root: std::path::PathBuf,
+    tool: &str,
+    arguments: serde_json::Value,
+) -> std::result::Result<String, String> {
+    mcp::call_tool_once(root, tool, arguments)
+}
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Wire your agent into Glyph over MCP · Glyph</title>
-    <meta name="description" content="glyph mcp runs a Model Context Protocol server that exposes Glyph's own analysis (diagnostics, types, definitions, workspace-wide references, symbol search) to a coding agent as tools. The same analysis the editor uses, so it can't drift from the compiler." />
+    <meta name="description" content="glyph mcp runs a Model Context Protocol server with nine tools over your project: what a symbol is, what breaks if you change it, whether one type can go where another is declared, diagnostics checked inside the project, hover, definition, references, match sites, and symbol search. Every one is also a glyph query verb, so an agent with no MCP client asks the same questions." />
     <link rel="canonical" href="https://glyphlang.io/mcp/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,10 +33,12 @@
       <h1 class="q-title">Wire your agent into Glyph's compiler</h1>
 
       <p class="short-answer">
-        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> that gives a
-        coding agent five queries about your project: diagnostics, the type at a cursor, where a name
-        is defined, every reference to a symbol, and symbol search. It runs the same analysis the
-        editor uses, over stdio, so what the agent sees matches what the compiler sees.
+        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with nine tools
+        over your project: what a symbol is, what breaks if you change it, whether a value of one
+        type can go where another is declared, diagnostics checked inside the project, the type at a
+        cursor, where a name is defined, every reference to it, every <code>match</code> site over a
+        union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with
+        no MCP client asks the same questions and gets the same bytes.
       </p>
 
       <div class="detail">
@@ -46,8 +48,10 @@
           finds out whether it broke something only after a build. Glyph already answers those
           questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight
           from the compiler, without scraping build output or reading every file to find who calls
-          what. It sits alongside <code>glyph build --json</code>, which is the batch path for coded
-          diagnostics; MCP is the interactive one.
+          what. Two of the tools answer questions an editor never asks: <code>glyph_symbol</code>
+          returns a union's variants with the syntax that constructs each, which is what an agent
+          needs before it writes the <code>match</code>, and <code>glyph_impact</code> answers what
+          an edit breaks before the edit exists.
         </p>
 
         <p class="block-label">Set it up</p>
@@ -73,29 +77,55 @@
       <div class="detail">
         <p>
           On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the
-          server reports the five tools below. Positions follow the LSP convention: a 0-based
-          <code>line</code> and a 0-based <code>character</code> (UTF-16 code units).
+          server reports the nine tools below. Positions you send follow the LSP convention: a
+          0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units.
+          Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a
+          1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.
         </p>
 
-        <p class="block-label">The five tools</p>
+        <p class="block-label">The nine tools</p>
       </div>
 
       <div class="code">
         <span class="cap">tools exposed by glyph mcp</span>
-<pre><span class="cm">// type-check one file → diagnostics with stable codes + ranges</span>
+<pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
+<span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
+<span class="cm">// construction syntax, parameters and return, interface members,</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`</span>
+glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
+
+<span class="cm">// what breaks if you make one named change to one declaration:</span>
+<span class="cm">// add_variant, remove_variant, rename, change_arity,</span>
+<span class="cm">// change_signature_type, remove. One verdict per site</span>
+glyph_impact(entity, change)
+
+<span class="cm">// can a value of `from` go where a `to` is declared? Asked of the</span>
+<span class="cm">// checker's own comparison. Each side is a `module::name` or a</span>
+<span class="cm">// Glyph type spelling read in the scope of `path`</span>
+glyph_assignable(path, from, to)
+
+<span class="cm">// every diagnostic for one file, checked inside its project, in the</span>
+<span class="cm">// shape `glyph check --json` prints, plus what was not checked</span>
 glyph_diagnostics(path)
 
-<span class="cm">// the inferred type at a position</span>
+<span class="cm">// the type at a position: an expression, a declaration name, a</span>
+<span class="cm">// parameter, an annotation, a variant, or a binding</span>
 glyph_hover(path, line, character)
 
-<span class="cm">// where the name is defined, following imports across modules</span>
+<span class="cm">// where the name is defined, following imports across modules,</span>
+<span class="cm">// with the `module::name` so the answer chains into glyph_impact</span>
 glyph_definition(path, line, character)
 
-<span class="cm">// every reference across the whole project: the declaration, all</span>
-<span class="cm">// uses, and each importing module's `import` binding</span>
-glyph_references(path, line, character)
+<span class="cm">// every edge into a symbol across the project, split by relation</span>
+<span class="cm">// (CALLS, REFERENCES, GENERATED_FROM), each with its provenance</span>
+glyph_references(path, name)               <span class="cm">// or by position</span>
 
-<span class="cm">// search top-level declarations and union variants by name</span>
+<span class="cm">// every `match` site over one tagged union and which variants each</span>
+<span class="cm">// site's arms name, with the union's own variants</span>
+glyph_variants(path, name)
+
+<span class="cm">// search top-level declarations and union variants by name, each</span>
+<span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
 glyph_symbols(query)</pre>
       </div>
 
@@ -103,8 +133,8 @@ glyph_symbols(query)</pre>
         <p class="block-label">See it</p>
         <p>
           A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo
-          returns the compiler's own diagnostic as structured JSON the agent can act on: the stable
-          code, the message, and the exact range.
+          returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code>
+          serializes, inside an envelope that also says what the check did not cover.
         </p>
       </div>
 
@@ -121,20 +151,47 @@ glyph_symbols(query)</pre>
         </div>
         <div class="code">
           <span class="cap">result (the tool's JSON content)</span>
-<pre>[
-  {
-    "code": "E0210",
-    "message": "type `U` has no field `naem`",
-    "range": {
-      "start": { "line": 7, "character": 9 },
-      "end":   { "line": 7, "character": 15 }
+<pre>{
+  "path": "src/user.glyph",
+  "module": "user",
+  "project_root": "src",
+  "member": true,
+  "diagnostics": [
+    {
+      "code": "E0210",
+      "severity": "error",
+      "stage": "typecheck",
+      "message": "type `U` has no field `naem`",
+      "help": "Check the field name for a typo,
+        or add the field to the type.",
+      "entity": "user::greet",
+      "file": "user",
+      "range": {
+        "start": { "line": 9, "col": 10, "offset": 99 },
+        "end":   { "line": 9, "col": 16, "offset": 105 }
+      },
+      "union": null,
+      "missing_variants": null
     }
-  }
-]</pre>
+  ],
+  "unindexed": [],
+  "not_run": [ ... ]
+}</pre>
         </div>
       </div>
 
       <div class="detail">
+        <p>
+          The file is checked inside its project, so a wrong field on an imported record and a
+          <code>match</code> missing arms over an imported union are reported here the way
+          <code>glyph check</code> reports them. What the tool could not cover is on the answer
+          rather than left for you to assume: <code>member</code> says whether the project walk
+          reaches the file, <code>unindexed</code> names project files that don't parse, and
+          <code>not_run</code> names the two checks <code>glyph check</code> makes and this one
+          doesn't, <code>tsc</code> and <code>E0104</code> for an import naming no module, which
+          needs the build's view of <code>node_modules</code>. A test runs both surfaces on six
+          projects and compares the JSON key for key, so the two can't drift.
+        </p>
         <p>
           <code>glyph_references</code> is workspace-wide: ask about a symbol and you get its
           declaration, every use, and each importing module's <code>import</code> binding, across
@@ -142,34 +199,46 @@ glyph_symbols(query)</pre>
           covers the whole project, not just the file you asked from.
         </p>
 
-        <p class="block-label">What it doesn't do yet</p>
+        <p class="block-label">No MCP client? Same questions on the command line</p>
         <p>
-          The tools only read. You can't rename or apply edits through MCP yet; that's next. The
-          server rescans the project on each call rather than keeping a cached index, which is fine
-          for a normal project and something to speed up later, and it skips any file that doesn't
-          currently parse. References to a local variable stay within its file, since a local can't
-          be used from another one. Every tool runs the same analysis code the editor uses, so its
-          answers match the compiler.
+          Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags
+          and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes
+          the reason to stderr and exits 2. The verbs route through the same entry point an MCP
+          client reaches, and an integration test asks both surfaces the same question and compares
+          the answers as text, so a verb that reformatted or summarized would fail it.
         </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">the same nine questions, without a client</span>
+<pre>glyph query symbol      --path src/main.glyph --entity orders::OrderStatus
+glyph query impact      --entity orders::OrderStatus --change add_variant --variant Refunded
+glyph query assignable  --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
+glyph query diagnostics --path src/main.glyph
+glyph query hover       --path src/main.glyph --line 9 --character 6
+glyph query definition  --path src/main.glyph --line 9 --character 6
+glyph query references  --path src/orders.glyph --name create
+glyph query variants    --path src/orders.glyph --name OrderStatus
+glyph query symbols     --query order</pre>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A <code>glyph mcp [root]</code> server over stdio with five tools: <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), and <code>glyph_symbols</code>. Each one runs the same analysis the language server uses.</p>
+          <p>A <code>glyph mcp [root]</code> server over stdio with nine tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code> and <code>glyph_symbols</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A rename tool that returns the edits to apply, a cached/incremental workspace index, and extending cross-file resolution to more of the query surface.</p>
+          <p>The tools only read: you can't rename or apply an edit through MCP. <code>glyph_dependencies</code> and <code>glyph_exports</code> aren't built, so an import graph still has to be read out of the files. <code>glyph_hover</code> on a field read from a record imported from another module answers null, though the checker types the access and a wrong assignment there is still an error. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse.</p>
         </div>
       </div>
 
       <div class="detail">
         <p>
-          Not using MCP? An agent can still get the full language and diagnostic surface offline via
-          <a href="/llms.txt">llms.txt</a> (the spec) and <code>glyph build --json</code> (coded
-          diagnostics). MCP is the interactive layer on top.
+          Beside the tools, an agent can read the language and the diagnostic surface offline from
+          <a href="/llms.txt">llms.txt</a>, and <code>glyph build --json</code> is the batch path
+          for coded diagnostics across a whole tree.
         </p>
       </div>
     </article>

@@ -593,7 +593,6 @@ fn build_project_inner_with(
                     module_path,
                     &source,
                     e,
-                    crate::render::stage_label_for(e),
                     ast,
                 ));
             report.error_count += 1;
@@ -621,7 +620,6 @@ fn build_project_inner_with(
                         module_path,
                         &source,
                         e,
-                        crate::render::stage_label_for(e),
                         ast,
                     ));
                 report.error_count += 1;
@@ -639,7 +637,6 @@ fn build_project_inner_with(
                     module_path,
                     &source,
                     e,
-                    crate::render::stage_label_for(e),
                     ast,
                 ));
             report.error_count += 1;
@@ -665,7 +662,6 @@ fn build_project_inner_with(
                     module_path,
                     &source,
                     e,
-                    crate::render::stage_label_for(e),
                     ast,
                 ));
             report.error_count += 1;
@@ -714,7 +710,6 @@ fn build_project_inner_with(
                     module_path,
                     &source,
                     &e,
-                    crate::render::stage_label_for(&e),
                     ast,
                 ));
         }
@@ -739,7 +734,6 @@ fn build_project_inner_with(
                     module_path,
                     &source,
                     &e,
-                    crate::render::stage_label_for(&e),
                     ast,
                 ));
         }

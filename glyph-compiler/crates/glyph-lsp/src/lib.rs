@@ -22,6 +22,13 @@ mod analysis;
 mod mcp;
 mod overlay;
 
+/// The structured diagnostic `glyph check --json` and the `glyph_diagnostics`
+/// MCP tool both answer with, and the per-file assembly the MCP tool runs
+/// against a project database. Public because `glyph-cli` serializes this same
+/// type; it lives here because `glyph-cli` depends on this crate and not the
+/// other way round.
+pub mod diagnostic;
+
 /// The span-containment walk that decides which top-level declaration a byte
 /// offset belongs to. Re-exported because `glyph-cli` attributes a `--json`
 /// diagnostic by the same rule, and two copies of it drifted apart once

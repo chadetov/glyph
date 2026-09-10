@@ -75,40 +75,41 @@
         <div class="ans-cards">
           <a class="a-card" href="/answers/tooling/"><span class="n">14</span><span class="q">What's the editor, debugging, and error experience?</span><p>LSP + VS Code extension, and Elm-quality errors with stable codes.</p></a>
           <a class="a-card" href="/answers/impact/"><span class="n">15</span><span class="q">Can the compiler tell me what a change will break before I make it?</span><p><code>glyph_impact</code>: one verdict per site, from a closed list, with the reason, before you touch the file.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">16</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>
-          <a class="a-card" href="/answers/language/"><span class="n">17</span><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">16</span><span class="q">Can my agent ask the compiler what a symbol is before it writes code?</span><p><code>glyph_symbol</code>: a union's variants with the syntax that constructs each, in one call. Nine tools, each with a <code>glyph query</code> verb.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">17</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>
+          <a class="a-card" href="/answers/language/"><span class="n">18</span><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.</p></a>
         </div>
 
         <h2>Money &amp; safety</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/finance/"><span class="n">18</span><span class="q">Can I trust it with money and untrusted input?</span><p>Exact decimals and ids, invariants as types, injection as a compile error.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">19</span><span class="q">Can I trust it with money and untrusted input?</span><p>Exact decimals and ids, invariants as types, injection as a compile error.</p></a>
         </div>
 
         <h2>Serving the web</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/web-serving/"><span class="n">19</span><span class="q">Can I serve a web page, or only a JSON API?</span><p>HTML, redirects, response headers, and form posts, without a hand-written server.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">20</span><span class="q">Can I serve a web page, or only a JSON API?</span><p>HTML, redirects, response headers, and form posts, without a hand-written server.</p></a>
         </div>
 
         <h2>Caught earlier</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/early-errors/"><span class="n">20</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">21</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
         </div>
 
         <h2>Why a parse failed</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">21</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">22</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
         </div>
 
         <h2>Programs you type into</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/interactive-cli/"><span class="n">22</span><span class="q">Can I write a program someone types into?</span><p><code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">23</span><span class="q">Can I write a program someone types into?</span><p><code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.</p></a>
         </div>
 
         <h2>Servers &amp; daemons</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/long-running/"><span class="n">23</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
-          <a class="a-card" href="/answers/upgrades/"><span class="n">24</span><span class="q">Will a new Glyph release break my build?</span><p>Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.</p></a>
-          <a class="a-card" href="/answers/binary/"><span class="n">25</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">24</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
+          <a class="a-card" href="/answers/upgrades/"><span class="n">25</span><span class="q">Will a new Glyph release break my build?</span><p>Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">26</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
         </div>
       </div>
 

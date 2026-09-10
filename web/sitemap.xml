@@ -127,6 +127,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://glyphlang.io/answers/ask-the-compiler/</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://glyphlang.io/answers/debugging/</loc>
     <lastmod>2026-08-23</lastmod>
     <changefreq>weekly</changefreq>

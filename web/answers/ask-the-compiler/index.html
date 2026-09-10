@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can my agent ask the compiler what a symbol is before it writes code? · Glyph</title>
+    <meta name="description" content="glyph_symbol answers in one call with a union's variants and the syntax that constructs each, a record's fields with types, a callable's parameters and return, and whether a match over it must be exhaustive. Nine tools over MCP, each with a glyph query verb." />
+    <link rel="canonical" href="https://glyphlang.io/answers/ask-the-compiler/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/embedding/"><span class="n">05</span> Inside your app</a>
+        <a href="/answers/typed-apis/"><span class="n">06</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">07</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">08</span> React</a>
+        <a href="/answers/state/"><span class="n">09</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">10</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">11</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">12</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
+        <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
+        <a href="/answers/ask-the-compiler/" class="active"><span class="n">16</span> Ask the compiler</a>
+        <a href="/answers/debugging/"><span class="n">17</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">18</span> The language</a>
+        <a href="/answers/finance/"><span class="n">19</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">20</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">21</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">22</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">23</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">24</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">25</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">26</span> Binary data</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">16 &middot; Ask the compiler</p>
+      <h1 class="q-title">Can my agent ask the compiler what a symbol is before it writes code?</h1>
+
+      <p class="short-answer">
+        In one call. <code>glyph_symbol</code> takes the <code>module::name</code> a diagnostic
+        already printed, or a position in a file, and answers with a record's fields and their
+        types, a union's variants with their payloads <em>and the syntax that constructs each</em>,
+        a callable's parameters and return, an interface's members, and whether a
+        <code>match</code> over it must be exhaustive.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          An agent asked to handle a new case in a union it didn't declare has to know what the
+          variants carry. Reading the declaration means finding the file first. Symbol search used
+          to give it a name and a byte range, and a variant listing used to give it
+          <code>["Pending", "Paid", "Cancelled"]</code>. From that an agent writes
+          <code>Paid("tx_1")</code>, which is not the shape, and finds out from a diagnostic. The
+          compiler had the payload the whole time. The tool dropped it one line before the reply.
+        </p>
+        <p>
+          That's the pattern the agent surface was built to remove: facts the compiler already
+          computes and memoizes, that no tool hands over. An audit of a three-module project found
+          hover answering two of fourteen positions and every union arriving without its payloads.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>.
+          Asked from <code>main.glyph</code>, which doesn't import it:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
+<pre>{
+  "entity": "orders::OrderStatus",
+  "kind": "union",
+  "pub": true,
+  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+  "exhaustive_match": true,
+  "variants": [
+    { "name": "Pending",   "payload": null, "construct": "Pending",
+      "payload_absent": "`Pending` is declared with no payload." },
+    { "name": "Paid",      "payload": "{ transaction_id: string }",
+      "construct": "Paid({ transaction_id: string })" },
+    { "name": "Cancelled", "payload": null, "construct": "Cancelled",
+      "payload_absent": "`Cancelled` is declared with no payload." }
+  ],
+  "fields": null,
+  "fields_absent": "`orders::OrderStatus` is a union and declares no record fields.",
+  "path": "src/orders.glyph",
+  "range": { "start": { "line": 2, "character": 4 },
+             "end":   { "line": 5, "character": 13 } },
+  "origin": "glyph",
+  "origin_detail": "`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
+    module this project holds, and the compiler parsed and resolved that declaration"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>,
+          <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>,
+          <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null
+          only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never
+          has to guess whether a missing answer means the symbol has none or the tool didn't look.
+          An unannotated <code>const</code> reports no type on that rule: the checker deliberately
+          doesn't infer a declaration's type from its initializer, so printing the initializer's
+          type would tell a caller that uses of the name are checked against something that checks
+          nothing.
+        </p>
+
+        <p class="block-label">The second question an agent asks</p>
+        <p>
+          Having the shape, the next thing it wants to know is whether the value it holds can go
+          where it's about to put it. <code>glyph_assignable</code> asks the checker's own
+          comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the
+          scope of the file you name, and the verdict says which of three things happened.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
+<pre>{
+  "verdict": "WILL_FAIL",
+  "because": "the checker's own comparison
+    refuses a `Nullable&lt;number&gt;` value where a
+    `number` is declared, so every site that
+    writes this pairing is a diagnostic",
+  "diagnostics": [
+    { "code": "E0204",
+      "at": "an annotated `let` or `const`,
+             and a `return`" },
+    { "code": "E0211", "at": "a call argument" }
+  ],
+  "from": { "asked": "Nullable&lt;int&gt;",
+            "form": "spelling",
+            "read_as": "Nullable&lt;number&gt;" },
+  "to":   { "asked": "int", "form": "spelling",
+            "read_as": "number" }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
+<pre>{
+  "verdict": "COMPATIBLE",
+  "because": "two generic applications are
+    compared by arity, by base and by argument,
+    and every one of those pairings is itself
+    accepted, so the checker accepts a
+    `Option&lt;number&gt;` value where a
+    `Option&lt;number&gt;` is declared. This is a rule
+    accepting rather than a rule staying silent",
+  "diagnostics": null,
+  "diagnostics_absent": "the checker refuses
+    nothing for this pairing, so no code is
+    raised for it anywhere"
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a
+          sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular
+          site stays correct after a particular edit. This answer is about two types with no site
+          and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed
+          whenever no rule covers the pairing: two function types come back that way, because the
+          relation underneath compares the returns and says nothing about the parameters. Its
+          silence there is not an acceptance, and the tool won't report it as one.
+        </p>
+
+        <p class="block-label">Nine tools, and no client required</p>
+        <p>
+          <code>glyph mcp</code> serves nine: <code>glyph_symbol</code>,
+          <code>glyph_impact</code>, <code>glyph_assignable</code>,
+          <code>glyph_diagnostics</code>, <code>glyph_hover</code>,
+          <code>glyph_definition</code>, <code>glyph_references</code>,
+          <code>glyph_variants</code> and <code>glyph_symbols</code>. Each has a
+          <code>glyph query</code> verb taking the same arguments as flags and printing the same
+          JSON, routed through the same entry point a client reaches, so an agent that only runs
+          shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file
+          inside its project and returns the diagnostic <code>glyph check --json</code> prints, from
+          the same Rust type, with a test that runs both surfaces on six projects and compares the
+          JSON key for key. Full details on the <a href="/mcp/">MCP page</a>.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Nine read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. Hover answers at declaration names, parameters, annotations, variants and a binding's definition site, thirteen of the fourteen positions an audit probed on a three-module project, against two before. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Where it stops</p>
+          <p>Nothing here writes: no rename, no applied edit. <code>glyph_dependencies</code> and <code>glyph_exports</code> aren't built, so an import graph still comes out of the files. Hover on a field read from a record imported from another module answers null; the checker types that access, so a wrong assignment there is still an error, but the hover surface can't see it. <code>glyph_impact</code>'s signature-type table still says the checker has no rule for a container argument against a container parameter, while <code>glyph_assignable</code> decides that pairing, and two tools disagreeing about one fact makes both worth less. <code>glyph_diagnostics</code> runs neither <code>tsc</code> nor the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>; it names both in <code>not_run</code> instead of answering as though it had.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/impact/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can the compiler tell me what a change will break before I make it?</span>
+        </a>
+        <a href="/answers/debugging/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">When it breaks in production at 3am, what does on-call see?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/ask-the-compiler/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -9237,5 +9237,19 @@ and is the owner's to confirm.
   assignability tool reads. Found while closing G221; the sentence was false
   before 0.1.121 as well, when both sides were classified `Other`.
 
+  A second shape falls to the same final arm: two structural records. With
+  `pub fn takes_rec(r: { a: string })` called with a `{ a: string, b: int }`,
+  the table says "the checker has no rule comparing a `{ a: string, b: number }`
+  argument against a `{ a: string }` parameter" while `glyph_assignable` on the
+  same pairing answers `COMPATIBLE`, and the checker refuses the narrowing
+  direction outright: the same call with the parameter `{ a: string, b: int }`
+  and the argument `{ a: string }` is `E0211` under `check --no-tsc`. So the
+  disagreement here is not only with the other tool but with a diagnostic the
+  compiler raises. `signature_type_cell` has no `(Structural, Other)` arm.
+  Closing this entry means both shapes; a fix for the container pairing alone
+  leaves the two tools disagreeing.
+
   *Reproduced against 0.1.120 with the 0.1.121 tree at `b0d33f6` on a two-module project: `glyph query impact --entity lib::f --change change_signature_type` gives the argument entry above verbatim; `glyph query assignable --from 'Option<int>' --to 'Nullable<int>'` on the same tree is `WILL_FAIL`.*
+
+  *The record shape reproduced against the 0.1.121 tree at `92def97` on a one-module project: `glyph query impact --entity main::takes_rec --change change_signature_type` gives `UNDETERMINED` with the `because` above, `glyph query assignable --from '{ a: string, b: int }' --to '{ a: string }'` gives `COMPATIBLE`, and `glyph check --no-tsc --no-test` on the narrowing direction gives `[E0211] argument type mismatch: expected \`record\`, found \`record\``.*
 

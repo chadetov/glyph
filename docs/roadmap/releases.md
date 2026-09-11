@@ -7899,6 +7899,66 @@ iterations did not land) plus two emit/typecheck fixes:
   record-payload bind in 0.1.21); the recurring root cause is a candidate for a
   proper imported-union type-resolution pass.
 
+### The gate between 0.1.x and 0.2.0: the agent accuracy benchmark
+
+The 0.1.x line does not become 0.2.0 on a feature. It becomes 0.2.0 when the
+manifesto's central claim has been measured, on a controlled experiment, and the
+result is published whichever way it comes out. Decided 2026-09-11, after
+0.1.121 shipped the first of the three agent-surface priorities: the remaining
+0.1.x items are the ones the experiment depends on, so they finish first, and
+the experiment runs once, against one pinned release, when they have.
+
+The experiment, in the form it has to take to count:
+
+- **Two agents, one model, one prompt.** A TypeScript agent with `tsc --strict`,
+  an editor's language server, grep and file reading; a Glyph agent with the
+  compiler, the nine MCP queries and `glyph query`. The tooling is the only
+  intended difference. Neither agent is told where anything is.
+- **One codebase, written twice.** A realistic multi-module program of 50 to
+  150 files and 10k to 30k lines, with records, unions, imported unions,
+  aliases, interfaces, `Option`, `Nullable`, JSON boundaries, an opaque
+  TypeScript dependency and deliberately non-obvious dependencies. The
+  TypeScript side is idiomatic TypeScript written by hand, not our emitter's
+  output, and a shared black-box conformance corpus proves the two programs
+  equivalent before any task is written.
+- **At least 30 tasks in ten categories** (change propagation, signature
+  changes, type changes, union payload changes, aliases, cross-module
+  refactoring, bug diagnosis, JSON boundary changes, interface changes, dead
+  code), three difficulty levels, at least ten at the deepest, plus a set where
+  `tsc --strict` accepts the program and Glyph rejects it. Four flagships: add
+  a variant to a union the codebase matches on everywhere; change the signature
+  at the end of a call chain; rename a variant whose name text search finds in
+  the wrong places; fix a bug tsc cannot see.
+- **The oracle exists before the first run.** Per task, a hand-written list of
+  the sites that must change, a reference patch per side, and hidden black-box
+  tests the agents never see. Missed sites, incorrect edits and unnecessary
+  edits are computed by diffing an agent's patch against that oracle, by an
+  evaluator that does not know which agent produced it.
+- **Repeated runs and paired statistics.** Every task runs several times per
+  agent (the plan says five; 300 runs), from a clean checkout each time, with
+  full transcripts, tool calls and compiler output stored. The report gives
+  pass rate, missed sites, incorrect edits, repair iterations and time to green
+  with means, quantiles, a paired test and confidence intervals. Query counts
+  and token counts are diagnostic, never the headline.
+- **The failures are published**, in both directions, with the transcript and
+  the patch. If TypeScript wins, that is the finding and it goes out.
+
+What comes first, and why the gate waits on it: 0.1.122 (diagnostics as a
+repair protocol, `glyph_dependencies` and `glyph_exports`, G227 and G228) and
+0.1.123 (the knowledge surface generated from the compiler) are the rest of
+the agent surface the Glyph side runs on, and the ledger's open verifiability
+entries are the holes the runs would otherwise find first. Running the
+experiment on a surface that is still moving would measure the wrong release.
+
+What the gate does not decide: the model both agents run on, the harness, the
+domain of the twin codebase and the budget. Those are set when the run is
+scheduled, and the 0.3.0 study below folds into this one.
+
+*Done:* the report exists, with its raw dataset, against a named 0.1.x
+release, and answers with data whether an agent that can ask the compiler
+makes fewer wrong engineering decisions than one relying on text search and
+`tsc`. Then 0.2.0.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge/main.glyph`) is not enough to bet a project
@@ -7913,9 +7973,10 @@ by a database and one a real React app.
 
 ### Settle the productivity claim (milestone 0.3.0)
 
-- **One honest agent study** (M): the same task, N trials, Glyph vs TypeScript,
-  tracking correctness, tries-to-green, and review time. Either it backs the
-  manifesto's claim, or the claim stays a hypothesis and the copy says so.
+- **One honest agent study** (M): folded into the agent accuracy benchmark
+  above, which is now the gate to 0.2.0 rather than a 0.3.0 milestone. Either it
+  backs the manifesto's claim, or the claim stays a hypothesis and the copy
+  says so.
 
 ### 1.0 gate
 

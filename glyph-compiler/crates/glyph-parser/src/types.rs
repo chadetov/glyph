@@ -253,8 +253,10 @@ fn parse_generic_args(
     base: TypeExpr,
     start: u32,
 ) -> Result<TypeExpr, ParseError> {
-    p.expect(&Token::LAngle, "`<`")?;
-    let args = p.parse_comma_separated(&Token::RAngle, false, parse_type)?;
+    let open = p.expect(&Token::LAngle, "`<`")?;
+    let args = p.nested("generic type argument list", open, |p| {
+        p.parse_comma_separated(&Token::RAngle, false, parse_type)
+    })?;
     let end_span = p.expect(&Token::RAngle, "`>`")?;
     Ok(TypeExpr::Generic {
         base: Box::new(base),
@@ -265,7 +267,8 @@ fn parse_generic_args(
 
 fn parse_record_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     let open = p.expect(&Token::LBrace, "`{`")?;
-    let fields = p.parse_comma_separated(&Token::RBrace, true, |p| {
+    let fields = p.nested("record type", open, |p| {
+      p.parse_comma_separated(&Token::RBrace, true, |p| {
         let field_start = p.peek_span();
         let (name, _) = p.expect_field_name("record field name")?;
         let optional = matches!(p.peek(), Token::Question);
@@ -281,6 +284,7 @@ fn parse_record_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
             optional,
             span: Span::new(field_start.start, end),
         })
+      })
     })?;
     let close = p.expect(&Token::RBrace, "`}`")?;
     Ok(TypeExpr::Record {
@@ -303,9 +307,10 @@ fn parse_fn_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     };
     let fn_kw = p.expect(&Token::Fn, "`fn`")?;
     let start = if is_async { start } else { fn_kw };
-    p.expect(&Token::LParen, "`(` after `fn` in type")?;
+    let lparen = p.expect(&Token::LParen, "`(` after `fn` in type")?;
     // Each param is `name: T` or bare `T`. Decided by lookahead at `peek_at(1)`.
-    let params = p.parse_comma_separated(&Token::RParen, false, |p| {
+    let params = p.nested("function type", lparen, |p| {
+      p.parse_comma_separated(&Token::RParen, false, |p| {
         let param_start = p.peek_span();
         let (name, ty) = if matches!(p.peek_at(1), Some(Token::Colon)) {
             let (n, _) = p.expect_ident("parameter name in fn type")?;
@@ -320,11 +325,13 @@ fn parse_fn_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
             ty,
             span: Span::new(param_start.start, end),
         })
+      })
     })?;
     let close = p.expect(&Token::RParen, "`)`")?;
     let (return_ty, end) = if matches!(p.peek(), Token::Arrow) {
+        let arrow = p.peek_span();
         p.advance();
-        let t = parse_type(p)?;
+        let t = p.nested("function type return", arrow, parse_type)?;
         let e = t.span().end;
         (Some(Box::new(t)), e)
     } else {
@@ -414,8 +421,9 @@ fn parse_variant(p: &mut Cursor) -> Result<UnionVariant, ParseError> {
 /// the rejection an arity check: it can say how many fields it found and point
 /// at the form that carries them.
 fn parse_variant_payload(p: &mut Cursor, name: &str) -> Result<(TypeExpr, Span), ParseError> {
+    let open = p.peek_span();
     p.advance(); // `(`
-    let first = parse_type(p)?;
+    let first = p.nested("union variant payload", open, parse_type)?;
     // A comma directly before `)` is a stray separator on a one-field payload,
     // not a tuple; leave it to the token-level error below.
     if matches!(p.peek(), Token::Comma) && !matches!(p.peek_at(1), Some(Token::RParen)) {

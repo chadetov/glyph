@@ -178,7 +178,8 @@ fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
 
 fn parse_object_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
     let open = p.expect(&Token::LBrace, "`{`")?;
-    let fields = p.parse_comma_separated(&Token::RBrace, false, |p| {
+    let fields = p.nested("object pattern", open, |p| {
+      p.parse_comma_separated(&Token::RBrace, false, |p| {
         let key_span = p.peek_span();
         let (key, _) = p.expect_field_name("field name in object pattern")?;
         let pattern = if matches!(p.peek(), Token::Colon) {
@@ -193,6 +194,7 @@ fn parse_object_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
             pattern,
             span: Span::new(key_span.start, end),
         })
+      })
     })?;
     let close = p.expect(&Token::RBrace, "`}`")?;
     Ok(Pattern::Object {
@@ -239,9 +241,9 @@ fn parse_field_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
 /// not exist. E0300 still covers what it honestly covers: a single payload
 /// sub-pattern the emitter cannot lower yet.
 fn parse_constructor_args(p: &mut Cursor, name: &str) -> Result<(Vec<Pattern>, u32), ParseError> {
-    p.expect(&Token::LParen, "`(`")?;
-    let args = p.parse_comma_separated(&Token::RParen, false, |p| {
-        parse_pattern(p)
+    let open = p.expect(&Token::LParen, "`(`")?;
+    let args = p.nested("constructor pattern", open, |p| {
+        p.parse_comma_separated(&Token::RParen, false, parse_pattern)
     })?;
     let close = p.expect(&Token::RParen, "`)`")?;
     if args.len() > 1 {
@@ -266,6 +268,22 @@ fn parse_constructor_args(p: &mut Cursor, name: &str) -> Result<(Vec<Pattern>, u
 /// - `[other, ..._]`                (binding first + rest discard)
 fn parse_array_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
     let open = p.expect(&Token::LBracket, "`[`")?;
+    let (elements, rest) = p.nested("array pattern", open, parse_array_pattern_elements)?;
+    let close = p.expect(&Token::RBracket, "`]`")?;
+    Ok(Pattern::Array {
+        elements,
+        rest,
+        span: Span::new(open.start, close.end),
+    })
+}
+
+/// The elements and optional rest of an array pattern, with the `[` already
+/// consumed and the `]` left for the caller. Split out so the whole element
+/// list is read one nesting level deeper in a single `nested` call.
+#[allow(clippy::type_complexity)]
+fn parse_array_pattern_elements(
+    p: &mut Cursor,
+) -> Result<(Vec<Pattern>, Option<Box<Pattern>>), ParseError> {
     let mut elements = Vec::new();
     let mut rest: Option<Box<Pattern>> = None;
 
@@ -295,10 +313,5 @@ fn parse_array_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
             break;
         }
     }
-    let close = p.expect(&Token::RBracket, "`]`")?;
-    Ok(Pattern::Array {
-        elements,
-        rest,
-        span: Span::new(open.start, close.end),
-    })
+    Ok((elements, rest))
 }

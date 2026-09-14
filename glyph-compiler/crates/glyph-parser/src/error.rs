@@ -88,6 +88,25 @@ pub enum ParseError {
         count: usize,
         span: Span,
     },
+
+    /// A construct nested past `MAX_NESTING_DEPTH`. The parser is recursive
+    /// descent, so without this the input decides how much stack the process
+    /// uses and a deep enough file ends it with `fatal runtime error: stack
+    /// overflow` (G229) — no span, no code, no recovery, and for `glyph lsp`
+    /// and `glyph mcp`, which read every file under the root, the whole
+    /// workspace's server gone with it. An abort is the one failure mode a
+    /// diagnostic cannot be written about afterwards, so the parser stops
+    /// descending and reports instead.
+    ///
+    /// `construct` is what the parser was about to enter and `span` is the
+    /// token that would have opened the level it refused, so the error points
+    /// at the exact place the limit is crossed rather than at the whole file.
+    #[error("this {construct} nests deeper than the parser's limit of {limit} levels")]
+    NestingTooDeep {
+        construct: &'static str,
+        limit: u32,
+        span: Span,
+    },
 }
 
 impl ParseError {
@@ -102,7 +121,8 @@ impl ParseError {
             | ParseError::UnsupportedRangePattern { span }
             | ParseError::MissingMutOnAssignment { span }
             | ParseError::MultiFieldVariantPayload { span, .. }
-            | ParseError::PositionalVariantPattern { span, .. } => *span,
+            | ParseError::PositionalVariantPattern { span, .. }
+            | ParseError::NestingTooDeep { span, .. } => *span,
         }
     }
 
@@ -124,6 +144,7 @@ impl ParseError {
             // reader who looked up E0010 for one has already read the answer
             // for the other.
             ParseError::PositionalVariantPattern { .. } => "E0010",
+            ParseError::NestingTooDeep { .. } => "E0011",
         }
     }
 
@@ -183,6 +204,9 @@ impl ParseError {
                     "Glyph has no tuple payload. The payload is one record, so destructure it by field name: `{name}({{ {record} }})`."
                 ))
             }
+            ParseError::NestingTooDeep { limit, .. } => Cow::Owned(format!(
+                "Name the inner levels: pull them out into `let` bindings, or into a `fn` that returns one of them, so no single expression, type or pattern is more than {limit} levels deep. Hand-written Glyph does not come close to {limit}; an input that does was generated, and the parser stops there rather than running the process out of stack."
+            )),
         })
     }
 }

@@ -122,6 +122,11 @@ enum Command {
         /// instead of human-readable text. Includes remapped `tsc` errors.
         #[arg(long)]
         json: bool,
+        /// The `--json` object, plus per diagnostic the repair constraints an
+        /// edit must keep and the `glyph_symbol` description of every symbol
+        /// the diagnostic names. Implies `--json`.
+        #[arg(long)]
+        agent: bool,
     },
     /// Build then run a Glyph program via node.
     ///
@@ -495,8 +500,9 @@ fn main() {
                 std::process::exit(run_build_once(&src, &out, no_tsc, no_check, no_test, json));
             }
         }
-        Some(Command::Check { path, no_test, no_tsc, json }) => {
+        Some(Command::Check { path, no_test, no_tsc, json, agent }) => {
             use std::io::IsTerminal;
+            let json = json || agent;
             let with_color = !json && std::io::stderr().is_terminal();
             let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
             match glyph_cli::check::check_path(&target, with_color, !no_tsc) {
@@ -522,7 +528,7 @@ fn main() {
                                 Err(e) => ExamplesOutcome::Failed(e.to_string()),
                             }
                         };
-                        emit_check_json(&report, &examples);
+                        emit_check_json(&report, &examples, agent);
                     }
                     for notice in &report.notices {
                         eprintln!("glyph check: {notice}");
@@ -1428,17 +1434,30 @@ fn run_build_watch(
 fn emit_check_json(
     report: &glyph_cli::check::CheckReport,
     examples: &ExamplesOutcome,
+    agent: bool,
 ) -> ! {
     let (examples_json, example_errors) = examples_to_json(examples);
     let errors = report.error_count + example_errors;
     let tsc_unavailable = matches!(report.tsc, glyph_cli::runtime::TscOutcome::NotFound);
     let ok = errors == 0 && !tsc_unavailable;
+    // `--agent` adds two keys per diagnostic and changes nothing else, so the
+    // object a `--json` reader parses is the object it already parses. Each
+    // added key is always present, empty when the compiler holds nothing to
+    // put there, so a caller reads it the same way on every diagnostic.
+    let diagnostics = if agent {
+        serde_json::json!(glyph_cli::agent::enrich(
+            &report.structured,
+            &report.project_srcs
+        ))
+    } else {
+        serde_json::json!(report.structured)
+    };
     let value = serde_json::json!({
         "ok": ok,
         "errors": errors,
         "warnings": report.warning_count(),
         "tsc": report.tsc_status(),
-        "diagnostics": report.structured,
+        "diagnostics": diagnostics,
         "examples": examples_json,
     });
     println!(

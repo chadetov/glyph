@@ -29,7 +29,7 @@ use crate::ty::{
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
-use crate::{DiagnosticUnion, TypeError};
+use crate::{DiagnosticDecl, TypeError};
 
 /// How the innermost enclosing callable's declared return type relates to
 /// the `?` operator's requirement (D + week-3 task 2). Pushed onto
@@ -473,7 +473,7 @@ impl From<&UnionRef> for CoverageTypeName {
     }
 }
 
-impl From<&UnionRef> for DiagnosticUnion {
+impl From<&UnionRef> for DiagnosticDecl {
     /// The diagnostic view of the same union resolution the coverage edge is
     /// keyed by, derived rather than resolved a second time for the reason
     /// given on `CoverageTypeName`'s conversion above.
@@ -485,14 +485,14 @@ impl From<&UnionRef> for DiagnosticUnion {
     /// its `entity` is already counted from.
     fn from(union: &UnionRef) -> Self {
         match union {
-            UnionRef::Local { name, .. } => DiagnosticUnion::Local {
+            UnionRef::Local { name, .. } => DiagnosticDecl::Local {
                 name: name.clone(),
             },
-            UnionRef::Imported { module, name } => DiagnosticUnion::Imported {
+            UnionRef::Imported { module, name } => DiagnosticDecl::Imported {
                 module: module.clone(),
                 name: name.clone(),
             },
-            UnionRef::Builtin { name } => DiagnosticUnion::Builtin {
+            UnionRef::Builtin { name } => DiagnosticDecl::Builtin {
                 name: name.clone(),
             },
         }
@@ -506,17 +506,17 @@ impl From<&UnionRef> for DiagnosticUnion {
 /// the string-literal checker resolves its union once, and both the edge it
 /// writes and the error it raises are derived from that one answer instead of
 /// walking the type a second time.
-fn coverage_name(union: &DiagnosticUnion, own_module: &str) -> CoverageTypeName {
+fn coverage_name(union: &DiagnosticDecl, own_module: &str) -> CoverageTypeName {
     match union {
-        DiagnosticUnion::Local { name } => CoverageTypeName::Declared {
+        DiagnosticDecl::Local { name } => CoverageTypeName::Declared {
             module: own_module.to_string(),
             name: name.clone(),
         },
-        DiagnosticUnion::Imported { module, name } => CoverageTypeName::Declared {
+        DiagnosticDecl::Imported { module, name } => CoverageTypeName::Declared {
             module: module.clone(),
             name: name.clone(),
         },
-        DiagnosticUnion::Builtin { name } => CoverageTypeName::Builtin { name: name.clone() },
+        DiagnosticDecl::Builtin { name } => CoverageTypeName::Builtin { name: name.clone() },
     }
 }
 
@@ -3719,15 +3719,15 @@ impl Assigner<'_> {
     ///
     /// Answers in the diagnostic view because that is the one that keeps local
     /// and imported apart; `coverage_name` derives the edge's key from it.
-    fn string_literal_union_ref(&self, ty: &Ty) -> Option<DiagnosticUnion> {
+    fn string_literal_union_ref(&self, ty: &Ty) -> Option<DiagnosticDecl> {
         match ty {
-            Ty::Imported { module, name } => Some(DiagnosticUnion::Imported {
+            Ty::Imported { module, name } => Some(DiagnosticDecl::Imported {
                 module: module.as_str().to_string(),
                 name: name.to_string(),
             }),
             Ty::Named { symbol, .. } => {
                 let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
-                Some(DiagnosticUnion::Local {
+                Some(DiagnosticDecl::Local {
                     name: sym.name.to_string(),
                 })
             }
@@ -3767,12 +3767,12 @@ impl Assigner<'_> {
     ///
     /// `None` for a field set with no declaration behind it, which is absence
     /// of an address rather than a failure to look.
-    fn field_owner_decl(&self, owner: &FieldOwner) -> Option<DiagnosticUnion> {
+    fn field_owner_decl(&self, owner: &FieldOwner) -> Option<DiagnosticDecl> {
         match owner {
             FieldOwner::Declared { module, name } if *module == self.own_module_key() => {
-                Some(DiagnosticUnion::Local { name: name.clone() })
+                Some(DiagnosticDecl::Local { name: name.clone() })
             }
-            FieldOwner::Declared { module, name } => Some(DiagnosticUnion::Imported {
+            FieldOwner::Declared { module, name } => Some(DiagnosticDecl::Imported {
                 module: module.clone(),
                 name: name.clone(),
             }),
@@ -4251,7 +4251,7 @@ impl Assigner<'_> {
                     .map(|v| format!("`{v}`"))
                     .collect::<Vec<_>>()
                     .join(", "),
-                union: Some(DiagnosticUnion::Imported {
+                union: Some(DiagnosticDecl::Imported {
                     module: module.as_str().to_string(),
                     name: type_name.to_string(),
                 }),
@@ -4829,7 +4829,7 @@ impl Assigner<'_> {
         self.errors.push(TypeError::NonExhaustiveMatch {
             type_name,
             missing: missing_str,
-            union: Some(DiagnosticUnion::from(&union)),
+            union: Some(DiagnosticDecl::from(&union)),
             missing_variants: missing.iter().map(|n| n.to_string()).collect(),
             variants: variants.iter().map(|v| v.to_string()).collect(),
             span: match_span,
@@ -13269,7 +13269,7 @@ fn run(s: S) -> string {
             .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
         assert_eq!(
             e.union(),
-            Some(&DiagnosticUnion::Local {
+            Some(&DiagnosticDecl::Local {
                 name: "PaymentResult".to_string()
             }),
             "errs: {errs:?}"
@@ -13306,7 +13306,7 @@ fn f(a: Answer) -> number {
             .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
         assert_eq!(
             e.union(),
-            Some(&DiagnosticUnion::Imported {
+            Some(&DiagnosticDecl::Imported {
                 module: "model".to_string(),
                 name: "Answer".to_string(),
             }),
@@ -13332,7 +13332,7 @@ fn f(a: Answer) -> number {
             .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
         assert_eq!(
             e.union(),
-            Some(&DiagnosticUnion::Builtin {
+            Some(&DiagnosticDecl::Builtin {
                 name: "Result".to_string()
             }),
             "errs: {errs:?}"
@@ -13358,7 +13358,7 @@ fn f(a: Answer) -> number {
             .unwrap_or_else(|| panic!("expected E0200: {errs:?}"));
         assert_eq!(
             e.union(),
-            Some(&DiagnosticUnion::Local {
+            Some(&DiagnosticDecl::Local {
                 name: "Tier".to_string()
             }),
             "errs: {errs:?}"

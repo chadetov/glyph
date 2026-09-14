@@ -1,0 +1,7 @@
+module unparsed
+
+// This file does not parse, so its export surface was never computed. The
+// answer says so rather than reporting an empty list, which would mean the
+// module exports nothing.
+pub fn f() -> number {
+  return 1

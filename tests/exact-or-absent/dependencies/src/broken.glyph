@@ -1,0 +1,9 @@
+module broken
+
+import lib { Row }
+
+// This file does not parse. Nothing in it is keyed, so `broken::helper` is
+// an entity no answer can be about, and an edge into it from a file that
+// does parse cannot be reported as proved.
+pub fn helper(r: Row) -> string {
+  return r.id

@@ -1,0 +1,12 @@
+module lib
+
+// The declaration every edge below points at. It parses, so an edge into it
+// is one the compiler established.
+pub type Row = {
+  id: string,
+}
+
+pub fn make(id: string) -> Row {
+  let r: Row = { id: id }
+  return r
+}

@@ -298,8 +298,9 @@ fn bare_primitive_union(variants: &[glyph_ast::UnionVariant]) -> Option<String> 
 
 fn path_is_relative(path: &glyph_ast::ModulePath) -> bool {
     // D15 forbids relative imports. Any segment that's `.` or `..` flags it.
-    // The parser currently accepts those as identifiers; if dogfooding shows
-    // a case the parser already rejects, this check is harmless redundancy.
+    // The leading `./` and `../` spellings never reach here: the parser raises
+    // the same code at the import site (G223). This stays for a `.` segment
+    // deeper in a path, and is harmless where the parser is first.
     path.segments
         .iter()
         .any(|s| s.as_ref() == "." || s.as_ref() == "..")

@@ -38,7 +38,7 @@ mod stmt;
 mod types;
 
 pub use cursor::MAX_NESTING_DEPTH;
-pub use error::ParseError;
+pub use error::{ParseError, RELATIVE_IMPORT_HELP};
 
 use glyph_ast::Module;
 use glyph_lexer::{tokenize, Span};
@@ -1909,6 +1909,81 @@ component C() -> Component {
                 assert_eq!(f.annotations[0].raw_args, "f([\n  1, // keep me\n]) == 2");
             }
             other => panic!("expected Fn, got {other:?}"),
+        }
+    }
+
+    /// G223. `import ./helper` used to stop as E0002 ("expected module path
+    /// segment, found Dot") with the generic "add the expected token" help, so
+    /// the E0101 text naming the three true import spellings was reached by no
+    /// program. The parser owns the leading `./` and `../` now, under the
+    /// resolver's own code and with the resolver's own help.
+    #[test]
+    fn a_leading_dot_slash_import_is_e0101() {
+        let err = parse("module x\nimport ./helper\n").expect_err("relative import is refused");
+        assert_eq!(err.code(), "E0101");
+        let ParseError::RelativeImport { prefix, span } = &err else {
+            panic!("expected RelativeImport, got {err:?}");
+        };
+        assert_eq!(prefix, "./");
+        // The span covers the prefix the author wrote, not the whole import.
+        let src = "module x\nimport ./helper\n";
+        assert_eq!(&src[span.start as usize..span.end as usize], "./");
+        let help = err.help().expect("E0101 carries help");
+        assert!(help.contains("`import std/io`"), "{help}");
+        assert!(help.contains("`import helper`"), "{help}");
+        assert!(help.contains("`import queries/report`"), "{help}");
+        assert!(help.contains("D15"), "{help}");
+    }
+
+    #[test]
+    fn a_leading_dot_dot_slash_import_is_e0101() {
+        let src = "module x\nimport ../helper\n";
+        let err = parse(src).expect_err("relative import is refused");
+        assert_eq!(err.code(), "E0101");
+        let ParseError::RelativeImport { prefix, span } = &err else {
+            panic!("expected RelativeImport, got {err:?}");
+        };
+        assert_eq!(prefix, "../");
+        assert_eq!(&src[span.start as usize..span.end as usize], "../");
+    }
+
+    /// A relative path with more than one segment after the prefix is the same
+    /// error at the same place: the prefix is what is wrong, not the rest.
+    #[test]
+    fn a_relative_import_of_a_subdirectory_path_is_e0101() {
+        let src = "module x\nimport ./a/b\n";
+        let err = parse(src).expect_err("relative import is refused");
+        assert_eq!(err.code(), "E0101");
+        let ParseError::RelativeImport { prefix, .. } = &err else {
+            panic!("expected RelativeImport, got {err:?}");
+        };
+        assert_eq!(prefix, "./");
+    }
+
+    /// A repeated prefix is one error over the whole run, not one per hop.
+    #[test]
+    fn a_doubled_parent_prefix_is_one_error_over_the_whole_prefix() {
+        let src = "module x\nimport ../../shared/helper\n";
+        let err = parse(src).expect_err("relative import is refused");
+        let ParseError::RelativeImport { prefix, span } = &err else {
+            panic!("expected RelativeImport, got {err:?}");
+        };
+        assert_eq!(prefix, "../../");
+        assert_eq!(&src[span.start as usize..span.end as usize], "../../");
+    }
+
+    /// The three legal spellings are untouched: the check fires on a leading
+    /// `.` and on nothing else.
+    #[test]
+    fn the_true_import_spellings_still_parse() {
+        for src in [
+            "module x\nimport std/io\n",
+            "module x\nimport helper\n",
+            "module x\nimport queries/report\n",
+            "module x\nimport helper { h }\n",
+            "module x\nimport @hookform/resolvers/zod { zodResolver }\n",
+        ] {
+            parse(src).unwrap_or_else(|e| panic!("{src:?} must parse, got {e:?}"));
         }
     }
 }

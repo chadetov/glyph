@@ -1544,6 +1544,80 @@ fn a_query_verb_answers_what_its_mcp_tool_answers() {
     assert_eq!(answer["verdict"], json!("WILL_FAIL"), "{answer}");
 }
 
+/// The two verbs 0.1.122 added answer what their tools answer, byte for byte.
+///
+/// Held apart from the case above only because each verb's arguments differ;
+/// the property is the same one, and it is the whole reason the verbs exist.
+#[test]
+fn the_dependency_and_export_verbs_answer_what_their_tools_answer() {
+    let root = unique_tmp("query_verb_g221");
+    std::fs::write(
+        root.join("package.json"),
+        "{\"name\":\"q\",\"private\":true,\"glyph\":{}}",
+    )
+    .expect("write the manifest");
+    std::fs::write(
+        root.join("orders.glyph"),
+        "module orders\n\npub type Order = { id: string }\n\n\
+         pub fn create(id: string) -> Order {\n  return { id: id }\n}\n",
+    )
+    .expect("write orders");
+    std::fs::write(
+        root.join("checkout.glyph"),
+        "module checkout\n\nimport orders { Order, create }\n\n\
+         pub fn open_order(id: string) -> Order {\n  return create(id)\n}\n",
+    )
+    .expect("write checkout");
+
+    let mut mcp = McpProcess::start(&root);
+    mcp.handshake(1);
+    let dependencies = mcp.call_tool_text(
+        2,
+        "glyph_dependencies",
+        json!({ "entity": "checkout::open_order" }),
+    );
+    let exports = mcp.call_tool_text(3, "glyph_exports", json!({ "module": "orders" }));
+    assert_eq!(mcp.finish(), 0);
+
+    let (code, stdout, stderr) =
+        glyph_query(&root, &["dependencies", "--entity", "checkout::open_order"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.trim_end_matches('\n'),
+        dependencies,
+        "`glyph query dependencies` and `glyph_dependencies` answered differently"
+    );
+    let answer: Value = serde_json::from_str(&stdout).expect("the verb prints JSON");
+    assert_eq!(
+        answer["relations"]["CALLS"]["edges"][0]["to"],
+        json!("orders::create"),
+        "{answer}"
+    );
+
+    let (code, stdout, stderr) = glyph_query(&root, &["exports", "--module", "orders"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.trim_end_matches('\n'),
+        exports,
+        "`glyph query exports` and `glyph_exports` answered differently"
+    );
+    let answer: Value = serde_json::from_str(&stdout).expect("the verb prints JSON");
+    let names: Vec<&str> = answer["exports"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{answer}"))
+        .iter()
+        .map(|e| e["name"].as_str().unwrap_or_default())
+        .collect();
+    assert_eq!(names, ["Order", "create"], "{answer}");
+
+    // A module the project does not hold is a refusal on stderr with an exit
+    // code, not an empty list on stdout.
+    let (code, stdout, stderr) = glyph_query(&root, &["exports", "--module", "nowhere"]);
+    assert_eq!(code, 2, "stdout: {stdout}");
+    assert!(stdout.is_empty(), "a refusal wrote to stdout: {stdout}");
+    assert!(stderr.contains("no file of this project is module"), "{stderr}");
+}
+
 /// A `glyph_assignable` spelling naming something that is not a type exits 2
 /// with the reason, the way the `module::name` form already did.
 ///

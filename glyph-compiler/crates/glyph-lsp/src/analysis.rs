@@ -1827,6 +1827,112 @@ pub fn global_relations_in(
     .collect()
 }
 
+/// One outgoing edge of a declaration: where the name sits, which relation it
+/// stands in, and the global identity it names.
+pub struct DependencySpan {
+    pub span: RelatedSpan,
+    /// The module that declares the name, as an `import` spells it.
+    pub module: String,
+    /// The name as that module declares it, which for an aliased import is the
+    /// original rather than the local binding.
+    pub name: String,
+}
+
+/// Every globally-identified symbol the source range `within` of this file
+/// names, with the relation each occurrence stands in.
+///
+/// The inverse of [`global_occurrences_in`], and it reads the same two places
+/// for the same reason. A name brought in by `import m { N }` and a name this
+/// module declares are both in the resolution table, and
+/// [`module_global_of`] turns either into the identity of the module that
+/// declares it. A namespace-qualified `ns.N` is not in that table, because the
+/// one entry recorded for the expression sits on `ns` and points at the
+/// module, so those are read off `qualified_type_refs`. Nothing here scans the
+/// text for a spelling: an occurrence is here because the resolver bound it.
+///
+/// A name the resolver bound to a local binding or to a prelude built-in is
+/// not an edge. Neither has a `module::name` identity, so reporting one would
+/// invent an address rather than report a dependency.
+///
+/// `within` is the declaration's own extent, so an edge is in this list
+/// because it sits inside the declaration being asked about. A recursive call
+/// names the declaration itself and is reported: it is a use of the name like
+/// any other, and dropping it would make the list disagree with
+/// [`global_occurrences_in`] over the same span.
+pub fn global_dependencies_in(
+    module: &Module,
+    resolved: &ResolvedModule,
+    this_module: &str,
+    within: (u32, u32),
+    text: &str,
+) -> Vec<DependencySpan> {
+    let callees = callee_name_spans(module);
+    let inside = |start: u32, end: u32| within.0 <= start && end <= within.1;
+    let mut out: Vec<DependencySpan> = Vec::new();
+    for (span, r) in resolved.resolutions.iter() {
+        if !inside(span.start, span.end) {
+            continue;
+        }
+        let ResolvedRef::Module(id) = r else { continue };
+        let Some((m, n)) = module_global_of(resolved, id, this_module) else {
+            continue;
+        };
+        out.push(DependencySpan {
+            span: RelatedSpan {
+                start: span.start,
+                end: span.end,
+                relation: relation_of(&callees, span.start, span.end),
+            },
+            module: m,
+            name: n,
+        });
+    }
+    for q in &resolved.qualified_type_refs {
+        let Some((start, end)) = qualified_name_span(q, text) else {
+            continue;
+        };
+        if !inside(start, end) {
+            continue;
+        }
+        out.push(DependencySpan {
+            span: RelatedSpan {
+                start,
+                end,
+                relation: relation_of(&callees, start, end),
+            },
+            module: join_segments(&q.module.segments),
+            name: q.name.to_string(),
+        });
+    }
+    out.sort_by_key(|d| (d.span.start, d.span.end));
+    out.dedup_by(|a, b| {
+        a.span.start == b.span.start
+            && a.span.end == b.span.end
+            && a.module == b.module
+            && a.name == b.name
+    });
+    out
+}
+
+/// The extent of one top-level declaration, and of one variant inside a
+/// tagged-union declaration, as the range a dependency walk reads.
+///
+/// A variant is its own entity, so its dependencies are the names its payload
+/// writes rather than the whole union's. `UnionVariant` carries its own span,
+/// which is what makes that range exact rather than a guess at where the
+/// variant ends.
+pub fn declaration_extent(decl: &Decl, variant: Option<&str>) -> (u32, u32) {
+    if let (Some(variant), Decl::Type(t)) = (variant, decl) {
+        if let TypeExpr::Union { variants, .. } = &t.body {
+            if let Some(v) = variants.iter().find(|v| v.name.as_ref() == variant) {
+                return (v.span.start, v.span.end);
+            }
+        }
+    }
+    let span = decl.span();
+    (span.start, span.end)
+}
+
 /// [`references_at`] with each occurrence's relation beside it.
 pub fn relations_at(
     module: &Module,

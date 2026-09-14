@@ -193,7 +193,7 @@ spelling on every code.
 | `cause` | The `module::name` of the symbol at fault, when it is a declaration other than the enclosing one: the record for `E0210`, the union for `E0200` |
 | `expected` | The type this position required, on the codes that compare two types (`E0203`, `E0204`, `E0211`) |
 | `actual` | The type found. Answers for one class more than `expected`: a code that names one offending type and states its requirement in prose (`E0202`, `E0205`, `E0304`) has an `actual` and no `expected` |
-| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields (`E0210`), the union's variants (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
+| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields (`E0210`), the union's variants, or a string-literal union's literals (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
 | `related` | The union's whole variant list, in declaration order (`E0200`) |
 | `union` | The union a `match` diagnostic is over: `kind`, `module`, `name`, `declaration` |
 | `missing_variants` | The variants the match leaves unmentioned, in declaration order |

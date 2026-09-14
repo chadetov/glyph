@@ -1,0 +1,3 @@
+module lib
+
+pub type Mode = "read" | "write"

@@ -1,0 +1,11 @@
+module main
+import lib { Mode }
+
+// The same rule across a module boundary (G230, the way G215 did it for
+// tagged unions): the literal set comes from the declaring module, and a
+// literal outside it is refused here exactly as it would be if `Mode` were
+// declared in this file. Verifiability does not stop at a file edge.
+pub fn main() -> void {
+  let m: Mode = "rw"
+  print(m)
+}

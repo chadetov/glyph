@@ -1343,11 +1343,11 @@ impl Assigner<'_> {
                 if let Some(te) = &c.ty {
                     let expected = self.lowerer.lower(te);
                     let found = self.tm.get(c.value.span()).clone();
-                    if self.assign_incompatible(&found, &expected) {
+                    if let Some(found) = self.value_refusal(&c.value, &found, &expected) {
                         let accepted = self.accepted_values(&expected);
                         self.errors.push(TypeError::TypeMismatch {
                             expected: ty_display(&expected),
-                            found: ty_display(&found),
+                            found,
                             accepted,
                             span: c.value.span(),
                         });
@@ -1523,11 +1523,11 @@ impl Assigner<'_> {
                 // value, not the annotation.
                 if l.ty.is_some() {
                     let found = self.tm.get(l.value.span()).clone();
-                    if self.assign_incompatible(&found, &ty) {
+                    if let Some(found) = self.value_refusal(&l.value, &found, &ty) {
                         let accepted = self.accepted_values(&ty);
                         self.errors.push(TypeError::TypeMismatch {
                             expected: ty_display(&ty),
-                            found: ty_display(&found),
+                            found,
                             accepted,
                             span: l.value.span(),
                         });
@@ -1911,11 +1911,11 @@ impl Assigner<'_> {
                     for (p, a) in params.iter().zip(args.iter()) {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
-                        if self.assign_incompatible(&found, &expected) {
+                        if let Some(found) = self.value_refusal(a, &found, &expected) {
                             let accepted = self.accepted_values(&expected);
                             self.errors.push(TypeError::ArgumentTypeMismatch {
                                 expected: ty_display(&expected),
-                                found: ty_display(&found),
+                                found,
                                 accepted,
                                 span: a.span(),
                             });
@@ -3622,11 +3622,11 @@ impl Assigner<'_> {
             return;
         };
         let found = self.tm.get(value.span()).clone();
-        if self.assign_incompatible(&found, &expected) {
+        if let Some(found) = self.value_refusal(value, &found, &expected) {
             let accepted = self.accepted_values(&expected);
             self.errors.push(TypeError::TypeMismatch {
                 expected: ty_display(&expected),
-                found: ty_display(&found),
+                found,
                 accepted,
                 span: value.span(),
             });
@@ -5578,6 +5578,218 @@ impl Assigner<'_> {
     /// direction, with an empty record excluded), which is the one pairing of
     /// a named type with a primitive the compiler can settle. Everything else
     /// delegates unchanged.
+    /// The whole relation as the four sites that check a written value apply
+    /// it, and the name the refusal gives the value: `assign_incompatible` on
+    /// the two types, plus the two rules that need the expression rather than
+    /// its type (G230). `None` is "not refused".
+    ///
+    /// The `let`, the `const`, the `return` and the call argument all reach
+    /// here and nothing else does, so those two rules are stated once.
+    /// `assign_incompatible` stays the type-to-type relation: it is what the
+    /// recursion through records, applications and containers asks, and what
+    /// [`assignability`] answers for a surface holding two `Ty` values and no
+    /// program text.
+    fn value_refusal(&self, value: &Expr, found: &Ty, expected: &Ty) -> Option<String> {
+        let read = self.written_ty(value, found, expected);
+        if self.assign_incompatible(&read, expected) {
+            return Some(ty_display(&read));
+        }
+        // The walk records `Ty::Unknown` for an object literal, so the type
+        // would name the value nothing. The written form is what the reader
+        // sees, and it is what the rule read.
+        if self.object_literal_outside_union(value, expected) {
+            return Some("record".to_string());
+        }
+        None
+    }
+
+    /// The type the relation reads for a written value: the type the walk
+    /// recorded, except for a string literal written where a string-literal
+    /// union is declared, which is the one-literal union it spells (G230).
+    ///
+    /// Glyph types every string literal `string` (D30: the literal set rides
+    /// on the declaration, not on the value), so `"read"` and a `string`-typed
+    /// identifier arrive at `assign_incompatible` as the same `Ty`. The two
+    /// are not the same value where `Mode` is declared: one is correct and the
+    /// other is `TS2322`. The text is right here at all four sites, so the
+    /// literal is handed to the relation as what it is and every
+    /// string-literal-union rule then reads it: `"read"` is a subset of
+    /// `Mode`'s set and is accepted, `"rw"` is not and is refused with the
+    /// accepted set beside it.
+    ///
+    /// Narrow on purpose, in three ways. Only where the declared type is a
+    /// string-literal union, so no other diagnostic starts naming a literal
+    /// where it named `string`. Only a literal whose recorded type really is
+    /// `string`, so nothing overrides a type the walk decided some other way.
+    /// And only `Expr::String`: a template string is `string` under `tsc` too,
+    /// and nothing here has read a literal out of one.
+    fn written_ty(&self, value: &Expr, found: &Ty, expected: &Ty) -> Ty {
+        if !matches!(found, Ty::Prim(Primitive::String)) {
+            return found.clone();
+        }
+        if !self.declares_string_literal_union(expected) {
+            return found.clone();
+        }
+        match value {
+            Expr::String { value: text, .. } => Ty::StringLiteralUnion(vec![text.clone()]),
+            // A `match` in value position is where the walk's own join loses
+            // the literals: every arm of `match name { "sum" => "sum", ... }`
+            // is a `string`, so the join is `string`, and `csvql`'s `fn
+            // agg_of(name: string) -> Agg` is a correct program `tsc` compiles.
+            // Read the arms when they can be read, and answer `Unknown` when
+            // they cannot, which leaves the pairing undetermined rather than
+            // refusing a `string` that may not be a bare one.
+            Expr::Match { arms, .. } => match self.match_arm_literals(arms) {
+                Some(values) => Ty::StringLiteralUnion(values),
+                None => Ty::Unknown,
+            },
+            _ => found.clone(),
+        }
+    }
+
+    /// The literal set a value-position `match` produces, or `None` when an
+    /// arm produces something this cannot read.
+    ///
+    /// An arm counts when its body is a written string literal, a nested
+    /// `match` of the same shape, or an expression the walk already typed as a
+    /// string-literal union. A block-bodied arm is not read at all: the value
+    /// it produces is its tail, `return` inside it is checked at the `return`
+    /// itself, and guessing at the rest would be the one thing this exists to
+    /// avoid.
+    fn match_arm_literals(&self, arms: &[MatchArm]) -> Option<Vec<String>> {
+        let mut values: Vec<String> = Vec::new();
+        for arm in arms {
+            let MatchArmBody::Expr(e) = &arm.body else {
+                return None;
+            };
+            let arm_values = match e {
+                Expr::String { value, .. } => vec![value.clone()],
+                Expr::Match { arms, .. } => self.match_arm_literals(arms)?,
+                _ => self.string_literal_union_values(self.tm.get(e.span()))?,
+            };
+            for v in arm_values {
+                if !values.contains(&v) {
+                    values.push(v);
+                }
+            }
+        }
+        Some(values)
+    }
+
+    /// Whether the relation will reach a string-literal union on its way into
+    /// `expected`: the declared type itself, or the `T` of a `Nullable<T>`,
+    /// which is the one container `prelude_container_incompatible` descends
+    /// with the value's type intact (G216).
+    ///
+    /// The condition on `written_ty` reading a literal, so `let m:
+    /// Nullable<Mode> = "read"` is read the way `let m: Mode = "read"` is. Any
+    /// other container refuses a string outright, and there is nothing to
+    /// gain by naming the literal in that refusal.
+    fn declares_string_literal_union(&self, expected: &Ty) -> bool {
+        let canonical = self.canonicalize_aliases(expected);
+        if self.string_literal_union_values(&canonical).is_some() {
+            return true;
+        }
+        match self.prelude_container(&canonical) {
+            Some(("Nullable", args)) => args
+                .first()
+                .is_some_and(|inner| self.declares_string_literal_union(inner)),
+            _ => false,
+        }
+    }
+
+    /// An object literal written where a string-literal union is declared
+    /// (G230).
+    ///
+    /// Nothing synthesizes a record type for `{ x: 1 }` — the walk records
+    /// `Ty::Unknown` for it — so the record rule the relation already applies
+    /// to a record-typed value never sees an object literal, and `let d: Mode
+    /// = { x: 1 }` drew nothing. The written `{ ... }` emits a JavaScript
+    /// object whatever it holds, so it is none of the union's literals.
+    ///
+    /// Stated against a string-literal union and nothing else, deliberately.
+    /// An object literal is not a `string`, a `number` or a `bool` either, and
+    /// `let g: string = { x: 1 }` is silent for the same missing type, but
+    /// that is the object literal's own gap rather than this pairing, and
+    /// widening the rule here would start refusing programs with no
+    /// string-literal union in them.
+    fn object_literal_outside_union(&self, value: &Expr, expected: &Ty) -> bool {
+        matches!(value, Expr::Object { .. }) && self.declares_string_literal_union(expected)
+    }
+
+    /// The pairings involving a string-literal union the relation decides, on
+    /// canonical types (G230). `None` is "no arm here read this pairing", and
+    /// the rest of the relation goes on to decide it.
+    ///
+    /// A string-literal union is a `string` at run time and a narrowing of
+    /// `string` in the type, and both halves of that are what the rule says.
+    /// Nothing here re-derives which values are records, which are containers
+    /// and which live in another module: each direction asks the relation the
+    /// corresponding `string` question and inherits every rule and every
+    /// exclusion the `string` pairing already carries, `Nullable<T>`'s
+    /// recursion and the empty record tsc accepts included.
+    ///
+    /// - A value of the union where something else is declared is the value
+    ///   being a `string` there: `let n: number = mode` is refused because
+    ///   `let n: number = s` is, and `let s: string = mode` is accepted
+    ///   because every literal in the set is a string.
+    /// - A value of some other type where the union is declared is that type
+    ///   being a `string` here: a `number`, a `bool`, a record, a tagged
+    ///   union, a prelude container and an imported declaration are all
+    ///   refused, each by the rule that already refuses it against `string`.
+    /// - Two string-literal unions are compared by literal set. A subset is
+    ///   accepted; a literal the declared set does not hold is refused.
+    ///
+    /// A `string` where the union is declared is refused too, and that arm was
+    /// established by running both compilers rather than reasoned about. The
+    /// declared set is narrower than `string`, so `tsc` refuses the pairing
+    /// (`TS2322`); the question was whether Glyph would then refuse something
+    /// `tsc` accepts, because TypeScript narrows a `string` and Glyph's
+    /// checker does not. Three spellings were tried. A `match` arm does not
+    /// narrow the scrutinee: the emitter hoists it to a temporary (`const __m0
+    /// = s; switch (__m0)`), so the binding the arm body names is not the one
+    /// the `switch` narrowed, and `match s { "read" => { return s } }` under a
+    /// `-> Mode` return is `TS2322`. A `let`-bound literal does not keep its
+    /// literal type either: `let s = "read"` emits a TypeScript `let`, which
+    /// widens, and `takes_mode(s)` is `TS2345`. `match` is Glyph's only
+    /// branching construct, so there is no third way to narrow a binding.
+    ///
+    /// What does reach this arm holding literals is a value-position `match`
+    /// whose arms are literals, whose join the walk records as `string`
+    /// (`fn agg_of(name: string) -> Agg { return match name { "sum" => "sum",
+    /// ... } }`, which `csvql` contains and `tsc` compiles). `written_ty`
+    /// reads that form, and the written literal, before this is asked, and
+    /// answers `Unknown` for the arms it cannot read, so the `string` left
+    /// here is one no written form pinned to a narrower set.
+    ///
+    /// Undetermined, deliberately: a string-literal union nested inside a
+    /// record field or a generic argument. The relation's record recursion is
+    /// `definitely_incompatible`'s, a free function with no declaration to
+    /// read, so `{ mode: string }` against `{ mode: Mode }` is decided by
+    /// nothing here. It is the same boundary G201 and G216 stop at.
+    fn string_literal_union_verdict(&self, found: &Ty, expected: &Ty) -> Option<bool> {
+        let f = self.string_literal_union_values(found);
+        let e = self.string_literal_union_values(expected);
+        match (f, e) {
+            // Decisive in both directions, and it has to be: two literal sets
+            // reach `definitely_incompatible` as two `Ty::Named`s, and the
+            // nominal rule (Q15) would refuse `let w: Wide = m` for the names
+            // differing when the sets say it stands.
+            (Some(f), Some(e)) => Some(f.iter().any(|v| !e.contains(v))),
+            // A prelude container is already decided by
+            // `prelude_container_incompatible`, which runs first and reads a
+            // string-literal union as the `string` it is; asking the widened
+            // question again would refuse the `Nullable<T>` that arm accepted.
+            (Some(_), None) => (self.prelude_container(expected).is_none()
+                && self.assign_incompatible(&Ty::Prim(Primitive::String), expected))
+            .then_some(true),
+            (None, Some(_)) => (matches!(found, Ty::Prim(Primitive::String))
+                || self.assign_incompatible(found, &Ty::Prim(Primitive::String)))
+            .then_some(true),
+            (None, None) => None,
+        }
+    }
+
     fn assign_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
@@ -5667,6 +5879,12 @@ impl Assigner<'_> {
         if self.prelude_container_incompatible(&found, &expected) {
             return true;
         }
+        // G230. A declared string-literal union refused nothing at all: a
+        // `number`, a record and a tagged union all passed where `Mode` was
+        // declared, on every surface that runs without tsc.
+        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected) {
+            return verdict;
+        }
         definitely_incompatible(&found, &expected)
     }
 
@@ -5680,8 +5898,9 @@ impl Assigner<'_> {
     /// rule that reads one side and stays permissive about the other is not
     /// total and is deliberately absent, whatever the relation returned.
     ///
-    /// The seven that are total, each the accepting face of an arm of
-    /// `definitely_incompatible` or of `imported_incompatible`:
+    /// The nine that are total, each the accepting face of an arm of
+    /// `definitely_incompatible`, of `imported_incompatible` or of
+    /// `string_literal_union_verdict`:
     ///
     /// - `unknown` as the declared type accepts any value;
     /// - `never` as the value's type fits any declaration (D43);
@@ -5699,6 +5918,14 @@ impl Assigner<'_> {
     ///   value whose field is optional where the declaration requires one
     ///   draws nothing from this relation and `TS2345` from TypeScript, so the
     ///   silence is not an acceptance and the pairing is left uncovered.
+    ///
+    /// Two more from G230: two string-literal unions, when every literal the
+    /// value's type accepts is one the declared type accepts (D30); and a
+    /// string-literal union where a `string` is declared, which every literal
+    /// in the set satisfies. Not the third direction, some other type where a
+    /// string-literal union is declared: every type the relation can read
+    /// there it refuses, a bare `string` included, so a silence there is a
+    /// type it could not read at all rather than one it accepted.
     ///
     /// What is deliberately not here. Two function types: the relation
     /// compares the returns and the `async` flag and says nothing at all about
@@ -5749,6 +5976,26 @@ impl Assigner<'_> {
         }
         let found = self.canonicalize_aliases(found);
         let expected = self.canonicalize_aliases(expected);
+        // G230, both faces of `string_literal_union_verdict`. Read before
+        // the pairings below, because a string-literal union reaches them as a
+        // `Ty::Named` and the nominal rule would answer for it without ever
+        // reading the literal set.
+        if let Some(e) = self.string_literal_union_values(&expected) {
+            // Including a bare `string`, which the relation leaves
+            // undetermined rather than refusing: see
+            // `string_literal_union_verdict`.
+            let f = self.string_literal_union_values(&found)?;
+            return f.iter().all(|v| e.contains(v)).then_some(
+                "two string-literal unions are compared by literal set (D30), and every \
+                 literal the value's type accepts is one the declared type accepts",
+            );
+        }
+        if self.string_literal_union_values(&found).is_some() {
+            return matches!(expected, Ty::Prim(Primitive::String)).then_some(
+                "every literal a string-literal union accepts is a `string` (D30), so a \
+                 value of one stands where a `string` is declared",
+            );
+        }
         match (&found, &expected) {
             (Ty::Prim(a), Ty::Prim(b)) if a == b => Some(
                 "two primitives are compared, and these are the same primitive",
@@ -5846,17 +6093,22 @@ impl Assigner<'_> {
                 return true;
             }
         }
-        if let Ty::Prim(p) = found {
-            if is_concrete_scalar(*p) {
-                match self.prelude_container(expected) {
-                    Some(("Nullable", args)) => {
-                        return args
-                            .first()
-                            .is_some_and(|inner| self.assign_incompatible(found, inner));
-                    }
-                    Some(_) => return true,
-                    None => {}
+        // A string-literal union is a `string` at run time (D30), so it is
+        // decided here exactly as a `string` is, and the `Nullable<T>`
+        // recursion carries the union itself rather than the widened
+        // `string`: that is what keeps `let m: Nullable<Mode> = "read"`
+        // correct while `let m: Nullable<Mode> = other_string` is refused.
+        if matches!(found, Ty::Prim(p) if is_concrete_scalar(*p))
+            || self.string_literal_union_values(found).is_some()
+        {
+            match self.prelude_container(expected) {
+                Some(("Nullable", args)) => {
+                    return args
+                        .first()
+                        .is_some_and(|inner| self.assign_incompatible(found, inner));
                 }
+                Some(_) => return true,
+                None => {}
             }
         }
         false
@@ -13736,6 +13988,309 @@ fn f(a: Answer) -> number {
         assert!(
             has_type_name_as_value(&errs, "Point").is_none(),
             "errs: {errs:?}"
+        );
+    }
+
+    // ----- G230: a declared string-literal union -----
+
+    /// Every literal a `TypeMismatch` says the declared type accepts.
+    fn mismatch_accepted(errs: &[TypeError]) -> Vec<Vec<String>> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { accepted, .. }
+                | TypeError::ArgumentTypeMismatch { accepted, .. } => Some(accepted.clone()),
+                _ => None,
+            })
+            .map(|a| a.unwrap_or_default())
+            .collect()
+    }
+
+    fn mismatch_found(errs: &[TypeError]) -> Vec<String> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { found, .. }
+                | TypeError::ArgumentTypeMismatch { found, .. } => Some(found.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    const MODE: &str = "module m\ntype Mode = \"read\" | \"write\"\n";
+
+    /// The finding. `type Mode = \"read\" | \"write\"` refused nothing at all:
+    /// a `number`, a `bool`, a record, a tagged union and a prelude container
+    /// all passed where `Mode` was declared, and only `tsc` said otherwise.
+    #[test]
+    fn a_value_that_is_not_a_string_where_a_string_literal_union_is_declared_is_refused() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             type Point = {{ x: number }}\n\
+             type Shape = | Circle(number) | Square(number)\n\
+             fn f(n: number, b: bool, p: Point, sh: Shape, o: Option<number>) -> void {{\n\
+             \x20 let a: Mode = n\n\
+             \x20 let b2: Mode = b\n\
+             \x20 let c: Mode = p\n\
+             \x20 let d: Mode = sh\n\
+             \x20 let e: Mode = o\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["number", "bool", "Point", "Shape", "Option<number>"], "errs: {errs:?}");
+        for accepted in mismatch_accepted(&errs) {
+            assert_eq!(accepted, vec!["read".to_string(), "write".to_string()]);
+        }
+    }
+
+    /// The literal the author wrote decides the pairing, because the type does
+    /// not: Glyph types every string literal `string`.
+    #[test]
+    fn a_string_literal_is_decided_against_the_declared_set() {
+        let errs = errors_of(&format!(
+            "{MODE}fn f() -> void {{\n  let a: Mode = \"read\"\n  let b: Mode = \"rw\"\n}}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["\"rw\""], "only the literal outside the set: {errs:?}");
+        assert_eq!(mismatch_accepted(&errs)[0], vec!["read".to_string(), "write".to_string()]);
+    }
+
+    /// An object literal is typed `Ty::Unknown`, so the record rule never sees
+    /// one. The written form is read instead, and it names the value.
+    #[test]
+    fn an_object_literal_where_a_string_literal_union_is_declared_is_refused() {
+        let errs = errors_of(&format!(
+            "{MODE}fn f() -> void {{\n  let a: Mode = {{ x: 1 }}\n}}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["record"], "errs: {errs:?}");
+    }
+
+    /// A `string` that no written form pins to a narrower set. `tsc` refuses
+    /// it (`TS2322`), and so does this.
+    #[test]
+    fn a_bare_string_where_a_string_literal_union_is_declared_is_refused() {
+        let errs = errors_of(&format!(
+            "{MODE}fn f(s: string) -> void {{\n  let a: Mode = s\n}}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["string"], "errs: {errs:?}");
+    }
+
+    /// The exception to the arm above, and the one `csvql` contains. Every arm
+    /// of a value-position `match` is a literal, the walk joins them to
+    /// `string`, and the program is one `tsc` compiles.
+    #[test]
+    fn a_value_position_match_of_literals_is_read_as_its_literal_set() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn ok(name: string) -> Mode {{\n\
+             \x20 return match name {{\n\
+             \x20   \"read\" => \"read\",\n\
+             \x20   else => \"write\",\n\
+             \x20 }}\n\
+             }}\n"
+        ));
+        assert!(errs.is_empty(), "errs: {errs:?}");
+
+        let bad = errors_of(&format!(
+            "{MODE}\
+             fn no(name: string) -> Mode {{\n\
+             \x20 return match name {{\n\
+             \x20   \"read\" => \"read\",\n\
+             \x20   else => \"exec\",\n\
+             \x20 }}\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&bad), vec!["\"read\" | \"exec\""], "errs: {bad:?}");
+    }
+
+    /// An arm this cannot read leaves the whole pairing undetermined rather
+    /// than refusing a `string` that may not be a bare one.
+    #[test]
+    fn a_match_arm_the_checker_cannot_read_leaves_the_pairing_undetermined() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn f(name: string) -> Mode {{\n\
+             \x20 return match name {{\n\
+             \x20   \"read\" => {{ let x = \"read\"\n    x }},\n\
+             \x20   else => \"write\",\n\
+             \x20 }}\n\
+             }}\n"
+        ));
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
+    /// The reverse direction. Every literal in the set is a `string`, and
+    /// nothing else the relation reads accepts one.
+    #[test]
+    fn a_string_literal_union_value_is_a_string_and_nothing_else() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             type Point = {{ x: number }}\n\
+             fn f(m: Mode) -> void {{\n\
+             \x20 let a: string = m\n\
+             \x20 let b: number = m\n\
+             \x20 let c: Point = m\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["Mode", "Mode"], "the `string` is accepted: {errs:?}");
+    }
+
+    /// Two literal sets, compared as sets. A subset stands; a literal outside
+    /// the declared set does not.
+    #[test]
+    fn two_string_literal_unions_are_compared_by_literal_set() {
+        let errs = errors_of(
+            "module m\n\
+             type Mode = \"read\" | \"write\"\n\
+             type Wide = \"read\" | \"write\" | \"exec\"\n\
+             type Narrow = \"read\"\n\
+             fn f(m: Mode, w: Wide, n: Narrow) -> void {\n\
+             \x20 let a: Wide = m\n\
+             \x20 let b: Mode = n\n\
+             \x20 let c: Mode = w\n\
+             \x20 let d: Narrow = m\n\
+             }\n",
+        );
+        assert_eq!(mismatch_found(&errs), vec!["Wide", "Mode"], "only the supersets: {errs:?}");
+    }
+
+    /// A second name for the declaration is the declaration (D46), on both
+    /// sides of the pairing.
+    #[test]
+    fn an_alias_of_a_string_literal_union_follows_the_chain() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             type Alias = Mode\n\
+             type Second = Alias\n\
+             fn f() -> void {{\n\
+             \x20 let a: Second = \"rw\"\n\
+             \x20 let b: Second = \"read\"\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["\"rw\""], "errs: {errs:?}");
+    }
+
+    /// `Nullable<T>` is descended with the union intact, so the literal is
+    /// read one level in exactly as it is at the top.
+    #[test]
+    fn a_nullable_string_literal_union_is_decided_by_its_argument() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn f(n: number) -> void {{\n\
+             \x20 let a: Nullable<Mode> = \"read\"\n\
+             \x20 let b: Nullable<Mode> = \"rw\"\n\
+             \x20 let c: Nullable<Mode> = n\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["\"rw\"", "number"], "errs: {errs:?}");
+    }
+
+    /// A call argument is the same relation at a different site, and the code
+    /// is E0211.
+    #[test]
+    fn a_call_argument_against_a_string_literal_union_parameter_is_e0211() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn takes(m: Mode) -> Mode {{\n  return m\n}}\n\
+             fn f(n: number) -> void {{\n\
+             \x20 print(takes(\"read\"))\n\
+             \x20 print(takes(\"rw\"))\n\
+             \x20 print(takes(n))\n\
+             }}\n"
+        ));
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert_eq!(codes, vec!["E0211", "E0211"], "errs: {errs:?}");
+        assert_eq!(mismatch_found(&errs), vec!["\"rw\"", "number"]);
+    }
+
+    /// G215's rule for this shape: a union declared in a sibling module is
+    /// decided the way a local one is, under the named-import spelling and the
+    /// namespace spelling alike.
+    #[test]
+    fn an_imported_string_literal_union_is_decided_like_a_local_one() {
+        struct ModesModule;
+        impl DeclTyResolver for ModesModule {
+            fn decl_ty(&self, _decl_idx: u32) -> Ty {
+                Ty::Unknown
+            }
+            fn imported_string_literal_union(
+                &self,
+                module_path: &str,
+                type_name: &str,
+            ) -> Option<Vec<String>> {
+                (module_path == "modes" && type_name == "Mode")
+                    .then(|| vec!["read".to_string(), "write".to_string()])
+            }
+            fn imported_type_decl(
+                &self,
+                module_path: &str,
+                type_name: &str,
+            ) -> Option<ImportedTypeDecl> {
+                (module_path == "modes" && type_name == "Mode").then(|| ImportedTypeDecl {
+                    name: Ident::from("Mode"),
+                    generics: Vec::new(),
+                    body: Ty::StringLiteralUnion(vec!["read".to_string(), "write".to_string()]),
+                })
+            }
+        }
+        let src = "module app\n\
+                   import modes { Mode }\n\
+                   import modes as md\n\
+                   fn named(n: number) -> void {\n\
+                   \x20 let a: Mode = \"read\"\n\
+                   \x20 let b: Mode = \"rw\"\n\
+                   \x20 let c: Mode = n\n\
+                   }\n\
+                   fn spaced(n: number) -> void {\n\
+                   \x20 let a: md.Mode = \"read\"\n\
+                   \x20 let b: md.Mode = \"rw\"\n\
+                   \x20 let c: md.Mode = n\n\
+                   }\n";
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, errs) = assign_types_with_resolver(&m, &resolved, &prelude, &ModesModule);
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["\"rw\"", "number", "\"rw\"", "number"],
+            "the boundary does not change the answer: {errs:?}"
+        );
+        for accepted in mismatch_accepted(&errs) {
+            assert_eq!(accepted, vec!["read".to_string(), "write".to_string()]);
+        }
+    }
+
+    /// What [`assignability`] answers for the three directions, which is what
+    /// `glyph_assignable` reports.
+    #[test]
+    fn assignability_answers_the_string_literal_union_pairings() {
+        let src = "module m\ntype Mode = \"read\" | \"write\"\ntype Wide = \"read\" | \"write\" | \"exec\"\n";
+        assert!(matches!(
+            assignability_of(src, "Mode", "Wide"),
+            Assignability::Compatible { .. }
+        ));
+        assert!(matches!(
+            assignability_of(src, "Mode", "string"),
+            Assignability::Compatible { .. }
+        ));
+        assert_eq!(
+            assignability_of(src, "Wide", "Mode"),
+            Assignability::Incompatible
+        );
+        assert_eq!(
+            assignability_of(src, "number", "Mode"),
+            Assignability::Incompatible
+        );
+        assert_eq!(
+            assignability_of(src, "string", "Mode"),
+            Assignability::Incompatible
+        );
+        assert_eq!(
+            assignability_of(src, "Mode", "number"),
+            Assignability::Incompatible
+        );
+        // An undecidable value where the union is declared is not read at all,
+        // and the relation says so rather than accepting it.
+        assert_eq!(
+            assignability_of(src, "unknown", "Mode"),
+            Assignability::NoRule
         );
     }
 }

@@ -312,6 +312,16 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
         Ty::Fn { is_async: true, .. } => "async function".to_string(),
         Ty::Fn { .. } => "function".to_string(),
         Ty::Union { .. } => "union".to_string(),
+        // The literal set, not a category word. A union spelled inline has no
+        // name to print, and one brought in from a sibling module lowers
+        // straight to its literal set (`imported_string_literal_union`), so
+        // "?" was what a mismatch against an imported `Mode` named before G230
+        // gave the pairing a diagnostic at all.
+        Ty::StringLiteralUnion(values) => values
+            .iter()
+            .map(|v| format!("{v:?}"))
+            .collect::<Vec<_>>()
+            .join(" | "),
         // The bare name, not `catalog.Sheet`: it is identical under all three
         // import spellings and identical to what the same declaration renders
         // as when it lives in the consuming file, so a type's diagnostics do

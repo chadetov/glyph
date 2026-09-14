@@ -1,0 +1,13 @@
+module neg
+
+type Mode = "read" | "write"
+
+// A string-literal union declares a finite set of strings (D30), and until
+// G230 it refused nothing: a number, a bool, a record and a tagged union all
+// passed where `Mode` was declared, and only `tsc` reading the emitted
+// TypeScript said otherwise. The value is a `number` here, so this is E0204
+// and the diagnostic carries `read` and `write` as the accepted values.
+fn main() -> void {
+  let a: Mode = 3
+  print(a)
+}

@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-228 entries, 201 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-8 are open. G144, the D28 boundary cast that never reached the returns a
+229 entries, 201 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+9 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9252,4 +9252,21 @@ and is the owner's to confirm.
   *Reproduced against 0.1.120 with the 0.1.121 tree at `b0d33f6` on a two-module project: `glyph query impact --entity lib::f --change change_signature_type` gives the argument entry above verbatim; `glyph query assignable --from 'Option<int>' --to 'Nullable<int>'` on the same tree is `WILL_FAIL`.*
 
   *The record shape reproduced against 0.1.120, the version the 0.1.121 tree at `92def97` still reports before the bump, on a one-module project: `glyph query impact --entity main::takes_rec --change change_signature_type` gives `UNDETERMINED` with the `because` above, `glyph query assignable --from '{ a: string, b: int }' --to '{ a: string }'` gives `COMPATIBLE`, and `glyph check --no-tsc --no-test` on the narrowing direction gives `[E0211] argument type mismatch: expected \`record\`, found \`record\``.*
+
+- **G229. Deep nesting aborts the compiler with a stack overflow.** The parser
+  is recursive descent with no depth guard, so an expression nested 2,000
+  levels deep (`[[[[...1...]]]]`) ends the process with
+  `fatal runtime error: stack overflow, aborting`, exit 134, on `glyph check`,
+  `glyph fmt`, and by the same path `glyph lsp` and `glyph mcp`, which read
+  every file under the root: one pathological file kills the server for the
+  whole workspace. Found by the scheduled fuzz workflow, whose `parse` and
+  `format_idempotent` targets have both failed on this shape every night since
+  2026-09-10 (run 34825317709 carries the two inputs, 988 and 1,187 bytes of
+  nested `[`). The fix is a nesting-depth limit in the parser, applied to
+  expressions, types and patterns alike, that raises a diagnostic naming the
+  limit at the span where it is crossed instead of recursing further, plus the
+  two fuzz inputs as regression tests and a generated-depth test at the limit
+  and one past it.
+
+  *Reproduced against 0.1.121: `glyph check --no-tsc` on `const x = ` followed by 2,000 `[`, `1`, and 2,000 `]` is `fatal runtime error: stack overflow, aborting`, exit 134; the same at 20,000 and 200,000; `glyph fmt --check` on the 20,000 case is the same abort. The fuzz input itself, 988 bytes, exits 1 with one parse error on this machine's default stack and overflows under the fuzzer's.*
 

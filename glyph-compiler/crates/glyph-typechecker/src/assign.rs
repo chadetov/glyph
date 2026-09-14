@@ -5643,8 +5643,29 @@ impl Assigner<'_> {
                 Some(values) => Ty::StringLiteralUnion(values),
                 None => Ty::Unknown,
             },
+            // A call whose `string` is an instantiated type parameter, not a
+            // declared `string`. `fn id<T>(x: T) -> T` called with `"read"`
+            // records `string` for the call, because `collect_type_param_
+            // bindings` binds `T` to the argument's recorded type and D30
+            // types every string literal `string`. TypeScript infers the
+            // literal type for the same call and `id("read")` is a `Mode`
+            // there, so refusing it would refuse a program `tsc --strict`
+            // compiles. Answer `Unknown`, which leaves the pairing to `tsc`:
+            // `id(some_string)` is `TS2322` and still reported, by `tsc`.
+            Expr::Call { callee, .. } if self.returns_a_type_param(callee) => Ty::Unknown,
             _ => found.clone(),
         }
+    }
+
+    /// Whether a callee's declared return type is written as a type parameter
+    /// of its own signature, so the type the walk recorded for the call is
+    /// whatever the arguments bound that parameter to.
+    ///
+    /// Read off the callee's `Ty::Fn` before instantiation, which is what the
+    /// type map holds for the callee's own span; the call's span holds the
+    /// substituted form, where a `Ty::Param` is no longer visible.
+    fn returns_a_type_param(&self, callee: &Expr) -> bool {
+        matches!(self.tm.get(callee.span()), Ty::Fn { return_ty, .. } if mentions_type_param(return_ty))
     }
 
     /// The literal set a value-position `match` produces, or `None` when an
@@ -5762,12 +5783,30 @@ impl Assigner<'_> {
     /// answers `Unknown` for the arms it cannot read, so the `string` left
     /// here is one no written form pinned to a narrower set.
     ///
+    /// That arm is the top-level one, and only the top-level one. A bare
+    /// `string` reached through a generic argument is undetermined: `["read",
+    /// "write"]` is typed `Array<string>` because Glyph types every string
+    /// literal `string` (D30), so `Array<string>` against `Array<Mode>` is the
+    /// ordinary spelling of a correct program and `tsc` reads the same
+    /// expression as `Array<"read" | "write">` and accepts it. Refusing it
+    /// would reject `fn arr() -> Array<Mode> { return ["read", "write"] }`,
+    /// which is the spelling of a list of modes, roles or statuses. The
+    /// `Nesting` argument carries the distinction: `assign_incompatible`'s
+    /// `Ty::App` recursion asks every argument pairing under
+    /// `Nesting::UnderArgument`, and this arm declines there. Deciding it
+    /// rather than fencing it needs literal-typed expressions (G237).
+    ///
     /// Undetermined, deliberately: a string-literal union nested inside a
-    /// record field or a generic argument. The relation's record recursion is
+    /// record field. The relation's record recursion is
     /// `definitely_incompatible`'s, a free function with no declaration to
     /// read, so `{ mode: string }` against `{ mode: Mode }` is decided by
     /// nothing here. It is the same boundary G201 and G216 stop at.
-    fn string_literal_union_verdict(&self, found: &Ty, expected: &Ty) -> Option<bool> {
+    fn string_literal_union_verdict(
+        &self,
+        found: &Ty,
+        expected: &Ty,
+        nesting: Nesting,
+    ) -> Option<bool> {
         let f = self.string_literal_union_values(found);
         let e = self.string_literal_union_values(expected);
         match (f, e) {
@@ -5783,14 +5822,33 @@ impl Assigner<'_> {
             (Some(_), None) => (self.prelude_container(expected).is_none()
                 && self.assign_incompatible(&Ty::Prim(Primitive::String), expected))
             .then_some(true),
-            (None, Some(_)) => (matches!(found, Ty::Prim(Primitive::String))
-                || self.assign_incompatible(found, &Ty::Prim(Primitive::String)))
-            .then_some(true),
+            (None, Some(_)) => {
+                if matches!(found, Ty::Prim(Primitive::String)) {
+                    // Refused where the union itself is declared, undetermined
+                    // under a generic argument. See the doc comment above.
+                    return (nesting == Nesting::Top).then_some(true);
+                }
+                self.assign_incompatible(found, &Ty::Prim(Primitive::String))
+                    .then_some(true)
+            }
             (None, None) => None,
         }
     }
 
     fn assign_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
+        self.assign_incompatible_at(found, expected, Nesting::Top)
+    }
+
+    /// `assign_incompatible`, plus where in a type the pairing sits.
+    ///
+    /// One rule reads `nesting` and no other does: a bare `string` where a
+    /// string-literal union is declared, which is refused at the top level and
+    /// left to `tsc` under a generic argument (G230, and see
+    /// `string_literal_union_verdict`). Every other refusal the relation makes
+    /// is made at every depth, so a `number`, a `bool`, a record, a tagged
+    /// union and a literal outside the declared set are refused inside
+    /// `Array<Mode>` exactly as they are against `Mode`.
+    fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, nesting: Nesting) -> bool {
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
                 // A value carries its members structurally: the same
@@ -5808,12 +5866,17 @@ impl Assigner<'_> {
             };
         }
         if let (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) = (found, expected) {
+            // The base keeps the nesting it was asked at: it is the
+            // constructor, not an argument. Every argument pairing is asked
+            // under `UnderArgument`, and stays there however deep the
+            // recursion goes, so `Array<Array<Mode>>` fences the same way
+            // `Array<Mode>` does.
             return fa.len() != ea.len()
-                || self.assign_incompatible(fb, eb)
+                || self.assign_incompatible_at(fb, eb, nesting)
                 || fa
                     .iter()
                     .zip(ea.iter())
-                    .any(|(f, e)| self.assign_incompatible(f, e));
+                    .any(|(f, e)| self.assign_incompatible_at(f, e, Nesting::UnderArgument));
         }
         // G201. A declared union or record where a `string`, a `number` or a
         // `bool` is expected. `definitely_incompatible` cannot judge this on its
@@ -5882,7 +5945,7 @@ impl Assigner<'_> {
         // G230. A declared string-literal union refused nothing at all: a
         // `number`, a record and a tagged union all passed where `Mode` was
         // declared, on every surface that runs without tsc.
-        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected) {
+        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected, nesting) {
             return verdict;
         }
         definitely_incompatible(&found, &expected)
@@ -5981,9 +6044,11 @@ impl Assigner<'_> {
         // `Ty::Named` and the nominal rule would answer for it without ever
         // reading the literal set.
         if let Some(e) = self.string_literal_union_values(&expected) {
-            // Including a bare `string`, which the relation leaves
-            // undetermined rather than refusing: see
-            // `string_literal_union_verdict`.
+            // A bare `string` included: this rule accepts nothing for it,
+            // which is right in both directions. The refusing relation
+            // refuses it where the union itself is declared and leaves it
+            // undetermined under a generic argument, and neither of those is
+            // an acceptance.
             let f = self.string_literal_union_values(&found)?;
             return f.iter().all(|v| e.contains(v)).then_some(
                 "two string-literal unions are compared by literal set (D30), and every \
@@ -6599,6 +6664,50 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 }
 
 // ----- assignability (conservative) -----
+
+/// Whether a type is written in terms of a type parameter anywhere inside it:
+/// `T`, `Array<T>`, `{ value: T }`, `fn(a: T) -> void`.
+///
+/// The question `returns_a_type_param` asks of a signature's return type.
+fn mentions_type_param(ty: &Ty) -> bool {
+    match ty {
+        Ty::Param { .. } => true,
+        Ty::App { base, args } => {
+            mentions_type_param(base) || args.iter().any(mentions_type_param)
+        }
+        Ty::Record { fields } => fields.iter().any(|f| mentions_type_param(&f.ty)),
+        Ty::Fn {
+            params, return_ty, ..
+        } => params.iter().any(|p| mentions_type_param(&p.ty)) || mentions_type_param(return_ty),
+        Ty::Union { variants } => variants
+            .iter()
+            .any(|v| v.payload.as_ref().is_some_and(|p| mentions_type_param(p))),
+        Ty::Unknown
+        | Ty::Prim(_)
+        | Ty::UnknownTop
+        | Ty::Never
+        | Ty::Named { .. }
+        | Ty::StringLiteralUnion(_)
+        | Ty::Imported { .. } => false,
+    }
+}
+
+/// Where in a type a pairing the assignability relation is deciding sits: the
+/// declared type itself, or an argument of a generic application the relation
+/// recursed into.
+///
+/// One rule turns on it (G230's bare `string` against a string-literal union),
+/// and it exists rather than a `bool` so the two ends of the distinction are
+/// named at every call site.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Nesting {
+    /// The pairing the caller asked about: `Mode` against what was written
+    /// where `Mode` is declared.
+    Top,
+    /// A pairing the `Ty::App` recursion reached: the `Mode` of an
+    /// `Array<Mode>`, an `Option<Mode>` or a `Nullable<Mode>`.
+    UnderArgument,
+}
 
 /// True only when `found` is *provably* not assignable to `expected`. Used for
 /// return-type and call-argument checking. The relation stays conservative — it
@@ -14292,5 +14401,81 @@ fn f(a: Answer) -> number {
             assignability_of(src, "unknown", "Mode"),
             Assignability::NoRule
         );
+    }
+
+    // ----- the generic-argument boundary (G230, corrected) -----
+
+    /// The review's `fp3` and `fp4`. `["read", "write"]` is typed
+    /// `Array<string>`, because D30 types every string literal `string`, so
+    /// the `Ty::App` recursion asked `(string, Mode)` and the top-level arm
+    /// refused it. `tsc --strict` reads the same expression as
+    /// `Array<"read" | "write">` and compiles all three of these, and a full
+    /// `glyph build` under 0.1.121 did too.
+    #[test]
+    fn a_bare_string_under_a_generic_argument_is_undetermined() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn takes(xs: Array<Mode>) -> number {{\n  return xs.length\n}}\n\
+             fn arr() -> Array<Mode> {{\n  return [\"read\", \"write\"]\n}}\n\
+             fn call() -> number {{\n  return takes([\"read\"])\n}}\n\
+             fn deep() -> Array<Array<Mode>> {{\n  return [[\"read\"]]\n}}\n"
+        ));
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
+    /// The fence is exactly one pairing wide. A `number`, a `bool` and a
+    /// literal outside the declared set are refused inside `Array<Mode>` the
+    /// same way they are refused against `Mode`.
+    #[test]
+    fn a_wrong_value_under_a_generic_argument_is_still_refused() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             type Wide = \"read\" | \"write\" | \"exec\"\n\
+             fn f(ns: Array<number>, bs: Array<bool>, w: Array<Wide>) -> void {{\n\
+             \x20 let a: Array<Mode> = ns\n\
+             \x20 let b: Array<Mode> = bs\n\
+             \x20 let c: Array<Mode> = w\n\
+             }}\n"
+        ));
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["Array<number>", "Array<bool>", "Array<Wide>"],
+            "errs: {errs:?}"
+        );
+    }
+
+    /// The review's `fp2`. `fn id<T>(x: T) -> T` called with a string literal
+    /// records `string` for the call, because `T` binds to the argument's
+    /// recorded type. TypeScript infers the literal type for the same call, so
+    /// `id("read")` is a `Mode` there; the pairing is left to `tsc`, which
+    /// still reports `id(s)` for a `string`-typed `s`.
+    #[test]
+    fn a_generic_call_returning_its_type_parameter_is_undetermined() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn id<T>(x: T) -> T {{\n  return x\n}}\n\
+             fn plain() -> string {{\n  return \"read\"\n}}\n\
+             fn viaGeneric() -> Mode {{\n  return id(\"read\")\n}}\n\
+             fn viaPlain() -> Mode {{\n  return plain()\n}}\n"
+        ));
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["string"],
+            "the declared `string` is still refused, the instantiated one is not: {errs:?}"
+        );
+    }
+
+    /// The review's `asym`, both halves in one program. A wrong value in a
+    /// record field is silent and a right value in a generic argument is
+    /// accepted, which is the boundary the rule documents.
+    #[test]
+    fn the_record_field_and_the_generic_argument_stop_at_the_same_place() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             type Cfg = {{ mode: Mode }}\n\
+             fn wrong() -> Cfg {{\n  return {{ mode: \"nope\" }}\n}}\n\
+             fn right() -> Array<Mode> {{\n  return [\"read\"]\n}}\n"
+        ));
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
     }
 }

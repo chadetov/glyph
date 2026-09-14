@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-231 entries, 208 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-5 are open. G144, the D28 boundary cast that never reached the returns a
+236 entries, 208 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+10 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9695,3 +9695,94 @@ and is the owner's to confirm.
   because a key invented for `Result` would name a module no project has. The
   same gap makes `glyph check --agent` report `Result` under `symbols_absent`
   rather than describing it.*
+
+- **G232. An object literal has no type, so nothing compares it to anything.** The
+  checker types `{ x: 1 }` as `Ty::Unknown`, so `let g: string = { x: 1 }` passes
+  `glyph check --no-tsc` with nothing but an unused-variable lint while `tsc`
+  refuses it. G230 refused an object literal against a string-literal union, but
+  it did so by reading the written `{ ... }` off the expression rather than by
+  giving the expression a type: the rule knows the value emits a JavaScript
+  object and names it `record`. Against a plain `string`, a `number` or a `bool`
+  there is no such rule, and the same silence covers a `return`, a call argument
+  and a field. The general answer is a synthesized record type for an object
+  literal, which reaches the record recursion in `definitely_incompatible`,
+  every width-subtyping site and the inference the language deliberately does
+  not do at a `const` (G39), so its blast radius is the reason it is its own
+  entry rather than a line in G230.
+
+  *Reproduced against 0.1.121, the version this tree reports before the bump. `src/main.glyph`:*
+
+  ```
+  module main
+
+  pub fn main() {
+    let g: string = { x: 1 }
+  }
+  ```
+
+  *`glyph check --no-tsc --no-test src` prints `[E0107] Warning: lint: unused
+  variable g` and `glyph check: 1 module(s) checked, 1 warning(s).`, exit 0.
+  `glyph check --no-test src` on the same file prints `[TS2322] Error: tsc: Type
+  '{ x: number; }' is not assignable to type 'string'.`, exit 1.*
+
+- **G233. One declaration, two spellings, because an imported string-literal union is
+  lowered to its literal set.** `imported_string_literal_union` lowers an
+  imported `type Mode = "read" | "write"` straight to `Ty::StringLiteralUnion`,
+  which carries the literals and not the name, while an imported *alias* of the
+  same declaration keeps its `Ty::Imported` and prints as `Alias`. So the
+  diagnostic for the same wrong value says `expected "read" | "write"` through
+  one spelling and ``expected `Alias` `` through the other, and neither matches
+  what a local declaration says, which is `Mode`. A reader cannot tell from
+  ``expected `"read" | "write"` `` which declaration to open. G75 settled that a
+  type keeps its name across a module boundary; this is the one lowering that
+  does not, and the fix belongs with the lowering rather than with
+  assignability, which decides both spellings correctly today.
+
+  *Reproduced against 0.1.121, the version this tree reports before the bump, on a two-module project. `src/modes.glyph` declares `pub type Mode = "read" | "write"` and `pub type Alias = Mode`; `src/main.glyph` imports both and writes `let a: Mode = "rw"` and `let b: Alias = "rw"`. `glyph check --no-tsc --no-test src` gives ``[E0204] type mismatch: expected `"read" | "write"`, found `"rw"` `` at line 6 and ``[E0204] type mismatch: expected `Alias`, found `"rw"` `` at line 7. The same two declarations written locally in one module give ``expected `Mode` `` and ``expected `Alias` ``. Both diagnostics carry `alternatives: ["read", "write"]`, so the literal set is on the JSON either way and the `expected` string is the only thing that differs.*
+
+- **G234. The impact table says the checker has no rule for a string-literal union,
+  and since G230 it has one.** `classify_argument` and `classify_parameter` send
+  a `Ty::StringLiteralUnion` to `Other`, so `signature_type_cell` falls to its
+  catch-all and `glyph_impact` reports `UNDETERMINED` with "the checker has no
+  rule comparing a `"read" | "write"` argument against a `Mode` parameter". The
+  checker compares two string-literal unions by literal set and
+  `glyph_assignable` on the same pairing says so, which makes this the G228
+  disagreement again on a shape G228 did not cover: two tools answering
+  differently about one fact, so neither can be relied on. G230's own note
+  enumerates six cells; `NamedBody::Other("a string-literal union (D30), which
+  is a `string`")` is the shape string to split out, and each cell wants the
+  same `assignability` call the container and record cells now make.
+
+  *Reproduced against 0.1.121, the version this tree reports before the bump, on a two-module project where `modes` declares `pub type Mode = "read" | "write"` and `pub fn takes_mode(m: Mode) -> Mode`, and `main` calls it with an `m: Mode`. `glyph query impact --path src/main.glyph --entity modes::takes_mode --change change_signature_type` answers the call site `UNDETERMINED`, `because` "argument 1 (`m`, `"read" | "write"`) against parameter `m: Mode`: the checker has no rule comparing a `"read" | "write"` argument against a `Mode` parameter, so a replacement is compared against nothing here that Glyph reports". `glyph query assignable --path src/main.glyph --from Mode --to Mode` on the same project answers `COMPATIBLE`, `because` "two string-literal unions are compared by literal set (D30), and every literal the value's type accepts is one the declared type accepts ... This is a rule accepting rather than a rule staying silent", and `--from int --to Mode` answers `WILL_FAIL`.*
+
+- **G235. The editor's hover still answers single-file, so an imported name has no type
+  in an editor.** `glyph_hover` reads the file inside its project and answers at
+  every name declared in another module (G227). The language server does not:
+  its overlay database registers the buffers an editor opened, not a project, so
+  `textDocument/hover` on an imported function at its call site and on a field
+  read off an imported record both answer `null` where the tool answers. The two
+  surfaces are meant to give one answer, which is the G219 principle, and here
+  the tool is ahead of the editor rather than behind it. What the server needs
+  is the project database `project_file_diagnostics` already builds, with the
+  open buffers layered over the files on disk rather than standing in for them.
+
+  *Reproduced against 0.1.121, the version this tree reports before the bump, over the real protocol: a client speaking LSP framing to `glyph lsp` sends `initialize` with the project root as `rootUri`, `initialized`, `didOpen` on `src/main.glyph`, then `textDocument/hover`. On a two-module project where `orders` declares `pub type Order` and `pub fn create(id: string) -> Order` and `main` imports both, hover at the `create` call (line 9, character 10, 0-based) answers `null` while `glyph query hover` at the same position answers `"fn(string) -> Order"`; hover at the field read `o.id` (line 5, character 11) answers `null` while the tool answers `"string"`. The client is not at fault: hover at the local parameter `o` (line 5, character 9) answers ```glyph\nOrder\n``` over the protocol and `"Order"` from the tool.*
+
+- **G236. `glyph fix` declines a non-exhaustive match over an imported union unless the
+  missing variants are already imported.** The `E0200` rule renders the arms and
+  then checks its own work by parsing and resolving the candidate file alone,
+  through `module_error_codes`, which builds only the prelude. A variant declared
+  in another module and not named in the import list is an unresolved name in
+  that single-module read, so `collect_regressed` sees a new `E0103` and the rule
+  declines with "the arms this fix would write do not collect cleanly in this
+  module, so nothing was written". That is the ordinary shape: you write a match
+  over an imported union and import the union plus the arms you wrote. Worse, the
+  unused-import rule runs first and removes the very names that would have made
+  the guard pass, so importing the missing variants ahead of time does not help
+  unless something else in the file uses them. Repairing it means either
+  extending the import list as part of the fix or verifying the candidate against
+  the project rather than against the file, and the second is the same
+  single-file-versus-project split as G235 and G219. Found while writing the
+  0.1.122 release notes, not by the rule's own tests, which cover the local union.
+
+  *Reproduced against 0.1.121, the version this tree reports before the bump, on a two-module project. `src/orders.glyph` declares `pub type OrderStatus = | Pending | Paid({ transaction_id: string }) | Cancelled`; `src/main.glyph` writes `import orders { OrderStatus, Pending }` and a `match s { Pending => "waiting", }`. `glyph fix src` prints `glyph fix: declined E0200 in src/main.glyph: the arms this fix would write do not collect cleanly in this module, so nothing was written` and writes nothing. Importing `Paid` and `Cancelled` as well does not change the outcome: the run reports `removed 2 unused import(s)` and then declines the same way. Adding a second function that constructs all three variants, so the imports are used, makes the same run apply: `added 2 arm(s) to the match on `OrderStatus`: `Paid`, `Cancelled``. The identical program with `OrderStatus` declared in `main` itself is repaired, and `glyph check --no-tsc` on the result is clean.*

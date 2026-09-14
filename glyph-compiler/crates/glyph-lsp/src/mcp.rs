@@ -524,7 +524,7 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_hover",
-            "description": "The inferred type of the expression at a position in a Glyph file.",
+            "description": "The type at a position in a Glyph file, read inside the file's project. It answers an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it) and a local binding at its definition site. A name declared in another module answers too, from that module's own lowered declaration rather than from the import binding: the binding inside `import m { N }`, an imported function where it is called (named or through a namespace), an imported variant used as a value, an imported annotated `const`, and a field read off an imported record. `null` where the compiler holds no type for the position: a keyword, a literal, whitespace, an unannotated `const` (the checker lowers its declaration to `Unknown` on purpose, so printing the initializer's type would report a type nothing checks its uses against), and a namespace import binding, which names a module rather than a declaration.",
             "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character }, "required": ["path", "line", "character"] }
         },
         {
@@ -583,11 +583,12 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
         // bought the cross-module half of the compiler's answer, which the
         // single-file front end could not see at all (G219).
         //
-        // Hover and definition stay off the database: both answer from one
-        // file's own parse in well under a millisecond, and routing them
-        // through it would charge them the walk for nothing.
+        // Hover joined it in 0.1.122, for the same reason and at the same
+        // price: every name declared in another module answered null without
+        // it (G227). Definition stays off it, because it already follows an
+        // import by reading the declaring file directly.
         "glyph_diagnostics" => tool_diagnostics(&args, server),
-        "glyph_hover" => tool_hover(&args, &root),
+        "glyph_hover" => tool_hover(&args, server),
         "glyph_definition" => tool_definition(&args, &root),
         "glyph_references" => tool_references(&args, server),
         "glyph_variants" => tool_variants(&args, server),
@@ -714,14 +715,47 @@ fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String>
     Ok(to_json(&answer))
 }
 
-fn tool_hover(args: &Value, root: &Path) -> Result<String, String> {
-    let (_, text) = read_file(args, root)?;
+/// The type at a position, read inside the file's project.
+///
+/// The project is what makes a name declared in another module answerable.
+/// Before 0.1.122 this ran the single-file front end on the text alone, and
+/// every such name came back null (G227): the field read on an imported record
+/// because the checker's own member-access rule needs the declaring module's
+/// field set to reach it, and the import binding, the imported callee and the
+/// imported variant because the reading that answers them is the cross-module
+/// query the checker runs. The walk costs what `glyph_diagnostics` pays for the
+/// same reason, and it buys four of the audit's positions.
+///
+/// A file the project cannot read at all answers null, which is what a position
+/// in a file with no tree has always answered.
+fn tool_hover(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let (path, text) = read_file(args, &root)?;
     let (line, character) = position(args)?;
-    let Some(a) = analyze_full(&text) else {
+    let offset = LineIndex::new(&text).offset(&text, line, character);
+    let project_root = crate::module_root_for(&path, &root);
+    let project = server.project(&project_root, &path);
+    let Some(entry) = project.queried(&path) else {
         return Ok("null".to_string());
     };
-    let offset = LineIndex::new(&text).offset(&text, line, character);
-    Ok(to_json(&a.hover(&text, offset)))
+    let db = &project.db;
+    let file = entry.file;
+    let parsed = glyph_db::parse_module(db, file);
+    let resolved = glyph_db::resolve(db, file);
+    let (Some(module_ast), Some(resolved_module)) = (parsed.module(), resolved.resolved()) else {
+        return Ok("null".to_string());
+    };
+    let decls = SalsaDeclTy::new(db, file);
+    let ftext = file.source_text(db);
+    Ok(to_json(&crate::analysis::hover_at_with_imports(
+        module_ast,
+        resolved_module,
+        db.prelude(),
+        glyph_db::type_map(db, file).type_map(),
+        &decls,
+        ftext,
+        offset,
+    )))
 }
 
 fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
@@ -9414,7 +9448,7 @@ pub fn f() -> number {
     }
 
     #[test]
-    fn hover_answers_thirteen_of_the_audits_fourteen_positions() {
+    fn hover_answers_fourteen_of_the_audits_fourteen_positions() {
         let root = tmp_root();
         shop_project(&root);
         // Label, file, the text the position is found from, and how far into
@@ -9504,16 +9538,19 @@ pub fn f() -> number {
                 7,
                 json!("Order"),
             ),
-            // G227, the one position that answers nothing: `Order` is
-            // imported, the checker records no type for a member access on a
-            // `Ty::Imported` record in the consuming module, and hover reports
-            // null rather than deriving a field type nothing checked.
+            // G227, the position that answered nothing until 0.1.122. The
+            // checker does type this access: it reads `Order`'s field set
+            // through the declaring module's export view, and `let n: int =
+            // o.id` draws E0204 `expected number, found string`. What was
+            // missing was the project: the tool ran the single-file front end
+            // on the text alone, where the imported record has no field set to
+            // reach, so the member typed `Unknown` and hover had nothing.
             (
                 "a field read from an imported record",
                 "checkout.glyph",
                 "return o.id",
                 9,
-                Value::Null,
+                json!("string"),
             ),
             (
                 "a returned local",
@@ -9539,7 +9576,127 @@ pub fn f() -> number {
                 answered += 1;
             }
         }
-        assert_eq!(answered, 13, "the ratio the release note cites has moved");
+        assert_eq!(answered, 14, "the ratio the release note cites has moved");
+
+        // The rest of G227's positions, which the audit's fourteen do not
+        // cover: the binding inside an `import m { N }` list, an imported
+        // function where it is called, and the same function reached through a
+        // namespace. Each answers with the declaring module's own lowered
+        // declaration.
+        for (label, name, needle, offset, want) in [
+            (
+                "the `Order` binding in the import list",
+                "checkout.glyph",
+                "import orders { Order",
+                16,
+                json!("{ id: string, status: OrderStatus, total: number }"),
+            ),
+            (
+                "the `create` binding in the import list",
+                "checkout.glyph",
+                "import orders { Order, create",
+                23,
+                json!("fn(string) -> Order"),
+            ),
+            (
+                "an imported function at a call",
+                "checkout.glyph",
+                "return create(id)",
+                7,
+                json!("fn(string) -> Order"),
+            ),
+            (
+                "an imported function at a second call",
+                "checkout.glyph",
+                "= create(id)",
+                2,
+                json!("fn(string) -> Order"),
+            ),
+            (
+                "an imported function through a namespace",
+                "main.glyph",
+                "checkout.announce",
+                9,
+                json!("fn(string) -> string"),
+            ),
+            // The one position of G227 that still answers nothing, and the
+            // reason is not a gap. `checkout` here binds a module, not a
+            // declaration, and a module has no type for hover to report.
+            // `glyph_symbols` is the surface that says what a module holds.
+            (
+                "a namespace import binding",
+                "main.glyph",
+                "import checkout",
+                7,
+                Value::Null,
+            ),
+        ] {
+            let (line, character) = at(&root, name, needle, offset);
+            let (got, is_error) = call_on(
+                &mut server,
+                "glyph_hover",
+                json!({ "path": name, "line": line, "character": character }),
+            );
+            assert!(!is_error, "{label}: {got}");
+            assert_eq!(got, want, "{label} at {name}:{line}:{character}");
+        }
+    }
+
+    /// An imported tagged-union variant hovers the way a local one does: as
+    /// the syntax that constructs it, read from the declaring module's own
+    /// lowered declaration rather than from the import binding's spelling. An
+    /// imported annotated `const` answers its annotation, which is the
+    /// declaration the checker holds its uses to.
+    #[test]
+    fn hover_answers_an_imported_variant_and_an_imported_const() {
+        let root = tmp_root();
+        write(
+            &root,
+            "orders.glyph",
+            "module orders\n\
+             \n\
+             pub type OrderStatus =\n\
+             \x20 | Pending\n\
+             \x20 | Paid({ transaction_id: string })\n\
+             \n\
+             pub const LIMIT: int = 5\n",
+        );
+        write(
+            &root,
+            "main.glyph",
+            "module main\n\
+             \n\
+             import orders { OrderStatus, Pending, Paid, LIMIT }\n\
+             \n\
+             pub fn go() -> number {\n\
+             \x20 let st: OrderStatus = Pending\n\
+             \x20 let p: OrderStatus = Paid({ transaction_id: \"t\" })\n\
+             \x20 let n: int = LIMIT\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        let mut server = Server::new(root.clone());
+        for (label, needle, offset, want) in [
+            ("a variant used as a value", "= Pending", 2, "Pending"),
+            (
+                "a variant applied to a payload",
+                "Paid({ transaction_id: \"t\"",
+                0,
+                "Paid({ transaction_id: string })",
+            ),
+            ("an annotated const used", "= LIMIT", 2, "number"),
+            ("the variant's import binding", "Pending, Paid", 0, "Pending"),
+            ("the const's import binding", "LIMIT }", 0, "number"),
+        ] {
+            let (line, character) = at(&root, "main.glyph", needle, offset);
+            let (got, is_error) = call_on(
+                &mut server,
+                "glyph_hover",
+                json!({ "path": "main.glyph", "line": line, "character": character }),
+            );
+            assert!(!is_error, "{label}: {got}");
+            assert_eq!(got, json!(want), "{label} at {line}:{character}");
+        }
     }
 
     /// A record field's name is not an annotation, and hover does not answer

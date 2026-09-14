@@ -28,8 +28,8 @@ use glyph_resolver::{
     QualifiedTypeRef, ResolvedModule, ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types, display_ty, DiagnosticUnion, Lowerer, RecordField, Ty, TypeMap,
-    UnionVariant as TyUnionVariant,
+    assign_types, display_ty, imported_decl_chain_end, DeclTyResolver, DiagnosticUnion, Lowerer,
+    RecordField, Ty, TypeMap, UnionVariant as TyUnionVariant,
 };
 
 /// One diagnostic in source-byte coordinates, independent of the LSP protocol.
@@ -640,6 +640,131 @@ pub fn declaration_hover_at(
         ResolvedRef::Local(def_start) => local_binding_ty(resolved, types, def_start),
         ResolvedRef::Prelude(_) => None,
     }
+}
+
+/// [`hover_at`], plus the reading that answers a name declared in another
+/// module.
+///
+/// The extra step needs a cross-module resolver, and a caller that has none
+/// asks [`hover_at`] instead and gets exactly the answers it always gave. What
+/// the resolver buys is the four positions G227 recorded: the binding in an
+/// `import m { N }` list, an imported function where it is called (named or
+/// through a namespace), an imported variant used as a value, and an imported
+/// type's name. Each is read through the same cross-module queries the checker
+/// runs (`imported_fn_decl`, `imported_const_decl`, `imported_union_of_variant`,
+/// `imported_type_decl`), so the answer is the declaring module's own lowered
+/// declaration and never a shape guessed from the import binding.
+///
+/// The order matters: the file's own readings go first, so no position this
+/// already answered changes its answer.
+pub fn hover_at_with_imports(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    types: &TypeMap,
+    decls: &dyn DeclTyResolver,
+    text: &str,
+    offset: usize,
+) -> Option<String> {
+    hover_at(module, resolved, prelude, types, text, offset)
+        .or_else(|| imported_hover_at(module, resolved, decls, text, offset))
+}
+
+/// The rendered type of a name at `offset` whose declaration is in another
+/// module.
+///
+/// `None` when the position is on no imported name, and when it is on one the
+/// declaring module does not export as a `fn`, a `const`, a variant or a
+/// `type`. A namespace binding (`import checkout`) is one of those: it names a
+/// module rather than a declaration, and a module has no type.
+fn imported_hover_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    decls: &dyn DeclTyResolver,
+    text: &str,
+    offset: usize,
+) -> Option<String> {
+    let (from, name) = imported_name_at(module, resolved, text, offset)?;
+    imported_decl_ty(decls, &from, &name).and_then(render)
+}
+
+/// The `(module, name)` an imported name at `offset` addresses in the module
+/// that declares it.
+///
+/// Three readings, and each is the resolver's own record rather than a scan of
+/// the text for a spelling. A use of a named import is in the resolution
+/// table, pointing at the `ImportNamed` symbol that carries the path and the
+/// original name. A namespace-qualified `ns.Name` is not in that table (the
+/// entry sits on `ns`), and is recorded separately as a qualified reference.
+/// The binding token inside `import m { N }` is neither, because it is where
+/// the name is bound rather than a use of it, so it is located inside the
+/// import declaration's own span, which is how [`global_occurrences_in`]
+/// already finds it.
+fn imported_name_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    text: &str,
+    offset: usize,
+) -> Option<(String, String)> {
+    if let Some(ResolvedRef::Module(id)) = innermost_ref(resolved, offset) {
+        if let Some(sym) = resolved.symbols.table.get(id) {
+            if let SymbolKind::ImportNamed { path, original } = &sym.kind {
+                return Some((join_segments(&path.segments), original.to_string()));
+            }
+        }
+    }
+    for q in &resolved.qualified_type_refs {
+        if covers(qualified_name_span(q, text), offset) {
+            return Some((join_segments(&q.module.segments), q.name.to_string()));
+        }
+    }
+    for decl in &module.items {
+        let Decl::Import(im) = decl else { continue };
+        let ImportKind::Named(names) = &im.kind else {
+            continue;
+        };
+        for bound in names {
+            if covers(
+                whole_word_span(text, im.span.start, im.span.end, bound.as_ref()),
+                offset,
+            ) {
+                return Some((join_segments(&im.path.segments), bound.to_string()));
+            }
+        }
+    }
+    None
+}
+
+/// The lowered declaration `module::name` names, read through the declaring
+/// module's export view.
+///
+/// The four queries are asked in the order a flat module namespace makes them
+/// exclusive: one name is a `fn`, a `const`, a hoisted variant or a `type`, and
+/// a module declaring the same name twice is already a duplicate-declaration
+/// error. A variant answers as a one-variant union, which is the string
+/// `display_ty` prints for it in its own module, so an imported variant and a
+/// local one hover the same way.
+fn imported_decl_ty(decls: &dyn DeclTyResolver, module: &str, name: &str) -> Option<Ty> {
+    if let Some(ty) = decls.imported_fn_decl(module, name) {
+        return Some(ty);
+    }
+    if let Some(ty) = decls.imported_const_decl(module, name) {
+        return Some(ty);
+    }
+    if let Some((owner, _)) = decls.imported_union_of_variant(module, name) {
+        let decl = decls.imported_type_decl(module, &owner)?;
+        let Ty::Union { variants } = &decl.body else {
+            return None;
+        };
+        let v = variants.iter().find(|v| v.name.as_ref() == name)?;
+        return Some(Ty::Union {
+            variants: vec![v.clone()],
+        });
+    }
+    // The chain of second names is followed to the declaration it ends at, so
+    // `pub type Rows = Sheet` in the declaring module hovers as `Sheet`'s body
+    // rather than as a second name nothing reads.
+    imported_decl_chain_end(decls, module, name).map(|(_, _, decl)| decl.body)
 }
 
 /// Whether a located name span covers `offset`.

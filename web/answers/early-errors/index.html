@@ -45,21 +45,22 @@
         <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
         <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
         <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
-        <a href="/answers/debugging/"><span class="n">17</span> Debugging &amp; ops</a>
-        <a href="/answers/language/"><span class="n">18</span> The language</a>
-        <a href="/answers/finance/"><span class="n">19</span> Money &amp; safety</a>
-        <a href="/answers/web-serving/"><span class="n">20</span> Serving the web</a>
-        <a href="/answers/early-errors/" class="active"><span class="n">21</span> Caught earlier</a>
-        <a href="/answers/parse-errors/"><span class="n">22</span> Why a parse failed</a>
-        <a href="/answers/interactive-cli/"><span class="n">23</span> Programs you type into</a>
-        <a href="/answers/long-running/"><span class="n">24</span> Servers &amp; daemons</a>
-        <a href="/answers/upgrades/"><span class="n">25</span> Upgrades</a>
-        <a href="/answers/binary/"><span class="n">26</span> Binary data</a>
+        <a href="/answers/repair-protocol/"><span class="n">17</span> Fixing a red build</a>
+        <a href="/answers/debugging/"><span class="n">18</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">19</span> The language</a>
+        <a href="/answers/finance/"><span class="n">20</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">21</span> Serving the web</a>
+        <a href="/answers/early-errors/" class="active"><span class="n">22</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">23</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">24</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">25</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">26</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">27</span> Binary data</a>
       </div>
     </div>
 
     <article class="answer-page">
-      <p class="q-eyebrow">21 &middot; Caught earlier</p>
+      <p class="q-eyebrow">22 &middot; Caught earlier</p>
       <h1 class="q-title">Why does Glyph catch what tsc catches, but earlier?</h1>
 
       <p class="short-answer">
@@ -420,6 +421,89 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">And two more in 0.1.122</p>
+        <p>
+          <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the
+          Glyph checker compared a value against it by nothing at all. A number, a
+          <code>bool</code>, a record and a string outside the set all passed
+          <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while
+          <code>tsc</code> refused every one of them on the emitted TypeScript. So a full
+          <code>glyph build</code> was never wrong about this, but the four surfaces that have no
+          <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP
+          tools and the playground.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc, on a type that lists its legal strings</span>
+<pre>type Mode = "read" | "write"
+
+let a: Mode = 3
+let b: Mode = "rw"
+let c: Mode = takes_mode(true)
+let d: Mode = { x: 1 }
+<span class="cm">// before: four unused-variable warnings, exit 0</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `number`
+[E0204] type mismatch: expected `Mode`, found `"rw"`
+[E0211] argument type mismatch: expected `Mode`, found `bool`
+[E0204] type mismatch: expected `Mode`, found `record`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          That is the four <code>tsc</code> reported, at the same four statements, without running
+          <code>tsc</code>. The rule reads the union as what it is at run time, a
+          <code>string</code>, and asks the checker the corresponding <code>string</code> question
+          in each direction, so it inherits the rules that already refuse a record or a container
+          against a <code>string</code> rather than restating them one shape at a time. Two literal
+          sets are compared by set, so a narrower union goes where a wider one is declared; an
+          alias chain is followed on both sides; an imported union is decided like a local one; and
+          <code>Nullable&lt;Mode&gt;</code> is descended with the union intact.
+        </p>
+        <p>
+          Some shapes are still left to <code>tsc</code>, on purpose. A <code>string</code> produced
+          by a value-position <code>match</code> whose arms are not all written literals is one:
+          reading it as a bare <code>string</code> rejects correct programs, and one in this
+          repository's own corpus was the first casualty of a stricter first cut. A union nested in
+          a record field or a generic argument is another, which is the boundary the record rules
+          already stop at.
+        </p>
+        <p>
+          The second one is not a <code>tsc</code> story at all. The parser is recursive descent
+          with no depth guard, so an expression nested two thousand levels deep ran the process out
+          of stack and aborted with exit 134. That is bad on <code>glyph check</code> and worse on
+          <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root:
+          one pathological file took the server down for the whole workspace. It is
+          <code>E0011</code> now, raised at the token that would have opened level 65.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check, on `const x = ` followed by 2,000 nested brackets</span>
+<pre><span class="cm">// before: thread 'main' has overflowed its stack
+//         fatal runtime error: stack overflow, aborting   (exit 134)</span>
+
+<span class="del">[E0011] this array literal nests deeper than the parser's limit of 64 levels</span>
+   &#9584;&#9472; Name the inner levels: pull them out into `let` bindings, or into a
+      `fn` that returns one of them, so no single expression, type or
+      pattern is more than 64 levels deep.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The limit is 64 and it was measured rather than picked. One level of the costliest
+          construct, a nested array literal, costs 7,792 bytes of stack in the release build and
+          8,810 in the debug one, found by binary-searching the smallest thread stack a given depth
+          will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which
+          is what the language server's workers get, and 64 levels spend under a third of it in the
+          costlier build. The deepest nesting across the 343 <code>.glyph</code> files in this
+          repository is 16. The limit covers expressions, types, patterns, blocks and JSX children
+          alike, and a thousand sibling arrays still parse, because depth is per-construct nesting
+          and not a budget spent over the file.
+        </p>
+      </div>
+
       <p class="block-label">When neither compiler is wrong</p>
       <div class="detail">
         <p>
@@ -532,11 +616,11 @@ string.repeeat(s, 2)
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, and <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, and <code>E0101</code> for a relative import path, which used to stop in the parser as a generic "expected module path segment". The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Six edges. <code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. Separately from those six: the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, because the checker hands those over as a set of literals rather than as a name to follow.</p>
+          <p>Six edges. <code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. An object literal still has no type of its own, so <code>let g: string = { x: 1 }</code> is silent under <code>--no-tsc</code> and <code>tsc</code> is what refuses it; the string-literal-union rule reads the written braces off the expression, which is why it catches the same literal against a <code>Mode</code>. Separately from those six: the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, because the checker hands those over as a set of literals rather than as a name to follow.</p>
         </div>
       </div>
 

@@ -632,6 +632,63 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
 /// imported union came back clean, and the unused-import lint fired on the
 /// variants the missing arms would have named (G219).
 ///
+/// The diagnostics one file draws inside its project, with `text` standing in
+/// for what is on disk at `path`.
+///
+/// `glyph fix` is the caller. A rule that rewrites a file has to check its own
+/// work before it writes, and checking it against the file alone is what made
+/// the E0200 rule decline every `match` over an imported union: a variant
+/// declared in another module is an unresolved name in a single-module read,
+/// so the rule's own arms looked like new `E0103`s and it backed out (G236).
+/// The project is what knows those names, and it is the same project database
+/// `glyph_diagnostics` answers from, so the rule and the check it verifies
+/// against read the program the same way.
+///
+/// The candidate never touches the disk. It is written into the database as
+/// the file's text for the length of this call, and the database is thrown
+/// away with the server when the call returns.
+pub fn file_diagnostics_with_text(
+    root: PathBuf,
+    path: &Path,
+    text: &str,
+) -> Result<Vec<crate::diagnostic::Diagnostic>, String> {
+    let root = canonical_root(root);
+    let path = std::fs::canonicalize(path)
+        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let project_root = crate::module_root_for(&path, &root);
+    let mut server = Server::new(root.clone());
+    let project = server.project_mut(&project_root, &path);
+    let Some(entry) = project.queried(&path) else {
+        return Err(format!(
+            "{} could not be read as a module of the project at {}",
+            display_path(&root, &path),
+            display_path(&root, &project_root),
+        ));
+    };
+    let file = entry.file;
+    project.db.set_file_text(file, text.to_string());
+
+    let module_path = module_key(&path, &root);
+    let db = &project.db;
+    let searched = project.searched();
+    let parsed_all: Vec<glyph_db::ParsedModule> = searched
+        .iter()
+        .map(|(_, f)| glyph_db::parse_module(db, f.file))
+        .collect();
+    let tables = glyph_emit::ProjectTables::from_modules(
+        searched
+            .iter()
+            .zip(parsed_all.iter())
+            .map(|((_, f), parsed)| (f.module_path.as_str(), parsed.module())),
+    );
+    Ok(crate::diagnostic::project_file_diagnostics(
+        db,
+        file,
+        &module_path,
+        &tables,
+    ))
+}
+
 /// Coverage is stated on the answer rather than assumed. `member` says whether
 /// the project walk reaches the file; `unindexed` names the project files that
 /// could not be read, one by one, because a sibling that does not parse

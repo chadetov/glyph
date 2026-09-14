@@ -136,18 +136,23 @@ fn main() {
             <div class="code">
               <span class="cap">glyph fix src</span>
 <pre>glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the
-           match on `OrderStatus`: `Paid`, `Cancelled`
+           match on `OrderStatus`: `Paid`, `Cancelled`, and wrote
+           `import std/process` for the arm bodies and `Paid`,
+           `Cancelled` into `import orders`
 
-<span class="add">    // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
+<span class="add">import orders { OrderStatus, Pending, Paid, Cancelled }
+    ...
+    // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
     Paid({ transaction_id }) =&gt; {
       print("unhandled OrderStatus variant Paid (arm written by glyph fix)")
       process.exit(1)
     },</span>
 
-<span class="cm">// glyph check --no-tsc: 1 module(s) checked, no diagnostics.</span></pre>
+<span class="cm">// glyph check --no-tsc: 2 module(s) checked, no diagnostics.</span></pre>
             </div>
             <p>The arm leaves through <code>process.exit</code> because that is the one body legal in both positions: it returns <code>never</code>, which contributes nothing to the arm join, so the same text works whether the <code>match</code> owes a value or not. The obvious alternative was measured rather than argued about, and <code>assert(false, "unhandled")</code> in a value-position arm returning <code>string</code> fails <code>tsc</code> with <code>TS2322: Type 'void' is not assignable to type 'string'</code>. A repair that turns one error into another is not a repair.</p>
-            <p>Nothing here guesses, so every rule that cannot settle an answer says so and why on the same output as what it applied. Two fields a character away from the typo are two, not one. A union no project module declares has no payload shapes to write patterns from.</p>
+            <p>The union above is declared in another module, and that case was broken until a review caught it before this was tagged. The rule used to check its own work by resolving the candidate file alone, where an imported variant is an unresolved name, so it declined every cross-module match. It checks against the project now, and it writes the variant imports the arms need, or the namespace spelling <code>orders.Paid({ transaction_id })</code> when the module is imported as a namespace.</p>
+            <p>Every byte the rule writes is in the report, imports included. Nothing here guesses, so every rule that cannot settle an answer says so and why on the same output as what it applied. Two fields a character away from the typo are two, not one. A union no project module declares has no payload shapes to write patterns from. A variant name already bound in the file by something else says so by name.</p>
             <p>The third piece is <code>glyph --explain &lt;CODE&gt; --json</code>, which hands over the code's explanation as data along with a wrong program from the compiler's own negative corpus and the diagnostic this compiler draws for it, built when you ask rather than stored.</p>
             <div class="code">
               <span class="cap">glyph --explain E0200 --json</span>

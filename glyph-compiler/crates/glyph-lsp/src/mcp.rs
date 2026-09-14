@@ -37,7 +37,7 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    display_ty, imported_decl_chain_end, prelude_container, CoverageSiteRef, CoverageState,
+    display_ty, imported_decl_chain_end, prelude_container, Assignability, CoverageSiteRef, CoverageState,
     CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner, FieldSite, FnParam, Lowerer,
     Primitive, Ty, TypeMap,
 };
@@ -5765,6 +5765,15 @@ enum ParamKind {
         inner: Option<Box<ParamKind>>,
         inner_ty: String,
     },
+    /// A structural record or a function type written in the parameter's
+    /// annotation. Kept apart from [`ParamKind::Other`] because the checker
+    /// has a rule for two structural records, field by field with width
+    /// subtyping, and the cell for it has to be reachable (G228). Which of
+    /// the two shapes it is, and so whether that rule reads the pairing at
+    /// all, is decided by the relation itself rather than by a second reading
+    /// here: two function types are compared by their returns alone, so the
+    /// relation declines them and the cell reports what it declined.
+    Structural,
     Other,
 }
 
@@ -5973,6 +5982,7 @@ fn classify_parameter(ty: &Ty, scope: &CellScope<'_>) -> ParamKind {
             }
             _ => ParamKind::Other,
         },
+        Ty::Record { .. } | Ty::Fn { .. } => ParamKind::Structural,
         _ => ParamKind::Other,
     }
 }
@@ -6031,6 +6041,17 @@ fn is_concrete_scalar(p: Primitive) -> bool {
 ///   undetermined as it does for two local names;
 /// - `Ty::Unknown` and a generic parameter are declined on either side.
 ///
+/// Two pairings are decided by asking the relation itself rather than by
+/// restating a rule here (G228): a prelude container against a prelude
+/// container, which the checker compares by arity, by base and by argument,
+/// and a structural record against a structural record, which it compares
+/// field by field with width subtyping. Both rules recurse, so their answer
+/// for one pairing is not a property of the two kinds and cannot be written as
+/// a sentence about them. `decide` runs
+/// [`glyph_typechecker::assignability`] on the two types the site actually
+/// holds, which is the same call `glyph_assignable` makes, so the two tools
+/// cannot answer differently about one pairing.
+///
 /// One function, one match, so when the checker gains a rule the cell that
 /// changes is one arm here.
 fn signature_type_cell(
@@ -6038,6 +6059,7 @@ fn signature_type_cell(
     param: &ParamKind,
     arg_ty: &str,
     param_ty: &str,
+    decide: &dyn Fn() -> Assignability,
 ) -> (Verdict, String) {
     use ArgKind as A;
     use ParamKind as P;
@@ -6231,7 +6253,10 @@ fn signature_type_cell(
                  replacement is reported by nothing here"
             ))
         }
-        (A::Imported(_) | A::AppOfImported(_), P::Other | P::PreludeContainer { .. }) => undetermined(format!(
+        (
+            A::Imported(_) | A::AppOfImported(_),
+            P::Other | P::Structural | P::PreludeContainer { .. },
+        ) => undetermined(format!(
             "the parameter's type `{param_ty}` is neither a primitive nor a declared name (an \
              application of a prelude type, a structural record or a function type), and the \
              checker compares an imported declaration only against a primitive or a declared \
@@ -6266,7 +6291,11 @@ fn signature_type_cell(
                 inner_ty,
             },
         ) if is_concrete_scalar(*p) => {
-            let (verdict, inner_why) = signature_type_cell(arg, inner, arg_ty, inner_ty);
+            // `decide` travels unchanged and is never called from here: the
+            // two arms that read it need a container or a structural argument,
+            // and this arm's guard is a primitive one.
+            let (verdict, inner_why) =
+                signature_type_cell(arg, inner, arg_ty, inner_ty, decide);
             (
                 verdict,
                 format!(
@@ -6297,11 +6326,98 @@ fn signature_type_cell(
              or a `bool`, and the checker compares the two shapes, so a replacement \
              `string`, `number` or `bool` is E0211 here"
         )),
+        // G228, the two pairings the checker reads and this table used to say
+        // it had no rule for. Both rules recurse, so neither answer is a
+        // property of the two kinds, and the cell asks the relation.
+        (A::PreludeContainer(_), P::PreludeContainer { .. }) => decided_cell(
+            decide(),
+            &format!(
+                "`{arg_ty}` and `{param_ty}` both apply a prelude container, and the checker \
+                 compares two generic applications by arity, by base and by argument"
+            ),
+            "One of the pairings inside the two applications is a shape no rule of the \
+             relation reads, so the comparison neither accepts nor refuses it",
+            arg_ty,
+            param_ty,
+        ),
+        (A::Structural, P::Structural) => decided_cell(
+            decide(),
+            &format!(
+                "`{arg_ty}` and `{param_ty}` are both written structurally, and the checker \
+                 compares two structural records field by field with width subtyping, \
+                 reading `optional` on each side"
+            ),
+            "The comparison neither accepts nor refuses this pairing. It declines two \
+             function types, which it reads by their returns alone while saying nothing \
+             about their parameters, and it declines a record whose field is optional where \
+             the declaration requires one, since TypeScript reports that (TS2345) and the \
+             relation does not",
+            arg_ty,
+            param_ty,
+        ),
         _ => undetermined(format!(
             "the checker has no rule comparing a `{arg_ty}` argument against a `{param_ty}` \
              parameter, so a replacement is compared against nothing here that Glyph \
              reports"
         )),
+    }
+}
+
+/// One cell decided by the checker's own assignability relation rather than by
+/// a sentence written here (G228).
+///
+/// `rule` names the comparison the relation ran, and it is stated the same way
+/// in all three answers, because what changes between them is what the
+/// comparison concluded and not which comparison it was.
+///
+/// `SAFE` rather than `COMPATIBLE`, and the two words are not interchangeable.
+/// `glyph_assignable` is asked about two types with no site and no edit in the
+/// question, and `COMPATIBLE` is its word for a rule accepting them. This table
+/// is asked about an edit at a site, and `SAFE` is the word every other cell of
+/// `glyph_impact` uses for a site the change leaves correct. The underlying
+/// fact is one fact, read from one call, which is the whole point of deciding
+/// the cell this way; the vocabulary differs because the questions do.
+///
+/// An accepted pairing is a site the change is still caught at. The rules
+/// reached here are total over the shapes they read, so they refuse whenever
+/// the two sides differ in the way they read, and a replacement the rule does
+/// not accept is E0211. That is why `signature_type_site` counts `SAFE`
+/// alongside `WILL_FAIL` as a compared pairing rather than as a gap.
+fn decided_cell(
+    answer: Assignability,
+    rule: &str,
+    no_rule: &'static str,
+    arg_ty: &str,
+    param_ty: &str,
+) -> (Verdict, String) {
+    match answer {
+        Assignability::Incompatible => (
+            Verdict::WillFail,
+            format!(
+                "{rule}. That comparison refuses a `{arg_ty}` value where a `{param_ty}` is \
+                 declared, so this site is E0211 as it stands and under every replacement \
+                 the same comparison refuses. `glyph_assignable` on the two types answers \
+                 WILL_FAIL from this call"
+            ),
+        ),
+        Assignability::Compatible { .. } => (
+            Verdict::Safe,
+            format!(
+                "{rule}. That comparison accepts a `{arg_ty}` value where a `{param_ty}` is \
+                 declared, and the rule is total over this shape, so a replacement it does \
+                 not accept is E0211 here. `SAFE` rather than `COMPATIBLE` because this is a \
+                 fact about an edit at a site; `COMPATIBLE` is `glyph_assignable`'s word for \
+                 the same acceptance asked of two types with no site"
+            ),
+        ),
+        Assignability::NoRule => (
+            Verdict::Undetermined,
+            format!(
+                "{rule}. {no_rule}, so a `{arg_ty}` against `{param_ty}` is reported by \
+                 nothing here and only `tsc` on a full `glyph build` would see a mismatch. \
+                 `glyph_assignable` on the two types answers UNDETERMINED from this call"
+            ),
+        ),
     }
 }
 
@@ -6358,11 +6474,24 @@ fn signature_type_site(
         } else {
             ArgKind::Unknown
         };
+        // The relation is asked lazily: it builds a lowerer and a scratch type
+        // map per call, and only two cells of the table read it.
+        let decide = || {
+            glyph_typechecker::assignability(
+                scope.module,
+                scope.resolved,
+                scope.prelude,
+                scope.decls,
+                ty,
+                &param.ty,
+            )
+        };
         let (verdict, rule) = signature_type_cell(
             &kind,
             &classify_parameter(&param.ty, scope),
             &arg_ty,
             &param_ty,
+            &decide,
         );
         let param_name = param.name.as_deref().unwrap_or("_");
         let because = format!(
@@ -6370,7 +6499,12 @@ fn signature_type_site(
              {rule}",
             ordinal + 1
         );
-        all_compared &= verdict == Verdict::WillFail;
+        // `SAFE` counts as compared. It is only reached from `decided_cell`,
+        // where it means a total rule read this pairing and accepted it, so a
+        // replacement the same rule does not accept is E0211 at this site,
+        // which is exactly what `WILL_FAIL` claims for the cells that state a
+        // rule rather than run one.
+        all_compared &= matches!(verdict, Verdict::WillFail | Verdict::Safe);
         arguments.push(json!({
             "ordinal": ordinal + 1,
             "source": source,
@@ -13608,6 +13742,222 @@ pub fn f() -> number {
         assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
         assert_eq!(entry["diagnostic"], "E0211", "{entry}");
         assert!(entry["because"].as_str().unwrap_or_default().contains("record"), "{entry}");
+    }
+
+    // ----- G228: the two cells decided by the relation itself -----
+
+    /// Cell (prelude container, prelude container), accepted. The checker
+    /// compares two applications by arity, by base and by argument, and the
+    /// table used to say it had no rule for the pairing. Run against the
+    /// checker before the cell was written: the program compiles, and
+    /// `glyph_assignable` answers COMPATIBLE for `Option<int>` into
+    /// `Option<int>`.
+    #[test]
+    fn signature_type_container_against_container_is_safe_when_accepted() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(o: Option<int>) -> int {\n  return 1\n}\n\
+             pub fn g(o: Option<int>) -> int {\n  return f(o)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "SAFE", "{entry}");
+        let because = args[0]["because"].as_str().unwrap_or_default();
+        assert!(
+            because.contains("by arity, by base and by argument"),
+            "the rule is unnamed: {entry}"
+        );
+        assert!(
+            because.contains("`SAFE` rather than `COMPATIBLE`"),
+            "the word is not explained: {entry}"
+        );
+        assert!(
+            !because.contains("no rule"),
+            "the cell still claims the checker has no rule: {entry}"
+        );
+        // A pairing a total rule accepts is a pairing the checker reads, so the
+        // site is one a replacement is caught at.
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+    }
+
+    /// The same cell, refused. `Option<int>` where a `Nullable<int>` is
+    /// declared is E0211 under `glyph check --no-tsc`, which is what the
+    /// verdict has to say.
+    #[test]
+    fn signature_type_container_against_container_is_will_fail_when_refused() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(o: Nullable<int>) -> int {\n  return 1\n}\n\
+             pub fn g(o: Option<int>) -> int {\n  return f(o)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "WILL_FAIL", "{entry}");
+        let because = args[0]["because"].as_str().unwrap_or_default();
+        assert!(
+            because.contains("by arity, by base and by argument"),
+            "the rule is unnamed: {entry}"
+        );
+        assert!(because.contains("refuses"), "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+    }
+
+    /// The same cell, undecided. The comparison recurses into the arguments,
+    /// and two function types are where it stops: it reads the returns and
+    /// says nothing about the parameters, so neither side of the pairing is
+    /// established and the cell names what is missing.
+    #[test]
+    fn signature_type_container_against_container_is_undetermined_with_a_reason() {
+        let entry = signature_call_entry(
+            "module api\npub fn pick(n: int) -> int {\n  return n\n}\n\
+             pub fn f(o: Option<fn(string) -> int>) -> int {\n  return 1\n}\n\
+             pub fn g(o: Option<fn(int) -> int>) -> int {\n  return f(o)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "UNDETERMINED", "{entry}");
+        let because = args[0]["because"].as_str().unwrap_or_default();
+        assert!(
+            because.contains("by arity, by base and by argument"),
+            "the rule is unnamed: {entry}"
+        );
+        assert!(
+            because.contains("neither accepts nor refuses"),
+            "the missing rule is unnamed: {entry}"
+        );
+        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
+    }
+
+    /// Cell (structural record, structural record), accepted. Width subtyping:
+    /// the wider value satisfies the narrower declaration, and the table used
+    /// to say the checker had no rule while `glyph_assignable` said
+    /// COMPATIBLE.
+    #[test]
+    fn signature_type_structural_against_structural_is_safe_when_accepted() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(r: { a: string }) -> string {\n  return r.a\n}\n\
+             pub fn g(r: { a: string, b: int }) -> string {\n  return f(r)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "SAFE", "{entry}");
+        let because = args[0]["because"].as_str().unwrap_or_default();
+        assert!(
+            because.contains("field by field with width subtyping"),
+            "the rule is unnamed: {entry}"
+        );
+        assert!(
+            !because.contains("no rule"),
+            "the cell still claims the checker has no rule: {entry}"
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+    }
+
+    /// The same cell, refused. The narrowing direction is E0211 under
+    /// `glyph check --no-tsc`, which is the half of this disagreement that was
+    /// with a diagnostic the compiler raises rather than with another tool.
+    #[test]
+    fn signature_type_structural_against_structural_is_will_fail_when_refused() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(r: { a: string, b: int }) -> string {\n  return r.a\n}\n\
+             pub fn g(r: { a: string }) -> string {\n  return f(r)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "WILL_FAIL", "{entry}");
+        assert!(
+            args[0]["because"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("field by field with width subtyping"),
+            "the rule is unnamed: {entry}"
+        );
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
+    }
+
+    /// The same cell, undecided. A field of function type is the shape the
+    /// record rule recurses into and the relation declines.
+    #[test]
+    fn signature_type_structural_against_structural_is_undetermined_with_a_reason() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(r: { a: fn(string) -> int }) -> int {\n  return 1\n}\n\
+             pub fn g(r: { a: fn(int) -> int }) -> int {\n  return f(r)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "UNDETERMINED", "{entry}");
+        let because = args[0]["because"].as_str().unwrap_or_default();
+        assert!(
+            because.contains("field by field with width subtyping"),
+            "the rule is unnamed: {entry}"
+        );
+        assert!(
+            because.contains("returns alone"),
+            "the declined shape is unnamed: {entry}"
+        );
+    }
+
+    /// The two tools answer one fact, so their verdicts on a pairing map onto
+    /// each other: `COMPATIBLE` where `glyph_impact` says `SAFE`, `WILL_FAIL`
+    /// on both, `UNDETERMINED` on both. This is the disagreement G228 is
+    /// about, asserted as an agreement rather than as two fixed strings.
+    #[test]
+    fn impact_and_assignable_agree_on_a_container_and_on_a_record() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(
+            &root,
+            "api.glyph",
+            "module api\npub fn pick(n: int) -> int {\n  return n\n}\n\
+             pub fn takes_c(o: Option<int>) -> int {\n  return 1\n}\n\
+             pub fn calls_c(o: Option<int>) -> int {\n  return takes_c(o)\n}\n\
+             pub fn takes_r(r: { a: string }) -> string {\n  return r.a\n}\n\
+             pub fn calls_r(r: { a: string, b: int }) -> string {\n  return takes_r(r)\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        for (entity, caller, from, to) in [
+            ("api::takes_c", "api::calls_c", "Option<int>", "Option<int>"),
+            (
+                "api::takes_r",
+                "api::calls_r",
+                "{ a: string, b: int }",
+                "{ a: string }",
+            ),
+        ] {
+            let answer = impact(
+                &mut server,
+                json!({ "entity": entity, "change": { "kind": "change_signature_type" } }),
+            );
+            let entry = answer["impact"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|e| e["entity"] == caller && e["relation"] == "CALLS")
+                .cloned()
+                .unwrap_or_else(|| panic!("no CALLS entry for `{caller}` in {answer}"));
+            let cell = entry["arguments"][0]["verdict"].as_str().unwrap_or_default().to_string();
+            let (assignable, is_error) = call_on(
+                &mut server,
+                "glyph_assignable",
+                json!({ "path": "api.glyph", "from": from, "to": to }),
+            );
+            assert!(!is_error, "{assignable}");
+            let pairing = assignable["verdict"].as_str().unwrap_or_default();
+            let expected = match pairing {
+                "COMPATIBLE" => "SAFE",
+                other => other,
+            };
+            assert_eq!(
+                cell, expected,
+                "`glyph_impact` says {cell} and `glyph_assignable` says {pairing} about \
+                 `{from}` into `{to}`"
+            );
+        }
     }
 
     /// A site is the weakest of its arguments. One compared pairing (a string

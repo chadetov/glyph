@@ -32,7 +32,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     // Represented by an empty element name (a real JSX name can never be empty).
     if matches!(p.peek(), Token::RAngle) {
         p.advance(); // `>`
-        let children = parse_jsx_children(p)?;
+        let children = p.nested("JSX fragment", open_span, parse_jsx_children)?;
         p.expect(&Token::LAngle, "`<` (open fragment closing `</>`)")?;
         p.expect(&Token::Slash, "`/` (fragment closing `</>`)")?;
         let close = p.expect(&Token::RAngle, "`>` (end of fragment `</>`)")?;
@@ -70,7 +70,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     let _gt = p.expect(&Token::RAngle, "`>` (close JSX opening tag)")?;
 
     // Children until the matching closing tag `</name>`.
-    let children = parse_jsx_children(p)?;
+    let children = p.nested("JSX element", open_span, parse_jsx_children)?;
 
     // Closing tag.
     p.expect(&Token::LAngle, "`<` (open closing tag)")?;

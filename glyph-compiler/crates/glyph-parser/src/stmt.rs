@@ -13,16 +13,19 @@ use crate::types;
 
 pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
     let open = p.expect(&Token::LBrace, "`{`")?;
-    let mut stmts = Vec::new();
-    loop {
-        p.skip_newlines();
-        if matches!(p.peek(), Token::RBrace) {
-            break;
+    let stmts = p.nested("block", open, |p| {
+        let mut stmts = Vec::new();
+        loop {
+            p.skip_newlines();
+            if matches!(p.peek(), Token::RBrace) {
+                break;
+            }
+            let s = parse_stmt(p)?;
+            stmts.push(s);
+            p.skip_newlines();
         }
-        let s = parse_stmt(p)?;
-        stmts.push(s);
-        p.skip_newlines();
-    }
+        Ok(stmts)
+    })?;
     let close = p.expect(&Token::RBrace, "`}`")?;
     Ok(Block {
         stmts,

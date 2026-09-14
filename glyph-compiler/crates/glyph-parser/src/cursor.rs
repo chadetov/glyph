@@ -4,9 +4,43 @@ use glyph_lexer::{Span, Spanned, Token};
 
 use crate::error::ParseError;
 
+/// How many levels of nested construct the parser will descend through before
+/// it stops and reports `E0011`.
+///
+/// Recursive descent spends stack per level, so an input nested deeply enough
+/// ends the process with `fatal runtime error: stack overflow` instead of a
+/// diagnostic: 2,000 nested `[` did that to `glyph check`, `glyph fmt`,
+/// `glyph lsp` and `glyph mcp` alike, and the language server reads every file
+/// under the root, so one pathological file took the server down for the whole
+/// workspace (G229).
+///
+/// The number comes from measuring what one level of the deepest entry point,
+/// a nested array literal, costs in stack: 7,792 bytes in the release build
+/// and 8,810 in the debug one, on x86-64 macOS. Both were found by
+/// binary-searching the smallest thread stack a given depth parses in, where
+/// depth 100 needs 790,339 bytes in release and 896,809 in debug and depth 800
+/// needs 6,244,879 and 7,063,879. A level is expensive because it runs the
+/// whole precedence ladder, twenty-odd frames each carrying an `Expr`
+/// temporary.
+///
+/// The thinnest stack the parser runs on is a spawned thread's, 2 MiB by
+/// default: that is what the language server's tokio workers get, and what the
+/// test harness gives each test, where the debug build aborts past depth 235.
+/// The CLI's main thread has 8 MiB. At 64 levels the release build spends
+/// about 515 KiB and the debug build about 580 KiB, so even the costlier build
+/// on the thinner stack uses under a third of it.
+///
+/// It is also far past anything anyone writes. Across the 343 `.glyph` files
+/// in this repository the deepest nesting is 16 levels, in
+/// `examples/apps/watchrun/main.glyph`; a file that reaches 64 was generated.
+pub const MAX_NESTING_DEPTH: u32 = 64;
+
 pub(crate) struct Cursor<'a> {
     tokens: Vec<Spanned<Token>>,
     pos: usize,
+    /// Levels of nested construct currently open. Maintained by `nested`, which
+    /// is the only thing that touches it, so it cannot leak on an error path.
+    depth: u32,
     /// Original source string. Used for JSX text-run reconstruction (D6) —
     /// the parser slices `source[start..end]` between tags to recover the
     /// raw text content that the tokenizer split into multiple tokens.
@@ -18,6 +52,7 @@ impl<'a> Cursor<'a> {
         Self {
             tokens,
             pos: 0,
+            depth: 0,
             source,
         }
     }
@@ -242,4 +277,36 @@ impl<'a> Cursor<'a> {
         Ok(items)
     }
 
+    /// Run `f` one nesting level deeper, or report `E0011` if that would cross
+    /// `MAX_NESTING_DEPTH`.
+    ///
+    /// Every recursion entry point in the parser that can nest goes through
+    /// this one helper: an expression operand, a type argument, a pattern, a
+    /// block, a JSX child. `construct` names what is being entered and `span`
+    /// is where the limit is crossed, so the diagnostic points at the token
+    /// that would have opened the level the parser refused to descend into.
+    ///
+    /// The counter is incremented and decremented around `f` here rather than
+    /// by the callers, so an error returned from inside a level still unwinds
+    /// the count. Nothing in the parser catches a `ParseError` and continues,
+    /// but a recovery path added later would inherit a correct depth either
+    /// way.
+    pub fn nested<T>(
+        &mut self,
+        construct: &'static str,
+        span: Span,
+        f: impl FnOnce(&mut Cursor<'a>) -> Result<T, ParseError>,
+    ) -> Result<T, ParseError> {
+        if self.depth >= MAX_NESTING_DEPTH {
+            return Err(ParseError::NestingTooDeep {
+                construct,
+                limit: MAX_NESTING_DEPTH,
+                span,
+            });
+        }
+        self.depth += 1;
+        let out = f(self);
+        self.depth -= 1;
+        out
+    }
 }

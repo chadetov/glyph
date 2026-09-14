@@ -35,7 +35,7 @@ fn parse_await(p: &mut Cursor) -> Result<Expr, ParseError> {
     if matches!(p.peek(), Token::Await) {
         let kw_span = p.peek_span();
         p.advance();
-        let expr = parse_await(p)?; // right-assoc
+        let expr = p.nested("`await` operand", kw_span, parse_await)?; // right-assoc
         // D18 places `await` (level 11) tighter than the postfix `?` (level 2),
         // so `await x?` means `(await x)?` — the `?` unwraps the awaited
         // `Result`. The recursive operand parse, however, binds the `?` to the
@@ -81,8 +81,9 @@ fn parse_await(p: &mut Cursor) -> Result<Expr, ParseError> {
 fn parse_nullish(p: &mut Cursor) -> Result<Expr, ParseError> {
     let left = parse_or(p)?;
     if matches!(p.peek(), Token::QQ) {
+        let op_span = p.peek_span();
         p.advance();
-        let right = parse_nullish(p)?; // right-assoc
+        let right = p.nested("`??` operand", op_span, parse_nullish)?; // right-assoc
         let span = Span::new(left.span().start, right.span().end);
         return Ok(Expr::Binary {
             op: BinOp::NullishCoalesce,
@@ -223,7 +224,7 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
     match p.peek() {
         Token::Bang => {
             p.advance();
-            let operand = parse_unary(p)?;
+            let operand = p.nested("unary operand", span, parse_unary)?;
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::Not,
@@ -233,7 +234,7 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
         }
         Token::Minus => {
             p.advance();
-            let operand = parse_unary(p)?;
+            let operand = p.nested("unary operand", span, parse_unary)?;
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::Neg,
@@ -243,7 +244,7 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
         }
         Token::Tilde => {
             p.advance();
-            let operand = parse_unary(p)?;
+            let operand = p.nested("unary operand", span, parse_unary)?;
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::BitNot,
@@ -292,8 +293,11 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             // callable expressions.
             Token::LAngle if is_callable_receiver(&expr) && looks_like_generic_call(p) => {
                 let type_args = parse_generic_call_type_args(p)?;
+                let open = p.peek_span();
                 p.advance(); // `(` (lookahead already confirmed)
-                let args = p.parse_comma_separated(&Token::RParen, true, parse_expr)?;
+                let args = p.nested("call argument list", open, |p| {
+                    p.parse_comma_separated(&Token::RParen, true, parse_expr)
+                })?;
                 let close = p.expect(&Token::RParen, "`)`")?;
                 let start = expr.span().start;
                 expr = Expr::Call {
@@ -305,8 +309,11 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             }
             // Level 1: call
             Token::LParen => {
+                let open = p.peek_span();
                 p.advance();
-                let args = p.parse_comma_separated(&Token::RParen, true, parse_expr)?;
+                let args = p.nested("call argument list", open, |p| {
+                    p.parse_comma_separated(&Token::RParen, true, parse_expr)
+                })?;
                 let close = p.expect(&Token::RParen, "`)`")?;
                 let start = expr.span().start;
                 expr = Expr::Call {
@@ -318,8 +325,9 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             }
             // Level 1: index
             Token::LBracket => {
+                let open = p.peek_span();
                 p.advance();
-                let index = parse_expr(p)?;
+                let index = p.nested("index expression", open, parse_expr)?;
                 let close = p.expect(&Token::RBracket, "`]`")?;
                 let start = expr.span().start;
                 expr = Expr::Index {
@@ -368,8 +376,9 @@ fn parse_new_callee(p: &mut Cursor) -> Result<Expr, ParseError> {
                 };
             }
             Token::LBracket => {
+                let open = p.peek_span();
                 p.advance();
-                let index = parse_expr(p)?;
+                let index = p.nested("index expression", open, parse_expr)?;
                 let close = p.expect(&Token::RBracket, "`]`")?;
                 let start = expr.span().start;
                 expr = Expr::Index {
@@ -400,8 +409,10 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             } else {
                 Vec::new()
             };
-            p.expect(&Token::LParen, "`(` for constructor arguments after `new`")?;
-            let args = p.parse_comma_separated(&Token::RParen, true, parse_expr)?;
+            let open = p.expect(&Token::LParen, "`(` for constructor arguments after `new`")?;
+            let args = p.nested("constructor argument list", open, |p| {
+                p.parse_comma_separated(&Token::RParen, true, parse_expr)
+            })?;
             let close = p.expect(&Token::RParen, "`)`")?;
             Ok(Expr::New {
                 callee: Box::new(callee),
@@ -469,7 +480,7 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             // Parenthesized expression; no tuples in v0.
             p.advance();
             p.skip_newlines();
-            let inner = parse_expr(p)?;
+            let inner = p.nested("parenthesized expression", span, parse_expr)?;
             p.skip_newlines();
             p.expect(&Token::RParen, "`)`")?;
             Ok(inner)
@@ -480,8 +491,8 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             let elem = jsx::parse_jsx_element(p)?;
             Ok(Expr::Jsx(elem))
         }
-        Token::Match => parse_match(p, span),
-        Token::Fn | Token::Async => parse_lambda(p, span),
+        Token::Match => p.nested("`match` expression", span, |p| parse_match(p, span)),
+        Token::Fn | Token::Async => p.nested("lambda", span, |p| parse_lambda(p, span)),
         other => Err(ParseError::Unexpected {
             found: format!("{other:?}"),
             span,
@@ -516,13 +527,15 @@ fn parse_extern_ts_expr(p: &mut Cursor, start: u32) -> Result<Expr, ParseError> 
 
 fn parse_array_literal(p: &mut Cursor) -> Result<Expr, ParseError> {
     let open = p.expect(&Token::LBracket, "`[`")?;
-    let elements = p.parse_comma_separated(&Token::RBracket, true, |p| {
-        if matches!(p.peek(), Token::DotDotDot) {
-            p.advance();
-            Ok(ArrayElem::Spread(parse_expr(p)?))
-        } else {
-            Ok(ArrayElem::Expr(parse_expr(p)?))
-        }
+    let elements = p.nested("array literal", open, |p| {
+        p.parse_comma_separated(&Token::RBracket, true, |p| {
+            if matches!(p.peek(), Token::DotDotDot) {
+                p.advance();
+                Ok(ArrayElem::Spread(parse_expr(p)?))
+            } else {
+                Ok(ArrayElem::Expr(parse_expr(p)?))
+            }
+        })
     })?;
     let close = p.expect(&Token::RBracket, "`]`")?;
     Ok(Expr::Array {
@@ -647,51 +660,57 @@ fn looks_like_object_literal(p: &Cursor) -> bool {
 
 fn parse_object_literal(p: &mut Cursor) -> Result<Expr, ParseError> {
     let open = p.expect(&Token::LBrace, "`{`")?;
-    let fields = p.parse_comma_separated(&Token::RBrace, true, |p| {
-        if matches!(p.peek(), Token::DotDotDot) {
-            let spread_span = p.peek_span();
-            p.advance();
-            let value = parse_expr(p)?;
-            let end = value.span().end;
-            Ok(ObjectField::Spread {
-                value,
-                span: Span::new(spread_span.start, end),
-            })
-        } else {
-            let key_span = p.peek_span();
-            // A key is an identifier/keyword, or a quoted string for names that
-            // are not identifiers (e.g. `"Content-Type"`). Interpolation in a key
-            // is not allowed (no computed keys).
-            let key: std::sync::Arc<str> = match p.peek().clone() {
-                Token::String(value) => {
-                    if value.contains("${") {
-                        return Err(ParseError::Expected {
-                            expected: "a plain string key (interpolation is not allowed in object keys)",
-                            found: "interpolated string".to_string(),
-                            span: key_span,
-                        });
-                    }
-                    p.advance();
-                    // `\${` in a key is a literal `${`; resolve the marker.
-                    std::sync::Arc::from(resolve_escaped_dollars(&value).as_ref())
-                }
-                _ => p.expect_field_name("object literal field name or string")?.0,
-            };
-            // D10 forbids shorthand; the colon is required.
-            p.expect(&Token::Colon, "`:` after field name (D10: no shorthand)")?;
-            let value = parse_expr(p)?;
-            let end = value.span().end;
-            Ok(ObjectField::KeyValue {
-                key,
-                value,
-                span: Span::new(key_span.start, end),
-            })
-        }
+    let fields = p.nested("object literal", open, |p| {
+        p.parse_comma_separated(&Token::RBrace, true, parse_object_field)
     })?;
     let close = p.expect(&Token::RBrace, "`}`")?;
     Ok(Expr::Object {
         fields,
         span: Span::new(open.start, close.end),
+    })
+}
+
+/// One `key: value` (or `...spread`) entry of an object literal. A named
+/// function rather than a closure so the literal's whole field list can be
+/// parsed one nesting level deeper in a single `nested` call.
+fn parse_object_field(p: &mut Cursor) -> Result<ObjectField, ParseError> {
+    if matches!(p.peek(), Token::DotDotDot) {
+        let spread_span = p.peek_span();
+        p.advance();
+        let value = parse_expr(p)?;
+        let end = value.span().end;
+        return Ok(ObjectField::Spread {
+            value,
+            span: Span::new(spread_span.start, end),
+        });
+    }
+    let key_span = p.peek_span();
+    // A key is an identifier/keyword, or a quoted string for names that
+    // are not identifiers (e.g. `"Content-Type"`). Interpolation in a key
+    // is not allowed (no computed keys).
+    let key: std::sync::Arc<str> = match p.peek().clone() {
+        Token::String(value) => {
+            if value.contains("${") {
+                return Err(ParseError::Expected {
+                    expected: "a plain string key (interpolation is not allowed in object keys)",
+                    found: "interpolated string".to_string(),
+                    span: key_span,
+                });
+            }
+            p.advance();
+            // `\${` in a key is a literal `${`; resolve the marker.
+            std::sync::Arc::from(resolve_escaped_dollars(&value).as_ref())
+        }
+        _ => p.expect_field_name("object literal field name or string")?.0,
+    };
+    // D10 forbids shorthand; the colon is required.
+    p.expect(&Token::Colon, "`:` after field name (D10: no shorthand)")?;
+    let value = parse_expr(p)?;
+    let end = value.span().end;
+    Ok(ObjectField::KeyValue {
+        key,
+        value,
+        span: Span::new(key_span.start, end),
     })
 }
 

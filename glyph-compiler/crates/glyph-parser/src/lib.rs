@@ -37,6 +37,7 @@ mod pat;
 mod stmt;
 mod types;
 
+pub use cursor::MAX_NESTING_DEPTH;
 pub use error::ParseError;
 
 use glyph_ast::Module;

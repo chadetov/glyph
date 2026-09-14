@@ -9618,7 +9618,12 @@ and is the owner's to confirm.
   rather than catching something `tsc` misses. The 31 apps under
   `examples/apps/` and the 62 files under `examples/` were run at their own
   roots with `check --json --no-tsc --no-test` before and after: 93 entries,
-  identical exit codes and identical diagnostic-code lists.*
+  identical exit codes and identical diagnostic-code lists. That sweep looks
+  for newly caught programs and cannot find a newly refused one, and the first
+  cut of this rule refused three: `crates/glyph-cli/tests/string_literal_union_corpus.rs`
+  holds thirteen correct programs that write a string-literal union in every
+  position, each run under the published 0.1.121 with `tsc --strict` in the
+  loop and each asserted silent here.*
 
   *Left undetermined, each for a reason. A `string` a value-position `match`
   produced whose arms this cannot read: `match` is where the walk's own join
@@ -9628,11 +9633,23 @@ and is the owner's to confirm.
   one is a written literal or an expression already typed as a string-literal
   union, and answers `Unknown` when an arm is a block or something else, which
   leaves the pairing to `tsc` rather than refusing a `string` that may not be a
-  bare one. A string-literal union nested in a record field or a generic
-  argument: the relation's record recursion is `definitely_incompatible`'s, a
-  free function with no declaration to read, so `{ mode: string }` against
-  `{ mode: Mode }` is decided by nothing, the same boundary G201 and G216 stop
-  at. A bare-identifier `match` arm over a `string` scrutinee (`match s { x =>
+  bare one. A string-literal union nested in a record field: the relation's
+  record recursion is `definitely_incompatible`'s, a free function with no
+  declaration to read, so `{ mode: string }` against `{ mode: Mode }` is
+  decided by nothing, the same boundary G201 and G216 stop at. A bare `string`
+  reached through a generic argument, which is what `["read", "write"]`
+  against `Array<Mode>` is here, because D30 types every string literal
+  `string` while `tsc` reads the same expression as `Array<"read" | "write">`
+  and compiles it; `assign_incompatible`'s `Ty::App` recursion asks every
+  argument pairing under `Nesting::UnderArgument` and that one arm declines
+  there, so the ordinary spelling of a list of modes, roles or statuses still
+  compiles. A call to a generic function whose declared return type is its own
+  type parameter (`fn id<T>(x: T) -> T`), for the same reason: `T` binds to the
+  argument's recorded type, which is `string`, and TypeScript infers the
+  literal. Everything else is refused inside `Array<Mode>` exactly as it is
+  against `Mode`: a `number`, a `bool`, a record, a tagged union and a literal
+  outside the declared set. Deciding the two fenced shapes rather than fencing
+  them needs literal-typed expressions (G237). A bare-identifier `match` arm over a `string` scrutinee (`match s { x =>
   { return x } }` under a `-> Mode` return): the arm's binding is typed
   `Ty::Unknown`, not `string`, so nothing reads it. An object literal against a
   `string`, a `number` or a `bool` (`let g: string = { x: 1 }`), which is the
@@ -9786,3 +9803,33 @@ and is the owner's to confirm.
   0.1.122 release notes, not by the rule's own tests, which cover the local union.
 
   *Reproduced against 0.1.121, the version this tree reports before the bump, on a two-module project. `src/orders.glyph` declares `pub type OrderStatus = | Pending | Paid({ transaction_id: string }) | Cancelled`; `src/main.glyph` writes `import orders { OrderStatus, Pending }` and a `match s { Pending => "waiting", }`. `glyph fix src` prints `glyph fix: declined E0200 in src/main.glyph: the arms this fix would write do not collect cleanly in this module, so nothing was written` and writes nothing. Importing `Paid` and `Cancelled` as well does not change the outcome: the run reports `removed 2 unused import(s)` and then declines the same way. Adding a second function that constructs all three variants, so the imports are used, makes the same run apply: `added 2 arm(s) to the match on `OrderStatus`: `Paid`, `Cancelled``. The identical program with `OrderStatus` declared in `main` itself is repaired, and `glyph check --no-tsc` on the result is clean.*
+
+- **G237. A string literal is typed `string`, so the checker cannot decide a
+  string-literal union reached through a generic argument.** D30 puts the
+  literal set on the declaration and not on the value, so `["read", "write"]`
+  is `Array<string>` here while TypeScript reads it as
+  `Array<"read" | "write">`. The assignability relation therefore has no way to
+  tell `fn arr() -> Array<Mode> { return ["read", "write"] }`, which is
+  correct, from `fn arr() -> Array<Mode> { return xs }` for an
+  `xs: Array<string>`, which is not: both arrive as the same pairing. G230's
+  first cut refused both and was caught by a review before the tag; the rule
+  now declines the pairing under a generic argument (`Nesting::UnderArgument`
+  in `assign.rs`), which accepts both instead of refusing both. Fencing it is a
+  boundary, not an answer. Deciding it means literal-typed expressions: a
+  string literal carries its own literal type, an array literal joins its
+  elements' literal types, and a widening rule says where that type widens to
+  `string` (a `let` with no annotation, a `mut` binding) and where it does not
+  (an argument against a declared union, an element of an array whose declared
+  type is one). That is what TypeScript does, it is what would make the
+  record-field boundary decidable at the same time, and it touches inference
+  rather than one relation, which is why it is its own entry.
+
+  *Reproduced against the 0.1.122 tree with the fence in place. `fp3`:
+  `type Mode = "read" | "write"` with `fn arr() -> Array<Mode> { return
+  ["read", "write"] }` draws nothing from `glyph check --no-tsc` and passes
+  `tsc --strict`, which is the correct answer, reached by declining rather than
+  by deciding. The same silence covers a wrong program: `type Cfg = { mode:
+  Mode }` with `fn wrong() -> Cfg { return { mode: "nope" } }` draws nothing
+  from `glyph check --no-tsc` and `tsc --strict` refuses it with `TS2322: Type
+  '"nope"' is not assignable to type 'Mode'`. Both shapes are silent here for
+  the same missing literal type, and only one of them should be.*

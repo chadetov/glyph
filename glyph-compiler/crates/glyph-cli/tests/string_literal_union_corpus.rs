@@ -1,0 +1,293 @@
+//! Correct programs that write a string-literal union, run end to end.
+//!
+//! G230 made a declared string-literal union decide pairings the relation used
+//! to stay silent on, and the first cut of it recursed into generic arguments
+//! and refused `fn arr() -> Array<Mode> { return ["read", "write"] }`, which
+//! `tsc --strict` compiles and which a full `glyph build` accepted before.
+//! A sweep for newly *caught* programs cannot find that; only a sweep for
+//! newly *refused* ones can, and the corpus below is that sweep, kept in the
+//! suite so the rule cannot quietly widen again.
+//!
+//! Every program here was run under the published `@glyphlang/glyph@0.1.121`
+//! and passed `glyph check` with `tsc --strict` in the loop. Each one must
+//! draw no diagnostic from `glyph check --no-tsc`, and, where `tsc` is on the
+//! PATH, must still pass the full check.
+
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// A program in the corpus: a directory name, and the modules it holds as
+/// `(relative path under src/, source)`.
+struct Program {
+    name: &'static str,
+    modules: &'static [(&'static str, &'static str)],
+    /// Whether a full `glyph check` (with `tsc`) is meaningful. False for the
+    /// JSX program, whose emitted TypeScript needs `react`'s types, which this
+    /// test does not install.
+    tsc: bool,
+}
+
+const CORPUS: &[Program] = &[
+    Program {
+        name: "record_field",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             type Cfg = { mode: Mode, name: string }\n\
+             fn make() -> Cfg { return { mode: \"read\", name: \"a\" } }\n\
+             fn main() -> void { print(make().mode) }\n",
+        )],
+    },
+    Program {
+        name: "array_literal",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn arr() -> Array<Mode> { return [\"read\", \"write\"] }\n\
+             fn main() -> void { print(arr()[0] ?? \"read\") }\n",
+        )],
+    },
+    Program {
+        name: "option",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn opt() -> Option<Mode> { return Some(\"read\") }\n\
+             fn main() -> void {\n\
+             \x20 match opt() {\n\
+             \x20   Some(m) => { print(m) },\n\
+             \x20   None => { print(\"none\") },\n\
+             \x20 }\n\
+             }\n",
+        )],
+    },
+    Program {
+        name: "nullable",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn n() -> Nullable<Mode> { return \"write\" }\n\
+             fn main() -> void { print(n() ?? \"read\") }\n",
+        )],
+    },
+    Program {
+        name: "generic_identity",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn viaGeneric() -> Mode { return id(\"read\") }\n\
+             fn main() -> void { print(viaGeneric()) }\n",
+        )],
+    },
+    Program {
+        name: "match_in_value_position",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Agg = \"sum\" | \"count\"\n\
+             fn aggOf(name: string) -> Agg { return match name { \"sum\" => \"sum\", else => \"count\", } }\n\
+             fn main() -> void { print(aggOf(\"sum\")) }\n",
+        )],
+    },
+    Program {
+        name: "mut_reassignment",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn main() -> void {\n\
+             \x20 let m: Mode = \"read\"\n\
+             \x20 mut m = \"write\"\n\
+             \x20 print(m)\n\
+             }\n",
+        )],
+    },
+    Program {
+        name: "concatenation",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn label(m: Mode) -> string { return \"mode:\" + m }\n\
+             fn main() -> void { print(label(\"read\")) }\n",
+        )],
+    },
+    Program {
+        name: "imported_union",
+        tsc: true,
+        modules: &[
+            ("modes.glyph", "module modes\npub type Mode = \"read\" | \"write\"\n"),
+            (
+                "main.glyph",
+                "module main\n\
+                 import modes { Mode }\n\
+                 fn arr() -> Array<Mode> { return [\"read\", \"write\"] }\n\
+                 fn one() -> Mode { return \"write\" }\n\
+                 fn main() -> void { print(arr()[0] ?? one()) }\n",
+            ),
+        ],
+    },
+    Program {
+        name: "call_argument",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn takes(xs: Array<Mode>) -> number { return xs.length }\n\
+             fn takesOne(m: Mode) -> number { return 1 }\n\
+             fn d() -> number { return takes([\"read\"]) + takesOne(\"write\") }\n\
+             fn main() -> void { print(\"${d()}\") }\n",
+        )],
+    },
+    Program {
+        name: "nested_generic",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             type Box<T> = { value: T }\n\
+             fn deep() -> Array<Array<Mode>> { return [[\"read\"], [\"write\"]] }\n\
+             fn boxed() -> Box<Mode> { return { value: \"read\" } }\n\
+             fn boxedArr() -> Box<Array<Mode>> { return { value: [\"read\"] } }\n\
+             fn main() -> void {\n\
+             \x20 print(boxed().value)\n\
+             \x20 print(boxedArr().value[0] ?? \"x\")\n\
+             \x20 let row: Array<Mode> = deep()[0] ?? []\n\
+             \x20 print(row[0] ?? \"x\")\n\
+             }\n",
+        )],
+    },
+    Program {
+        name: "record_of_array",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Role = \"admin\" | \"user\" | \"guest\"\n\
+             type Acl = { roles: Array<Role>, owner: Role }\n\
+             fn acl() -> Acl { return { roles: [\"admin\", \"user\"], owner: \"guest\" } }\n\
+             fn main() -> void { print(acl().owner) }\n",
+        )],
+    },
+    Program {
+        name: "jsx_attribute",
+        tsc: false,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Variant = \"primary\" | \"danger\"\n\
+             type ButtonProps = { variant: Variant, label: string }\n\
+             type BarProps = { }\n\
+             component Button(props: ButtonProps) -> Component {\n\
+             \x20 return <button className={props.variant}>{props.label}</button>\n\
+             }\n\
+             component Bar(props: BarProps) -> Component {\n\
+             \x20 return <div><Button variant=\"danger\" label=\"go\" /></div>\n\
+             }\n\
+             fn main() -> void { print(\"ok\") }\n",
+        )],
+    },
+];
+
+fn unique_tmp(prefix: &str) -> PathBuf {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!(
+        "glyph_slu_corpus_{prefix}_{}_{}",
+        std::process::id(),
+        n
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create temp dir");
+    dir
+}
+
+fn stage(program: &Program) -> PathBuf {
+    let root = unique_tmp(program.name);
+    std::fs::write(
+        root.join("package.json"),
+        format!("{{ \"name\": \"{}\", \"version\": \"0.0.0\", \"glyph\": {{}} }}\n", program.name),
+    )
+    .expect("write package.json");
+    std::fs::create_dir_all(root.join("src")).expect("mkdir src");
+    for (rel, text) in program.modules {
+        std::fs::write(root.join("src").join(rel), text).expect("write module");
+    }
+    root
+}
+
+fn run_check(root: &Path, extra: &[&str]) -> (bool, String) {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_glyph"));
+    cmd.arg("check").arg(".").args(extra).current_dir(root);
+    let out = cmd.output().expect("run glyph check");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    (out.status.success(), text)
+}
+
+fn tsc_available() -> bool {
+    Command::new("tsc")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Not one of these draws a Glyph diagnostic. The assertion is the exit code
+/// and the diagnostic lines together, so a program that starts failing names
+/// the code it started failing with.
+#[test]
+fn the_positive_corpus_draws_no_glyph_diagnostic() {
+    for program in CORPUS {
+        let root = stage(program);
+        let (ok, text) = run_check(&root, &["--no-tsc", "--no-test"]);
+        let diags: Vec<&str> = text.lines().filter(|l| l.starts_with('[')).collect();
+        assert!(
+            ok && diags.is_empty(),
+            "`{}` is a correct program the published 0.1.121 compiled with `tsc --strict`; \
+             got: {diags:?}\n{text}",
+            program.name
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}
+
+/// And the emitted TypeScript still compiles, which is the half that says the
+/// silence above is agreement with `tsc` rather than a second blind spot.
+#[test]
+fn the_positive_corpus_passes_tsc_strict() {
+    if !tsc_available() {
+        eprintln!("skipping: tsc is not on the PATH");
+        return;
+    }
+    for program in CORPUS.iter().filter(|p| p.tsc) {
+        let root = stage(program);
+        let (ok, text) = run_check(&root, &["--no-test"]);
+        assert!(
+            ok && text.contains("tsc --strict passed"),
+            "`{}` did not pass the full check:\n{text}",
+            program.name
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}

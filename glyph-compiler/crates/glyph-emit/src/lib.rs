@@ -191,6 +191,20 @@ impl EmitError {
     }
 
     /// Stable diagnostic code (emit range `E03xx`; see `docs/error-codes.md`).
+    /// The type this error found, when it names one.
+    ///
+    /// E0304 refuses a descriptor because one field's type has no runtime
+    /// check; that type is the fact the reader needs, and it was in the
+    /// emitter's hand when it refused. There is no `expected` to pair it with:
+    /// the requirement is "a type with a runtime check", which is a rule and
+    /// not a type (G220).
+    pub fn actual(&self) -> Option<&str> {
+        match self {
+            EmitError::UnverifiableDescriptorUse { field_ty, .. } => Some(field_ty),
+            _ => None,
+        }
+    }
+
     pub fn code(&self) -> &'static str {
         match self {
             EmitError::Unsupported { .. } => "E0300",

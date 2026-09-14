@@ -38,7 +38,23 @@ pub struct Diagnostic {
     /// `"error"` or `"warning"`.
     pub severity: String,
     pub message: String,
+    /// The file the diagnostic is in, as a path: the module's path under the
+    /// root its identities are counted from, plus `.glyph`
+    /// (`queries/report.glyph`).
+    ///
+    /// It used to be the module name (`"main"`), which is not a path and which
+    /// an agent could not open (G220). A `tsc` error that was never mapped back
+    /// onto Glyph source carries the `.ts` path it came with, because that is
+    /// the file it is about.
     pub file: String,
+    /// The module half of every identity in this diagnostic, which is what
+    /// `entity` and `cause` are qualified with. Always present, as an explicit
+    /// `null` for a diagnostic about no Glyph module (an unmapped `tsc`
+    /// error). Carried beside `file` because a consumer joining a diagnostic
+    /// to `glyph_symbol` or `glyph_variants` needs the module key those tools
+    /// take, not a path.
+    #[serde(default)]
+    pub module: Option<String>,
     pub range: Range,
     /// The compiler stage (`parse`/`collect`/`resolve`/`import`/`lint`/
     /// `typecheck`/`emit`/`tsc`).
@@ -76,6 +92,87 @@ pub struct Diagnostic {
     pub help: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    /// The type this position required, as the checker displays it, on the
+    /// diagnostics that compare two types (E0203, E0204, E0211). The message
+    /// says the same thing in a sentence; this is the same fact as a field, so
+    /// reading it is not a regex over prose the compiler is free to rewrite
+    /// (G220).
+    ///
+    /// Always present, as an explicit `null` on a diagnostic that compares no
+    /// types, for the reason `entity` is (G184): one spelling of absence. A
+    /// wrong argument *count* is not a type comparison and answers `null`
+    /// here; its two numbers stay in its sentence rather than arriving under a
+    /// key a consumer reads as a type.
+    #[serde(default)]
+    pub expected: Option<String>,
+    /// The type found at this position. Answers for one class more than
+    /// `expected`: a diagnostic that names a single offending type and states
+    /// its requirement in prose has an `actual` and no `expected`.
+    #[serde(default)]
+    pub actual: Option<String>,
+    /// The symbol at fault, as `module::name`, when it is a declaration other
+    /// than the one the diagnostic sits in.
+    ///
+    /// `entity` is the enclosing declaration: for `o.totl` inside `fn main` it
+    /// is `main::main`, which is where to look and not what is wrong. This is
+    /// what is wrong: the record for a field typo, the union for a missing
+    /// arm. A diagnostic whose symbol at fault *is* its enclosing declaration
+    /// answers `null` rather than repeating `entity` under a second key, and
+    /// so does one with no declaration to address.
+    #[serde(default)]
+    pub cause: Option<String>,
+    /// What may legally stand where the offending thing stands, when the
+    /// compiler holds a finite list of it: the record's own fields against a
+    /// field typo, the module's exports against an unknown import, the values
+    /// a string-literal union accepts, the one variant a mistyped pattern head
+    /// most likely meant.
+    ///
+    /// `null` is the compiler having no enumerable set, never "anything goes".
+    #[serde(default)]
+    pub alternatives: Option<Vec<String>>,
+    /// The other names a reader of this diagnostic has to know about: the
+    /// union's whole variant list on a non-exhaustive match, in declaration
+    /// order. `missing_variants` is the gap; this is the set it came out of,
+    /// so the arms an agent writes sit in the `match` the union actually has.
+    #[serde(default)]
+    pub related: Option<Vec<String>>,
+    /// Where the code's own explanation is. The same pointer the terminal
+    /// renderer prints under the diagnostic, as two addressable strings rather
+    /// than one sentence, built by the one function both surfaces call.
+    /// `null` for a `tsc` passthrough code, which has no Glyph documentation.
+    #[serde(default)]
+    pub explain: Option<ExplainPointer>,
+}
+
+/// Where to read a diagnostic code's explanation.
+///
+/// The terminal renderer has appended `docs: <url> (or run `glyph --explain
+/// E0200`)` under every Glyph diagnostic for a long time, and the JSON stopped
+/// before it, so the one surface written for machines was the one that did not
+/// say where the explanation is (G220). Two fields rather than the sentence,
+/// because a consumer wants to open one or run the other.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExplainPointer {
+    /// The command that prints it, and `--json` after it prints it as data.
+    pub command: String,
+    /// The catalogue section for the same code.
+    pub docs: String,
+}
+
+/// The explanation pointer for `code`, or `None` for a code Glyph does not
+/// document (a `tsc` passthrough, `TS2339`).
+///
+/// One builder, read by the ariadne renderer's note and by the `explain` field
+/// of every structured diagnostic, so the terminal and the JSON cannot point at
+/// two different places.
+pub fn explain_pointer(code: &str) -> Option<ExplainPointer> {
+    code.starts_with('E').then(|| ExplainPointer {
+        command: format!("glyph --explain {code}"),
+        docs: format!(
+            "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#{}",
+            code.to_lowercase()
+        ),
+    })
 }
 
 /// The union a diagnostic concerns, addressed rather than described.
@@ -131,9 +228,16 @@ pub struct Pos {
 impl Diagnostic {
     /// Build a diagnostic, computing line/col for the span's endpoints from
     /// `source`.
+    ///
+    /// `module` is the file's module half, counted from the root the calling
+    /// surface counts every identity from (D41/G180). `file` is derived from
+    /// it rather than passed, so the path and the module key cannot name two
+    /// different files, and so both surfaces spell the path the same way: the
+    /// two agree on the module half already, and a second argument would be a
+    /// second place for them to disagree.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        file: &str,
+        module: &str,
         source: &str,
         span: Span,
         code: &str,
@@ -148,7 +252,8 @@ impl Diagnostic {
             code: code.to_string(),
             severity: severity.to_string(),
             message,
-            file: file.to_string(),
+            file: format!("{module}.glyph"),
+            module: Some(module.to_string()),
             range: Range {
                 start: pos_of(source, span.start),
                 end: pos_of(source, span.end),
@@ -159,6 +264,12 @@ impl Diagnostic {
             missing_variants: None,
             help: help.map(str::to_string),
             note: note.map(str::to_string),
+            expected: None,
+            actual: None,
+            cause: None,
+            alternatives: None,
+            related: None,
+            explain: explain_pointer(code),
         }
     }
 
@@ -173,6 +284,27 @@ impl Diagnostic {
     ) -> Self {
         self.union = union;
         self.missing_variants = missing_variants;
+        self
+    }
+
+    /// Attach the facts the error variant carried by name: the two types it
+    /// compared, the symbol at fault, the legal alternatives, the related set.
+    ///
+    /// Separate from `new` for the same reason `about_union` is, and taken as
+    /// one call so a stage that has none of them says so once.
+    fn with_facts(
+        mut self,
+        expected: Option<String>,
+        actual: Option<String>,
+        cause: Option<String>,
+        alternatives: Option<Vec<String>>,
+        related: Option<Vec<String>>,
+    ) -> Self {
+        self.expected = expected;
+        self.actual = actual;
+        self.cause = cause;
+        self.alternatives = alternatives;
+        self.related = related;
         self
     }
 }
@@ -196,11 +328,16 @@ pub fn pos_of(source: &str, offset: u32) -> Pos {
     Pos { line, col, offset }
 }
 
-pub fn from_parse_error(file: &str, source: &str, err: &ParseError) -> Diagnostic {
+/// A parse error carries no structured facts. It has no types to compare, no
+/// resolved declaration to name as the cause, and no enumerable alternative
+/// set: the parser refuses a shape, and every fact it holds is already in the
+/// message and the help. The five fields are explicit nulls rather than absent
+/// keys, which is the same rule `entity` follows (G184).
+pub fn from_parse_error(module: &str, source: &str, err: &ParseError) -> Diagnostic {
     // No `entity`: a file that failed to parse has no declaration table to
     // look one up in.
     Diagnostic::new(
-        file,
+        module,
         source,
         err.span(),
         err.code(),
@@ -214,7 +351,7 @@ pub fn from_parse_error(file: &str, source: &str, err: &ParseError) -> Diagnosti
 }
 
 pub fn from_resolve_error(
-    file: &str,
+    module_path: &str,
     source: &str,
     err: &ResolveError,
     module: &glyph_ast::Module,
@@ -224,7 +361,7 @@ pub fn from_resolve_error(
         glyph_resolver::Severity::Error => "error",
     };
     Diagnostic::new(
-        file,
+        module_path,
         source,
         err.span(),
         err.code(),
@@ -233,12 +370,16 @@ pub fn from_resolve_error(
         format!("{err}"),
         err.help(),
         None,
-        entity_id(file, module, err.span().start),
+        entity_id(module_path, module, err.span().start),
     )
+    // The resolver compares no types and, on an unknown import, names a symbol
+    // that does not exist, so there is no `cause` to give. What it does hold is
+    // the module's export list, which is what it checked the name against.
+    .with_facts(None, None, None, err.alternatives(), None)
 }
 
 pub fn from_type_error(
-    file: &str,
+    module_path: &str,
     source: &str,
     err: &TypeError,
     module: &glyph_ast::Module,
@@ -248,7 +389,7 @@ pub fn from_type_error(
         Severity::Error => "error",
     };
     Diagnostic::new(
-        file,
+        module_path,
         source,
         err.span(),
         err.code(),
@@ -263,27 +404,36 @@ pub fn from_type_error(
         // before the keyword a `Decl` span starts at, so the walk below would
         // report "no declaration here" for one. The walk answers the rest.
         err.decl_name()
-            .map(|name| format!("{file}::{name}"))
-            .or_else(|| entity_id(file, module, err.span().start)),
+            .map(|name| format!("{module_path}::{name}"))
+            .or_else(|| entity_id(module_path, module, err.span().start)),
     )
     // The other entity an exhaustiveness error concerns: the union itself,
-    // and the variants it leaves unmentioned. Qualified with `file`, the same
-    // module string `entity` above is qualified with, so one declaration has
-    // one spelling inside one diagnostic.
+    // and the variants it leaves unmentioned. Qualified with `module_path`,
+    // the same module string `entity` above is qualified with, so one
+    // declaration has one spelling inside one diagnostic.
     .about_union(
-        err.union().map(|u| UnionEntity::new(u, file)),
+        err.union().map(|u| UnionEntity::new(u, module_path)),
         err.missing_variants().map(<[String]>::to_vec),
+    )
+    // The facts the variant carried by name. `cause` is qualified with the
+    // same module string as `entity` and the union, for the same reason.
+    .with_facts(
+        err.expected().map(str::to_string),
+        err.actual().map(str::to_string),
+        err.cause().and_then(|d| d.declaration(module_path)),
+        err.alternatives(),
+        err.related(),
     )
 }
 
 pub fn from_emit_error(
-    file: &str,
+    module_path: &str,
     source: &str,
     err: &EmitError,
     module: &glyph_ast::Module,
 ) -> Diagnostic {
     Diagnostic::new(
-        file,
+        module_path,
         source,
         err.span(),
         err.code(),
@@ -292,8 +442,11 @@ pub fn from_emit_error(
         format!("{err}"),
         err.help(),
         err.note(),
-        entity_id(file, module, err.span().start),
+        entity_id(module_path, module, err.span().start),
     )
+    // The emitter compares no two types and names no second declaration. The
+    // one type it does hold is the field type E0304 refuses to validate.
+    .with_facts(None, err.actual().map(str::to_string), None, None, None)
 }
 
 /// The `module::name` identity of the top-level declaration enclosing byte
@@ -692,6 +845,183 @@ mod tests {
         let parsed: Diagnostic = serde_json::from_str(old).unwrap();
         assert_eq!(parsed.union, None);
         assert_eq!(parsed.missing_variants, None);
+    }
+
+    /// G220: the file field is a path, and the module key is beside it.
+    ///
+    /// It used to be the module name alone (`"main"`), which is not a path and
+    /// which an agent could not open. Both surfaces derive it from the module
+    /// half they already agree on, so there is one spelling.
+    #[test]
+    fn the_file_field_is_a_path_and_the_module_is_beside_it() {
+        let d = Diagnostic::new(
+            "queries/report",
+            "module queries/report\n",
+            Span::new(0, 6),
+            "E0200",
+            "error",
+            "typecheck",
+            "boom".to_string(),
+            None,
+            None,
+            None,
+        );
+        assert_eq!(d.file, "queries/report.glyph");
+        assert_eq!(d.module.as_deref(), Some("queries/report"));
+    }
+
+    /// G220: the JSON says where the code's explanation is. The terminal
+    /// renderer has printed the pointer under every Glyph diagnostic for a
+    /// long time and the JSON stopped before it, so the machine-facing surface
+    /// was the one that did not say. A `tsc` passthrough code has no Glyph
+    /// documentation and carries an explicit null rather than a dead link.
+    #[test]
+    fn a_glyph_code_carries_its_explain_pointer_and_a_tsc_code_does_not() {
+        let p = explain_pointer("E0200").expect("a Glyph code has an explanation");
+        assert_eq!(p.command, "glyph --explain E0200");
+        assert_eq!(
+            p.docs,
+            "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"
+        );
+        assert_eq!(explain_pointer("TS2339"), None);
+    }
+
+    /// G220, the inventory as a gate. One row per code whose error variant
+    /// carries a fact by name, and the fields that fact has to arrive under.
+    ///
+    /// Before this, every one of these was flattened into the message by
+    /// `Diagnostic::new` and read back, if at all, by a regex over prose the
+    /// compiler is free to rewrite. A row here fails if a field goes back to
+    /// null, which is what would happen if a construction site were added
+    /// without the fact the others carry.
+    #[test]
+    fn every_code_that_carries_a_fact_carries_it_as_a_field() {
+        struct Row {
+            code: &'static str,
+            src: &'static str,
+            /// The fields that must be non-null on this code's diagnostic.
+            fields: &'static [&'static str],
+        }
+        let rows = [
+            Row {
+                code: "E0204",
+                src: "module main\n\nfn main() -> number {\n  let x: string = 1\n  return 0\n}\n",
+                fields: &["expected", "actual"],
+            },
+            Row {
+                code: "E0211",
+                src: "module main\n\nfn shout(s: string) -> string {\n  return s\n}\n\n\
+                       fn main() -> number {\n  let out = shout(1)\n  return 0\n}\n",
+                fields: &["expected", "actual"],
+            },
+            Row {
+                code: "E0202",
+                src: "module main\n\nfn f() -> Result<number, string> {\n  let n = 1?\n  return Ok(n)\n}\n",
+                fields: &["actual"],
+            },
+            Row {
+                code: "E0210",
+                src: "module main\n\ntype Order = {\n  id: string,\n  total: number,\n}\n\n\
+                       fn f(o: Order) -> number {\n  return o.totl\n}\n",
+                fields: &["alternatives", "cause"],
+            },
+            Row {
+                code: "E0200",
+                src: "module main\n\ntype Feed =\n  | A\n  | B\n  | C\n\n\
+                       fn f(x: Feed) -> number {\n  return match x {\n    A => 1,\n  }\n}\n",
+                fields: &["cause", "related", "missing_variants"],
+            },
+            Row {
+                code: "E0220",
+                src: "module main\n\ntype Feed =\n  | Loading\n  | Loaded\n\n\
+                       fn f(x: Feed) -> number {\n  return match x {\n    Loading => 1,\n    Loadd => 2,\n    Loaded => 3,\n  }\n}\n",
+                fields: &["alternatives"],
+            },
+        ];
+
+        for row in &rows {
+            let d = diagnostic_of("main", row.src, row.code);
+            let json = serde_json::to_value(&d).expect("a diagnostic serializes");
+            for field in row.fields {
+                assert!(
+                    !json[field].is_null(),
+                    "{}: `{field}` is null; the variant carries it by name\n{json:#}",
+                    row.code,
+                );
+            }
+        }
+    }
+
+    /// The other half of the same rule: a stage that holds none of these facts
+    /// says so with explicit nulls rather than with missing keys, so one
+    /// consumer reads absence one way across every code (G184).
+    #[test]
+    fn a_code_with_no_structured_facts_says_so_explicitly() {
+        let err = glyph_parser::parse("module main\npub fn f(\n").expect_err("fails to parse");
+        let d = from_parse_error("main", "module main\npub fn f(\n", &err);
+        let json = serde_json::to_string(&d).expect("serializes");
+        for field in ["expected", "actual", "cause", "alternatives", "related"] {
+            assert!(json.contains(&format!("\"{field}\":null")), "{field}: {json}");
+        }
+        // The pointer is still there: a parse error has an explanation too.
+        assert!(d.explain.is_some());
+    }
+
+    /// The exact values, not just their presence, for the two the audit
+    /// opened on. `cause` is the symbol at fault and `entity` is where to
+    /// look, and they are different strings.
+    #[test]
+    fn the_cause_is_the_symbol_at_fault_and_not_the_enclosing_declaration() {
+        let src = "module main\n\ntype Order = {\n  id: string,\n  total: number,\n}\n\n\
+                   fn total_of(o: Order) -> number {\n  return o.totl\n}\n";
+        let d = diagnostic_of("main", src, "E0210");
+        assert_eq!(d.entity.as_deref(), Some("main::total_of"));
+        assert_eq!(d.cause.as_deref(), Some("main::Order"));
+        assert_eq!(
+            d.alternatives.as_deref(),
+            Some(["id".to_string(), "total".to_string()].as_slice())
+        );
+    }
+
+    /// A tagged union accepts a finite set the checker holds, so a mismatch
+    /// against one lists it. "expected `OrderStatus`, found `string`" says what
+    /// is wrong and not what to write; the variant names are what gets written,
+    /// and the checker resolved the declaration to decide the mismatch in the
+    /// first place (G220).
+    ///
+    /// The annotated `let` and the call argument go through one
+    /// `accepted_values`, so they cannot answer differently.
+    #[test]
+    fn a_union_mismatch_lists_the_variants_it_accepts() {
+        let src = "module main\n\ntype OrderStatus =\n  | Pending\n  | Paid\n\n\
+                   fn takes(s: OrderStatus) -> number {\n\
+                   \x20 return match s {\n    Pending => 1,\n    Paid => 2,\n  }\n}\n\n\
+                   fn f() -> number {\n  let m: OrderStatus = \"pending\"\n\
+                   \x20 return takes(\"pending\")\n}\n";
+        let accepted = ["Pending".to_string(), "Paid".to_string()];
+
+        let annotated = diagnostic_of("main", src, "E0204");
+        assert_eq!(annotated.expected.as_deref(), Some("OrderStatus"));
+        assert_eq!(annotated.actual.as_deref(), Some("string"));
+        assert_eq!(annotated.alternatives.as_deref(), Some(accepted.as_slice()));
+
+        let argument = diagnostic_of("main", src, "E0211");
+        assert_eq!(argument.alternatives.as_deref(), Some(accepted.as_slice()));
+    }
+
+    /// The first diagnostic with `code` that `src` produces, as
+    /// `glyph check --json` would report it under `module_path`.
+    fn diagnostic_of(module_path: &str, src: &str, code: &str) -> Diagnostic {
+        let module = glyph_parser::parse(src).expect("fixture parses");
+        let symbols = glyph_resolver::collect_module_symbols(&module).expect("symbols collect");
+        let prelude = glyph_resolver::build_prelude();
+        let (resolved, _) = glyph_resolver::resolve_module(&module, symbols, &prelude);
+        let (_types, errors) = glyph_typechecker::assign_types(&module, &resolved, &prelude);
+        let err = errors
+            .iter()
+            .find(|e| e.code() == code)
+            .unwrap_or_else(|| panic!("expected {code}: {errors:?}"));
+        from_type_error(module_path, src, err, &module)
     }
 
     /// The first E0200 a source produces, as `glyph check --json` would report

@@ -220,13 +220,12 @@ fn build_report(
     // the error-codes reference (anchored by the lowercased code) and a
     // `glyph --explain` entry; append that as a note so the fix is one click or
     // one command away. tsc-passthrough codes (`TS…`) have no Glyph doc section.
-    let doc_note = code.starts_with('E').then(|| {
-        format!(
-            "docs: https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#{} \
-             (or run `glyph --explain {code}`)",
-            code.to_lowercase(),
-        )
-    });
+    //
+    // Built from the same `explain_pointer` the `--json` shape carries in its
+    // `explain` field, so the terminal and the JSON cannot send a reader to two
+    // different places (G220).
+    let doc_note = glyph_lsp::diagnostic::explain_pointer(code)
+        .map(|p| format!("docs: {} (or run `{}`)", p.docs, p.command));
     match (note, doc_note.as_deref()) {
         (Some(n), Some(d)) => builder = builder.with_note(format!("{n}\n{d}")),
         (Some(n), None) => builder = builder.with_note(n),
@@ -287,6 +286,7 @@ mod tests {
             name: "bogus".to_string(),
             module: "lib".to_string(),
             suggestion: String::new(),
+            exports: Vec::new(),
             span: Span::new(9, 14),
         };
         let source = "module x\nimport lib { bogus }\n";
@@ -312,6 +312,7 @@ mod tests {
             name: "bogus".to_string(),
             module: "lib".to_string(),
             suggestion: String::new(),
+            exports: Vec::new(),
             span: Span::new(import_start as u32, import_end as u32),
         };
         let out = render_resolve_error("app.glyph", source, &err, false);

@@ -185,6 +185,18 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                     missing_variants: None,
                     help: None,
                     note: None,
+                    // Nor any of the structured facts. This diagnostic is
+                    // about a `.ts` file the emitter wrote, in TypeScript's
+                    // own vocabulary: there is no Glyph module to name, no
+                    // Glyph declaration to blame, and `TS2339` has no section
+                    // in Glyph's catalogue to point at.
+                    module: None,
+                    expected: None,
+                    actual: None,
+                    cause: None,
+                    alternatives: None,
+                    related: None,
+                    explain: None,
                 });
             }
         }

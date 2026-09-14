@@ -1344,9 +1344,11 @@ impl Assigner<'_> {
                     let expected = self.lowerer.lower(te);
                     let found = self.tm.get(c.value.span()).clone();
                     if self.assign_incompatible(&found, &expected) {
+                        let accepted = self.accepted_values(&expected);
                         self.errors.push(TypeError::TypeMismatch {
                             expected: ty_display(&expected),
                             found: ty_display(&found),
+                            accepted,
                             span: c.value.span(),
                         });
                     }
@@ -1522,9 +1524,11 @@ impl Assigner<'_> {
                 if l.ty.is_some() {
                     let found = self.tm.get(l.value.span()).clone();
                     if self.assign_incompatible(&found, &ty) {
+                        let accepted = self.accepted_values(&ty);
                         self.errors.push(TypeError::TypeMismatch {
                             expected: ty_display(&ty),
                             found: ty_display(&found),
+                            accepted,
                             span: l.value.span(),
                         });
                     }
@@ -1725,9 +1729,16 @@ impl Assigner<'_> {
                             // field, so there is no relation here: E0210 says
                             // so, and recording one would put a site in the
                             // impact set of a field it provably does not name.
+                            let record = self.field_owner_decl(&shape.owner);
                             self.errors.push(TypeError::UnknownField {
                                 field: field.to_string(),
                                 type_name: ty_display(&obj_ty),
+                                fields: shape
+                                    .fields
+                                    .iter()
+                                    .map(|f| f.name.to_string())
+                                    .collect(),
+                                record,
                                 span: *span,
                             });
                             Ty::Unknown
@@ -1901,9 +1912,11 @@ impl Assigner<'_> {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
                         if self.assign_incompatible(&found, &expected) {
+                            let accepted = self.accepted_values(&expected);
                             self.errors.push(TypeError::ArgumentTypeMismatch {
                                 expected: ty_display(&expected),
                                 found: ty_display(&found),
+                                accepted,
                                 span: a.span(),
                             });
                         }
@@ -3610,9 +3623,11 @@ impl Assigner<'_> {
         };
         let found = self.tm.get(value.span()).clone();
         if self.assign_incompatible(&found, &expected) {
+            let accepted = self.accepted_values(&expected);
             self.errors.push(TypeError::TypeMismatch {
                 expected: ty_display(&expected),
                 found: ty_display(&found),
+                accepted,
                 span: value.span(),
             });
         }
@@ -3717,6 +3732,51 @@ impl Assigner<'_> {
                 })
             }
             _ => None,
+        }
+    }
+
+    /// What a value of `ty` may be, when `ty` accepts a finite set the checker
+    /// holds: a string-literal union's values, or a tagged union's variant
+    /// names. `None` for every other type, whose accepted set is not
+    /// enumerable, where an invented list would be a claim rather than a fact.
+    ///
+    /// This is what goes beside a mismatch as the alternatives. An agent told
+    /// only "expected `OrderStatus`, found `string`" has to go read the
+    /// declaration to write the repair; the checker resolved that declaration
+    /// to decide the mismatch (G220).
+    fn accepted_values(&self, ty: &Ty) -> Option<Vec<String>> {
+        if let Some(values) = self.string_literal_union_values(ty) {
+            return Some(values);
+        }
+        if let Ty::Union { variants } = ty {
+            return Some(variants.iter().map(|v| v.name.to_string()).collect());
+        }
+        self.required_variants(ty)
+            .map(|(_, vs)| vs.iter().map(|v| v.to_string()).collect())
+    }
+
+    /// The record a field diagnostic is about, as a declaration to address.
+    ///
+    /// Read off the owner the field check already resolved, so the record an
+    /// `E0210` names and the record the field-use relation keys a legal access
+    /// to are one answer. A record declared in this file comes back `Local`,
+    /// carrying no module: the module half of a declaration in the file being
+    /// checked belongs to the surface, counted from the root that surface
+    /// counts `entity` from, and the file's own `module` header is a second
+    /// spelling whenever the two disagree (G172).
+    ///
+    /// `None` for a field set with no declaration behind it, which is absence
+    /// of an address rather than a failure to look.
+    fn field_owner_decl(&self, owner: &FieldOwner) -> Option<DiagnosticUnion> {
+        match owner {
+            FieldOwner::Declared { module, name } if *module == self.own_module_key() => {
+                Some(DiagnosticUnion::Local { name: name.clone() })
+            }
+            FieldOwner::Declared { module, name } => Some(DiagnosticUnion::Imported {
+                module: module.clone(),
+                name: name.clone(),
+            }),
+            FieldOwner::Undeclared { .. } | FieldOwner::Unresolved { .. } => None,
         }
     }
 
@@ -4196,6 +4256,7 @@ impl Assigner<'_> {
                     name: type_name.to_string(),
                 }),
                 missing_variants: missing.iter().map(|v| (*v).to_string()).collect(),
+                variants: required.iter().map(|v| v.to_string()).collect(),
                 span: match_span,
             });
         }
@@ -4355,6 +4416,7 @@ impl Assigner<'_> {
                     .collect::<Vec<_>>()
                     .join(", "),
                 union: union_ref,
+                variants: values.to_vec(),
                 missing_variants: missing.iter().map(|v| (*v).clone()).collect(),
                 span: match_span,
             });
@@ -4769,6 +4831,7 @@ impl Assigner<'_> {
             missing: missing_str,
             union: Some(DiagnosticUnion::from(&union)),
             missing_variants: missing.iter().map(|n| n.to_string()).collect(),
+            variants: variants.iter().map(|v| v.to_string()).collect(),
             span: match_span,
         });
     }

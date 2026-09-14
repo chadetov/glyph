@@ -80,6 +80,11 @@ pub enum ResolveError {
         name: String,
         module: String,
         suggestion: String,
+        /// Every name the module does export, sorted. The same list
+        /// `suggestion` was rendered from, kept as a list beside it: the
+        /// sentence caps itself at eight names and a machine reading the
+        /// diagnostic wants the set, not the prose (G220).
+        exports: Vec<String>,
         span: Span,
     },
 
@@ -203,6 +208,24 @@ impl ResolveError {
             ResolveError::ShadowedGlobalName { .. } => "E0110",
             ResolveError::PrimitiveUnionType { .. } => "E0111",
             ResolveError::NoExportSurface { .. } => "E0112",
+        }
+    }
+
+    /// What may legally stand where the offending name stands, when the
+    /// resolver holds a finite list of it.
+    ///
+    /// One case today: the names a module exports, against an import of a name
+    /// it does not. The list was in hand at the moment the error fired, since
+    /// checking against it is what produced the error; the rendered
+    /// `suggestion` caps itself at eight names for readability, and this does
+    /// not (G220). `None` everywhere else, which is the resolver having no
+    /// enumerable set rather than an empty one.
+    pub fn alternatives(&self) -> Option<Vec<String>> {
+        match self {
+            ResolveError::UnknownExportedName { exports, .. } if !exports.is_empty() => {
+                Some(exports.clone())
+            }
+            _ => None,
         }
     }
 

@@ -8762,19 +8762,32 @@ pub fn f(u: U) -> string {
             "severity",
             "message",
             "file",
+            "module",
             "range",
             "stage",
             "entity",
             "union",
             "missing_variants",
             "help",
+            "expected",
+            "actual",
+            "cause",
+            "alternatives",
+            "related",
+            "explain",
         ]
         .into_iter()
         .collect();
         assert_eq!(keys, want, "{value}");
         assert_eq!(d["severity"], "error", "{value}");
         assert_eq!(d["stage"], "typecheck", "{value}");
-        assert_eq!(d["file"], "a", "{value}");
+        // `file` is a path and `module` is the key the other tools take (G220).
+        assert_eq!(d["file"], "a.glyph", "{value}");
+        assert_eq!(d["module"], "a", "{value}");
+        // The record's own fields and its identity, which the checker held
+        // when it refused the access.
+        assert_eq!(d["alternatives"], json!(["name"]), "{value}");
+        assert_eq!(d["cause"], "a::U", "{value}");
         // `help` is its own field. The message is the sentence the compiler
         // wrote and nothing else.
         assert_eq!(d["message"], "type `U` has no field `naem`", "{value}");

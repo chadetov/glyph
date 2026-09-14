@@ -1465,11 +1465,13 @@ machine-readably. The full catalogue:
 
 ### A diagnostic in the self-correction loop
 
-`glyph build --json` gives you the machine-readable version an agent can act on
-directly. A program that forgets a `match` arm:
+`glyph build --json` and `glyph check --json` give you the machine-readable
+version an agent can act on directly, and the `glyph_diagnostics` MCP tool
+answers with the same object from the same Rust type. A program that forgets a
+`match` arm over a union declared in `orders`:
 
 ```
-$ glyph build src --out dist --json
+$ glyph check --json --no-tsc
 {
   "ok": false,
   "errors": 1,
@@ -1477,18 +1479,62 @@ $ glyph build src --out dist --json
     {
       "code": "E0200",
       "severity": "error",
-      "message": "non-exhaustive match on `Status`: missing variants Cancelled",
-      "file": "src/main.glyph",
-      "range": { "start": { "line": 6, "col": 10 }, "end": { "line": 9, "col": 4 } },
       "stage": "typecheck",
-      "help": "Add an arm for each missing variant, or an `else` arm to catch the rest."
+      "message": "non-exhaustive match on `OrderStatus`: missing variants `Paid`, `Cancelled`",
+      "help": "Add an arm for each missing variant, or an `else` arm to catch the rest.",
+      "note": "Tagged unions are sealed (D9): adding a variant forces every match to be updated. A `_`/`else` catch-all is allowed but forfeits that guarantee.",
+      "file": "main.glyph",
+      "module": "main",
+      "range": {
+        "start": { "line": 6, "col": 10, "offset": 119 },
+        "end": { "line": 8, "col": 4, "offset": 158 }
+      },
+      "entity": "main::describe",
+      "cause": "orders::OrderStatus",
+      "expected": null,
+      "actual": null,
+      "alternatives": null,
+      "related": ["Pending", "Paid", "Cancelled"],
+      "union": {
+        "kind": "declaration",
+        "module": "orders",
+        "name": "OrderStatus",
+        "declaration": "orders::OrderStatus"
+      },
+      "missing_variants": ["Paid", "Cancelled"],
+      "explain": {
+        "command": "glyph --explain E0200",
+        "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"
+      }
     }
   ]
 }
 ```
 
 Read `code` + `help`, add the missing arm, rebuild. That is the loop the design
-is built for.
+is built for, and the fields beside them are there so the next step needs no
+second call:
+
+- `file` is a path under the root the module keys are counted from, so you can
+  open it. `module` is the key `glyph_symbol`, `glyph_variants` and
+  `glyph_impact` take.
+- `entity` is the declaration the diagnostic sits in. `cause` is the symbol at
+  fault, which is a different thing: for `o.totl` inside `fn main`, `entity` is
+  `main::main` and `cause` is `orders::Order`.
+- `expected` and `actual` are the two types, as the checker displays them, on
+  every code that compares two (E0203, E0204, E0211).
+- `alternatives` is what may legally stand where the wrong thing stands, when
+  the compiler holds a finite list: a record's own fields against a field typo,
+  a union's variants against a mismatch, a module's exports against an unknown
+  import, the did-you-mean a mistyped pattern head gets.
+- `related` is the union's whole variant list on a non-exhaustive match;
+  `missing_variants` is the gap inside it.
+- `explain` says where the code's own explanation is. `glyph --explain E0200
+  --json` returns it as data, with the compiled counter-example that draws it.
+
+Every one of these keys is always present. A fact the compiler does not hold
+arrives as an explicit `null`, never as a missing key, so absence has one
+spelling on every code and on both surfaces.
 
 ## Recipes by task (copy, adapt)
 

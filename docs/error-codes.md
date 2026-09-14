@@ -165,3 +165,36 @@ only what it can prove: an import some `.glyph` file under the root answers to.
 | `E0304` | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine |
 | `E0305` | Two arms of one `match` lower to the same `case` label, so the later arm can never run |
 | `E0310` | `glyph run` on a module with no `fn main` (it's a library — nothing to run) |
+
+## The structured shape
+
+`glyph check --json`, `glyph build --json` and the `glyph_diagnostics` MCP tool
+answer with one Rust type, so the two surfaces cannot carry different fields for
+one error. Every key below is always present. A fact the compiler does not hold
+arrives as an explicit `null`, never as a missing key, so absence has one
+spelling on every code.
+
+| Field | What it is |
+|-------|-----------|
+| `code` | The stable code in the catalogue above |
+| `severity` | `error` or `warning` |
+| `stage` | `parse`, `collect`, `resolve`, `import`, `lint`, `typecheck`, `emit` or `tsc` |
+| `message` | The sentence the compiler wrote, with nothing appended |
+| `help` | The one-line fix |
+| `note` | The background, when the code has one |
+| `file` | The file's path under the root module keys are counted from (`queries/report.glyph`). A `tsc` error that was never mapped onto Glyph source carries the `.ts` path instead |
+| `module` | The module key `glyph_symbol`, `glyph_variants` and `glyph_impact` take. `null` for a diagnostic about no Glyph module |
+| `range` | `start` and `end`, each a 1-based `line` and `col` with the byte `offset` |
+| `entity` | The `module::name` of the declaration the diagnostic sits in |
+| `cause` | The `module::name` of the symbol at fault, when it is a declaration other than the enclosing one: the record for `E0210`, the union for `E0200` |
+| `expected` | The type this position required, on the codes that compare two types (`E0203`, `E0204`, `E0211`) |
+| `actual` | The type found. Answers for one class more than `expected`: a code that names one offending type and states its requirement in prose (`E0202`, `E0205`, `E0304`) has an `actual` and no `expected` |
+| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields (`E0210`), the union's variants (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
+| `related` | The union's whole variant list, in declaration order (`E0200`) |
+| `union` | The union a `match` diagnostic is over: `kind`, `module`, `name`, `declaration` |
+| `missing_variants` | The variants the match leaves unmentioned, in declaration order |
+| `explain` | `command` (`glyph --explain E0200`, which takes `--json`) and `docs`, the catalogue section for the code. `null` for a `tsc` passthrough code, which has no Glyph documentation |
+
+A wrong argument *count* (`E0213`) is not a type comparison: its two numbers stay
+in its sentence rather than arriving under `expected` and `actual`, which a
+consumer reads as types.

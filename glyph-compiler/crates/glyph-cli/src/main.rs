@@ -722,6 +722,9 @@ fn main() {
             let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
             match glyph_cli::fix::fix_project(&target) {
                 Ok(report) => {
+                    for notice in &report.notices {
+                        eprintln!("glyph fix: {notice}");
+                    }
                     for file in &report.changed {
                         eprintln!("fixed {}", file.display());
                     }
@@ -730,6 +733,27 @@ fn main() {
                         report.removed_imports,
                         report.changed.len(),
                     );
+                    // What each diagnostic-driven rule did, and what it would
+                    // not do. A rule that declines says why on the same
+                    // channel, because "nothing happened" and "the compiler
+                    // does not hold the answer" are different answers and a
+                    // caller acting on them has to be able to tell.
+                    for a in &report.applied {
+                        eprintln!(
+                            "glyph fix: applied {} in {}: {}",
+                            a.code,
+                            a.file.display(),
+                            a.what
+                        );
+                    }
+                    for d in &report.declined {
+                        eprintln!(
+                            "glyph fix: declined {} in {}: {}",
+                            d.code,
+                            d.file.display(),
+                            d.why
+                        );
+                    }
                     std::process::exit(0);
                 }
                 Err(e) => {

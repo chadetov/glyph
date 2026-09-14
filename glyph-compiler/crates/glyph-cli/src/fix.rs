@@ -1,22 +1,70 @@
-//! `glyph fix` — apply the safe, mechanical autofixes.
+//! `glyph fix` — apply the repairs the compiler fully determines.
 //!
-//! Today that is one rule: drop the dead names out of an `import` (the E0106
+//! Four rules. The first drops the dead names out of an `import` (the E0106
 //! lint). An import whose every bound name is unused loses the whole
 //! declaration; a named import (`import M { a, b, c }`) with only some names
 //! dead (say `b`) keeps the declaration and drops just `b`. Only `Named` can
-//! be partially dead — `Namespace`/`Aliased`/`Default` each bind a single
+//! be partially dead: `Namespace`/`Aliased`/`Default` each bind a single
 //! name, so for those "some dead" and "all dead" are the same case.
+//!
+//! The other three read the structured diagnostics of a real check and edit
+//! the source the diagnostic points at:
+//!
+//! * **E0200**, a non-exhaustive match, gains one arm per name in
+//!   `missing_variants`, with the pattern the union's own declaration implies
+//!   and a body that says out loud it is unwritten (see `render_arms`).
+//! * **E0220**, an arm head that is not a variant, takes the `suggestion` the
+//!   checker already computed, and only when there is exactly one.
+//! * **E0210**, a field that the record does not declare, takes the one
+//!   declared field within edit distance one of it, and only when there is
+//!   exactly one.
+//!
+//! None of the three guesses. Where the compiler does not hold the answer the
+//! rule declines and says why, and the reason reaches the command's output
+//! beside what it did apply. A rule that cannot state where its answer came
+//! from does not run: the variant payload shapes come from `glyph_symbol`,
+//! which is the same code `glyph query symbol` answers with, rather than from
+//! a second reading of the union's declaration here.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use glyph_ast::{Decl, ImportKind};
+use glyph_ast::{Decl, ImportKind, Module};
 use glyph_resolver::{
     build_prelude, collect_module_symbols, module_lints, resolve_module, ResolveError,
 };
 
+use crate::diagnostic::Diagnostic;
+
 pub struct FixReport {
     pub changed: Vec<PathBuf>,
     pub removed_imports: usize,
+    /// One entry per diagnostic-driven repair that was written.
+    pub applied: Vec<Applied>,
+    /// One entry per diagnostic a rule matched and did not repair, with the
+    /// reason. A repair that guesses is worse than no repair, so a rule that
+    /// stops has to say what stopped it rather than going quiet.
+    pub declined: Vec<Declined>,
+    /// Problems with the run rather than with any one diagnostic: a tree that
+    /// would not check at all, so only the import rule could run.
+    pub notices: Vec<String>,
+}
+
+/// One repair `glyph fix` wrote.
+#[derive(Debug, Clone)]
+pub struct Applied {
+    pub code: String,
+    pub file: PathBuf,
+    /// What was written, in one clause: "added arms for `Paid`, `Refunded`".
+    pub what: String,
+}
+
+/// One repair `glyph fix` did not write, and why.
+#[derive(Debug, Clone)]
+pub struct Declined {
+    pub code: String,
+    pub file: PathBuf,
+    pub why: String,
 }
 
 /// Apply the safe autofixes across every `.glyph` file under `src` (a directory,
@@ -25,9 +73,15 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
     let mut files = Vec::new();
     collect_glyph_files(src, &mut files);
     let prelude = build_prelude();
-    let mut report = FixReport { changed: Vec::new(), removed_imports: 0 };
+    let mut report = FixReport {
+        changed: Vec::new(),
+        removed_imports: 0,
+        applied: Vec::new(),
+        declined: Vec::new(),
+        notices: Vec::new(),
+    };
 
-    for f in files {
+    for f in files.iter().cloned() {
         let source =
             std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?;
         let Ok(module) = glyph_parser::parse(&source) else { continue };
@@ -105,6 +159,11 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
         std::fs::write(&f, &new_source).map_err(|e| format!("{}: {e}", f.display()))?;
         report.changed.push(f);
     }
+
+    // The import rule has written its edits, so a check now reads the text the
+    // diagnostic offsets below are counted against. Running it the other way
+    // round would hand every rule a set of offsets one import-removal stale.
+    apply_diagnostic_rules(src, &files, &mut report)?;
 
     Ok(report)
 }
@@ -189,6 +248,958 @@ fn collect_glyph_files(path: &Path, out: &mut Vec<PathBuf>) {
             out.push(p);
         }
     }
+}
+
+
+// ---------------------------------------------------------------------------
+// The diagnostic-driven rules
+// ---------------------------------------------------------------------------
+
+/// The codes this pass repairs. A diagnostic with any other code is left alone.
+const REPAIRABLE: [&str; 3] = ["E0200", "E0210", "E0220"];
+
+/// Check the tree, then apply every rule that the resulting diagnostics fully
+/// determine.
+///
+/// The check is the real one (`glyph check --no-tsc`, the same call the command
+/// makes), so the offsets, the union identities and the checker's own
+/// suggestions all come from the compiler rather than from a second reading of
+/// the source here.
+fn apply_diagnostic_rules(
+    src: &Path,
+    files: &[PathBuf],
+    report: &mut FixReport,
+) -> Result<(), String> {
+    let check = match crate::check::check_path(src, false, false) {
+        Ok(c) => c,
+        Err(e) => {
+            report.notices.push(format!(
+                "the tree did not check, so only the unused-import rule ran: {e}"
+            ));
+            return Ok(());
+        }
+    };
+
+    // Group by the file the diagnostic is in, resolved to a path this run
+    // actually collected. A diagnostic whose file cannot be placed in exactly
+    // one of the collected files is left alone rather than written to a guess.
+    let mut by_file: BTreeMap<PathBuf, (PathBuf, Vec<Diagnostic>)> = BTreeMap::new();
+    for d in &check.structured {
+        if !REPAIRABLE.contains(&d.code.as_str()) {
+            continue;
+        }
+        let Some((path, root)) = place_diagnostic(&check.project_srcs, files, d) else {
+            continue;
+        };
+        by_file
+            .entry(path)
+            .or_insert_with(|| (root, Vec::new()))
+            .1
+            .push(d.clone());
+    }
+
+    for (path, (root, diags)) in by_file {
+        fix_one_file(&path, &root, &diags, report)?;
+    }
+    Ok(())
+}
+
+/// The absolute path a diagnostic is about, and the project root its identities
+/// are counted from.
+///
+/// `Diagnostic::file` is a path under the project root that produced it, and a
+/// tree may hold several projects (D41), so the pairing is (root, root/file).
+/// The answer has to be one of the files this run collected: `glyph fix` writes
+/// only inside the tree it was pointed at.
+fn place_diagnostic(
+    roots: &[PathBuf],
+    files: &[PathBuf],
+    d: &Diagnostic,
+) -> Option<(PathBuf, PathBuf)> {
+    let mut found: Option<(PathBuf, PathBuf)> = None;
+    for root in roots {
+        let candidate = root.join(&d.file);
+        if !files.iter().any(|f| same_file(f, &candidate)) {
+            continue;
+        }
+        if found.is_some() {
+            // Two projects hold a file with this relative path; which one the
+            // diagnostic came from is not decidable from the diagnostic alone.
+            return None;
+        }
+        found = Some((candidate, root.clone()));
+    }
+    found
+}
+
+/// Whether two paths name the same file, comparing canonical forms when both
+/// canonicalize and the paths themselves otherwise.
+fn same_file(a: &Path, b: &Path) -> bool {
+    match (a.canonicalize(), b.canonicalize()) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => a == b,
+    }
+}
+
+/// Apply every rule that fires on one file, in one rewrite.
+fn fix_one_file(
+    path: &Path,
+    root: &Path,
+    diags: &[Diagnostic],
+    report: &mut FixReport,
+) -> Result<(), String> {
+    let source =
+        std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let Ok(module) = glyph_parser::parse(&source) else {
+        // A file that does not parse has parse diagnostics of its own, and
+        // every rule here needs the declarations.
+        return Ok(());
+    };
+
+    let mut edits: Vec<(u32, u32, String)> = Vec::new();
+    let mut applied: Vec<Applied> = Vec::new();
+    let mut arm_plans: Vec<ArmPlan> = Vec::new();
+
+    for d in diags {
+        match d.code.as_str() {
+            "E0220" => match plan_e0220(&source, d, diags) {
+                Ok(edit) => {
+                    applied.push(Applied {
+                        code: d.code.clone(),
+                        file: path.to_path_buf(),
+                        what: format!("renamed the arm head to `{}`", edit.2),
+                    });
+                    edits.push(edit);
+                }
+                Err(why) => report.declined.push(Declined {
+                    code: d.code.clone(),
+                    file: path.to_path_buf(),
+                    why,
+                }),
+            },
+            "E0210" => match plan_e0210(&source, d) {
+                Ok(edit) => {
+                    applied.push(Applied {
+                        code: d.code.clone(),
+                        file: path.to_path_buf(),
+                        what: format!("renamed the field read to `{}`", edit.2),
+                    });
+                    edits.push(edit);
+                }
+                Err(why) => report.declined.push(Declined {
+                    code: d.code.clone(),
+                    file: path.to_path_buf(),
+                    why,
+                }),
+            },
+            "E0200" => {
+                // An arm head the checker could not read as a variant (E0220)
+                // inside this same match means the set of variants the match
+                // mentions is not settled: repairing the head can make the
+                // match exhaustive, and the arms added here would then be
+                // duplicates. Fix the head first; `glyph fix` run again sees
+                // whatever is left.
+                if diags.iter().any(|o| {
+                    o.code == "E0220"
+                        && o.range.start.offset >= d.range.start.offset
+                        && o.range.end.offset <= d.range.end.offset
+                }) {
+                    report.declined.push(Declined {
+                        code: d.code.clone(),
+                        file: path.to_path_buf(),
+                        why: "this match also has an arm head that is not a variant (E0220), \
+                              so which variants it already covers is not settled. Run `glyph \
+                              fix` again once that is repaired."
+                            .to_string(),
+                    });
+                    continue;
+                }
+                match plan_e0200(&source, path, root, d) {
+                    Ok(plan) => arm_plans.push(plan),
+                    Err(why) => report.declined.push(Declined {
+                        code: d.code.clone(),
+                        file: path.to_path_buf(),
+                        why,
+                    }),
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if !arm_plans.is_empty() {
+        if let Some(planned) = plan_arm_edits(&source, &module, path, &arm_plans, report) {
+            edits.extend(planned.edits);
+            applied.extend(planned.applied);
+        }
+    }
+
+    if edits.is_empty() {
+        return Ok(());
+    }
+
+    let new_source = apply_edits(&source, edits);
+    // Same bar the import rule is held to: re-parse what is about to be written
+    // and refuse to write a file the rewrite broke.
+    if glyph_parser::parse(&new_source).is_err() {
+        return Err(format!(
+            "{}: the rewritten file does not parse, so nothing was written. \
+             This is a bug in `glyph fix`; please report it with the file.",
+            path.display()
+        ));
+    }
+    std::fs::write(path, &new_source).map_err(|e| format!("{}: {e}", path.display()))?;
+    if !report.changed.iter().any(|c| c == path) {
+        report.changed.push(path.to_path_buf());
+    }
+    report.applied.extend(applied);
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// E0220: the checker's own suggestion, when there is exactly one
+// ---------------------------------------------------------------------------
+
+/// Replace a match arm's head with the variant the checker suggested.
+///
+/// The diagnostic's range covers the whole pattern (`Feed.Loadign(x)`), not the
+/// head, so the head is the identifier before the payload and after the last
+/// qualifier. `alternatives` is the suggestion list the checker already
+/// computed; more than one of them, or none, and there is nothing determined to
+/// write.
+///
+/// The suggestion is a nearest name, not a coverage answer: the checker will
+/// suggest `Loading` for `Loadign` whether or not a `Loading` arm is already
+/// there, and writing it over a match that has one produces `E0305`, an arm
+/// that can never run. Whether the suggested variant is still free is settled
+/// by the match's own `E0200`: a variant the match is missing is free, and a
+/// match with no `E0200` at all has every variant spoken for.
+fn plan_e0220(
+    source: &str,
+    d: &Diagnostic,
+    siblings: &[Diagnostic],
+) -> Result<(u32, u32, String), String> {
+    let alts = d
+        .alternatives
+        .as_ref()
+        .ok_or("the checker computed no nearest variant for this head")?;
+    if alts.len() != 1 {
+        return Err(format!(
+            "the checker computed {} candidate variants ({}), and only one determines the repair",
+            alts.len(),
+            quoted_list(alts)
+        ));
+    }
+    let suggestion = &alts[0];
+    let enclosing = siblings
+        .iter()
+        .filter(|o| {
+            o.code == "E0200"
+                && o.range.start.offset <= d.range.start.offset
+                && o.range.end.offset >= d.range.end.offset
+        })
+        .min_by_key(|o| o.range.end.offset - o.range.start.offset);
+    match enclosing {
+        None => {
+            return Err(format!(
+                "the other arms of this match already cover every case, so renaming this head to `{suggestion}` would write an arm that can never run (E0305)"
+            ))
+        }
+        Some(m) => {
+            let missing = m.missing_variants.as_deref().unwrap_or(&[]);
+            if !missing.iter().any(|v| v == suggestion) {
+                return Err(format!(
+                    "`{suggestion}` is not one of the cases this match is missing ({}), so renaming this head to it would write an arm that can never run (E0305)",
+                    quoted_list(missing)
+                ));
+            }
+        }
+    }
+    let (start, end) = head_ident_span(source, d)
+        .ok_or("the arm head is not a plain name in the source this diagnostic points at")?;
+    Ok((start, end, alts[0].clone()))
+}
+
+/// The byte span of the head identifier inside a match-arm pattern span: what
+/// is left after dropping the payload (`(...)`) and every qualifier (`Feed.`).
+fn head_ident_span(source: &str, d: &Diagnostic) -> Option<(u32, u32)> {
+    let (s, e) = range_bytes(source, d)?;
+    let text = &source[s..e];
+    let head = match text.find('(') {
+        Some(i) => &text[..i],
+        None => text,
+    };
+    let after_dot = head.rfind('.').map(|i| i + 1).unwrap_or(0);
+    let raw = &head[after_dot..];
+    let lead = raw.len() - raw.trim_start().len();
+    let name = raw.trim();
+    if !is_plain_ident(name) {
+        return None;
+    }
+    let start = s + after_dot + lead;
+    Some((start as u32, (start + name.len()) as u32))
+}
+
+// ---------------------------------------------------------------------------
+// E0210: the did-you-mean, when exactly one field is within edit distance one
+// ---------------------------------------------------------------------------
+
+/// Replace a field read the record does not declare with the one declared field
+/// a single character away from it.
+///
+/// `alternatives` carries the record's own field list. Zero candidates within
+/// distance one is a name that was not a typo; several is a choice the compiler
+/// does not make. Both decline.
+fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String> {
+    let fields = d
+        .alternatives
+        .as_ref()
+        .ok_or("the diagnostic carries no field list for the record")?;
+    let (s, e) = range_bytes(source, d)
+        .ok_or("the diagnostic's range is not a byte range of this file")?;
+    let text = &source[s..e];
+    let after_dot = text
+        .rfind('.')
+        .map(|i| i + 1)
+        .ok_or("the access this diagnostic points at is not a `.field` read")?;
+    let raw = &text[after_dot..];
+    let lead = raw.len() - raw.trim_start().len();
+    let wrong = raw.trim();
+    if !is_plain_ident(wrong) {
+        return Err("the field name this diagnostic points at is not a plain name".to_string());
+    }
+    let near: Vec<&String> = fields
+        .iter()
+        .filter(|f| distance_is_one(f, wrong))
+        .collect();
+    match near.len() {
+        1 => {
+            let start = s + after_dot + lead;
+            Ok((
+                start as u32,
+                (start + wrong.len()) as u32,
+                near[0].clone(),
+            ))
+        }
+        0 => Err(format!(
+            "no declared field is one character away from `{wrong}`; the record declares {}",
+            quoted_list(fields)
+        )),
+        n => Err(format!(
+            "{n} declared fields are one character away from `{wrong}` ({}), and only one \
+             determines the repair",
+            quoted_list(&near.iter().map(|s| (*s).clone()).collect::<Vec<_>>())
+        )),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// E0200: one arm per missing variant
+// ---------------------------------------------------------------------------
+
+/// Everything one non-exhaustive match needs to gain its arms.
+struct ArmPlan {
+    /// Byte offset the new arms are spliced in at: just past the last arm's
+    /// own text, inside the braces.
+    at: usize,
+    /// The indentation the existing arms sit at.
+    indent: String,
+    /// The union as the diagnostic names it, for the marker comment.
+    union_label: String,
+    patterns: Vec<PatternPlan>,
+}
+
+/// One missing case, and what the compiler holds about its shape.
+struct PatternPlan {
+    /// The variant's name, or the literal's text for a string-literal union.
+    name: String,
+    /// The payload type as the checker renders it, `None` for a variant that
+    /// declares none.
+    payload: Option<String>,
+    /// True for a member of a string-literal union (D30), whose pattern is the
+    /// literal itself rather than a variant name.
+    literal: bool,
+}
+
+/// Work out where the arms go and what shape each one has.
+fn plan_e0200(
+    source: &str,
+    path: &Path,
+    root: &Path,
+    d: &Diagnostic,
+) -> Result<ArmPlan, String> {
+    let missing = d
+        .missing_variants
+        .as_ref()
+        .filter(|m| !m.is_empty())
+        .ok_or("the diagnostic names no missing variants")?;
+    let cause = d.cause.as_deref().ok_or_else(|| {
+        match d.union.as_ref().map(|u| u.name.clone()) {
+            Some(name) => format!(
+                "`{name}` is not declared in this project, so no tool keys its variants and \
+                 `glyph fix` has no payload shapes to write patterns from"
+            ),
+            None => "the diagnostic names no declaration to read the variants from".to_string(),
+        }
+    })?;
+
+    let shape = union_shape(root, path, cause)?;
+    let mut patterns = Vec::new();
+    for name in missing {
+        match &shape {
+            UnionShape::Literals(all) => {
+                if !all.iter().any(|l| l == name) {
+                    return Err(format!(
+                        "`{cause}` does not list `{name}` among its literals, so the compiler \
+                         and the diagnostic disagree and neither is written"
+                    ));
+                }
+                patterns.push(PatternPlan {
+                    name: name.clone(),
+                    payload: None,
+                    literal: true,
+                });
+            }
+            UnionShape::Variants(all) => {
+                let found = all.iter().find(|(v, _)| v == name).ok_or_else(|| {
+                    format!(
+                        "`{cause}` does not declare a variant `{name}`, so the compiler and the \
+                         diagnostic disagree and neither is written"
+                    )
+                })?;
+                patterns.push(PatternPlan {
+                    name: name.clone(),
+                    payload: found.1.clone(),
+                    literal: false,
+                });
+            }
+        }
+    }
+
+    let (at, indent) = match_insertion_point(source, d)
+        .ok_or("the match this diagnostic points at does not end in a `}` in the source")?;
+    Ok(ArmPlan {
+        at,
+        indent,
+        union_label: d
+            .union
+            .as_ref()
+            .map(|u| u.name.clone())
+            .unwrap_or_else(|| cause.to_string()),
+        patterns,
+    })
+}
+
+/// What a union declares, as the compiler answers it.
+enum UnionShape {
+    Variants(Vec<(String, Option<String>)>),
+    Literals(Vec<String>),
+}
+
+/// Ask `glyph_symbol` what `entity` declares.
+///
+/// The same `call_tool` an MCP client reaches and `glyph query symbol` prints,
+/// so the payload shapes written into an arm are the ones the compiler reports
+/// everywhere else. Reading the union's declaration a second time here would be
+/// a second answer to the same question, and the two would disagree the first
+/// time either moved.
+fn union_shape(root: &Path, path: &Path, entity: &str) -> Result<UnionShape, String> {
+    // An absolute path, because the tool resolves a relative one against its
+    // own root and `path` here is already spelled relative to that root: the
+    // two composed would name `src/src/main.glyph`.
+    let file = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let answer = glyph_lsp::call_mcp_tool(
+        root.to_path_buf(),
+        "glyph_symbol",
+        serde_json::json!({ "entity": entity, "path": file.to_string_lossy() }),
+    )
+    .map_err(|why| format!("`glyph_symbol` did not answer for `{entity}`: {why}"))?;
+    let value: serde_json::Value = serde_json::from_str(&answer)
+        .map_err(|e| format!("`glyph_symbol`'s answer for `{entity}` did not parse: {e}"))?;
+
+    if let Some(lits) = value.get("literals").and_then(|v| v.as_array()) {
+        return Ok(UnionShape::Literals(
+            lits.iter()
+                .filter_map(|l| l.as_str().map(str::to_string))
+                .collect(),
+        ));
+    }
+    let variants = value
+        .get("variants")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| {
+            let why = value
+                .get("variants_absent")
+                .and_then(|v| v.as_str())
+                .unwrap_or("it reports no variants");
+            format!("`glyph_symbol` holds no variant list for `{entity}`: {why}")
+        })?;
+    Ok(UnionShape::Variants(
+        variants
+            .iter()
+            .filter_map(|v| {
+                let name = v.get("name")?.as_str()?.to_string();
+                let payload = v
+                    .get("payload")
+                    .and_then(|p| p.as_str())
+                    .map(str::to_string);
+                Some((name, payload))
+            })
+            .collect(),
+    ))
+}
+
+/// Where the new arms go, and at what indentation.
+///
+/// The diagnostic's range is the whole `match` expression, so the last byte is
+/// its closing brace and the last non-space byte before that is the end of the
+/// last arm's own text (its trailing comma, which D8 requires). The new arms
+/// are spliced in there, at the indentation of the line that byte sits on,
+/// which is the arms' own indentation whatever shape the last arm's body took.
+fn match_insertion_point(source: &str, d: &Diagnostic) -> Option<(usize, String)> {
+    let (s, e) = range_bytes(source, d)?;
+    let bytes = source.as_bytes();
+    let mut close = e.checked_sub(1)?;
+    while close > s && bytes[close].is_ascii_whitespace() {
+        close -= 1;
+    }
+    if bytes[close] != b'}' {
+        return None;
+    }
+    let mut at = close.checked_sub(1)?;
+    while at > s && bytes[at].is_ascii_whitespace() {
+        at -= 1;
+    }
+    if at <= s {
+        return None;
+    }
+    let at = at + 1;
+    let line_start = source[..at].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let indent: String = source[line_start..at]
+        .chars()
+        .take_while(|c| *c == ' ' || *c == '\t')
+        .collect();
+    Some((at, indent))
+}
+
+/// The edits one file's `E0200` repairs come to, with what to report for them.
+struct PlannedArms {
+    edits: Vec<(u32, u32, String)>,
+    applied: Vec<Applied>,
+}
+
+/// Build the text edits for every planned match in one file, and settle the two
+/// questions that are per-file rather than per-match: how `process.exit` is
+/// spelled here, and whether the payload patterns can be destructured.
+fn plan_arm_edits(
+    source: &str,
+    module: &Module,
+    path: &Path,
+    plans: &[ArmPlan],
+    report: &mut FixReport,
+) -> Option<PlannedArms> {
+    let (exit_call, import_edit) = match process_exit_call(module, source) {
+        Ok(v) => v,
+        Err(why) => {
+            for plan in plans {
+                report.declined.push(Declined {
+                    code: "E0200".to_string(),
+                    file: path.to_path_buf(),
+                    why: why.clone(),
+                });
+                let _ = plan;
+            }
+            return None;
+        }
+    };
+
+    // A record payload is destructured by field name, which is the shape that
+    // puts the payload's parts in front of whoever writes the body. A field
+    // name can still be illegal as a binding (E0109: TypeScript reserves it),
+    // and rather than keep a second copy of that list here, the destructured
+    // form is assembled, offered to the compiler's own collect stage, and
+    // dropped for a whole-payload binding if it made the file worse.
+    let baseline = module_error_codes(source);
+    for destructure in [true, false] {
+        let mut edits: Vec<(u32, u32, String)> = Vec::new();
+        let mut applied = Vec::new();
+        if let Some((at, text)) = &import_edit {
+            edits.push((*at as u32, *at as u32, text.clone()));
+        }
+        for plan in plans {
+            edits.push((
+                plan.at as u32,
+                plan.at as u32,
+                render_arms(plan, destructure, &exit_call),
+            ));
+            applied.push(Applied {
+                code: "E0200".to_string(),
+                file: path.to_path_buf(),
+                what: format!(
+                    "added {} arm(s) to the match on `{}`: {}",
+                    plan.patterns.len(),
+                    plan.union_label,
+                    quoted_list(
+                        &plan
+                            .patterns
+                            .iter()
+                            .map(|p| p.name.clone())
+                            .collect::<Vec<_>>()
+                    )
+                ),
+            });
+        }
+        let candidate = apply_edits(source, edits.clone());
+        if !collect_regressed(&baseline, &module_error_codes(&candidate)) {
+            return Some(PlannedArms { edits, applied });
+        }
+    }
+
+    for _ in plans {
+        report.declined.push(Declined {
+            code: "E0200".to_string(),
+            file: path.to_path_buf(),
+            why: "the arms this fix would write do not collect cleanly in this module, so \
+                  nothing was written"
+                .to_string(),
+        });
+    }
+    None
+}
+
+/// The arm text for one planned match, indentation included, ready to splice in
+/// just past the last existing arm.
+///
+/// Each arm carries a `TODO(glyph fix)` line naming the case, and a body that
+/// prints which case was reached and then leaves through `process.exit`, whose
+/// return type is `never` (D43). `never` contributes nothing to the arm join,
+/// so the same body is legal whether the match is an expression owing a value
+/// or a statement owing none, and the compiler needs no guess about what the
+/// arm should produce. It is not a body anyone would mistake for a finished
+/// one: it says so in a comment, and it says so again at runtime.
+fn render_arms(plan: &ArmPlan, destructure: bool, exit_call: &str) -> String {
+    let mut out = String::new();
+    let i = &plan.indent;
+    for p in &plan.patterns {
+        let (pattern, label) = if p.literal {
+            (format!("\"{}\"", escape_glyph_string(&p.name)), "literal")
+        } else {
+            (
+                match &p.payload {
+                    None => p.name.clone(),
+                    Some(payload) => match record_field_names(payload).filter(|_| destructure) {
+                        Some(fields) => format!("{}({{ {} }})", p.name, fields.join(", ")),
+                        None => format!("{}(payload)", p.name),
+                    },
+                },
+                "variant",
+            )
+        };
+        out.push('\n');
+        out.push_str(&format!(
+            "{i}// TODO(glyph fix): `{}` {label} `{}` is unhandled; write this arm\n",
+            plan.union_label, p.name
+        ));
+        out.push_str(&format!("{i}{pattern} => {{\n"));
+        out.push_str(&format!(
+            "{i}  print(\"unhandled {} {label} {} (arm written by glyph fix)\")\n",
+            plan.union_label, p.name
+        ));
+        out.push_str(&format!("{i}  {exit_call}\n"));
+        out.push_str(&format!("{i}}},"));
+    }
+    out
+}
+
+/// How this module reaches `std/process.exit`, and the import to add when it
+/// does not reach it yet.
+///
+/// Returns the call text and, when one is needed, the byte offset an
+/// `import std/process` goes at with the text to put there.
+fn process_exit_call(
+    module: &Module,
+    source: &str,
+) -> Result<(String, Option<(usize, String)>), String> {
+    for item in &module.items {
+        let Decl::Import(imp) = item else { continue };
+        let segments: Vec<&str> = imp.path.segments.iter().map(|s| s.as_ref()).collect();
+        if segments != ["std", "process"] {
+            continue;
+        }
+        return match &imp.kind {
+            ImportKind::Namespace => {
+                let bound = segments.last().copied().unwrap_or("process");
+                Ok((format!("{bound}.exit(1)"), None))
+            }
+            ImportKind::Aliased(a) => Ok((format!("{a}.exit(1)"), None)),
+            ImportKind::Named(ns) if ns.iter().any(|n| n.as_ref() == "exit") => {
+                Ok(("exit(1)".to_string(), None))
+            }
+            _ => Err("this module imports `std/process` in a form that does not bind `exit`, \
+                      and `glyph fix` does not rewrite an import you wrote"
+                .to_string()),
+        };
+    }
+
+    if module.items.iter().any(|d| binds_name(d, "process")) {
+        return Err(
+            "the name `process` is already bound in this module, so `glyph fix` cannot reach \
+             `std/process.exit` for the arm bodies"
+                .to_string(),
+        );
+    }
+
+    let anchor = module
+        .items
+        .iter()
+        .rev()
+        .find_map(|d| match d {
+            Decl::Import(i) => Some(i.span),
+            _ => None,
+        })
+        .map(|sp| sp.start as usize)
+        .or_else(|| module.module_path.as_ref().map(|m| m.span.start as usize))
+        .ok_or(
+            "this file has no `module` line and no import to put `import std/process` after",
+        )?;
+    let at = end_of_line_at(source, anchor);
+    Ok((
+        "process.exit(1)".to_string(),
+        Some((at, "\nimport std/process".to_string())),
+    ))
+}
+
+/// Whether a declaration binds `name` at the module's top level.
+fn binds_name(decl: &Decl, name: &str) -> bool {
+    match decl {
+        Decl::Import(i) => match &i.kind {
+            ImportKind::Namespace => i.path.segments.last().map(|s| s.as_ref()) == Some(name),
+            ImportKind::Aliased(a) => a.as_ref() == name,
+            ImportKind::Default(local) => local.as_ref() == name,
+            ImportKind::Named(ns) => ns.iter().any(|n| n.as_ref() == name),
+        },
+        Decl::Fn(f) => f.name.as_ref() == name,
+        Decl::Type(t) => t.name.as_ref() == name,
+        Decl::Const(c) => c.name.as_ref() == name,
+        Decl::Component(c) => c.name.as_ref() == name,
+        Decl::Interface(i) => i.name.as_ref() == name,
+    }
+}
+
+/// The offset of the newline that ends the line `offset` sits on, with a span
+/// that already ran past its own newline walked back first (an import decl's
+/// span does, see `decl_text_end`).
+fn end_of_line_at(source: &str, offset: usize) -> usize {
+    let mut o = offset.min(source.len());
+    let bytes = source.as_bytes();
+    while o > 0 && matches!(bytes[o - 1], b'\n' | b'\r') {
+        o -= 1;
+    }
+    match source[o..].find('\n') {
+        Some(i) => o + i,
+        None => source.len(),
+    }
+}
+
+/// The resolve-stage codes `source` raises on its own, or `None` when it does
+/// not parse.
+///
+/// Collect and resolve, because those are the two stages that run on a single
+/// module with no project around it, and between them they hold the check that
+/// a generated pattern can fail without being unparseable: E0109, a binding
+/// name TypeScript reserves. `default` is a legal record *field* and an illegal
+/// *binding*, so a payload destructured by field name can be rejected for a
+/// name the union's own declaration uses happily.
+///
+/// Errors only. The lints are left out because they are about the file as a
+/// whole (an unused import) and would move for reasons that have nothing to do
+/// with the arms being written.
+fn module_error_codes(source: &str) -> Option<Vec<String>> {
+    let module = glyph_parser::parse(source).ok()?;
+    let mut codes: Vec<String> = Vec::new();
+    let symbols = match collect_module_symbols(&module) {
+        Ok(s) => s,
+        Err(errs) => {
+            codes.extend(errs.iter().map(|e| e.code().to_string()));
+            codes.sort();
+            return Some(codes);
+        }
+    };
+    let (_resolved, errs) = resolve_module(&module, symbols, &build_prelude());
+    codes.extend(
+        errs.iter()
+            .filter(|e| e.severity() == glyph_resolver::Severity::Error)
+            .map(|e| e.code().to_string()),
+    );
+    codes.sort();
+    Some(codes)
+}
+
+/// True when `after` holds a code more often than `before` did, or stopped
+/// parsing altogether.
+fn collect_regressed(before: &Option<Vec<String>>, after: &Option<Vec<String>>) -> bool {
+    let (Some(before), Some(after)) = (before, after) else {
+        return true;
+    };
+    for code in after {
+        if after.iter().filter(|c| *c == code).count()
+            > before.iter().filter(|c| *c == code).count()
+        {
+            return true;
+        }
+    }
+    false
+}
+
+// ---------------------------------------------------------------------------
+// Small shared helpers
+// ---------------------------------------------------------------------------
+
+/// A diagnostic's range as a byte range of `source`, when it is one.
+fn range_bytes(source: &str, d: &Diagnostic) -> Option<(usize, usize)> {
+    let s = d.range.start.offset as usize;
+    let e = d.range.end.offset as usize;
+    if e <= s || e > source.len() || !source.is_char_boundary(s) || !source.is_char_boundary(e) {
+        return None;
+    }
+    Some((s, e))
+}
+
+/// True when `name` is a bare identifier: a letter or `_`, then letters, digits
+/// or `_`.
+fn is_plain_ident(name: &str) -> bool {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// True when `a` and `b` differ by exactly one character edit: a substitution,
+/// an insertion, or a deletion.
+///
+/// Not a general edit distance. The rule only ever asks about distance one, and
+/// answering that question directly is exact, allocation-light, and impossible
+/// to get subtly wrong the way a truncated matrix can be.
+fn distance_is_one(a: &str, b: &str) -> bool {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    match a.len() as i64 - b.len() as i64 {
+        0 => a.iter().zip(b.iter()).filter(|(x, y)| x != y).count() == 1,
+        1 => one_deletion_apart(&a, &b),
+        -1 => one_deletion_apart(&b, &a),
+        _ => false,
+    }
+}
+
+/// `long` with exactly one character dropped equals `short`.
+fn one_deletion_apart(long: &[char], short: &[char]) -> bool {
+    let mut i = 0;
+    let mut j = 0;
+    let mut dropped = false;
+    while i < long.len() && j < short.len() {
+        if long[i] == short[j] {
+            i += 1;
+            j += 1;
+        } else if dropped {
+            return false;
+        } else {
+            dropped = true;
+            i += 1;
+        }
+    }
+    true
+}
+
+/// The field names of a record type as the checker renders it (`{ a: int, b:
+/// string }`), or `None` when the text is not a record type or any field name
+/// is not a plain name.
+///
+/// The commas are split at brace/bracket/paren/angle depth zero so a nested
+/// record or a generic argument does not end a field, and a split that does not
+/// yield a plain name answers `None` rather than a guess: the caller falls back
+/// to binding the whole payload.
+fn record_field_names(payload: &str) -> Option<Vec<String>> {
+    let text = payload.trim();
+    let inner = text.strip_prefix('{')?.strip_suffix('}')?;
+    let mut fields = Vec::new();
+    for part in split_top_level(inner) {
+        let head = split_top_level_once(&part)?;
+        let name = head.trim().trim_end_matches('?').trim();
+        if !is_plain_ident(name) {
+            return None;
+        }
+        fields.push(name.to_string());
+    }
+    if fields.is_empty() {
+        return None;
+    }
+    Some(fields)
+}
+
+/// Split on commas at nesting depth zero.
+fn split_top_level(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth = 0i32;
+    let mut current = String::new();
+    let mut prev = '\0';
+    for c in text.chars() {
+        match c {
+            '{' | '[' | '(' => depth += 1,
+            '}' | ']' | ')' => depth -= 1,
+            '<' => depth += 1,
+            // `->` in a function type is not a closing angle bracket.
+            '>' if prev != '-' => depth -= 1,
+            ',' if depth == 0 => {
+                out.push(std::mem::take(&mut current));
+                prev = c;
+                continue;
+            }
+            _ => {}
+        }
+        current.push(c);
+        prev = c;
+    }
+    if !current.trim().is_empty() {
+        out.push(current);
+    }
+    out
+}
+
+/// The text before the first `:` at nesting depth zero.
+fn split_top_level_once(text: &str) -> Option<String> {
+    let mut depth = 0i32;
+    let mut prev = '\0';
+    for (i, c) in text.char_indices() {
+        match c {
+            '{' | '[' | '(' | '<' => depth += 1,
+            '}' | ']' | ')' => depth -= 1,
+            '>' if prev != '-' => depth -= 1,
+            ':' if depth == 0 => return Some(text[..i].to_string()),
+            _ => {}
+        }
+        prev = c;
+    }
+    None
+}
+
+/// `"a"`, `"b"` for a list of names, for a sentence that enumerates them.
+fn quoted_list(names: &[String]) -> String {
+    names
+        .iter()
+        .map(|n| format!("`{n}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Escape a string literal's text for a Glyph double-quoted string. `${` would
+/// open an interpolation, so the backslash before `$` matters as much as the
+/// one before a quote.
+fn escape_glyph_string(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('$', "\\$")
 }
 
 #[cfg(test)]

@@ -421,6 +421,13 @@ impl<'a> ModuleGraph for CompositeGraph<'a> {
 /// the verifier skips the import. This keeps third-party packages (`react`)
 /// and project-local modules (`api/users`) from breaking until package
 /// metadata lands in Phase 5.
+/// A module's export names as a sorted list, which is what a diagnostic
+/// carries beside its sentence. `BTreeSet` is already ordered; this is the
+/// projection, so the list and the rendered suggestion read the same names.
+fn sorted_names(exports: &ModuleExports) -> Vec<String> {
+    exports.names.iter().map(|e| e.to_string()).collect()
+}
+
 pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveError> {
     let mut errors = Vec::new();
     for item in &module.items {
@@ -438,6 +445,7 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
                             n,
                             exports.names.iter().map(|e| e.as_ref()),
                         ),
+                        exports: sorted_names(exports),
                         span: imp.span,
                     });
                 }
@@ -563,6 +571,7 @@ pub fn verify_qualified_type_refs(
                     &r.name,
                     exports.names.iter().map(|e| e.as_ref()),
                 ),
+                exports: sorted_names(exports),
                 span: r.span,
             });
         }

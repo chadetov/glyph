@@ -1420,12 +1420,14 @@ fn one_diagnostic_has_one_shape_on_both_surfaces() {
         let src = root.join(case.dir);
         let (_, report) = check_json(&src);
         // `glyph check` answers for the whole project; the tool answers for
-        // one module. `file` is the module half, which both spell the same way.
+        // one module. `file` is the module's path under the root both surfaces
+        // count identities from, which both spell the same way because both
+        // derive it from the module half they already agree on (G180, G220).
         let from_cli: Vec<Value> = report["diagnostics"]
             .as_array()
             .unwrap_or_else(|| panic!("no diagnostics from `glyph check`: {report}"))
             .iter()
-            .filter(|d| d["file"] == json!("main"))
+            .filter(|d| d["file"] == json!("main.glyph"))
             .cloned()
             .collect();
 

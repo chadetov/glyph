@@ -115,8 +115,14 @@ pub fn display_ty(ty: &Ty) -> String {
     }
 }
 
-/// The union a diagnostic is about, as an identity rather than as the name
-/// its message happens to print.
+/// The declaration a diagnostic is about, as an identity rather than as the
+/// name its message happens to print.
+///
+/// Named for its first use, the union an exhaustiveness error is over. It also
+/// carries the record an `UnknownField` is about: a field typo and a missing
+/// arm both name a declaration the reader has to go to, and the three cases
+/// below are the same three either way. Renaming the type to `DiagnosticDecl`
+/// is a follow-up, not a behaviour change.
 ///
 /// E0200 names the union and the variants it is missing inside one English
 /// sentence, in backticks. An agent repairing the match needs both to make the
@@ -223,6 +229,14 @@ pub enum TypeError {
         /// string-literal union, whose members are values rather than tags,
         /// these are the values, the same way a coverage gap records them.
         missing_variants: Vec<String>,
+        /// Every variant the union declares, in declaration order, unquoted.
+        ///
+        /// `missing_variants` says what is absent; this says what the set is.
+        /// An agent writing the missing arms needs both, because the arms it
+        /// adds have to sit in a `match` whose other arms it did not write,
+        /// and reading the declaration back is a second call for a list the
+        /// checker held while it computed the difference (G220).
+        variants: Vec<String>,
         span: Span,
     },
 
@@ -270,6 +284,11 @@ pub enum TypeError {
     TypeMismatch {
         expected: String,
         found: String,
+        /// The values the declared type accepts, when it accepts a finite set
+        /// the checker holds: a string-literal union's members. `None` for
+        /// every other type, where the accepted set is not enumerable and an
+        /// invented list would be a claim (D30).
+        accepted: Option<Vec<String>>,
         span: Span,
     },
 
@@ -333,6 +352,19 @@ pub enum TypeError {
     UnknownField {
         field: String,
         type_name: String,
+        /// Every field the record does declare, in declaration order.
+        ///
+        /// The checker resolved the record to decide the access was illegal,
+        /// so the set was in hand at the moment this fired. It used to reach
+        /// nobody: the JSON named the record only inside the sentence and
+        /// carried no list, so an agent repairing a typo had to go read the
+        /// declaration (G220).
+        fields: Vec<String>,
+        /// The record itself, as a declaration to address. `None` for a field
+        /// set with no declaration behind it: an inline `{ a: string }`
+        /// annotation, a variant's record payload, a stdlib type whose table
+        /// the runtime ships.
+        record: Option<DiagnosticUnion>,
         span: Span,
     },
 
@@ -364,6 +396,9 @@ pub enum TypeError {
     ArgumentTypeMismatch {
         expected: String,
         found: String,
+        /// The values the parameter accepts, when it accepts a finite set the
+        /// checker holds. Same rule as `TypeMismatch::accepted`.
+        accepted: Option<Vec<String>>,
         span: Span,
     },
 
@@ -822,6 +857,95 @@ impl TypeError {
             TypeError::NonExhaustiveMatch {
                 missing_variants, ..
             } => Some(missing_variants),
+            _ => None,
+        }
+    }
+
+    /// The type the checker required here, as it displays it.
+    ///
+    /// Only the errors that compare two types answer. A wrong argument *count*
+    /// is not a type comparison, so E0213 answers `None` here and keeps its
+    /// two numbers in its sentence: a consumer reading `expected` as a type
+    /// must never be handed a count under the same key (G220).
+    pub fn expected(&self) -> Option<&str> {
+        match self {
+            TypeError::TypeMismatch { expected, .. }
+            | TypeError::ArgumentTypeMismatch { expected, .. } => Some(expected),
+            // `?` propagates an `E` to the enclosing function's `Result<_, E>`;
+            // the expected side is that `E`.
+            TypeError::QuestionErrorTypeMismatch { expected, .. } => Some(expected),
+            _ => None,
+        }
+    }
+
+    /// The type the checker found here, as it displays it.
+    ///
+    /// Answers for one more class than `expected` does: an error that names a
+    /// single offending type and states its requirement in prose has an actual
+    /// and no expected, and dropping the actual because there is no pair would
+    /// lose a fact the checker held.
+    pub fn actual(&self) -> Option<&str> {
+        match self {
+            TypeError::TypeMismatch { found, .. }
+            | TypeError::ArgumentTypeMismatch { found, .. }
+            | TypeError::QuestionErrorTypeMismatch { found, .. }
+            | TypeError::QuestionOnNonResult { found, .. } => Some(found),
+            // "a resource type" is a rule, not a type, so there is no
+            // `expected` to pair with; the type in hand is still reported.
+            TypeError::OwnedRequiresResourceType { ty, .. } => Some(ty),
+            _ => None,
+        }
+    }
+
+    /// The declaration this error is *about*, when it is about one other than
+    /// the declaration it sits in.
+    ///
+    /// The enclosing declaration is `entity`; this is the symbol at fault. For
+    /// a non-exhaustive match it is the union, for a field typo the record. An
+    /// error whose symbol at fault *is* the enclosing declaration answers
+    /// `None` rather than repeating `entity` under a second key.
+    pub fn cause(&self) -> Option<&DiagnosticUnion> {
+        match self {
+            TypeError::NonExhaustiveMatch { union, .. } => union.as_ref(),
+            TypeError::UnknownField { record, .. } => record.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// What may legally stand where the offending thing stands, when the
+    /// checker holds a finite list of it.
+    ///
+    /// Three shapes, one meaning: the record's own fields against a field
+    /// typo, the values a string-literal union accepts against a mismatch, the
+    /// one variant a mistyped pattern head most likely meant. `None` is not
+    /// "anything goes": it is the checker having no enumerable set, which is
+    /// the ordinary case for a type.
+    pub fn alternatives(&self) -> Option<Vec<String>> {
+        match self {
+            TypeError::UnknownField { fields, .. } if !fields.is_empty() => {
+                Some(fields.clone())
+            }
+            TypeError::TypeMismatch { accepted, .. }
+            | TypeError::ArgumentTypeMismatch { accepted, .. } => accepted.clone(),
+            TypeError::UnknownVariantPattern { suggestion, .. } => {
+                suggestion.as_ref().map(|s| vec![s.clone()])
+            }
+            _ => None,
+        }
+    }
+
+    /// The other names a reader of this diagnostic has to know about, when the
+    /// error carries a set of them.
+    ///
+    /// Today that is the union's whole variant list on a non-exhaustive match:
+    /// `missing_variants` is the gap and this is the set it was taken from, so
+    /// an agent writing the arms sees the shape the `match` has to end up in
+    /// without a second call.
+    pub fn related(&self) -> Option<Vec<String>> {
+        match self {
+            TypeError::NonExhaustiveMatch { variants, .. } if !variants.is_empty() => {
+                Some(variants.clone())
+            }
             _ => None,
         }
     }

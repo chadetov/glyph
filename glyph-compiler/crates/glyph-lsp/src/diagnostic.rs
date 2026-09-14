@@ -29,7 +29,7 @@ use glyph_db::{Db, SourceFile};
 use glyph_emit::{EmitError, ProjectTables};
 use glyph_parser::ParseError;
 use glyph_resolver::ResolveError;
-use glyph_typechecker::{DiagnosticUnion, Severity, TypeError};
+use glyph_typechecker::{DiagnosticDecl, Severity, TypeError};
 
 /// One structured diagnostic.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,7 +201,7 @@ impl UnionEntity {
     /// of the file the diagnostic is on. A union declared in that file carries
     /// no module of its own on the error, precisely so this is the string that
     /// fills it in.
-    pub fn new(union: &DiagnosticUnion, this_module: &str) -> Self {
+    pub fn new(union: &DiagnosticDecl, this_module: &str) -> Self {
         UnionEntity {
             kind: union.kind().to_string(),
             module: union.module(this_module).map(str::to_string),

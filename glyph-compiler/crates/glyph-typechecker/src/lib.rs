@@ -144,7 +144,7 @@ pub fn display_ty(ty: &Ty) -> String {
 /// way. The alternative, the file's own `module` header, is a second spelling
 /// of the same address whenever the header and the path disagree (G172).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DiagnosticUnion {
+pub enum DiagnosticDecl {
     /// Declared in the file the diagnostic is on. The module half is the
     /// caller's; see the type's own note.
     Local { name: String },
@@ -157,13 +157,13 @@ pub enum DiagnosticUnion {
     Builtin { name: String },
 }
 
-impl DiagnosticUnion {
+impl DiagnosticDecl {
     /// The union's own name, which is what `glyph_variants` is called with.
     pub fn name(&self) -> &str {
         match self {
-            DiagnosticUnion::Local { name }
-            | DiagnosticUnion::Imported { name, .. }
-            | DiagnosticUnion::Builtin { name } => name,
+            DiagnosticDecl::Local { name }
+            | DiagnosticDecl::Imported { name, .. }
+            | DiagnosticDecl::Builtin { name } => name,
         }
     }
 
@@ -172,9 +172,9 @@ impl DiagnosticUnion {
     /// it. `None` for a builtin, which is declared in no project module.
     pub fn module<'a>(&'a self, this_module: &'a str) -> Option<&'a str> {
         match self {
-            DiagnosticUnion::Local { .. } => Some(this_module),
-            DiagnosticUnion::Imported { module, .. } => Some(module),
-            DiagnosticUnion::Builtin { .. } => None,
+            DiagnosticDecl::Local { .. } => Some(this_module),
+            DiagnosticDecl::Imported { module, .. } => Some(module),
+            DiagnosticDecl::Builtin { .. } => None,
         }
     }
 
@@ -190,8 +190,8 @@ impl DiagnosticUnion {
     /// report for the same distinction on a match-coverage type end.
     pub fn kind(&self) -> &'static str {
         match self {
-            DiagnosticUnion::Local { .. } | DiagnosticUnion::Imported { .. } => "declaration",
-            DiagnosticUnion::Builtin { .. } => "builtin",
+            DiagnosticDecl::Local { .. } | DiagnosticDecl::Imported { .. } => "declaration",
+            DiagnosticDecl::Builtin { .. } => "builtin",
         }
     }
 }
@@ -224,7 +224,7 @@ pub enum TypeError {
         missing: String,
         /// The union the match is over, when it has a declaration or a builtin
         /// name to give.
-        union: Option<DiagnosticUnion>,
+        union: Option<DiagnosticDecl>,
         /// The unmentioned variants in declaration order, unquoted. For a
         /// string-literal union, whose members are values rather than tags,
         /// these are the values, the same way a coverage gap records them.
@@ -364,7 +364,7 @@ pub enum TypeError {
         /// set with no declaration behind it: an inline `{ a: string }`
         /// annotation, a variant's record payload, a stdlib type whose table
         /// the runtime ships.
-        record: Option<DiagnosticUnion>,
+        record: Option<DiagnosticDecl>,
         span: Span,
     },
 
@@ -839,7 +839,7 @@ impl TypeError {
     /// error that concerns no union answers nothing here, and so does a match
     /// over a literal set with no declaration behind it. An identity guessed
     /// from a message would be worse than either.
-    pub fn union(&self) -> Option<&DiagnosticUnion> {
+    pub fn union(&self) -> Option<&DiagnosticDecl> {
         match self {
             TypeError::NonExhaustiveMatch { union, .. } => union.as_ref(),
             _ => None,
@@ -904,7 +904,7 @@ impl TypeError {
     /// a non-exhaustive match it is the union, for a field typo the record. An
     /// error whose symbol at fault *is* the enclosing declaration answers
     /// `None` rather than repeating `entity` under a second key.
-    pub fn cause(&self) -> Option<&DiagnosticUnion> {
+    pub fn cause(&self) -> Option<&DiagnosticDecl> {
         match self {
             TypeError::NonExhaustiveMatch { union, .. } => union.as_ref(),
             TypeError::UnknownField { record, .. } => record.as_ref(),

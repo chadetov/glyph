@@ -28,7 +28,7 @@ use glyph_resolver::{
     QualifiedTypeRef, ResolvedModule, ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types, display_ty, imported_decl_chain_end, DeclTyResolver, DiagnosticUnion, Lowerer,
+    assign_types, display_ty, imported_decl_chain_end, DeclTyResolver, DiagnosticDecl, Lowerer,
     RecordField, Ty, TypeMap, UnionVariant as TyUnionVariant,
 };
 
@@ -68,7 +68,7 @@ pub struct GlyphDiagnostic {
     /// Carried unqualified for the same reason `decl_name` is: a union
     /// declared in this file has no module half here, because the module half
     /// is counted from a root only the caller knows. The caller supplies it to
-    /// `DiagnosticUnion::declaration`, which assembles the `module::name`
+    /// `DiagnosticDecl::declaration`, which assembles the `module::name`
     /// form.
     ///
     /// Unread, for the reason on `decl_name`: `tool_diagnostics` was the
@@ -76,7 +76,7 @@ pub struct GlyphDiagnostic {
     /// `crate::diagnostic::Diagnostic` since 0.1.121 rather than from this
     /// type.
     #[allow(dead_code)]
-    pub union: Option<DiagnosticUnion>,
+    pub union: Option<DiagnosticDecl>,
     /// The variants the match leaves unmentioned, in declaration order and
     /// unquoted. `None`, never an empty list, on a diagnostic that reports no
     /// such set.
@@ -2865,7 +2865,7 @@ mod tests {
             .expect("E0200 emitted");
         assert_eq!(
             d.union,
-            Some(DiagnosticUnion::Local {
+            Some(DiagnosticDecl::Local {
                 name: "PaymentResult".to_string()
             })
         );

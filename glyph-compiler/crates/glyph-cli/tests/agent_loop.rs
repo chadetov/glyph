@@ -1455,6 +1455,32 @@ fn one_diagnostic_has_one_shape_on_both_surfaces() {
              diagnostics of one file",
             case.dir,
         );
+
+        // And on the root those `file` strings are spelled under. Each surface
+        // names it in its own spelling, the tool's relative to the server root
+        // and the CLI's relative to where it was invoked, so they are compared
+        // as directories. A `file` with no root beside it is a relative path
+        // with nothing to join it to, which is what `check --json` used to
+        // hand an agent.
+        let cli_root = report["project_root"]
+            .as_str()
+            .unwrap_or_else(|| panic!("`glyph check --json` carries no `project_root`: {report}"));
+        let tool_root = answer["project_root"]
+            .as_str()
+            .unwrap_or_else(|| panic!("`glyph_diagnostics` carries no `project_root`: {answer}"));
+        let canon = |p: PathBuf| p.canonicalize().unwrap_or(p);
+        assert_eq!(
+            canon(PathBuf::from(cli_root)),
+            canon(root.join(tool_root)),
+            "`{}`: the two surfaces name different roots for one file ({cli_root} against \
+             {tool_root})",
+            case.dir,
+        );
+        assert!(
+            canon(PathBuf::from(cli_root)).join("main.glyph").exists(),
+            "`{}`: `project_root` joined to `file` has to open",
+            case.dir,
+        );
     }
 
     assert_eq!(mcp.finish(), 0);

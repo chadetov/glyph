@@ -1452,11 +1452,28 @@ fn emit_check_json(
     } else {
         serde_json::json!(report.structured)
     };
+    // The root every `file` in `diagnostics` is spelled under, so the string a
+    // diagnostic carries can be opened without a second question about what it
+    // is relative to. `glyph query diagnostics` has carried it since G220 and
+    // this surface did not, which left the flagship agent command the one
+    // place an agent had a relative path and nothing to join it to.
+    //
+    // A tree may hold several projects (D41) and then `file` is spelled under
+    // whichever one holds it, so `project_root` is the single root when there
+    // is one and `null` when there are several, with `project_roots` naming
+    // them all either way. Both keys are always present.
+    let roots: Vec<String> = report
+        .project_srcs
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect();
     let value = serde_json::json!({
         "ok": ok,
         "errors": errors,
         "warnings": report.warning_count(),
         "tsc": report.tsc_status(),
+        "project_root": if roots.len() == 1 { serde_json::json!(roots[0]) } else { serde_json::Value::Null },
+        "project_roots": roots,
         "diagnostics": diagnostics,
         "examples": examples_json,
     });

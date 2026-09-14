@@ -134,12 +134,25 @@ pub fn discover_projects(target: &Path) -> Result<Discovery, BuildError> {
         return Err(BuildError::SrcNotDir(target.to_path_buf()));
     }
     let mut found = Discovery::default();
+    // An unmarked directory gets the same source-directory rule a marked one
+    // gets, minus the marker: an explicit `glyph.src` is the marker's to give,
+    // and what is left is `src/` when it exists, else the directory itself.
+    //
+    // Without this one file had two identities. `glyph check t1` on a tree
+    // with `src/main.glyph` and no `package.json` counted modules from `t1`
+    // and reported `src/main`, while `glyph check t1/src/main.glyph`,
+    // `glyph check t1/src` and every tool on the agent surface counted from
+    // `t1/src` and reported `main`: `glyph_symbol` answered "no file of this
+    // project is module `src/main`" about the file the same process had just
+    // reported the diagnostic for, and `glyph fix` declined every repair on
+    // the layout `glyph init` scaffolds.
+    let unmarked_src = || crate::config::resolve_src(target, &crate::config::GlyphConfig::default());
     let src = match crate::config::project_src_checked(target) {
         Ok(Some(src)) => src,
-        Ok(None) => target.to_path_buf(),
+        Ok(None) => unmarked_src(),
         Err(e) => {
             found.notices.push(unreadable_manifest_notice(&e));
-            target.to_path_buf()
+            unmarked_src()
         }
     };
     found.projects.push(Project {

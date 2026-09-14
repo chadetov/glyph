@@ -6683,7 +6683,7 @@ fn mentions_type_param(ty: &Ty) -> bool {
         } => params.iter().any(|p| mentions_type_param(&p.ty)) || mentions_type_param(return_ty),
         Ty::Union { variants } => variants
             .iter()
-            .any(|v| v.payload.as_ref().is_some_and(|p| mentions_type_param(p))),
+            .any(|v| v.payload.as_ref().is_some_and(mentions_type_param)),
         Ty::Unknown
         | Ty::Prim(_)
         | Ty::UnknownTop

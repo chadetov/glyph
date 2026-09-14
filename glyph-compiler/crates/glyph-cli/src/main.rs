@@ -692,7 +692,13 @@ fn main() {
             match glyph_cli::fmt::format_path(&target, check) {
                 Ok(report) => {
                     for (file, reason) in &report.failed {
-                        eprintln!("glyph fmt: skipped {} (parse error: {reason})", file.display());
+                        // The rendered report, then the one-line summary of
+                        // what was skipped. `reason` is the ariadne report
+                        // `glyph check` prints for the same error, so a file
+                        // `fmt` will not touch says why in the spelling every
+                        // other command says it in.
+                        eprint!("{reason}");
+                        eprintln!("glyph fmt: skipped {} (it does not parse)", file.display());
                     }
                     for file in &report.formatted {
                         let verb = if check { "would reformat" } else { "formatted" };

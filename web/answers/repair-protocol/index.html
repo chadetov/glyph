@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>When the build fails, does the compiler tell my agent how to fix it? · Glyph</title>
+    <meta name="description" content="Every diagnostic carries the two types, the symbol at fault, the legal alternatives and the union's variants. glyph check --agent adds the invariants a repairing edit must keep and the full description of every symbol named. glyph fix writes the repairs the compiler settles on its own, and says why it declined the rest." />
+    <link rel="canonical" href="https://glyphlang.io/answers/repair-protocol/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/embedding/"><span class="n">05</span> Inside your app</a>
+        <a href="/answers/typed-apis/"><span class="n">06</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">07</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">08</span> React</a>
+        <a href="/answers/state/"><span class="n">09</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">10</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">11</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">12</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
+        <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
+        <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
+        <a href="/answers/repair-protocol/" class="active"><span class="n">17</span> Fixing a red build</a>
+        <a href="/answers/debugging/"><span class="n">18</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">19</span> The language</a>
+        <a href="/answers/finance/"><span class="n">20</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">21</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">22</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">23</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">24</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">25</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">26</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">27</span> Binary data</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">17 &middot; Fixing a red build</p>
+      <h1 class="q-title">When the build fails, does the compiler tell my agent how to fix it?</h1>
+
+      <p class="short-answer">
+        It tells you what is wrong as data, not as a sentence to parse: the two types, the
+        symbol at fault as a <code>module::name</code>, and the finite list of things that
+        could legally stand where the wrong thing stands. <code>glyph check --agent</code>
+        adds what the repairing edit must not break. Where the answer is fully determined,
+        <code>glyph fix</code> writes it.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          An agent's loop around a compiler is read the error, guess the edit, rebuild. The
+          guessing step is where the damage happens, and it happens because the error is a
+          string. An agent that reads "non-exhaustive match on <code>OrderStatus</code>"
+          knows a match is short some arms. It does not know what the missing variants
+          carry, so it writes <code>Paid("tx_1")</code> and finds out from the next
+          diagnostic. Or it reads the word "exhaustive", adds an <code>else</code> arm, and
+          the build goes green having thrown away the guarantee that the diagnostic existed
+          to protect.
+        </p>
+        <p>
+          The compiler knew all of it. It knew the union's variants and their payloads, it
+          knew an <code>else</code> would forfeit the seal, and it dropped both one line
+          before the reply.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          A two-module project. <code>orders</code> declares the union;
+          <code>main</code> writes a <code>match</code> over it and handles one case.
+          <code>glyph check --agent</code>, trimmed to the keys that matter here:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant, or an `else` arm to
+           catch the rest.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Three things are worth pulling out. <code>cause</code> is the symbol at fault, and
+          it is a different thing from <code>entity</code>, which is the declaration the
+          diagnostic sits in: here the edit happens in <code>main::describe</code> and the
+          shape it has to match comes from <code>orders::OrderStatus</code>. Both are
+          addresses the other tools take, so an answer chains without re-deriving anything.
+        </p>
+        <p>
+          <code>constraints</code> are not the repair. Each one is something the compiler
+          already enforces, written out so the edit that satisfies the diagnostic does not
+          break the guarantee behind it. The second constraint there is the whole point of
+          the key: <code>help</code> offers the <code>else</code> arm because it is legal, and
+          the constraint says what taking it costs.
+        </p>
+        <p>
+          <code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the
+          diagnostic names, so the agent's next edit needs no second call. A symbol the tool
+          refuses appears in <code>symbols_absent</code> with the reason, which keeps "we did
+          not look" apart from "we looked and it is not there".
+        </p>
+        <p>
+          Every key is always present. A fact the compiler does not hold arrives as an
+          explicit <code>null</code>, never as a missing key, so absence has one spelling on
+          every code and on both the CLI and the MCP surface.
+        </p>
+
+        <p class="block-label">Where the answer is determined, the compiler writes it</p>
+        <p>
+          <code>glyph fix</code> applies only the repairs the compiler settles on its own:
+          unused imports, the missing arms of a non-exhaustive <code>match</code>, an arm head
+          that is not a variant when the checker computed exactly one suggestion, and a field
+          the record does not declare when exactly one declared field is a character away.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph fix src, on the match above with the union declared locally</span>
+<pre>fixed src/main.glyph
+glyph fix: removed 0 unused import(s) across 1 file(s).
+glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
+           on `OrderStatus`: `Paid`, `Cancelled`
+
+<span class="add">  return match s {
+    Pending =&gt; "waiting",
+    // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
+    Paid({ transaction_id }) =&gt; {
+      print("unhandled OrderStatus variant Paid (arm written by glyph fix)")
+      process.exit(1)
+    },
+    // TODO(glyph fix): `OrderStatus` variant `Cancelled` is unhandled; write this arm
+    Cancelled =&gt; {
+      print("unhandled OrderStatus variant Cancelled (arm written by glyph fix)")
+      process.exit(1)
+    },
+  }</span>
+
+<span class="cm">// glyph check --no-tsc: 1 module(s) checked, no diagnostics.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The pattern comes from the declaration, so a record payload is destructured by
+          field name and the parts are in front of whoever writes the body. The body leaves
+          through <code>process.exit</code> for a reason that is not arbitrary: it returns
+          <code>never</code>, which contributes nothing to the arm join, so the same text is
+          legal whether the <code>match</code> owes a value or not and the rule needs no guess
+          about what the arm should produce. The alternative anyone would reach for first was
+          measured instead of argued about: <code>assert(false, "unhandled")</code> in a
+          value-position arm returning <code>string</code> fails <code>tsc</code> with
+          <code>TS2322: Type 'void' is not assignable to type 'string'</code>. A repair that
+          swaps one error for another is not a repair.
+        </p>
+        <p>
+          These arms compile, and they are written to be replaced. Run <code>glyph fix</code>,
+          then fill in the bodies it marked. What it will not do is guess, so every rule that
+          cannot settle an answer prints the decline and the reason on the same output as what
+          it applied. Two fields a character away from a typo are two, not one, and it says so
+          rather than picking.
+        </p>
+
+        <p class="block-label">The code's own explanation, as data</p>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form
+          explanation, the one-line <code>help</code>, the docs URL, and a wrong program from
+          the compiler's negative corpus paired with the diagnostic this compiler draws for
+          it. The diagnostic is compiled when you ask, not stored, so it cannot drift from
+          what the compiler actually says.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant, or an `else` arm to catch the rest.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A code the corpus does not cover comes back with <code>counter_example: null</code>
+          and a sentence saying the corpus holds no case for it, rather than a made-up
+          example. The corpus claims what it covers and nothing about the rest.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies four rules and states every decline with its reason. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Where it stops</p>
+          <p><code>glyph fix</code> cannot repair a <code>match</code> over <code>Result</code> or <code>Option</code>, which is the shape a real program matches on most often. No identity keys a declaration the prelude owns, so no tool can hand the rule the payload shapes it writes patterns from, and it declines with that sentence instead of guessing. Giving a prelude declaration an address is a decision about what <code>module::name</code> means for a name no project declared, and it has not been made. The same gap puts <code>Result</code> in <code>symbols_absent</code> under <code>check --agent</code> rather than describing it. A <code>match</code> over a union declared in another module is repaired only when the missing variants are already named in the import list, because the rule checks its own work by resolving the candidate file alone. <code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. And <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/ask-the-compiler/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can my agent ask the compiler what a symbol is before it writes code?</span>
+        </a>
+        <a href="/answers/debugging/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">When it breaks in production at 3am, what does on-call see?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/repair-protocol/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

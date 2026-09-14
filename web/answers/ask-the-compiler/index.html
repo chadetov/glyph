@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Can my agent ask the compiler what a symbol is before it writes code? · Glyph</title>
-    <meta name="description" content="glyph_symbol answers in one call with a union's variants and the syntax that constructs each, a record's fields with types, a callable's parameters and return, and whether a match over it must be exhaustive. Nine tools over MCP, each with a glyph query verb." />
+    <meta name="description" content="glyph_symbol answers in one call with a union's variants and the syntax that constructs each, a record's fields with types, a callable's parameters and return, and whether a match over it must be exhaustive. Eleven tools over MCP, each with a glyph query verb." />
     <link rel="canonical" href="https://glyphlang.io/answers/ask-the-compiler/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -45,16 +45,17 @@
         <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
         <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
         <a href="/answers/ask-the-compiler/" class="active"><span class="n">16</span> Ask the compiler</a>
-        <a href="/answers/debugging/"><span class="n">17</span> Debugging &amp; ops</a>
-        <a href="/answers/language/"><span class="n">18</span> The language</a>
-        <a href="/answers/finance/"><span class="n">19</span> Money &amp; safety</a>
-        <a href="/answers/web-serving/"><span class="n">20</span> Serving the web</a>
-        <a href="/answers/early-errors/"><span class="n">21</span> Caught earlier</a>
-        <a href="/answers/parse-errors/"><span class="n">22</span> Why a parse failed</a>
-        <a href="/answers/interactive-cli/"><span class="n">23</span> Programs you type into</a>
-        <a href="/answers/long-running/"><span class="n">24</span> Servers &amp; daemons</a>
-        <a href="/answers/upgrades/"><span class="n">25</span> Upgrades</a>
-        <a href="/answers/binary/"><span class="n">26</span> Binary data</a>
+        <a href="/answers/repair-protocol/"><span class="n">17</span> Fixing a red build</a>
+        <a href="/answers/debugging/"><span class="n">18</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">19</span> The language</a>
+        <a href="/answers/finance/"><span class="n">20</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">21</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">22</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">23</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">24</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">25</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">26</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">27</span> Binary data</a>
       </div>
     </div>
 
@@ -194,13 +195,35 @@
           silence there is not an acceptance, and the tool won't report it as one.
         </p>
 
-        <p class="block-label">Nine tools, and no client required</p>
+        <p class="block-label">The other direction: what does this depend on, and what does that module give me</p>
         <p>
-          <code>glyph mcp</code> serves nine: <code>glyph_symbol</code>,
+          <code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code>
+          is the same tables read from the other end: what one declaration depends on, every
+          declaration its own source names, split into <code>CALLS</code>,
+          <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and
+          where it sits. <code>glyph_exports</code> answers what a module makes visible to an
+          importer, from the compiler's own export query rather than from a scan: every
+          <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as
+          an entry with its identity, kind and signature. An agent about to write an import can
+          ask what is on the other side instead of opening the file.
+        </p>
+        <p>
+          Building the mirror of a relation is what caught a bug in the original. Every edge
+          carries a provenance, and <code>PROVED</code> is meant to say the compiler read both
+          ends. It was answering <code>PROVED</code> for an edge into a module that does not
+          parse, where nothing had been read. It answers <code>UNDETERMINED</code> with the reason
+          now, and since <code>glyph_references</code> and <code>glyph_impact</code> call the same
+          function, both were wrong the same way and both are fixed.
+        </p>
+
+        <p class="block-label">Eleven tools, and no client required</p>
+        <p>
+          <code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>,
           <code>glyph_impact</code>, <code>glyph_assignable</code>,
           <code>glyph_diagnostics</code>, <code>glyph_hover</code>,
           <code>glyph_definition</code>, <code>glyph_references</code>,
-          <code>glyph_variants</code> and <code>glyph_symbols</code>. Each has a
+          <code>glyph_variants</code>, <code>glyph_symbols</code>,
+          <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a
           <code>glyph query</code> verb taking the same arguments as flags and printing the same
           JSON, routed through the same entry point a client reaches, so an agent that only runs
           shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file
@@ -208,17 +231,24 @@
           the same Rust type, with a test that runs both surfaces on six projects and compares the
           JSON key for key. Full details on the <a href="/mcp/">MCP page</a>.
         </p>
+        <p>
+          All of that is asked before an edit. After one, the compiler answers in the other
+          direction: <code>glyph check --agent</code> prints each diagnostic with the invariants a
+          repairing edit has to keep and the <code>glyph_symbol</code> description of every symbol
+          it names, so the shape an agent needs arrives with the error that asked for it. That has
+          <a href="/answers/repair-protocol/">a page of its own</a>.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Nine read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. Hover answers at declaration names, parameters, annotations, variants and a binding's definition site, thirteen of the fourteen positions an audit probed on a three-module project, against two before. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything.</p>
+          <p>Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container and a record against a record with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing.</p>
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p>Nothing here writes: no rename, no applied edit. <code>glyph_dependencies</code> and <code>glyph_exports</code> aren't built, so an import graph still comes out of the files. Hover answers null at a name whose declaration is in another module: the import binding, an imported function where it's called, an imported variant used as a value, and a field read from an imported record. The checker types all four, so a wrong assignment is still an error; the hover surface reads one file and won't guess a shape from the import binding. An imported type written as an annotation does answer. <code>glyph_impact</code>'s signature-type table still says the checker has no rule for a container argument against a container parameter, and the same for a structural record against a structural record, while <code>glyph_assignable</code> decides both pairings and the checker refuses the second with <code>E0211</code>; two tools disagreeing about one fact makes both worth less. <code>glyph_diagnostics</code> runs three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.</p>
+          <p>No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs four things rather than anything you ask for. It cannot repair a <code>match</code> over <code>Result</code> or <code>Option</code>, because no identity keys a declaration the prelude owns and so no tool can hand it the payload shapes: <code>glyph query symbol --entity Result</code> answers that <code>Result</code> is not an entity identity. Giving a prelude declaration an address is a decision about what <code>module::name</code> means for a name no project declared, and it hasn't been made. The editor hasn't caught up with the tool either: <code>glyph lsp</code> registers the buffers an editor opened rather than a project, so hovering an imported name in a real editor still answers null where <code>glyph_hover</code> answers. The signature-type table still understates the checker for a string-literal union on either side, which is the same two-tools-disagreeing shape one type away from the pairing that just got fixed. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.</p>
         </div>
       </div>
 
@@ -227,9 +257,9 @@
           <span class="dir">&larr; Previous</span>
           <span class="t">Can the compiler tell me what a change will break before I make it?</span>
         </a>
-        <a href="/answers/debugging/" class="nx cta">
+        <a href="/answers/repair-protocol/" class="nx cta">
           <span class="dir">Next &rarr;</span>
-          <span class="t">When it breaks in production at 3am, what does on-call see?</span>
+          <span class="t">When the build fails, does the compiler tell my agent how to fix it?</span>
         </a>
       </nav>
     </article>

@@ -1412,6 +1412,7 @@ machine-readably. The full catalogue:
 | E0008 | Assignment without `mut` (`x = e`) (D5) | Write `mut x = e`, or `let x = e` for a new binding |
 | E0009 | Retired: an object pattern's field takes any pattern | Nothing; `{ color: Black }` matches the field value |
 | E0010 | More than one positional payload field on a variant (`Node(A, B)`) | One record payload: `Node({ left: A, right: B })` |
+| E0011 | Nesting past the parser's 64-level limit (`[[[[...]]]]`) | Pull the inner levels into `let` bindings |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
 | E0101 | Relative import | Use an absolute module path (`std/io`, `myapp/x`) |
 | E0102 | Barrel file (only imports) | Add a declaration or remove the file |

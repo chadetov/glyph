@@ -110,6 +110,24 @@ pub fn explain(code: &str) -> Option<&'static str> {
             each field name left as `/* name */`. Naming the fields is the part \
             the compiler cannot do for you, and it is the part that carries the \
             meaning.",
+        "E0011" => "E0011: nested too deep\n\n\
+            The parser descends 64 levels of nested construct and stops there. \
+            An expression, type or pattern nested past that is reported here, \
+            at the token that would have opened the next level.\n\n\
+            Before:  const x = [[[[[ ... 65 levels ... ]]]]]\n\
+            After:   let inner = [1, 2]\n         \
+            const x = [inner]\n\n\
+            The limit is about stack, not taste. Recursive descent spends \
+            about 8 KB of stack a level, so without a limit the input decides \
+            how much stack the process uses, and a deep enough file ends it \
+            with `fatal runtime error: stack overflow` instead of an error you \
+            can read. That killed `glyph check` and `glyph fmt` outright, and \
+            it took the language server down for a whole workspace, since \
+            `glyph lsp` reads every file under the project root.\n\n\
+            The deepest nesting in this repository's 343 Glyph files is 16 \
+            levels, so a file that reaches 64 was generated rather than \
+            written. Pull the inner levels out into `let` bindings, or into a \
+            function that returns one of them.",
 
         // ----- resolver (E01xx) -----
         "E0100" => "E0100: duplicate name\n\n\
@@ -696,7 +714,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
 /// Kept in step with the table in `docs/error-codes.md`, which the test below
 /// reads: a code in one and not the other fails the build.
 pub const ALL_CODES: &[&str] = &[
-    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0010", "E0100", "E0101",
+    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0010", "E0011",
+    "E0100", "E0101",
     "E0102", "E0103", "E0104",
     "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0112", "E0200", "E0201", "E0202",
     "E0203", "E0204",

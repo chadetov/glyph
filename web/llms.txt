@@ -34,6 +34,8 @@ otherwise install them globally or run in a sandbox that already has them.
 ```sh
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
 glyph check [path]                  # type-check a file or tree, writing nothing; runs the @example/@doc @run gate by default (--no-test to skip)
+glyph check --agent [path]          # the --json object plus, per diagnostic, the repair constraints an edit must keep and the glyph_symbol description of every symbol it names
+glyph fix [path]                    # apply the repairs the compiler fully determines (unused imports, the missing arms of a match, a did-you-mean); it says what it declined and why
 glyph run [path] [args...]          # type-check, compile, and run main(argv); no path means the current project; hyphenated args reach the program, `--` before ones that collide with glyph's own flags
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file path, module, range, entity, cause, expected/actual, alternatives, help) for tools/agents
@@ -1551,6 +1553,55 @@ second call:
 Every one of these keys is always present. A fact the compiler does not hold
 arrives as an explicit `null`, never as a missing key, so absence has one
 spelling on every code and on both surfaces.
+
+### `glyph check --agent`: the same object, plus what the next edit needs
+
+`--agent` prints the `--json` object with two more keys on every diagnostic, so
+the edit that answers a diagnostic needs no second call.
+
+`constraints` are the invariants an edit repairing this diagnostic has to keep.
+They are not the repair. Each one is something the compiler already enforces,
+written out so the edit that satisfies the diagnostic does not break the
+guarantee the diagnostic existed to protect. For the `E0200` above:
+
+```json
+"constraints": [
+  "preserve exhaustiveness: this match must name every case of `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+  "do not add an `else` arm: `OrderStatus` is declared in this project, and a catch-all forfeits the guarantee that adding a variant to it later forces this match to be updated (D9)."
+]
+```
+
+`E0204` and `E0211` say not to cast, and name the type the position requires.
+`E0210` says the record's fields are closed and lists them. `E0206` and the
+other `owned` codes say to keep the consume. A code the compiler holds no such
+invariant for gets an empty list rather than a sentence written to fill it.
+
+`symbols` is the `glyph_symbol` answer for every symbol the diagnostic names:
+the declaration at fault (`cause`), the declaration it sits in (`entity`), and
+the types in `expected`/`actual` when they name a declaration. For the `E0200`
+above, `symbols` carries `orders::OrderStatus` with each variant's name,
+payload and construction syntax, which is what a pattern has to match. A symbol
+the tool refuses is listed in `symbols_absent` with the tool's own reason, so
+"we did not look" and "we looked and it is not there" stay distinguishable.
+
+### `glyph fix`: the repairs the compiler fully determines
+
+`glyph fix [path]` writes only what the compiler settles on its own:
+
+- unused imports are dropped, whole or name by name (`E0106`);
+- a non-exhaustive match gains one arm per missing case (`E0200`), with the
+  pattern the union's declaration implies and a body marked `TODO(glyph fix)`
+  that prints the case and exits;
+- an arm head that is not a variant takes the checker's suggestion (`E0220`),
+  and only when that variant is one the match is actually missing;
+- a field the record does not declare takes the one declared field a character
+  away from it (`E0210`).
+
+Nothing here guesses. A rule that cannot settle the answer says so and why, on
+the same output as what it applied: a union no project declares has no payload
+shapes to write patterns from, two fields a character away from the typo are
+two, not one. The `E0200` arms compile, and they are written to be replaced:
+run `glyph fix`, then fill in the bodies it marked.
 
 ## Recipes by task (copy, adapt)
 

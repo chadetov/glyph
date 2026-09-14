@@ -202,3 +202,28 @@ spelling on every code.
 A wrong argument *count* (`E0213`) is not a type comparison: its two numbers stay
 in its sentence rather than arriving under `expected` and `actual`, which a
 consumer reads as types.
+
+`glyph check --agent` prints the same object with two more keys on every
+diagnostic: `constraints`, the invariants an edit repairing it has to keep
+(preserve exhaustiveness and do not add an `else` for `E0200`, do not cast for
+`E0204` and `E0211`, keep the consume for `E0206` and the other `owned` codes,
+the record's fields are closed for `E0210`), and `symbols`, the `glyph_symbol`
+description of every symbol the diagnostic names, with `symbols_absent` for the
+ones the tool refused and its reason for each.
+
+## What `glyph fix` repairs
+
+Four of these codes have a repair the compiler settles on its own, and
+`glyph fix [path]` writes it:
+
+| Code | What it writes | When it declines |
+|------|----------------|------------------|
+| `E0106` | Drops the unused import, or the dead names out of a named import list | never; an unused name is unused |
+| `E0200` | One arm per missing case, with the pattern the union's declaration implies and a body marked `TODO(glyph fix)` that prints the case and exits | the union is one no project declares (`Result`, `Option`), so no tool keys its variants; the module has taken the name `process`, which the arm bodies need; the same match has an `E0220` arm head, so its coverage is not yet settled |
+| `E0210` | The one declared field within edit distance one of the wrong name | no field is that close, or more than one is |
+| `E0220` | The suggestion in `alternatives`, when there is exactly one | the suggested variant is not one the match is missing, so writing it would produce `E0305` |
+
+The arms an `E0200` repair writes compile and are meant to be replaced: the
+pattern and the payload shape are what the compiler determined, the body is a
+placeholder that says so in a comment and again at runtime. Every decline is
+printed with its reason beside what was applied.

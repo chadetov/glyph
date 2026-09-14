@@ -43,6 +43,11 @@ struct Cli {
     #[arg(long, value_name = "CODE")]
     explain: Option<String>,
 
+    /// With `--explain`, answer as JSON: the code, its text, its help, and a
+    /// wrong program from the negative corpus that draws it, compiled now.
+    #[arg(long = "json", requires = "explain")]
+    explain_json: bool,
+
     /// Move this installed compiler to the newest published release.
     ///
     /// Acts on the tool, which is why it is a flag: `upgrade` is the subcommand
@@ -435,6 +440,34 @@ fn main() {
     }
 
     if let Some(code) = cli.explain {
+        if cli.explain_json {
+            match glyph_cli::explain::explain_json(&code) {
+                Some(answer) => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&answer)
+                            .unwrap_or_else(|_| "{}".to_string())
+                    );
+                    std::process::exit(0);
+                }
+                None => {
+                    // The same refusal the text path gives, as JSON, because a
+                    // caller that asked for JSON cannot read a sentence on
+                    // stderr and an empty object would read as "no fields".
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "code": code.to_ascii_uppercase(),
+                            "error": format!(
+                                "no documentation for error code `{code}`; \
+                                 see docs/error-codes.md for the catalogue"
+                            ),
+                        })
+                    );
+                    std::process::exit(1);
+                }
+            }
+        }
         match glyph_cli::explain::explain(&code) {
             Some(text) => {
                 println!("{text}");

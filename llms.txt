@@ -36,7 +36,7 @@ glyph init [dir]                    # scaffold a runnable starter (src/, .types/
 glyph check [path]                  # type-check a file or tree, writing nothing; runs the @example/@doc @run gate by default (--no-test to skip)
 glyph run [path] [args...]          # type-check, compile, and run main(argv); no path means the current project; hyphenated args reach the program, `--` before ones that collide with glyph's own flags
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
-glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
+glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file path, module, range, entity, cause, expected/actual, alternatives, help) for tools/agents
 glyph build src/ --out dist/ --no-test # skip the @example / @doc @run / property tests
 glyph fmt [path]                    # format in place (one canonical layout)
 glyph fmt --check [path]            # exit non-zero if anything is unformatted (CI), writes nothing
@@ -45,6 +45,7 @@ glyph gen dts types.d.ts --out src/     # generate committed Glyph types from a 
 glyph gen zod schemas.ts --out src/     # generate committed Glyph types from zod schemas (needs tsx + zod)
 glyph llms                          # reprint this bootstrap offline (alias: glyph docs)
 glyph --explain E0204               # long-form explanation + fix for any error code
+glyph --explain E0204 --json        # the same as data, with a wrong program from the negative corpus that draws it, compiled now
 glyph mcp [root]                    # run an MCP server (stdio) exposing analysis to an agent as tools
 glyph query <tool> ...              # ask one of those tools from the command line and print its JSON
 glyph doctor                        # check node/tsx/tsc, and this compiler against the latest release (--offline to skip the lookup)

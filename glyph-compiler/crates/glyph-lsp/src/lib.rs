@@ -55,6 +55,20 @@ pub fn run_mcp_stdio(root: std::path::PathBuf) {
 /// command line and the same tool asked over stdio run the same code and
 /// return the same bytes. `Err` is the refusal an MCP client would receive as
 /// an `isError` result.
+/// The diagnostics one file draws inside its project, with `text` standing in
+/// for what is on disk.
+///
+/// `glyph fix` verifies a rewrite it has not written yet: the candidate goes
+/// into the project database for the length of the call and never reaches the
+/// disk. Checking against the file alone is what G236 was.
+pub fn file_diagnostics_with_text(
+    root: std::path::PathBuf,
+    path: &std::path::Path,
+    text: &str,
+) -> std::result::Result<Vec<diagnostic::Diagnostic>, String> {
+    mcp::file_diagnostics_with_text(root, path, text)
+}
+
 pub fn call_mcp_tool(
     root: std::path::PathBuf,
     tool: &str,

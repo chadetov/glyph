@@ -64,6 +64,29 @@ fn source_of(dir: &Path) -> String {
     std::fs::read_to_string(dir.join("src/main.glyph")).expect("read fixture")
 }
 
+/// A temp project holding several modules under `src/`, as
+/// `(file name, source)`. The cross-module rules need one.
+fn project_modules(prefix: &str, modules: &[(&str, &str)]) -> PathBuf {
+    let dir = project(prefix, "module main\n");
+    for (name, source) in modules {
+        std::fs::write(dir.join("src").join(name), source).expect("write module");
+    }
+    dir
+}
+
+fn source_of_module(dir: &Path, name: &str) -> String {
+    std::fs::read_to_string(dir.join("src").join(name)).expect("read fixture")
+}
+
+/// The union `main` matches on in the cross-module tests, in its own module.
+const ORDERS: &str = "module orders\n\
+\n\
+pub type OrderStatus =\n\
+\x20 | Pending\n\
+\x20 | Paid({ transaction_id: string })\n\
+\x20 | Cancelled\n";
+
+
 // ---------------------------------------------------------------------------
 // E0200
 // ---------------------------------------------------------------------------
@@ -90,6 +113,12 @@ fn e0200_adds_one_arm_per_missing_variant_and_the_result_compiles() {
     assert!(
         out.contains("applied E0200") && out.contains("`Paid`") && out.contains("`Refunded`"),
         "fix must report both arms it wrote:\n{out}"
+    );
+    // Every byte the rule writes is in the report, the import included: the
+    // command's own output is what a CI log or a review captures.
+    assert!(
+        out.contains("wrote `import std/process` for the arm bodies"),
+        "the import the arm bodies need is reported, not only written:\n{out}"
     );
 
     let after = source_of(&dir);
@@ -372,4 +401,135 @@ fn e0210_declines_when_two_declared_fields_are_a_character_away() {
         "{out}"
     );
     assert_eq!(source_of(&dir), before);
+}
+
+
+// ---------------------------------------------------------------------------
+// E0200 across a module boundary (G236)
+// ---------------------------------------------------------------------------
+
+/// The finding. The rule used to verify its own work by resolving the
+/// candidate file alone, so `Paid` and `Cancelled` read as unresolved names
+/// and it declined with a sentence that named nothing. The check runs against
+/// the project now, and the rule brings the variants it writes into scope.
+#[test]
+fn e0200_repairs_a_match_over_an_imported_union_and_imports_the_variants() {
+    let main = "module main\n\
+                import orders { OrderStatus, Pending }\n\
+                \n\
+                pub fn describe(s: OrderStatus) -> string {\n\
+                \x20 return match s {\n\
+                \x20   Pending => \"waiting\",\n\
+                \x20 }\n\
+                }\n";
+    let dir = project_modules("e0200imported", &[("orders.glyph", ORDERS), ("main.glyph", main)]);
+    assert_eq!(check(&dir).0, 1, "the fixture starts non-exhaustive");
+
+    let out = fix(&dir);
+    assert!(
+        out.contains("applied E0200") && out.contains("`Paid`") && out.contains("`Cancelled`"),
+        "the imported union is repaired in one run:\n{out}"
+    );
+    assert!(
+        out.contains("`Paid`, `Cancelled` into `import orders`"),
+        "the names it added to the import list are reported:\n{out}"
+    );
+    let after = source_of(&dir);
+    assert!(
+        after.contains("import orders { OrderStatus, Pending, Paid, Cancelled }"),
+        "the variants the arms name are brought into scope:\n{after}"
+    );
+    assert!(
+        after.contains("Paid({ transaction_id }) => {") && after.contains("Cancelled => {"),
+        "the patterns are written bare under a named import:\n{after}"
+    );
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "the repaired program compiles:\n{output}\n{after}");
+}
+
+/// The review's own spelling: every variant already in the import list. The
+/// unused-import rule runs first and strips the ones the partial match does
+/// not use, so this is the same repair as the test above by the time the
+/// E0200 rule sees the file, and it has to come out the same way.
+#[test]
+fn e0200_repairs_an_imported_union_whose_variants_were_already_imported() {
+    let main = "module main\n\
+                import orders { OrderStatus, Pending, Paid, Cancelled }\n\
+                \n\
+                pub fn describe(s: OrderStatus) -> string {\n\
+                \x20 return match s {\n\
+                \x20   Pending => \"waiting\",\n\
+                \x20 }\n\
+                }\n";
+    let dir = project_modules("e0200imported2", &[("orders.glyph", ORDERS), ("main.glyph", main)]);
+    let out = fix(&dir);
+    assert!(out.contains("applied E0200"), "{out}");
+    let after = source_of(&dir);
+    assert!(
+        after.contains("import orders { OrderStatus, Pending, Paid, Cancelled }"),
+        "the import list is what it was:\n{after}"
+    );
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "the repaired program compiles:\n{output}\n{after}");
+}
+
+/// A namespace import binds the module and not the variants, so the patterns
+/// are written through the binding and no import is added.
+#[test]
+fn e0200_writes_the_namespace_spelling_for_a_namespace_import() {
+    let main = "module main\n\
+                import orders\n\
+                \n\
+                pub fn describe(s: orders.OrderStatus) -> string {\n\
+                \x20 return match s {\n\
+                \x20   orders.Pending => \"waiting\",\n\
+                \x20 }\n\
+                }\n";
+    let dir = project_modules("e0200namespace", &[("orders.glyph", ORDERS), ("main.glyph", main)]);
+    let out = fix(&dir);
+    assert!(out.contains("applied E0200"), "{out}");
+    let after = source_of(&dir);
+    assert!(
+        after.contains("orders.Paid({ transaction_id }) => {")
+            && after.contains("orders.Cancelled => {"),
+        "the patterns go through the namespace binding:\n{after}"
+    );
+    assert!(
+        after.contains("import orders\n"),
+        "and nothing is added to an import that binds no variants:\n{after}"
+    );
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "the repaired program compiles:\n{output}\n{after}");
+    assert_eq!(source_of_module(&dir, "orders.glyph"), ORDERS, "the union's module is untouched");
+}
+
+/// A decline names what stopped it. Bringing `Paid` into scope would collide
+/// with a declaration the author wrote, and the rule does not rename either.
+#[test]
+fn e0200_declines_when_a_variant_name_is_already_bound_here() {
+    let main = "module main\n\
+                import orders { OrderStatus, Pending }\n\
+                \n\
+                type Paid = { x: int }\n\
+                \n\
+                pub fn size(p: Paid) -> int {\n\
+                \x20 return p.x\n\
+                }\n\
+                \n\
+                pub fn describe(s: OrderStatus) -> string {\n\
+                \x20 return match s {\n\
+                \x20   Pending => \"waiting\",\n\
+                \x20 }\n\
+                }\n";
+    let dir = project_modules("e0200collide", &[("orders.glyph", ORDERS), ("main.glyph", main)]);
+    let before = source_of(&dir);
+    let out = fix(&dir);
+    assert!(
+        out.contains("declined E0200")
+            && out.contains("`Paid` is already bound in this module")
+            && !out.contains("do not collect cleanly"),
+        "the refusal names the variant that stopped it:\n{out}"
+    );
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+    assert_eq!(check(&dir).0, 1, "and still does not compile");
 }

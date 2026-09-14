@@ -178,13 +178,17 @@
       </div>
 
       <div class="code">
-        <span class="cap">glyph fix src, on the match above with the union declared locally</span>
+        <span class="cap">glyph fix src, on the match above</span>
 <pre>fixed src/main.glyph
 glyph fix: removed 0 unused import(s) across 1 file(s).
 glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
-           on `OrderStatus`: `Paid`, `Cancelled`
+           on `OrderStatus`: `Paid`, `Cancelled`, and wrote
+           `import std/process` for the arm bodies and `Paid`,
+           `Cancelled` into `import orders`
 
-<span class="add">  return match s {
+<span class="add">import orders { OrderStatus, Pending, Paid, Cancelled }
+  ...
+  return match s {
     Pending =&gt; "waiting",
     // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
     Paid({ transaction_id }) =&gt; {
@@ -198,10 +202,18 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
     },
   }</span>
 
-<span class="cm">// glyph check --no-tsc: 1 module(s) checked, no diagnostics.</span></pre>
+<span class="cm">// glyph check --no-tsc: 2 module(s) checked, no diagnostics.</span></pre>
       </div>
 
       <div class="detail">
+        <p>
+          <code>OrderStatus</code> is declared in <code>orders</code> and matched in
+          <code>main</code>, so the arms name variants this file did not have in scope. The
+          rule writes them into the import list, and where the module is imported as a
+          namespace it writes the patterns through the binding instead
+          (<code>orders.Paid({ transaction_id })</code>). Every byte it writes is named in
+          the report, the imports included.
+        </p>
         <p>
           The pattern comes from the declaration, so a record payload is destructured by
           field name and the parts are in front of whoever writes the body. The body leaves

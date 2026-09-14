@@ -428,7 +428,7 @@ fn fix_one_file(
     }
 
     if !arm_plans.is_empty() {
-        if let Some(planned) = plan_arm_edits(&source, &module, path, &arm_plans, report) {
+        if let Some(planned) = plan_arm_edits(&source, &module, path, root, &arm_plans, report) {
             edits.extend(planned.edits);
             applied.extend(planned.applied);
         }
@@ -606,6 +606,13 @@ struct ArmPlan {
     indent: String,
     /// The union as the diagnostic names it, for the marker comment.
     union_label: String,
+    /// The module key the union is declared in, when that is not this file's
+    /// own module: `orders` for a `cause` of `orders::OrderStatus`. `None` for
+    /// a union this module declares, whose variant names are already in scope.
+    ///
+    /// The arms name variants, and a variant of an imported union reaches this
+    /// file only through an import. This is what says which import to read.
+    union_module: Option<String>,
     patterns: Vec<PatternPlan>,
 }
 
@@ -678,6 +685,11 @@ fn plan_e0200(
 
     let (at, indent) = match_insertion_point(source, d)
         .ok_or("the match this diagnostic points at does not end in a `}` in the source")?;
+    let own_module = d.module.as_deref();
+    let union_module = cause
+        .rsplit_once("::")
+        .map(|(m, _)| m.to_string())
+        .filter(|m| Some(m.as_str()) != own_module);
     Ok(ArmPlan {
         at,
         indent,
@@ -686,8 +698,104 @@ fn plan_e0200(
             .as_ref()
             .map(|u| u.name.clone())
             .unwrap_or_else(|| cause.to_string()),
+        union_module,
         patterns,
     })
+}
+
+/// How this file reaches the variants of a union another module declares, and
+/// the import edit that makes it reach the ones it does not reach yet.
+///
+/// Three import spellings, three answers. A namespace or aliased import binds
+/// one name and every variant is reached through it, so the patterns are
+/// written `orders.Paid(...)` and nothing is added. A named import binds each
+/// variant separately, so the missing ones are spliced into its own name list.
+/// A union this module declares needs neither.
+///
+/// This is half of G236. The other half is the self-check: a variant this
+/// writes an import for is unresolved in a single-module read whatever the
+/// import list says, which is why the check runs against the project.
+enum VariantAccess {
+    /// Write the patterns as they are; nothing to import.
+    InScope,
+    /// Write the patterns qualified by this binding.
+    Qualified(String),
+    /// Write the patterns bare, and splice this import's name list.
+    Import { at: (u32, u32), text: String },
+}
+
+fn variant_access(
+    module: &Module,
+    source: &str,
+    plan: &ArmPlan,
+) -> Result<VariantAccess, String> {
+    let Some(union_module) = plan.union_module.as_deref() else {
+        return Ok(VariantAccess::InScope);
+    };
+    // A string-literal union has no variant names to bring into scope: the
+    // patterns are the literals themselves.
+    if plan.patterns.iter().all(|p| p.literal) {
+        return Ok(VariantAccess::InScope);
+    }
+    for item in &module.items {
+        let Decl::Import(imp) = item else { continue };
+        let path_text = imp
+            .path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        if path_text != union_module {
+            continue;
+        }
+        return match &imp.kind {
+            ImportKind::Namespace => Ok(VariantAccess::Qualified(
+                imp.path
+                    .segments
+                    .last()
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| union_module.to_string()),
+            )),
+            ImportKind::Aliased(a) => Ok(VariantAccess::Qualified(a.to_string())),
+            ImportKind::Named(ns) => {
+                let mut names: Vec<String> = ns.iter().map(|n| n.to_string()).collect();
+                let missing: Vec<&PatternPlan> = plan
+                    .patterns
+                    .iter()
+                    .filter(|p| !names.iter().any(|n| n == &p.name))
+                    .collect();
+                if missing.is_empty() {
+                    return Ok(VariantAccess::InScope);
+                }
+                for p in &missing {
+                    if module.items.iter().any(|d| binds_name(d, &p.name)) {
+                        return Err(format!(
+                            "`{}` is already bound in this module by something other \
+                             than the import of `{union_module}`, so `glyph fix` cannot \
+                             bring the variant into scope without renaming what is there",
+                            p.name
+                        ));
+                    }
+                    names.push(p.name.clone());
+                }
+                let decl_end = decl_text_end(source, imp.span.start, imp.span.end);
+                Ok(VariantAccess::Import {
+                    at: (imp.span.start, decl_end),
+                    text: format!("import {union_module} {{ {} }}", names.join(", ")),
+                })
+            }
+            ImportKind::Default(_) => Err(format!(
+                "`{union_module}` is imported as a default binding, which names no \
+                 variants, and `glyph fix` does not rewrite an import you wrote"
+            )),
+        };
+    }
+    Err(format!(
+        "this module has no `import {union_module}`, so `glyph fix` cannot tell how \
+         the variants of `{}` are meant to be spelled here",
+        plan.union_label
+    ))
 }
 
 /// What a union declares, as the compiler answers it.
@@ -795,6 +903,7 @@ fn plan_arm_edits(
     source: &str,
     module: &Module,
     path: &Path,
+    root: &Path,
     plans: &[ArmPlan],
     report: &mut FixReport,
 ) -> Option<PlannedArms> {
@@ -813,56 +922,221 @@ fn plan_arm_edits(
         }
     };
 
+    // How each match's variants are spelled here, and the import list that has
+    // to grow for them to be. One answer per plan, and a plan whose access
+    // cannot be settled declines on its own rather than taking the file's
+    // other matches down with it.
+    let mut access: Vec<VariantAccess> = Vec::new();
+    for plan in plans {
+        match variant_access(module, source, plan) {
+            Ok(a) => access.push(a),
+            Err(why) => {
+                report.declined.push(Declined {
+                    code: "E0200".to_string(),
+                    file: path.to_path_buf(),
+                    why,
+                });
+                return None;
+            }
+        }
+    }
+    // What the file's named imports bound before this rule touched them, so
+    // the report names the variants it added and not the ones already there.
+    let imported_before: Vec<String> = module
+        .items
+        .iter()
+        .filter_map(|d| match d {
+            Decl::Import(i) => Some(&i.kind),
+            _ => None,
+        })
+        .filter_map(|k| match k {
+            ImportKind::Named(ns) => Some(ns.iter().map(|n| n.to_string())),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    // An import decl is rewritten whole, so two matches over unions from the
+    // same module must not each splice their own version of it.
+    let mut import_rewrites: Vec<(u32, u32, String)> = Vec::new();
+    for a in &access {
+        let VariantAccess::Import { at, text } = a else { continue };
+        match import_rewrites.iter_mut().find(|(s, e, _)| (*s, *e) == *at) {
+            Some(existing) => existing.2 = merge_named_imports(&existing.2, text),
+            None => import_rewrites.push((at.0, at.1, text.clone())),
+        }
+    }
+
     // A record payload is destructured by field name, which is the shape that
     // puts the payload's parts in front of whoever writes the body. A field
     // name can still be illegal as a binding (E0109: TypeScript reserves it),
     // and rather than keep a second copy of that list here, the destructured
     // form is assembled, offered to the compiler's own collect stage, and
     // dropped for a whole-payload binding if it made the file worse.
-    let baseline = module_error_codes(source);
+    let baseline = project_error_codes(root, path, source);
+    let mut last_why: Option<String> = None;
     for destructure in [true, false] {
         let mut edits: Vec<(u32, u32, String)> = Vec::new();
         let mut applied = Vec::new();
         if let Some((at, text)) = &import_edit {
             edits.push((*at as u32, *at as u32, text.clone()));
         }
-        for plan in plans {
+        edits.extend(import_rewrites.iter().cloned());
+        for (plan, access) in plans.iter().zip(access.iter()) {
+            let qualifier = match access {
+                VariantAccess::Qualified(q) => Some(q.as_str()),
+                _ => None,
+            };
             edits.push((
                 plan.at as u32,
                 plan.at as u32,
-                render_arms(plan, destructure, &exit_call),
+                render_arms(plan, destructure, &exit_call, qualifier),
             ));
+            // Every byte this rule writes is named in the report. The arms
+            // were; the two imports were not, and a report that enumerates
+            // some of its own edits is what a CI log or a review captures.
+            let mut what = format!(
+                "added {} arm(s) to the match on `{}`: {}",
+                plan.patterns.len(),
+                plan.union_label,
+                quoted_list(
+                    &plan
+                        .patterns
+                        .iter()
+                        .map(|p| p.name.clone())
+                        .collect::<Vec<_>>()
+                )
+            );
+            let mut wrote: Vec<String> = Vec::new();
+            if import_edit.is_some() && applied.is_empty() {
+                wrote.push("`import std/process` for the arm bodies".to_string());
+            }
+            if let VariantAccess::Import { .. } = access {
+                if let Some(union_module) = plan.union_module.as_deref() {
+                    let added: Vec<String> = plan
+                        .patterns
+                        .iter()
+                        .filter(|p| !imported_before.iter().any(|n| n == &p.name))
+                        .map(|p| p.name.clone())
+                        .collect();
+                    if !added.is_empty() {
+                        wrote.push(format!(
+                            "{} into `import {union_module}`",
+                            quoted_list(&added)
+                        ));
+                    }
+                }
+            }
+            if !wrote.is_empty() {
+                what.push_str(&format!(", and wrote {}", wrote.join(" and ")));
+            }
             applied.push(Applied {
                 code: "E0200".to_string(),
                 file: path.to_path_buf(),
-                what: format!(
-                    "added {} arm(s) to the match on `{}`: {}",
-                    plan.patterns.len(),
-                    plan.union_label,
-                    quoted_list(
-                        &plan
-                            .patterns
-                            .iter()
-                            .map(|p| p.name.clone())
-                            .collect::<Vec<_>>()
-                    )
-                ),
+                what,
             });
         }
         let candidate = apply_edits(source, edits.clone());
-        if !collect_regressed(&baseline, &module_error_codes(&candidate)) {
-            return Some(PlannedArms { edits, applied });
+        let after = project_error_codes(root, path, &candidate);
+        match regression(&baseline, &after) {
+            None => return Some(PlannedArms { edits, applied }),
+            // Keep the first shape's reason: the destructured form is the one
+            // the rule prefers, and its failure is the one worth reporting if
+            // the whole-payload form fails too.
+            Some(why) if last_why.is_none() || !destructure => last_why = Some(why),
+            Some(_) => {}
         }
     }
 
+    let why = last_why.unwrap_or_else(|| {
+        "the arms this fix would write do not check cleanly in this project, and the check \
+         reported no diagnostic naming why"
+            .to_string()
+    });
     for _ in plans {
         report.declined.push(Declined {
             code: "E0200".to_string(),
             file: path.to_path_buf(),
-            why: "the arms this fix would write do not collect cleanly in this module, so \
-                  nothing was written"
-                .to_string(),
+            why: why.clone(),
         });
+    }
+    None
+}
+
+/// Merge two rewrites of one named import into the union of their name lists.
+///
+/// Two matches in one file over unions from the same module each ask for their
+/// own variants, and the import decl is rewritten whole, so the second rewrite
+/// would otherwise drop the first one's names.
+fn merge_named_imports(a: &str, b: &str) -> String {
+    let names_of = |text: &str| -> (String, Vec<String>) {
+        let Some((head, rest)) = text.split_once('{') else {
+            return (text.to_string(), Vec::new());
+        };
+        let list = rest.trim_end().trim_end_matches('}');
+        (
+            head.to_string(),
+            list.split(',')
+                .map(|n| n.trim().to_string())
+                .filter(|n| !n.is_empty())
+                .collect(),
+        )
+    };
+    let (head, mut names) = names_of(a);
+    let (_, extra) = names_of(b);
+    for n in extra {
+        if !names.contains(&n) {
+            names.push(n);
+        }
+    }
+    format!("{}{{ {} }}", head, names.join(", "))
+}
+
+/// The error codes `text` draws at `path` inside its project, or `None` when
+/// the project could not be read at all.
+///
+/// The project and not the file (G236). A variant declared in another module
+/// is an unresolved name in a single-module read, so the arms this rule writes
+/// looked like new `E0103`s to a check that read the candidate alone, and the
+/// rule declined every `match` over an imported union. This is the same
+/// project database `glyph check` and `glyph_diagnostics` answer from, and the
+/// candidate is never written to disk.
+fn project_error_codes(root: &Path, path: &Path, text: &str) -> Option<Vec<(String, String)>> {
+    let diags = glyph_lsp::file_diagnostics_with_text(root.to_path_buf(), path, text).ok()?;
+    let mut out: Vec<(String, String)> = diags
+        .iter()
+        .filter(|d| d.severity == "error")
+        .map(|d| (d.code.clone(), d.message.clone()))
+        .collect();
+    out.sort();
+    Some(out)
+}
+
+/// The first diagnostic the candidate raised that the file did not, as the
+/// sentence a decline reports, or `None` when nothing regressed.
+///
+/// The reason names the diagnostic. "the arms this fix would write do not
+/// collect cleanly in this module" was the whole of what a decline used to
+/// say, and the release claims every refusal says why; a catch-all is not a
+/// why.
+fn regression(
+    before: &Option<Vec<(String, String)>>,
+    after: &Option<Vec<(String, String)>>,
+) -> Option<String> {
+    let (Some(before), Some(after)) = (before, after) else {
+        return Some(
+            "the file this fix would write could not be checked against its project, so \
+             nothing was written"
+                .to_string(),
+        );
+    };
+    for d in after {
+        if after.iter().filter(|c| *c == d).count() > before.iter().filter(|c| *c == d).count() {
+            return Some(format!(
+                "the arms this fix would write draw `[{}] {}`, which this file does not draw \
+                 now, so nothing was written",
+                d.0, d.1
+            ));
+        }
     }
     None
 }
@@ -877,19 +1151,30 @@ fn plan_arm_edits(
 /// or a statement owing none, and the compiler needs no guess about what the
 /// arm should produce. It is not a body anyone would mistake for a finished
 /// one: it says so in a comment, and it says so again at runtime.
-fn render_arms(plan: &ArmPlan, destructure: bool, exit_call: &str) -> String {
+fn render_arms(
+    plan: &ArmPlan,
+    destructure: bool,
+    exit_call: &str,
+    qualifier: Option<&str>,
+) -> String {
     let mut out = String::new();
     let i = &plan.indent;
     for p in &plan.patterns {
         let (pattern, label) = if p.literal {
             (format!("\"{}\"", escape_glyph_string(&p.name)), "literal")
         } else {
+            // A namespace or aliased import binds the module, not the
+            // variants, so a pattern over one is written through the binding.
+            let head = match qualifier {
+                Some(q) => format!("{q}.{}", p.name),
+                None => p.name.clone(),
+            };
             (
                 match &p.payload {
-                    None => p.name.clone(),
+                    None => head,
                     Some(payload) => match record_field_names(payload).filter(|_| destructure) {
-                        Some(fields) => format!("{}({{ {} }})", p.name, fields.join(", ")),
-                        None => format!("{}(payload)", p.name),
+                        Some(fields) => format!("{head}({{ {} }})", fields.join(", ")),
+                        None => format!("{head}(payload)"),
                     },
                 },
                 "variant",
@@ -999,56 +1284,6 @@ fn end_of_line_at(source: &str, offset: usize) -> usize {
         Some(i) => o + i,
         None => source.len(),
     }
-}
-
-/// The resolve-stage codes `source` raises on its own, or `None` when it does
-/// not parse.
-///
-/// Collect and resolve, because those are the two stages that run on a single
-/// module with no project around it, and between them they hold the check that
-/// a generated pattern can fail without being unparseable: E0109, a binding
-/// name TypeScript reserves. `default` is a legal record *field* and an illegal
-/// *binding*, so a payload destructured by field name can be rejected for a
-/// name the union's own declaration uses happily.
-///
-/// Errors only. The lints are left out because they are about the file as a
-/// whole (an unused import) and would move for reasons that have nothing to do
-/// with the arms being written.
-fn module_error_codes(source: &str) -> Option<Vec<String>> {
-    let module = glyph_parser::parse(source).ok()?;
-    let mut codes: Vec<String> = Vec::new();
-    let symbols = match collect_module_symbols(&module) {
-        Ok(s) => s,
-        Err(errs) => {
-            codes.extend(errs.iter().map(|e| e.code().to_string()));
-            codes.sort();
-            return Some(codes);
-        }
-    };
-    let (_resolved, errs) = resolve_module(&module, symbols, &build_prelude());
-    codes.extend(
-        errs.iter()
-            .filter(|e| e.severity() == glyph_resolver::Severity::Error)
-            .map(|e| e.code().to_string()),
-    );
-    codes.sort();
-    Some(codes)
-}
-
-/// True when `after` holds a code more often than `before` did, or stopped
-/// parsing altogether.
-fn collect_regressed(before: &Option<Vec<String>>, after: &Option<Vec<String>>) -> bool {
-    let (Some(before), Some(after)) = (before, after) else {
-        return true;
-    };
-    for code in after {
-        if after.iter().filter(|c| *c == code).count()
-            > before.iter().filter(|c| *c == code).count()
-        {
-            return true;
-        }
-    }
-    false
 }
 
 // ---------------------------------------------------------------------------

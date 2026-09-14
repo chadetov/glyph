@@ -1,0 +1,5 @@
+{
+  "name": "exact-or-absent-dependencies",
+  "private": true,
+  "glyph": { "src": "src" }
+}

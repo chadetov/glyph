@@ -1,0 +1,26 @@
+module lib
+
+// A `pub` union hoists its variants into the module's export surface, so all
+// three names are importable and all three are in the answer.
+pub type Status =
+  | Open
+  | Closed
+
+// Private. It is a declaration `glyph_symbols` reports and a name no other
+// module may import, which is the distinction the export surface draws.
+type Secret = {
+  token: string,
+}
+
+pub type Row = {
+  id: string,
+}
+
+pub fn make(id: string) -> Row {
+  let r: Row = { id: id }
+  return r
+}
+
+fn hidden(r: Row) -> string {
+  return r.id
+}

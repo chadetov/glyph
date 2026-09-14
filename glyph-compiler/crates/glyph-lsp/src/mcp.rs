@@ -1210,16 +1210,47 @@ fn symbol_provenance(
     sym_module: &str,
     name: &str,
 ) -> Provenance {
-    if let Some((fpath, _)) = project
+    if let Some((fpath, entry)) = project
         .searched()
         .into_iter()
         .find(|(_, f)| f.module_path == sym_module)
     {
-        return Provenance::Proved(format!(
-            "`{sym_module}` is {}, a Glyph module this project holds; the compiler parsed and \
-             resolved the declaration this edge points at",
-            display_path(root, fpath)
-        ));
+        let where_ = display_path(root, fpath);
+        // Holding a file under that module path is not the same as having read
+        // the declaration, and the difference is the whole of this answer. A
+        // file that does not parse was never keyed, and a file that parses and
+        // declares no such name resolves this import to nothing, so `PROVED`
+        // in either case claims the compiler examined a declaration it never
+        // reached. The stdlib branch below has always drawn the second
+        // distinction; this one drew neither.
+        let db = &project.db;
+        if glyph_db::parse_module(db, entry.file).module().is_none() {
+            return Provenance::Undetermined(format!(
+                "`{sym_module}` is {where_}, a file this project holds, and it does not parse, \
+                 so nothing in it was keyed and there is no declaration at the far end to \
+                 have proved"
+            ));
+        }
+        let symbols = glyph_db::module_symbols(db, entry.file);
+        let Some(table) = symbols.symbols() else {
+            return Provenance::Undetermined(format!(
+                "`{sym_module}` is {where_}, a file this project holds, and it does not \
+                 resolve, so no name in it was keyed and there is no declaration at the far \
+                 end to have proved"
+            ));
+        };
+        return if table.by_name.contains_key(name) {
+            Provenance::Proved(format!(
+                "`{sym_module}` is {where_}, a Glyph module this project holds; the compiler \
+                 parsed and resolved the declaration this edge points at"
+            ))
+        } else {
+            Provenance::Undetermined(format!(
+                "`{sym_module}` is {where_}, a Glyph module this project holds, and it \
+                 declares no `{name}`, so this import does not resolve and there is no \
+                 declaration at the far end to have proved or asserted"
+            ))
+        };
     }
     // The stdlib's surface is the compiler's own, which is why it is not a
     // declaration-file claim: the resolver holds the export list and the

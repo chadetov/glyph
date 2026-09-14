@@ -1,0 +1,13 @@
+module app
+
+import lib { Row, make }
+import broken { helper }
+
+// One declaration with three outgoing edges: a call into a module that
+// parses, a call into one that does not, and a field read the checker
+// resolved onto `lib::Row`.
+pub fn run(id: string) -> string {
+  let r: Row = make(id)
+  let s: string = helper(r)
+  return r.id
+}

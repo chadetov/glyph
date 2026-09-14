@@ -1,0 +1,5 @@
+{
+  "name": "exact-or-absent-exports",
+  "private": true,
+  "glyph": { "src": "src" }
+}

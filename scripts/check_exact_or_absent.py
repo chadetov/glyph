@@ -1491,6 +1491,114 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
     return True, "the undecided pairings are undecided, and the decided ones are decided"
 
 
+DEPENDENCIES = pathlib.Path("dependencies")
+EXPORTS = pathlib.Path("exports")
+
+
+def case_dependencies_out_of_an_unreadable_module() -> tuple[bool, str]:
+    """An outgoing edge is exact or it carries no claim at all.
+
+    `glyph_dependencies` reads one declaration's own source, so it is the tool
+    most exposed to the other end of an edge: the name resolves here and the
+    module it names may be anything. `app::run` calls `lib::make`, which the
+    compiler parsed, and `broken::helper`, whose module does not parse at all.
+    Both edges exist and they are two different facts, so the first is PROVED
+    with an origin and the second is UNDETERMINED with none.
+
+    Holding a file under a module path used to be enough for PROVED, which is
+    the shape of the failure this file exists to catch: a well-formed answer
+    saying the compiler examined a declaration it never read. The name half is
+    asserted too, so a module that parses and declares nothing of that name
+    stays undecided rather than being proved by its neighbours.
+
+    Asking about a declaration *inside* the unreadable module is a refusal, not
+    an empty edge list, for the reason every refusal here is one: no edges
+    would read as "this declaration depends on nothing".
+    """
+    a = call(CORPUS / DEPENDENCIES, "glyph_dependencies", {"entity": "app::run"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    edges = {}
+    for entry in (a.get("relations") or {}).values():
+        for edge in entry.get("edges") or []:
+            edges[edge.get("to")] = edge
+    for to, want in (("lib::make", "PROVED"), ("broken::helper", "UNDETERMINED")):
+        edge = edges.get(to)
+        if edge is None:
+            return False, f"no edge into `{to}`: {sorted(edges)}"
+        if edge.get("provenance") != want:
+            return False, f"`{to}` is {edge.get('provenance')}, not {want}: {edge}"
+    unread = edges["broken::helper"]
+    if unread.get("to_origin") is not None:
+        return False, f"an edge into a file that does not parse carries an origin: {unread}"
+    if not unread.get("to_origin_absent"):
+        return False, f"the absent origin gives no reason: {unread}"
+    # The field edge is the checker's own, so it names the record that declares
+    # the field and never the annotation that reached it.
+    field = [e for e in edges.values() if e.get("relation") == "FIELD_ACCESS"]
+    if [e.get("to") for e in field] != ["lib::Row.id"]:
+        return False, f"the field edge names {[e.get('to') for e in field]}"
+
+    inside = call(CORPUS / DEPENDENCIES, "glyph_dependencies", {"entity": "broken::helper"})
+    if "error" not in inside:
+        return False, f"answered about a declaration in a file that does not parse: {inside}"
+    return True, "the unread far end is undetermined and origin-less; the unread root refuses"
+
+
+def case_exports_are_never_an_empty_list_by_accident() -> tuple[bool, str]:
+    """An export surface is the compiler's set, or it is absent with a reason.
+
+    Three questions with three different answers. `lib` parses, so the list is
+    every name another module may import and the two private declarations stay
+    out; it is checked against `glyph_symbols`' own `pub` flag rather than
+    against a fixture, so the two surfaces cannot drift apart. `unparsed` is a
+    file the project holds and the compiler could not read, so `exports` is
+    null with the reason and the file is named under `unindexed`. `hidden` sits
+    under `node_modules`, which the walk does not enter, so it is refused.
+
+    The middle and last cases are the point. Both could return `[]` and read as
+    a module that exports nothing, which is a claim about the program rather
+    than about what the answer could reach.
+    """
+    a = call(CORPUS / EXPORTS, "glyph_exports", {"module": "lib"})
+    if "error" in a:
+        return False, f"`lib` refused: {a['error'][:160]}"
+    got = sorted(e.get("name") for e in a.get("exports") or [])
+    symbols = call(CORPUS / EXPORTS, "glyph_symbols", {"query": ""})
+    if isinstance(symbols, dict) and "error" in symbols:
+        return False, f"glyph_symbols refused: {symbols['error'][:120]}"
+    want = sorted(
+        s.get("name") for s in symbols
+        if s.get("module") == "lib" and s.get("pub")
+    )
+    if got != want:
+        return False, f"the export surface is {got} and the `pub` declarations are {want}"
+    if not got:
+        return False, "the corpus module is meant to export something"
+    for entry in a.get("exports") or []:
+        if not entry.get("entity", "").startswith("lib::"):
+            return False, f"an entry carries no `module::name` identity: {entry}"
+        if "signature" not in entry or "signature_absent" not in entry:
+            return False, f"an entry states neither a signature nor why it has none: {entry}"
+
+    unread = call(CORPUS / EXPORTS, "glyph_exports", {"module": "unparsed"})
+    if "error" in unread:
+        return False, f"`unparsed` refused instead of answering: {unread['error'][:160]}"
+    if unread.get("exports") is not None:
+        return False, f"a module the compiler could not read reports a list: {unread}"
+    if not unread.get("exports_absent"):
+        return False, f"the absent list gives no reason: {unread}"
+    if not unread.get("unindexed"):
+        return False, f"the file it could not read is not named: {unread}"
+
+    outside = call(CORPUS / EXPORTS, "glyph_exports", {"module": "hidden"})
+    if "error" not in outside:
+        return False, f"a module outside the walk was answered: {outside}"
+    if "lib" not in outside["error"]:
+        return False, f"the refusal names no module the project holds: {outside['error'][:160]}"
+    return True, "the compiler's set, absent with a reason, and a refusal, kept apart"
+
+
 def case_impact_answers_a_second_hop() -> tuple[bool, str]:
     """A request past hop 1 is answered, not refused.
 
@@ -1579,6 +1687,8 @@ HARD = [
     ("an unparsed call site is unindexed, not judged", case_signature_type_unparsed_site_is_unindexed),
     ("a consequence needs a named change", case_a_change_is_required_for_a_consequence),
     ("assignability: no rule is not compatible", case_assignable_has_no_rule_and_says_so),
+    ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
+    ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
 ]
 
 KNOWN: list[tuple[str, object, str]] = []

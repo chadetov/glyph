@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-229 entries, 202 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-8 are open. G144, the D28 boundary cast that never reached the returns a
+229 entries, 204 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+6 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8985,7 +8985,7 @@ and is the owner's to confirm.
   serialized JSON, keys and values. Breaking it on purpose (dropping `help`
   from the tool's answer) fails it.*
 
-- **G220. A diagnostic carries its facts as prose.** For `E0211` the JSON is
+- **G220. [FIXED] A diagnostic carries its facts as prose.** For `E0211` the JSON is
   `"message": "argument type mismatch: expected \`string\`, found \`OrderStatus\`"`
   with no `expected` or `actual` field, and `"entity": "main::main"`, the
   enclosing declaration rather than the symbol at fault; `E0210` names the
@@ -9002,6 +9002,77 @@ and is the owner's to confirm.
   `--explain` has no `--json` and its text is about the code, not the program.
 
   *Reproduced against 0.1.117: `glyph check --json --no-tsc` on the four wrong programs; field table in the audit on file.*
+
+  *Fixed in 0.1.122. Six fields sit beside the message, each read off an error
+  variant rather than parsed out of a sentence. `expected` and `actual` are the
+  two types on every code that compares two (E0203, E0204, E0211), and `actual`
+  alone on a code that names one offending type and states its requirement in
+  prose (E0202, E0205, E0304); a wrong argument count is not a type comparison,
+  so E0213 answers null under both and keeps its numbers in its sentence.
+  `cause` is the symbol at fault as `module::name`, which is a different fact
+  from `entity`, the declaration the diagnostic sits in. `alternatives` is what
+  may legally stand where the wrong thing stands wherever the compiler holds a
+  finite list: the record's own fields (E0210), the union's variants (E0204,
+  E0211), the module's exports (E0105), the did-you-mean E0220 already computed
+  and never surfaced. `related` is the union's whole variant list beside the
+  gap. `explain` is the pointer the terminal renderer has printed under every
+  diagnostic for releases, now built by one function both surfaces call.
+  `file` is a path (`main.glyph`), derived from the module half both surfaces
+  already agree on (G180), with the module key kept beside it under `module`.
+  Absence keeps one spelling: every field is an explicit null on a code that
+  does not hold the fact.*
+
+  *Three variants were carrying less than the compiler knew and now carry it:
+  `NonExhaustiveMatch` takes the whole variant list beside the missing one,
+  `UnknownField` takes the record's field set and its identity, and
+  `UnknownExportedName` takes the module's export list it was already checking
+  the name against. `TypeMismatch` and `ArgumentTypeMismatch` take the accepted
+  set when the declared type has a finite one.*
+
+  *Two binaries, on the audit's own four programs. Published 0.1.121, E0211:
+  `{"code":"E0211","entity":"main::main","file":"main","help":...,"message":
+  "argument type mismatch: expected `string`, found `OrderStatus`",
+  "missing_variants":null,"range":...,"severity":"error","stage":"typecheck",
+  "union":null}`. This build, same program: `expected` `string`, `actual`
+  `OrderStatus`, `file` `main.glyph`, `module` `main`, `explain` with the
+  command and the docs URL. E0210 gains `alternatives` `["id","status",
+  "total"]` and `cause` `orders::Order`, against a 0.1.121 answer whose only
+  mention of the record is inside the sentence. E0200 gains `cause`
+  `orders::OrderStatus` and `related` `["Pending","Paid","Cancelled"]` beside
+  the `missing_variants` it already had. E0204 gains `expected` `string` and
+  `actual` `number`. The gate is
+  `every_code_that_carries_a_fact_carries_it_as_a_field` in
+  `crates/glyph-lsp/src/diagnostic.rs`: one row per code, each naming the
+  fields its variant supplies, and a row fails if a field goes back to null.
+  The one-shape gate on both surfaces
+  (`one_diagnostic_has_one_shape_on_both_surfaces`) still holds, so the MCP
+  tool carries every new field too.*
+
+  *`glyph --explain <CODE> --json` landed with it: the code, its title, the
+  whole explanation, the catalogue link, the help read off a real diagnostic,
+  and a wrong program from `tests/negative/` that draws the code, compiled when
+  the answer is built rather than recorded when the case was written. The
+  corpus table is generated by a build script from the directory, so a case
+  added there is reachable from its code with no second edit. The corpus pairs
+  no repaired program with any case, so `corrected` is null with that as its
+  reason rather than a fix nothing compiles.*
+
+  *One thing this did not close, found while building it. The `alternatives`
+  set for a string-literal union is unreachable, because the checker refuses
+  nothing against one: `let m: Mode = 3`, `let m: Mode = "rw"` and
+  `takes_mode(3)` over `type Mode = "read" | "write"` all exit 0 under
+  `--no-tsc` on this build. The field is populated from a tagged union, where
+  the refusal does fire. The missing refusal is a checker gap of the G201/G216
+  family, not a surfacing one.*
+
+  *The E0211 `cause` is the one field left null where a fact exists, and it is
+  a fork rather than an omission. The symbol at fault is the callee's
+  parameter, and `module::fn.param` is not in the identity vocabulary: the
+  tools address `module::name` and `module::Record.field`, and `glyph_symbol`
+  reports parameters as a list under the callable rather than as addressable
+  symbols. Naming the callee instead would answer a different question.
+  Extending the vocabulary is a decision about every tool that takes an
+  identity, not about this diagnostic.*
 
 - **G221. [HALF FIXED] No tool answers assignability, dependencies or a module's exports.**
   "Can a `Nullable<int>` go where an `int` is declared" has no tool, and per G216
@@ -9066,8 +9137,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.117: `grep -c "exposes five tools" AGENTS.md` is 1, `grep -c glyph_impact AGENTS.md` is 0, `tools/list` returns seven tools; `check_docs_compile.py` output for `AGENTS.md`: 19 fences, 2 compiled, 17 skipped; `grep -rl expect-error docs web AGENTS.md README.md` is empty.*
 
-- **G223. E0101 is unreachable from source: a relative import stops in the
-  parser.** `import ./helper` and `import ../helper` both fail as
+- **G223. [FIXED] E0101 is unreachable from source: a relative import stops in
+  the parser.** `import ./helper` and `import ../helper` both fail as
   `E0002: expected module path segment, found Dot` with the generic help "Add
   the expected token", so the text a user meets at a relative import is E0002's
   and never the E0101 help that names the three true spellings (`std/io`, a
@@ -9078,6 +9149,31 @@ and is the owner's to confirm.
   carry the same help.
 
   *Reproduced against 0.1.118 (the 0.1.119 tree): both spellings above are `[E0002] expected module path segment, found Dot`, exit 1, with no mention of the import forms.*
+
+  *Fixed in 0.1.122. The parser recognises a leading `./` or `../` at the
+  import site and raises the resolver's own code there, at the span of the
+  prefix and quoting it: ``[E0101] parse: `./` is a relative import path, which
+  Glyph does not allow (D15)``. A repeated prefix (`../../shared/helper`) is
+  one error over the whole run rather than one per hop. The help has one copy,
+  `RELATIVE_IMPORT_HELP` in `glyph-parser`, which
+  `ResolveError::RelativeImport` reads, so improving the sentence cannot leave
+  either stage behind. The resolver's check stays for a `.` segment deeper in a
+  path, where the parser is not first.*
+
+  *Two binaries, same three programs. Published 0.1.121 on `import ./helper`,
+  `import ../helper` and `import ./a/b`: `[E0002] parse: expected module path
+  segment, found Dot` (or `DotDot`), help "Add the expected token. Glyph is
+  deliberately stricter than TypeScript...", exit 1. This build, same three:
+  `[E0101]`, help "Name the module from the source root, not from this file: a
+  stdlib module by its `std/` path (`import std/io`), a sibling file by its
+  bare name (`import helper`), a file in a subdirectory by its path from the
+  root (`import queries/report`). Relative paths (`./`, `../`) are not allowed
+  (D15).", exit 1. Not breaking: a program refused before is refused now, under
+  a code that says which rule it broke. Five parser unit tests, two
+  `tests/negative/` cases (`relative_import_dot_slash`,
+  `relative_import_parent`), and a test that `import std/io`, `import helper`,
+  `import queries/report`, a named import and an npm-scoped import are
+  untouched.*
 
 - **G224. [FIXED] A match over a local alias of an imported union is not
   exhaustiveness-checked.** `import lib { Shape, Circle, Square }` with

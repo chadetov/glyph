@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-230 entries, 208 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-4 are open. G144, the D28 boundary cast that never reached the returns a
+231 entries, 208 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+5 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9660,3 +9660,38 @@ and is the owner's to confirm.
   by literal set, not by name. `NamedBody::Other("a string-literal union (D30),
   which is a `string`")` is the shape string to split out; the checker no
   longer treats one as a plain `string`.*
+
+- **G231. `glyph fix` cannot repair a non-exhaustive match over a prelude union.**
+  `Result` and `Option` are declared by no project module, so the `E0200` they
+  draw carries `cause: null` and `union.declaration: null`, and no tool keys
+  their variants: `glyph query symbol --entity Result` answers *"`Result` is not
+  an entity identity"*. The `E0200` rule in `glyph fix` needs each missing
+  variant's payload shape to write its pattern, gets it from `glyph_symbol`, and
+  so declines on exactly the two unions a real program matches on most often.
+  The rule that repairs a project's own unions repairs nothing for
+  `match r { Ok(v) => v, }`.
+
+  *Reproduced against 0.1.122 (this tree). `src/main.glyph`:*
+
+  ```
+  module main
+
+  pub fn total(r: Result<int, string>) -> int {
+    return match r {
+      Ok(v) => v,
+    }
+  }
+  ```
+
+  *`glyph fix src` prints `glyph fix: declined E0200 in src/main.glyph:
+  `Result` is not declared in this project, so no tool keys its variants and
+  `glyph fix` has no payload shapes to write patterns from` and writes nothing;
+  `glyph check --no-tsc src` still exits 1. The decline is the honest answer
+  given what the tools hold, and the compiler does hold the shape: the checker
+  knows `Err` carries the error type, `glyph_variants` reports the site's
+  `missing: ["Err"]`, and the prelude declares both unions in
+  `glyph-resolver/src/prelude.rs`. What is missing is a key: an entity identity
+  for a prelude declaration, which `glyph_symbol` currently refuses by design
+  because a key invented for `Result` would name a module no project has. The
+  same gap makes `glyph check --agent` report `Result` under `symbols_absent`
+  rather than describing it.*

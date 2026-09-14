@@ -1,0 +1,7 @@
+module neg
+
+import ./helper
+
+fn use_it() -> number {
+  return 1
+}

@@ -4,6 +4,16 @@
 use glyph_lexer::Span;
 use std::borrow::Cow;
 
+/// The one copy of the help a relative import gets, wherever it is caught.
+///
+/// Two stages can raise E0101. The parser stops `./` and `../` at the import
+/// site, before a module path exists; the resolver checks a parsed path for a
+/// `.` or `..` segment. One rule reported by two stages has to read the same
+/// way in both, so the text lives here, in the lower crate, and
+/// `ResolveError::RelativeImport` reads it rather than keeping a second copy
+/// that can be improved in one place and not the other (G223).
+pub const RELATIVE_IMPORT_HELP: &str = "Name the module from the source root, not from this file: a stdlib module by its `std/` path (`import std/io`), a sibling file by its bare name (`import helper`), a file in a subdirectory by its path from the root (`import queries/report`). Relative paths (`./`, `../`) are not allowed (D15).";
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {
     #[error("lex error: {message}")]
@@ -107,6 +117,18 @@ pub enum ParseError {
         limit: u32,
         span: Span,
     },
+    /// An import path that starts with `./` or `../` (D15). The resolver has
+    /// owned this rule as E0101 since the beginning, and no program reached it:
+    /// a leading `.` is not a module path segment, so `import ./helper` fell
+    /// out of `expect_hyphenated_name` as E0002 with the generic "add the
+    /// expected token" help, and the E0101 text that names the three true
+    /// spellings was read by nobody (G223).
+    ///
+    /// The variant carries the author's own prefix (`./`, `../`, `../../`) so
+    /// the message quotes what is in the file rather than a stand-in, and it
+    /// shares the resolver's code because it is the same rule caught earlier.
+    #[error("`{prefix}` is a relative import path, which Glyph does not allow (D15)")]
+    RelativeImport { prefix: String, span: Span },
 }
 
 impl ParseError {
@@ -123,11 +145,12 @@ impl ParseError {
             | ParseError::MultiFieldVariantPayload { span, .. }
             | ParseError::PositionalVariantPattern { span, .. }
             | ParseError::NestingTooDeep { span, .. } => *span,
+            | ParseError::RelativeImport { span, .. } => *span,
         }
     }
 
-    /// Stable diagnostic code (parser range `E000x`; see
-    /// `docs/error-codes.md`).
+    /// Stable diagnostic code (parser range `E000x`, plus `E0101`, which the
+    /// parser reaches before the resolver can; see `docs/error-codes.md`).
     pub fn code(&self) -> &'static str {
         match self {
             ParseError::Lex { .. } => "E0001",
@@ -145,6 +168,10 @@ impl ParseError {
             // for the other.
             ParseError::PositionalVariantPattern { .. } => "E0010",
             ParseError::NestingTooDeep { .. } => "E0011",
+            // The resolver's code for the same rule. A relative import is a
+            // D15 violation whichever stage notices it first, and a reader who
+            // looked E0101 up has already read the answer (G223).
+            ParseError::RelativeImport { .. } => "E0101",
         }
     }
 
@@ -207,6 +234,7 @@ impl ParseError {
             ParseError::NestingTooDeep { limit, .. } => Cow::Owned(format!(
                 "Name the inner levels: pull them out into `let` bindings, or into a `fn` that returns one of them, so no single expression, type or pattern is more than {limit} levels deep. Hand-written Glyph does not come close to {limit}; an input that does was generated, and the parser stops there rather than running the process out of stack."
             )),
+            ParseError::RelativeImport { .. } => Cow::Borrowed(RELATIVE_IMPORT_HELP),
         })
     }
 }

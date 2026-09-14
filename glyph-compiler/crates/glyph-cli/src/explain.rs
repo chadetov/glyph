@@ -148,8 +148,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             After:   import util { helper }\n\n\
             Before:  import ../queries/report\n\
             After:   import queries/report\n\n\
-            In practice the parser stops a leading `.` at the import site as E0002 \
-            before the resolver runs; this code covers the same rule.",
+            Two stages raise it. The parser stops a leading `./` or `../` at the \
+            import site, before a module path exists; the resolver catches a `.` \
+            or `..` segment deeper in a path. The help is the same sentence in \
+            both.",
         "E0102" => "E0102: barrel file\n\n\
             This module contains only imports and no declarations. Glyph imports do \
             not re-export, so such a file does nothing — it is the barrel-file \

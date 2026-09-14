@@ -212,9 +212,10 @@ impl ResolveError {
             ResolveError::DuplicateName { .. } => {
                 "Rename one of them. Every top-level name must be unique (greppability)."
             }
-            ResolveError::RelativeImport { .. } => {
-                "Name the module from the source root, not from this file: a stdlib module by its `std/` path (`import std/io`), a sibling file by its bare name (`import helper`), a file in a subdirectory by its path from the root (`import queries/report`). Relative paths (`./`, `../`) are not allowed (D15)."
-            }
+            // One copy, shared with the parser's E0101 (G223). Both stages
+            // report the same rule, so improving the sentence in one place
+            // cannot leave the other behind.
+            ResolveError::RelativeImport { .. } => glyph_parser::RELATIVE_IMPORT_HELP,
             ResolveError::BarrelFile { .. } => {
                 "Add a declaration, or remove this file. A module that only imports re-exports nothing (D15: no barrel files)."
             }

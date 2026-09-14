@@ -501,6 +501,14 @@ fn parse_const_decl(
 
 fn parse_import(p: &mut Cursor) -> Result<ImportDecl, ParseError> {
     let import_span = p.expect(&Token::Import, "`import`")?;
+    // D15: a path that starts with `./` or `../` is a relative import, and the
+    // rule against it is E0101. Caught here because a leading `.` is not a
+    // module path segment, so the generic path reported E0002 ("expected module
+    // path segment, found Dot") and the E0101 help that names the three true
+    // spellings was reached by no program (G223).
+    if matches!(p.peek(), Token::Dot | Token::DotDot) {
+        return Err(relative_import_error(p));
+    }
     let path = parse_dotted_path(p, import_span, /* allow_scope */ true)?;
 
     let kind = if matches!(p.peek(), Token::LBrace) {
@@ -551,6 +559,38 @@ fn parse_import(p: &mut Cursor) -> Result<ImportDecl, ParseError> {
         kind,
         span: Span::new(import_span.start, end_span.end),
     })
+}
+
+/// The E0101 a leading `./` or `../` in an import path draws, spanning the
+/// whole relative prefix the author wrote.
+///
+/// The cursor is walked rather than peeked because the caller returns this
+/// error immediately: the walk is what measures the prefix. `../../` is one
+/// prefix and one span, not two errors, so the loop keeps taking `.`/`..`
+/// followed by `/` until the path's first real segment.
+fn relative_import_error(p: &mut Cursor) -> ParseError {
+    let start = p.peek_span();
+    let mut end = start;
+    let mut prefix = String::new();
+    while matches!(p.peek(), Token::Dot | Token::DotDot) {
+        prefix.push_str(if matches!(p.peek(), Token::Dot) {
+            "."
+        } else {
+            ".."
+        });
+        end = p.peek_span();
+        p.advance();
+        if !matches!(p.peek(), Token::Slash) {
+            break;
+        }
+        prefix.push('/');
+        end = p.peek_span();
+        p.advance();
+    }
+    ParseError::RelativeImport {
+        prefix,
+        span: Span::new(start.start, end.end),
+    }
 }
 
 fn parse_fn(

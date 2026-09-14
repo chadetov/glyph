@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Wire your agent into Glyph over MCP · Glyph</title>
-    <meta name="description" content="glyph mcp runs a Model Context Protocol server with nine tools over your project: what a symbol is, what breaks if you change it, whether one type can go where another is declared, diagnostics checked inside the project, hover, definition, references, match sites, and symbol search. Every one is also a glyph query verb, so an agent with no MCP client asks the same questions." />
+    <meta name="description" content="glyph mcp runs a Model Context Protocol server with eleven tools over your project: what a symbol is, what breaks if you change it, whether one type can go where another is declared, what a declaration depends on, what a module exports, diagnostics checked inside the project, hover, definition, references, match sites, and symbol search. Every one is also a glyph query verb, so an agent with no MCP client asks the same questions." />
     <link rel="canonical" href="https://glyphlang.io/mcp/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,12 +33,13 @@
       <h1 class="q-title">Wire your agent into Glyph's compiler</h1>
 
       <p class="short-answer">
-        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with nine tools
-        over your project: what a symbol is, what breaks if you change it, whether a value of one
-        type can go where another is declared, diagnostics checked inside the project, the type at a
-        cursor, where a name is defined, every reference to it, every <code>match</code> site over a
-        union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with
-        no MCP client asks the same questions and gets the same bytes.
+        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with eleven
+        tools over your project: what a symbol is, what breaks if you change it, whether a value of
+        one type can go where another is declared, what a declaration depends on, what a module
+        exports, diagnostics checked inside the project, the type at a cursor, where a name is
+        defined, every reference to it, every <code>match</code> site over a union, and symbol
+        search. Each one is also a <code>glyph query</code> verb, so an agent with no MCP client
+        asks the same questions and gets the same bytes.
       </p>
 
       <div class="detail">
@@ -77,13 +78,13 @@
       <div class="detail">
         <p>
           On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the
-          server reports the nine tools below. Positions you send follow the LSP convention: a
+          server reports the eleven tools below. Positions you send follow the LSP convention: a
           0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units.
           Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a
           1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.
         </p>
 
-        <p class="block-label">The nine tools</p>
+        <p class="block-label">The eleven tools</p>
       </div>
 
       <div class="code">
@@ -126,7 +127,17 @@ glyph_variants(path, name)
 
 <span class="cm">// search top-level declarations and union variants by name, each</span>
 <span class="cm">// entry with its identity, `pub`, kind and one-line signature</span>
-glyph_symbols(query)</pre>
+glyph_symbols(query)
+
+<span class="cm">// what one declaration depends on: every declaration its own source</span>
+<span class="cm">// names, split by relation (CALLS, REFERENCES, FIELD_ACCESS), each</span>
+<span class="cm">// edge with both ends and its provenance. The mirror of references</span>
+glyph_dependencies(entity)
+
+<span class="cm">// what one module makes visible to an importer: every `pub`</span>
+<span class="cm">// declaration and every variant a `pub` union hoists, each with</span>
+<span class="cm">// its identity, kind and signature</span>
+glyph_exports(module)</pre>
       </div>
 
       <div class="detail">
@@ -211,27 +222,45 @@ glyph_symbols(query)</pre>
       </div>
 
       <div class="code">
-        <span class="cap">the same nine questions, without a client</span>
-<pre>glyph query symbol      --path src/main.glyph --entity orders::OrderStatus
-glyph query impact      --entity orders::OrderStatus --change add_variant --variant Refunded
-glyph query assignable  --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
-glyph query diagnostics --path src/main.glyph
-glyph query hover       --path src/main.glyph --line 9 --character 6
-glyph query definition  --path src/main.glyph --line 9 --character 6
-glyph query references  --path src/orders.glyph --name create
-glyph query variants    --path src/orders.glyph --name OrderStatus
-glyph query symbols     --query order</pre>
+        <span class="cap">the same eleven questions, without a client</span>
+<pre>glyph query symbol       --path src/main.glyph --entity orders::OrderStatus
+glyph query impact       --entity orders::OrderStatus --change add_variant --variant Refunded
+glyph query assignable   --path src/main.glyph --from 'Nullable&lt;int&gt;' --to int
+glyph query diagnostics  --path src/main.glyph
+glyph query hover        --path src/main.glyph --line 9 --character 6
+glyph query definition   --path src/main.glyph --line 9 --character 6
+glyph query references   --path src/orders.glyph --name create
+glyph query variants     --path src/orders.glyph --name OrderStatus
+glyph query symbols      --query order
+glyph query dependencies --path src/main.glyph --entity main::build
+glyph query exports      --path src/main.glyph --module orders</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">When the build is already red</p>
+        <p>
+          The tools answer questions asked before an edit. After one, the thing to read is
+          <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics
+          with two more keys on each: <code>constraints</code>, the invariants a repairing edit has
+          to keep, and <code>symbols</code>, the <code>glyph_symbol</code> answer for every symbol
+          the diagnostic names, so the next edit needs no second call. On a <code>match</code>
+          missing arms that means the union's variants with their payloads arrive with the error
+          that asked for them, along with the sentence saying an <code>else</code> arm would forfeit
+          the guarantee the diagnostic exists to protect. Where the repair is fully determined,
+          <code>glyph fix</code> writes it and says what it declined. There is a
+          <a href="/answers/repair-protocol/">walkthrough of the whole loop</a> with real output.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A <code>glyph mcp [root]</code> server over stdio with nine tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code> and <code>glyph_symbols</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why.</p>
+          <p>A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>The tools only read: you can't rename or apply an edit through MCP. <code>glyph_dependencies</code> and <code>glyph_exports</code> aren't built, so an import graph still has to be read out of the files. <code>glyph_hover</code> on a field read from a record imported from another module answers null, though the checker types the access and a wrong assignment there is still an error. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse.</p>
+          <p>The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The editor's own hover has not caught up with <code>glyph_hover</code>: <code>glyph lsp</code> registers the buffers an editor opened rather than a project, so hovering an imported name in an editor still answers null where the tool answers. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The reply to <code>tools/list</code> is 45,509 bytes across eleven tool descriptions, which is context an agent pays for on every connect; shrinking it is planned work.</p>
         </div>
       </div>
 

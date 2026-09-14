@@ -8152,6 +8152,8 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- `alternatives` on a diagnostic carries variant names for a tagged union and literal contents for a string-literal union with nothing in the object saying which; `check --agent` reads the kind off `glyph_symbol`'s answer and drops its sentence for an inline union. The field wants a kind (`variants`, `literals`, `fields`, `exports`), which means `TypeError::accepted` carrying it from the construction sites
+- On an unmarked tree with a nested module, `glyph check` keys the module from the nearest `src/` while the tools key it from the file's own directory (G180's fallback), so `src/sub/deep.glyph` is `sub/deep` on one surface and `deep` on the other; a `package.json` marker settles it and `glyph init` writes one. The fallback should agree before another surface publishes identities
 - **`check_site.py` does not compile the code it publishes.** The site's answer
   pages carry Glyph programs, and nothing checks that they parse. A snippet on
   the verifiability page shipped for one review cycle missing the comma after a

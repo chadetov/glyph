@@ -1,0 +1,16 @@
+module main
+
+// G229. The parser is recursive descent, and before 0.1.122 an expression
+// nested deep enough ran the process out of stack: a 2,000-deep array
+// literal ended `glyph check` with `fatal runtime error: stack overflow`
+// and exit 134, and did the same to `glyph fmt`, `glyph lsp` and
+// `glyph mcp`, where one such file took the server down for the whole
+// workspace. The limit is 64 levels, measured from the stack one level of
+// the costliest entry point costs. This literal is 65 deep, one past it.
+//
+// Hand-written Glyph does not come close: the deepest nesting across the
+// 343 `.glyph` files in this repository is 16.
+pub fn deep() -> number {
+  let xs = [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+  return xs.length
+}

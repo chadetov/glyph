@@ -6669,9 +6669,25 @@ fn signature_type_site(
     }
     let because = reasons.join("; ");
     if all_compared {
+        // The site gets its own sentence rather than its arguments'. Two of
+        // the cells reach `WILL_FAIL` through `SAFE`, which means a total rule
+        // read the pairing in hand and accepted it, so the argument's own
+        // `because` argues that the comparison *accepts* while the site says
+        // the change fails. Both are true and they are about different things:
+        // the argument is about the types at the site today, the site is about
+        // a replacement. Concatenating the first and calling it the second put
+        // an accepting paragraph under a failing verdict and left the reader
+        // to reconcile them.
         SiteVerdict {
             verdict: Verdict::WillFail,
-            because,
+            because: format!(
+                "every argument at this site is paired with a parameter the relation reads \
+                 in full, so a replacement parameter type any of those pairings does not \
+                 accept is E0211 here. `arguments` carries each pairing as the relation \
+                 reads the types in hand, which is why an argument marked `SAFE` can sit \
+                 under this verdict: it is the acceptance that makes the site decidable, \
+                 not a claim about the replacement. The pairings: {because}"
+            ),
             code: Some("E0211"),
             absent: "",
             arguments,
@@ -14749,6 +14765,39 @@ pub fn f() -> number {
                  `{from}` into `{to}`"
             );
         }
+    }
+
+    /// A `WILL_FAIL` site says what the verdict means at a site, not what the
+    /// argument comparison concluded about the types in hand. The two cells
+    /// that reach `WILL_FAIL` through `SAFE` used to copy the argument's
+    /// sentence verbatim, so the JSON carried a paragraph arguing the pairing
+    /// is accepted under a verdict saying the change fails.
+    #[test]
+    fn a_will_fail_site_gives_its_own_reason_rather_than_its_arguments() {
+        let entry = signature_call_entry(
+            "module api\npub fn f(xs: Array<number>) -> number {\n  return xs.length\n}\n\
+             pub fn g() -> number {\n  let a: Array<number> = [1, 2]\n  return f(a)\n}\n",
+            "api::f",
+            "api::g",
+        );
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        let args = entry["arguments"].as_array().unwrap_or_else(|| panic!("{entry}"));
+        assert_eq!(args[0]["verdict"], "SAFE", "{entry}");
+        let site = entry["because"].as_str().unwrap_or_else(|| panic!("{entry}"));
+        let argument = args[0]["because"].as_str().unwrap_or_else(|| panic!("{entry}"));
+        assert_ne!(site, argument, "the site's reason is not the argument's");
+        assert!(
+            site.starts_with("every argument at this site is paired"),
+            "the site says what its own verdict means: {site}"
+        );
+        assert!(
+            site.contains("is E0211 here") && site.contains("`SAFE`"),
+            "and names the tension rather than leaving it to be reconciled: {site}"
+        );
+        assert!(
+            site.contains(argument),
+            "each pairing's own reading is still there: {site}"
+        );
     }
 
     /// A site is the weakest of its arguments. One compared pairing (a string

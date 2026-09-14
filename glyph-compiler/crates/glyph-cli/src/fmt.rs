@@ -75,7 +75,21 @@ pub fn format_path(path: &Path, check: bool) -> Result<FmtReport, FmtError> {
                     report.formatted.push(file);
                 }
             }
-            Err(e) => report.failed.push((file, format!("{e:?}"))),
+            // The same ariadne report `glyph check` prints for the same error,
+            // rather than the error struct's `Debug`. `glyph fmt` on a file
+            // nested past the parser's depth limit used to print
+            // `NestingTooDeep { construct: "array literal", limit: 64, span:
+            // Span { start: 87, end: 88 } }`, which is the compiler's internal
+            // spelling of a condition it knows how to explain.
+            Err(e) => {
+                let rendered = crate::render::render_parse_error(
+                    &file.display().to_string(),
+                    &src,
+                    &e,
+                    false,
+                );
+                report.failed.push((file, rendered));
+            }
         }
     }
     Ok(report)
@@ -111,4 +125,36 @@ fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), FmtErro
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A file `fmt` will not touch says why in the spelling every other
+    /// command says it in. It used to print the error struct's `Debug`:
+    /// `NestingTooDeep { construct: "array literal", limit: 64, span: Span {
+    /// start: 87, end: 88 } }`, on a condition `glyph check` explains with a
+    /// code, a caret and a help.
+    #[test]
+    fn a_file_that_does_not_parse_is_reported_as_a_diagnostic() {
+        let dir = std::env::temp_dir().join(format!("glyph_fmt_parse_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let deep = format!("module main\nconst x = {}{}\n", "[".repeat(70), "]".repeat(70));
+        std::fs::write(dir.join("main.glyph"), deep).expect("write");
+
+        let report = format_path(&dir, false).expect("run fmt");
+        assert_eq!(report.failed.len(), 1, "the file does not parse");
+        let reason = &report.failed[0].1;
+        assert!(
+            reason.contains("[E0011]") && reason.contains("nests deeper than"),
+            "the code and the sentence, not the struct: {reason}"
+        );
+        assert!(
+            !reason.contains("NestingTooDeep {"),
+            "no `Debug` dump reaches a user: {reason}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-236 entries, 208 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+237 entries, 209 are fixed, 7 are partly fixed, 11 are decided or resolved, and
 10 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -9828,7 +9828,7 @@ and is the owner's to confirm.
   record-field boundary decidable at the same time, and it touches inference
   rather than one relation, which is why it is its own entry.
 
-  *Reproduced against the 0.1.122 tree with the fence in place. `fp3`:
+  *Reproduced against 0.1.122, the release the fence shipped in, on its own tree. `fp3`:
   `type Mode = "read" | "write"` with `fn arr() -> Array<Mode> { return
   ["read", "write"] }` draws nothing from `glyph check --no-tsc` and passes
   `tsc --strict`, which is the correct answer, reached by declining rather than

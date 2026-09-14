@@ -61,8 +61,131 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.121</span>
+            <span class="rel-ver">0.1.122</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A type that lists its legal strings now rejects the illegal ones</h3>
+            <p><code>type Mode = "read" | "write"</code> declares a finite set of strings, and until this release the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record, a string outside the set: all four passed <code>glyph check --no-tsc</code> with nothing but unused-variable lints. <code>tsc</code> caught them on the emitted TypeScript, so a full <code>glyph build</code> was never wrong, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>type Mode = "read" | "write"
+
+fn takes_mode(m: Mode) -&gt; Mode {
+  return m
+}
+
+fn main() {
+  let a: Mode = 3
+  let b: Mode = "rw"
+  let c: Mode = takes_mode(true)
+  let d: Mode = { x: 1 }
+}
+<span class="del">// 0.1.121: four unused-variable warnings, exit 0</span>
+<span class="add">// 0.1.122: [E0204] expected `Mode`, found `number`</span>
+<span class="add">//          [E0204] expected `Mode`, found `"rw"`</span>
+<span class="add">//          [E0211] expected `Mode`, found `bool`</span>
+<span class="add">//          [E0204] expected `Mode`, found `record`</span></pre>
+            </div>
+            <p>That is the four <code>tsc</code> reported, at the same four statements, without running <code>tsc</code>. The rule reads the union as what it is at run time, a <code>string</code>, and asks the checker the corresponding <code>string</code> question in each direction, so it inherits the rules that already refuse a record or a container against a <code>string</code> instead of restating them. Two literal sets are compared by set, so a narrower union goes where a wider one is declared. An alias chain is followed on both sides, an imported union is decided like a local one, and <code>Nullable&lt;Mode&gt;</code> is descended with the union intact, so <code>let m: Nullable&lt;Mode&gt; = "read"</code> stands and <code>= "rw"</code> does not. A bare <code>string</code> against the union is still refused, because <code>tsc</code> refuses it too.</p>
+            <p>A few shapes are left to <code>tsc</code> on purpose rather than guessed at. A <code>string</code> produced by a value-position <code>match</code> whose arms are not all written literals is one: reading it as a bare <code>string</code> would reject correct programs, and one in this repository's own corpus was the first casualty of a stricter first cut. A union nested in a record field or a generic argument is another, which is the same boundary the record rules already stop at.</p>
+
+            <h3>A deeply nested file no longer kills the process</h3>
+            <p>The parser is recursive descent with no depth guard, so an expression nested two thousand levels deep ran the process out of stack and aborted. That is bad on <code>glyph check</code> and worse on <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root: one pathological file took down the server for the whole workspace. The nightly fuzz targets had been failing on it every night since 2026-09-10.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc, on `const x = ` with 2,000 nested brackets</span>
+<pre><span class="del">// 0.1.121: thread 'main' has overflowed its stack
+//          fatal runtime error: stack overflow, aborting   (exit 134)</span>
+<span class="add">// 0.1.122: [E0011] this array literal nests deeper than the parser's
+//                  limit of 64 levels                      (exit 1)
+//          Help: Name the inner levels: pull them out into `let`
+//          bindings, or into a `fn` that returns one of them, so no
+//          single expression, type or pattern is more than 64 levels
+//          deep.</span></pre>
+            </div>
+            <p>The limit is 64 and it was measured rather than picked. One level of the costliest construct, a nested array literal, costs 7,792 bytes of stack in the release build and 8,810 in the debug one, found by binary-searching the smallest thread stack a given depth will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which is what the language server's workers get, and 64 levels spend under a third of it in the costlier build. For scale, the deepest nesting in the 343 <code>.glyph</code> files in this repository is 16 levels. The limit covers expressions, types, patterns, blocks and JSX children, and the diagnostic lands on the token that would have opened level 65.</p>
+
+            <h3>The diagnostic is an object your agent can act on</h3>
+            <p>Every diagnostic now carries the pieces a repair needs, and carries them as an explicit <code>null</code> when the compiler does not hold one, so absence has a single spelling: <code>expected</code> and <code>actual</code> as the checker displays them, <code>cause</code> as the <code>module::name</code> of the symbol at fault, <code>alternatives</code> when there is a finite list of things that could legally stand there, <code>related</code> for a union's whole variant list, <code>file</code> as a path relative to the resolution root, and <code>explain</code> pointing at the code's own explanation.</p>
+            <p><code>glyph check --agent</code> prints that object with two more keys. <code>constraints</code> are the invariants a repairing edit has to keep, written out so the edit that satisfies the diagnostic does not break the guarantee the diagnostic existed to protect. <code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call.</p>
+            <div class="code">
+              <span class="cap">glyph check --agent, on a match missing two arms over an imported union</span>
+<pre>"code": "E0200",
+"message": "non-exhaustive match on `OrderStatus`: missing variants
+            `Paid`, `Cancelled`",
+"entity": "main::describe",
+"cause":  "orders::OrderStatus",
+"related": ["Pending", "Paid", "Cancelled"],
+"missing_variants": ["Paid", "Cancelled"],
+<span class="add">"constraints": [
+  "preserve exhaustiveness: this match must name every case of
+   `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+  "do not add an `else` arm: `OrderStatus` is declared in this
+   project, and a catch-all forfeits the guarantee that adding a
+   variant to it later forces this match to be updated (D9)."
+],
+"symbols": [ { "entity": "orders::OrderStatus", "kind": "union",
+  "variants": [
+    { "name": "Paid", "payload": "{ transaction_id: string }",
+      "construct": "Paid({ transaction_id: string })" }, ... ] } ],
+"symbols_absent": []</span></pre>
+            </div>
+            <p>Where the repair is fully determined, <code>glyph fix</code> writes it. Three rules landed: the missing arms of a non-exhaustive <code>match</code>, the checker's did-you-mean on an arm head that names no variant, and the one declared field a character away from a field typo. It joins the unused-import rule that was already there.</p>
+            <div class="code">
+              <span class="cap">glyph fix src</span>
+<pre>glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the
+           match on `OrderStatus`: `Paid`, `Cancelled`
+
+<span class="add">    // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
+    Paid({ transaction_id }) =&gt; {
+      print("unhandled OrderStatus variant Paid (arm written by glyph fix)")
+      process.exit(1)
+    },</span>
+
+<span class="cm">// glyph check --no-tsc: 1 module(s) checked, no diagnostics.</span></pre>
+            </div>
+            <p>The arm leaves through <code>process.exit</code> because that is the one body legal in both positions: it returns <code>never</code>, which contributes nothing to the arm join, so the same text works whether the <code>match</code> owes a value or not. The obvious alternative was measured rather than argued about, and <code>assert(false, "unhandled")</code> in a value-position arm returning <code>string</code> fails <code>tsc</code> with <code>TS2322: Type 'void' is not assignable to type 'string'</code>. A repair that turns one error into another is not a repair.</p>
+            <p>Nothing here guesses, so every rule that cannot settle an answer says so and why on the same output as what it applied. Two fields a character away from the typo are two, not one. A union no project module declares has no payload shapes to write patterns from.</p>
+            <p>The third piece is <code>glyph --explain &lt;CODE&gt; --json</code>, which hands over the code's explanation as data along with a wrong program from the compiler's own negative corpus and the diagnostic this compiler draws for it, built when you ask rather than stored.</p>
+            <div class="code">
+              <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every
+    variant. Unions are sealed (D9) ...",
+  "help": "Add an arm for each missing variant, or an `else` arm ...",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "files": [ { "path": "...glyph", "source": "module main\n\ntype Shape =\n ..." } ],
+    "diagnostic": { "code": "E0200", "missing_variants": ["Tri"], ... },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+      case: an entry is a wrong program and the code it draws. A fix invented
+      here would compile nowhere and be checked by nothing."
+  }
+}</pre>
+            </div>
+
+            <h3>Two more tools, and one answer that was claiming more than it knew</h3>
+            <p><code>glyph_dependencies</code> answers what one declaration depends on: every declaration its own source names, split by <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge with both ends and where it sits. <code>glyph_exports</code> answers what a module makes visible to an importer, straight from the compiler's export query: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists. That is eleven tools, each with a <code>glyph query</code> verb.</p>
+            <p>Building the mirror of an existing relation is what turned up a bug in the original. Every edge carries a provenance, and <code>PROVED</code> is supposed to mean the compiler read both ends. It was answering <code>PROVED</code> for an edge into a module that does not parse, where nothing had been read at all. It answers <code>UNDETERMINED</code> with the reason now, and because <code>glyph_references</code> and <code>glyph_impact</code> read the same function, both were wrong the same way and both are fixed.</p>
+            <p>Hover answers at every name declared in another module now, which is the last four positions of a fourteen-position audit and makes it fourteen of fourteen. The predicted cause was wrong and it is worth saying so: the guess was that the member access on an imported record was missing from the checker's type map, and it was not. The tool was reading the file without its project. The editor's own hover is not fixed by this: <code>glyph lsp</code> registers the buffers an editor opened rather than a project, so it still answers <code>null</code> at an imported name, and that is now tracked as its own finding.</p>
+            <p>Two cells of <code>glyph_impact</code>'s signature-type table said the checker had no rule for a pairing the checker decides, one for a container against a container and one for a structural record against a structural record. Both are decided by the same comparison <code>glyph_assignable</code> makes, rather than by a sentence written into the table, so the two tools cannot answer differently about one pairing. The word in the impact table is <code>SAFE</code>, because that table answers about an edit at a site while <code>glyph_assignable</code> answers about two types with no site in the question.</p>
+            <p>One thing did not get fixed and is worth naming here rather than in a tracker: <code>glyph fix</code> cannot repair a <code>match</code> over <code>Result</code> or <code>Option</code>. No identity keys a declaration the prelude owns, so no tool can hand the rule the payload shapes it writes patterns from, and it declines with that sentence rather than guessing. <code>match r { Ok(v) =&gt; v, }</code> is the most common shape this rule exists for and it is the one shape it does not repair.</p>
+
+            <p class="rel-note"><strong>Breaking.</strong> Two things reject programs 0.1.121 accepted, and both were established by running the published 0.1.121 and this release on the same programs under an isolated <code>HOME</code>. The four-statement <code>Mode</code> program above exits 0 under 0.1.121 with four warnings and exits 1 here with <code>E0204</code>, <code>E0204</code>, <code>E0211</code> and <code>E0204</code>. Every such program already failed a full <code>glyph build</code>, because <code>tsc</code> caught all four, so what changes is which compiler tells you. The nesting limit is breaking in the same direction and loses nothing: the 2,000-deep file aborts under 0.1.121 with exit 134 and reports <code>E0011</code> here with exit 1, and no program that reached the old behaviour ever compiled.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.121</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

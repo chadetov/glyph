@@ -6076,7 +6076,9 @@ impl Assigner<'_> {
                 };
                 self.accepting_rule(&found, args.first()?)?;
                 Some(
-                    "a `string`, a `number` or a `bool` where a `Nullable<T>` is declared                      is compared against `T` (G216), and that pairing is itself accepted",
+                    "a `string`, a `number` or a `bool` where a `Nullable<T>` is \
+                     declared is compared against `T` (G216), and that pairing is \
+                     itself accepted",
                 )
             }
             (Ty::Named { path: a, .. }, Ty::Named { path: b, .. })

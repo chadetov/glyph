@@ -59,8 +59,6 @@ fn enrich_one(
         return value;
     };
 
-    object.insert("constraints".to_string(), json!(constraints(d)));
-
     let mut symbols: Vec<Value> = Vec::new();
     let mut absent: Vec<Value> = Vec::new();
     match locate(d, project_srcs) {
@@ -118,6 +116,11 @@ fn enrich_one(
             }
         }
     }
+    // After the symbols, because one constraint is written from them: the
+    // values a union accepts are the union's own `construct` spellings, and
+    // `glyph_symbol` is what holds those. A constraint the compiler cannot
+    // state from an answer in hand is not written at all.
+    object.insert("constraints".to_string(), json!(constraints(d, &symbols)));
     object.insert("symbols".to_string(), json!(symbols));
     object.insert("symbols_absent".to_string(), json!(absent));
     value
@@ -125,7 +128,7 @@ fn enrich_one(
 
 /// The repair constraints for one diagnostic, stated only where the compiler
 /// holds them.
-fn constraints(d: &Diagnostic) -> Vec<String> {
+fn constraints(d: &Diagnostic, symbols: &[Value]) -> Vec<String> {
     let mut out = Vec::new();
     match d.code.as_str() {
         "E0200" => {
@@ -170,11 +173,8 @@ fn constraints(d: &Diagnostic) -> Vec<String> {
                         .to_string(),
                 ),
             }
-            if let Some(alternatives) = d.alternatives.as_deref().filter(|a| !a.is_empty()) {
-                out.push(format!(
-                    "the accepted values here are {}.",
-                    list(alternatives)
-                ));
+            if let Some(sentence) = accepted_values(d, symbols) {
+                out.push(sentence);
             }
         }
         "E0205" => out.push(
@@ -348,6 +348,62 @@ fn describe(root: &Path, file: &Path, entity: &str) -> Result<Value, String> {
     )?;
     serde_json::from_str(&answer)
         .map_err(|e| format!("`glyph_symbol` answered for `{entity}`, and it did not parse: {e}"))
+}
+
+/// What a value at this position may be, when the compiler holds a form to
+/// write one in. `None` when it does not, and then no sentence is written.
+///
+/// `alternatives` on an `E0204` or an `E0211` is a bare name list, and a bare
+/// name list is not a list of values. For a tagged union it is the variant
+/// names, and a variant with a payload is a constructor rather than a value:
+/// the compiler told an agent "the accepted values here are `Red`, `Green`",
+/// the agent wrote `takesColor(Green)`, and `tsc` answered `TS2345: Argument
+/// of type '(fields: { hex: string; }) => Color' is not assignable to
+/// parameter of type 'Color'`. For a string-literal union it is the literals
+/// with their quotes stripped, so `read` and `write` rendered in backticks are
+/// identifiers and the values are `"read"` and `"write"`. One field carried
+/// both shapes and the sentence flattened them into one.
+///
+/// The form comes from `glyph_symbol`'s answer for the declared type, which
+/// this diagnostic already fetched: `construct` for a variant, the literal for
+/// a member of a string-literal union. Those are the compiler's own spellings,
+/// so this cannot describe a union differently from the tool that describes
+/// unions. A declared type with no answer here (an inline union, a type the
+/// tool refused) gets no sentence, which is the same bar every other
+/// constraint is held to.
+fn accepted_values(d: &Diagnostic, symbols: &[Value]) -> Option<String> {
+    let alternatives = d.alternatives.as_deref().filter(|a| !a.is_empty())?;
+    let expected = d.expected.as_deref()?.trim();
+    let entity = type_as_entity(expected, d.module.as_deref());
+    let answer = symbols.iter().find(|s| {
+        let named = |k: &str| s.get(k).and_then(|v| v.as_str());
+        Some(expected) == named("name") || (entity.is_some() && entity.as_deref() == named("entity"))
+    })?;
+
+    if let Some(literals) = answer.get("literals").and_then(|v| v.as_array()) {
+        let known: Vec<&str> = literals.iter().filter_map(|l| l.as_str()).collect();
+        if !alternatives.iter().all(|a| known.contains(&a.as_str())) {
+            return None;
+        }
+        let written: Vec<String> = alternatives.iter().map(|a| format!("\"{a}\"")).collect();
+        return Some(format!(
+            "the values this position accepts are {}.",
+            list(&written)
+        ));
+    }
+
+    let variants = answer.get("variants").and_then(|v| v.as_array())?;
+    let mut written: Vec<String> = Vec::new();
+    for name in alternatives {
+        let variant = variants
+            .iter()
+            .find(|v| v.get("name").and_then(|n| n.as_str()) == Some(name.as_str()))?;
+        written.push(variant.get("construct").and_then(|c| c.as_str())?.to_string());
+    }
+    Some(format!(
+        "the values this position accepts are the cases of `{expected}`, each written as {}.",
+        list(&written)
+    ))
 }
 
 /// `` `a` ``, `` `b` `` for a sentence that enumerates names.

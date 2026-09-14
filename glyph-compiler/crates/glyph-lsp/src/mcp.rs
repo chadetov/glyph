@@ -516,6 +516,15 @@ fn tool_specs() -> Value {
     let proposed_variant = json!({ "type": "string", "description": "Optional. The name of a variant you are about to add to this union. Sending it makes the answer about that edit: every site carries a `consequence` beside its state, and a name the union already has is refused rather than answered." });
     let symbol_entity = json!({ "type": "string", "description": "The symbol's `module::name` identity (`orders::OrderStatus`), the same one a diagnostic, `glyph_references` and `glyph_impact` report. Send this or a position, never both. A record field (`module::Record.field`) is not an address here: ask for the record and read the field out of `fields`." });
     let symbol_path = json!({ "type": "string", "description": "With a position, the file the position is in. With `entity`, optional, and only needed when the server was started above more than one project, since a bare `module::name` names a different declaration in each." });
+    let dependency_entity = json!({ "type": "string", "description": "The declaration whose own dependencies you are asking about, as `module::name` (`checkout::announce`), the same identity a diagnostic, `glyph_references` and `glyph_impact` report. A record field is not an address here: ask about the record." });
+    let dependency_relations = json!({
+        "type": ["string", "array"],
+        "items": { "type": "string", "enum": vocabulary_enum },
+        "description": format!("Optional. Which relations to answer, as a name or an array of names. This tool answers `CALLS`, `REFERENCES` and `FIELD_ACCESS` out of one declaration. Leave it out for all three. {VOCABULARY}")
+    });
+    let dependency_depth = json!({ "type": "integer", "description": "Optional, counting hops from the entity, default 1. Exact at hop 1, since every edge sits inside the declaration's own extent; 2 or more is answered rather than refused, with `next_query` naming the one-call-per-root question that would be exact." });
+    let export_module = json!({ "type": "string", "description": "The module path as an `import` spells it (`orders`, `db/catalog`), which is the module half of every `module::name` identity this surface reports." });
+    let export_path = json!({ "type": "string", "description": "Optional. A file in the project the module belongs to, which is only needed when the server was started above more than one project, since a bare module path names a different file in each." });
     json!([
         {
             "name": "glyph_diagnostics",
@@ -561,6 +570,16 @@ fn tool_specs() -> Value {
             "name": "glyph_assignable",
             "description": "Can a value of one type go where another is declared. Asks the checker's own assignability relation, the one it runs at a `let`, a `const`, a `return` and a call argument, and reports nothing it did not decide. Use it before you widen a parameter, reach for a cast, or assume a boundary type flows into a scalar: `Nullable<int>` into `int` is refused and TypeScript cannot catch it, because the emitted `number | null` narrows.\\n\\n`path` is a `.glyph` file, and it names the scope both types are read in as well as the project they are counted in. `from` and `to` are each either a `module::name` addressing a type declaration, the same identity `glyph_symbol` and `glyph_impact` use, or a Glyph type expression written exactly as it would appear in an annotation in that file: `string`, `int`, `Nullable<int>`, `Option<Order>`, `Array<string>`, `{ id: string }`, `fn(number) -> bool`, `orders.Order` through a namespace import. Both are resolved by the compiler's own parser, resolver and lowerer in that file's scope, so a second name (D46), an imported declaration and a prelude container all mean here what they mean there. A spelling that is not a type expression, a `module::name` this project does not hold or that names something other than a type, and a name the file's scope does not reach are each refused with the reason rather than answered.\\n\\nThe answer is `{ path, module, from, to, verdict, because, diagnostics, resolved_in }`, with `from` and `to` each carrying `asked`, `form` (`spelling` or `entity`), `read_as` (the type the compiler resolved it to, which is where you see `int` come back as `number`) and `entity`. The verdicts are closed and each means one thing. `WILL_FAIL`: a rule of the relation refuses the pairing, so every site that writes it is a diagnostic, and `diagnostics` names the code per site, E0204 at an annotated `let` or `const` and at a `return`, E0211 at a call argument. `COMPATIBLE`: a rule read the pairing and accepted it. `UNDETERMINED`: no rule covers the pairing, so Glyph reports nothing here and only `tsc` on a full `glyph build` would see a mismatch; `because` names what is missing.\\n\\n`COMPATIBLE` is never the absence of a refusal. The relation refuses only what it can prove wrong, so a silent pass is not an acceptance, and this claims one only where a rule is total over the pairing: it would have refused had the two sides differed in the way it reads. Two function types are the shape of the difference, and they come back `UNDETERMINED`: the relation compares the returns and the `async` flag and says nothing at all about the parameters. A `COMPATIBLE` answer is Glyph accepting, not a proof that `tsc` will.",
             "inputSchema": { "type": "object", "properties": { "path": file, "from": assignable_from, "to": assignable_to }, "required": ["path", "from", "to"] }
+        },
+        {
+            "name": "glyph_dependencies",
+            "description": "What one declaration depends on: every declaration its own source names, split by relation. The mirror of `glyph_references`, which asks the same tables from the other end, so the two agree edge for edge over one declaration's extent. Address the declaration by its `module::name` identity. `CALLS` is every name it applies to an argument list; `REFERENCES` is every name it reads without applying (an annotation naming a type, a value read, a variant in a pattern, a name passed as an argument, an import binding used); `FIELD_ACCESS` is every member access the checker joined to the record that declares the field, whose `to` is `module::Record.field`. The two name relations are read out of the resolver's own table and never out of a scan of the text, so an import edge is here because the resolver bound the name; the field relation is read out of the checker's field-use table, so a site is there because a field set resolved. A name the resolver bound to a local binding or to a prelude built-in is not an edge, because neither has a `module::name` to put at the far end. `MATCH_SITES` is refused with the surface that answers it, `glyph_variants`. The answer is `{ entity, entity_kind, origin, depth_requested, depth_answered, relations }`, and each relation carries its own `edges`, its own `guarantee`, and the files it could not read under `unindexed`; `FIELD_ACCESS` carries `unkeyed` besides, for a member access the checker reached and could not join to any record. Every edge names both ends (`from`, `to`), the relation it stands in, its `provenance` (whether the compiler proved the far end or a TypeScript declaration asserted it), the far end's `origin`, and where in the declaration it sits. Exact at hop 1: every edge is inside the declaration's own extent. `depth` of 2 or more is answered rather than refused, with `next_query` naming the one-call-per-root question that would be exact, because composing hops here would merge several declarations' edges into one list where nothing says whose edge is whose.",
+            "inputSchema": { "type": "object", "properties": { "entity": dependency_entity, "relation": dependency_relations, "depth": dependency_depth, "path": impact_path }, "required": ["entity"] }
+        },
+        {
+            "name": "glyph_exports",
+            "description": "What one module makes visible to an importer. The set of names is the compiler's own export query, the one the import verifier reads, so a name is here exactly when another module may `import` it: a `pub` declaration, or a variant a `pub` tagged union hoists. An `import` is not re-exported (D15), so a name this module imports is not in the list. Each entry is the `glyph_symbols` entry shape: `name`, the `module::name` identity every other tool is keyed by, `module`, `kind` in `glyph_symbol`'s vocabulary, `pub`, `location`, and a one-line `signature` (null with `signature_absent` where the compiler lowered no type, which an unannotated `const` is). `glyph_symbol` on the identity is the rest of the description. A module this project does not hold is refused rather than answered with an empty list, since an empty list says the module exports nothing. A module the compiler could not parse or resolve answers `exports` null with `exports_absent` saying which, and names the file under `unindexed`.",
+            "inputSchema": { "type": "object", "properties": { "module": export_module, "path": export_path }, "required": ["module"] }
         }
     ])
 }
@@ -596,6 +615,8 @@ fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
         "glyph_symbol" => tool_symbol(&args, server),
         "glyph_symbols" => tool_symbols(&args, server),
         "glyph_assignable" => tool_assignable(&args, server),
+        "glyph_dependencies" => tool_dependencies(&args, server),
+        "glyph_exports" => tool_exports(&args, server),
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -6804,6 +6825,531 @@ fn next_query(answer: &Value, change: &Change) -> Value {
         },
         "roots": roots,
     })
+}
+
+// ---------------------------------------------------------------------------
+// glyph_dependencies
+// ---------------------------------------------------------------------------
+
+/// The relations one declaration's outgoing edges stand in.
+///
+/// `CALLS` and `REFERENCES` partition the names the declaration writes, the
+/// same way they partition the sites that name a symbol in `glyph_references`.
+/// `FIELD_ACCESS` is a different relation read from a different table: not a
+/// name the resolver bound, but a member access the checker joined to the
+/// record that declares the field.
+///
+/// `MATCH_SITES` is not here. A `match` inside this declaration is an edge of
+/// that relation and `glyph_variants` is the surface that answers it, which is
+/// what `answered_by` tells a caller who asks for it. `GENERATED_FROM` is not
+/// an outgoing edge at all: it says the declaration was written by a `glyph
+/// gen` run, which is a fact about the declaration rather than about something
+/// it depends on, and `glyph_references` carries it.
+const DEPENDENCY_RELATIONS: &[Relation] = &[
+    Relation::Calls,
+    Relation::References,
+    Relation::FieldAccess,
+];
+
+/// What one declaration depends on: every declaration it names, split by
+/// relation.
+///
+/// The mirror of `glyph_references`, and it reads the same tables from the
+/// other end. `glyph_references` asks which sites in the project name one
+/// symbol; this asks which symbols one declaration's own source names. Both
+/// read the resolver's table and the checker's field-use relation, so a name
+/// is an edge here because the resolver bound it and a field is an edge
+/// because the checker resolved the access onto a record, never because a
+/// spelling matched.
+///
+/// **Exact at hop 1.** Every edge sits inside the declaration's own extent, so
+/// the answer is a fact about this declaration's source and nothing else. A
+/// request for more hops is answered rather than refused, with `next_query`
+/// naming the call that would be exact: a second hop is a different question
+/// about a different root, and composing the two here would merge several
+/// declarations' edges into one list where nothing says whose edge is whose.
+fn tool_dependencies(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let (module, name, field) = read_entity(args)?;
+    if let Some(field) = field {
+        return Err(format!(
+            "`{module}::{name}.{field}` addresses a record field, and a field is not a \
+             declaration with dependencies of its own. Ask about `{module}::{name}` and \
+             read the field's type out of the record."
+        ));
+    }
+    let depth = read_depth(args)?;
+    let wanted = read_relations(args, DEPENDENCY_RELATIONS)?;
+    let (project_root, target) = match args.get("path") {
+        None | Some(Value::Null) => {
+            let found = impact_root(&root)?;
+            (found.clone(), found)
+        }
+        Some(_) => {
+            let (path, _) = read_file(args, &root)?;
+            (crate::module_root_for(&path, &root), path)
+        }
+    };
+    let project = server.project(&project_root, &target);
+    let subject = resolve_subject(project, &module, &name, None)?;
+    let entity = format!("{module}::{name}");
+
+    // `resolve_subject` read this module's symbol table, so the file is a
+    // member of the project and it parsed.
+    let (fpath, entry) = project
+        .searched()
+        .into_iter()
+        .find(|(_, f)| f.module_path == module)
+        .ok_or_else(|| format!("module `{module}` is not a file of this project"))?;
+    let db = &project.db;
+    let text = entry.file.source_text(db);
+    let parsed = glyph_db::parse_module(db, entry.file);
+    let resolved = glyph_db::resolve(db, entry.file);
+    let origin = symbol_origin(project, &root, &module, &name);
+    let (Some(module_ast), Some(resolved_module)) = (parsed.module(), resolved.resolved()) else {
+        // The names this declaration writes were never bound, so there is no
+        // edge to report and no list that could stand for one.
+        return Ok(dependencies_answer(
+            &entity,
+            &subject,
+            origin.as_ref(),
+            &wanted,
+            BTreeMap::new(),
+            Vec::new(),
+            &[json!({
+                "path": display_path(&root, fpath),
+                "why": "the file does not resolve, so no name in this declaration was bound \
+                        to a symbol and no edge out of it was read",
+            })],
+            depth,
+        ));
+    };
+
+    let variant = (subject.kind == EntityKind::Variant).then_some(name.as_str());
+    let Some(decl) = declaration_of(module_ast, &name, variant.is_some()) else {
+        return Err(format!(
+            "module `{module}` resolves `{name}` to no declaration this walk can read."
+        ));
+    };
+    let within = crate::analysis::declaration_extent(decl, variant);
+
+    let index = LineIndex::new(text);
+    let file = FileCtx { path: fpath, root: &root, text };
+    let mut nodes: BTreeMap<(String, String), (Provenance, Option<Origin>)> = BTreeMap::new();
+    let mut edges: Vec<(Relation, Value)> = Vec::new();
+    for dep in crate::analysis::global_dependencies_in(
+        module_ast,
+        resolved_module,
+        &module,
+        within,
+        text,
+    ) {
+        let key = (dep.module.clone(), dep.name.clone());
+        let node = nodes.entry(key).or_insert_with(|| {
+            (
+                symbol_provenance(project, &root, &dep.module, &dep.name),
+                symbol_origin(project, &root, &dep.module, &dep.name),
+            )
+        });
+        let to = format!("{}::{}", dep.module, dep.name);
+        let mut value = edge_value(
+            file,
+            &index,
+            &dep.span,
+            Some(entity.clone()),
+            origin.as_ref(),
+            Some(&to),
+            node.1.as_ref(),
+            &node.0,
+        );
+        if let Some(out) = value.as_object_mut() {
+            with_line(out);
+        }
+        edges.push((dep.span.relation, value));
+    }
+
+    // The field half, read from the checker's own field-use relation rather
+    // than from the resolver's table: a member access is an edge because a
+    // field set resolved and the field was found on it.
+    let mut unkeyed: Vec<Value> = Vec::new();
+    if wanted.contains(&Relation::FieldAccess) {
+        for site in glyph_db::field_uses(db, entry.file).sites() {
+            let span = site.span();
+            if span.start < within.0 || span.end > within.1 {
+                continue;
+            }
+            if site.access() == FieldAccess::Declaration {
+                continue;
+            }
+            let related = RelatedSpan {
+                start: span.start,
+                end: span.end,
+                relation: Relation::FieldAccess,
+            };
+            match site.owner() {
+                FieldOwner::Declared {
+                    module: owner_module,
+                    name: owner_name,
+                } => {
+                    let key = (owner_module.clone(), owner_name.clone());
+                    let node = nodes.entry(key).or_insert_with(|| {
+                        (
+                            symbol_provenance(project, &root, owner_module, owner_name),
+                            symbol_origin(project, &root, owner_module, owner_name),
+                        )
+                    });
+                    let to = format!("{owner_module}::{owner_name}.{}", site.field());
+                    let mut value = edge_value(
+                        file,
+                        &index,
+                        &related,
+                        Some(entity.clone()),
+                        origin.as_ref(),
+                        Some(&to),
+                        node.1.as_ref(),
+                        &node.0,
+                    );
+                    if let Some(out) = value.as_object_mut() {
+                        with_line(out);
+                    }
+                    edges.push((Relation::FieldAccess, value));
+                }
+                // A field set with no declaration behind it (an inline
+                // annotation, a stdlib type) and an object whose type never
+                // resolved are both sites this declaration reaches and neither
+                // is an edge into a declaration. Named rather than dropped,
+                // because dropping them makes a partial list look complete.
+                FieldOwner::Undeclared { display } => unkeyed.push(json!({
+                    "field": site.field(),
+                    "path": display_path(&root, fpath),
+                    "range": range_json(&index, text, span.start, span.end),
+                    "why": format!(
+                        "the checker resolved this access onto `{display}`, a field set with \
+                         no declaration behind it, so there is no `module::name` at the far \
+                         end of an edge"
+                    ),
+                })),
+                FieldOwner::Unresolved { display } => unkeyed.push(json!({
+                    "field": site.field(),
+                    "path": display_path(&root, fpath),
+                    "range": range_json(&index, text, span.start, span.end),
+                    "why": format!(
+                        "the object's type never resolved (`{display}`), so the compiler \
+                         joined this access to no record and there is nothing at the far end \
+                         to name"
+                    ),
+                })),
+            }
+        }
+    }
+
+    Ok(dependencies_answer(
+        &entity,
+        &subject,
+        origin.as_ref(),
+        &wanted,
+        group_by_relation(edges),
+        unkeyed,
+        &[],
+        depth,
+    ))
+}
+
+/// The declaration `name` binds in `module_ast`, or the tagged union that
+/// hoists it when `name` is a variant.
+fn declaration_of<'m>(
+    module_ast: &'m glyph_ast::Module,
+    name: &str,
+    is_variant: bool,
+) -> Option<&'m glyph_ast::Decl> {
+    if is_variant {
+        return module_ast.items.iter().find(|d| match d {
+            glyph_ast::Decl::Type(t) => match &t.body {
+                glyph_ast::TypeExpr::Union { variants, .. } => {
+                    variants.iter().any(|v| v.name.as_ref() == name)
+                }
+                _ => false,
+            },
+            _ => false,
+        });
+    }
+    module_ast
+        .items
+        .iter()
+        .find(|d| d.name().map(|n| n.as_ref()) == Some(name))
+}
+
+/// The declaration half of an edge's far end: `module::Record.field` names a
+/// field, and the address a further query takes is the record that declares
+/// it, since a field is not a declaration with dependencies of its own.
+fn declaration_address(to: &str) -> String {
+    match to.rsplit_once("::") {
+        Some((module, rest)) => match rest.split_once('.') {
+            Some((record, _)) => format!("{module}::{record}"),
+            None => to.to_string(),
+        },
+        None => to.to_string(),
+    }
+}
+
+/// The answer one `glyph_dependencies` call returns.
+///
+/// The envelope is `glyph_references`' envelope with the ends swapped: one
+/// node, its origin, and a per-relation entry carrying that relation's edges
+/// and its own coverage. Coverage binds per relation here for the same reason
+/// it does there, and `FIELD_ACCESS` carries `unkeyed` besides, because a
+/// member access the checker could not join to a record is a site this
+/// declaration reaches with nothing at the far end.
+#[allow(clippy::too_many_arguments)]
+fn dependencies_answer(
+    entity: &str,
+    subject: &Subject,
+    origin: Option<&Origin>,
+    wanted: &[Relation],
+    mut edges: BTreeMap<Relation, Vec<Value>>,
+    unkeyed: Vec<Value>,
+    unindexed: &[Value],
+    depth: u32,
+) -> String {
+    let mut relations = serde_json::Map::new();
+    for relation in wanted {
+        let mut entry = json!({
+            "edges": edges.remove(relation).unwrap_or_default(),
+            "unindexed": unindexed,
+            "guarantee": match relation {
+                Relation::Calls => "every name inside this declaration that it applies to an \
+                                    argument list. Exact: a name is here because the resolver \
+                                    bound it, and the callee has to be the name itself, so a \
+                                    call through a local alias or a member applies something \
+                                    else and is under REFERENCES.",
+                Relation::References => "every name inside this declaration that it reads \
+                                         without applying: an annotation, a value read, a \
+                                         variant in a pattern, a name passed as an argument. \
+                                         Exact: a name is here because the resolver bound it \
+                                         to a module-level symbol. A local binding and a \
+                                         prelude built-in have no `module::name`, so neither \
+                                         is an edge.",
+                _ => "every member access inside this declaration that the checker joined to \
+                      the record declaring the field. Exact for member accesses: a site is \
+                      here because a field set resolved, not because a spelling matched.",
+            },
+        });
+        if *relation == Relation::FieldAccess {
+            entry["unkeyed"] = json!(unkeyed);
+        }
+        relations.insert(relation.wire().to_string(), entry);
+    }
+    let (origin_wire, origin_absent) = Origin::pair(origin);
+    let mut answer = json!({
+        "entity": entity,
+        "entity_kind": subject.kind.wire(),
+        "origin": origin_wire,
+        "origin_absent": origin_absent,
+        "origin_detail": origin.map(Origin::detail),
+        "depth_requested": depth,
+        "depth_answered": 1u32,
+        "relations": Value::Object(relations),
+    });
+    if depth > 1 {
+        let mut roots: Vec<String> = answer["relations"]
+            .as_object()
+            .map(|by_relation| {
+                by_relation
+                    .values()
+                    .flat_map(|r| r["edges"].as_array().cloned().unwrap_or_default())
+                    .filter_map(|e| e["to"].as_str().map(declaration_address))
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or_default();
+        roots.sort_unstable();
+        roots.dedup();
+        answer["next_query"] = json!({
+            "why": format!(
+                "this answer is exact at hop 1: every edge sits inside the extent of \
+                 `{entity}` and is one the resolver bound or the checker resolved. A second \
+                 hop is a different question about a different root, and answering it here \
+                 would merge several declarations' edges into one list where nothing says \
+                 whose edge is whose. Ask one call per root. A root this project does not \
+                 declare, the compiler's own stdlib among them, is refused with that reason \
+                 rather than answered."
+            ),
+            "tool": "glyph_dependencies",
+            "arguments_template": { "entity": "<one of the roots below>", "depth": 1 },
+            "roots": roots,
+        });
+    }
+    to_json(&answer)
+}
+
+// ---------------------------------------------------------------------------
+// glyph_exports
+// ---------------------------------------------------------------------------
+
+/// What one module makes visible to an importer.
+///
+/// The set of names is `glyph_db::module_exports`, the query the import
+/// verifier itself reads, rather than a second reading of `pub` here. That is
+/// the whole point of the tool: a name is in this list because the compiler
+/// would let another module import it, and the two answers cannot drift.
+///
+/// Each entry is the `glyph_symbols` entry shape, so an answer composes with
+/// the rest of the surface without a second vocabulary: the `module::name`
+/// identity every other tool is keyed by, the kind in `glyph_symbol`'s
+/// vocabulary, and a one-line signature. `glyph_symbol` on the identity is the
+/// rest of the description.
+///
+/// A module this project does not hold is refused, because an empty list would
+/// say the module exports nothing. A module the compiler could not read is
+/// answered with `exports` null and the reason, for the same reason.
+fn tool_exports(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let module = match args.get("module") {
+        Some(Value::String(s)) if !s.trim().is_empty() => s.clone(),
+        None | Some(Value::Null) => {
+            return Err(
+                "`module` is required: the module path as an `import` spells it (`orders`, \
+                 `db/catalog`), which is the module half of every `module::name` identity \
+                 this surface reports."
+                    .to_string(),
+            )
+        }
+        Some(other) => return Err(format!("`module` must be a string, got `{other}`")),
+    };
+    let (project_root, target) = match args.get("path") {
+        None | Some(Value::Null) => {
+            let found = impact_root(&root)?;
+            (found.clone(), found)
+        }
+        Some(_) => {
+            let (path, _) = read_file(args, &root)?;
+            (crate::module_root_for(&path, &root), path)
+        }
+    };
+    let project = server.project(&project_root, &target);
+    let Some((fpath, entry)) = project
+        .files
+        .iter()
+        .find(|(_, f)| f.module_path == module)
+        .map(|(p, f)| (p.as_path(), f))
+    else {
+        let held: Vec<&str> = project
+            .files
+            .values()
+            .map(|f| f.module_path.as_str())
+            .collect();
+        return Err(format!(
+            "no file of this project is module `{module}`, so there is no export surface to \
+             report. An empty list would say the module exports nothing, which is a \
+             different claim. The project holds {}.",
+            if held.is_empty() {
+                "no modules".to_string()
+            } else {
+                held.join(", ")
+            }
+        ));
+    };
+    let db = &project.db;
+    let shown = display_path(&root, fpath);
+    let answer = |exports: Option<Value>, absent: String, unindexed: Value| {
+        let mut out = serde_json::Map::new();
+        out.insert("module".to_string(), json!(module));
+        out.insert("path".to_string(), json!(shown));
+        out.insert(
+            "project_root".to_string(),
+            json!(project_root_label(&root, &project_root)),
+        );
+        fact(&mut out, "exports", exports, absent);
+        out.insert("unindexed".to_string(), unindexed);
+        out.insert(
+            "guarantee".to_string(),
+            json!(
+                "every name `glyph_db::module_exports` reports for this file, which is the \
+                 set the import verifier reads: a `pub` declaration, or a variant a `pub` \
+                 tagged union hoists. An `import` is not re-exported (D15), so a name this \
+                 module imports is not here."
+            ),
+        );
+        Ok(to_json(&Value::Object(out)))
+    };
+
+    let parsed = glyph_db::parse_module(db, entry.file);
+    let Some(module_ast) = parsed.module() else {
+        return answer(
+            None,
+            format!("{shown} does not parse, so its export surface was never computed."),
+            json!([{
+                "path": shown,
+                "why": "the file does not parse, so no declaration in it was read",
+            }]),
+        );
+    };
+    if glyph_db::module_symbols(db, entry.file).symbols().is_none() {
+        return answer(
+            None,
+            format!(
+                "{shown} parses and does not resolve, so no symbol table was built and its \
+                 export surface was never computed."
+            ),
+            json!([{
+                "path": shown,
+                "why": "the file does not resolve, so no declaration in it was keyed",
+            }]),
+        );
+    }
+
+    let exported = glyph_db::module_exports(db, entry.file);
+    let names = &exported.exports().names;
+    let text = entry.file.source_text(db);
+    let index = LineIndex::new(text);
+    let file = FileCtx { path: fpath, root: &root, text };
+    let mut out: Vec<Value> = Vec::new();
+    for decl in &module_ast.items {
+        let Some(name) = decl.name() else { continue };
+        if names.contains(name.as_ref()) {
+            let what = DeclaredAs::Decl(decl);
+            push_symbol(
+                &mut out,
+                "",
+                file,
+                &index,
+                SymbolEntry {
+                    project,
+                    file: entry.file,
+                    module: &module,
+                    name: name.as_ref(),
+                    what: &what,
+                    container: None,
+                },
+            );
+        }
+        let glyph_ast::Decl::Type(t) = decl else {
+            continue;
+        };
+        let glyph_ast::TypeExpr::Union { variants, .. } = &t.body else {
+            continue;
+        };
+        for variant in variants {
+            if !names.contains(variant.name.as_ref()) {
+                continue;
+            }
+            let what = DeclaredAs::Variant { owner: t, variant };
+            push_symbol(
+                &mut out,
+                "",
+                file,
+                &index,
+                SymbolEntry {
+                    project,
+                    file: entry.file,
+                    module: &module,
+                    name: variant.name.as_ref(),
+                    what: &what,
+                    container: Some(name.as_ref()),
+                },
+            );
+        }
+    }
+    answer(Some(json!(out)), String::new(), json!([]))
 }
 
 // ---------------------------------------------------------------------------
@@ -14857,6 +15403,325 @@ pub fn f() -> number {
         // not variants, and a `match` over it is still exhaustiveness-checked.
         assert!(value["variants"].is_null(), "{value}");
         assert_eq!(value["exhaustive_match"], true, "{value}");
+    }
+
+    // -----------------------------------------------------------------------
+    // G221: glyph_dependencies and glyph_exports
+    // -----------------------------------------------------------------------
+
+    fn exports_of(root: &Path, module: &str) -> Value {
+        let (value, is_error) = call(root, "glyph_exports", json!({ "module": module }));
+        assert!(!is_error, "{module}: {value}");
+        value
+    }
+
+    fn dependencies_of(root: &Path, entity: &str) -> Value {
+        let (value, is_error) = call(root, "glyph_dependencies", json!({ "entity": entity }));
+        assert!(!is_error, "{entity}: {value}");
+        value
+    }
+
+    /// Every edge of a dependencies answer, whatever relation it stands in.
+    fn dependency_edges(value: &Value) -> Vec<Value> {
+        value["relations"]
+            .as_object()
+            .unwrap_or_else(|| panic!("no `relations` in {value}"))
+            .values()
+            .flat_map(|r| r["edges"].as_array().cloned().unwrap_or_default())
+            .collect()
+    }
+
+    /// The export list is the compiler's own export set, not a second reading
+    /// of `pub` here: `fn label` in the fixture is private and stays out,
+    /// every `pub` declaration is in, and a `pub` union's variants are in
+    /// because the module hoists them.
+    #[test]
+    fn exports_are_the_compilers_own_export_set() {
+        let root = shop_root();
+        let value = exports_of(&root, "orders");
+        let entries = value["exports"].as_array().unwrap_or_else(|| panic!("{value}"));
+        let names: Vec<&str> = entries
+            .iter()
+            .map(|e| e["name"].as_str().unwrap_or_default())
+            .collect();
+        for want in [
+            "OrderStatus",
+            "Pending",
+            "Paid",
+            "Cancelled",
+            "Order",
+            "Status",
+            "Describable",
+            "create",
+        ] {
+            assert!(names.contains(&want), "`{want}` is not exported: {names:?}");
+        }
+        assert!(
+            !names.contains(&"label"),
+            "a private declaration reached the export surface: {names:?}"
+        );
+        assert!(value["exports_absent"].is_null(), "{value}");
+        assert_eq!(value["unindexed"], json!([]), "{value}");
+
+        // Each entry is the `glyph_symbols` entry shape, so an answer composes
+        // with the rest of the surface rather than carrying a second
+        // vocabulary.
+        let create = entries
+            .iter()
+            .find(|e| e["name"] == "create")
+            .unwrap_or_else(|| panic!("{value}"));
+        assert_eq!(create["entity"], "orders::create", "{create}");
+        assert_eq!(create["module"], "orders", "{create}");
+        assert_eq!(create["kind"], "function", "{create}");
+        assert_eq!(create["pub"], true, "{create}");
+        assert_eq!(create["signature"], "fn(string) -> Order", "{create}");
+        assert!(create["location"]["path"].is_string(), "{create}");
+
+        // A variant carries the union it is hoisted out of, the same key
+        // `glyph_symbols` puts on one.
+        let paid = entries
+            .iter()
+            .find(|e| e["name"] == "Paid")
+            .unwrap_or_else(|| panic!("{value}"));
+        assert_eq!(paid["kind"], "variant", "{paid}");
+        assert_eq!(paid["container"], "OrderStatus", "{paid}");
+    }
+
+    /// A module the project does not hold is refused. An empty list would say
+    /// the module exports nothing, which is the stronger claim this surface
+    /// must never make by accident.
+    #[test]
+    fn exports_refuse_a_module_the_project_does_not_hold() {
+        let root = shop_root();
+        let (text, is_error) = call_raw(
+            &mut Server::new(root),
+            "glyph_exports",
+            json!({ "module": "nowhere" }),
+        );
+        assert!(is_error, "answered instead of refusing: {text}");
+        assert!(text.contains("no file of this project is module"), "{text}");
+        assert!(text.contains("orders"), "the refusal lists no module it holds: {text}");
+    }
+
+    /// A module the compiler could not read answers `exports` null with the
+    /// reason and names the file under `unindexed`, never `[]`.
+    #[test]
+    fn exports_of_an_unreadable_module_are_absent_with_a_reason() {
+        let root = tmp_root();
+        write(&root, "broken.glyph", "module broken\n\npub fn f() -> number {\n  return 1\n");
+        let value = exports_of(&root, "broken");
+        assert!(value["exports"].is_null(), "{value}");
+        assert!(
+            value["exports_absent"].as_str().unwrap_or_default().contains("does not parse"),
+            "{value}"
+        );
+        let unindexed = value["unindexed"].as_array().unwrap_or_else(|| panic!("{value}"));
+        assert_eq!(unindexed.len(), 1, "{value}");
+        assert!(unindexed[0]["why"].as_str().unwrap_or_default().contains("parse"), "{value}");
+    }
+
+    /// One declaration's own edges, split by relation. The call is `CALLS`,
+    /// the annotation naming the imported record is `REFERENCES`, and each
+    /// edge names both ends with the far end's provenance and origin.
+    #[test]
+    fn dependencies_split_a_declarations_edges_by_relation() {
+        let root = shop_root();
+        let value = dependencies_of(&root, "checkout::open_order");
+        assert_eq!(value["entity"], "checkout::open_order", "{value}");
+        assert_eq!(value["entity_kind"], "function", "{value}");
+        assert_eq!(value["depth_answered"], 1, "{value}");
+
+        let calls = value["relations"]["CALLS"]["edges"].as_array().unwrap();
+        assert_eq!(calls.len(), 1, "{value}");
+        assert_eq!(calls[0]["to"], "orders::create", "{value}");
+        assert_eq!(calls[0]["from"], "checkout::open_order", "{value}");
+        assert_eq!(calls[0]["provenance"], "PROVED", "{value}");
+        assert_eq!(calls[0]["to_origin"], "glyph", "{value}");
+        assert!(calls[0]["line"].is_number(), "{value}");
+
+        let refs = value["relations"]["REFERENCES"]["edges"].as_array().unwrap();
+        let to: Vec<&str> = refs.iter().map(|e| e["to"].as_str().unwrap()).collect();
+        assert_eq!(to, ["orders::Order"], "{value}");
+
+        // Every relation states its own coverage, for the reason
+        // `glyph_references` does: two relations read different tables.
+        for relation in ["CALLS", "REFERENCES", "FIELD_ACCESS"] {
+            assert!(
+                value["relations"][relation]["guarantee"].is_string(),
+                "{relation} states no guarantee: {value}"
+            );
+            assert!(
+                value["relations"][relation]["unindexed"].is_array(),
+                "{relation} states no coverage: {value}"
+            );
+        }
+    }
+
+    /// The field half is read out of the checker's own field-use relation, so
+    /// a member access is an edge because a field set resolved. One the
+    /// checker reached and could not join to a record is named under
+    /// `unkeyed` rather than dropped or claimed.
+    #[test]
+    fn dependencies_carry_a_field_edge_and_name_what_they_could_not_key() {
+        let root = tmp_root();
+        write(
+            &root,
+            "model.glyph",
+            "module model\n\npub type User = { email: string }\n",
+        );
+        write(
+            &root,
+            "app.glyph",
+            "module app\n\
+             \n\
+             import model { User }\n\
+             \n\
+             pub fn show(u: User, other: unknown) -> string {\n\
+             \x20 let m: string = other.mystery\n\
+             \x20 return u.email\n\
+             }\n",
+        );
+        let value = dependencies_of(&root, "app::show");
+        let field = &value["relations"]["FIELD_ACCESS"];
+        let edges = field["edges"].as_array().unwrap_or_else(|| panic!("{value}"));
+        assert_eq!(edges.len(), 1, "{value}");
+        assert_eq!(edges[0]["to"], "model::User.email", "{value}");
+        assert_eq!(edges[0]["relation"], "FIELD_ACCESS", "{value}");
+        let unkeyed = field["unkeyed"].as_array().unwrap_or_else(|| panic!("{value}"));
+        assert_eq!(unkeyed.len(), 1, "{value}");
+        assert_eq!(unkeyed[0]["field"], "mystery", "{value}");
+        assert!(
+            unkeyed[0]["why"].as_str().unwrap_or_default().contains("never resolved"),
+            "{value}"
+        );
+    }
+
+    /// A relation another surface answers is refused by name, and the refusal
+    /// says which surface. An empty list would say the relationship does not
+    /// hold.
+    #[test]
+    fn dependencies_refuse_a_relation_another_surface_answers() {
+        let root = shop_root();
+        let (text, is_error) = call_raw(
+            &mut Server::new(root.clone()),
+            "glyph_dependencies",
+            json!({ "entity": "orders::create", "relation": "MATCH_SITES" }),
+        );
+        assert!(is_error, "answered instead of refusing: {text}");
+        assert!(text.contains("glyph_variants"), "{text}");
+
+        // A record field is not a declaration with dependencies of its own.
+        let (text, is_error) = call_raw(
+            &mut Server::new(root),
+            "glyph_dependencies",
+            json!({ "entity": "orders::Order.id" }),
+        );
+        assert!(is_error, "answered instead of refusing: {text}");
+        assert!(text.contains("record field"), "{text}");
+    }
+
+    /// A request past hop 1 is answered, not refused: the exact hop-1 answer
+    /// plus the one-call-per-root question that would be exact. A field edge's
+    /// root is the record that declares it, since a field is not an address
+    /// this tool takes.
+    #[test]
+    fn dependencies_answer_a_second_hop_with_the_next_question() {
+        let root = shop_root();
+        let (value, is_error) = call(
+            &root,
+            "glyph_dependencies",
+            json!({ "entity": "checkout::open_order", "depth": 2 }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["depth_requested"], 2, "{value}");
+        assert_eq!(value["depth_answered"], 1, "{value}");
+        let next = &value["next_query"];
+        assert_eq!(next["tool"], "glyph_dependencies", "{value}");
+        let roots: Vec<&str> = next["roots"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{value}"))
+            .iter()
+            .map(|r| r.as_str().unwrap_or_default())
+            .collect();
+        assert_eq!(roots, ["orders::Order", "orders::create"], "{value}");
+        assert!(!roots.iter().any(|r| r.contains('.')), "a field is offered as a root: {value}");
+    }
+
+    /// The two directions of one relation agree. Every name edge
+    /// `glyph_dependencies` reports out of a declaration is an edge
+    /// `glyph_references` reports into the same symbol, at the same place,
+    /// with the ends swapped. Asserted as a property rather than as a fixed
+    /// list, so a change to either walk that moved one and not the other
+    /// fails here.
+    #[test]
+    fn dependencies_and_references_agree_over_one_declaration() {
+        let root = shop_root();
+        let mut server = Server::new(root.clone());
+        let out = dependencies_of(&root, "checkout::open_order");
+        let named: Vec<Value> = dependency_edges(&out)
+            .into_iter()
+            .filter(|e| e["relation"] != "FIELD_ACCESS")
+            .collect();
+        assert!(!named.is_empty(), "{out}");
+        for edge in named {
+            let to = edge["to"].as_str().unwrap_or_default();
+            let (_, name) = to.rsplit_once("::").unwrap_or_else(|| panic!("{edge}"));
+            let (into, is_error) = call_on(
+                &mut server,
+                "glyph_references",
+                json!({ "path": "orders.glyph", "name": name }),
+            );
+            assert!(!is_error, "{into}");
+            let back = flat_edges(&into);
+            assert!(
+                back.iter().any(|b| {
+                    b["from"] == json!("checkout::open_order")
+                        && b["to"] == json!(to)
+                        && b["path"] == edge["path"]
+                        && b["range"] == edge["range"]
+                        && b["relation"] == edge["relation"]
+                }),
+                "`glyph_references` on `{to}` holds no edge from `checkout::open_order` at \
+                 {}: {into}",
+                edge["range"]
+            );
+        }
+    }
+
+    /// The server serves eleven tools, and the set is asserted by name. A
+    /// count on its own would pass a release that swapped one tool for
+    /// another.
+    #[test]
+    fn the_server_serves_eleven_named_tools() {
+        let mut server = Server::new(tmp_root());
+        let list = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }),
+            &mut server,
+        )
+        .unwrap();
+        let mut names: Vec<&str> = list["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap())
+            .collect();
+        names.sort_unstable();
+        assert_eq!(
+            names,
+            [
+                "glyph_assignable",
+                "glyph_definition",
+                "glyph_dependencies",
+                "glyph_diagnostics",
+                "glyph_exports",
+                "glyph_hover",
+                "glyph_impact",
+                "glyph_references",
+                "glyph_symbol",
+                "glyph_symbols",
+                "glyph_variants",
+            ]
+        );
     }
 
     #[test]

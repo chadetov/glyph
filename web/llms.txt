@@ -66,7 +66,7 @@ not importable but does not stop the run, and today does not change the exit
 code: `glyph run` exits with whatever `main` returned.
 
 If you drive Glyph through the Model Context Protocol, `glyph mcp [root]` speaks
-MCP over stdio and exposes nine tools over the project:
+MCP over stdio and exposes eleven tools over the project:
 
 - `glyph_symbol` — everything the compiler holds about one symbol, addressed by
   its `module::name` identity or by a position: kind, visibility, a record's
@@ -108,6 +108,14 @@ MCP over stdio and exposes nine tools over the project:
   asked of the checker's own comparison. `WILL_FAIL` with the code it raises,
   `COMPATIBLE` only where a rule accepted, `UNDETERMINED` where no rule covers
   the pairing.
+- `glyph_dependencies` — what one declaration depends on: every declaration its
+  own source names, split by relation (`CALLS`, `REFERENCES`, `FIELD_ACCESS`),
+  each edge with both ends, its provenance and where it sits. The mirror of
+  `glyph_references`, read from the same tables at the other end.
+- `glyph_exports` — what one module makes visible to an importer, from the
+  compiler's own export query: every `pub` declaration and every variant a
+  `pub` union hoists, each as a `glyph_symbols` entry with its identity, kind
+  and signature.
 
 Positions are 0-based `line`/`character` (UTF-16). This is the interactive
 complement to `glyph build --json`, which remains the batch path for coded
@@ -121,6 +129,8 @@ flags.
 glyph query symbol --entity orders::Order
 glyph query assignable --path src/main.glyph --from 'Nullable<int>' --to int
 glyph query impact --entity orders::Order --change change_signature_type
+glyph query dependencies --entity checkout::announce
+glyph query exports --module orders
 glyph query hover --path src/main.glyph --line 12 --character 6
 ```
 

@@ -1,6 +1,6 @@
 //! `glyph query <tool> ...` — one CLI verb per MCP tool.
 //!
-//! The MCP server answers nine questions about a project, and until this verb
+//! The MCP server answers eleven questions about a project, and until this verb
 //! existed reaching any of them meant speaking JSON-RPC over a pipe. An agent
 //! without an MCP client had grep and the diagnostics, which is the surface
 //! Glyph exists to improve on.
@@ -126,6 +126,31 @@ pub enum QueryCommand {
         #[arg(long, default_value = "")]
         query: String,
     },
+    /// What one declaration depends on: every declaration its own source
+    /// names, split by relation.
+    Dependencies {
+        /// The declaration's `module::name`.
+        #[arg(long, value_name = "MODULE::NAME")]
+        entity: String,
+        /// Narrow the answer to one relation.
+        #[arg(long, value_name = "RELATION")]
+        relation: Option<String>,
+        /// Hops to answer. Defaults to 1.
+        #[arg(long)]
+        depth: Option<u32>,
+        /// A file naming which project to count the identity in.
+        #[arg(long, value_name = "PATH")]
+        path: Option<String>,
+    },
+    /// What one module makes visible to an importer.
+    Exports {
+        /// The module path as an `import` spells it.
+        #[arg(long, value_name = "MODULE")]
+        module: String,
+        /// A file naming which project the module belongs to.
+        #[arg(long, value_name = "PATH")]
+        path: Option<String>,
+    },
     /// Can a value of one type go where another is declared, asked of the
     /// checker's own comparison.
     Assignable {
@@ -162,6 +187,8 @@ impl QueryCommand {
             QueryCommand::Impact { .. } => "glyph_impact",
             QueryCommand::Symbols { .. } => "glyph_symbols",
             QueryCommand::Assignable { .. } => "glyph_assignable",
+            QueryCommand::Dependencies { .. } => "glyph_dependencies",
+            QueryCommand::Exports { .. } => "glyph_exports",
         }
     }
 
@@ -247,6 +274,21 @@ impl QueryCommand {
                 out.insert("path".to_string(), json!(path));
                 out.insert("from".to_string(), json!(from));
                 out.insert("to".to_string(), json!(to));
+            }
+            QueryCommand::Dependencies {
+                entity,
+                relation,
+                depth,
+                path,
+            } => {
+                out.insert("entity".to_string(), json!(entity));
+                put(&mut out, "relation", relation.clone());
+                put(&mut out, "depth", *depth);
+                put(&mut out, "path", path.clone());
+            }
+            QueryCommand::Exports { module, path } => {
+                out.insert("module".to_string(), json!(module));
+                put(&mut out, "path", path.clone());
             }
         }
         Value::Object(out)

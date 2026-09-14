@@ -2,7 +2,11 @@
 
 Every diagnostic the compiler emits carries a stable code. The code appears in
 the rendered error (`[E0200] Error: ...`), and `glyph --explain <code>` prints a
-longer explanation with a fix example. `glyph build` and `glyph run` report the
+longer explanation with a fix example. `glyph --explain <code> --json` answers
+the same thing as data, and adds a wrong program from `tests/negative/` that
+draws the code, compiled at the moment you ask, with the diagnostic it actually
+produces. The corpus pairs no repaired program with a case, so `corrected` is
+null with that as its reason rather than a fix nothing compiles. `glyph build` and `glyph run` report the
 same set on the same tree, warnings included; `glyph build --json` gives you the
 machine-readable form, and the `glyph_diagnostics` MCP tool answers with that
 same structured diagnostic for one file, from the same Rust type, so the two

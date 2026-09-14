@@ -87,8 +87,13 @@ MCP over stdio and exposes nine tools over the project:
 - `glyph_definition` — where the name at a position is defined, following
   imports, with the `module::name` identity so the answer chains into
   `glyph_impact`.
-- `glyph_hover` — the type at a position: an expression, a declaration name, a
-  parameter, an annotation, a variant, or a binding.
+- `glyph_hover` — the type at a position, read inside the file's project: an
+  expression, a declaration name, a parameter, an annotation, a variant, or a
+  binding. A name declared in another module answers from that module's own
+  declaration, so the binding in `import m { N }`, an imported function at a
+  call, an imported variant used as a value and a field read off an imported
+  record all have a type. A namespace import binding does not: it names a
+  module, and a module has no type.
 - `glyph_symbols` — search the project's declarations by name substring; each
   entry carries the identity, whether it is exported, its kind and its
   signature.

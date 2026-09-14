@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-229 entries, 207 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+230 entries, 208 are fixed, 7 are partly fixed, 11 are decided or resolved, and
 4 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -9549,3 +9549,114 @@ and is the owner's to confirm.
   prints. 0.1.121 does the same on an unbalanced `(`, so nothing regressed; the
   fix belongs to `glyph fmt`'s reporting, not to the depth limit.*
 
+- **G230. [FIXED] A string-literal-union annotation refuses nothing.** `type Mode =
+  "read" | "write"` declares a finite set of strings (D30), and the checker
+  compared a value against it by nothing at all. With
+  `fn takes_mode(m: Mode) -> Mode`, all four of `let a: Mode = 3`,
+  `let b: Mode = "rw"`, `let c: Mode = takes_mode(true)` and
+  `let d: Mode = { x: 1 }` passed `glyph check --no-tsc` with four
+  unused-variable lints and exit 0, while `glyph check` with `tsc` on the same
+  file reported three `TS2322` and one `TS2345`. So the hole was Glyph's own
+  relation, which is the only thing `--no-tsc`, `glyph lsp`, `glyph mcp` and
+  the playground have. `Ty::StringLiteralUnion` carried its literal set for
+  match exhaustiveness alone; `assign_incompatible` had no arm for it, and
+  `is_declared_union_or_record` excluded it by name, so the G201 rule that
+  refuses a declared union or record against a primitive stopped exactly short
+  of it.
+
+  *Reproduced against 0.1.121: `glyph check --no-tsc main.glyph` on that
+  four-statement program prints `[E0107] Warning: lint: unused variable a`,
+  `b`, `c`, `d` and `glyph check: 1 module(s) checked, 4 warning(s).`, exit 0.
+  The same file under `glyph check` prints `[TS2322] Error: tsc: Type '3' is not
+  assignable to type 'Mode'.`, `[TS2322] ... Type '"rw"' ...`,
+  `[TS2345] ... Argument of type 'true' ...` and
+  `[TS2322] ... Type '{ x: number; }' ...`, exit 1.*
+
+  *Fixed in 0.1.122. `Assigner::string_literal_union_verdict` decides the
+  pairing in `assign_incompatible`, beside the imported and prelude-container
+  rules, and `Assigner::value_refusal` is the one place the `let`, the `const`,
+  the `return` and the call-argument checks all reach. The rule reads a
+  string-literal union as what it is at run time, a `string`, and what it is in
+  the type, a narrowing of one, and asks the relation the corresponding
+  `string` question in each direction rather than re-deriving which values are
+  records and which are containers: a `number`, a `bool`, a record, a tagged
+  union, a prelude container and an imported declaration where the union is
+  declared are each refused by the rule that already refuses them against
+  `string`, and a value of the union where a `string` is declared is accepted
+  because every literal in the set is one. Two string-literal unions are
+  compared by literal set and that answer is decisive, since two sets reach
+  `definitely_incompatible` as two `Ty::Named`s and the nominal rule would
+  refuse `let w: Wide = m` for the names differing when the sets say it stands.
+  An alias chain is followed on both sides (D46), and an imported union is
+  decided like a local one through `imported_type_decl`, which the
+  `tests/negative/imported_string_literal_union_annotation/` pair holds across a
+  real module boundary. `Nullable<T>` is descended with the union intact, so
+  `let m: Nullable<Mode> = "read"` stands and `let m: Nullable<Mode> = "rw"`
+  does not. `accepting_rule` gains the two total rules behind this, so
+  `glyph_assignable` answers `Compatible` for a subset and for the union
+  against `string` rather than `NoRule`, and `ty_display` renders a literal set
+  instead of `?`, which is what an imported union rendered as.*
+
+  *Two written forms are read off the expression rather than its type, because
+  the type map does not keep what they prove. A string literal is typed
+  `string`, so `"rw"` and a `string`-typed identifier arrive at the relation as
+  one `Ty`; `written_ty` hands the literal over as the one-literal union it
+  spells, and the diagnostic then says ``expected `Mode`, found `"rw"` `` with
+  `read` and `write` in `alternatives`. An object literal is typed
+  `Ty::Unknown`, so the record rule never saw one; the written `{ ... }` emits
+  a JavaScript object whatever it holds, and the refusal names it `record`.*
+
+  *Two-binary: on the four-statement program, the published 0.1.121 exits 0
+  from `glyph check --no-tsc` with four `E0107` lints and no error; this build
+  exits 1 with `[E0204] type mismatch: expected `Mode`, found `number``,
+  ``[E0204] ... found `"rw"` ``, ``[E0211] argument type mismatch: expected
+  `Mode`, found `bool` `` and ``[E0204] ... found `record` ``, which is the
+  four `tsc` reported, at the same four statements, without running `tsc`.
+  Breaking: a program the previous version accepted is now rejected, though
+  every such program already failed `glyph build`. No `catches/` case, because
+  `tsc --strict` refuses all of it: this closes a gap between Glyph and `tsc`
+  rather than catching something `tsc` misses. The 31 apps under
+  `examples/apps/` and the 62 files under `examples/` were run at their own
+  roots with `check --json --no-tsc --no-test` before and after: 93 entries,
+  identical exit codes and identical diagnostic-code lists.*
+
+  *Left undetermined, each for a reason. A `string` a value-position `match`
+  produced whose arms this cannot read: `match` is where the walk's own join
+  loses the literals, and `csvql`'s `fn agg_of(name: string) -> Agg { return
+  match name { "sum" => "sum", ... } }` is a correct program `tsc` compiles that
+  the first cut of this rule rejected. `written_ty` reads the arms when every
+  one is a written literal or an expression already typed as a string-literal
+  union, and answers `Unknown` when an arm is a block or something else, which
+  leaves the pairing to `tsc` rather than refusing a `string` that may not be a
+  bare one. A string-literal union nested in a record field or a generic
+  argument: the relation's record recursion is `definitely_incompatible`'s, a
+  free function with no declaration to read, so `{ mode: string }` against
+  `{ mode: Mode }` is decided by nothing, the same boundary G201 and G216 stop
+  at. A bare-identifier `match` arm over a `string` scrutinee (`match s { x =>
+  { return x } }` under a `-> Mode` return): the arm's binding is typed
+  `Ty::Unknown`, not `string`, so nothing reads it. An object literal against a
+  `string`, a `number` or a `bool` (`let g: string = { x: 1 }`), which is the
+  object literal's own missing type rather than this pairing, and is as silent
+  after this as before it. And an imported string-literal union names its
+  literal set in a diagnostic rather than its declared name, because
+  `imported_string_literal_union` lowers one straight to
+  `Ty::StringLiteralUnion` while an imported *alias* of one keeps its
+  `Ty::Imported` and its name; the two spellings of the same declaration
+  therefore print differently, which is a lowering question and not an
+  assignability one.*
+
+  *The `glyph_impact` `change_signature_type` table has not been updated and
+  now understates the checker in six cells: a primitive argument against a
+  string-literal-union parameter (`(A::Primitive(_), P::Named(NamedBody::
+  Other(shape)))`), a string-literal union argument against a primitive
+  parameter (`(A::NamedOther(shape), P::Primitive(_))`), a prelude container
+  and a structural record or function against such a parameter (both reaching
+  the catch-all), an imported declaration against one (`(A::Imported(_) |
+  A::AppOfImported(_), P::Other)`), and an imported or inline union on either
+  side, which `classify_argument` and `classify_parameter` send to `Other`
+  because it arrives as `Ty::StringLiteralUnion`. The by-name cell
+  `(A::LocalUnionOrRecord | A::NamedOther(_), P::Named(_))` still reaches the
+  right verdict with the wrong reason: two string-literal unions are compared
+  by literal set, not by name. `NamedBody::Other("a string-literal union (D30),
+  which is a `string`")` is the shape string to split out; the checker no
+  longer treats one as a plain `string`.*

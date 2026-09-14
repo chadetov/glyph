@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-229 entries, 204 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-6 are open. G144, the D28 boundary cast that never reached the returns a
+229 entries, 207 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+4 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9074,7 +9074,7 @@ and is the owner's to confirm.
   Extending the vocabulary is a decision about every tool that takes an
   identity, not about this diagnostic.*
 
-- **G221. [HALF FIXED] No tool answers assignability, dependencies or a module's exports.**
+- **G221. [FIXED] No tool answers assignability, dependencies or a module's exports.**
   "Can a `Nullable<int>` go where an `int` is declared" has no tool, and per G216
   neither stage answers it. "What does `Order` depend on" and "what does module
   `orders` export" have no tool; the import edges are in every parsed AST and
@@ -9111,9 +9111,54 @@ and is the owner's to confirm.
   The same release gave every MCP tool a command-line verb (`glyph query symbol`,
   `glyph query assignable`, and one per tool), routed through the same
   `call_tool` an MCP client reaches, so the tools are reachable without an MCP
-  client at all. What is left is the other two questions: `glyph_dependencies(entity)`
-  and `glyph_exports(module)` over the import edges the resolver already walks
-  and `glyph_db::module_exports`, scheduled for 0.1.122.
+  client at all.
+
+  *The other two questions closed in 0.1.122.* `glyph_dependencies(entity)` is
+  the mirror of `glyph_references`: it reads the resolver's own table and the
+  checker's field-use relation from the other end, over one declaration's
+  extent, and splits the edges by the same closed vocabulary. `CALLS` is every
+  name the declaration applies, `REFERENCES` every name it reads without
+  applying, `FIELD_ACCESS` every member access the checker joined to the record
+  that declares the field. A name the resolver bound to a local binding or to a
+  prelude built-in is not an edge, since neither has a `module::name` to put at
+  the far end; a member access the checker reached and could not join to a
+  record is named under `unkeyed`. `glyph_exports(module)` answers from
+  `glyph_db::module_exports`, the query the import verifier itself reads, with
+  each name as a `glyph_symbols` entry, so a name is in the list exactly when
+  another module may import it. Both are exact at hop 1 and answer a deeper
+  request with `next_query` naming one call per root, as `glyph_impact` does.
+  The two verbs `glyph query dependencies` and `glyph query exports` route
+  through the same `call_tool`, compared byte for byte in
+  `glyph-cli/tests/agent_loop.rs`. The server serves eleven tools.
+
+  On the three-module shop project this entry's neighbours use:
+
+  ```
+  $ glyph query exports --module orders
+  orders::OrderStatus  union      pub  Pending | Paid({ transaction_id: string }) | Cancelled
+  orders::Pending      variant    pub  Pending
+  orders::Paid         variant    pub  Paid({ transaction_id: string })
+  orders::Cancelled    variant    pub  Cancelled
+  orders::Order        record     pub  { id: string, status: OrderStatus, total: number }
+  orders::Describable  interface  pub  { describe: fn() -> string }
+  orders::Receipt      record     pub  { order: Order, note: string }
+  orders::create       function   pub  fn(string) -> Order
+  orders::label        function   pub  fn(OrderStatus) -> string
+
+  $ glyph query dependencies --entity checkout::announce
+  CALLS         checkout::announce -> orders::create     PROVED glyph  src/checkout.glyph:9
+  REFERENCES    checkout::announce -> orders::Order      PROVED glyph  src/checkout.glyph:9
+  FIELD_ACCESS  checkout::announce -> orders::Order.id   PROVED glyph  src/checkout.glyph:10
+  ```
+
+  Nine tests in `mcp.rs`, a verb-parity case in `agent_loop.rs`, and two
+  `tests/exact-or-absent/` corpora, taking that file to 33 invariants. One of
+  them found a false claim older than this work: `symbol_provenance` reported
+  `PROVED` for any far end whose module path matched a file of the project,
+  without checking the file parsed or that it declares the name, so an edge
+  into a module that does not parse came back proved with a null origin. It
+  reports `UNDETERMINED` with which of the three it is now, the way the stdlib
+  branch beside it always has.
 
 - **G222. The knowledge surface is hand-written, drifting, and mostly
   unverified.** `glyph llms` prints `AGENTS.md`, 1,419 lines embedded by
@@ -9287,7 +9332,7 @@ and is the owner's to confirm.
   direction against the 0.1.120 tree; against 0.1.119 it removes a false
   positive and keeps the true one.*
 
-- **G227. Hover answers nothing at a name declared in another module.** Four
+- **G227. [FIXED] Hover answers nothing at a name declared in another module.** Four
   positions, one shape. In a module that imports from a sibling, `glyph_hover`
   returns `null` at the import binding itself (`Order` and `create` inside
   `import orders { Order, create }`, and the `checkout` of `import checkout`),
@@ -9318,7 +9363,36 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.120, the version the 0.1.121 tree at `b4c1fd6` still reports before the bump, on the three-module shop project, `glyph query hover`: `src/checkout.glyph` 2:16 (the `Order` import binding) `null`, 2:23 (`create` in the same list) `null`, 5:9 (`create` at a call) `null`, 9:17 (`create` at a second call) `null`, 10:11 (`o.id`) `null`, `src/main.glyph` 3:7 (the `checkout` namespace binding) `null` and 6:22 (`checkout.announce`) `null`; against 4:33 and 9:9 (the `Order` annotation) `"Order"` and 10:9 (`o`) `"Order"`. On the two-module project at `/private/tmp/claude-501/scratch-linus/p1`, `src/main.glyph` 11:24 (the imported variant `Pending` as a value) is `null` and 11:10 (the `OrderStatus` annotation) is `"OrderStatus"`.*
 
-- **G228. The impact table says the checker has no rule for a container against
+  *Fixed in 0.1.122.* Both causes, and the first turned out not to be in the
+  checker at all. `Expr::Member` already records the access, and
+  `record_shape_of` already reads a `Ty::Imported` record's field set through
+  `imported_record_shape`; what the tool lacked was the resolver that walk
+  needs, because `glyph_hover` ran the single-file front end on the text alone.
+  Reading the file inside its project database is the fix, at the cost of the
+  directory walk `glyph_diagnostics` already pays, and `assign.rs` needed no
+  change. That the checker types the access was established first, by running
+  `let n: int = o.id` through `glyph check --no-tsc` on the shop project and
+  getting `E0204 expected number, found string`. The second cause is answered
+  in `declaration_hover_at`'s own terms: an imported name is read through the
+  cross-module queries the checker runs (`imported_fn_decl`,
+  `imported_const_decl`, `imported_union_of_variant`, `imported_type_decl`),
+  following a chain of second names to the declaration it ends at, so nothing
+  is inferred from the import binding's spelling.
+
+  *The same probes on the same project, under this build:* `src/checkout.glyph`
+  2:16 `"{ id: string, status: OrderStatus, total: number }"`, 2:23
+  `"fn(string) -> Order"`, 5:9 `"fn(string) -> Order"`, 9:17
+  `"fn(string) -> Order"`, 10:11 `"string"`, `src/main.glyph` 6:22
+  `"fn(string) -> string"`. `src/main.glyph` 3:7 is still `null`, and it is the
+  one position here that is not a gap: `checkout` there binds a module rather
+  than a declaration, and a module has no type for hover to report. An imported
+  variant used as a value answers `"Pending"` and an imported annotated `const`
+  answers `"number"`, which are the strings their local equivalents answer. The
+  audit's fourteen hover positions answer fourteen, from thirteen;
+  `hover_answers_fourteen_of_the_audits_fourteen_positions` in `mcp.rs` holds
+  the ratio and asserts every position this entry names.
+
+- **G228. [FIXED] The impact table says the checker has no rule for a container against
   a container, and the checker has one.** With `pub fn f(o: Option<int>)` and a
   call `f(o)` where `o: Option<int>`, `glyph_impact` with `change_signature_type`
   answers the argument `UNDETERMINED` with "the checker has no rule comparing a
@@ -9348,6 +9422,57 @@ and is the owner's to confirm.
   *Reproduced against 0.1.120 with the 0.1.121 tree at `b0d33f6` on a two-module project: `glyph query impact --entity lib::f --change change_signature_type` gives the argument entry above verbatim; `glyph query assignable --from 'Option<int>' --to 'Nullable<int>'` on the same tree is `WILL_FAIL`.*
 
   *The record shape reproduced against 0.1.120, the version the 0.1.121 tree at `92def97` still reports before the bump, on a one-module project: `glyph query impact --entity main::takes_rec --change change_signature_type` gives `UNDETERMINED` with the `because` above, `glyph query assignable --from '{ a: string, b: int }' --to '{ a: string }'` gives `COMPATIBLE`, and `glyph check --no-tsc --no-test` on the narrowing direction gives `[E0211] argument type mismatch: expected \`record\`, found \`record\``.*
+
+  *Fixed in 0.1.122, both shapes, and neither by a sentence written into the
+  table.* The two rules recurse, so their answer for one pairing is not a
+  property of the two kinds: the container rule compares arity, then the bases,
+  then every argument, each through the whole relation, and the record rule
+  compares field by field with width subtyping, reading `optional` on both
+  sides and recursing into each field's type. So each cell asks
+  `glyph_typechecker::assignability` on the two types the site holds, which is
+  the same call `glyph_assignable` makes, and the two tools cannot answer
+  differently about one pairing. `ParamKind` gains a `Structural` member so the
+  record cell is reachable; which of the two structural shapes a parameter is
+  stays the relation's decision, since two function types are compared by their
+  returns alone and it declines them.
+
+  *The two cells, verbatim, on the ledger's own programs:*
+
+  ```
+  lib::f, `f(o)` with `o: Option<int>` against `o: Option<int>`  ->  SAFE
+    `Option<number>` and `Option<number>` both apply a prelude container, and the
+    checker compares two generic applications by arity, by base and by argument.
+    That comparison accepts a `Option<number>` value where a `Option<number>` is
+    declared, and the rule is total over this shape, so a replacement it does not
+    accept is E0211 here. `SAFE` rather than `COMPATIBLE` because this is a fact
+    about an edit at a site; `COMPATIBLE` is `glyph_assignable`'s word for the same
+    acceptance asked of two types with no site
+
+  lib::takes_rec, `takes_rec(r)` with `r: { a: string, b: int }` against
+  `r: { a: string }`  ->  SAFE
+    `{ a: string, b: number }` and `{ a: string }` are both written structurally,
+    and the checker compares two structural records field by field with width
+    subtyping, reading `optional` on each side. That comparison accepts a
+    `{ a: string, b: number }` value where a `{ a: string }` is declared, and the
+    rule is total over this shape, so a replacement it does not accept is E0211
+    here. `SAFE` rather than `COMPATIBLE` because this is a fact about an edit at a
+    site; `COMPATIBLE` is `glyph_assignable`'s word for the same acceptance asked of
+    two types with no site
+  ```
+
+  *Six programs were run through the checker before the cells were written, two
+  per verdict per shape.* `Option<int>` into `Nullable<int>` and
+  `{ a: string }` into `{ a: string, b: int }` are `E0211` under
+  `glyph check --no-tsc`, and both cells answer `WILL_FAIL` with `E0211`.
+  `Option<fn(int) -> int>` into `Option<fn(string) -> int>` and
+  `{ a: fn(int) -> int }` into `{ a: fn(string) -> int }` are accepted by
+  nothing and refused by nothing, and both cells answer `UNDETERMINED` naming
+  what the comparison declined. A `SAFE` pairing counts as compared when the
+  site verdict is taken, since the rules reached here are total over the shapes
+  they read. Six cell tests and
+  `impact_and_assignable_agree_on_a_container_and_on_a_record`, which asserts
+  the mapping (`COMPATIBLE` where the table says `SAFE`, the other two
+  identical) rather than two fixed strings.
 
 - **G229. [FIXED] Deep nesting aborts the compiler with a stack overflow.** The parser
   is recursive descent with no depth guard, so an expression nested 2,000

@@ -97,7 +97,13 @@ def check_evidence(text: str, open_numbers: list[int]) -> list[str]:
     out: list[str] = []
 
     for n in sorted(open_numbers):
-        m = REPRODUCED.search(blocks.get(n, ""))
+        # An entry keeps every reproduction it has had, oldest first, so the
+        # newest stamp is the one that says how fresh the evidence is.
+        stamps = [
+            tuple(int(g) for g in m.groups())
+            for m in REPRODUCED.finditer(blocks.get(n, ""))
+        ]
+        m = max(stamps) if stamps else None
         if not m:
             out.append(
                 f"G{n} is open with no evidence. Reproduce it against the compiler "
@@ -105,7 +111,7 @@ def check_evidence(text: str, open_numbers: list[int]) -> list[str]:
                 f"{cur[0]}.{cur[1]}.{cur[2]}.*"
             )
             continue
-        stamp = tuple(int(g) for g in m.groups())
+        stamp = m
         if stamp < floor:
             out.append(
                 f"G{n} was last reproduced against {stamp[0]}.{stamp[1]}.{stamp[2]}, "

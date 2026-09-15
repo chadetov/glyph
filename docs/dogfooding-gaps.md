@@ -8517,6 +8517,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.116 (this branch's build, `glyph 0.1.116`), with
   the two modules above.*
+
+  *Reproduced against 0.1.122 (the tree at 1d0d55c4): the two-module pair above is `glyph check: 2 module(s) checked, no diagnostics.`, exit 0; the same two functions appended to `w` draw `[E0304] cannot validate `Doc`: field `lexer` has type `Lexer`, which has no runtime check`, exit 1. Unchanged.*
+
 - **G211. [FIXED] A `tsc` error is mapped to the statement before the one that failed.**
   `let t = string.trim("  a  ")` on line 7 and `io.println(t.toUpperCasee())`
   on line 8: `glyph build` reports `[TS2551] Property 'toUpperCasee' does not

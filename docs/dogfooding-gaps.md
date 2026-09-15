@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-237 entries, 209 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-10 are open. G144, the D28 boundary cast that never reached the returns a
+238 entries, 209 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+11 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9713,8 +9713,12 @@ and is the owner's to confirm.
   `glyph-resolver/src/prelude.rs`. What is missing is a key: an entity identity
   for a prelude declaration, which `glyph_symbol` currently refuses by design
   because a key invented for `Result` would name a module no project has. The
-  same gap makes `glyph check --agent` report `Result` under `symbols_absent`
-  rather than describing it.*
+  same gap makes `glyph check --agent` leave `Result` out of `symbols` without
+  naming it under `symbols_absent`, because the key is never requested: a
+  silent omission rather than a stated absence, which is the one confusion the
+  flag's own header says it must never produce. Decided 2026-09-15: the key is
+  the stdlib module that declares it, `std/result::Result`; see the 0.1.123
+  entry and Linus 67.*
 
 - **G232. An object literal has no type, so nothing compares it to anything.** The
   checker types `{ x: 1 }` as `Ty::Unknown`, so `let g: string = { x: 1 }` passes
@@ -9840,3 +9844,17 @@ and is the owner's to confirm.
   from `glyph check --no-tsc` and `tsc --strict` refuses it with `TS2322: Type
   '"nope"' is not assignable to type 'Mode'`. Both shapes are silent here for
   the same missing literal type, and only one of them should be.*
+
+- **G238. A project may declare a module under `std/` or `extern/`, and it is
+  silently unreachable.** `module std/io` in `src/io.glyph` with `pub fn shout`
+  compiles clean beside `module main`; `import std/io { shout }` then draws
+  `E0105: shout is not exported by std/io` listing the stub's exports, and
+  `import std/io { println }` resolves to the stub. The resolver reserves `std/`
+  and `extern/` for imports only (`verify_local_imports` skips them) and nothing
+  rejects the declaration, so the file is dead code that draws no diagnostic.
+  Found while deciding G231, whose identities (`std/result::Result`) rest on no
+  project file being able to spell a `std/` module. A `module` declaration
+  whose first segment is `std` or `extern` becomes an error with its own code.
+
+  *Reproduced against 0.1.122 on a two-file project: `glyph check --no-tsc` is `2 module(s) checked, no diagnostics.`, exit 0, with `src/io.glyph` declaring `module std/io`; no file under `examples/`, `tests/` or `benchmarks/` declares a module under either prefix.*
+

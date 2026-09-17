@@ -28,8 +28,8 @@ use glyph_resolver::{
 
 use crate::lower::Lowerer;
 use crate::ty::{
-    ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField,
-    SymbolRef, Ty, UnionRef, UnionVariant,
+    builtin_union, ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
+    RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{DiagnosticDecl, TypeError};
@@ -498,9 +498,14 @@ pub enum CoverageTypeName {
     /// declared here, the source module's key for an imported one. Empty for a
     /// file that declares no `module` line, which nothing can key.
     Declared { module: String, name: String },
-    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`): a name
-    /// with a fixed variant table behind it and no declaration to point at.
-    Builtin { name: String },
+    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`), keyed by
+    /// the stdlib module that declares it (G231). `declared` is the name inside
+    /// that module; `name` is the spelling a program writes.
+    Builtin {
+        module: String,
+        declared: String,
+        name: String,
+    },
 }
 
 impl From<&UnionRef> for CoverageTypeName {
@@ -522,7 +527,13 @@ impl From<&UnionRef> for CoverageTypeName {
                     name: name.clone(),
                 }
             }
-            UnionRef::Builtin { name } => CoverageTypeName::Builtin {
+            UnionRef::Builtin {
+                module,
+                declared,
+                name,
+            } => CoverageTypeName::Builtin {
+                module: module.clone(),
+                declared: declared.clone(),
                 name: name.clone(),
             },
         }
@@ -548,7 +559,13 @@ impl From<&UnionRef> for DiagnosticDecl {
                 module: module.clone(),
                 name: name.clone(),
             },
-            UnionRef::Builtin { name } => DiagnosticDecl::Builtin {
+            UnionRef::Builtin {
+                module,
+                declared,
+                name,
+            } => DiagnosticDecl::Builtin {
+                module: module.clone(),
+                declared: declared.clone(),
                 name: name.clone(),
             },
         }
@@ -572,7 +589,15 @@ fn coverage_name(union: &DiagnosticDecl, own_module: &str) -> CoverageTypeName {
             module: module.clone(),
             name: name.clone(),
         },
-        DiagnosticDecl::Builtin { name } => CoverageTypeName::Builtin { name: name.clone() },
+        DiagnosticDecl::Builtin {
+            module,
+            declared,
+            name,
+        } => CoverageTypeName::Builtin {
+            module: module.clone(),
+            declared: declared.clone(),
+            name: name.clone(),
+        },
     }
 }
 
@@ -6381,24 +6406,17 @@ impl Assigner<'_> {
         if let Some(found) = self.imported_union_variants(ty) {
             return Some(found);
         }
-        // A prelude union has a fixed variant table and no declaration in any
-        // project module, so there is nothing to address and it is not a
-        // `Declared` case under an invented module.
-        match self.prelude_union(ty)? {
-            ("Result", _) => Some((
-                UnionRef::Builtin {
-                    name: "Result".to_string(),
-                },
-                vec!["Ok".into(), "Err".into()],
-            )),
-            ("Option", _) => Some((
-                UnionRef::Builtin {
-                    name: "Option".to_string(),
-                },
-                vec!["Some".into(), "None".into()],
-            )),
-            _ => None,
-        }
+        // A prelude union is declared by the stdlib module the prelude
+        // re-exports it from, which is the module the emitter writes the
+        // import from and `import std/result { Result }` resolves through
+        // (G231). The variant list comes from the same table `glyph_symbol`
+        // describes the declaration out of, so what exhaustiveness counts and
+        // what an agent is told are one answer.
+        let (name, _) = self.prelude_union(ty)?;
+        let module = glyph_resolver::prelude_declaring_module(name)?;
+        let union = builtin_union(module, name)?;
+        let variants = union.variants.iter().map(|v| Ident::from(v.name)).collect();
+        Some((UnionRef::builtin(&union), variants))
     }
 
     /// If `ty` is an application of the prelude `Result`/`Option` type,
@@ -7149,22 +7167,12 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
 /// (E0220) all read, so one entry here makes `match e.kind { ... }` a checked
 /// match instead of a run-time throw.
 fn stdlib_union_variants(ty: &Ty) -> Option<(UnionRef, Vec<Ident>)> {
-    match stdlib_type_path(ty)? {
-        ("fs", "ErrorKind") => Some((
-            UnionRef::Builtin {
-                name: "fs.ErrorKind".to_string(),
-            },
-            vec![
-                "NotFound".into(),
-                "IsADirectory".into(),
-                "NotADirectory".into(),
-                "PermissionDenied".into(),
-                "AlreadyExists".into(),
-                "Other".into(),
-            ],
-        )),
-        _ => None,
-    }
+    let (ns, name) = stdlib_type_path(ty)?;
+    // `fs.ErrorKind` is written through a namespace import, so the namespace
+    // segment is the last segment of the module key (G231).
+    let union = builtin_union(&format!("std/{ns}"), name)?;
+    let variants = union.variants.iter().map(|v| Ident::from(v.name)).collect();
+    Some((UnionRef::builtin(&union), variants))
 }
 
 /// The payload of a stdlib union variant. `fs.ErrorKind.Other` carries the raw
@@ -12847,7 +12855,9 @@ fn run(r: Result<Option<number>, string>) -> number {
         assert_eq!(
             site.scrutinee_type(),
             &CoverageTypeName::Builtin {
-                name: "Result".to_string()
+                module: "std/result".to_string(),
+                declared: "Result".to_string(),
+                name: "Result".to_string(),
             }
         );
         let deep = site
@@ -12858,7 +12868,9 @@ fn run(r: Result<Option<number>, string>) -> number {
         assert_eq!(
             deep.union,
             CoverageTypeName::Builtin {
-                name: "Option".to_string()
+                module: "std/option".to_string(),
+                declared: "Option".to_string(),
+                name: "Option".to_string(),
             }
         );
         assert_eq!(site.state(), CoverageState::Exhaustive);
@@ -13335,8 +13347,9 @@ fn run(s: S) -> string {
     #[test]
     fn a_prelude_unions_type_end_is_a_builtin_with_no_declaration() {
         // `Result` has a fixed variant table and no declaration in any project
-        // module. There is nothing to mint a key for, so it is not a `Declared`
-        // case with an invented module: it is its own.
+        // module, and it keys under the stdlib module that declares it
+        // (G231): `std/result::Result`, which is the module the emitter
+        // already writes the import from.
         let src = "module app\nfn f(r: Result<number, string>) -> number {\n  return 0\n}\n";
         let got = with_assigner(src, &ImportedAnswerDecl, |a| {
             let ty = first_param_ty(a);
@@ -13346,6 +13359,8 @@ fn run(s: S) -> string {
         assert_eq!(
             union,
             UnionRef::Builtin {
+                module: "std/result".to_string(),
+                declared: "Result".to_string(),
                 name: "Result".to_string(),
             }
         );
@@ -13354,10 +13369,10 @@ fn run(s: S) -> string {
     }
 
     #[test]
-    fn a_stdlib_unions_type_end_is_a_builtin_under_its_display_name() {
+    fn a_stdlib_unions_type_end_keys_under_its_module_and_prints_its_display_name() {
         // `fs.ErrorKind` is published by the stdlib stubs and declared nowhere
-        // in the project. Its display name is the only name it has in Glyph
-        // source, and E0200 has always printed it with the dot.
+        // in the project. It keys as `std/fs::ErrorKind` (G231), and the name
+        // it prints is still the one Glyph source writes, with the dot.
         let src = "module app\nfn f(n: number) -> number {\n  return n\n}\n";
         let ty = stdlib_named("fs", "ErrorKind");
         let got = with_assigner(src, &ImportedAnswerDecl, |a| a.required_variants(&ty));
@@ -13365,6 +13380,8 @@ fn run(s: S) -> string {
         assert_eq!(
             union,
             UnionRef::Builtin {
+                module: "std/fs".to_string(),
+                declared: "ErrorKind".to_string(),
                 name: "fs.ErrorKind".to_string(),
             }
         );
@@ -13403,11 +13420,15 @@ fn run(s: S) -> string {
             }
         );
         let builtin = UnionRef::Builtin {
+            module: "std/result".to_string(),
+            declared: "Result".to_string(),
             name: "Result".to_string(),
         };
         assert_eq!(
             CoverageTypeName::from(&builtin),
             CoverageTypeName::Builtin {
+                module: "std/result".to_string(),
+                declared: "Result".to_string(),
                 name: "Result".to_string(),
             }
         );
@@ -13500,7 +13521,9 @@ fn f(a: Answer) -> number {
         assert_eq!(
             e.union(),
             Some(&DiagnosticDecl::Builtin {
-                name: "Result".to_string()
+                module: "std/result".to_string(),
+                declared: "Result".to_string(),
+                name: "Result".to_string(),
             }),
             "errs: {errs:?}"
         );

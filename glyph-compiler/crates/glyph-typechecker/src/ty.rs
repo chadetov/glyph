@@ -182,9 +182,23 @@ pub enum UnionRef {
     /// A union declared in another project module, under that module's key
     /// (the slash-joined spelling every cross-module query is looked up by).
     Imported { module: String, name: String },
-    /// A prelude or stdlib union: `Result`, `Option`, `fs.ErrorKind`. A fixed
-    /// variant table behind a name, with no declaration to point at.
-    Builtin { name: String },
+    /// A prelude or stdlib union: `Result`, `Option`, `fs.ErrorKind`. Keyed by
+    /// the stdlib module that declares it (G231), which is the module the
+    /// emitter already writes the import from and the resolver already
+    /// registers the export under.
+    Builtin {
+        /// The stdlib module that declares it: `std/result`, `std/option`,
+        /// `std/fs`.
+        module: String,
+        /// The name inside that module: `Result`, `Option`, `ErrorKind`. With
+        /// `module` this is the identity, `std/fs::ErrorKind`.
+        declared: String,
+        /// The spelling a program writes and a diagnostic prints: `Result` for
+        /// a name the prelude re-exports, `fs.ErrorKind` through a namespace
+        /// import. Not the identity; the bare name is ambiguous, since a
+        /// project may declare its own `Result` (G213).
+        name: String,
+    },
 }
 
 impl UnionRef {
@@ -195,9 +209,164 @@ impl UnionRef {
         match self {
             UnionRef::Local { name, .. }
             | UnionRef::Imported { name, .. }
-            | UnionRef::Builtin { name } => name,
+            | UnionRef::Builtin { name, .. } => name,
         }
     }
+
+    /// The union the compiler carries, as a reference to it.
+    pub fn builtin(union: &BuiltinUnion) -> Self {
+        UnionRef::Builtin {
+            module: union.module.to_string(),
+            declared: union.name.to_string(),
+            name: union.display.to_string(),
+        }
+    }
+}
+
+/// A tagged union the compiler carries rather than a project declares, as a
+/// declaration: the stdlib module that declares it, its generic parameters,
+/// and its variants with the payload each one takes.
+///
+/// One table behind three answers that were written out separately before
+/// G231: the variant list exhaustiveness counts against, the identity a
+/// diagnostic reports (`std/result::Result`), and the shape `glyph_symbol`
+/// describes. A second copy of any of them is a place where what the compiler
+/// checks and what it tells an agent can disagree.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BuiltinUnion {
+    /// The stdlib module that declares it. `import std/result { Result }`
+    /// resolves to this module today, and the emitter writes its import for a
+    /// program that never wrote one.
+    pub module: &'static str,
+    /// The name inside that module.
+    pub name: &'static str,
+    /// The spelling a program writes: the bare name for one the prelude
+    /// re-exports, `ns.Name` for one reached through a namespace import.
+    pub display: &'static str,
+    /// The generic parameters the declaration takes, in order.
+    pub generics: &'static [&'static str],
+    /// The variants, in declaration order, so every answer built from this is
+    /// reproducible.
+    pub variants: Vec<BuiltinVariant>,
+}
+
+/// One variant of a [`BuiltinUnion`], with the payload it carries.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BuiltinVariant {
+    pub name: &'static str,
+    /// The payload as the compiler types it, or `None` for a variant that
+    /// carries nothing. A `Ty` rather than a rendered string, so what an
+    /// answer prints is the compiler's own rendering.
+    pub payload: Option<Ty>,
+}
+
+/// An open generic parameter of a builtin declaration, for the payload of a
+/// variant that carries one.
+fn builtin_param(name: &'static str) -> Ty {
+    Ty::Param {
+        name: Ident::from(name),
+        owner: ParamOwner::Unresolved,
+    }
+}
+
+/// `std/result::Result`, `std/option::Option` and `std/fs::ErrorKind`: every
+/// tagged union the compiler carries a variant table for.
+///
+/// `Nullable` is not here. D45 makes it a null-tolerant spelling of `T`, not a
+/// tagged union, so it has no variants to count and no `match` is ever filed
+/// over it.
+pub fn builtin_unions() -> Vec<BuiltinUnion> {
+    vec![
+        BuiltinUnion {
+            module: "std/result",
+            name: "Result",
+            display: "Result",
+            generics: &["T", "E"],
+            variants: vec![
+                BuiltinVariant {
+                    name: "Ok",
+                    payload: Some(builtin_param("T")),
+                },
+                BuiltinVariant {
+                    name: "Err",
+                    payload: Some(builtin_param("E")),
+                },
+            ],
+        },
+        BuiltinUnion {
+            module: "std/option",
+            name: "Option",
+            display: "Option",
+            generics: &["T"],
+            variants: vec![
+                BuiltinVariant {
+                    name: "Some",
+                    payload: Some(builtin_param("T")),
+                },
+                BuiltinVariant {
+                    name: "None",
+                    payload: None,
+                },
+            ],
+        },
+        BuiltinUnion {
+            module: "std/fs",
+            name: "ErrorKind",
+            display: "fs.ErrorKind",
+            generics: &[],
+            variants: vec![
+                BuiltinVariant {
+                    name: "NotFound",
+                    payload: None,
+                },
+                BuiltinVariant {
+                    name: "IsADirectory",
+                    payload: None,
+                },
+                BuiltinVariant {
+                    name: "NotADirectory",
+                    payload: None,
+                },
+                BuiltinVariant {
+                    name: "PermissionDenied",
+                    payload: None,
+                },
+                BuiltinVariant {
+                    name: "AlreadyExists",
+                    payload: None,
+                },
+                // The raw errno, which is what makes `Other({ code })` bind
+                // `code` as a `string`. Kept identical to the payload the
+                // checker binds in `stdlib_variant_payload`.
+                BuiltinVariant {
+                    name: "Other",
+                    payload: Some(Ty::Record {
+                        fields: vec![RecordField {
+                            name: Ident::from("code"),
+                            ty: Ty::Prim(Primitive::String),
+                            optional: false,
+                        }],
+                    }),
+                },
+            ],
+        },
+    ]
+}
+
+/// The builtin union declared as `module::name`, or `None` when the compiler
+/// carries no union under that identity.
+pub fn builtin_union(module: &str, name: &str) -> Option<BuiltinUnion> {
+    builtin_unions()
+        .into_iter()
+        .find(|u| u.module == module && u.name == name)
+}
+
+/// The builtin union that declares `variant` in `module`, for a name like
+/// `std/result::Ok` that addresses a constructor rather than the type.
+pub fn builtin_union_of_variant(module: &str, variant: &str) -> Option<BuiltinUnion> {
+    builtin_unions()
+        .into_iter()
+        .find(|u| u.module == module && u.variants.iter().any(|v| v.name == variant))
 }
 
 /// Stable handle for a named type or value. Mirrors `glyph_resolver::SymbolId`

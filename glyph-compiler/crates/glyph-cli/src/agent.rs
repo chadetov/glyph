@@ -32,11 +32,57 @@ use serde_json::{json, Value};
 
 use crate::diagnostic::Diagnostic;
 
-/// The primitive and ambient type names that name no declaration, so asking
-/// `glyph_symbol` about them would be asking about a spelling rather than a
-/// symbol.
-const NOT_A_DECLARATION: [&str; 10] = [
-    "string", "number", "int", "bigint", "bool", "void", "unknown", "never", "any", "Component",
+/// The names that key no declaration, so asking `glyph_symbol` about them
+/// would be asking about a spelling rather than a symbol, with the reason each
+/// one is here.
+///
+/// The primitives name a type the compiler builds in, not a declaration
+/// anywhere. The rest are the prelude's residue: G231 keyed every prelude name
+/// a stdlib module declares to that module (`Result` is `std/result::Result`),
+/// and these are the names left over, which no stdlib module declares. They
+/// stay unkeyed rather than getting an invented `std/prelude`, because a module
+/// the compiler does not have is not an address.
+const NOT_A_DECLARATION: [(&str, &str); 18] = [
+    ("string", "a primitive type the compiler builds in"),
+    ("number", "a primitive type the compiler builds in"),
+    ("int", "a primitive type the compiler builds in (D31)"),
+    ("bigint", "a primitive type the compiler builds in"),
+    ("bool", "a primitive type the compiler builds in"),
+    ("void", "a primitive type the compiler builds in"),
+    ("unknown", "a primitive type the compiler builds in"),
+    ("never", "a primitive type the compiler builds in"),
+    ("any", "not a Glyph type at all; Glyph has no `any`"),
+    (
+        "Array",
+        "an ambient container type the prelude carries; no stdlib module declares it",
+    ),
+    (
+        "Record",
+        "an ambient container type the prelude carries; no stdlib module declares it",
+    ),
+    (
+        "Schema",
+        "an ambient container type the prelude carries; no stdlib module declares it",
+    ),
+    (
+        "Component",
+        "an ambient container type the prelude carries; no stdlib module declares it",
+    ),
+    (
+        "Issue",
+        "an ambient type the prelude carries for a descriptor's parse failures; it gets an \
+         address when `std/schema` declares it, not before",
+    ),
+    (
+        "par",
+        "a prelude namespace (`par.all`, `par.all_ok`), not a declaration of any module",
+    ),
+    ("print", "a prelude built-in, declared by no module"),
+    ("assert", "a prelude built-in, declared by no module"),
+    (
+        "infer_output",
+        "a type-level operator the prelude carries (D28), not a declaration",
+    ),
 ];
 
 /// Render every diagnostic as the `--json` object plus `constraints`,
@@ -307,7 +353,7 @@ fn sole_declaration(root: &Path, name: &str) -> Option<String> {
 /// comes back as a refusal and is reported as one.
 fn type_as_entity(ty: &str, module: Option<&str>) -> Option<String> {
     let name = ty.trim();
-    if name.is_empty() || NOT_A_DECLARATION.contains(&name) {
+    if name.is_empty() || NOT_A_DECLARATION.iter().any(|(n, _)| *n == name) {
         return None;
     }
     let mut chars = name.chars();
@@ -317,6 +363,13 @@ fn type_as_entity(ty: &str, module: Option<&str>) -> Option<String> {
     }
     if !chars.all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return None;
+    }
+    // A prelude name a stdlib module declares keys under that module, not
+    // under the module the diagnostic sits in (G231). Qualifying `Result` with
+    // the local module would ask about `main::Result`, which the project does
+    // not declare, and report a refusal for a type the compiler holds.
+    if let Some(sym_module) = glyph_resolver::prelude_declaring_module(name) {
+        return Some(format!("{sym_module}::{name}"));
     }
     Some(format!("{}::{name}", module?))
 }

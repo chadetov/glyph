@@ -45,8 +45,8 @@ pub use assign::{
 };
 pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
 pub use ty::{
-    FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty,
-    UnionVariant,
+    builtin_union, builtin_union_of_variant, builtin_unions, BuiltinUnion, BuiltinVariant, FnParam,
+    ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,
 };
 pub use type_map::{IdentPattern, TypeMap};
 
@@ -152,10 +152,16 @@ pub enum DiagnosticDecl {
     /// Declared in another project module, under the module key imports name
     /// it by, which is the key the project already resolves it through.
     Imported { module: String, name: String },
-    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`): a fixed
-    /// variant table behind a name, with no declaration in any project module
-    /// to address.
-    Builtin { name: String },
+    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`), keyed by
+    /// the stdlib module that declares it (G231). `declared` is the name inside
+    /// that module and `name` is the spelling a program writes, which differ
+    /// for a type reached through a namespace: `std/fs::ErrorKind` is written
+    /// `fs.ErrorKind`.
+    Builtin {
+        module: String,
+        declared: String,
+        name: String,
+    },
 }
 
 impl DiagnosticDecl {
@@ -164,25 +170,39 @@ impl DiagnosticDecl {
         match self {
             DiagnosticDecl::Local { name }
             | DiagnosticDecl::Imported { name, .. }
-            | DiagnosticDecl::Builtin { name } => name,
+            | DiagnosticDecl::Builtin { name, .. } => name,
         }
     }
 
     /// The module the union is declared in, given `this_module`: the module
     /// half of the file the diagnostic is on, as the calling surface counts
-    /// it. `None` for a builtin, which is declared in no project module.
+    /// it.
+    ///
+    /// A builtin answers with the stdlib module that declares it. That module
+    /// is not a file of the project, and it is still the module the resolver
+    /// registers the export under, the emitter writes the import from, and
+    /// `import std/result { Result }` resolves through.
     pub fn module<'a>(&'a self, this_module: &'a str) -> Option<&'a str> {
         match self {
             DiagnosticDecl::Local { .. } => Some(this_module),
             DiagnosticDecl::Imported { module, .. } => Some(module),
-            DiagnosticDecl::Builtin { .. } => None,
+            DiagnosticDecl::Builtin { module, .. } => Some(module),
         }
     }
 
     /// `module::name`, the identity `glyph_variants` reports for the same
-    /// declaration. `None` for a builtin: a key invented for `Result` would
-    /// name a module no project has.
+    /// declaration.
+    ///
+    /// A builtin keys under the name it has inside its stdlib module rather
+    /// than under the spelling written here, so `fs.ErrorKind` is
+    /// `std/fs::ErrorKind` and not `std/fs::fs.ErrorKind`.
     pub fn declaration(&self, this_module: &str) -> Option<String> {
+        if let DiagnosticDecl::Builtin {
+            module, declared, ..
+        } = self
+        {
+            return Some(format!("{module}::{declared}"));
+        }
         self.module(this_module)
             .map(|module| format!("{module}::{}", self.name()))
     }

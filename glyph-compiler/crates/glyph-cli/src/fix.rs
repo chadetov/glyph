@@ -737,6 +737,20 @@ fn variant_access(
     if plan.patterns.iter().all(|p| p.literal) {
         return Ok(VariantAccess::InScope);
     }
+    // A union whose variants the prelude re-exports is already in scope with
+    // no import: `Ok` and `Err` resolve in every module, which is why
+    // `match r { Ok(v) => v, }` is a program somebody writes (G231).
+    //
+    // Keyed on the prelude's re-export table and not on `std/` as a whole.
+    // `import std/array { map }` is a real import that a repair cannot skip;
+    // what the prelude brings in is a fixed list, and only that list counts.
+    if plan
+        .patterns
+        .iter()
+        .all(|p| glyph_resolver::prelude_declaring_module(&p.name) == Some(union_module))
+    {
+        return Ok(VariantAccess::InScope);
+    }
     for item in &module.items {
         let Decl::Import(imp) = item else { continue };
         let path_text = imp

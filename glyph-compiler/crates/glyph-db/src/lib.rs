@@ -1246,11 +1246,21 @@ pub enum CoverageTypeRef {
     /// A declaration this project keys, under the identity everything else in
     /// the graph names it by.
     Decl(DeclKey),
-    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`): a fixed
-    /// variant table behind a name, with no declaration in any project module.
-    /// A name and not a key, because there is nothing to key; a `DeclKey`
-    /// invented for it would name a module that does not exist.
-    Builtin { name: String },
+    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`), keyed by
+    /// the stdlib module that declares it (G231): `std/result::Result`,
+    /// `std/fs::ErrorKind`.
+    ///
+    /// Not a `DeclKey`, because a `DeclKey` carries a `ModuleId` this project's
+    /// interner issued and no project module declares these. The key is a pair
+    /// of strings instead, and it is the same pair every other surface reports:
+    /// the module the resolver registers the export under, and the name inside
+    /// it. `declared` is that name; `name` is the spelling a program writes,
+    /// which differ for a type reached through a namespace.
+    Builtin {
+        module: String,
+        declared: String,
+        name: String,
+    },
     /// A type end this project's declaration index does not key: the module it
     /// is declared under is not a module of this project, or that module
     /// declares no such name.
@@ -1643,7 +1653,15 @@ pub fn project_match_coverage(db: &dyn Db, project: ProjectFiles) -> ProjectMatc
 /// this relation is reserved for meaning that no relation exists.
 fn mint_type_ref(decls: &DeclIndex, named: &CoverageTypeName) -> CoverageTypeRef {
     match named {
-        CoverageTypeName::Builtin { name } => CoverageTypeRef::Builtin { name: name.clone() },
+        CoverageTypeName::Builtin {
+            module,
+            declared,
+            name,
+        } => CoverageTypeRef::Builtin {
+            module: module.clone(),
+            declared: declared.clone(),
+            name: name.clone(),
+        },
         CoverageTypeName::Declared { module, name } => match decls.key_of(module, name) {
             Some(key) => CoverageTypeRef::Decl(key),
             None => CoverageTypeRef::Unkeyed {
@@ -3974,10 +3992,12 @@ pub fn run(c: Command) -> number {
     }
 
     #[test]
-    fn a_prelude_union_is_a_named_site_with_no_declaration_to_key() {
-        // `Result` has a fixed variant table and no declaration in any project
-        // module. There is nothing to mint a key for, and inventing one would
-        // file the site under a module that does not exist.
+    fn a_prelude_union_is_keyed_by_the_stdlib_module_that_declares_it() {
+        // `Result` is declared by `std/result`: the resolver registers it
+        // there, the emitter writes that import for a program that never wrote
+        // one, and `import std/result { Result }` resolves to it. So the site
+        // keys under that identity rather than under a bare name (G231). It is
+        // still not a `DeclKey`, because no module of this project declares it.
         let mut db = CompilerDb::with_default_stdlib();
         let file = new_file(
             &db,
@@ -3998,7 +4018,9 @@ pub fn f(r: Result<number, string>) -> number {
         assert_eq!(
             site.scrutinee_type,
             CoverageTypeRef::Builtin {
-                name: "Result".to_string()
+                module: "std/result".to_string(),
+                declared: "Result".to_string(),
+                name: "Result".to_string(),
             }
         );
         assert_eq!(site.site.state, CoverageState::Exhaustive);

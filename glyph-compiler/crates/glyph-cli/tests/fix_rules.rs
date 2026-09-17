@@ -205,11 +205,16 @@ fn e0200_binds_the_payload_whole_when_a_field_name_is_reserved() {
     assert_eq!(code, 0, "{output}\n{after}");
 }
 
-/// `Result` is a prelude union: no project declares it, so no tool keys its
-/// variants and there are no payload shapes to write patterns from. The rule
-/// says that rather than inventing `Err(e)`.
+/// `Result` is declared by `std/result`, which the prelude re-exports, so the
+/// E0200 it draws carries `cause: "std/result::Result"`, `glyph_symbol` keys
+/// its variants and the rule has the payload shapes it needs (G231). Before
+/// that identity existed this case was a decline.
+///
+/// No import is written. `Ok` and `Err` are in scope in every module through
+/// the prelude, which is what makes `match r { Ok(v) => v, }` a program
+/// somebody writes in the first place.
 #[test]
-fn e0200_declines_a_union_no_project_declares() {
+fn e0200_repairs_a_match_on_the_prelude_result() {
     let before = "module main\n\
                   \n\
                   pub fn res(r: Result<int, string>) -> int {\n\
@@ -220,8 +225,39 @@ fn e0200_declines_a_union_no_project_declares() {
     let dir = project("e0200builtin", before);
     let out = fix(&dir);
     assert!(
-        out.contains("declined E0200") && out.contains("not declared in this project"),
-        "the refusal names its reason:\n{out}"
+        out.contains("applied E0200") && out.contains("`Err`"),
+        "the repair names the variant it added:\n{out}"
+    );
+    let after = source_of(&dir);
+    assert!(
+        after.contains("Err(payload) => {"),
+        "the missing arm is written with the payload the union declares:\n{after}"
+    );
+    assert!(
+        !after.contains("import std/result"),
+        "the prelude already binds `Ok` and `Err`, so no import is written:\n{after}"
+    );
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "{output}\n{after}");
+}
+
+/// The prelude's residue is still not a declaration. `Array` is a prelude name
+/// no stdlib module declares, so a match that needs its cases has nothing to
+/// key and the rule says so rather than inventing an address (G231).
+#[test]
+fn e0200_declines_a_match_on_a_bare_unkeyable_name() {
+    let before = "module main\n\
+                  \n\
+                  pub fn pick(n: number) -> string {\n\
+                  \x20 return match n {\n\
+                  \x20   1 => \"one\",\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0218bare", before);
+    let out = fix(&dir);
+    assert!(
+        !out.contains("applied E0200"),
+        "a number match has no variant set to repair from:\n{out}"
     );
     assert_eq!(source_of(&dir), before, "the file is untouched");
     assert_eq!(check(&dir).0, 1, "and still does not compile");

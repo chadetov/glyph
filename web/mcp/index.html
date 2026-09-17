@@ -83,6 +83,16 @@
           Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a
           1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.
         </p>
+        <p>
+          Each tool's description carries the contract you need at the moment of the call, and the
+          full manual lives in <code>glyph llms --json</code> under <code>tools</code>, keyed by
+          tool name, with each tool's <code>glyph query</code> verb beside it. That reply used to
+          carry every manual: eleven tools, 31,446 bytes of description in a 45,509-byte reply.
+          It is 8,627 in a 20,386-byte reply now, and nothing was deleted. Every session pays for
+          <code>tools/list</code> on connect and pays for the manual only when it asks.
+          <a href="/answers/generated-docs/">That document</a> is generated from the compiler's own
+          tables, and a test fails the build if it names a tool this server does not serve.
+        </p>
 
         <p class="block-label">The eleven tools</p>
       </div>
@@ -92,7 +102,9 @@
 <pre><span class="cm">// everything the compiler holds about one symbol: kind, identity,</span>
 <span class="cm">// visibility, a record's fields, a union's variants with payloads and</span>
 <span class="cm">// construction syntax, parameters and return, interface members,</span>
-<span class="cm">// whether a `match` over it must be exhaustive, its `@example`</span>
+<span class="cm">// whether a `match` over it must be exhaustive, its `@example`.</span>
+<span class="cm">// The identity reaches the stdlib: std/result::Result answers with</span>
+<span class="cm">// Ok(T) and Err(E), and `path` is null beside the reason why</span>
 glyph_symbol(entity)                       <span class="cm">// or (path, line, character)</span>
 
 <span class="cm">// what breaks if you make one named change to one declaration:</span>
@@ -233,7 +245,11 @@ glyph query references   --path src/orders.glyph --name create
 glyph query variants     --path src/orders.glyph --name OrderStatus
 glyph query symbols      --query order
 glyph query dependencies --path src/main.glyph --entity main::build
-glyph query exports      --path src/main.glyph --module orders</pre>
+glyph query exports      --path src/main.glyph --module orders
+
+<span class="cm">// the same two, asked about a module the compiler carries</span>
+glyph query symbol       --path src/main.glyph --entity std/result::Result
+glyph query exports      --path src/main.glyph --module std/result</pre>
       </div>
 
       <div class="detail">
@@ -256,19 +272,20 @@ glyph query exports      --path src/main.glyph --module orders</pre>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type.</p>
+          <p>A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The editor's own hover has not caught up with <code>glyph_hover</code>: <code>glyph lsp</code> registers the buffers an editor opened rather than a project, so hovering an imported name in an editor still answers null where the tool answers. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The reply to <code>tools/list</code> is 45,509 bytes across eleven tool descriptions, which is context an agent pays for on every connect; shrinking it is planned work.</p>
+          <p>The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The editor's own hover has not caught up with <code>glyph_hover</code>: <code>glyph lsp</code> registers the buffers an editor opened rather than a project, so hovering an imported name in an editor still answers null where the tool answers. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.</p>
         </div>
       </div>
 
       <div class="detail">
         <p>
-          Beside the tools, an agent can read the language and the diagnostic surface offline from
-          <a href="/llms.txt">llms.txt</a>, and <code>glyph build --json</code> is the batch path
-          for coded diagnostics across a whole tree.
+          Beside the tools, an agent can read the language and the diagnostic surface offline:
+          <a href="/llms.txt">llms.txt</a> is the prose, <code>glyph llms --json</code> the same
+          knowledge as data out of the compiler's own tables, and <code>glyph build --json</code>
+          the batch path for coded diagnostics across a whole tree.
         </p>
       </div>
     </article>

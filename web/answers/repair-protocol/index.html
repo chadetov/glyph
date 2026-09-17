@@ -46,16 +46,17 @@
         <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
         <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
         <a href="/answers/repair-protocol/" class="active"><span class="n">17</span> Fixing a red build</a>
-        <a href="/answers/debugging/"><span class="n">18</span> Debugging &amp; ops</a>
-        <a href="/answers/language/"><span class="n">19</span> The language</a>
-        <a href="/answers/finance/"><span class="n">20</span> Money &amp; safety</a>
-        <a href="/answers/web-serving/"><span class="n">21</span> Serving the web</a>
-        <a href="/answers/early-errors/"><span class="n">22</span> Caught earlier</a>
-        <a href="/answers/parse-errors/"><span class="n">23</span> Why a parse failed</a>
-        <a href="/answers/interactive-cli/"><span class="n">24</span> Programs you type into</a>
-        <a href="/answers/long-running/"><span class="n">25</span> Servers &amp; daemons</a>
-        <a href="/answers/upgrades/"><span class="n">26</span> Upgrades</a>
-        <a href="/answers/binary/"><span class="n">27</span> Binary data</a>
+        <a href="/answers/generated-docs/"><span class="n">18</span> Docs that can't drift</a>
+        <a href="/answers/debugging/"><span class="n">19</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">20</span> The language</a>
+        <a href="/answers/finance/"><span class="n">21</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">22</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">23</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">24</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">25</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">26</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">27</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">28</span> Binary data</a>
       </div>
     </div>
 
@@ -227,6 +228,39 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
           swaps one error for another is not a repair.
         </p>
         <p>
+          A <code>match</code> over the prelude <code>Result</code> or <code>Option</code> used to
+          be the one shape this rule declined, and it is the shape a real program writes most
+          often. Those declarations have an address now, <code>std/result::Result</code>, which is
+          the module the resolver registers them under and the module the emitter writes the
+          import from, so the rule can read the payload shapes it writes patterns from.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph fix src, on `match r { Ok(v) =&gt; v, }`</span>
+<pre>glyph fix: applied E0200 in src/main.glyph: added 1 arm(s) to the match
+           on `Result`: `Err`, and wrote `import std/process` for the
+           arm bodies
+
+<span class="add">  return match r {
+    Ok(v) =&gt; v,
+    // TODO(glyph fix): `Result` variant `Err` is unhandled; write this arm
+    Err(payload) =&gt; {
+      print("unhandled Result variant Err (arm written by glyph fix)")
+      process.exit(1)
+    },
+  }</span>
+
+<span class="cm">// glyph check, with tsc: 1 module(s) checked, no diagnostics.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          No import is written for the variants, because the prelude already binds <code>Ok</code>
+          and <code>Err</code>. The <code>std/process</code> import is the one every
+          <code>E0200</code> repair adds for the <code>TODO</code> body.
+        </p>
+        <p>
           These arms compile, and they are written to be replaced. Run <code>glyph fix</code>,
           then fill in the bodies it marked. What it will not do is guess, so every rule that
           cannot settle an answer prints the decline and the reason on the same output as what
@@ -278,17 +312,27 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
           and a sentence saying the corpus holds no case for it, rather than a made-up
           example. The corpus claims what it covers and nothing about the rest.
         </p>
+        <p>
+          <code>glyph --explain</code> hands over one case per code. The whole corpus is readable
+          too: <code>glyph llms --negative E0200</code> prints every wrong program that draws the
+          code, each compiled when you ask, and where a second corpus pairs a program
+          <code>tsc --strict</code> accepts with the Glyph that refuses it, that comes back beside
+          it. With no code it lists 68 cases over 40 of the 61 codes and names the 21 that have
+          none, so coverage is stated rather than inferred from what came back. That and the rest
+          of what the compiler publishes about itself is
+          <a href="/answers/generated-docs/">its own page</a>.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies four rules and states every decline with its reason. A <code>match</code> over the prelude <code>Result</code> or <code>Option</code> is one of them now: those declarations key to the stdlib module that declares them, <code>std/result::Result</code>, so the rule can read the payload shapes it writes patterns from, and it writes no import for the variants, because the prelude already binds <code>Ok</code> and <code>Err</code>. The arm bodies still bring in <code>std/process</code>, the way every <code>E0200</code> repair does. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example.</p>
+          <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies four rules and states every decline with its reason. A <code>match</code> over the prelude <code>Result</code> or <code>Option</code> is one of them now: those declarations key to the stdlib module that declares them, <code>std/result::Result</code>, so the rule can read the payload shapes it writes patterns from, and it writes no import for the variants, because the prelude already binds <code>Ok</code> and <code>Err</code>. The arm bodies still bring in <code>std/process</code>, the way every <code>E0200</code> repair does. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.</p>
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. And <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case.</p>
+          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 21 of the 61 codes have no case at all. <code>glyph fix</code> still writes four rules and nothing else; everything it declines, it declines out loud.</p>
         </div>
       </div>
 
@@ -297,9 +341,9 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
           <span class="dir">&larr; Previous</span>
           <span class="t">Can my agent ask the compiler what a symbol is before it writes code?</span>
         </a>
-        <a href="/answers/debugging/" class="nx cta">
+        <a href="/answers/generated-docs/" class="nx cta">
           <span class="dir">Next &rarr;</span>
-          <span class="t">When it breaks in production at 3am, what does on-call see?</span>
+          <span class="t">Is the documentation my agent reads generated, or written by hand and out of date?</span>
         </a>
       </nav>
     </article>

@@ -29,6 +29,11 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
+A number is an identity, and `scripts/check_gaps.py` fails on two entries
+claiming one. A round that runs into a gap already recorded writes its heading
+`**G65 again. [FIXED] ...`, which reads as a second note on one entry and is
+counted once.
+
 Recording a finding here is half the job. The other half is deciding what to do
 about it, which happens in `docs/roadmap/releases.md`, and the two drifted:
 three entries had been reproduced repeatedly and appeared in the roadmap
@@ -3085,9 +3090,10 @@ first attempt, `fail` reaching `dead` after exactly five attempts, then the
 server killed and a **separate process** reading the same database and seeing
 the same state.
 
-- **G65. [FIXED] `==` meant a deep comparison in an `@example` and reference
-  equality in the program.** Found in the first module written, inside ten
-  minutes: `last_error(j) == Some("bad payload")` inside a `fn` was false while
+- **G65 again. [FIXED] `==` meant a deep comparison in an `@example` and
+  reference equality in the program.** The same gap G65 records above, found a
+  second time by this round and fixed here rather than left open. Found in the
+  first module written, inside ten minutes: `last_error(j) == Some("bad payload")` inside a `fn` was false while
   the identical expression as an `@example` passed. A test reporting success on
   code that does not work is the worst artifact the example gate can produce,
   and reaching it needed nothing more than writing the same expression twice.

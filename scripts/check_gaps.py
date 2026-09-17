@@ -143,9 +143,21 @@ def main() -> int:
         if word and word not in KNOWN:
             bad.append(f"G{n} has unknown marker {marker}")
             continue
-        if n in status and status[n] != word:
-            bad.append(f"G{n} defined twice with different status: {status[n] or 'open'} vs {word or 'open'}")
-        status.setdefault(n, word)
+        # Two definitions of one number is an ambiguity whatever the markers
+        # say. The spec carried a D43 collision for four releases and
+        # `glyph llms --json` found it; the ledger carried a G65 collision for
+        # far longer and nothing looked. A round that finds a gap already
+        # recorded writes `**G65 again. [FIXED] ...`, which reads as the same
+        # entry and is not a second definition.
+        if n in status:
+            bad.append(
+                f"G{n} is defined twice. A number is an identity: give the second "
+                f"entry the next free number, or, when it is the same gap found "
+                f"again, write its heading `**G{n} again. [MARKER] ...` so it reads "
+                f"as one entry."
+            )
+            continue
+        status[n] = word
 
     if bad:
         print("gap marker problems:")

@@ -447,7 +447,7 @@ pub fn stdlib_signature(prelude: &Prelude, module_key: &str, field: &str) -> Opt
     let mut field_uses = FileFieldUses::default();
     let assigner = Assigner {
         module: &module,
-        lowerer: Lowerer::with_imports(&resolved, prelude, &decl_ty_resolver),
+        lowerer: Lowerer::new(&resolved, prelude),
         resolved: &resolved,
         tm: &mut tm,
         errors: &mut errors,

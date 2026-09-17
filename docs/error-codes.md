@@ -145,7 +145,7 @@ only what it can prove: an import some `.glyph` file under the root answers to.
 | `E0214` | Component declared with multiple parameters (use a props record) |
 | `E0215` | Aliasing an `owned` handle (D25) |
 | `E0216` | Unreachable `match` arm after a total pattern (D9) |
-| `E0217` | Discarded `Result` &mdash; **warning**, not an error (its `Err` is silently ignored) |
+| `E0217` | Discarded `Result`. A warning rather than an error: its `Err` is silently ignored |
 | `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module) |
 | `E0219` | `@redact` names a field the type does not have (D24) |
 | `E0220` | A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9) |

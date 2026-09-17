@@ -342,3 +342,81 @@ fn every_http_verb_takes_its_deadline_from_fetch_of() {
         );
     }
 }
+
+/// The bootstrap's tool section names the tools the server serves, and counts
+/// them correctly.
+///
+/// `AGENTS.md` said the MCP server "exposes five tools" for two releases while
+/// it served seven, and the two the server's own `instructions` string tells an
+/// agent to reach for first appeared in the document zero times (G222). A
+/// sentence nothing checks is how that survives, so this reads `tool_specs()`
+/// and the document and compares them in both directions.
+#[test]
+fn the_bootstrap_names_every_tool_the_server_serves_and_no_other() {
+    let agents = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
+    let specs = glyph_lsp::tool_specs();
+    let served: Vec<String> = specs
+        .as_array()
+        .expect("tool_specs answers an array")
+        .iter()
+        .filter_map(|t| t.get("name")?.as_str().map(str::to_string))
+        .collect();
+    assert!(!served.is_empty(), "the server serves no tools");
+
+    // Every tool the server serves is in the document.
+    for name in &served {
+        assert!(
+            agents.contains(name.as_str()),
+            "the server serves `{name}` and AGENTS.md never names it"
+        );
+    }
+
+    // Every `glyph_*` name the document uses is a tool the server serves.
+    let mut named: Vec<String> = Vec::new();
+    let bytes = agents.as_bytes();
+    let mut i = 0;
+    while let Some(at) = agents[i..].find("glyph_") {
+        let start = i + at;
+        let mut end = start + "glyph_".len();
+        while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
+            end += 1;
+        }
+        named.push(agents[start..end].to_string());
+        i = end;
+    }
+    named.sort();
+    named.dedup();
+    for name in &named {
+        assert!(
+            served.contains(name),
+            "AGENTS.md names `{name}`, which the server does not serve. The tools are: {served:?}"
+        );
+    }
+
+    // The count sentence agrees with the tool list.
+    const NUMBERS: &[(&str, usize)] = &[
+        ("one", 1), ("two", 2), ("three", 3), ("four", 4), ("five", 5), ("six", 6),
+        ("seven", 7), ("eight", 8), ("nine", 9), ("ten", 10), ("eleven", 11),
+        ("twelve", 12), ("thirteen", 13), ("fourteen", 14), ("fifteen", 15),
+    ];
+    let claim = agents
+        .split("exposes ")
+        .nth(1)
+        .and_then(|rest| rest.split(" tools").next())
+        .map(str::to_string);
+    let claim = claim.unwrap_or_else(|| {
+        panic!("AGENTS.md no longer says how many tools the server exposes; it must, or this gate checks nothing")
+    });
+    let claimed = NUMBERS
+        .iter()
+        .find(|(word, _)| *word == claim)
+        .map(|(_, n)| *n)
+        .or_else(|| claim.parse::<usize>().ok())
+        .unwrap_or_else(|| panic!("`exposes {claim} tools` is not a number this gate can read"));
+    assert_eq!(
+        claimed,
+        served.len(),
+        "AGENTS.md says the server exposes {claimed} tools and it serves {}",
+        served.len()
+    );
+}

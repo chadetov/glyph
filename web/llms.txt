@@ -1420,66 +1420,66 @@ machine-readably. The full catalogue:
 
 | Code | Meaning | Fix |
 |---|---|---|
-| E0001 | Lexical error (unterminated string, bad escape, stray char) | Fix the string/escape/character |
+| E0001 | Lexical error (unterminated string, invalid escape, stray character) | Fix the string/escape/character |
 | E0002 | Expected a different token (Glyph is stricter than TS) | Match the expected syntax |
-| E0003 | Unexpected token here | Remove or relocate it |
-| E0004 | Expected end of file | Balance your braces |
+| E0003 | Unexpected token in this position | Remove or relocate it |
+| E0004 | Expected end of file (likely an unbalanced brace) | Balance your braces |
 | E0005 | Construct recognized but not implemented | Use a supported form |
-| E0006 | `if`/`else` used where Glyph has none (D3) | Rewrite as a `match` |
-| E0007 | Range/comparison pattern (`500..599 =>`) in a match arm | Enumerate the values as separate arms |
-| E0008 | Assignment without `mut` (`x = e`) (D5) | Write `mut x = e`, or `let x = e` for a new binding |
-| E0009 | Retired: an object pattern's field takes any pattern | Nothing; `{ color: Black }` matches the field value |
-| E0010 | More than one positional payload field on a variant (`Node(A, B)`) | One record payload: `Node({ left: A, right: B })` |
-| E0011 | Nesting past the parser's 64-level limit (`[[[[...]]]]`) | Pull the inner levels into `let` bindings |
+| E0006 | `if`/`else` used where Glyph has none (`match` is the only conditional; D3) | Rewrite as a `match` |
+| E0007 | Range or comparison pattern (`500..599 =>`) in a `match` arm; not in v1 | Enumerate the values as separate arms |
+| E0008 | Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5) | Write `mut x = e`, or `let x = e` for a new binding |
+| E0009 | Retired. An object pattern's field takes any pattern, so `Full({ color: Black })` matches the field value; the code is no longer emitted | Nothing; `{ color: Black }` matches the field value |
+| E0010 | A union variant given more than one positional payload field, in a declaration (`Node(Color, Tree, int)`) or in a match arm's pattern (`Node(c, k)`); a variant carries one payload, and a multi-field payload is a record (D8) | One record payload: `Node({ left: A, right: B })` |
+| E0011 | A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything | Pull the inner levels into `let` bindings |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
-| E0101 | Relative import | Use an absolute module path (`std/io`, `myapp/x`) |
-| E0102 | Barrel file (only imports) | Add a declaration or remove the file |
+| E0101 | Relative import (`./`, `../`; D15). A module is named from the source root, with no package prefix: `std/io` for the stdlib, `helper` for a sibling file, `queries/report` for a file in a subdirectory. Two stages raise it: the parser, at a leading `./` or `../`, under the `parse` stage tag, and the resolver, at a `.` or `..` segment deeper in a path, under `collect`. Both carry the same help | Use an absolute module path (`std/io`, `myapp/x`) |
+| E0102 | Barrel file: only imports, no declarations (D15) | Add a declaration or remove the file |
 | E0103 | Unresolved name | Declare it, import it, or fix the spelling |
-| E0104 | Unresolved module path | Check the path / that the module exists |
-| E0105 | Name not exported by the module | Check the export name |
+| E0104 | Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `"glyph"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead | Check the path / that the module exists |
+| E0105 | Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a name written through a namespace import, `import lib` plus either a `lib.Secret` annotation or a `lib.secret()` call) | Check the export name |
 | E0106 | Unused import (warning) | Remove it |
-| E0107 | Unused variable (warning) | Remove it, or prefix the name with `_` |
-| E0108 | Unreachable code after return/break/continue (warning) | Remove the dead code |
-| E0109 | Reserved word (class, switch, eval, ...) used as a name | Rename the declaration or binding |
-| E0110 | Declaration shadows a global the emitted module uses (`Error`, `Number`, `Object`, `Array`, `Promise`, `number`, `par`, `print`, `string`, ...) | Rename the declaration |
-| E0111 | `type Key = string \| number` is a tagged union of variants named `string`/`number`, not a union of the two types | Name each case, or `extern_ts("string \| number")` |
-| E0112 | A module declares no `pub`, has no `main`, and no `import` anywhere names it, so nothing in it can be reached | Mark what callers need `pub`, or delete the module |
-| E0200 | Non-exhaustive match on a tagged union | Handle every variant, or add an `else` |
-| E0201 | `?` outside a Result-returning fn | Return `Result`, or handle with `match` |
-| E0202 | `?` on a non-Result operand | Drop the `?`, or return a `Result` |
-| E0203 | `?` error type mismatch (no `From` in v1) | `.map_err(...)` to line the error types up |
+| E0107 | Unused variable binding (warning) | Remove it, or prefix the name with `_` |
+| E0108 | Unreachable code after `return`/`break`/`continue` (warning) | Remove the dead code |
+| E0109 | A TypeScript reserved word (`class`, `new`, `switch`, `eval`, ...) used as a declaration, parameter, or binding name | Rename the declaration or binding |
+| E0110 | A top-level declaration whose name shadows a global the emitted module depends on (`Error`, `Number`, `Object`, `Array`, `Promise`, `Record`, or a prelude name such as `number`, `par`, `print`, `string`, `Issue`) | Rename the declaration |
+| E0111 | `type Key = string \| number`: bare primitive names on the right of `\|` declare tagged-union variants, not a union of those types | number` is a tagged union of variants named `string`/`number`, not a union of the two types \| Name each case, or `extern_ts("string \| number")` |
+| E0112 | A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning) | Mark what callers need `pub`, or delete the module |
+| E0200 | Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`"free" \| "pro"`, D30) missing a literal. Either kind counts whether it is declared in this module or imported from a sibling. A union that takes type parameters counts the same as its bare form, whether the matching module declares it or imports it, and whether the argument is an open type parameter or a concrete instantiation (`tree.Tree<string>`). What the imported path still does not do is look inside a variant's payload, so `B(X)` over an imported union whose payload is itself a union is not counted (`docs/dogfooding-gaps.md` G143) | Handle every variant, or add an `else` |
+| E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
+| E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |
+| E0203 | `?` error type does not match the function's `E` (no `From` in v1) | `.map_err(...)` to line the error types up |
 | E0204 | Type mismatch | Make the value and the expected type agree |
-| E0205 | `owned` on a non-`resource` type | Mark the type `resource`, or drop `owned` |
-| E0206 | `owned` resource not consumed on every path | Consume it (move to an `owned` param) on all paths |
-| E0207 | `owned` resource used after consume | Reorder so uses precede the consume |
-| E0208 | Non-exhaustive array match | Cover the length, or add a catch-all |
-| E0209 | Non-exhaustive `bool` match | Cover `true` and `false`, or add `else` |
-| E0210 | Field access with no such field | Fix the field name / add it to the type |
-| E0211 | Call argument type mismatch | Pass a value of the expected type |
-| E0212 | `mut` reassigns a `const` | Use a function-level `let` |
+| E0205 | `owned` used on a non-`resource` type (D25) | Mark the type `resource`, or drop `owned` |
+| E0206 | `owned` resource not consumed on every path (D25) | Consume it (move to an `owned` param) on all paths |
+| E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |
+| E0208 | Non-exhaustive `match` on an array (length not covered) | Cover the length, or add a catch-all |
+| E0209 | Non-exhaustive `match` on a `bool` | Cover `true` and `false`, or add `else` |
+| E0210 | Field access on a record type that has no such field, including a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
+| E0211 | Call argument type does not match the parameter type | Pass a value of the expected type |
+| E0212 | `mut` reassigns a `const` binding (D20) | Use a function-level `let` |
 | E0213 | Wrong number of call arguments | One argument per parameter |
-| E0214 | Component with multiple parameters | Take a single props record |
-| E0215 | Aliasing an `owned` handle | Consume it directly, don't rebind |
-| E0216 | Unreachable match arm after a total pattern | Remove it, or move the catch-all last |
-| E0217 | Discarded `Result` (warning) | `match`/`?` it, or `let _ = ...` to say it's intentional |
-| E0218 | Non-exhaustive match on `number`/`string` | Add an `else` arm |
-| E0219 | `@redact` names a missing field | Fix the field name |
-| E0220 | A `match` arm's PascalCase head is not a variant of the union (typo or wrong union) | Fix the spelling (a `did you mean` suggestion is offered), or add the variant |
-| E0221 | Unknown `@annotation` (D27) | Use a recognized one: `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
-| E0222 | `await` outside an `async fn` | Mark the enclosing callable `async fn` (a sync lambda is its own context) |
-| E0223 | A `match` arm produces no value while the match is used as a value | End the arm with an expression, or `return` from it |
-| E0224 | Reading a key out of a `Record<K, V>` map, where the key may not be there | `record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine |
-| E0225 | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost | Move the read after the `await`. A local counter across an `await` is fine and is not reported |
-| E0226 | Every arm of a `match` can fail and none is a catch-all, over a scrutinee with no cases to count (a record, an unresolved type) | Add an `else` arm |
-| E0227 | `Nullable<T>` whose `T` is itself `Nullable` or `Option` (D45): null is the whole absent state, so the nesting means nothing the plain type does not | Write `Nullable<int>`; convert to an `Option` inside the program with `nullable.to_option` |
-| E0228 | A type's name where a value is expected (`return Order { id: "a" }`): Glyph has no `TypeName { ... }` construction form | Write the value on its own (`return { id: "a" }`) and let the annotation carry the type. `Order.parse(raw)` and `Order.is(v)`, the descriptor forms, are not this error |
-| E0300 | Construct not supported by the emitter | Use a supported form |
+| E0214 | Component declared with multiple parameters (use a props record) | Take a single props record |
+| E0215 | Aliasing an `owned` handle (D25) | Consume it directly, don't rebind |
+| E0216 | Unreachable `match` arm after a total pattern (D9) | Remove it, or move the catch-all last |
+| E0217 | Discarded `Result`. A warning rather than an error: its `Err` is silently ignored | `match`/`?` it, or `let _ = ...` to say it's intentional |
+| E0218 | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module) | Add an `else` arm |
+| E0219 | `@redact` names a field the type does not have (D24) | Fix the field name |
+| E0220 | A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9) | Fix the spelling (a `did you mean` suggestion is offered), or add the variant |
+| E0221 | Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` | Use a recognized one: `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
+| E0222 | `await` outside an `async fn` (the innermost enclosing callable decides, so a sync lambda inside an `async fn` is flagged) | Mark the enclosing callable `async fn` (a sync lambda is its own context) |
+| E0223 | A `match` arm produces no value while the `match` is used as a value (an empty block, or a block whose tail is a `let`/`mut`/`for`/`loop`) | End the arm with an expression, or `return` from it |
+| E0224 | Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there. Use `record.get`, which returns `Option<V>` | `record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine |
+| E0225 | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await` | Move the read after the `await`. A local counter across an `await` is fine and is not reported |
+| E0226 | A `match` whose scrutinee has no variant set to count against, where every arm's pattern can fail and no arm is a catch-all. Add an `else` | Add an `else` arm |
+| E0227 | `Nullable<T>` where `T` is itself `Nullable` or `Option` (D45). Two states would share one runtime spelling, or a tagged object would sit under a null-tolerant field. Write `Nullable` over the plain type | Write `Nullable<int>`; convert to an `Option` inside the program with `nullable.to_option` |
+| E0228 | A type's name where a value is expected (`return Order { id: "a" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error | Write the value on its own (`return { id: "a" }`) and let the annotation carry the type. `Order.parse(raw)` and `Order.is(v)`, the descriptor forms, are not this error |
+| E0300 | Construct not supported by the v1 TypeScript emitter | Use a supported form |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
-| E0302 | `?` in an arm of a match nested inside a larger expression | Bind the match first (`let x = match ...`), then use `?` |
-| E0303 | `?` where the unwrap has nothing to hoist into (a `match` scrutinee) | Bind the operand first (`let r = f(x)?`), then use `r` |
-| E0304 | `parse`/`is` on a record holding a field with no runtime check (a host handle, an `extern_ts` type) | Split the wire type from the domain type: parse the checkable fields, then build the record |
-| E0305 | Two arms of one `match` reach the same `case` label, so the later one is dead | Remove the later arm, or give the two arms patterns that test different values |
-| E0310 | `glyph run` on a module with no `fn main` | Add `fn main`, or `glyph build` it as a library |
+| E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |
+| E0303 | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) | Bind the operand first (`let r = f(x)?`), then use `r` |
+| E0304 | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine | Split the wire type from the domain type: parse the checkable fields, then build the record |
+| E0305 | Two arms of one `match` lower to the same `case` label, so the later arm can never run | Remove the later arm, or give the two arms patterns that test different values |
+| E0310 | `glyph run` on a module with no `fn main` (it's a library — nothing to run) | Add `fn main`, or `glyph build` it as a library |
 
 ### A diagnostic in the self-correction loop
 

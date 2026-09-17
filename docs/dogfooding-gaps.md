@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-238 entries, 215 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-5 are open. G144, the D28 boundary cast that never reached the returns a
+240 entries, 216 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+6 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9497,28 +9497,32 @@ and is the owner's to confirm.
   stays the relation's decision, since two function types are compared by their
   returns alone and it declines them.
 
-  *The two cells, verbatim, on the ledger's own programs:*
+  *The two cells, verbatim, on the ledger's own programs. They said `SAFE` when
+  0.1.122 wrote them and say `WILL_FAIL` from 0.1.123: `change_signature_type`
+  names no replacement type, so an argument verdict under it says whether the
+  relation reads the pairing, and an accepted pairing is read. The wording below
+  is the one that ships.*
 
   ```
-  lib::f, `f(o)` with `o: Option<int>` against `o: Option<int>`  ->  SAFE
+  lib::f, `f(o)` with `o: Option<int>` against `o: Option<int>`  ->  WILL_FAIL
     `Option<number>` and `Option<number>` both apply a prelude container, and the
     checker compares two generic applications by arity, by base and by argument.
     That comparison accepts a `Option<number>` value where a `Option<number>` is
     declared, and the rule is total over this shape, so a replacement it does not
-    accept is E0211 here. `SAFE` rather than `COMPATIBLE` because this is a fact
-    about an edit at a site; `COMPATIBLE` is `glyph_assignable`'s word for the same
-    acceptance asked of two types with no site
+    accept is E0211 here. `glyph_assignable` on the two types answers COMPATIBLE
+    from this call, which is what the acceptance is called when the question is
+    about two types rather than about an edit
 
   lib::takes_rec, `takes_rec(r)` with `r: { a: string, b: int }` against
-  `r: { a: string }`  ->  SAFE
+  `r: { a: string }`  ->  WILL_FAIL
     `{ a: string, b: number }` and `{ a: string }` are both written structurally,
     and the checker compares two structural records field by field with width
     subtyping, reading `optional` on each side. That comparison accepts a
     `{ a: string, b: number }` value where a `{ a: string }` is declared, and the
     rule is total over this shape, so a replacement it does not accept is E0211
-    here. `SAFE` rather than `COMPATIBLE` because this is a fact about an edit at a
-    site; `COMPATIBLE` is `glyph_assignable`'s word for the same acceptance asked of
-    two types with no site
+    here. `glyph_assignable` on the two types answers COMPATIBLE from this call,
+    which is what the acceptance is called when the question is about two types
+    rather than about an edit
   ```
 
   *Six programs were run through the checker before the cells were written, two
@@ -9528,12 +9532,10 @@ and is the owner's to confirm.
   `Option<fn(int) -> int>` into `Option<fn(string) -> int>` and
   `{ a: fn(int) -> int }` into `{ a: fn(string) -> int }` are accepted by
   nothing and refused by nothing, and both cells answer `UNDETERMINED` naming
-  what the comparison declined. A `SAFE` pairing counts as compared when the
-  site verdict is taken, since the rules reached here are total over the shapes
-  they read. Six cell tests and
+  what the comparison declined. Six cell tests and
   `impact_and_assignable_agree_on_a_container_and_on_a_record`, which asserts
-  the mapping (`COMPATIBLE` where the table says `SAFE`, the other two
-  identical) rather than two fixed strings.
+  the mapping (`WILL_FAIL` where `glyph_assignable` says `COMPATIBLE` or
+  `WILL_FAIL`, `UNDETERMINED` on both) rather than two fixed strings.
 
 - **G229. [FIXED] Deep nesting aborts the compiler with a stack overflow.** The parser
   is recursive descent with no depth guard, so an expression nested 2,000
@@ -9603,12 +9605,15 @@ and is the owner's to confirm.
   file. `cargo +nightly fuzz run` on `parse` and on `format_idempotent`, 120
   seconds each, found nothing (425,219 and 192,728 runs, no artifacts).*
 
-  *One edge left, and it is older than this entry: `glyph fmt` renders any
-  parse error with Rust's `Debug`, so the file it skips reads
-  `parse error: NestingTooDeep { construct: "array literal", limit: 64, span:
-  Span { start: 74, end: 75 } }` rather than the rendered diagnostic `check`
-  prints. 0.1.121 does the same on an unbalanced `(`, so nothing regressed; the
-  fix belongs to `glyph fmt`'s reporting, not to the depth limit.*
+  *The reporting edge this entry carried is closed too, in the same release.
+  `glyph fmt` used to render a parse error with Rust's `Debug`, so a skipped
+  file read `parse error: NestingTooDeep { construct: "array literal", limit:
+  64, span: Span { start: 74, end: 75 } }`. Commit 589f66d0, in 0.1.122, made it
+  print the ariadne report `glyph check` prints for the same error and then
+  `glyph fmt: skipped src/main.glyph (it does not parse)`. Measured on three
+  parse-failure shapes (an unbalanced `)`, 200 nested `[`, a headless `fn`)
+  under 0.1.122 and this build: identical output on all three, and
+  `glyph fmt src 2>&1 | grep -cE "Span \{|NestingTooDeep \{"` is 0.*
 
 - **G230. [FIXED] A string-literal-union annotation refuses nothing.** `type Mode =
   "read" | "write"` declares a finite set of strings (D30), and the checker
@@ -9881,9 +9886,20 @@ and is the owner's to confirm.
 
   *Fixed in 0.1.123. A string-literal union is its own `ArgKind` and `ParamKind` now, however it is spelled: a `type` of the calling module, one imported, an inline `"read" | "write"` annotation, and the one-literal type a written string literal carries since G237. Its cells run `assignability` on the two types the site holds, the way the prelude-container and structural-record cells have since G228, rather than restating a rule: the literal-set rule reaches through a name, an import and a `Nullable`, and its `string` half turns on where in a type the pairing sits, so no sentence about two kinds is true of it. The `because` names the rule and what the comparison concluded.*
 
-  *Measured on the review's own two-module project. `glyph query impact --entity modes::takes_mode --change change_signature_type` answers the call site `WILL_FAIL` with argument 1 `SAFE` and a `because` naming the literal-set rule, where 0.1.122 answers `UNDETERMINED` with "the checker has no rule comparing a `"read" | "write"` argument against a `Mode` parameter". `glyph query assignable --from Mode --to Mode` answers `COMPATIBLE` under both, so the two tools now agree. Six cells are asserted in both verdict directions against the tools' own answers rather than against fixed strings, in `impact_and_assignable_agree_on_a_string_literal_union`.*
+  *Measured on the review's own two-module project. `glyph query impact --entity modes::takes_mode --change change_signature_type` answers the call site `WILL_FAIL` with argument 1 `WILL_FAIL` and a `because` naming the literal-set rule, where 0.1.122 answers `UNDETERMINED` with "the checker has no rule comparing a `"read" | "write"` argument against a `Mode` parameter". `glyph query assignable --from Mode --to Mode` answers `COMPATIBLE` under both, so the two tools now agree. Six cells are asserted in both verdict directions against the tools' own answers rather than against fixed strings, in `impact_and_assignable_agree_on_a_string_literal_union`.*
 
   *The fixtures that stood for a primitive argument by writing `f("x")` now pass a `string`-typed binding: a written literal is no longer a primitive argument, it is a one-literal union, and the cell for it is decided by the relation.*
+
+  *The first cut of this fix reported the accepted pairing `SAFE`, and the
+  0.1.123 review refused it before the tag. `change_signature_type` names no
+  replacement type, so nothing about an accepted pairing is a proof that the
+  site survives the edit: in a project that compiles every pairing is accepted,
+  which made `SAFE` true of every argument of every call. It read as a proof
+  where it cost something: `f("x")` and `f(s)` against one `f(s: string)` came
+  back `SAFE` and `WILL_FAIL` under one edit, and both break identically. All
+  three cells that run the relation report `WILL_FAIL` for an accepted pairing
+  now, which is one meaning across the table: the relation reads the pairing, or
+  it does not.*
 
 - **G235. The editor's hover still answers single-file, so an imported name has no type
   in an editor.** `glyph_hover` reads the file inside its project and answers at
@@ -9968,7 +9984,7 @@ and is the owner's to confirm.
 
   *Measured on the eight programs the change decides, run under the published `@glyphlang/glyph@0.1.122` and under the release binary. 0.1.122 draws nothing from `glyph check --no-tsc` for any of them and `tsc --strict` refuses all eight; this build draws `E0204` or `E0211` for all eight: a literal outside the set in an array (`["read", "nope"]` against `Array<Mode>`), in a record field (`{ mode: "nope" }` against `{ mode: Mode }`), in an array of records, and through a generic identity (`id("nope")`); an `Array<string>` returned where an `Array<Mode>` is declared, whether it came from a widened `let` or from a `string`-typed value; and a `string` at a record field. The four correct programs the fence existed to protect (`return ["read", "write"]` against `Array<Mode>`, `takesArr(["read"])`, `{ mode: "read" }` against `Cfg`, `id("read")` against `Mode`) are accepted by the literal-set rule rather than by a declined pairing. No program `tsc --strict` accepts is newly refused: the 31 apps at their own roots and `examples/` answer with identical exit codes and identical diagnostic-code lists under both binaries, and the positive corpus grew from thirteen programs to nineteen, each run under 0.1.122 with `tsc` in the loop before it was added.*
 
-  *Readings left undetermined, each with its reason. The key argument of a `Record` against another `Record`'s: TypeScript writes `Record<string, V>` as an index signature, which covers every key a `Record<Mode, V>` declares, and accepts the pairing in both directions, so refusing it would refuse a program tsc compiles. A literal inside a prelude constructor's payload (`Some("nope")` against an `Option<Mode>`): the walk records `Ty::Unknown` for `Ok`, `Err` and `Some`, pending use-site generic instantiation, so the value reaches the relation as undecidable and it is the constructor's missing type rather than the literal's that keeps Glyph silent (`tsc` reports it). A record literal bound to an unannotated `let` and returned (`let c = { mode: "read" }` against a `Cfg`): nothing synthesizes a record type for an object literal, so the binding is undecidable; `tsc` refuses it, as `{ mode: string }`. A concatenation (`takes("re" + "ad")`): a binary expression has no type here at all. A template literal (``takes(`read`)``): `tsc` reads a no-substitution template as its literal type and accepts it, this refuses it, which is stricter than tsc rather than looser and is the pre-existing reading, unchanged.*
+  *Readings left undetermined, each with its reason. The key argument of a `Record` against another `Record`'s: TypeScript writes `Record<string, V>` as an index signature, which covers every key a `Record<Mode, V>` declares, and accepts the pairing in both directions, so refusing it would refuse a program tsc compiles. A literal inside a prelude constructor's payload (`Some("nope")` against an `Option<Mode>`): the walk records `Ty::Unknown` for `Ok`, `Err` and `Some`, pending use-site generic instantiation, so the value reaches the relation as undecidable and it is the constructor's missing type rather than the literal's that keeps Glyph silent (`tsc` reports it). A record literal bound to an unannotated `let` and returned (`let c = { mode: "read" }` against a `Cfg`): nothing synthesizes a record type for an object literal, so the binding is undecidable; `tsc` refuses it, as `{ mode: string }`. A concatenation (`takes("re" + "ad")`): a binary expression has no type here at all. A template literal (``takes(`read`)``): `tsc` reads a no-substitution template as its literal type and accepts it, this refuses it, which is stricter than tsc rather than looser and is the pre-existing reading, unchanged. An array `const` (`const CM = ["read", "write"]` returned as an `Array<Mode>`): the widening row above is about a `const` with a string initializer, where TypeScript keeps the literal; TypeScript widens the *elements* of an array initializer, so `tsc --strict` refuses this one with `TS2322: Type 'string[]' is not assignable to type 'Mode[]'` while Glyph accepts it, a `const` lowering to `Unknown` and reaching no rule. Found by the 0.1.123 review; `glyph check` with `tsc` in the loop reports it, `--no-tsc` does not.*
 
 - **G238. [FIXED] A project may declare a module under `std/` or `extern/`, and it is
   silently unreachable.** `module std/io` in `src/io.glyph` with `pub fn shout`
@@ -9992,3 +10008,73 @@ and is the owner's to confirm.
   collect: `std/io` declares a module under `std/`, a prefix reserved for the
   modules the compiler carries (D15)`` and exits 1.*
 
+
+- **G239. [FIXED] An imported union named like a prelude type loses its
+  exhaustiveness check, and `glyph_variants` reports zero sites over a file
+  that has one.** `module orders` declares `pub type Result = | Won | Lost`;
+  `module main` writes `import orders { Result, Won }` and matches on it with
+  one arm. `glyph check --no-tsc` reports nothing, the emitted TypeScript
+  carries `default: throw new Error("non-exhaustive match")`, and the program
+  throws at run time on `Lost`. The lowerer read the imported name before the
+  import path, so a prelude container's spelling won over the binding that says
+  which declaration this module means; a bare prelude `Result` is not an
+  application, `prelude_union` declines it, and `required_variants` returns
+  `None`, so no variant list was ever required. `Option` and `Nullable` collide
+  the same way. `glyph_variants --name Result` then resolved
+  `orders::Result`, read both variants, walked the project and answered
+  `sites: []` with `not_counted: []`, which says "we looked and there are none"
+  where the truth was "the relation never keyed this site".
+
+  *Reproduced against the published 0.1.122 and against the 0.1.123 branch binary, three ways on one tree. Imported and named `Result`: `glyph check --no-tsc --no-test src` is `glyph check: 2 module(s) checked, no diagnostics.`, exit 0, under both. Renamed to `Outcome` and imported: ``[E0200] non-exhaustive match on `Outcome`: missing variants `Lost` ``, exit 1. Declared in `main` itself as `Result`: ``[E0200] non-exhaustive match on `Result` ``, exit 1. Imported `Option` and imported `Nullable`: silent under both, like `Result`. `glyph query variants --path src/main.glyph --name Result` answers `"0 match sites across 0 files"` with `not_counted: []` over the file that holds the site.*
+
+  *Fixed in 0.1.123, in one place: a named import lowers to the prelude
+  container only when its path's first segment is `std`. An explicit import
+  binding shadows a prelude name, which is the rule a local `type Result`
+  already followed (G213) and the rule `import std/string` already followed for
+  a namespace binding (G225); this is its third spelling. `import std/result
+  { Result }` is unchanged, because the prelude is a curated re-export of the
+  stdlib and the two are one declaration (Q3, G231).*
+
+  *The tool half closed with it rather than separately. The site is keyed to
+  `orders::Result` now, so `glyph_variants` counts it: one site, one file,
+  `state: "declined"`, `missing: ["Lost"]`, under `type.declaration:
+  "orders::Result"`. Nothing manufactures an empty list, because nothing is
+  left unkeyed.*
+
+  *Two-binary: on the review's own `shadow/s1`, the published
+  `@glyphlang/glyph@0.1.122` and the 0.1.123 branch binary both answer `glyph
+  check: 2 module(s) checked, no diagnostics.` and exit 0; this build answers
+  ``[E0200] Error: typecheck: non-exhaustive match on `Result`: missing
+  variants `Lost` `` and exits 1. On `shadow/s5`, the imported `Option` and
+  `Nullable` pair, both exit 0 and this build reports two `E0200` and exits 1.
+  Breaking, in the checking direction: a program the previous version accepted
+  is refused, and every such program threw at run time on the variant no arm
+  named. The exhaustive spelling of the same program builds and passes `tsc
+  --strict` with the emitted TypeScript unchanged.*
+
+  *Five programs in `integration.rs` hold the three-way reproduction as one
+  assertion (imported `Result`, imported `Outcome`, imported `Option`,
+  imported `Nullable`, local `Result`), a sixth holds `import std/result
+  { Result }` still reporting a missing `Err`, and
+  `tests/negative/imported_union_named_like_a_prelude_type/` pairs the wrong
+  program with `E0200`.*
+
+- **G240. JSX attributes are typed by nothing, so a wrong one draws no
+  diagnostic.** With `type Variant = "primary" | "danger"` and a
+  `component Button(props: { variant: Variant, label: string })`, all three of
+  `<Button variant="danger" label="go" />`, `<Button variant="nope" label="go"
+  />` and `<Button variant={42} label="go" />` pass `glyph check --no-tsc` with
+  no diagnostic. A JSX attribute never reaches the assignability relation: the
+  component's parameter record is declared and the attribute list is not
+  checked against it, so neither D30's literal set nor any other rule reads it.
+  `tsc` on the emitted TypeScript is the only thing that sees it, which leaves
+  `--no-tsc`, the language server, the MCP tools and the playground blind, the
+  same four surfaces G230 was about.
+
+  Found by the 0.1.123 review, which was reading the string-literal-union
+  corpus rather than looking for this: the corpus held a `jsx_attribute` case
+  as one of nineteen programs the rule must not refuse, and it could not be
+  refused by any rule, so it was a dead instrument that would pass under any
+  widening. The case is removed and the corpus is eighteen.
+
+  *Reproduced against 0.1.122, published, and against the 0.1.123 branch binary, on a one-module project: `glyph check --no-tsc --no-test src` is `glyph check: 1 module(s) checked, no diagnostics.`, exit 0, for `variant="danger"`, for `variant="nope"` and for `variant={42}`, under both binaries.*

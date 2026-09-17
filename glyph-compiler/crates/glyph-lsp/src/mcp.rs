@@ -7700,6 +7700,9 @@ fn stdlib_exports(
 ) -> Option<Result<String, String>> {
     let stubs = StdlibStubs::new();
     let exports = stubs.exports_of(&module_path_from_key(module))?;
+    // One prelude for the whole module's export list: `stdlib_signature` reads
+    // it and nothing else about the program.
+    let prelude = build_prelude();
     let described: Vec<Value> = exports
         .names
         .iter()
@@ -7713,19 +7716,36 @@ fn stdlib_exports(
             entry.insert("name".to_string(), json!(name.as_ref()));
             let union = glyph_typechecker::builtin_union(module, name.as_ref());
             let owner = glyph_typechecker::builtin_union_of_variant(module, name.as_ref());
-            let kind = match (&union, &owner) {
-                (Some(_), _) => Some("union"),
-                (None, Some(_)) => Some("variant"),
-                (None, None) => None,
+            let signature =
+                glyph_typechecker::stdlib_signature(&prelude, module, name.as_ref());
+            let kind = match (&union, &owner, &signature) {
+                (Some(_), _, _) => Some("union"),
+                (None, Some(_), _) => Some("variant"),
+                (None, None, Some(Ty::Fn { .. })) => Some("function"),
+                (None, None, Some(_)) => Some("value"),
+                (None, None, None) => None,
             };
             fact(
                 &mut entry,
                 "kind",
                 kind.map(|k| json!(k)),
                 format!(
-                    "`{module}` exports `{name}` and Glyph's own checker models no \
-                     declaration for it, so there is no kind here to report. \
-                     `glyph_symbol` on `{module}::{name}` says the same thing at length."
+                    "`{module}` exports `{name}` and the compiler models neither a \
+                     declaration nor a signature for it, so there is no kind here to \
+                     report. `glyph_symbol` on `{module}::{name}` says the same thing at \
+                     length."
+                ),
+            );
+            // The signature the checker holds, so a caller that has the export
+            // list does not need a second call per name to learn what to pass.
+            fact(
+                &mut entry,
+                "signature",
+                signature.as_ref().map(|ty| json!(display_ty(ty))),
+                format!(
+                    "the checker's `stdlib_*_fn_ty` tables hold no type for \
+                     `{module}::{name}`, so a call to it is typed `unknown` here and \
+                     checked by `tsc` alone"
                 ),
             );
             Value::Object(entry)
@@ -7751,8 +7771,11 @@ fn stdlib_exports(
         json!(
             "every name the resolver registers for this stdlib module, which is the set an \
              `import` of it is verified against and the set E0105 lists when a name is not \
-             on it. The compiler carries the implementation as TypeScript, so `kind` is \
-             reported only for the declarations Glyph's own checker models."
+             on it. The compiler carries the implementation as TypeScript, so `kind` and \
+             `signature` are reported for the unions the checker declares and the functions \
+             its `stdlib_*_fn_ty` tables type a call against, and an export in neither says \
+             so in `kind_absent` and `signature_absent`. A `?` inside a signature is a \
+             parameter the table leaves `unknown`."
         ),
     );
     Some(Ok(to_json(&Value::Object(out))))
@@ -8772,13 +8795,86 @@ fn parameters_value(kind: &str, ty: Option<&Ty>) -> Option<Value> {
                      names one; the standard library's surface does not always."
                         .to_string(),
                 );
-                out.insert("type".to_string(), json!(display_ty(&p.ty)));
+                // A parameter the compiler lowered no type for renders `?`
+                // through `display_ty`, and a `?` is neither a type nor an
+                // absence. 76 of the 100 stdlib signatures the checker models
+                // carry one, because the tables model a function's arity and
+                // its return and leave the parameters `unknown`.
+                fact(
+                    &mut out,
+                    "type",
+                    match &p.ty {
+                        Ty::Unknown => None,
+                        ty => Some(json!(display_ty(ty))),
+                    },
+                    "the compiler lowered no type for this parameter, so nothing here \
+                     compares an argument at this position. A stdlib function's table \
+                     models its arity and its return and leaves a parameter `unknown`; a \
+                     Glyph declaration reaches the same state through an `extern_ts` or a \
+                     `typeof` annotation. `tsc` on the emitted TypeScript is what reads it."
+                        .to_string(),
+                );
                 out.insert("owned".to_string(), json!(p.owned));
                 out.insert("optional".to_string(), json!(p.optional));
                 Value::Object(out)
             })
             .collect(),
     ))
+}
+
+/// The type parameters a type mentions, in the order it mentions them and
+/// without repeats.
+///
+/// Read off the `Ty` the checker holds rather than parsed back out of its
+/// rendering, so `fn(Array<T>, fn(T) -> bool) -> Array<T>` reports `["T"]` and
+/// a signature that names none reports an empty list that means it.
+fn signature_generics(ty: &Ty) -> Vec<String> {
+    fn walk(ty: &Ty, out: &mut Vec<String>) {
+        match ty {
+            Ty::Param { name, .. } => {
+                let name = name.to_string();
+                if !out.contains(&name) {
+                    out.push(name);
+                }
+            }
+            Ty::App { base, args } => {
+                walk(base, out);
+                for a in args {
+                    walk(a, out);
+                }
+            }
+            Ty::Fn {
+                params, return_ty, ..
+            } => {
+                for p in params {
+                    walk(&p.ty, out);
+                }
+                walk(return_ty, out);
+            }
+            Ty::Record { fields } => {
+                for f in fields {
+                    walk(&f.ty, out);
+                }
+            }
+            Ty::Union { variants } => {
+                for v in variants {
+                    if let Some(p) = &v.payload {
+                        walk(p, out);
+                    }
+                }
+            }
+            Ty::Unknown
+            | Ty::Prim(_)
+            | Ty::UnknownTop
+            | Ty::Never
+            | Ty::Named { .. }
+            | Ty::StringLiteralUnion(_)
+            | Ty::Imported { .. } => {}
+        }
+    }
+    let mut out = Vec::new();
+    walk(ty, &mut out);
+    out
 }
 
 /// An interface's members: each one's name, whether it is a method or a
@@ -9067,11 +9163,17 @@ const STDLIB_NO_SOURCE: &str =
 /// `None` when `module` is not a stdlib module the compiler carries, which is
 /// what sends `describe_symbol` on to its own refusal.
 ///
-/// Built from two tables the compiler already keeps: the resolver's export
-/// surface, which decides whether `module::name` names anything at all, and the
+/// Built from three tables the compiler already keeps: the resolver's export
+/// surface, which decides whether `module::name` names anything at all; the
 /// checker's builtin-union table, which is the same one exhaustiveness counts
-/// against. Nothing here is read off the TypeScript: what the compiler does not
-/// model is absent with the reason, not guessed from a name.
+/// against; and the checker's `stdlib_*_fn_ty` tables, read through
+/// `glyph_typechecker::stdlib_signature`, which are the types it holds a call
+/// to a stdlib function against. The third was missing until 0.1.123's review
+/// caught the consequence: `std/array::filter` came back with no kind and a
+/// sentence saying the checker does not read the stdlib, over a signature the
+/// same binary publishes in `glyph llms --json` and enforces at a call site.
+/// Nothing here is read off the TypeScript: what the compiler does not model is
+/// absent with the reason, not guessed from a name.
 fn describe_stdlib_symbol(
     project: &Project,
     root: &Path,
@@ -9095,19 +9197,28 @@ fn describe_stdlib_symbol(
     let variant = owner
         .as_ref()
         .and_then(|u| u.variants.iter().find(|v| v.name == name).cloned());
-    let kind = match (&union, &variant) {
-        (Some(_), _) => Some("union"),
-        (None, Some(_)) => Some("variant"),
-        (None, None) => None,
+    // The type the checker's own `stdlib_*_fn_ty` tables hold for this export,
+    // which is the type it checks a call against. The walk behind it runs over
+    // an empty module and reads the prelude only, so building one here is the
+    // whole cost.
+    let signature = glyph_typechecker::stdlib_signature(&build_prelude(), module, name);
+    let kind = match (&union, &variant, &signature) {
+        (Some(_), _, _) => Some("union"),
+        (None, Some(_), _) => Some("variant"),
+        (None, None, Some(Ty::Fn { .. })) => Some("function"),
+        (None, None, Some(_)) => Some("value"),
+        (None, None, None) => None,
     };
-    // Why the compiler holds no kind for this name. It is exported and it is
-    // not one of the unions the checker models, so what it is lives in the
-    // TypeScript `tsc` checks and nothing in Glyph read it.
+    // Why the compiler holds no kind for this name. It is exported, it is not
+    // one of the unions the checker models, and the checker's signature tables
+    // hold no type for it either, so what it is lives in the TypeScript `tsc`
+    // checks.
     let kind_absent = format!(
-        "`{module}` exports `{name}` and Glyph's own checker models no declaration for it. \
-         The compiler carries a declaration for the tagged unions it checks matches against \
-         ({}); everything else in the stdlib is TypeScript whose shape `tsc` checks and \
-         Glyph's checker does not read, so there is no kind here to report.",
+        "`{module}` exports `{name}` and the compiler models neither a declaration nor a \
+         signature for it. It carries a declaration for the tagged unions it checks matches \
+         against ({}), and its `stdlib_*_fn_ty` tables carry a signature for the stdlib \
+         functions it types a call to; `{module}::{name}` is in neither, so its shape is in \
+         the TypeScript the compiler stages for `tsc` and no Glyph pass reads it.",
         glyph_typechecker::builtin_unions()
             .iter()
             .map(|u| format!("`{}::{}`", u.module, u.name))
@@ -9128,10 +9239,15 @@ fn describe_stdlib_symbol(
     out.insert("pub".to_string(), json!(true));
     out.insert(
         "generics".to_string(),
-        json!(union
-            .as_ref()
-            .map(|u| u.generics.to_vec())
-            .unwrap_or_default()),
+        json!(match (&union, &signature) {
+            (Some(u), _) => u.generics.iter().map(|g| g.to_string()).collect(),
+            // The type parameters a modeled signature names, in the order the
+            // type mentions them. Read out of the table rather than left empty:
+            // `filter` is `fn(Array<T>, fn(T) -> bool) -> Array<T>` and an empty
+            // list would say it takes none.
+            (None, Some(ty)) => signature_generics(ty),
+            (None, None) => Vec::new(),
+        }),
     );
     fact(&mut out, "path", None, STDLIB_NO_SOURCE.to_string());
     fact(&mut out, "range", None, STDLIB_NO_SOURCE.to_string());
@@ -9145,13 +9261,19 @@ fn describe_stdlib_symbol(
     // The type of the declaration as a whole. The compiler holds one for a
     // union it models and for nothing else here, and the union's is written
     // the way a program writes it, with its generic parameters applied.
-    let type_value = union.as_ref().map(|u| {
-        json!(if u.generics.is_empty() {
-            u.display.to_string()
-        } else {
-            format!("{}<{}>", u.display, u.generics.join(", "))
+    let type_value = union
+        .as_ref()
+        .map(|u| {
+            json!(if u.generics.is_empty() {
+                u.display.to_string()
+            } else {
+                format!("{}<{}>", u.display, u.generics.join(", "))
+            })
         })
-    });
+        // A modeled export's type is the signature the checker holds, rendered
+        // by the same `display_ty` a diagnostic prints and `glyph llms --json`
+        // publishes, so the three cannot say different things about one export.
+        .or_else(|| signature.as_ref().map(|ty| json!(display_ty(ty))));
     // The reason a fact is absent, in the two shapes this branch has: one for
     // a declaration the compiler models, which reads the way the project
     // branch's does, and one for a name it does not, which says so instead of
@@ -9189,17 +9311,28 @@ fn describe_stdlib_symbol(
         None,
         because("is not a union of string literals, so it has no literal set"),
     );
-    fact(&mut out, "parameters", None, because("takes no parameters"));
+    fact(
+        &mut out,
+        "parameters",
+        parameters_value(kind.unwrap_or(""), signature.as_ref()),
+        because("takes no parameters"),
+    );
     fact(
         &mut out,
         "returns",
-        None,
+        match &signature {
+            Some(Ty::Fn { return_ty, .. }) => Some(json!(display_ty(return_ty))),
+            _ => None,
+        },
         because("returns nothing to a caller"),
     );
     fact(
         &mut out,
         "async",
-        None,
+        match &signature {
+            Some(Ty::Fn { is_async, .. }) => Some(json!(is_async)),
+            _ => None,
+        },
         because("is not called, so it is neither async nor not"),
     );
     fact(
@@ -9242,7 +9375,11 @@ fn describe_stdlib_symbol(
                 u.module, u.name, u.module, u.name
             )),
         ),
-        (None, None) => (Value::Null, json!(kind_absent.clone())),
+        (None, None) => (
+            Value::Null,
+            json!(because("is not a tagged union, so no `match` over it is checked \
+                           for exhaustiveness")),
+        ),
     };
     out.insert("exhaustive_match".to_string(), exhaustive);
     out.insert("exhaustive_match_absent".to_string(), exhaustive_absent);
@@ -15942,6 +16079,100 @@ pub fn f() -> number {
                 "construct_absent": null,
             }),
             "{kind}"
+        );
+    }
+
+    /// A stdlib export the checker holds a signature for answers with it.
+    ///
+    /// The 0.1.123 review found `glyph_symbol` telling an agent the checker
+    /// models no declaration for `std/array::filter` while the same binary
+    /// published `fn(Array<T>, fn(T) -> bool) -> Array<T>` for it in
+    /// `glyph llms --json` and raised `E0211` on `array.filter(xs, 3)`. Both
+    /// halves are asserted here: the export with a signature carries it, and
+    /// the export with none says so without claiming the checker cannot read
+    /// the stdlib.
+    #[test]
+    fn a_modeled_stdlib_export_carries_the_checkers_own_signature() {
+        let root = shop_root();
+        let value = symbol(&root, "std/array::filter");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "function", "{value}");
+        assert_eq!(
+            value["type"], "fn(Array<T>, fn(T) -> bool) -> Array<T>",
+            "{value}"
+        );
+        assert_eq!(value["returns"], "Array<T>", "{value}");
+        assert_eq!(value["async"], false, "{value}");
+        assert_eq!(value["generics"], json!(["T"]), "{value}");
+        let params = value["parameters"].as_array().expect("parameters");
+        assert_eq!(params.len(), 2, "{value}");
+        assert_eq!(params[0]["type"], "Array<T>", "{value}");
+        assert_eq!(params[1]["type"], "fn(T) -> bool", "{value}");
+
+        // The same signature, out of the same table, on the module's export
+        // list, so the two surfaces cannot say different things about it.
+        let (exports, is_error) = call(
+            &root,
+            "glyph_exports",
+            json!({ "module": "std/array" }),
+        );
+        assert!(!is_error, "{exports}");
+        let filter = exports["exports"]
+            .as_array()
+            .expect("exports")
+            .iter()
+            .find(|e| e["name"] == "filter")
+            .expect("std/array exports filter")
+            .clone();
+        assert_eq!(filter["kind"], "function", "{filter}");
+        assert_eq!(
+            filter["signature"], "fn(Array<T>, fn(T) -> bool) -> Array<T>",
+            "{filter}"
+        );
+    }
+
+    /// A parameter the table leaves `unknown` renders `?`, and a `?` is
+    /// neither a type nor an absence. The parameter says which it is.
+    #[test]
+    fn a_partly_modeled_stdlib_signature_says_which_parameter_is_unknown() {
+        let root = shop_root();
+        let value = symbol(&root, "std/array::len");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "function", "{value}");
+        assert_eq!(value["type"], "fn(?) -> number", "{value}");
+        assert_eq!(value["returns"], "number", "{value}");
+        let params = value["parameters"].as_array().expect("parameters");
+        assert_eq!(params.len(), 1, "{value}");
+        assert!(params[0]["type"].is_null(), "{value}");
+        assert!(
+            params[0]["type_absent"]
+                .as_str()
+                .is_some_and(|s| s.contains("lowered no type")),
+            "a `?` parameter says why it is absent: {value}"
+        );
+    }
+
+    /// An export the compiler models neither a declaration nor a signature for
+    /// says that, and does not say the checker cannot read the stdlib.
+    #[test]
+    fn an_unmodeled_stdlib_export_says_what_is_missing_and_no_more() {
+        let root = shop_root();
+        let value = symbol(&root, "std/io::println");
+        assert_paired(&value);
+        assert!(value["kind"].is_null(), "{value}");
+        assert!(value["type"].is_null(), "{value}");
+        let why = value["kind_absent"].as_str().expect("a reason");
+        assert!(
+            why.contains("models neither a declaration nor a signature"),
+            "{why}"
+        );
+        assert!(
+            why.contains("stdlib_*_fn_ty"),
+            "the reason names the table that holds the signatures: {why}"
+        );
+        assert!(
+            !why.contains("does not read"),
+            "the reason must not say the checker does not read the stdlib: {why}"
         );
     }
 

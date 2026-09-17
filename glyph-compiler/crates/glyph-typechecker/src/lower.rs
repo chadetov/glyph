@@ -130,12 +130,25 @@ impl<'a> Lowerer<'a> {
                             // recognizable regardless of how they were brought
                             // into scope.
                             //
+                            // Only when the import comes from `std/`. An
+                            // explicit import binding shadows the prelude name
+                            // (G239): `import orders { Result }` for a project
+                            // module's own `pub type Result` is the project's
+                            // declaration, and reading it as the prelude
+                            // container gave the match over it no variant list,
+                            // so D9 exhaustiveness was switched off for every
+                            // union a project named `Result`, `Option` or
+                            // `Nullable` and imported. A local `type Result`
+                            // already shadows (G213) and `import std/string`
+                            // already binds the name it spells (G225); this is
+                            // the third spelling of one rule.
+                            //
                             // Anything else keeps its identity across the
                             // boundary as a `Ty::Imported`, keyed on the source
                             // module and the name that module declares, so the
                             // three legal import spellings agree.
                             SymbolKind::ImportNamed { original, path } => self
-                                .imported_prelude_container(original)
+                                .stdlib_prelude_container(path, original)
                                 .or_else(|| self.imported_stdlib_modeled_ty(path, original))
                                 .unwrap_or_else(|| Ty::Imported {
                                     module: module_key(path),
@@ -405,6 +418,28 @@ impl<'a> Lowerer<'a> {
     /// with the prelude built-in of the same name. Returns None for any
     /// other imported name (a genuinely user-defined cross-module type),
     /// which stays `Ty::Unknown` until cross-module type resolution lands.
+    /// The prelude container a named import brings into scope, and `None` when
+    /// the import is not from a `std/` module.
+    ///
+    /// The prelude is a curated re-export of the stdlib (Q3, G231), so
+    /// `import std/result { Result }` and a bare `Result` are one declaration.
+    /// A project module's `Result` is a different declaration with the same
+    /// spelling, and the import binding is what says which one this module
+    /// means. Reading the name first and the path second gave the prelude the
+    /// last word over an explicit import, which is the one place a name can be
+    /// pinned down (G239).
+    fn stdlib_prelude_container(
+        &self,
+        path: &glyph_ast::ModulePath,
+        name: &Ident,
+    ) -> Option<Ty> {
+        let first = path.segments.first()?;
+        if first.as_ref() != "std" {
+            return None;
+        }
+        self.imported_prelude_container(name)
+    }
+
     fn imported_prelude_container(&self, name: &Ident) -> Option<Ty> {
         let id = self.prelude.lookup(name.as_ref())?;
         let sym = self.prelude.table.get(id)?;

@@ -1,0 +1,12 @@
+module main
+import orders { Result, Won }
+
+// A project union may be named `Result`, and an explicit import of it is what
+// says which `Result` this module means (G239). Reading the prelude container
+// instead left the match with no variant list, so the missing `Lost` went
+// unreported and the emitted TypeScript threw at run time.
+pub fn label(r: Result) -> string {
+  return match r {
+    Won => "won",
+  }
+}

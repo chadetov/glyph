@@ -4850,6 +4850,82 @@ fn impact_root(root: &Path) -> Result<PathBuf, String> {
     }
 }
 
+/// The refusal for a `module::name` that addresses a stdlib export rather than
+/// a declaration of this project, or `None` when `module` is not a stdlib
+/// module the compiler carries or does not export `name`.
+///
+/// `glyph_symbol` answers this identity (G231) and an `E0200` over the prelude
+/// `Result` reports `cause: "std/result::Result"`, so an agent forwarding that
+/// string reaches the two tools that take an entity and no file of the project
+/// answers to `std/result`. Saying "no file of this project is module
+/// `std/result`" is the sentence G231 made obsolete for `glyph_symbol`, and it
+/// reads as a typo rather than as the real answer, which is that the edit is
+/// not one this project can make.
+///
+/// `change` is the edit being asked about, and `None` for `glyph_dependencies`,
+/// which asks no edit.
+fn stdlib_entity_refusal(module: &str, name: &str, change: Option<&Change>) -> Option<String> {
+    let stubs = StdlibStubs::new();
+    let exports = stubs.exports_of(&module_path_from_key(module))?;
+    if !exports.contains(name) {
+        return None;
+    }
+    let entity = format!("{module}::{name}");
+    let is_union = glyph_typechecker::builtin_union(module, name).is_some();
+    let what = match is_union {
+        true => format!(
+            "`{entity}` is a tagged union the compiler declares and carries, not a \
+             declaration of this project"
+        ),
+        false => format!(
+            "`{entity}` is declared by the stdlib the compiler carries, whose implementation \
+             is TypeScript staged into the build (`runtime/std/*.ts`) rather than a `.glyph` \
+             file of this project"
+        ),
+    };
+    let sentence = match change {
+        Some(Change::AddVariant { .. } | Change::RemoveVariant { .. }) if is_union => format!(
+            "{what}, so this project cannot change a union the compiler declares: the \
+             variants are fixed by the compiler and adding or removing one is an edit to \
+             the compiler, not to this project. `glyph_variants --name {name}` lists every \
+             match site in this project over it, which is what would have to change if the \
+             compiler's own variant list ever did."
+        ),
+        Some(Change::Rename | Change::Remove) if is_union => format!(
+            "{what}, so this project cannot change a union the compiler declares: renaming \
+             or removing it is an edit to the compiler. `glyph_references` on the name in a \
+             file that uses it lists the sites here."
+        ),
+        Some(Change::Rename | Change::Remove) => format!(
+            "{what}, so this project can neither rename nor remove it. \
+             `glyph_references` on the name in a file that imports it lists the sites here."
+        ),
+        Some(Change::AddVariant { .. } | Change::RemoveVariant { .. }) => format!(
+            "{what}, and it is not a tagged union either, so there is no variant to add or \
+             remove. `glyph_symbol --entity {entity}` says what the compiler does model \
+             for it."
+        ),
+        Some(Change::Arity | Change::SignatureType) if is_union => format!(
+            "{what}, and a tagged union has no parameter list and no signature for either \
+             change to be about. `glyph_symbol --entity {entity}` describes it and \
+             `glyph_variants --name {name}` lists the match sites over it."
+        ),
+        Some(Change::Arity | Change::SignatureType) => format!(
+            "{what}, so its signature is not one this project can change. The checker's \
+             `stdlib_*_fn_ty` tables hold whatever type it types a call against, and \
+             `glyph_symbol --entity {entity}` reports that signature or says the tables \
+             hold none."
+        ),
+        None => format!(
+            "{what}, so it has no Glyph source whose own names could be read as \
+             dependencies. `glyph_symbol --entity {entity}` describes what the compiler \
+             models for it, and `glyph_exports --module {module}` lists the module's \
+             surface."
+        ),
+    };
+    Some(sentence)
+}
+
 /// Resolve `module::name` against the project, into the kind of thing it is
 /// and where its declaration sits.
 fn resolve_subject(
@@ -7056,6 +7132,12 @@ fn tool_impact(args: &Value, server: &mut Server) -> Result<String, String> {
         }
     };
     let project = server.project(&project_root, &target);
+    // A stdlib identity is one `glyph_symbol` answers and a diagnostic hands
+    // over, so it arrives here; what it gets is the reason the edit cannot be
+    // made rather than the project's module list.
+    if let Some(why) = stdlib_entity_refusal(&module, &name, Some(&change)) {
+        return Err(why);
+    }
     let subject = resolve_subject(project, &module, &name, field.as_deref())?;
     let plan = plan_for(project, &change, &subject)?;
     let wanted = read_relations_under(args, "relations", &plan.relations())?;
@@ -7215,6 +7297,9 @@ fn tool_dependencies(args: &Value, server: &mut Server) -> Result<String, String
         }
     };
     let project = server.project(&project_root, &target);
+    if let Some(why) = stdlib_entity_refusal(&module, &name, None) {
+        return Err(why);
+    }
     let subject = resolve_subject(project, &module, &name, None)?;
     let entity = format!("{module}::{name}");
 
@@ -16124,6 +16209,62 @@ pub fn f() -> number {
             }),
             "{kind}"
         );
+    }
+
+    /// The three tools that take an entity answer the same string.
+    ///
+    /// `glyph_symbol` answers `std/result::Result` and an `E0200` over the
+    /// prelude `Result` hands that string over in `cause`, so it reaches
+    /// `glyph_impact` and `glyph_dependencies`. They used to answer "no file of
+    /// this project is module `std/result`", which is the sentence G231 made
+    /// obsolete and which reads as a typo rather than as the real answer.
+    #[test]
+    fn a_stdlib_entity_is_refused_by_a_reason_that_names_the_stdlib() {
+        let root = shop_root();
+        let mut server = Server::new(root.clone());
+        for change in [
+            json!({ "kind": "add_variant", "variant": "Pending" }),
+            json!({ "kind": "remove_variant", "variant": "Ok" }),
+            json!({ "kind": "rename" }),
+            json!({ "kind": "remove" }),
+        ] {
+            let (message, is_error) = call_raw(
+                &mut server,
+                "glyph_impact",
+                json!({ "entity": "std/result::Result", "change": change }),
+            );
+            assert!(is_error, "{message}");
+            assert!(
+                message.contains("cannot change a union the compiler declares"),
+                "{message}"
+            );
+            assert!(!message.contains("no file of this project"), "{message}");
+        }
+
+        // A stdlib function is not a union, and its refusal says what it is
+        // instead of reaching for the union sentence.
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_impact",
+            json!({
+                "entity": "std/array::filter",
+                "change": { "kind": "change_signature_type" },
+            }),
+        );
+        assert!(is_error, "{message}");
+        assert!(message.contains("stdlib"), "{message}");
+        assert!(message.contains("stdlib_*_fn_ty"), "{message}");
+        assert!(!message.contains("no file of this project"), "{message}");
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_dependencies",
+            json!({ "entity": "std/result::Result" }),
+        );
+        assert!(is_error, "{message}");
+        assert!(message.contains("no Glyph source"), "{message}");
+        assert!(message.contains("glyph_exports --module std/result"), "{message}");
+        assert!(!message.contains("no file of this project"), "{message}");
     }
 
     /// A stdlib export the checker holds a signature for answers with it.

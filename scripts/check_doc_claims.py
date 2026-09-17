@@ -82,8 +82,11 @@ PROMISE = re.compile(
     re.I,
 )
 PASSED = re.compile(r"^test result: ok\. (\d+) passed", re.M)
-SHIPPED = re.compile(r"^### (0\.\d+\.\d+) — Shipped", re.M)
-NEXT = re.compile(r"^### (0\.\d+\.\d+) — Next", re.M)
+# Entries were headed `### 0.1.N` up to 0.1.113 and `**0.1.N` since; the
+# gate reads both, or it goes blind to every live entry, which is how it stayed
+# quiet from 0.1.113 to 0.1.123.
+SHIPPED = re.compile(r"^(?:### |\*\*)(0\.\d+\.\d+) — Shipped", re.M)
+NEXT = re.compile(r"^(?:### |\*\*)(0\.\d+\.\d+) — Next", re.M)
 
 
 def vkey(v: str) -> tuple:

@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-238 entries, 212 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-8 are open. G144, the D28 boundary cast that never reached the returns a
+238 entries, 215 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+5 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9837,7 +9837,7 @@ and is the owner's to confirm.
   `glyph check --no-test src` on the same file prints `[TS2322] Error: tsc: Type
   '{ x: number; }' is not assignable to type 'string'.`, exit 1.*
 
-- **G233. One declaration, two spellings, because an imported string-literal union is
+- **G233. [FIXED] One declaration, two spellings, because an imported string-literal union is
   lowered to its literal set.** `imported_string_literal_union` lowers an
   imported `type Mode = "read" | "write"` straight to `Ty::StringLiteralUnion`,
   which carries the literals and not the name, while an imported *alias* of the
@@ -9852,7 +9852,13 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.121, the version this tree reports before the bump, on a two-module project. `src/modes.glyph` declares `pub type Mode = "read" | "write"` and `pub type Alias = Mode`; `src/main.glyph` imports both and writes `let a: Mode = "rw"` and `let b: Alias = "rw"`. `glyph check --no-tsc --no-test src` gives ``[E0204] type mismatch: expected `"read" | "write"`, found `"rw"` `` at line 6 and ``[E0204] type mismatch: expected `Alias`, found `"rw"` `` at line 7. The same two declarations written locally in one module give ``expected `Mode` `` and ``expected `Alias` ``. Both diagnostics carry `alternatives: ["read", "write"]`, so the literal set is on the JSON either way and the `expected` string is the only thing that differs.*
 
-- **G234. The impact table says the checker has no rule for a string-literal union,
+  *Fixed in 0.1.123. An imported string-literal union lowers to the `Ty::Imported` every other imported declaration lowers to, under the named spelling and the namespace one alike, and the literal set is read from the declaration on demand through one accessor, `imported_string_literal_union_values`, which follows the chain of second names the way `imported_union_or_record` does. Assignability, match exhaustiveness, `glyph_symbol`'s `literals` and `glyph_assignable` reach it through that accessor; so does the emitter, for the assertion it writes around a `match` scrutinee to stop TypeScript narrowing a binding to the literal last assigned to it, and for the comparison lowering. The emitted TypeScript is unchanged.*
+
+  *Measured on the review's own two-module project, under the release binary. `let a: Mode = "rw"` is now ``[E0204] type mismatch: expected `Mode`, found `"rw"` `` where 0.1.122 printed ``expected `"read" | "write"` ``; `let b: Alias = "rw"` is ``expected `Alias` `` under both, which is what the same alias declared locally prints. `alternatives` still carries `["read", "write"]` on both diagnostics. The namespace spelling (`let d: c.Kind = "z"` through `import catalog as c`) names `Kind` too. A `match` over an imported union is still exhaustive without an `else`, and `let m: Mode = "read"` followed by a two-arm `match` still passes `tsc --strict`, which is the case the narrowing assertion exists for: dropping it turns that program into `TS2678`, checked by removing the arm and getting the error back. Tests: `an_imported_string_literal_union_is_named_by_its_declaration` in `glyph-cli/tests/integration.rs` and `a_match_over_an_imported_string_literal_union_keeps_its_narrowing_cast` in `glyph-emit`.*
+
+  *One thing the fix removed rather than added: lowering now reaches across no module boundary at all, so `Lowerer::with_imports` and the `DeclTyResolver` it carried are gone, along with the `DeclTyResolver::imported_string_literal_union` query, whose only caller was the lowering this replaced.*
+
+- **G234. [FIXED] The impact table says the checker has no rule for a string-literal union,
   and since G230 it has one.** `classify_argument` and `classify_parameter` send
   a `Ty::StringLiteralUnion` to `Other`, so `signature_type_cell` falls to its
   catch-all and `glyph_impact` reports `UNDETERMINED` with "the checker has no
@@ -9866,6 +9872,12 @@ and is the owner's to confirm.
   same `assignability` call the container and record cells now make.
 
   *Reproduced against 0.1.121, the version this tree reports before the bump, on a two-module project where `modes` declares `pub type Mode = "read" | "write"` and `pub fn takes_mode(m: Mode) -> Mode`, and `main` calls it with an `m: Mode`. `glyph query impact --path src/main.glyph --entity modes::takes_mode --change change_signature_type` answers the call site `UNDETERMINED`, `because` "argument 1 (`m`, `"read" | "write"`) against parameter `m: Mode`: the checker has no rule comparing a `"read" | "write"` argument against a `Mode` parameter, so a replacement is compared against nothing here that Glyph reports". `glyph query assignable --path src/main.glyph --from Mode --to Mode` on the same project answers `COMPATIBLE`, `because` "two string-literal unions are compared by literal set (D30), and every literal the value's type accepts is one the declared type accepts ... This is a rule accepting rather than a rule staying silent", and `--from int --to Mode` answers `WILL_FAIL`.*
+
+  *Fixed in 0.1.123. A string-literal union is its own `ArgKind` and `ParamKind` now, however it is spelled: a `type` of the calling module, one imported, an inline `"read" | "write"` annotation, and the one-literal type a written string literal carries since G237. Its cells run `assignability` on the two types the site holds, the way the prelude-container and structural-record cells have since G228, rather than restating a rule: the literal-set rule reaches through a name, an import and a `Nullable`, and its `string` half turns on where in a type the pairing sits, so no sentence about two kinds is true of it. The `because` names the rule and what the comparison concluded.*
+
+  *Measured on the review's own two-module project. `glyph query impact --entity modes::takes_mode --change change_signature_type` answers the call site `WILL_FAIL` with argument 1 `SAFE` and a `because` naming the literal-set rule, where 0.1.122 answers `UNDETERMINED` with "the checker has no rule comparing a `"read" | "write"` argument against a `Mode` parameter". `glyph query assignable --from Mode --to Mode` answers `COMPATIBLE` under both, so the two tools now agree. Six cells are asserted in both verdict directions against the tools' own answers rather than against fixed strings, in `impact_and_assignable_agree_on_a_string_literal_union`.*
+
+  *The fixtures that stood for a primitive argument by writing `f("x")` now pass a `string`-typed binding: a written literal is no longer a primitive argument, it is a one-literal union, and the cell for it is decided by the relation.*
 
 - **G235. The editor's hover still answers single-file, so an imported name has no type
   in an editor.** `glyph_hover` reads the file inside its project and answers at
@@ -9903,7 +9915,7 @@ and is the owner's to confirm.
 
   *Measured on the review's own `selfdef` project, both spellings of the import. `import orders { OrderStatus, Pending }` with one `Pending` arm: `glyph fix` now prints `applied E0200 in src/main.glyph: added 2 arm(s) to the match on `OrderStatus`: `Paid`, `Cancelled``, rewrites the import to `import orders { OrderStatus, Pending, Paid, Cancelled }`, and `glyph check` on the result reports no diagnostics and `tsc --strict passed`. The same holds with all four names imported up front, which is the spelling the review ran, where the unused-import rule strips two and the E0200 rule writes them back. `import orders` alone repairs to `orders.Paid({ transaction_id }) => {` with the import untouched, and also passes `tsc --strict`. A variant name already bound in the file by a local declaration declines with ``glyph fix: declined E0200 in src/main.glyph: `Paid` is already bound in this module by something other than the import of `orders`, so `glyph fix` cannot bring the variant into scope without renaming what is there``. Four tests in `crates/glyph-cli/tests/fix_rules.rs`.*
 
-- **G237. A string literal is typed `string`, so the checker cannot decide a
+- **G237. [FIXED] A string literal is typed `string`, so the checker cannot decide a
   string-literal union reached through a generic argument.** D30 puts the
   literal set on the declaration and not on the value, so `["read", "write"]`
   is `Array<string>` here while TypeScript reads it as
@@ -9932,6 +9944,25 @@ and is the owner's to confirm.
   from `glyph check --no-tsc` and `tsc --strict` refuses it with `TS2322: Type
   '"nope"' is not assignable to type 'Mode'`. Both shapes are silent here for
   the same missing literal type, and only one of them should be.*
+
+  *Fixed in 0.1.123. A written string literal carries the one-literal union it spells, an array literal's element type is the join of its elements' types (two literal sets join to their union, a literal and a `string` join to `string`), and a fresh literal widens back to `string` at a binding that infers its type from the value. The fence is gone with it: a written array or object literal is checked element by element and field by field against the declared type, so the refusal names the literal and underlines it rather than the whole literal.*
+
+  *The widening rule, each row established by running `tsc --strict` on the equivalent TypeScript rather than reasoned about:*
+
+  | position | Glyph | tsc | how it was established |
+  | --- | --- | --- | --- |
+  | `let l = "read"`, no annotation | `string` | `string` | a Glyph `let` emits a TypeScript `let`, read off the emitted file; `let l = "read"; takes(l)` is `TS2345` |
+  | `let xs = ["read", "write"]`, no annotation | `Array<string>` | `string[]` | `let xs = ["read","write"]; return xs` against `Mode[]` is `TS2322` |
+  | `for m in ["read", "write"]` | `string` | `string` | `for (const m of ["read","write"]) takes(m)` is `TS2345`, and so is the `let` form |
+  | `const CM = "read"`, no annotation | undetermined, and accepted | `"read"` | a Glyph `const` emits a TypeScript `const`, which keeps the literal; `takes(CM)` compiles, so widening it would refuse a program tsc accepts |
+  | `let m2 = m` for an `m: Mode` or an `m: "read" \| "write"` | unchanged | unchanged | the literal type is not fresh; `takes(m2)` compiles under tsc, so freshness is read off the written form and not off the type |
+  | a literal at a call argument, a `return`, or an annotated `let`/`const` | the literal | the literal | `takes("nope")` is `TS2345`, `takes("read")` compiles |
+  | an element of a written array literal, a field of a written object literal | the literal | the literal | `["read","nope"]` against `Mode[]` and `{ mode: "nope" }` against `Cfg` are both `TS2322` |
+  | `"re" + "ad"` | `string` | `string` | both refuse; Glyph reaches it by typing no binary expression at all, which is why the pairing is undetermined here and `TS2345` there |
+
+  *Measured on the eight programs the change decides, run under the published `@glyphlang/glyph@0.1.122` and under the release binary. 0.1.122 draws nothing from `glyph check --no-tsc` for any of them and `tsc --strict` refuses all eight; this build draws `E0204` or `E0211` for all eight: a literal outside the set in an array (`["read", "nope"]` against `Array<Mode>`), in a record field (`{ mode: "nope" }` against `{ mode: Mode }`), in an array of records, and through a generic identity (`id("nope")`); an `Array<string>` returned where an `Array<Mode>` is declared, whether it came from a widened `let` or from a `string`-typed value; and a `string` at a record field. The four correct programs the fence existed to protect (`return ["read", "write"]` against `Array<Mode>`, `takesArr(["read"])`, `{ mode: "read" }` against `Cfg`, `id("read")` against `Mode`) are accepted by the literal-set rule rather than by a declined pairing. No program `tsc --strict` accepts is newly refused: the 31 apps at their own roots and `examples/` answer with identical exit codes and identical diagnostic-code lists under both binaries, and the positive corpus grew from thirteen programs to nineteen, each run under 0.1.122 with `tsc` in the loop before it was added.*
+
+  *Readings left undetermined, each with its reason. The key argument of a `Record` against another `Record`'s: TypeScript writes `Record<string, V>` as an index signature, which covers every key a `Record<Mode, V>` declares, and accepts the pairing in both directions, so refusing it would refuse a program tsc compiles. A literal inside a prelude constructor's payload (`Some("nope")` against an `Option<Mode>`): the walk records `Ty::Unknown` for `Ok`, `Err` and `Some`, pending use-site generic instantiation, so the value reaches the relation as undecidable and it is the constructor's missing type rather than the literal's that keeps Glyph silent (`tsc` reports it). A record literal bound to an unannotated `let` and returned (`let c = { mode: "read" }` against a `Cfg`): nothing synthesizes a record type for an object literal, so the binding is undecidable; `tsc` refuses it, as `{ mode: string }`. A concatenation (`takes("re" + "ad")`): a binary expression has no type here at all. A template literal (``takes(`read`)``): `tsc` reads a no-substitution template as its literal type and accepts it, this refuses it, which is stricter than tsc rather than looser and is the pre-existing reading, unchanged.*
 
 - **G238. [FIXED] A project may declare a module under `std/` or `extern/`, and it is
   silently unreachable.** `module std/io` in `src/io.glyph` with `pub fn shout`

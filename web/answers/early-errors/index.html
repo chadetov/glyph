@@ -462,12 +462,8 @@ let d: Mode = { x: 1 }
           <code>Nullable&lt;Mode&gt;</code> is descended with the union intact.
         </p>
         <p>
-          Some shapes are still left to <code>tsc</code>, on purpose. A <code>string</code> produced
-          by a value-position <code>match</code> whose arms are not all written literals is one:
-          reading it as a bare <code>string</code> rejects correct programs, and one in this
-          repository's own corpus was the first casualty of a stricter first cut. A union nested in
-          a record field or a generic argument is another, which is the boundary the record rules
-          already stop at.
+          A union nested in a record field or a generic argument was left to <code>tsc</code> in
+          0.1.122 and is decided in 0.1.123. See below.
         </p>
         <p>
           The second one is not a <code>tsc</code> story at all. The parser is recursive descent
@@ -476,6 +472,62 @@ let d: Mode = { x: 1 }
           <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root:
           one pathological file took the server down for the whole workspace. It is
           <code>E0011</code> now, raised at the token that would have opened level 65.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">0.1.123: the literal a value is, not the <code>string</code> it emits to</p>
+        <p>
+          <code>type Mode = "read" | "write"</code> put the set on the declaration and nothing on
+          the value, so <code>"read"</code> was a <code>string</code> and
+          <code>["read", "write"]</code> an <code>Array&lt;string&gt;</code>. That made two
+          programs indistinguishable: <code>return ["read", "write"]</code> where an
+          <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and
+          <code>return xs</code> for an <code>xs: Array&lt;string&gt;</code>, which it refuses.
+          0.1.122 declined the pairing rather than get it wrong, and that bought the right program
+          by giving up the wrong one: <code>{ mode: "nope" }</code> against a
+          <code>{ mode: Mode }</code> drew nothing.
+        </p>
+        <p>
+          A written string literal now has the one-literal type it spells, an array literal's
+          element type is the join of its elements', and a written array or object literal is
+          checked element by element and field by field against the declared type, so the
+          diagnostic names the literal and underlines it.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc, on a literal one container in</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn ok() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg { return { mode: "nope" } }
+<span class="cm">// 0.1.122: nothing, on all three</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The literal widens back to <code>string</code> where TypeScript widens it: at a
+          <code>let</code> with no annotation, whose emitted TypeScript <code>let</code> widens the
+          same way, and at the element binding of a <code>for</code> over a written array. So
+          <code>let l = "read"</code> followed by <code>takes_mode(l)</code> is refused here and
+          <code>TS2345</code> there. A <code>const</code> emits a TypeScript <code>const</code> and
+          keeps its literal, so <code>takes_mode(CM)</code> compiles under both. A literal type
+          that arrived through a name is not widened, which is TypeScript's own freshness rule.
+          Every row of that was settled by running <code>tsc --strict</code> on the equivalent
+          TypeScript rather than reasoned about.
+        </p>
+        <p>
+          One pairing is still declined: the key argument of a <code>Record</code> against another
+          <code>Record</code>'s. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index
+          signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it
+          in both directions, so refusing it would refuse a program that compiles. Two more shapes
+          the checker still says nothing about: a literal inside <code>Some(...)</code>, because a
+          prelude constructor has no type here yet, and a record literal bound to an unannotated
+          <code>let</code>, because no record type is synthesized for an object literal.
         </p>
       </div>
 

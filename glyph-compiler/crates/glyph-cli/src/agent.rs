@@ -42,6 +42,12 @@ use crate::diagnostic::Diagnostic;
 /// and these are the names left over, which no stdlib module declares. They
 /// stay unkeyed rather than getting an invented `std/prelude`, because a module
 /// the compiler does not have is not an address.
+///
+/// The reason is read, not decoration. A diagnostic naming one of these names
+/// carries it into `symbols_absent` with the reason attached: the table used to
+/// be consulted only to decide that the name had no key, so `Array` in an
+/// `expected`/`actual` position was dropped and the notes' claim that the
+/// residue keeps "a reason each" reached no surface at all.
 const NOT_A_DECLARATION: [(&str, &str); 18] = [
     ("string", "a primitive type the compiler builds in"),
     ("number", "a primitive type the compiler builds in"),
@@ -110,17 +116,37 @@ fn enrich_one(
     match locate(d, project_srcs) {
         None => {
             for request in symbol_keys(d) {
-                absent.push(json!({
-                    "symbol": request.key,
-                    "reason": "this diagnostic is not about a file in any project this check \
-                               covered, so there is no project to resolve the symbol in",
-                }));
+                let reason = match request.not_a_declaration {
+                    Some(why) => format!("`{}` is {why}, so it keys no symbol.", request.key),
+                    None => "this diagnostic is not about a file in any project this check \
+                             covered, so there is no project to resolve the symbol in"
+                        .to_string(),
+                };
+                absent.push(json!({ "symbol": request.key, "reason": reason }));
             }
         }
         Some((root, file)) => {
             let mut described: Vec<String> = Vec::new();
             for request in symbol_keys(d) {
-                let SymbolRequest { key, bare_name } = request;
+                let SymbolRequest {
+                    key,
+                    bare_name,
+                    not_a_declaration,
+                } = request;
+                // A name the compiler builds in has no `module::name` to ask
+                // under, and the table already says what it is. Reported here
+                // rather than asked and refused, since there is nothing to ask.
+                if let Some(why) = not_a_declaration {
+                    absent.push(json!({
+                        "symbol": key,
+                        "reason": format!(
+                            "`{key}` is {why}, so it keys no symbol: there is no \
+                             `module::name` to describe it under and nothing in this \
+                             project declares it."
+                        ),
+                    }));
+                    continue;
+                }
                 if described.contains(&key) {
                     continue;
                 }
@@ -272,34 +298,61 @@ fn constraints(d: &Diagnostic, symbols: &[Value]) -> Vec<String> {
 struct SymbolRequest {
     key: String,
     bare_name: Option<String>,
+    /// Set when the name is one `NOT_A_DECLARATION` holds, carrying that
+    /// entry's reason. Such a name is never asked of `glyph_symbol`, because
+    /// there is no `module::name` to ask under; it goes straight into
+    /// `symbols_absent` with the reason, rather than out of the answer.
+    not_a_declaration: Option<&'static str>,
 }
 
 /// Every symbol this diagnostic names, in a stable order and without repeats.
 fn symbol_keys(d: &Diagnostic) -> Vec<SymbolRequest> {
     let mut out: Vec<SymbolRequest> = Vec::new();
-    let mut push = |key: String, bare_name: Option<String>| {
+    let mut push = |key: String, bare_name: Option<String>, not_a_declaration| {
         if !out.iter().any(|r| r.key == key) {
-            out.push(SymbolRequest { key, bare_name });
+            out.push(SymbolRequest {
+                key,
+                bare_name,
+                not_a_declaration,
+            });
         }
     };
     if let Some(cause) = &d.cause {
-        push(cause.clone(), None);
+        push(cause.clone(), None, None);
     }
     if let Some(union) = d.union.as_ref().and_then(|u| u.declaration.clone()) {
-        push(union, None);
+        push(union, None, None);
     }
     if let Some(entity) = &d.entity {
-        push(entity.clone(), None);
+        push(entity.clone(), None, None);
     }
     for ty in [d.expected.as_deref(), d.actual.as_deref()]
         .into_iter()
         .flatten()
     {
-        if let Some(key) = type_as_entity(ty, d.module.as_deref()) {
-            push(key, Some(ty.trim().to_string()));
+        let name = ty.trim();
+        match not_a_declaration(name) {
+            // The name is in the table, so it keys nothing and the table says
+            // why. It is named by the diagnostic either way, and a name the
+            // answer drops is a name the reader has to go and look up.
+            Some(reason) => push(name.to_string(), None, Some(reason)),
+            None => {
+                if let Some(key) = type_as_entity(ty, d.module.as_deref()) {
+                    push(key, Some(name.to_string()), None);
+                }
+            }
         }
     }
     out
+}
+
+/// The `NOT_A_DECLARATION` reason for a type spelling, or `None` for a name the
+/// table does not hold.
+fn not_a_declaration(name: &str) -> Option<&'static str> {
+    NOT_A_DECLARATION
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, why)| *why)
 }
 
 /// `glyph_symbol` for `key`, answered once per (project, key) per run.

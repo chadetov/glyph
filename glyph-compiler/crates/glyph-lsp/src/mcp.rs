@@ -3974,8 +3974,10 @@ fn derive_type_end(
 /// have.
 fn builtin_end_for_prelude_name(name: &str) -> Option<CoverageTypeRef> {
     let module = glyph_resolver::prelude_declaring_module(name)?;
-    let union = glyph_typechecker::builtin_union(module, name)
-        .or_else(|| glyph_typechecker::builtin_union_of_variant(module, name))?;
+    // The union itself and not the union a variant belongs to. `Ok` is a
+    // variant, and this tool reports the sites that match on a union, so it is
+    // refused by name the way a project's own variant is.
+    let union = glyph_typechecker::builtin_union(module, name)?;
     Some(CoverageTypeRef::Builtin {
         module: union.module.to_string(),
         declared: union.name.to_string(),
@@ -15771,6 +15773,152 @@ pub fn f() -> number {
         let (value, is_error) = call(root, "glyph_symbol", json!({ "entity": entity }));
         assert!(!is_error, "{entity}: {value}");
         value
+    }
+
+    /// The prelude's names are keyed by the stdlib module that declares them
+    /// (G231), so `glyph_symbol` describes them with the variants the checker
+    /// counts exhaustiveness against, and `path`/`range` carry the reason
+    /// there is no file rather than being left out.
+    #[test]
+    fn a_prelude_declaration_is_described_under_its_stdlib_module() {
+        let root = shop_root();
+        let value = symbol(&root, "std/result::Result");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "union", "{value}");
+        assert_eq!(value["module"], "std/result", "{value}");
+        assert_eq!(value["generics"], json!(["T", "E"]), "{value}");
+        assert_eq!(value["type"], "Result<T, E>", "{value}");
+        assert_eq!(value["exhaustive_match"], true, "{value}");
+        assert_eq!(
+            value["variants"],
+            json!([
+                { "name": "Ok", "payload": "T", "payload_absent": null, "construct": "Ok(T)", "construct_absent": null },
+                { "name": "Err", "payload": "E", "payload_absent": null, "construct": "Err(E)", "construct_absent": null },
+            ]),
+            "{value}"
+        );
+        assert!(value["path"].is_null(), "{value}");
+        assert!(
+            value["path_absent"].as_str().is_some_and(|s| s.contains("TypeScript")),
+            "the absent path says why there is no Glyph source: {value}"
+        );
+
+        // A variant of one keys under the same module and points at its owner.
+        let ok = symbol(&root, "std/result::Ok");
+        assert_eq!(ok["kind"], "variant", "{ok}");
+        assert_eq!(ok["owner"], "std/result::Result", "{ok}");
+        assert_eq!(ok["construct"], "Ok(T)", "{ok}");
+        assert!(ok["exhaustive_match"].is_null(), "{ok}");
+
+        // A stdlib union reached through a namespace prints with the dot and
+        // keys without it.
+        let kind = symbol(&root, "std/fs::ErrorKind");
+        assert_eq!(kind["kind"], "union", "{kind}");
+        assert_eq!(
+            kind["variants"][5],
+            json!({
+                "name": "Other",
+                "payload": "{ code: string }",
+                "payload_absent": null,
+                "construct": "Other({ code: string })",
+                "construct_absent": null,
+            }),
+            "{kind}"
+        );
+    }
+
+    /// A stdlib module answers for what it exports and nothing else. The
+    /// refusal lists the surface, which is the same set E0105 prints.
+    #[test]
+    fn a_name_a_stdlib_module_does_not_export_is_refused_with_its_surface() {
+        let root = shop_root();
+        let mut server = Server::new(root.clone());
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_symbol",
+            json!({ "entity": "std/result::nope" }),
+        );
+        assert!(is_error, "{message}");
+        assert!(message.contains("std/result"), "{message}");
+        assert!(message.contains("Err"), "the refusal lists the surface: {message}");
+    }
+
+    /// An export the checker models no declaration for is reported with a null
+    /// kind and the reason, rather than a kind guessed from its spelling.
+    #[test]
+    fn a_stdlib_export_with_no_modelled_declaration_says_so() {
+        let root = shop_root();
+        let value = symbol(&root, "std/result::all");
+        assert_paired(&value);
+        assert!(value["kind"].is_null(), "{value}");
+        assert!(
+            value["kind_absent"].as_str().is_some_and(|s| s.contains("std/result")),
+            "the absent kind names the module it asked: {value}"
+        );
+    }
+
+    /// `glyph_exports` answers for a stdlib module from the resolver's own
+    /// export set, under the identity each name is keyed by.
+    #[test]
+    fn a_stdlib_modules_export_surface_is_answered() {
+        let root = shop_root();
+        let (value, is_error) = call(&root, "glyph_exports", json!({ "module": "std/result" }));
+        assert!(!is_error, "{value}");
+        let names: Vec<&str> = value["exports"]
+            .as_array()
+            .expect("an export list")
+            .iter()
+            .map(|e| e["entity"].as_str().unwrap_or_default())
+            .collect();
+        assert_eq!(
+            names,
+            vec![
+                "std/result::Err",
+                "std/result::Ok",
+                "std/result::Result",
+                "std/result::all",
+            ],
+            "{value}"
+        );
+        assert!(value["path"].is_null(), "{value}");
+        assert!(value["path_absent"].is_string(), "{value}");
+    }
+
+    /// A position on a prelude name addresses the declaration the prelude
+    /// re-exports. It used to address nothing.
+    #[test]
+    fn a_position_on_a_prelude_name_describes_its_stdlib_declaration() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub fn ok() -> Result<int, string> {\n  return Ok(1)\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let (value, is_error) = call_on(
+            &mut server,
+            "glyph_symbol",
+            json!({ "path": "a.glyph", "line": 2, "character": 10 }),
+        );
+        assert!(!is_error, "{value}");
+        assert_eq!(value["entity"], "std/result::Ok", "{value}");
+        assert_eq!(value["owner"], "std/result::Result", "{value}");
+
+        // The residue the prelude carries and no stdlib module declares still
+        // addresses nothing, and the refusal says which names do.
+        write(
+            &root,
+            "b.glyph",
+            "module b\npub fn f(xs: Array<int>) -> int {\n  return 0\n}\n",
+        );
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_symbol",
+            json!({ "path": "b.glyph", "line": 1, "character": 14 }),
+        );
+        assert!(is_error, "{message}");
+        assert!(message.contains("Array"), "{message}");
+        assert!(message.contains("std/result"), "the refusal names what does key: {message}");
     }
 
     /// Every fact in an answer is a pair. A caller checking for a key must

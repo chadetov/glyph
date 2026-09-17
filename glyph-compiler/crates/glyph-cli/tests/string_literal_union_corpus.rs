@@ -4,14 +4,17 @@
 //! to stay silent on, and the first cut of it recursed into generic arguments
 //! and refused `fn arr() -> Array<Mode> { return ["read", "write"] }`, which
 //! `tsc --strict` compiles and which a full `glyph build` accepted before.
+//! G237 then removed the fence 0.1.122 put there, which is a second chance to
+//! start refusing correct programs, so the corpus grew with it.
 //! A sweep for newly *caught* programs cannot find that; only a sweep for
 //! newly *refused* ones can, and the corpus below is that sweep, kept in the
 //! suite so the rule cannot quietly widen again.
 //!
-//! Every program here was run under the published `@glyphlang/glyph@0.1.121`
-//! and passed `glyph check` with `tsc --strict` in the loop. Each one must
-//! draw no diagnostic from `glyph check --no-tsc`, and, where `tsc` is on the
-//! PATH, must still pass the full check.
+//! Every program here was run under a published release before it was added
+//! (0.1.121 for the first thirteen, 0.1.122 for the six G237 added) and passed
+//! `glyph check` with `tsc --strict` in the loop there. Each one must draw no
+//! diagnostic from `glyph check --no-tsc`, and, where `tsc` is on the PATH,
+//! must still pass the full check.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -202,6 +205,88 @@ const CORPUS: &[Program] = &[
              \x20 return <div><Button variant=\"danger\" label=\"go\" /></div>\n\
              }\n\
              fn main() -> void { print(\"ok\") }\n",
+        )],
+    },
+    // G237's additions. Each was run under the published
+    // `@glyphlang/glyph@0.1.122` with `tsc --strict` in the loop and passed
+    // there before it was added here, so a refusal from this build is a
+    // refusal 0.1.122 did not make.
+    Program {
+        name: "const_literal",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             const CM = \"read\"\n\
+             fn takes(m: Mode) -> string { return m }\n\
+             fn main() -> void { print(takes(CM)) }\n",
+        )],
+    },
+    Program {
+        name: "mixed_array_literal",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn mixed(m: Mode) -> Array<Mode> { return [m, \"read\"] }\n\
+             fn main() -> void { print(mixed(\"write\")[0] ?? \"read\") }\n",
+        )],
+    },
+    Program {
+        name: "record_key",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn keys(r: Record<string, number>) -> Record<Mode, number> { return r }\n\
+             fn main() -> void {\n\
+             \x20 let r: Record<string, number> = {}\n\
+             \x20 let _k = keys(r)\n\
+             \x20 print(\"ok\")\n\
+             }\n",
+        )],
+    },
+    Program {
+        name: "inline_union_parameter",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn takes(m: Mode) -> string { return m }\n\
+             fn via(m: \"read\" | \"write\") -> string { let m2 = m\n  return takes(m2) }\n\
+             fn main() -> void { print(via(\"read\")) }\n",
+        )],
+    },
+    Program {
+        name: "array_of_records",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             type Cfg = { mode: Mode }\n\
+             fn cfgs() -> Array<Cfg> { return [{ mode: \"read\" }] }\n\
+             fn main() -> void { print(cfgs()[0].mode ?? \"read\") }\n",
+        )],
+    },
+    Program {
+        name: "loop_over_declared_union",
+        tsc: true,
+        modules: &[(
+            "main.glyph",
+            "module main\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn takes(m: Mode) -> string { return m }\n\
+             fn joined(ms: Array<Mode>) -> string {\n\
+             \x20 let n = \"\"\n\
+             \x20 for m in ms { mut n = n + takes(m) }\n\
+             \x20 return n\n\
+             }\n\
+             fn main() -> void { print(joined([\"read\", \"write\"])) }\n",
         )],
     },
 ];

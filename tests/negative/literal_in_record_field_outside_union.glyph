@@ -1,0 +1,17 @@
+module neg
+
+// G237. A written record literal is checked field by field against the
+// declared record, so a literal outside the field's own string-literal union
+// is refused where the field is declared, and the diagnostic underlines the
+// literal rather than the whole `{ ... }`. 0.1.122 was silent on this and only
+// `tsc` caught it, as TS2322.
+type Mode = "read" | "write"
+type Cfg = { mode: Mode, name: string }
+
+fn wrong() -> Cfg {
+  return { mode: "nope", name: "a" }
+}
+
+fn main() -> string {
+  return wrong().name
+}

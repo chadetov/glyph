@@ -9790,8 +9790,11 @@ and is the owner's to confirm.
   "std/result", "name": "Result"}`, and a `symbols` entry for
   `std/result::Result` with `kind: "union"`, `generics: ["T", "E"]` and
   variants `Ok(T)` and `Err(E)`. `glyph fix src` prints `applied E0200 in
-  src/main.glyph: added 1 arm(s) to the match on `Result`: `Err`` and the
-  result passes `glyph check` with `tsc --strict`. `glyph query symbol
+  src/main.glyph: added 1 arm(s) to the match on `Result`: `Err`, and wrote
+  `import std/process` for the arm bodies`, and the result passes `glyph check`
+  with `tsc --strict`. No import is written for the variants, because the
+  prelude already binds `Ok` and `Err`; the `std/process` import is the one
+  every E0200 repair adds for the `TODO` body. `glyph query symbol
   --entity std/result::Result` answers with those variants, `path: null` and a
   `path_absent` saying the stdlib is TypeScript the compiler stages rather than
   Glyph source. `glyph query variants --path src/main.glyph --name Result`

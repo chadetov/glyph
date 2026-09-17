@@ -1263,7 +1263,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0111",
         phase: "resolver",
         meaning: "`type Key = string | number`: bare primitive names on the right of `|` declare tagged-union variants, not a union of those types",
-        fix: "number` is a tagged union of variants named `string`/`number`, not a union of the two types | Name each case, or `extern_ts(\"string | number\")`",
+        fix: "Name each case, or `extern_ts(\"string | number\")`",
     },
     CodeEntry {
         code: "E0112",

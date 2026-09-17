@@ -74,9 +74,11 @@ MCP over stdio and exposes eleven tools over the project:
   its `module::name` identity or by a position: kind, visibility, a record's
   fields with types, a union's variants with payloads and the syntax that
   constructs each, a callable's parameters and return, an interface's members,
-  whether a `match` over it must be exhaustive, and its `@example` text. Ask
-  this before writing a call, a record literal or a `match` over a type you did
-  not declare.
+  whether a `match` over it must be exhaustive, and its `@example` text. The
+  module half is any module the compiler holds, including the stdlib modules it
+  carries, so the prelude `Result` is `std/result::Result`. Ask this before
+  writing a call, a record literal or a `match` over a type you did not
+  declare.
 - `glyph_impact` — what breaks if you make one named change to one declaration
   (`add_variant`, `remove_variant`, `rename`, `change_arity`,
   `change_signature_type`, `remove`), per site, with the diagnostic each will

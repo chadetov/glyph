@@ -267,9 +267,16 @@ fn prelude_role(kind: PreludeKind) -> (&'static str, &'static str) {
 pub struct Stdlib {
     pub source: &'static str,
     pub modules: Vec<StdlibModule>,
-    /// How many exports have a signature and how many do not, so a reader can
-    /// see the shape of the gap without counting the list.
+    /// The three counts are disjoint and sum to the export total, so a reader
+    /// sees the shape of the gap without counting the list.
+    ///
+    /// `modeled` is a signature with a type in every position. A signature the
+    /// checker renders with a `?` somewhere is `partially_modeled`: the `?` is
+    /// `Ty::Unknown`, so the table models the arity and the return and compares
+    /// nothing at that position, and counting it as modeled published a
+    /// complete-looking signature an agent cannot read a parameter type out of.
     pub modeled: usize,
+    pub partially_modeled: usize,
     pub unmodeled: usize,
 }
 
@@ -291,13 +298,17 @@ pub struct StdlibExport {
     /// its own tables hold.
     pub signature: Option<String>,
     pub signature_absent: Option<String>,
+    /// Set when the signature carries a `?`: which positions the table leaves
+    /// `unknown`, so a reader is never handed a `?` with nothing said about it.
+    /// `None` for a complete signature and for an export with none at all.
+    pub signature_partial: Option<String>,
 }
 
 fn stdlib() -> Stdlib {
     let built = build_prelude();
     let stubs = StdlibStubs::new();
     let mut by_path: BTreeMap<String, Vec<StdlibExport>> = BTreeMap::new();
-    let (mut modeled, mut unmodeled) = (0usize, 0usize);
+    let (mut modeled, mut partially_modeled, mut unmodeled) = (0usize, 0usize, 0usize);
     for (path, exports) in stubs.iter() {
         // `names` is a `BTreeSet`, so this is the module's export list in one
         // order on every machine.
@@ -305,10 +316,33 @@ fn stdlib() -> Stdlib {
         let mut out = Vec::with_capacity(names.len());
         for name in names {
             let ty = glyph_typechecker::stdlib_signature(&built, path, &name);
-            let (signature, absent) = match ty {
+            let (signature, absent, partial) = match ty {
                 Some(ty) => {
-                    modeled += 1;
-                    (Some(display_ty(&ty)), None)
+                    let rendered = display_ty(&ty);
+                    // `?` is `display_ty`'s rendering of `Ty::Unknown`, which is
+                    // what the table holds for a position it does not model.
+                    let holes = rendered.matches('?').count();
+                    match holes {
+                        0 => {
+                            modeled += 1;
+                            (Some(rendered), None, None)
+                        }
+                        n => {
+                            partially_modeled += 1;
+                            (
+                                Some(rendered),
+                                None,
+                                Some(format!(
+                                    "this signature carries {n} `?`, which is the checker's \
+                                     rendering of `unknown`: the table models \
+                                     `{path}::{name}`'s arity and its return and leaves that \
+                                     many positions unmodeled, so an argument at one of them \
+                                     is compared by nothing here and `tsc` on a full `glyph \
+                                     build` is what reads it"
+                                )),
+                            )
+                        }
+                    }
                 }
                 None => {
                     unmodeled += 1;
@@ -319,6 +353,7 @@ fn stdlib() -> Stdlib {
                              ships TypeScript no Glyph pass reads, so a call to it is typed \
                              `unknown` here and checked by `tsc` alone"
                         )),
+                        None,
                     )
                 }
             };
@@ -330,21 +365,28 @@ fn stdlib() -> Stdlib {
                 name,
                 signature,
                 signature_absent: absent,
+                signature_partial: partial,
             });
         }
         by_path.insert(path.to_string(), out);
     }
     Stdlib {
         source: "the resolver's export list for each `std/` module, with each signature read out \
-                 of the checker's own tables and rendered by `display_ty`. A `?` in a parameter \
-                 slot is the checker's own rendering of a type the table leaves unmodeled: the \
-                 tables model the return and the arity, and leave the parameters `unknown` so \
-                 modeling a function introduces no new argument-type diagnostic",
+                 of the checker's own tables and rendered by `display_ty`. The three counts are \
+                 disjoint and sum to the export total: `modeled` is a signature with a type in \
+                 every position, `partially_modeled` is one the checker renders with a `?` \
+                 somewhere, and `unmodeled` is an export the tables hold no type for at all. A \
+                 `?` is `unknown`: the tables model a function's arity and its return and leave \
+                 the parameters `unknown`, so modeling a function introduces no new \
+                 argument-type diagnostic, and `signature_partial` says how many positions of \
+                 that signature are left, so a signature with a `?` is never counted as a \
+                 complete one",
         modules: by_path
             .into_iter()
             .map(|(path, exports)| StdlibModule { path, exports })
             .collect(),
         modeled,
+        partially_modeled,
         unmodeled,
     }
 }
@@ -679,10 +721,73 @@ mod tests {
                 );
             }
         }
-        assert!(s.modeled > 0 && s.unmodeled > 0);
+        assert!(s.modeled > 0 && s.partially_modeled > 0 && s.unmodeled > 0);
         assert_eq!(
-            s.modeled + s.unmodeled,
+            s.modeled + s.partially_modeled + s.unmodeled,
             s.modules.iter().map(|m| m.exports.len()).sum::<usize>()
+        );
+    }
+
+    /// The three counts are the tables, counted, and a `?` is never published
+    /// as a complete signature.
+    ///
+    /// The review that found this had `modeled: 100` over 76 signatures
+    /// carrying a `?` where a parameter type belongs, each with
+    /// `signature_absent: null`, so the document read as though the checker
+    /// knew what to pass to `fs.read_text`. The counts are recomputed from the
+    /// export list here rather than trusted, and each of the three states is
+    /// asserted to say the one thing it means.
+    #[test]
+    fn the_stdlib_counts_are_the_tables_counted() {
+        let s = stdlib();
+        let (mut complete, mut partial, mut absent) = (0usize, 0usize, 0usize);
+        for module in &s.modules {
+            for e in &module.exports {
+                match (&e.signature, &e.signature_partial) {
+                    (Some(sig), None) => {
+                        assert!(
+                            !sig.contains('?'),
+                            "{}::{} is counted complete and renders a `?`: {sig}",
+                            module.path,
+                            e.name
+                        );
+                        assert!(e.signature_absent.is_none());
+                        complete += 1;
+                    }
+                    (Some(sig), Some(why)) => {
+                        assert!(
+                            sig.contains('?'),
+                            "{}::{} is counted partial and renders no `?`: {sig}",
+                            module.path,
+                            e.name
+                        );
+                        assert!(
+                            why.contains(&sig.matches('?').count().to_string()),
+                            "the reason does not say how many positions are left: {why}"
+                        );
+                        assert!(e.signature_absent.is_none());
+                        partial += 1;
+                    }
+                    (None, None) => {
+                        assert!(
+                            e.signature_absent.is_some(),
+                            "{}::{} has no signature and says nothing about it",
+                            module.path,
+                            e.name
+                        );
+                        absent += 1;
+                    }
+                    (None, Some(why)) => panic!(
+                        "{}::{} has no signature and a partiality reason: {why}",
+                        module.path, e.name
+                    ),
+                }
+            }
+        }
+        assert_eq!(
+            (complete, partial, absent),
+            (s.modeled, s.partially_modeled, s.unmodeled),
+            "the counts in the document disagree with the export list it publishes"
         );
     }
 

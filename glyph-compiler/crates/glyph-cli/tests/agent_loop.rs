@@ -1022,9 +1022,9 @@ mod declared_signature_fixture {
         pub tag: String,
         /// `module::fill`, whose parameter is the empty record.
         pub fill: String,
-        /// The caller passing a literal to `tag`.
+        /// The caller passing a `string` to `tag`.
         pub tag_caller: String,
-        /// The caller passing a literal to `fill`.
+        /// The caller passing a `string` to `fill`.
         pub fill_caller: String,
     }
 
@@ -1053,8 +1053,8 @@ mod declared_signature_fixture {
                  pub type Blank = {{ }}\n\n\
                  pub fn tag(s: string) -> number {{\n  return 1\n}}\n\n\
                  pub fn fill(b: Blank) -> number {{\n  return 1\n}}\n\n\
-                 pub fn tagged() -> number {{\n  return tag(\"x\")\n}}\n\n\
-                 pub fn filled() -> number {{\n  return fill(\"x\")\n}}\n"
+                 pub fn tagged(s: string) -> number {{\n  return tag(s)\n}}\n\n\
+                 pub fn filled(s: string) -> number {{\n  return fill(s)\n}}\n"
             ),
         );
         Project {

@@ -120,7 +120,8 @@ use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKi
 use glyph_typechecker::ty::SymbolRef;
 use glyph_typechecker::{
     alias_target, direct_type_decl, prelude_app, resolve_alias_chain, split_type_app,
-    DeclTyResolver, IdentPattern, ImportedTypeDecl, Lowerer, Primitive, Ty, TypeMap,
+    imported_string_literal_union_values, DeclTyResolver, IdentPattern, ImportedTypeDecl,
+    Lowerer, Primitive, Ty, TypeMap,
 };
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -749,7 +750,7 @@ pub fn emit_module_mapped(
     ctx: EmitContext,
 ) -> Result<EmitOutput, EmitError> {
     let shadowed = Rc::new(shadowed_globals_of(module));
-    let lowerer = Lowerer::with_imports(resolved, prelude, ctx.decls);
+    let lowerer = Lowerer::new(resolved, prelude);
     let mut e = Emitter {
         out: String::new(),
         indent: 0,
@@ -992,7 +993,7 @@ impl<'a> Emitter<'a> {
             module: self.module,
             resolved: self.resolved,
             prelude: self.prelude,
-            lowerer: Lowerer::with_imports(self.resolved, self.prelude, self.ctx.decls),
+            lowerer: Lowerer::new(self.resolved, self.prelude),
             types: self.types,
             synth_types: Rc::clone(&self.synth_types),
             synth_bindings: Rc::clone(&self.synth_bindings),
@@ -2981,13 +2982,19 @@ impl<'a> Emitter<'a> {
     fn narrowable_union_ts(&self, ty: &Ty) -> Option<String> {
         match ty {
             Ty::Prim(Primitive::Bool) => Some("boolean".to_string()),
-            Ty::StringLiteralUnion(values) => Some(
-                values
-                    .iter()
-                    .map(|v| escape_double_quoted(v.as_str()))
-                    .collect::<Vec<_>>()
-                    .join(" | "),
-            ),
+            Ty::StringLiteralUnion(values) => Some(string_literal_union_ts(values)),
+            // A union declared in another module carries its address, not its
+            // literal set (G233), so the set is read from the declaration here.
+            // The literals rather than the name: the name is in scope in the
+            // emitted TypeScript under a named import and spelled
+            // `modes.Mode` under a namespace one, and the assertion has to
+            // read the same under both.
+            Ty::Imported { module, name } => imported_string_literal_union_values(
+                self.ctx.decls,
+                module.as_str(),
+                name.as_ref(),
+            )
+            .map(|values| string_literal_union_ts(&values)),
             // A named alias keeps its name (`mode as Mode`): the emitted cast
             // reads as the type the author declared, and the literal set stays
             // in one place.
@@ -3053,6 +3060,14 @@ impl<'a> Emitter<'a> {
             // string-literal union is a set of strings; all compare correctly
             // with `===`.
             Ty::Prim(_) | Ty::StringLiteralUnion(_) => true,
+            // A string-literal union declared in another module is the same
+            // set of strings (G233); the declaration is what holds it.
+            Ty::Imported { module, name } => imported_string_literal_union_values(
+                self.ctx.decls,
+                module.as_str(),
+                name.as_ref(),
+            )
+            .is_some(),
             Ty::Named { path, .. } => {
                 // `int` and `bigint` are named types over a primitive.
                 if matches!(
@@ -6353,6 +6368,15 @@ fn jsx_prop_key(name: &str) -> String {
     }
 }
 
+/// A string-literal union as TypeScript writes it: `"read" | "write"`.
+fn string_literal_union_ts(values: &[String]) -> String {
+    values
+        .iter()
+        .map(|v| escape_double_quoted(v.as_str()))
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
+
 fn escape_double_quoted(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
@@ -8698,7 +8722,7 @@ mod tests {
                 _ => None,
             })?;
             let lowerer =
-                glyph_typechecker::Lowerer::for_export(resolved, &self.prelude, self, path);
+                glyph_typechecker::Lowerer::for_export(resolved, &self.prelude, path);
             Some(lowerer.lower_exported_type(td))
         }
     }
@@ -8771,6 +8795,25 @@ mod tests {
     /// `emit_beside_all` with one sibling.
     fn emit_beside(sibling: (&str, &str), main_src: &str) -> Result<String, EmitError> {
         emit_beside_all(&[sibling], main_src)
+    }
+
+    #[test]
+    fn a_match_over_an_imported_string_literal_union_keeps_its_narrowing_cast() {
+        // G233 moved the literal set off the type and onto the declaration, so
+        // the scrutinee of this `match` arrives as a `Ty::Imported`. The cast
+        // the emitter writes to stop TypeScript narrowing the binding to the
+        // one literal last assigned to it has to survive that: without it
+        // `switch (m)` over a `let m: Mode = "read"` rejects the `"write"` arm
+        // as TS2678, on a program Glyph found nothing wrong with.
+        let ts = emit_beside(
+            ("modes", "module modes\npub type Mode = \"read\" | \"write\"\n"),
+            "module main\nimport modes { Mode }\npub fn main() -> void {\n  let m: Mode = \"read\"\n  let s = match m {\n    \"read\" => \"r\",\n    \"write\" => \"w\",\n  }\n  print(s)\n}\n",
+        )
+        .expect("emit");
+        assert!(
+            ts.contains("as \"read\" | \"write\""),
+            "the narrowing cast carries the literal set the declaration holds: {ts}"
+        );
     }
 
     fn assert_dispatches_on_b(ts: &str) {

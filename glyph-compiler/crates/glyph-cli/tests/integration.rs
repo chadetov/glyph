@@ -7005,6 +7005,58 @@ fn aliased_namespace_match_on_imported_union_is_exhaustiveness_checked() {
 const KIND_MODULE: &str = "module catalog\npub type Kind = \"a\" | \"b\"\n";
 
 #[test]
+fn an_imported_string_literal_union_is_named_by_its_declaration() {
+    // G233. The type keeps the name its author gave it across the module
+    // boundary, which is G75's rule, and the one lowering that broke it was
+    // this one: an imported `type Kind = "a" | "b"` lowered straight to its
+    // literal set, so the diagnostic said ``expected `"a" | "b"` `` while an
+    // imported alias of the same declaration said ``expected `Alias` `` and a
+    // local declaration said ``expected `Kind` ``. One declaration, three
+    // spellings, and a reader with nothing to open.
+    let root = unique_tmp("g233name");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\npub type Kind = \"a\" | \"b\"\npub type Alias = Kind\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Kind, Alias }\n\
+         import catalog as c\n\
+         pub fn main() -> void {\n\
+         \x20 let a: Kind = \"z\"\n\
+         \x20 let b: Alias = \"z\"\n\
+         \x20 let d: c.Kind = \"z\"\n\
+         \x20 print(a)\n\
+         \x20 print(b)\n\
+         \x20 print(d)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let named: Vec<&String> = report
+        .diagnostics
+        .iter()
+        .filter(|d| d.contains("E0204"))
+        .collect();
+    assert_eq!(named.len(), 3, "three mismatches: {:?}", report.diagnostics);
+    assert!(
+        named.iter().filter(|d| d.contains("expected `Kind`")).count() == 2,
+        "the named and the namespace spelling both name `Kind`: {named:?}"
+    );
+    assert!(
+        named.iter().any(|d| d.contains("expected `Alias`")),
+        "the alias names itself, exactly as a local alias does: {named:?}"
+    );
+    assert!(
+        !named.iter().any(|d| d.contains("\"a\" | \"b\"")),
+        "no spelling prints the literal set where a name exists: {named:?}"
+    );
+}
+
+#[test]
 fn imported_string_literal_union_match_is_exhaustive_without_else() {
     // D30 promises a match over a string-literal union is exhaustive without an
     // `else`. Importing the type used to lower it to `Ty::Unknown`, so the same

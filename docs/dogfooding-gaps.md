@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-238 entries, 209 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-11 are open. G144, the D28 boundary cast that never reached the returns a
+238 entries, 210 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+10 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9163,7 +9163,7 @@ and is the owner's to confirm.
   reports `UNDETERMINED` with which of the three it is now, the way the stdlib
   branch beside it always has.
 
-- **G222. The knowledge surface is hand-written, drifting, and mostly
+- **G222. [FIXED] The knowledge surface is hand-written, drifting, and mostly
   unverified.** `glyph llms` prints `AGENTS.md`, 1,419 lines embedded by
   `include_str!`, with no generator behind any line of it. It says the MCP
   server "exposes five tools" and lists five; the server serves seven, and the
@@ -9184,6 +9184,58 @@ and is the owner's to confirm.
   description between them.
 
   *Reproduced against 0.1.117: `grep -c "exposes five tools" AGENTS.md` is 1, `grep -c glyph_impact AGENTS.md` is 0, `tools/list` returns seven tools; `check_docs_compile.py` output for `AGENTS.md`: 19 fences, 2 compiled, 17 skipped; `grep -rl expect-error docs web AGENTS.md README.md` is empty.*
+
+  *Fixed in 0.1.123. `glyph llms --json` emits one document out of the
+  compiler's own tables and nothing in it is written by hand: `diagnostics`
+  (60 codes, each with the catalogue sentence, the one-line fix, the whole
+  `--explain` text, the help and note read off a diagnostic, and a wrong
+  program from `tests/negative/` compiled at the moment you ask), `prelude`
+  (24 names out of `build_prelude`), `stdlib` (36 modules, 327 exports, 100
+  with a signature read out of the checker's `stdlib_*_fn_ty` tables through
+  the new `stdlib_signature` and rendered by `display_ty`, 227 saying in a
+  `signature_absent` line that the checker models none), `decisions` (47
+  parsed out of the spec's own list, which turned up that the spec numbers two
+  different decisions D43, reported in `duplicate_numbers` rather than
+  silently deduplicated), and `tools` (the 11 `tool_specs()` serves, each with
+  its `glyph query` verb and its full manual text). The whole document takes
+  about a second to build.*
+
+  *The code catalogue is one table in the compiler now. `docs/error-codes.md`
+  and the diagnostic block of `AGENTS.md` are written from it by
+  `scripts/check_llms_sync.py`, which fails on drift without `--write` and
+  re-mirrors `llms.txt` and `web/llms.txt` with it. Lifting the two tables into
+  one found `E0304`, which had `--explain` prose and no place in the code list,
+  and an `E0111` row whose escaped pipe had gone unnoticed. A test in
+  `glyph-cli` reads `tool_specs()` and the document: every tool served is
+  named, every `glyph_*` name in the document is served, and the count sentence
+  agrees with the list. Both halves were broken on purpose to check they fail.*
+
+  *Fences: `AGENTS.md` was 19 fences, 2 compiled, 17 skipped as fragments. It
+  is 24 fences, 20 compiled and 4 marked, none skipped; `docs/reference/stdlib.md`
+  was 8 with 4 compiled and is 8 of 8. `check_docs_compile.py` gains
+  `example=NAME` and `fragment-of=NAME`, whose every line has to appear in the
+  named example, holds those four documents to zero unmarked fragments, and
+  requires `expect-error` to name the code it draws. Five wrong forms the
+  bootstrap warns about are now programs paired with their diagnostic (E0228,
+  E0008, E0006, E0002, E0103). The compiling turned up an inline triple
+  backtick in `AGENTS.md` that read as a fence opener, so 250 lines counted as
+  one snippet, and a worked server in the stdlib reference calling
+  `http.serve`, which `std/http` does not export.*
+
+  *`tools/list`, measured over `glyph mcp` stdio the way the roadmap records
+  it: eleven tools, 31,446 bytes of description and a 45,509-byte result
+  before; eleven tools, 8,607 and 20,366 after, a 73% cut in description bytes
+  and 55% in the reply. The `instructions` string went 1,295 to 1,153. Nothing
+  was deleted: `tool_manual()` holds the previous text verbatim, keyed by tool
+  name, and `glyph llms --json` publishes it.*
+
+  *`glyph llms --negative E0200` prints the six `tests/negative/` cases and the
+  two `catches/` cases that draw it, each compiled here, the `catches/` ones
+  carrying the TypeScript a `tsc --strict` project accepts beside the Glyph
+  that refuses it. `glyph llms --negative` with no code lists the 39 codes that
+  have a case and the 21 that do not. Both corpora are embedded by `build.rs`
+  from the directories themselves, so a case added to either is in the answer
+  with no second edit to remember.*
 
 - **G223. [FIXED] E0101 is unreachable from source: a relative import stops in
   the parser.** `import ./helper` and `import ../helper` both fail as

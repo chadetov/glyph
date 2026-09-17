@@ -611,7 +611,7 @@ pub fn tool_specs() -> Value {
         },
         {
             "name": "glyph_variants",
-            "description": "Every `match` site in the project over one tagged union, and which variants each site's arms name. Call it before adding or removing a variant: it is the list of places that have to change. The relation is `MATCH_SITES`, named on the envelope and on every site. Each site carries the declaration it sits in, the scrutinee as written, its line, the arm ordinals with the variant each names, and a `state`: `exhaustive`, `has_catch_all` (the dangerous one, since the site keeps compiling and silently absorbs a new variant), `declined`, or `scrutinee_unresolved`. Send `proposed_variant` to ask what your edit does instead of what is there, and each site carries `WILL_FAIL`, `ABSORBS`, `UNDETERMINED` or `NOT_INDEXED`. A site that reaches the type through a payload is under `nested` and one this project cannot key to the type is under `unkeyed`, never dropped. A name that is not a tagged union is refused rather than answered with an empty list. The full field-by-field text is the `tools` section of `glyph llms --json`.",
+            "description": "Every `match` site in the project over one tagged union, and which variants each site's arms name. Call it before adding or removing a variant: it is the list of places that have to change. The relation is `MATCH_SITES`, named on the envelope and on every site. Each site carries the declaration it sits in, the scrutinee as written, its line, the arm ordinals with the variant each names, and a `state`: `exhaustive`, `has_catch_all` (the dangerous one: an arm is a catch-all, so the site keeps compiling and silently absorbs a new variant), `declined`, or `scrutinee_unresolved`. Send `proposed_variant` to ask what your edit does instead of what is there, and each site carries `WILL_FAIL`, `ABSORBS`, `UNDETERMINED` or `NOT_INDEXED`. A site that reaches the type through a payload is under `nested` and one this project cannot key to the type is under `unkeyed`, never dropped. A name that is not a tagged union is refused rather than answered with an empty list. The full field-by-field text is the `tools` section of `glyph llms --json`.",
             "inputSchema": { "type": "object", "properties": { "path": file, "name": type_name, "relation": match_relation, "proposed_variant": proposed_variant }, "required": ["path", "name"] }
         },
         {
@@ -13655,9 +13655,14 @@ pub fn f() -> number {
         }
         assert!(described.contains("proposed_variant"), "{described}");
         // A total nobody knows the limits of is worse than no total, so the
-        // description that sells the summary has to carry them too.
+        // text that sells the summary has to carry them. It is in the manual
+        // now rather than in the description, and it still has to be somewhere.
+        let manual = tool_manual()["tools"]["glyph_variants"]["answer"]
+            .as_str()
+            .expect("glyph_variants has a manual entry")
+            .to_string();
         for word in ["summary", "not_counted", "unindexed"] {
-            assert!(described.contains(word), "`{word}` is undescribed: {described}");
+            assert!(manual.contains(word), "`{word}` is undescribed: {manual}");
         }
     }
 
@@ -15186,15 +15191,23 @@ pub fn f() -> number {
             "change_arity",
             "change_signature_type",
             "remove",
-            "next_query",
-            "E0211",
-            "G201",
         ] {
             assert!(described.contains(word), "`{word}` is undescribed: {described}");
         }
         // Coverage is per search, and the description has to say so, or a
         // caller looks for a total that deliberately is not there.
         assert!(described.contains("per search"), "{described}");
+        // The per-cell rules, the deeper-depth answer and the codes each
+        // verdict raises are the manual's half of the same contract. They are
+        // too long to spend from every session's budget, and losing them is
+        // not the alternative.
+        let manual = tool_manual()["tools"]["glyph_impact"]["answer"]
+            .as_str()
+            .expect("glyph_impact has a manual entry")
+            .to_string();
+        for word in ["next_query", "E0211", "G201", "per search"] {
+            assert!(manual.contains(word), "`{word}` is undescribed: {manual}");
+        }
     }
     /// The new tool has to be in the field that reaches a model before it has
     /// listed anything. A tool nothing points at is a tool an agent finds
@@ -15208,8 +15221,24 @@ pub fn f() -> number {
         )
         .unwrap();
         let instructions = init["result"]["instructions"].as_str().unwrap_or_default();
-        for word in ["glyph_impact", "WILL_FAIL", "ABSORBS", "SAFE", "NOT_INDEXED"] {
+        // The instructions point at the tool and name the verdict that nothing
+        // else will tell you about. The whole verdict vocabulary is one hop
+        // away, in the tool's own description, rather than spent from every
+        // session whether or not a tool is called.
+        for word in ["glyph_impact", "ABSORBS", "glyph llms"] {
             assert!(instructions.contains(word), "`{word}` is missing: {instructions}");
+        }
+        let described = tool_specs()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["name"] == "glyph_impact")
+            .expect("missing glyph_impact")["description"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        for word in ["WILL_FAIL", "ABSORBS", "SAFE", "UNDETERMINED", "NOT_INDEXED"] {
+            assert!(described.contains(word), "`{word}` is missing: {described}");
         }
     }
 

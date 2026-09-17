@@ -11,7 +11,7 @@
 //! suite so the rule cannot quietly widen again.
 //!
 //! Every program here was run under a published release before it was added
-//! (0.1.121 for the first thirteen, 0.1.122 for the six G237 added) and passed
+//! (0.1.121 for the first twelve, 0.1.122 for the six G237 added) and passed
 //! `glyph check` with `tsc --strict` in the loop there. Each one must draw no
 //! diagnostic from `glyph check --no-tsc`, and, where `tsc` is on the PATH,
 //! must still pass the full check.
@@ -25,16 +25,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 struct Program {
     name: &'static str,
     modules: &'static [(&'static str, &'static str)],
-    /// Whether a full `glyph check` (with `tsc`) is meaningful. False for the
-    /// JSX program, whose emitted TypeScript needs `react`'s types, which this
-    /// test does not install.
-    tsc: bool,
 }
 
 const CORPUS: &[Program] = &[
     Program {
         name: "record_field",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -46,7 +41,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "array_literal",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -57,7 +51,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "option",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -73,7 +66,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "nullable",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -84,7 +76,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "generic_identity",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -96,7 +87,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "match_in_value_position",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -107,7 +97,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "mut_reassignment",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -121,7 +110,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "concatenation",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -132,7 +120,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "imported_union",
-        tsc: true,
         modules: &[
             ("modes.glyph", "module modes\npub type Mode = \"read\" | \"write\"\n"),
             (
@@ -147,7 +134,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "call_argument",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -160,7 +146,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "nested_generic",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -179,7 +164,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "record_of_array",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -189,31 +173,18 @@ const CORPUS: &[Program] = &[
              fn main() -> void { print(acl().owner) }\n",
         )],
     },
-    Program {
-        name: "jsx_attribute",
-        tsc: false,
-        modules: &[(
-            "main.glyph",
-            "module main\n\
-             type Variant = \"primary\" | \"danger\"\n\
-             type ButtonProps = { variant: Variant, label: string }\n\
-             type BarProps = { }\n\
-             component Button(props: ButtonProps) -> Component {\n\
-             \x20 return <button className={props.variant}>{props.label}</button>\n\
-             }\n\
-             component Bar(props: BarProps) -> Component {\n\
-             \x20 return <div><Button variant=\"danger\" label=\"go\" /></div>\n\
-             }\n\
-             fn main() -> void { print(\"ok\") }\n",
-        )],
-    },
+    // A JSX attribute used to sit here as the nineteenth program. It was a dead
+    // instrument: nothing in the Glyph front end types a JSX attribute, so
+    // `variant="danger"`, `variant="nope"` and `variant={42}` all draw no
+    // diagnostic and the case would pass under any widening of the rule it was
+    // meant to fence. Recorded as G240 and removed rather than counted (the
+    // 0.1.123 review).
     // G237's additions. Each was run under the published
     // `@glyphlang/glyph@0.1.122` with `tsc --strict` in the loop and passed
     // there before it was added here, so a refusal from this build is a
     // refusal 0.1.122 did not make.
     Program {
         name: "const_literal",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -225,7 +196,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "mixed_array_literal",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -236,7 +206,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "record_key",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -251,7 +220,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "inline_union_parameter",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -263,7 +231,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "array_of_records",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -275,7 +242,6 @@ const CORPUS: &[Program] = &[
     },
     Program {
         name: "loop_over_declared_union",
-        tsc: true,
         modules: &[(
             "main.glyph",
             "module main\n\
@@ -365,7 +331,7 @@ fn the_positive_corpus_passes_tsc_strict() {
         eprintln!("skipping: tsc is not on the PATH");
         return;
     }
-    for program in CORPUS.iter().filter(|p| p.tsc) {
+    for program in CORPUS.iter() {
         let root = stage(program);
         let (ok, text) = run_check(&root, &["--no-test"]);
         assert!(

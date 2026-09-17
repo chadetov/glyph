@@ -2052,6 +2052,22 @@ impl Analysis {
         rename_edits_at(self.module(), self.resolution(), offset, text, new_name)
     }
 
+    /// The prelude name bound at `offset`, when the position is on one.
+    ///
+    /// Separate from [`symbol_target_at`], which answers `None` for a prelude
+    /// reference and is read by rename and by go-to-definition. Only the
+    /// surfaces that key a prelude name to the stdlib module declaring it
+    /// (G231) ask this, and the id is read through the prelude this analysis
+    /// resolved against rather than a freshly built one.
+    pub fn prelude_name_at(&self, offset: usize) -> Option<&str> {
+        match innermost_ref(self.resolution(), offset)? {
+            ResolvedRef::Prelude(id) => {
+                Some(self.prelude.table.get(id)?.name.as_ref())
+            }
+            ResolvedRef::Module(_) | ResolvedRef::Local(_) => None,
+        }
+    }
+
     /// See [`symbol_target_at`].
     pub fn symbol_target(
         &self,
@@ -2882,10 +2898,12 @@ mod tests {
         );
     }
 
-    /// A prelude union is declared in no project module, so it has a name and
-    /// no address. Absent, not invented.
+    /// A prelude union is declared by the stdlib module the prelude re-exports
+    /// it from, so it has an address: `std/result::Result` (G231). Reported,
+    /// not invented: that module is what `import std/result { Result }`
+    /// resolves through and what the emitter writes the import from.
     #[test]
-    fn a_prelude_unions_gap_has_a_name_and_no_declaration() {
+    fn a_prelude_unions_gap_keys_under_its_stdlib_module() {
         let text = "module x\n\n\
             import std/result { Ok, Err }\n\n\
             fn f(r: Result<number, string>) -> number {\n\
@@ -2898,7 +2916,11 @@ mod tests {
             .expect("E0200 emitted");
         let union = d.union.as_ref().expect("E0200 names a union");
         assert_eq!(union.name(), "Result");
-        assert_eq!(union.declaration("x"), None);
+        assert_eq!(union.module("x"), Some("std/result"));
+        assert_eq!(
+            union.declaration("x"),
+            Some("std/result::Result".to_string())
+        );
     }
 
     /// A diagnostic about no union answers nothing for either field. An

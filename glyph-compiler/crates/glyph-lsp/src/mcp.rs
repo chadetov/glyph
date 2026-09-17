@@ -3294,6 +3294,24 @@ impl VariantShape {
         }
     }
 
+    /// One variant of a union the compiler carries, rendered by the same
+    /// `display_ty` a declared variant goes through.
+    fn builtin(v: &glyph_typechecker::BuiltinVariant) -> Self {
+        let name = v.name.to_string();
+        let ty = Ty::Union {
+            variants: vec![glyph_typechecker::UnionVariant {
+                name: glyph_ast::Ident::from(v.name),
+                payload: v.payload.clone(),
+            }],
+        };
+        VariantShape {
+            payload: v.payload.as_ref().map(display_ty),
+            payload_unread: None,
+            construct: Some(display_ty(&ty)),
+            name,
+        }
+    }
+
     fn value(&self) -> Value {
         json!({
             "name": self.name,
@@ -3348,11 +3366,25 @@ fn union_shape(
                 )
             }
         },
-        CoverageTypeRef::Builtin { name } => {
-            return UnionShape::Unread(format!(
-                "`{name}` has a fixed variant table in the compiler and no declaration \
-                 in this project, so there is nothing here to read it from"
-            ))
+        // A union the compiler carries. Its variants come from the same table
+        // the checker counts exhaustiveness against, so this answer and the
+        // E0200 beside it cannot disagree (G231).
+        CoverageTypeRef::Builtin {
+            module,
+            declared,
+            name,
+        } => {
+            return match glyph_typechecker::builtin_union(module, declared) {
+                Some(union) => UnionShape::Variants(
+                    union.variants.iter().map(VariantShape::builtin).collect(),
+                ),
+                // Only reachable if the key and the table disagree, which is a
+                // compiler bug rather than something about this project.
+                None => UnionShape::Unread(format!(
+                    "`{name}` is keyed as `{module}::{declared}` and the compiler holds no \
+                     variant table under that identity"
+                )),
+            }
         }
         CoverageTypeRef::Unkeyed { module, name } => {
             return UnionShape::Unread(format!(
@@ -3852,21 +3884,28 @@ fn end_matches(decls: &DeclIndex, end: &CoverageTypeRef, want: &WantedType) -> b
             // The project keys the module and not this name under it, which is
             // what an import of a name its module does not declare looks like.
             CoverageTypeRef::Unkeyed { module: m, name: n } => m == module && n == name,
-            // A builtin has a name and no module, and no prelude union is
-            // declared in a module this project keys.
+            // A builtin is keyed under a stdlib module, and a stdlib module
+            // is never one this project's declaration index holds.
             CoverageTypeRef::Builtin { .. } => false,
         },
         WantedType::Foreign { module, name } => match end {
             // The project has no such module, so it holds no key under one.
             CoverageTypeRef::Decl(_) => false,
             CoverageTypeRef::Unkeyed { module: m, name: n } => m == module && n == name,
-            CoverageTypeRef::Builtin { name: n } => n == name,
+            // `import std/result { Result }`: the address the consumer wrote is
+            // the identity the builtin is keyed under, so this compares both
+            // halves rather than the bare name. A `Result` imported from some
+            // other module is a different declaration and no longer matches.
+            CoverageTypeRef::Builtin {
+                module: m,
+                declared: d,
+                ..
+            } => m == module && d == name,
         },
         WantedType::Bare { name } => match end {
             CoverageTypeRef::Decl(key) => key.name() == name,
-            CoverageTypeRef::Unkeyed { name: n, .. } | CoverageTypeRef::Builtin { name: n } => {
-                n == name
-            }
+            CoverageTypeRef::Unkeyed { name: n, .. }
+            | CoverageTypeRef::Builtin { name: n, .. } => n == name,
         },
     }
 }
@@ -3902,10 +3941,20 @@ fn derive_type_end(
         // the module does not have.
         WantedType::Bare { name } => match prelude.lookup(name) {
             // A prelude name with no site: `Option` in a project that only
-            // ever reaches it through a payload. It has a name and no
-            // declaration anywhere, and the honest answer is that nothing
-            // matches on it directly, which is not the same as not existing.
-            Some(_) => Ok(CoverageTypeRef::Builtin { name: name.clone() }),
+            // ever reaches it through a payload. It is keyed by the stdlib
+            // module that declares it (G231), and the honest answer is that
+            // nothing matches on it directly, which is not the same as not
+            // existing.
+            Some(_) => match builtin_end_for_prelude_name(name) {
+                Some(end) => Ok(end),
+                // A prelude variant (`Ok`), or a prelude name no stdlib
+                // module declares (`Array`, `Record`, `Schema`,
+                // `Component`, `Issue`, a primitive). Neither is a union
+                // with a variant table, and saying so is a different answer
+                // from an empty site list, which would claim a union exists
+                // and nothing matches on it.
+                None => Err(refuse_prelude_non_union(name)),
+            },
             // Neither a prelude name, nor one the file declares or imports,
             // nor a type any site in the project matches on. An empty answer
             // would read as "this type has no match site", so the call fails
@@ -3913,6 +3962,50 @@ fn derive_type_end(
             None => Err(not_declared(name, this_module, resolved)),
         },
     }
+}
+
+/// The type end for a prelude name, when the name is one a stdlib module
+/// declares.
+///
+/// `None` for the residue the prelude carries and no stdlib module declares
+/// (`Array`, `Record`, `Schema`, `Component`, `Issue`, `par`, `print`,
+/// `assert`, `infer_output`, the primitives). There is no module to key those
+/// under, and one invented for them would name a module the compiler does not
+/// have.
+fn builtin_end_for_prelude_name(name: &str) -> Option<CoverageTypeRef> {
+    let module = glyph_resolver::prelude_declaring_module(name)?;
+    let union = glyph_typechecker::builtin_union(module, name)
+        .or_else(|| glyph_typechecker::builtin_union_of_variant(module, name))?;
+    Some(CoverageTypeRef::Builtin {
+        module: union.module.to_string(),
+        declared: union.name.to_string(),
+        name: union.display.to_string(),
+    })
+}
+
+/// The refusal for a prelude name that is not a union of its own.
+///
+/// `Ok` is a variant of `std/result::Result`, the same way a project variant is
+/// a variant of the union that declares it, and this tool reports the sites
+/// that match on a union. `refuse_non_type` says exactly that for a variant the
+/// file declares; a prelude variant reaches this instead, because the symbol
+/// table calls it a prelude entry rather than a variant.
+fn refuse_prelude_non_union(name: &str) -> String {
+    if let Some(module) = glyph_resolver::prelude_declaring_module(name) {
+        if let Some(union) = glyph_typechecker::builtin_union_of_variant(module, name) {
+            return format!(
+                "`{name}` is a variant of `{}`, not a type. Ask about `{}`: this tool reports \
+                 the sites that match on a union, and `{name}` is one of that union's arms.",
+                union.display, union.display,
+            );
+        }
+    }
+    format!(
+        "`{name}` is a prelude name the compiler carries and no stdlib module declares, so it \
+         has no `module::name` identity and no variant table. The prelude names that do have \
+         one are re-exports of a stdlib module: `Result`, `Ok` and `Err` from `std/result`, \
+         `Option`, `Some` and `None` from `std/option`, `Nullable` from `std/nullable`."
+    )
 }
 
 /// Whether a type end is one this project could not key, under the name being
@@ -3959,13 +4052,19 @@ fn type_end_value(decls: &DeclIndex, end: &CoverageTypeRef) -> Value {
             "name": key.name(),
             "declaration": render_key(decls, key),
         }),
-        // A name with a fixed variant table and no declaration anywhere in the
-        // project. There is nothing to key: a declaration key invented for
-        // `Result` would name a module no project has.
-        CoverageTypeRef::Builtin { name } => json!({
+        // A union the compiler carries, keyed by the stdlib module that
+        // declares it (G231). `kind` stays `builtin` because it still answers
+        // the question an agent asks next, which is whether this project can
+        // add a variant to it.
+        CoverageTypeRef::Builtin {
+            module,
+            declared,
+            name,
+        } => json!({
             "kind": "builtin",
+            "module": module,
             "name": name,
-            "declaration": Value::Null,
+            "declaration": format!("{module}::{declared}"),
         }),
         CoverageTypeRef::Unkeyed { module, name } => json!({
             "kind": "unkeyed",
@@ -4004,9 +4103,15 @@ fn type_origin(project: &Project, root: &Path, end: &CoverageTypeRef) -> Option<
             };
             symbol_origin(project, root, &module, &name)
         }
-        CoverageTypeRef::Builtin { name } => Some(Origin::Glyph(format!(
-            "`{name}` is a prelude type the compiler carries rather than a declaration of \
-             this project, and the resolver holds its variant table"
+        CoverageTypeRef::Builtin {
+            module,
+            declared,
+            name,
+        } => Some(Origin::Glyph(format!(
+            "`{name}` is declared by `{module}`, a stdlib module the compiler carries rather \
+             than a file of this project: the resolver registers `{declared}` as one of its \
+             exports, the compiler holds its variant table, and the emitter writes the \
+             import for it"
         ))),
     }
 }
@@ -4015,7 +4120,9 @@ fn type_origin(project: &Project, root: &Path, end: &CoverageTypeRef) -> Option<
 fn render_type_end(decls: &DeclIndex, end: &CoverageTypeRef) -> String {
     match end {
         CoverageTypeRef::Decl(key) => render_key(decls, key),
-        CoverageTypeRef::Builtin { name } => name.clone(),
+        CoverageTypeRef::Builtin {
+            module, declared, ..
+        } => format!("{module}::{declared}"),
         CoverageTypeRef::Unkeyed { module, name } => format!("{module}::{name}"),
     }
 }
@@ -4352,7 +4459,18 @@ fn catch_all_value(d: &CoverageSiteRef) -> Option<Value> {
 /// answers yes or no, and its declared case goes through that same index.
 fn edge_is(decls: &DeclIndex, union: &CoverageTypeName, end: &CoverageTypeRef) -> bool {
     match (union, end) {
-        (CoverageTypeName::Builtin { name: a }, CoverageTypeRef::Builtin { name: b }) => a == b,
+        (
+            CoverageTypeName::Builtin {
+                module: am,
+                declared: ad,
+                ..
+            },
+            CoverageTypeRef::Builtin {
+                module: bm,
+                declared: bd,
+                ..
+            },
+        ) => am == bm && ad == bd,
         (CoverageTypeName::Declared { module, name }, CoverageTypeRef::Decl(key)) => {
             key.name() == name && decls.module_path(key.module()) == Some(module.as_str())
         }
@@ -4387,7 +4505,7 @@ fn payload_unions_value(d: &CoverageSiteRef) -> Option<Value> {
 
 fn union_name(union: &CoverageTypeName) -> &str {
     match union {
-        CoverageTypeName::Declared { name, .. } | CoverageTypeName::Builtin { name } => name,
+        CoverageTypeName::Declared { name, .. } | CoverageTypeName::Builtin { name, .. } => name,
     }
 }
 
@@ -7399,6 +7517,11 @@ fn tool_exports(args: &Value, server: &mut Server) -> Result<String, String> {
         .find(|(_, f)| f.module_path == module)
         .map(|(p, f)| (p.as_path(), f))
     else {
+        // A stdlib module has an export surface the resolver holds, and it is
+        // the surface every `import std/...` is checked against (G231).
+        if let Some(answer) = stdlib_exports(&root, &project_root, &module) {
+            return answer;
+        }
         let held: Vec<&str> = project
             .files
             .values()
@@ -7420,7 +7543,7 @@ fn tool_exports(args: &Value, server: &mut Server) -> Result<String, String> {
     let answer = |exports: Option<Value>, absent: String, unindexed: Value| {
         let mut out = serde_json::Map::new();
         out.insert("module".to_string(), json!(module));
-        out.insert("path".to_string(), json!(shown));
+        fact(&mut out, "path", Some(json!(shown)), String::new());
         out.insert(
             "project_root".to_string(),
             json!(project_root_label(&root, &project_root)),
@@ -7517,6 +7640,78 @@ fn tool_exports(args: &Value, server: &mut Server) -> Result<String, String> {
         }
     }
     answer(Some(json!(out)), String::new(), json!([]))
+}
+
+/// The export surface of a stdlib module, or `None` when `module` is not one.
+///
+/// The names come from the resolver's own stub table, which is the list
+/// `import std/result { Result }` is verified against and the list E0105 prints
+/// when a name is not on it. Each is reported under its `module::name`
+/// identity, so an answer here chains into `glyph_symbol` the way a project
+/// module's does.
+fn stdlib_exports(
+    root: &Path,
+    project_root: &Path,
+    module: &str,
+) -> Option<Result<String, String>> {
+    let stubs = StdlibStubs::new();
+    let exports = stubs.exports_of(&module_path_from_key(module))?;
+    let described: Vec<Value> = exports
+        .names
+        .iter()
+        .map(|name| {
+            let mut entry = serde_json::Map::new();
+            entry.insert(
+                "entity".to_string(),
+                json!(format!("{module}::{name}")),
+            );
+            entry.insert("module".to_string(), json!(module));
+            entry.insert("name".to_string(), json!(name.as_ref()));
+            let union = glyph_typechecker::builtin_union(module, name.as_ref());
+            let owner = glyph_typechecker::builtin_union_of_variant(module, name.as_ref());
+            let kind = match (&union, &owner) {
+                (Some(_), _) => Some("union"),
+                (None, Some(_)) => Some("variant"),
+                (None, None) => None,
+            };
+            fact(
+                &mut entry,
+                "kind",
+                kind.map(|k| json!(k)),
+                format!(
+                    "`{module}` exports `{name}` and Glyph's own checker models no \
+                     declaration for it, so there is no kind here to report. \
+                     `glyph_symbol` on `{module}::{name}` says the same thing at length."
+                ),
+            );
+            Value::Object(entry)
+        })
+        .collect();
+
+    let mut out = serde_json::Map::new();
+    out.insert("module".to_string(), json!(module));
+    fact(
+        &mut out,
+        "path",
+        None,
+        STDLIB_NO_SOURCE.to_string(),
+    );
+    out.insert(
+        "project_root".to_string(),
+        json!(project_root_label(root, project_root)),
+    );
+    fact(&mut out, "exports", Some(json!(described)), String::new());
+    out.insert("unindexed".to_string(), json!([]));
+    out.insert(
+        "guarantee".to_string(),
+        json!(
+            "every name the resolver registers for this stdlib module, which is the set an \
+             `import` of it is verified against and the set E0105 lists when a name is not \
+             on it. The compiler carries the implementation as TypeScript, so `kind` is \
+             reported only for the declarations Glyph's own checker models."
+        ),
+    );
+    Some(Ok(to_json(&Value::Object(out))))
 }
 
 // ---------------------------------------------------------------------------
@@ -8620,6 +8815,14 @@ fn describe_symbol(
         .into_iter()
         .find(|(_, f)| f.module_path == module)
     else {
+        // A stdlib module is not a file of this project and is still a module
+        // the compiler holds: the resolver registers its exports, the emitter
+        // writes its import, and `import std/result { Result }` resolves
+        // through it. So `std/result::Result` is an identity to answer rather
+        // than one to refuse (G231).
+        if let Some(answer) = describe_stdlib_symbol(project, root, module, name) {
+            return answer;
+        }
         let held: Vec<&str> = project
             .files
             .values()
@@ -8666,13 +8869,23 @@ fn describe_symbol(
     out.insert("entity".to_string(), json!(format!("{module}::{name}")));
     out.insert("module".to_string(), json!(module));
     out.insert("name".to_string(), json!(name));
-    out.insert("kind".to_string(), json!(kind));
+    // `kind`, `path` and `range` are pairs for the reason every other fact is:
+    // a symbol the compiler carries rather than a project file declares has no
+    // source to point at, and an omitted key and an absent one read the same.
+    fact(&mut out, "kind", Some(json!(kind)), String::new());
     out.insert("pub".to_string(), json!(what.is_public()));
     out.insert("generics".to_string(), json!(generics_value(&what)));
-    out.insert("path".to_string(), json!(display_path(root, fpath)));
-    out.insert(
-        "range".to_string(),
-        range_json(&index, text, span.start, span.end),
+    fact(
+        &mut out,
+        "path",
+        Some(json!(display_path(root, fpath))),
+        String::new(),
+    );
+    fact(
+        &mut out,
+        "range",
+        Some(range_json(&index, text, span.start, span.end)),
+        String::new(),
     );
     out.insert("origin".to_string(), origin_wire);
     out.insert("origin_absent".to_string(), origin_absent);
@@ -8801,6 +9014,208 @@ fn describe_symbol(
     Ok(Value::Object(out))
 }
 
+/// Why a symbol the compiler carries has no file and no span.
+const STDLIB_NO_SOURCE: &str =
+    "the stdlib is TypeScript the compiler carries and stages into the build \
+     (`runtime/std/*.ts`), not Glyph source under this project, so there is no `.glyph` file \
+     holding this declaration and no span in one to report";
+
+/// The description of a symbol a stdlib module declares.
+///
+/// `None` when `module` is not a stdlib module the compiler carries, which is
+/// what sends `describe_symbol` on to its own refusal.
+///
+/// Built from two tables the compiler already keeps: the resolver's export
+/// surface, which decides whether `module::name` names anything at all, and the
+/// checker's builtin-union table, which is the same one exhaustiveness counts
+/// against. Nothing here is read off the TypeScript: what the compiler does not
+/// model is absent with the reason, not guessed from a name.
+fn describe_stdlib_symbol(
+    project: &Project,
+    root: &Path,
+    module: &str,
+    name: &str,
+) -> Option<Result<Value, String>> {
+    let stubs = StdlibStubs::new();
+    let exports = stubs.exports_of(&module_path_from_key(module))?;
+    if !exports.contains(name) {
+        // `names` is a `BTreeSet`, so the list is already in a stable order.
+        let listed: Vec<&str> = exports.names.iter().map(|s| s.as_ref()).collect();
+        return Some(Err(format!(
+            "`{module}` is a stdlib module the compiler carries and it exports no `{name}`, \
+             so `{module}::{name}` names no declaration. It exports {}.",
+            listed.join(", ")
+        )));
+    }
+
+    let union = glyph_typechecker::builtin_union(module, name);
+    let owner = glyph_typechecker::builtin_union_of_variant(module, name);
+    let variant = owner
+        .as_ref()
+        .and_then(|u| u.variants.iter().find(|v| v.name == name).cloned());
+    let kind = match (&union, &variant) {
+        (Some(_), _) => Some("union"),
+        (None, Some(_)) => Some("variant"),
+        (None, None) => None,
+    };
+    // Why the compiler holds no kind for this name. It is exported and it is
+    // not one of the unions the checker models, so what it is lives in the
+    // TypeScript `tsc` checks and nothing in Glyph read it.
+    let kind_absent = format!(
+        "`{module}` exports `{name}` and Glyph's own checker models no declaration for it. \
+         The compiler carries a declaration for the tagged unions it checks matches against \
+         ({}); everything else in the stdlib is TypeScript whose shape `tsc` checks and \
+         Glyph's checker does not read, so there is no kind here to report.",
+        glyph_typechecker::builtin_unions()
+            .iter()
+            .map(|u| format!("`{}::{}`", u.module, u.name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+
+    let origin = symbol_origin(project, root, module, name);
+    let (origin_wire, origin_absent) = Origin::pair(origin.as_ref());
+
+    let mut out = serde_json::Map::new();
+    out.insert("entity".to_string(), json!(format!("{module}::{name}")));
+    out.insert("module".to_string(), json!(module));
+    out.insert("name".to_string(), json!(name));
+    fact(&mut out, "kind", kind.map(|k| json!(k)), kind_absent.clone());
+    // Every name a stdlib module exports is reachable by an import of that
+    // module, which is what `pub` says for a project declaration.
+    out.insert("pub".to_string(), json!(true));
+    out.insert(
+        "generics".to_string(),
+        json!(union
+            .as_ref()
+            .map(|u| u.generics.to_vec())
+            .unwrap_or_default()),
+    );
+    fact(&mut out, "path", None, STDLIB_NO_SOURCE.to_string());
+    fact(&mut out, "range", None, STDLIB_NO_SOURCE.to_string());
+    out.insert("origin".to_string(), origin_wire);
+    out.insert("origin_absent".to_string(), origin_absent);
+    out.insert(
+        "origin_detail".to_string(),
+        json!(origin.as_ref().map(Origin::detail)),
+    );
+
+    // The type of the declaration as a whole. The compiler holds one for a
+    // union it models and for nothing else here, and the union's is written
+    // the way a program writes it, with its generic parameters applied.
+    let type_value = union.as_ref().map(|u| {
+        json!(if u.generics.is_empty() {
+            u.display.to_string()
+        } else {
+            format!("{}<{}>", u.display, u.generics.join(", "))
+        })
+    });
+    // The reason a fact is absent, in the two shapes this branch has: one for
+    // a declaration the compiler models, which reads the way the project
+    // branch's does, and one for a name it does not, which says so instead of
+    // claiming the symbol is something it was never read to be.
+    let because = |what: &str| match kind {
+        Some(k) => format!("`{module}::{name}` is {} and {what}.", a_kind(k)),
+        None => kind_absent.clone(),
+    };
+
+    fact(&mut out, "type", type_value, because("has no type the compiler lowered"));
+    fact(&mut out, "fields", None, because("declares no record fields"));
+    fact(
+        &mut out,
+        "variants",
+        union.as_ref().map(|u| {
+            Value::Array(
+                u.variants
+                    .iter()
+                    .map(|v| VariantShape::builtin(v).value())
+                    .collect(),
+            )
+        }),
+        match &owner {
+            Some(u) => format!(
+                "`{module}::{name}` is a variant of `{}::{}` and has no variant list of its \
+                 own.",
+                u.module, u.name
+            ),
+            None => because("has no variant list"),
+        },
+    );
+    fact(
+        &mut out,
+        "literals",
+        None,
+        because("is not a union of string literals, so it has no literal set"),
+    );
+    fact(&mut out, "parameters", None, because("takes no parameters"));
+    fact(
+        &mut out,
+        "returns",
+        None,
+        because("returns nothing to a caller"),
+    );
+    fact(
+        &mut out,
+        "async",
+        None,
+        because("is not called, so it is neither async nor not"),
+    );
+    fact(
+        &mut out,
+        "members",
+        None,
+        because("is not an interface, so it declares no members"),
+    );
+    fact(
+        &mut out,
+        "owner",
+        owner
+            .as_ref()
+            .map(|u| json!(format!("{}::{}", u.module, u.name))),
+        format!("`{module}::{name}` is not a variant, so no declaration owns it."),
+    );
+    fact(
+        &mut out,
+        "construct",
+        variant.as_ref().map(|v| {
+            json!(VariantShape::builtin(v)
+                .construct
+                .clone()
+                .unwrap_or_else(|| v.name.to_string()))
+        }),
+        match &union {
+            Some(_) => "a tagged union is constructed through one of its variants. \
+                 `variants[].construct` carries the syntax of each."
+                .to_string(),
+            None => because("has no construction syntax of its own"),
+        },
+    );
+    let (exhaustive, exhaustive_absent) = match (&union, &owner) {
+        (Some(_), _) => (json!(true), Value::Null),
+        (None, Some(u)) => (
+            Value::Null,
+            json!(format!(
+                "a variant is a constructor of `{}::{}`, not a type of its own. Ask about \
+                 `{}::{}` for the rule that governs a `match` over it.",
+                u.module, u.name, u.module, u.name
+            )),
+        ),
+        (None, None) => (Value::Null, json!(kind_absent.clone())),
+    };
+    out.insert("exhaustive_match".to_string(), exhaustive);
+    out.insert("exhaustive_match_absent".to_string(), exhaustive_absent);
+    fact(
+        &mut out,
+        "examples",
+        None,
+        format!(
+            "`{module}::{name}` is carried by the compiler rather than written in Glyph \
+             source, so there is no declaration for an `@example` to sit above."
+        ),
+    );
+    Some(Ok(Value::Object(out)))
+}
+
 /// A kind with its article, for a sentence that says what a symbol is instead
 /// of what it is not.
 fn a_kind(kind: &str) -> String {
@@ -8878,12 +9293,38 @@ fn tool_symbol(args: &Value, server: &mut Server) -> Result<String, String> {
                     )
                 }
                 None => {
+                    // A prelude name is keyed by the stdlib module that
+                    // declares it (G231), so `Result` here addresses
+                    // `std/result::Result` rather than nothing. The residue
+                    // the prelude carries and no stdlib module declares still
+                    // addresses no declaration, and says which it is.
+                    if let Some(prelude_name) = a.prelude_name_at(offset) {
+                        return match glyph_resolver::prelude_declaring_module(prelude_name) {
+                            Some(sym_module) => {
+                                let project_root = crate::module_root_for(&path, &root);
+                                let project = server.project(&project_root, &path);
+                                Ok(to_json(&describe_symbol(
+                                    project,
+                                    &root,
+                                    sym_module,
+                                    prelude_name,
+                                )?))
+                            }
+                            None => Err(format!(
+                                "`{prelude_name}` is a prelude name the compiler carries and \
+                                 no stdlib module declares, so it has no `module::name` \
+                                 identity to describe. The prelude names that do have one \
+                                 are re-exports of a stdlib module: `Result`, `Ok` and `Err` \
+                                 from `std/result`, `Option`, `Some` and `None` from \
+                                 `std/option`, `Nullable` from `std/nullable`."
+                            )),
+                        };
+                    }
                     return Err(
                         "that position is not on a name the resolver bound. A keyword, a \
-                         literal, whitespace and a prelude built-in each address no symbol \
-                         of this project."
+                         literal and whitespace each address no symbol of this project."
                             .to_string(),
-                    )
+                    );
                 }
             };
             let project_root = crate::module_root_for(&path, &root);
@@ -12685,10 +13126,11 @@ pub fn f() -> number {
         assert!(sites[1]["missing"].is_null(), "{after}");
     }
 
-    /// A prelude union has a name and no declaration. Reporting it needs no
-    /// key, and inventing one would name a module no project has.
+    /// A prelude union is keyed by the stdlib module that declares it (G231),
+    /// and its variants come from the same table the exhaustiveness check
+    /// counts against, so the answer and the E0200 beside it are one answer.
     #[test]
-    fn a_builtin_union_is_named_with_no_declaration_to_key() {
+    fn a_builtin_union_keys_under_its_stdlib_module_and_lists_its_variants() {
         let root = tmp_root();
         write(&root, "a.glyph", RESULT_MATCH);
         let mut server = Server::new(root.clone());
@@ -12696,7 +13138,20 @@ pub fn f() -> number {
         let answer = variants(&mut server, "a.glyph", "Result");
         assert_eq!(answer["type"]["kind"], "builtin", "{answer}");
         assert_eq!(answer["type"]["name"], "Result", "{answer}");
-        assert!(answer["type"]["declaration"].is_null(), "{answer}");
+        assert_eq!(answer["type"]["module"], "std/result", "{answer}");
+        assert_eq!(
+            answer["type"]["declaration"], "std/result::Result",
+            "{answer}"
+        );
+        assert_eq!(
+            answer["type"]["variants"],
+            json!([
+                { "name": "Ok", "payload": "T", "payload_absent": null, "construct": "Ok(T)", "construct_absent": null },
+                { "name": "Err", "payload": "E", "payload_absent": null, "construct": "Err(E)", "construct_absent": null },
+            ]),
+            "{answer}"
+        );
+        assert!(answer["type"]["variants_unavailable"].is_null(), "{answer}");
 
         let sites = answer["sites"].as_array().unwrap();
         assert_eq!(sites.len(), 1, "{answer}");
@@ -13531,25 +13986,36 @@ pub fn f() -> number {
         }
     }
 
-    /// A union with no declaration in this project has no variant list to
-    /// read here, and the answer says so instead of leaving the field out.
-    /// Asked as a change it refuses, because without the variants there is no
-    /// way to tell whether the proposed name already exists.
+    /// A union imported from a module no file of this project holds has no
+    /// variant list to read here, and the answer says so instead of leaving
+    /// the field out. Asked as a change it refuses, because without the
+    /// variants there is no way to tell whether the proposed name already
+    /// exists.
+    ///
+    /// The subject used to be the prelude `Result`. G231 gave that one a
+    /// declaration to read, so the case moved to an end the project genuinely
+    /// cannot key.
     #[test]
     fn a_union_whose_variants_cannot_be_read_says_so_and_refuses_a_proposal() {
         let root = tmp_root();
-        write(&root, "a.glyph", RESULT_MATCH);
+        write(
+            &root,
+            "a.glyph",
+            "module a\nimport vendor/status { Status }\n\n\
+             pub fn f(s: Status) -> number {\n  return match s {\n    else => 0,\n  }\n}\n",
+        );
         let mut server = Server::new(root.clone());
 
-        let answer = variants(&mut server, "a.glyph", "Result");
+        let answer = variants(&mut server, "a.glyph", "Status");
+        assert_eq!(answer["type"]["kind"], "unkeyed", "{answer}");
         assert!(answer["type"]["variants"].is_null(), "{answer}");
         assert!(
             answer["type"]["variants_unavailable"].is_string(),
             "an unreadable variant list must say why: {answer}"
         );
 
-        let message = proposing_refused(&mut server, "a.glyph", "Result", "Pending");
-        assert!(message.contains("Result"), "{message}");
+        let message = proposing_refused(&mut server, "a.glyph", "Status", "Pending");
+        assert!(message.contains("Status"), "{message}");
         assert!(
             message.contains("proposed_variant"),
             "the refusal must point back at the lookup form: {message}"

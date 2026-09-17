@@ -86,6 +86,31 @@ pub fn build_prelude() -> Prelude {
     Prelude { table, by_name }
 }
 
+/// The stdlib module a prelude name is re-exported from, or `None` for a
+/// prelude name no stdlib module declares.
+///
+/// The prelude is a curated re-export, not a second declaration: `Result` here
+/// and `Result` in `std/result` are one type. The emitter proves it, writing
+/// `import { Ok, type Result } from "./.glyph-runtime/std/result"` for a
+/// program that never imported anything, and `import std/result { Result }`
+/// resolves to the same declaration today. So a prelude name that a stdlib
+/// module declares has an identity already, `std/result::Result`, and this is
+/// the table that says which one (G231).
+///
+/// The names that answer `None` are the residue: `Array`, `Record`, `Schema`,
+/// `Component`, `Issue`, `par`, `print`, `assert`, `infer_output` and the
+/// primitives. No stdlib module declares any of them, so there is no module to
+/// key them under and inventing a `std/prelude` for them would be inventing an
+/// address rather than reporting one.
+pub fn prelude_declaring_module(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "Result" | "Ok" | "Err" => "std/result",
+        "Option" | "Some" | "None" => "std/option",
+        "Nullable" => "std/nullable",
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -139,5 +164,74 @@ mod tests {
             _ => panic!("Nullable should be a Prelude symbol"),
         }
         assert_ne!(id, p.lookup("Option").unwrap());
+    }
+}
+
+#[cfg(test)]
+mod reexport_tests {
+    use super::*;
+    use crate::module_graph::{ModuleGraph, StdlibStubs};
+    use glyph_ast::{ModulePath, Span};
+
+    /// Every module this table names must actually export the name, or the
+    /// identity it hands out addresses nothing.
+    #[test]
+    fn every_keyed_prelude_name_is_exported_by_the_module_it_names() {
+        let stubs = StdlibStubs::new();
+        for name in ["Result", "Ok", "Err", "Option", "Some", "None", "Nullable"] {
+            let module = prelude_declaring_module(name)
+                .unwrap_or_else(|| panic!("`{name}` has no declaring module"));
+            let path = ModulePath {
+                segments: module
+                    .split('/')
+                    .map(|s| std::sync::Arc::from(s) as glyph_ast::Ident)
+                    .collect(),
+                span: Span::new(0, 0),
+            };
+            let exports = stubs
+                .exports_of(&path)
+                .unwrap_or_else(|| panic!("`{module}` is not a stdlib module"));
+            assert!(
+                exports.contains(name),
+                "`{module}` does not export `{name}`"
+            );
+        }
+    }
+
+    /// The residue stays unkeyed. A name no stdlib module declares gets no
+    /// invented module, which is the half of G231 that is a decision rather
+    /// than a lookup.
+    #[test]
+    fn the_residue_has_no_declaring_module() {
+        for name in [
+            "Array",
+            "Record",
+            "Schema",
+            "Component",
+            "Issue",
+            "par",
+            "print",
+            "assert",
+            "infer_output",
+            "string",
+            "number",
+            "int",
+            "bool",
+        ] {
+            assert_eq!(
+                prelude_declaring_module(name),
+                None,
+                "`{name}` was given an invented module"
+            );
+        }
+    }
+
+    /// Every name the table keys is a name the prelude actually binds.
+    #[test]
+    fn every_keyed_name_is_in_the_prelude() {
+        let p = build_prelude();
+        for name in ["Result", "Ok", "Err", "Option", "Some", "None", "Nullable"] {
+            assert!(p.lookup(name).is_some(), "`{name}` is not a prelude name");
+        }
     }
 }

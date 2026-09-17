@@ -308,6 +308,54 @@ def case_symbol_refuses_an_unkeyable_identity() -> tuple[bool, str]:
     return True, "refuses the unkeyable spelling; the keyed one still describes the union"
 
 
+def case_symbol_keys_a_prelude_identity_and_still_refuses_an_unkeyable_one() -> tuple[bool, str]:
+    """A prelude declaration keys to the stdlib module that declares it (G231).
+
+    `std/result::Result` is an identity `glyph_symbol` answers: `std/result` is
+    the module the resolver registers the export under, the module the emitter
+    writes the import from, and the module `import std/result { Result }`
+    resolves through. The answer carries the variants with their payloads, and
+    `path`/`range` are absent with the reason, since the stdlib has no Glyph
+    source to point at.
+
+    Both halves are asserted, the same way the unkeyable-identity case does it.
+    A stdlib branch that answered anything asked of it would pass the first half
+    and turn `case_symbol_refuses_an_unkeyable_identity` into a rubber stamp, so
+    `app/models::Status` is checked here too: it is still a spelling this
+    project cannot key, and it must still refuse.
+    """
+    root = CORPUS / "missing-identity"
+    a = call(root, "glyph_symbol", {"entity": "std/result::Result"})
+    if "error" in a:
+        return False, f"refused the identity the compiler carries: {a['error'][:140]}"
+    if a.get("kind") != "union":
+        return False, f"the prelude Result is not reported as a union: {a}"
+    if a.get("module") != "std/result" or a.get("entity") != "std/result::Result":
+        return False, f"answered under a different identity than it was asked: {a}"
+    variants = [(v.get("name"), v.get("payload")) for v in a.get("variants") or []]
+    if variants != [("Ok", "T"), ("Err", "E")]:
+        return False, f"the variants are not the ones the checker counts: {variants}"
+    if a.get("generics") != ["T", "E"]:
+        return False, f"the declaration's generics are not reported: {a}"
+    for key in ("path", "range"):
+        if a.get(key) is not None:
+            return False, f"claimed a {key} for a declaration with no Glyph source: {a}"
+        if not isinstance(a.get(f"{key}_absent"), str):
+            return False, f"{key} is absent with no reason beside it: {a}"
+
+    # A stdlib module answers only for what it exports. A name it does not is a
+    # refusal that lists the surface, not an empty description.
+    b = call(root, "glyph_symbol", {"entity": "std/result::Nope"})
+    if "error" not in b:
+        return False, f"described a name `std/result` does not export: {b}"
+
+    # The other half: the branch must not have widened what this tool answers.
+    c = call(root, "glyph_symbol", {"entity": "app/models::Status"})
+    if "error" not in c:
+        return False, f"described a symbol under an identity it cannot key: {c}"
+    return True, "keys `std/result::Result`; `app/models::Status` still refuses"
+
+
 def case_symbol_absent_is_never_omission() -> tuple[bool, str]:
     """Every fact in a `glyph_symbol` answer is a pair.
 
@@ -1666,6 +1714,8 @@ HARD = [
     ("variants named or unread", case_variants_are_named_or_explicitly_unread),
     ("a symbol under an unkeyable identity", case_symbol_refuses_an_unkeyable_identity),
     ("a symbol's absent is never omission", case_symbol_absent_is_never_omission),
+    ("a prelude identity keys, an unkeyable one does not",
+     case_symbol_keys_a_prelude_identity_and_still_refuses_an_unkeyable_one),
     ("missing identity (as a change)", case_missing_identity_change),
     ("references under either import spelling", case_import_spelling),
     ("CALLS is the applied sites, with coverage", case_calls_relation),

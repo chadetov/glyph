@@ -1,0 +1,5 @@
+module std/io
+
+pub fn shout(s: string) -> string {
+  return s
+}

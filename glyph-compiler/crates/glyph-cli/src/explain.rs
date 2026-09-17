@@ -308,6 +308,27 @@ pub fn explain(code: &str) -> Option<&'static str> {
             TypeScript importer and a module mid-build-out legitimately passes \
             through this state before its author adds `pub`.",
 
+        "E0113" => "E0113: module declared under a reserved prefix\n\n\
+            A `module` line may not start with `std` or `extern`. Both name \
+            modules the compiler resolves itself (D15): `std/` is the standard \
+            library it carries, and `extern/<name>` is a hand-written \
+            TypeScript file the build stages out of `<src>/extern/`.\n\n\
+            A file declared under either prefix is unreachable. An import of \
+            that path resolves to the compiler\'s module, so the project file \
+            is never read:\n\n\
+            module std/io                          // E0113\n\
+            pub fn shout(s: string) -> void { }\n\n\
+            and then `import std/io { shout }` reports E0105, because the \
+            stdlib `std/io` exports `println` and the rest but no `shout`, \
+            while `import std/io { println }` quietly takes the compiler\'s \
+            one. Before this code existed both files compiled clean and \
+            nothing pointed at the declaration.\n\n\
+            Rename the module to a path of your own:\n\n\
+            module io                              // or app/io, shell/io\n\n\
+            To call local TypeScript, put the file at `<src>/extern/<name>.ts` \
+            and write `import extern/<name>` — the prefix is the import, not \
+            something a Glyph file declares.",
+
         // ----- typechecker (E02xx) -----
         "E0200" => "E0200: non-exhaustive match\n\n\
             A `match` over a tagged union must handle every variant. Unions are \
@@ -1270,6 +1291,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "resolver",
         meaning: "A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning)",
         fix: "Mark what callers need `pub`, or delete the module",
+    },
+    CodeEntry {
+        code: "E0113",
+        phase: "resolver",
+        meaning: "A `module` line starting with `std` or `extern`: both prefixes are the compiler's own (D15), so nothing can import this file",
+        fix: "Rename the module so its first segment is neither `std` nor `extern`",
     },
     // ----- typechecker (E02xx) -----
     CodeEntry {

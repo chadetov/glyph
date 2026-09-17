@@ -8054,6 +8054,21 @@ concrete follow-ups, in priority order:
 
 ## Rolling · Ergonomics & polish
 
+**A stdlib export the checker models no declaration for has no kind.** G231 gave
+every stdlib module key an export surface `glyph_symbol` and `glyph_exports`
+answer from, and the compiler holds a declaration for three of the names on it:
+`std/result::Result`, `std/option::Option` and `std/fs::ErrorKind`. Everything
+else a stdlib module exports, `std/result::all` and `std/io::println` among
+them, answers with `kind: null` and the reason: the implementation is TypeScript
+`tsc` checks and Glyph's own checker never read a declaration for it. That is
+exact rather than absent, and it is still less than the compiler could say. The
+checker's `stdlib_fn_ty` table holds a real `Ty::Fn` for a good number of these,
+and `stdlib_modeled_type` holds a record shape for nine stdlib types, so
+`parameters`, `returns` and `fields` are reachable. Both are `Assigner` methods
+that need a lowering context to call, so exposing them means lifting the
+signature tables out of the walk, which is a refactor of its own rather than a
+line in the branch that consumes it.
+
 **G232. An object literal has no type.** The checker types `{ x: 1 }` as
 `Ty::Unknown`, so `let g: string = { x: 1 }` passes `glyph check --no-tsc` with
 an unused-variable lint while `tsc` refuses it. G230 refused an object literal

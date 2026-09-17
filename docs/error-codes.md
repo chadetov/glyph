@@ -125,6 +125,15 @@ a local module that does not exist and the build says so without waiting for
 `tsc`. With no manifest anywhere the build has no view of either, and reports
 only what it can prove: an import some `.glyph` file under the root answers to.
 
+A `module` line may not start with `std` or `extern` (`E0113`). Both name
+modules the compiler resolves itself, so an import of such a path reaches the
+compiler's module and never the project file that declared it: `import std/io
+{ println }` takes the stdlib function, and `import std/io { shout }` reports
+the project's own as a name `std/io` does not export. Before this code existed
+the declaring file compiled clean and was unreachable, with nothing pointing at
+it. The prefix is a whole first segment, so a module called `standard`, or
+`app/std`, is not this error, and importing under either prefix is unchanged.
+
 ### Typechecker — `E02xx`
 
 | Code | Meaning |
@@ -220,7 +229,7 @@ Four of these codes have a repair the compiler settles on its own, and
 | Code | What it writes | When it declines |
 |------|----------------|------------------|
 | `E0106` | Drops the unused import, or the dead names out of a named import list | never; an unused name is unused |
-| `E0200` | One arm per missing case, with the pattern the union's declaration implies and a body marked `TODO(glyph fix)` that prints the case and exits | the union is one no project declares (`Result`, `Option`), so no tool keys its variants; the module has taken the name `process`, which the arm bodies need; the same match has an `E0220` arm head, so its coverage is not yet settled |
+| `E0200` | One arm per missing case, with the pattern the union's declaration implies and a body marked `TODO(glyph fix)` that prints the case and exits. The prelude `Result` and `Option` included: they key to the stdlib module that declares them (`std/result::Result`), and no import is written, because the prelude already binds their variants | the module has taken the name `process`, which the arm bodies need; the same match has an `E0220` arm head, so its coverage is not yet settled |
 | `E0210` | The one declared field within edit distance one of the wrong name | no field is that close, or more than one is |
 | `E0220` | The suggestion in `alternatives`, when there is exactly one | the suggested variant is not one the match is missing, so writing it would produce `E0305` |
 

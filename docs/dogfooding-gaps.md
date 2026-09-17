@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-238 entries, 210 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-10 are open. G144, the D28 boundary cast that never reached the returns a
+238 entries, 212 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+8 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9733,7 +9733,7 @@ and is the owner's to confirm.
   which is a `string`")` is the shape string to split out; the checker no
   longer treats one as a plain `string`.*
 
-- **G231. `glyph fix` cannot repair a non-exhaustive match over a prelude union.**
+- **G231. [FIXED] `glyph fix` cannot repair a non-exhaustive match over a prelude union.**
   `Result` and `Option` are declared by no project module, so the `E0200` they
   draw carries `cause: null` and `union.declaration: null`, and no tool keys
   their variants: `glyph query symbol --entity Result` answers *"`Result` is not
@@ -9771,6 +9771,39 @@ and is the owner's to confirm.
   flag's own header says it must never produce. Decided 2026-09-15: the key is
   the stdlib module that declares it, `std/result::Result`; see the 0.1.123
   entry and Linus 67.*
+
+  *Fixed in 0.1.123. `Result`, `Ok` and `Err` key as `std/result::...`,
+  `Option`, `Some` and `None` as `std/option::...`, `Nullable` as
+  `std/nullable::Nullable`, and the same rule gives `fs.ErrorKind` its address,
+  `std/fs::ErrorKind`. `UnionRef::Builtin`, `DiagnosticDecl::Builtin`,
+  `CoverageTypeName::Builtin` and `CoverageTypeRef::Builtin` carry the module
+  key and the name inside it beside the spelling a program writes, so
+  `fs.ErrorKind` prints with the dot and keys without it; `union.kind` stays
+  `builtin`, because it still answers whether this project can add a variant.
+  One table in `glyph-typechecker/src/ty.rs` holds the three unions the
+  compiler carries, with their generics and payloads, and the exhaustiveness
+  check, `glyph_variants` and `glyph_symbol` all read it.*
+
+  *Measured on the entry's own program, every line on the 0.1.123 binary.
+  `glyph check --no-tsc --agent src` reports `cause: "std/result::Result"`,
+  `union: {"declaration": "std/result::Result", "kind": "builtin", "module":
+  "std/result", "name": "Result"}`, and a `symbols` entry for
+  `std/result::Result` with `kind: "union"`, `generics: ["T", "E"]` and
+  variants `Ok(T)` and `Err(E)`. `glyph fix src` prints `applied E0200 in
+  src/main.glyph: added 1 arm(s) to the match on `Result`: `Err`` and the
+  result passes `glyph check` with `tsc --strict`. `glyph query symbol
+  --entity std/result::Result` answers with those variants, `path: null` and a
+  `path_absent` saying the stdlib is TypeScript the compiler stages rather than
+  Glyph source. `glyph query variants --path src/main.glyph --name Result`
+  lists `Ok(T)` and `Err(E)` where it used to report `variants_unavailable`.
+  `glyph query exports --module std/result` answers with `Result`, `Ok`, `Err`
+  and `all`. The shadowing case of G213, `pub type Result = | Won | Lost` in
+  `module orders`, still keys as `orders::Result` and `glyph query symbol
+  --entity orders::Result` still describes it. A `match e.kind` on
+  `fs.read_text`'s error reports `cause: "std/fs::ErrorKind"`. The residue no
+  stdlib module declares (`Array`, `Record`, `Schema`, `Component`, `Issue`,
+  `par`, `print`, `assert`, `infer_output`) stays unkeyed in
+  `NOT_A_DECLARATION` with a reason each; there is no `std/prelude`.*
 
 - **G232. An object literal has no type, so nothing compares it to anything.** The
   checker types `{ x: 1 }` as `Ty::Unknown`, so `let g: string = { x: 1 }` passes
@@ -9897,7 +9930,7 @@ and is the owner's to confirm.
   '"nope"' is not assignable to type 'Mode'`. Both shapes are silent here for
   the same missing literal type, and only one of them should be.*
 
-- **G238. A project may declare a module under `std/` or `extern/`, and it is
+- **G238. [FIXED] A project may declare a module under `std/` or `extern/`, and it is
   silently unreachable.** `module std/io` in `src/io.glyph` with `pub fn shout`
   compiles clean beside `module main`; `import std/io { shout }` then draws
   `E0105: shout is not exported by std/io` listing the stub's exports, and
@@ -9909,4 +9942,13 @@ and is the owner's to confirm.
   whose first segment is `std` or `extern` becomes an error with its own code.
 
   *Reproduced against 0.1.122 on a two-file project: `glyph check --no-tsc` is `2 module(s) checked, no diagnostics.`, exit 0, with `src/io.glyph` declaring `module std/io`; no file under `examples/`, `tests/` or `benchmarks/` declares a module under either prefix.*
+
+  *Fixed in 0.1.123 as E0113, raised by `verify_module_declaration` in the
+  resolver. The prefix is matched as a whole first segment, so `standard`,
+  `externals/io`, `app/std` and `app/extern/helper` are untouched, and an
+  import under either prefix still resolves. Measured on the same two-file
+  project: the published 0.1.122 answers `glyph check: 2 module(s) checked, no
+  diagnostics.` and exits 0; the 0.1.123 binary answers ``[E0113] Error:
+  collect: `std/io` declares a module under `std/`, a prefix reserved for the
+  modules the compiler carries (D15)`` and exits 1.*
 

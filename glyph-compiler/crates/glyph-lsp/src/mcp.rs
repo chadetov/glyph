@@ -6057,9 +6057,15 @@ enum ArgKind {
     Unknown,
     /// A structural record or a function value.
     Structural,
+    /// A string-literal union (D30), however it is spelled: a `type Mode =
+    /// "read" | "write"` of this module, one imported, an inline
+    /// `"read" | "write"` annotation, and the one-literal type of a written
+    /// string literal (G237). The checker compares these by literal set, so
+    /// the cells for them ask the relation rather than restate a rule (G234).
+    StringLiteralUnion,
     /// Everything else: a generic parameter, an application over a structural
     /// base or over a prelude type that is not one of the five containers,
-    /// `unknown`, `never`, a string-literal union.
+    /// `unknown`, `never`.
     Other,
 }
 
@@ -6099,6 +6105,11 @@ enum ParamKind {
     /// here: two function types are compared by their returns alone, so the
     /// relation declines them and the cell reports what it declined.
     Structural,
+    /// A string-literal union (D30) in the parameter's annotation, however it
+    /// is spelled: a `type` of this module, one imported, or an inline
+    /// `"read" | "write"`. Its own kind for the reason
+    /// [`ArgKind::StringLiteralUnion`] is (G234).
+    StringLiteralUnion,
     Other,
 }
 
@@ -6115,6 +6126,11 @@ enum NamedBody {
     /// type, so the checker deliberately compares a primitive against this
     /// body by nothing, while still comparing the body against a primitive.
     EmptyRecord,
+    /// `type Mode = "read" | "write"` (D30). Its own kind since G234: the
+    /// checker compares two of these by literal set, and a value of any other
+    /// type against one by the question that type asks against `string`, so a
+    /// body filed under `Other` said the checker had no rule where it has one.
+    StringLiteralUnion,
     /// Any other body, or no `type` declaration this module can see. The
     /// string says which; `UNDECLARED` is the one the cells read back, since
     /// a name with no `type` declaration behind it is the one shape the
@@ -6145,9 +6161,7 @@ fn classify_named_body(
         Some(TypeExpr::Path { .. }) | Some(TypeExpr::Generic { .. }) => {
             NamedBody::Other("an alias for another type")
         }
-        Some(TypeExpr::StringLiteralUnion { .. }) => {
-            NamedBody::Other("a string-literal union (D30), which is a `string`")
-        }
+        Some(TypeExpr::StringLiteralUnion { .. }) => NamedBody::StringLiteralUnion,
         Some(TypeExpr::Extern { .. }) => NamedBody::Other("an `extern_ts` body"),
         Some(TypeExpr::TypeOf { .. }) => NamedBody::Other("a `typeof` body"),
         Some(TypeExpr::Fn { .. }) => NamedBody::Other("a function type"),
@@ -6175,9 +6189,7 @@ fn imported_body(decls: &dyn DeclTyResolver, module: &str, name: &str) -> NamedB
         Ty::Record { fields } if fields.is_empty() => NamedBody::EmptyRecord,
         Ty::Record { .. } => NamedBody::UnionOrFieldedRecord,
         Ty::Prim(_) => NamedBody::Other("an alias for a primitive"),
-        Ty::StringLiteralUnion(_) => {
-            NamedBody::Other("a string-literal union (D30), which is a `string`")
-        }
+        Ty::StringLiteralUnion(_) => NamedBody::StringLiteralUnion,
         Ty::App { .. } => NamedBody::Other("an alias for a generic application"),
         Ty::Fn { .. } => NamedBody::Other("a function type"),
         Ty::Unknown => NamedBody::Other(
@@ -6246,7 +6258,10 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
         Ty::Unknown => ArgKind::Unknown,
         Ty::Prim(p) => ArgKind::Primitive(*p),
         Ty::Imported { module: m, name } => {
-            ArgKind::Imported(imported_body(decls, m.as_str(), name))
+            match imported_body(decls, m.as_str(), name) {
+                NamedBody::StringLiteralUnion => ArgKind::StringLiteralUnion,
+                body => ArgKind::Imported(body),
+            }
         }
         // The G201 direction has no empty-record exclusion (`{}` is not a
         // `string` under tsc either), so both record shapes are one kind here.
@@ -6254,6 +6269,7 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
             NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord => {
                 ArgKind::LocalUnionOrRecord
             }
+            NamedBody::StringLiteralUnion => ArgKind::StringLiteralUnion,
             NamedBody::Other(shape) => ArgKind::NamedOther(shape),
         },
         Ty::App { base, .. } => match base.as_ref() {
@@ -6264,16 +6280,15 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
                 NamedBody::UnionOrFieldedRecord | NamedBody::EmptyRecord => {
                     ArgKind::AppOfLocalUnionOrRecord
                 }
-                NamedBody::Other(_) => ArgKind::Other,
+                // An application whose base is a string-literal union is not
+                // a Glyph type; it reaches no rule of the relation either.
+                NamedBody::StringLiteralUnion | NamedBody::Other(_) => ArgKind::Other,
             },
             _ => ArgKind::Other,
         },
         Ty::Record { .. } | Ty::Fn { .. } => ArgKind::Structural,
-        Ty::UnknownTop
-        | Ty::Never
-        | Ty::Param { .. }
-        | Ty::Union { .. }
-        | Ty::StringLiteralUnion(_) => ArgKind::Other,
+        Ty::StringLiteralUnion(_) => ArgKind::StringLiteralUnion,
+        Ty::UnknownTop | Ty::Never | Ty::Param { .. } | Ty::Union { .. } => ArgKind::Other,
     }
 }
 
@@ -6297,10 +6312,15 @@ fn classify_parameter(ty: &Ty, scope: &CellScope<'_>) -> ParamKind {
     }
     match ty {
         Ty::Prim(p) => ParamKind::Primitive(*p),
-        Ty::Named { .. } => ParamKind::Named(classify_named_body(ty, module, resolved)),
-        Ty::Imported { module: m, name } => {
-            ParamKind::Imported(imported_body(decls, m.as_str(), name))
-        }
+        Ty::StringLiteralUnion(_) => ParamKind::StringLiteralUnion,
+        Ty::Named { .. } => match classify_named_body(ty, module, resolved) {
+            NamedBody::StringLiteralUnion => ParamKind::StringLiteralUnion,
+            body => ParamKind::Named(body),
+        },
+        Ty::Imported { module: m, name } => match imported_body(decls, m.as_str(), name) {
+            NamedBody::StringLiteralUnion => ParamKind::StringLiteralUnion,
+            body => ParamKind::Imported(body),
+        },
         Ty::App { base, .. } => match base.as_ref() {
             Ty::Imported { module: m, name } => {
                 ParamKind::AppOfImported(imported_body(decls, m.as_str(), name))
@@ -6395,6 +6415,29 @@ fn signature_type_cell(
             "the checker holds no type for this argument, so it is compared against \
              nothing, and only `tsc` on a full `glyph build` would see a mismatch here"
                 .to_string(),
+        ),
+        // G234, the third pairing decided by asking the relation. A
+        // string-literal union is compared by literal set in both directions
+        // and, against anything else, by the question that type asks against
+        // `string`; the rule reaches through a name, an import and a
+        // `Nullable`, and the `string` half turns on where in a type the
+        // pairing sits. None of that is a property of the two kinds, so the
+        // cell runs the comparison the same way the container and structural
+        // cells do rather than restating it, and `glyph_assignable` on the two
+        // types answers from the same call.
+        (A::StringLiteralUnion, _) | (_, P::StringLiteralUnion) => decided_cell(
+            decide(),
+            &format!(
+                "a string-literal union (D30) is one side of this pairing, and the checker \
+                 compares those by literal set: a value's set fits a declared set when \
+                 every literal in it is one the declaration accepts, and a value of some \
+                 other type is compared by the question that type asks against `string`. \
+                 `{arg_ty}` against `{param_ty}` is that comparison"
+            ),
+            "The pairing is one the literal-set rule reads on neither side, and no other \
+             rule of the relation reads it either",
+            arg_ty,
+            param_ty,
         ),
         (A::Primitive(_), P::Primitive(_)) => will_fail(format!(
             "the checker compares a primitive argument against a primitive parameter, and \
@@ -14447,7 +14490,7 @@ pub fn f() -> number {
     fn signature_type_primitive_against_primitive_is_will_fail() {
         let entry = signature_call_entry(
             "module api\npub fn takes_string(s: string) -> string {\n  return s\n}\n\
-             pub fn calls_it() -> string {\n  return takes_string(\"x\")\n}\n",
+             pub fn calls_it(s: string) -> string {\n  return takes_string(s)\n}\n",
             "api::takes_string",
             "api::calls_it",
         );
@@ -14774,7 +14817,7 @@ pub fn f() -> number {
                     "api.glyph",
                     "module api\nimport cells { Cell }\n\
                      pub fn f(c: Cell) -> Cell {\n  return c\n}\n\
-                     pub fn g() -> Cell {\n  return f(\"x\")\n}\n",
+                     pub fn g(s: string) -> Cell {\n  return f(s)\n}\n",
                 ),
             ],
             "api::f",
@@ -14803,7 +14846,7 @@ pub fn f() -> number {
                     "api.glyph",
                     "module api\nimport cells { Blank }\n\
                      pub fn f(b: Blank) -> number {\n  return 1\n}\n\
-                     pub fn g() -> number {\n  return f(\"x\")\n}\n",
+                     pub fn g(s: string) -> number {\n  return f(s)\n}\n",
                 ),
             ],
             "api::f",
@@ -14850,7 +14893,7 @@ pub fn f() -> number {
         let entry = signature_call_entry(
             "module api\npub type Cell =\n  | A\n  | B\n\
              pub fn f(c: Cell) -> Cell {\n  return c\n}\n\
-             pub fn g() -> Cell {\n  return f(\"x\")\n}\n",
+             pub fn g(s: string) -> Cell {\n  return f(s)\n}\n",
             "api::f",
             "api::g",
         );
@@ -14896,7 +14939,7 @@ pub fn f() -> number {
         let entry = signature_call_entry(
             "module api\npub type Blank = { }\n\
              pub fn f(b: Blank) -> number {\n  return 1\n}\n\
-             pub fn g() -> number {\n  return f(\"x\")\n}\n",
+             pub fn g(s: string) -> number {\n  return f(s)\n}\n",
             "api::f",
             "api::g",
         );
@@ -14919,7 +14962,7 @@ pub fn f() -> number {
         let entry = signature_call_entry(
             "module api\npub type Id = string\n\
              pub fn f(i: Id) -> number {\n  return 1\n}\n\
-             pub fn g() -> number {\n  return f(\"x\")\n}\n",
+             pub fn g(s: string) -> number {\n  return f(s)\n}\n",
             "api::f",
             "api::g",
         );
@@ -15000,7 +15043,7 @@ pub fn f() -> number {
             let entry = signature_call_entry(
                 &format!(
                     "module api\npub fn f(o: {param}) -> string {{\n  return \"x\"\n}}\n\
-                     pub fn g() -> string {{\n  return f(\"s\")\n}}\n"
+                     pub fn g(s: string) -> string {{\n  return f(s)\n}}\n"
                 ),
                 "api::f",
                 "api::g",
@@ -15021,7 +15064,7 @@ pub fn f() -> number {
     fn signature_type_primitive_against_nullable_is_decided_one_level_in() {
         let refused = signature_call_entry(
             "module api\npub fn f(n: Nullable<int>) -> string {\n  return \"x\"\n}\n\
-             pub fn g() -> string {\n  return f(\"s\")\n}\n",
+             pub fn g(s: string) -> string {\n  return f(s)\n}\n",
             "api::f",
             "api::g",
         );
@@ -15300,6 +15343,84 @@ pub fn f() -> number {
         }
     }
 
+    /// G234, the same agreement on a string-literal union. The impact table
+    /// said the checker had no rule comparing a `Mode` argument against a
+    /// `Mode` parameter while `glyph_assignable` said `COMPATIBLE` about the
+    /// same pairing, which is two tools answering differently about one fact.
+    /// Six cells asserted here in both verdict directions, each read off the
+    /// relation rather than off a sentence in the table.
+    #[test]
+    fn impact_and_assignable_agree_on_a_string_literal_union() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(
+            &root,
+            "modes.glyph",
+            "module modes\npub type Mode = \"read\" | \"write\"\npub type Wide = \"read\" | \"write\" | \"exec\"\n",
+        );
+        write(
+            &root,
+            "api.glyph",
+            "module api\nimport modes { Mode, Wide }\n\
+             pub type Local = \"read\" | \"write\"\n\
+             pub fn takes_imported(m: Mode) -> string {\n  return m\n}\n\
+             pub fn calls_same(m: Mode) -> string {\n  return takes_imported(m)\n}\n\
+             pub fn calls_wide(w: Wide) -> string {\n  return takes_imported(w)\n}\n\
+             pub fn takes_local(l: Local) -> string {\n  return l\n}\n\
+             pub fn calls_local_ok(l: Local) -> string {\n  return takes_local(l)\n}\n\
+             pub fn calls_local_number(n: int) -> string {\n  return takes_local(n)\n}\n\
+             pub fn takes_string(s: string) -> string {\n  return s\n}\n\
+             pub fn calls_string(l: Local) -> string {\n  return takes_string(l)\n}\n\
+             pub fn calls_unknown(u: unknown) -> string {\n  return takes_local(u)\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let cells = [
+            // (entity, caller, from, to, the verdict both tools must reach)
+            ("api::takes_imported", "api::calls_same", "Mode", "Mode", "SAFE"),
+            ("api::takes_imported", "api::calls_wide", "Wide", "Mode", "WILL_FAIL"),
+            ("api::takes_local", "api::calls_local_ok", "Local", "Local", "SAFE"),
+            ("api::takes_local", "api::calls_local_number", "int", "Local", "WILL_FAIL"),
+            ("api::takes_string", "api::calls_string", "Local", "string", "SAFE"),
+            ("api::takes_local", "api::calls_unknown", "unknown", "Local", "UNDETERMINED"),
+        ];
+        for (entity, caller, from, to, want) in cells {
+            let answer = impact(
+                &mut server,
+                json!({ "entity": entity, "change": { "kind": "change_signature_type" } }),
+            );
+            let entry = answer["impact"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|e| e["entity"] == caller && e["relation"] == "CALLS")
+                .cloned()
+                .unwrap_or_else(|| panic!("no CALLS entry for `{caller}` in {answer}"));
+            let cell = entry["arguments"][0]["verdict"].as_str().unwrap_or_default().to_string();
+            assert_eq!(cell, want, "cell for `{from}` into `{to}`: {entry}");
+            let because = entry["arguments"][0]["because"].as_str().unwrap_or_default();
+            assert!(
+                because.contains("literal set"),
+                "the rule the cell ran is unnamed: {entry}"
+            );
+            let (assignable, is_error) = call_on(
+                &mut server,
+                "glyph_assignable",
+                json!({ "path": "api.glyph", "from": from, "to": to }),
+            );
+            assert!(!is_error, "{assignable}");
+            let pairing = assignable["verdict"].as_str().unwrap_or_default();
+            let expected = match pairing {
+                "COMPATIBLE" => "SAFE",
+                other => other,
+            };
+            assert_eq!(
+                cell, expected,
+                "`glyph_impact` says {cell} and `glyph_assignable` says {pairing} about \
+                 `{from}` into `{to}`"
+            );
+        }
+    }
+
     /// A `WILL_FAIL` site says what the verdict means at a site, not what the
     /// argument comparison concluded about the types in hand. The two cells
     /// that reach `WILL_FAIL` through `SAFE` used to copy the argument's
@@ -15343,7 +15464,7 @@ pub fn f() -> number {
         let entry = signature_call_entry(
             "module api\npub type Blank = { }\n\
              pub fn f(s: string, b: Blank) -> string {\n  return s\n}\n\
-             pub fn g() -> string {\n  return f(\"x\", 3)\n}\n",
+             pub fn g(t: string) -> string {\n  return f(t, 3)\n}\n",
             "api::f",
             "api::g",
         );

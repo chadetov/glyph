@@ -21,7 +21,10 @@ use glyph_ast::{
     LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField, ObjectPatternField, Param, Pattern,
     PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
-use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
+use glyph_resolver::{
+    ModuleSymbols, Prelude, PreludeKind, ResolutionMap, ResolvedModule, ResolvedRef, SymbolId,
+    SymbolKind, SymbolTable,
+};
 
 use crate::lower::Lowerer;
 use crate::ty::{
@@ -421,6 +424,59 @@ pub fn assignability(
         Some(rule) => Assignability::Compatible { rule },
         None => Assignability::NoRule,
     }
+}
+
+/// The signature the checker models for a stdlib module's exported function, or
+/// `None` for a name it does not model.
+///
+/// The four `stdlib_*_fn_ty` tables are the only place a `std/` function has a
+/// type at all: the runtime ships TypeScript the checker never parses, so an
+/// unmodeled name is `Unknown` and every caller of it is checked by `tsc`
+/// alone. They were reachable only from a member access during a walk, which
+/// meant the one surface that knows what `array.fold` takes and returns could
+/// not be asked outside a program that calls it. `glyph llms --json` asks it
+/// here, per module and per export, so the published stdlib signatures are the
+/// checker's own and a name it does not model is reported absent rather than
+/// described by hand.
+///
+/// The walk this borrows runs over an empty module, because none of the four
+/// tables reads the program: they read the prelude, for the `Result`, `Option`,
+/// `Array`, `Record` and `Nullable` symbols a signature is built out of.
+pub fn stdlib_signature(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    let module = Module {
+        module_path: None,
+        items: Vec::new(),
+        span: Span::new(0, 0),
+    };
+    let resolved = ResolvedModule {
+        symbols: ModuleSymbols {
+            table: SymbolTable::new(),
+            by_name: HashMap::new(),
+        },
+        resolutions: ResolutionMap::new(),
+        qualified_type_refs: Vec::new(),
+    };
+    let bare = Lowerer::new(&resolved, prelude);
+    let decl_ty_resolver = LocalDeclTy::new(&module, &bare);
+    let mut tm = TypeMap::new();
+    let mut errors: Vec<TypeError> = Vec::new();
+    let mut coverage = FileMatchCoverage::default();
+    let mut field_uses = FileFieldUses::default();
+    let assigner = Assigner {
+        module: &module,
+        lowerer: Lowerer::with_imports(&resolved, prelude, &decl_ty_resolver),
+        resolved: &resolved,
+        tm: &mut tm,
+        errors: &mut errors,
+        coverage: &mut coverage,
+        field_uses: &mut field_uses,
+        assign_target: None,
+        member_object: None,
+        decl_ty_resolver: &decl_ty_resolver,
+        return_stack: Vec::new(),
+        local_tys: HashMap::new(),
+    };
+    assigner.stdlib_fn_ty(module_key, field)
 }
 
 // ============================================================================

@@ -5251,7 +5251,7 @@ with concrete programs, `glyph_impact` does not generalize yet.
 
 - Measured against search alone on a real codebase, same agent and prompt on both sides, the losing run published
 
-**0.1.113 — Landed on main · Provenance, and the boundary as a node kind**
+**0.1.113 — Shipped 2026-09-05 · Provenance, and the boundary as a node kind**
 - G202: the playground's own build instructions pin `wasm-bindgen-cli 0.2.125` where the manifest pins `=0.2.127`, so the page cannot be rebuilt from its documented steps and a change to it is reviewed by reading rather than by running
 - **G170 is the non-negotiable one and it is worse than a playground bug.** Two surfaces that emit TypeScript from the same Glyph must emit the same TypeScript. Today the CLI and the WASM playground assemble the front end separately and the playground emits with an empty `EmitContext`, so a program with a cross-module import can compile to different output depending on which one you asked. For a language that is not a rendering difference, it is two languages with one name
 - R3: `glyph` / `extern` / `opaque-ts` as a node attribute, never part of the key, so exact-or-absent survives the first npm import
@@ -5760,7 +5760,7 @@ time. It now runs on `macos-15-intel`, and in `verify` rather than only in
 of after it. `macos-14` was deprecated with support ending 2 November 2026 and
 would have failed identically; both darwin targets build on `macos-15`.
 
-### 0.1.112 — Next · `glyph_impact`, generalized over every relation
+### 0.1.112 — Shipped 2026-09-05 · `glyph_impact`, generalized over every relation
 
 0.1.110 and 0.1.111 built one relation's answer and proved it closes a loop. This
 generalizes it: one entity in, nodes and labelled edges out, over more than one
@@ -5788,7 +5788,7 @@ There is no `glyph_impact` and no query takes more than one relation at a time,
 so nothing here has been built and the transitivity question is still owed a
 written answer rather than an implementation.
 
-### 0.1.111 — Landed on main · The proof, and what the relations still owe
+### 0.1.111 — Shipped 2026-09-04 · The proof, and what the relations still owe
 
 0.1.110 shipped the capability and the invariant. It did not ship the proof, and
 the distinction is the whole point: a release that can answer the question is a
@@ -5830,7 +5830,7 @@ and fields addressable as `module::Type.field`. What has not been done is readin
 them together: one entity in, a bounded traversal out, over more than one
 relation at a time, with the transitivity question settled in writing first.
 
-### 0.1.110 — Landed on main · "What breaks if I add this variant?"
+### 0.1.110 — Shipped 2026-09-04 · "What breaks if I add this variant?"
 
 The flagship. Everything from 0.1.104 onward has been building the parts; this
 is the release where they answer a question somebody would actually ask.

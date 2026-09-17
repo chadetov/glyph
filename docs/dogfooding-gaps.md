@@ -9187,7 +9187,7 @@ and is the owner's to confirm.
 
   *Fixed in 0.1.123. `glyph llms --json` emits one document out of the
   compiler's own tables and nothing in it is written by hand: `diagnostics`
-  (60 codes, each with the catalogue sentence, the one-line fix, the whole
+  (61 codes, each with the catalogue sentence, the one-line fix, the whole
   `--explain` text, the help and note read off a diagnostic, and a wrong
   program from `tests/negative/` compiled at the moment you ask), `prelude`
   (24 names out of `build_prelude`), `stdlib` (36 modules, 327 exports, 100
@@ -9224,7 +9224,7 @@ and is the owner's to confirm.
 
   *`tools/list`, measured over `glyph mcp` stdio the way the roadmap records
   it: eleven tools, 31,446 bytes of description and a 45,509-byte result
-  before; eleven tools, 8,607 and 20,366 after, a 73% cut in description bytes
+  before; eleven tools, 8,627 and 20,386 after, a 73% cut in description bytes
   and 55% in the reply. The `instructions` string went 1,295 to 1,153. Nothing
   was deleted: `tool_manual()` holds the previous text verbatim, keyed by tool
   name, and `glyph llms --json` publishes it.*
@@ -9232,8 +9232,8 @@ and is the owner's to confirm.
   *`glyph llms --negative E0200` prints the six `tests/negative/` cases and the
   two `catches/` cases that draw it, each compiled here, the `catches/` ones
   carrying the TypeScript a `tsc --strict` project accepts beside the Glyph
-  that refuses it. `glyph llms --negative` with no code lists the 39 codes that
-  have a case and the 21 that do not. Both corpora are embedded by `build.rs`
+  that refuses it. `glyph llms --negative` with no code lists the 40 codes that
+  have a case and the 21 that do not, 68 cases in all once E0113 landed. Both corpora are embedded by `build.rs`
   from the directories themselves, so a case added to either is in the answer
   with no second edit to remember.*
 

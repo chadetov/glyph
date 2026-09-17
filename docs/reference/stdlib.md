@@ -1185,13 +1185,20 @@ intl.best_locale(requested: Array<string>) -> string            // "" if none
 over it is exhaustive with no catch-all and a missing category is named:
 
 ```glyph
-return match intl.plural_category("pl", count) {
-  "one" => "${n} wiadomosc",
-  "few" => "${n} wiadomosci",
-  "many" => "${n} wiadomosci",
-  "other" => "${n} wiadomosci",
-  "two" => "${n} wiadomosci",
-  "zero" => "${n} wiadomosci",
+module plurals
+
+import std/intl
+
+pub fn messages(count: number) -> string {
+  let n = number.to_string(count)
+  return match intl.plural_category("pl", count) {
+    "one" => "${n} wiadomosc",
+    "few" => "${n} wiadomosci",
+    "many" => "${n} wiadomosci",
+    "other" => "${n} wiadomosci",
+    "two" => "${n} wiadomosci",
+    "zero" => "${n} wiadomosci",
+  }
 }
 ```
 
@@ -1321,7 +1328,14 @@ returns `Ok(void)` when every sample passes, or `Err` with the first
 counterexample. Example:
 
 ```glyph
+module properties
+
+import std/stream
+import std/test
+import std/result { Ok }
+
 @example test.property(fn(n: number) -> bool { n + 0 == n }, stream.ints()) == Ok(void)
+pub fn addition_has_an_identity() -> bool { true }
 ```
 
 ## std/http
@@ -1505,9 +1519,11 @@ keeps the last value.
 A minimal server:
 
 ```glyph
-import std/http { serve, query, text, Request, Response }
+module multiply_server
+
+import std/http { listen, query, text, Request, Response }
 import std/record
-import std/result { Result, Ok }
+import std/result { Result, Ok, Err }
 import std/option { Some, None }
 
 fn multiply(req: Request) -> Result<Response, string> {
@@ -1522,8 +1538,8 @@ fn multiply(req: Request) -> Result<Response, string> {
   }
 }
 
-async fn main(argv: Array<string>) -> number {
-  let _ = await serve(8080, multiply)
+pub async fn main(argv: Array<string>) -> number {
+  let _ = await listen("127.0.0.1", 8080, multiply)
   return 0
 }
 ```
@@ -1531,12 +1547,14 @@ async fn main(argv: Array<string>) -> number {
 A page, a form post, and a redirect:
 
 ```glyph
+module form_server
+
 import std/http { path, form, html, redirect, text, Request, Response }
 import std/record
 import std/result { Result, Ok }
 import std/option { Some, None }
 
-fn route(req: Request) -> Result<Response, string> {
+pub fn route(req: Request) -> Result<Response, string> {
   return match path(req) {
     "/" => Ok(html(200, "<form method=\"post\" action=\"/new\"><input name=\"url\"></form>")),
     "/new" => match record.get(form(req), "url") {

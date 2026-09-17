@@ -664,7 +664,7 @@ mod tests {
             .expect("std/array exports range");
         assert_eq!(
             range.signature.as_deref(),
-            Some("fn(unknown) -> Array<number>"),
+            Some("fn(number) -> Array<number>"),
             "the signature is the checker's own, rendered by display_ty"
         );
         // Every export is either modeled or says why not, and never both.

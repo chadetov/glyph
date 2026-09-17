@@ -23,6 +23,11 @@
 //! - `glyph query <tool> ...`       ask one MCP tool from the command line and
 //!   print its JSON (`glyph query symbol --entity orders::Order`)
 //! - `glyph --explain E0042`         long-form error documentation
+//! - `glyph llms [--json]`          the agent bootstrap, or the same knowledge
+//!   as data: every diagnostic code, the prelude and stdlib signatures, the
+//!   language decisions and the tool catalogue, out of the compiler's own tables
+//! - `glyph llms --negative E0200`  the wrong programs the corpora pair with a
+//!   code, each compiled here so the diagnostic beside it is this compiler's
 //!
 //! One stage, one flag name: `--no-tsc` skips the TypeScript stage on `build`,
 //! `check`, and `run`. `--no-check` is the old spelling of it on `build` and

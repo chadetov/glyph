@@ -742,6 +742,11 @@ pub struct Explanation {
     /// a help.
     pub help: Option<String>,
     pub help_absent: Option<String>,
+    /// The background the code carries, read off the same diagnostic `help` is
+    /// read off. Most codes have none, and say so rather than carrying an empty
+    /// string.
+    pub note: Option<String>,
+    pub note_absent: Option<String>,
     /// The catalogue section for this code.
     pub docs: String,
     pub counter_example: Option<CounterExample>,
@@ -795,6 +800,8 @@ pub fn explain_json(code: &str) -> Option<Explanation> {
         .unwrap_or_default();
 
     let case = negative_case_for(&code);
+    let read_off_nothing =
+        "read off the diagnostic the counter-example draws, and there is no counter-example to read it from";
     let (help, help_absent) = match case.as_ref().and_then(|c| c.diagnostic.as_ref()) {
         Some(d) => (
             d.help.clone(),
@@ -802,13 +809,16 @@ pub fn explain_json(code: &str) -> Option<Explanation> {
                 .is_none()
                 .then(|| format!("the diagnostic `{code}` draws carries no help line")),
         ),
-        None => (
-            None,
-            Some(
-                "the help is read off the diagnostic the counter-example draws, and there is none to read it from"
-                    .to_string(),
-            ),
+        None => (None, Some(format!("the help is {read_off_nothing}"))),
+    };
+    let (note, note_absent) = match case.as_ref().and_then(|c| c.diagnostic.as_ref()) {
+        Some(d) => (
+            d.note.clone(),
+            d.note
+                .is_none()
+                .then(|| format!("the diagnostic `{code}` draws carries no note")),
         ),
+        None => (None, Some(format!("the note is {read_off_nothing}"))),
     };
     let counter_example_absent = case.is_none().then(|| {
         format!(
@@ -822,6 +832,8 @@ pub fn explain_json(code: &str) -> Option<Explanation> {
         explanation: text.to_string(),
         help,
         help_absent,
+        note,
+        note_absent,
         docs,
         counter_example: case,
         counter_example_absent,
@@ -840,32 +852,16 @@ fn negative_case_for(code: &str) -> Option<CounterExample> {
         .iter()
         .filter(|c| c.code == code)
         .min_by_key(|c| (c.files.len(), c.name))?;
-    let files: Vec<CounterExampleFile> = case
-        .files
-        .iter()
-        .map(|(path, source)| CounterExampleFile {
-            path: (*path).to_string(),
-            source: (*source).to_string(),
-        })
-        .collect();
-    let (diagnostic, diagnostic_absent) = compile_case(case);
-    Some(CounterExample {
-        name: case.name.to_string(),
-        expected_error: case.code.to_string(),
-        files,
-        diagnostic,
-        diagnostic_absent,
-        // The corpus pairs no repaired program with a case: a `tests/negative/`
-        // entry is a `.glyph` and the code it draws, and nothing else. A field
-        // filled with a fix written here would be a claim nothing compiles, so
-        // it is null and says why.
-        corrected: None,
-        corrected_absent: Some(
-            "`tests/negative/` pairs no repaired program with a case: an entry is a wrong program and the code it draws. A fix invented here would compile nowhere and be checked by nothing."
-                .to_string(),
-        ),
-    })
+    Some(counter_example(case))
 }
+
+/// The corpus pairs no repaired program with a case: a `tests/negative/` entry
+/// is a `.glyph` and the code it draws, and nothing else. A field filled with a
+/// fix written here would be a claim nothing compiles, so it is null and says
+/// why.
+const CORPUS_PAIRS_NO_FIX: &str =
+    "`tests/negative/` pairs no repaired program with a case: an entry is a wrong program and the \
+     code it draws. A fix invented here would compile nowhere and be checked by nothing.";
 
 /// Build one corpus case in a temp directory and return the diagnostic with its
 /// code, the way the negative-example suite does.
@@ -875,6 +871,16 @@ fn negative_case_for(code: &str) -> Option<CounterExample> {
 /// this is the compiler in the reader's hand answering about the program in the
 /// reader's hand.
 fn compile_case(case: &NegativeCase) -> (Option<crate::diagnostic::Diagnostic>, Option<String>) {
+    compile_files(case.name, case.files, case.code)
+}
+
+/// Build one corpus case's modules in a temp directory and return the
+/// diagnostic carrying `code`, with a reason when there is none.
+fn compile_files(
+    name: &str,
+    files: &[(&str, &str)],
+    code: &str,
+) -> (Option<crate::diagnostic::Diagnostic>, Option<String>) {
     // The directory is its own, per call: two callers asking about one code at
     // the same time would otherwise share it, and the first to finish would
     // delete the second's sources out from under the build.
@@ -882,7 +888,7 @@ fn compile_case(case: &NegativeCase) -> (Option<crate::diagnostic::Diagnostic>, 
     let dir = std::env::temp_dir().join(format!(
         "glyph_explain_{}_{}_{}",
         std::process::id(),
-        case.name,
+        name,
         N.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
     ));
     let src = dir.join("src");
@@ -895,7 +901,7 @@ fn compile_case(case: &NegativeCase) -> (Option<crate::diagnostic::Diagnostic>, 
             )),
         );
     }
-    for (file, source) in case.files {
+    for (file, source) in files {
         if std::fs::write(src.join(file), source).is_err() {
             let _ = std::fs::remove_dir_all(&dir);
             return (
@@ -907,13 +913,12 @@ fn compile_case(case: &NegativeCase) -> (Option<crate::diagnostic::Diagnostic>, 
     let built = crate::build::build_project_inner(&src, &dir.join("out"), false);
     let _ = std::fs::remove_dir_all(&dir);
     match built {
-        Ok(report) => match report.structured.into_iter().find(|d| d.code == case.code) {
+        Ok(report) => match report.structured.into_iter().find(|d| d.code == code) {
             Some(d) => (Some(d), None),
             None => (
                 None,
                 Some(format!(
-                    "`{}` no longer draws {}; the negative suite is the gate that catches this",
-                    case.name, case.code
+                    "`{name}` no longer draws {code}; the negative suite is the gate that catches this"
                 )),
             ),
         },
@@ -921,29 +926,594 @@ fn compile_case(case: &NegativeCase) -> (Option<crate::diagnostic::Diagnostic>, 
     }
 }
 
-/// Every code that `explain` documents, for the catalogue test and tooling.
-/// Kept in step with the table in `docs/error-codes.md`, which the test below
-/// reads: a code in one and not the other fails the build.
-pub const ALL_CODES: &[&str] = &[
-    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0010", "E0011",
-    "E0100", "E0101",
-    "E0102", "E0103", "E0104",
-    "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0112", "E0200", "E0201", "E0202",
-    "E0203", "E0204",
-    "E0205",
-    "E0206", "E0207", "E0208",
-    "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
-    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0227", "E0228",
-    "E0300", "E0301",
-    "E0302", "E0303", "E0305", "E0310",
+// ============================================================================
+// `glyph llms --negative`
+// ============================================================================
+
+/// What `glyph llms --negative` answers with no code: the codes the two
+/// corpora between them hold a wrong program for.
+#[derive(Debug, Serialize)]
+pub struct NegativeIndex {
+    /// How many wrong programs there are, across both corpora.
+    pub cases: usize,
+    pub codes: Vec<NegativeIndexEntry>,
+    /// The codes with no wrong program at all, so a reader asking about one of
+    /// them learns that from the index rather than from an empty answer.
+    pub codes_without_a_case: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NegativeIndexEntry {
+    pub code: &'static str,
+    /// The `tests/negative/` entries that draw it, by name.
+    pub negative: Vec<&'static str>,
+    /// The `catches/` entries that draw it, by name. A `catches/` case is one
+    /// program written twice, so it carries the TypeScript a `tsc --strict`
+    /// project accepts beside the Glyph that refuses it.
+    pub catches: Vec<&'static str>,
+}
+
+/// What `glyph llms --negative <CODE>` answers: every wrong program the two
+/// corpora pair with the code, compiled here.
+#[derive(Debug, Serialize)]
+pub struct NegativeAnswer {
+    pub code: String,
+    /// The catalogue sentence for the code, so the answer stands on its own.
+    pub meaning: &'static str,
+    pub fix: &'static str,
+    /// Every `tests/negative/` case that draws it. Empty with a reason rather
+    /// than absent, since a code with no case is a fact about the corpus.
+    pub negative: Vec<CounterExample>,
+    pub negative_absent: Option<String>,
+    /// Every `catches/` case that draws it.
+    pub catches: Vec<CatchExample>,
+    pub catches_absent: Option<String>,
+}
+
+/// One `catches/` case: the TypeScript a strict project accepts, the Glyph that
+/// refuses it, and the diagnostic this compiler draws from the Glyph.
+#[derive(Debug, Serialize)]
+pub struct CatchExample {
+    pub name: String,
+    pub title: String,
+    /// The pillar the case is evidence for.
+    pub pillar: String,
+    pub expected_error: String,
+    /// The TypeScript half. It is not compiled here: the claim that
+    /// `tsc --strict` accepts it is checked by `scripts/check_catches.py`,
+    /// which runs `tsc`, and repeating that here would need a toolchain this
+    /// command does not require.
+    pub typescript: String,
+    pub typescript_checked_by: &'static str,
+    pub files: Vec<CounterExampleFile>,
+    pub diagnostic: Option<crate::diagnostic::Diagnostic>,
+    pub diagnostic_absent: Option<String>,
+}
+
+/// Every code the two corpora hold a wrong program for.
+pub fn negative_index() -> NegativeIndex {
+    let mut codes: Vec<NegativeIndexEntry> = Vec::new();
+    for entry in CODES {
+        let negative: Vec<&'static str> = NEGATIVE_CASES
+            .iter()
+            .filter(|c| c.code == entry.code)
+            .map(|c| c.name)
+            .collect();
+        let catches: Vec<&'static str> = CATCH_CASES
+            .iter()
+            .filter(|c| c.code == entry.code)
+            .map(|c| c.name)
+            .collect();
+        if !negative.is_empty() || !catches.is_empty() {
+            codes.push(NegativeIndexEntry {
+                code: entry.code,
+                negative,
+                catches,
+            });
+        }
+    }
+    let covered: Vec<&'static str> = codes.iter().map(|c| c.code).collect();
+    NegativeIndex {
+        cases: NEGATIVE_CASES.len() + CATCH_CASES.len(),
+        codes_without_a_case: CODES
+            .iter()
+            .map(|e| e.code)
+            .filter(|c| !covered.contains(c))
+            .collect(),
+        codes,
+    }
+}
+
+/// Every wrong program the corpora pair with `code`, compiled here, or `None`
+/// for a code this compiler does not document.
+pub fn negative_for_code(code: &str) -> Option<NegativeAnswer> {
+    let code = code.to_ascii_uppercase();
+    let entry = CODES.iter().find(|e| e.code == code)?;
+
+    let negative: Vec<CounterExample> = NEGATIVE_CASES
+        .iter()
+        .filter(|c| c.code == code)
+        .map(counter_example)
+        .collect();
+    let negative_absent = negative.is_empty().then(|| {
+        format!("`tests/negative/` holds no case whose `expected_error` is {code}")
+    });
+
+    let catches: Vec<CatchExample> = CATCH_CASES
+        .iter()
+        .filter(|c| c.code == code)
+        .map(|case| {
+            let (diagnostic, diagnostic_absent) = compile_files(case.name, case.files, case.code);
+            CatchExample {
+                name: case.name.to_string(),
+                title: case.title.to_string(),
+                pillar: case.pillar.to_string(),
+                expected_error: case.code.to_string(),
+                typescript: case.typescript.to_string(),
+                typescript_checked_by: "scripts/check_catches.py, which runs `tsc --strict` over it",
+                files: case
+                    .files
+                    .iter()
+                    .map(|(path, source)| CounterExampleFile {
+                        path: (*path).to_string(),
+                        source: (*source).to_string(),
+                    })
+                    .collect(),
+                diagnostic,
+                diagnostic_absent,
+            }
+        })
+        .collect();
+    let catches_absent = catches
+        .is_empty()
+        .then(|| format!("`catches/` pairs no TypeScript-accepted program with {code}"));
+
+    Some(NegativeAnswer {
+        code,
+        meaning: entry.meaning,
+        fix: entry.fix,
+        negative,
+        negative_absent,
+        catches,
+        catches_absent,
+    })
+}
+
+/// One `tests/negative/` case as an answer, compiled here.
+fn counter_example(case: &NegativeCase) -> CounterExample {
+    let (diagnostic, diagnostic_absent) = compile_case(case);
+    CounterExample {
+        name: case.name.to_string(),
+        expected_error: case.code.to_string(),
+        files: case
+            .files
+            .iter()
+            .map(|(path, source)| CounterExampleFile {
+                path: (*path).to_string(),
+                source: (*source).to_string(),
+            })
+            .collect(),
+        diagnostic,
+        diagnostic_absent,
+        corrected: None,
+        corrected_absent: Some(CORPUS_PAIRS_NO_FIX.to_string()),
+    }
+}
+
+/// One diagnostic code, as the compiler holds it.
+///
+/// The catalogue used to live in three hand-maintained copies: this file's
+/// `--explain` prose, the table in `docs/error-codes.md`, and the table in
+/// `AGENTS.md`. Nothing compared them, so `E0304` had prose and no row in one
+/// of the lists and nobody noticed for a year. This table is the one source the
+/// other two are written from (`glyph llms --sync`), and the drift gate is
+/// `scripts/check_llms_sync.py`.
+///
+/// `meaning` and `fix` are Markdown, with `|` written plainly: escaping it is
+/// the renderer's job, since the two tables put it in different columns.
+pub struct CodeEntry {
+    pub code: &'static str,
+    /// The compiler phase that raises it: `parser`, `resolver`, `typechecker`
+    /// or `emitter`. The code's own range says the same thing, and this says it
+    /// without asking the reader to know the ranges.
+    pub phase: &'static str,
+    /// What the code means, the catalogue's own sentence.
+    pub meaning: &'static str,
+    /// The one-line repair.
+    pub fix: &'static str,
+}
+
+/// Every diagnostic code, in code order within phase order.
+pub static CODES: &[CodeEntry] = &[
+    // ----- parser (E000x) -----
+    CodeEntry {
+        code: "E0001",
+        phase: "parser",
+        meaning: "Lexical error (unterminated string, invalid escape, stray character)",
+        fix: "Fix the string/escape/character",
+    },
+    CodeEntry {
+        code: "E0002",
+        phase: "parser",
+        meaning: "Expected a different token (Glyph is stricter than TS)",
+        fix: "Match the expected syntax",
+    },
+    CodeEntry {
+        code: "E0003",
+        phase: "parser",
+        meaning: "Unexpected token in this position",
+        fix: "Remove or relocate it",
+    },
+    CodeEntry {
+        code: "E0004",
+        phase: "parser",
+        meaning: "Expected end of file (likely an unbalanced brace)",
+        fix: "Balance your braces",
+    },
+    CodeEntry {
+        code: "E0005",
+        phase: "parser",
+        meaning: "Construct recognized but not implemented",
+        fix: "Use a supported form",
+    },
+    CodeEntry {
+        code: "E0006",
+        phase: "parser",
+        meaning: "`if`/`else` used where Glyph has none (`match` is the only conditional; D3)",
+        fix: "Rewrite as a `match`",
+    },
+    CodeEntry {
+        code: "E0007",
+        phase: "parser",
+        meaning: "Range or comparison pattern (`500..599 =>`) in a `match` arm; not in v1",
+        fix: "Enumerate the values as separate arms",
+    },
+    CodeEntry {
+        code: "E0008",
+        phase: "parser",
+        meaning: "Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5)",
+        fix: "Write `mut x = e`, or `let x = e` for a new binding",
+    },
+    CodeEntry {
+        code: "E0009",
+        phase: "parser",
+        meaning: "Retired. An object pattern's field takes any pattern, so `Full({ color: Black })` matches the field value; the code is no longer emitted",
+        fix: "Nothing; `{ color: Black }` matches the field value",
+    },
+    CodeEntry {
+        code: "E0010",
+        phase: "parser",
+        meaning: "A union variant given more than one positional payload field, in a declaration (`Node(Color, Tree, int)`) or in a match arm's pattern (`Node(c, k)`); a variant carries one payload, and a multi-field payload is a record (D8)",
+        fix: "One record payload: `Node({ left: A, right: B })`",
+    },
+    CodeEntry {
+        code: "E0011",
+        phase: "parser",
+        meaning: "A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything",
+        fix: "Pull the inner levels into `let` bindings",
+    },
+    // ----- resolver (E01xx) -----
+    CodeEntry {
+        code: "E0100",
+        phase: "resolver",
+        meaning: "Duplicate top-level name",
+        fix: "Rename one; names are unique",
+    },
+    CodeEntry {
+        code: "E0101",
+        phase: "resolver",
+        meaning: "Relative import (`./`, `../`; D15). A module is named from the source root, with no package prefix: `std/io` for the stdlib, `helper` for a sibling file, `queries/report` for a file in a subdirectory. Two stages raise it: the parser, at a leading `./` or `../`, under the `parse` stage tag, and the resolver, at a `.` or `..` segment deeper in a path, under `collect`. Both carry the same help",
+        fix: "Use an absolute module path (`std/io`, `myapp/x`)",
+    },
+    CodeEntry {
+        code: "E0102",
+        phase: "resolver",
+        meaning: "Barrel file: only imports, no declarations (D15)",
+        fix: "Add a declaration or remove the file",
+    },
+    CodeEntry {
+        code: "E0103",
+        phase: "resolver",
+        meaning: "Unresolved name",
+        fix: "Declare it, import it, or fix the spelling",
+    },
+    CodeEntry {
+        code: "E0104",
+        phase: "resolver",
+        meaning: "Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `\"glyph\"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead",
+        fix: "Check the path / that the module exists",
+    },
+    CodeEntry {
+        code: "E0105",
+        phase: "resolver",
+        meaning: "Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a name written through a namespace import, `import lib` plus either a `lib.Secret` annotation or a `lib.secret()` call)",
+        fix: "Check the export name",
+    },
+    CodeEntry {
+        code: "E0106",
+        phase: "resolver",
+        meaning: "Unused import (warning)",
+        fix: "Remove it",
+    },
+    CodeEntry {
+        code: "E0107",
+        phase: "resolver",
+        meaning: "Unused variable binding (warning)",
+        fix: "Remove it, or prefix the name with `_`",
+    },
+    CodeEntry {
+        code: "E0108",
+        phase: "resolver",
+        meaning: "Unreachable code after `return`/`break`/`continue` (warning)",
+        fix: "Remove the dead code",
+    },
+    CodeEntry {
+        code: "E0109",
+        phase: "resolver",
+        meaning: "A TypeScript reserved word (`class`, `new`, `switch`, `eval`, ...) used as a declaration, parameter, or binding name",
+        fix: "Rename the declaration or binding",
+    },
+    CodeEntry {
+        code: "E0110",
+        phase: "resolver",
+        meaning: "A top-level declaration whose name shadows a global the emitted module depends on (`Error`, `Number`, `Object`, `Array`, `Promise`, `Record`, or a prelude name such as `number`, `par`, `print`, `string`, `Issue`)",
+        fix: "Rename the declaration",
+    },
+    CodeEntry {
+        code: "E0111",
+        phase: "resolver",
+        meaning: "`type Key = string | number`: bare primitive names on the right of `|` declare tagged-union variants, not a union of those types",
+        fix: "number` is a tagged union of variants named `string`/`number`, not a union of the two types | Name each case, or `extern_ts(\"string | number\")`",
+    },
+    CodeEntry {
+        code: "E0112",
+        phase: "resolver",
+        meaning: "A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning)",
+        fix: "Mark what callers need `pub`, or delete the module",
+    },
+    // ----- typechecker (E02xx) -----
+    CodeEntry {
+        code: "E0200",
+        phase: "typechecker",
+        meaning: "Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`\"free\" | \"pro\"`, D30) missing a literal. Either kind counts whether it is declared in this module or imported from a sibling. A union that takes type parameters counts the same as its bare form, whether the matching module declares it or imports it, and whether the argument is an open type parameter or a concrete instantiation (`tree.Tree<string>`). What the imported path still does not do is look inside a variant's payload, so `B(X)` over an imported union whose payload is itself a union is not counted (`docs/dogfooding-gaps.md` G143)",
+        fix: "Handle every variant, or add an `else`",
+    },
+    CodeEntry {
+        code: "E0201",
+        phase: "typechecker",
+        meaning: "`?` used outside a `Result`-returning function",
+        fix: "Return `Result`, or handle with `match`",
+    },
+    CodeEntry {
+        code: "E0202",
+        phase: "typechecker",
+        meaning: "`?` applied to a non-`Result` operand",
+        fix: "Drop the `?`, or return a `Result`",
+    },
+    CodeEntry {
+        code: "E0203",
+        phase: "typechecker",
+        meaning: "`?` error type does not match the function's `E` (no `From` in v1)",
+        fix: "`.map_err(...)` to line the error types up",
+    },
+    CodeEntry {
+        code: "E0204",
+        phase: "typechecker",
+        meaning: "Type mismatch",
+        fix: "Make the value and the expected type agree",
+    },
+    CodeEntry {
+        code: "E0205",
+        phase: "typechecker",
+        meaning: "`owned` used on a non-`resource` type (D25)",
+        fix: "Mark the type `resource`, or drop `owned`",
+    },
+    CodeEntry {
+        code: "E0206",
+        phase: "typechecker",
+        meaning: "`owned` resource not consumed on every path (D25)",
+        fix: "Consume it (move to an `owned` param) on all paths",
+    },
+    CodeEntry {
+        code: "E0207",
+        phase: "typechecker",
+        meaning: "`owned` resource used after it was consumed (D25)",
+        fix: "Reorder so uses precede the consume",
+    },
+    CodeEntry {
+        code: "E0208",
+        phase: "typechecker",
+        meaning: "Non-exhaustive `match` on an array (length not covered)",
+        fix: "Cover the length, or add a catch-all",
+    },
+    CodeEntry {
+        code: "E0209",
+        phase: "typechecker",
+        meaning: "Non-exhaustive `match` on a `bool`",
+        fix: "Cover `true` and `false`, or add `else`",
+    },
+    CodeEntry {
+        code: "E0210",
+        phase: "typechecker",
+        meaning: "Field access on a record type that has no such field, including a record declared in a sibling module under any import spelling, where the message names that record's own type",
+        fix: "Fix the field name / add it to the type",
+    },
+    CodeEntry {
+        code: "E0211",
+        phase: "typechecker",
+        meaning: "Call argument type does not match the parameter type",
+        fix: "Pass a value of the expected type",
+    },
+    CodeEntry {
+        code: "E0212",
+        phase: "typechecker",
+        meaning: "`mut` reassigns a `const` binding (D20)",
+        fix: "Use a function-level `let`",
+    },
+    CodeEntry {
+        code: "E0213",
+        phase: "typechecker",
+        meaning: "Wrong number of call arguments",
+        fix: "One argument per parameter",
+    },
+    CodeEntry {
+        code: "E0214",
+        phase: "typechecker",
+        meaning: "Component declared with multiple parameters (use a props record)",
+        fix: "Take a single props record",
+    },
+    CodeEntry {
+        code: "E0215",
+        phase: "typechecker",
+        meaning: "Aliasing an `owned` handle (D25)",
+        fix: "Consume it directly, don't rebind",
+    },
+    CodeEntry {
+        code: "E0216",
+        phase: "typechecker",
+        meaning: "Unreachable `match` arm after a total pattern (D9)",
+        fix: "Remove it, or move the catch-all last",
+    },
+    CodeEntry {
+        code: "E0217",
+        phase: "typechecker",
+        meaning: "Discarded `Result`. A warning rather than an error: its `Err` is silently ignored",
+        fix: "`match`/`?` it, or `let _ = ...` to say it's intentional",
+    },
+    CodeEntry {
+        code: "E0218",
+        phase: "typechecker",
+        meaning: "Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module)",
+        fix: "Add an `else` arm",
+    },
+    CodeEntry {
+        code: "E0219",
+        phase: "typechecker",
+        meaning: "`@redact` names a field the type does not have (D24)",
+        fix: "Fix the field name",
+    },
+    CodeEntry {
+        code: "E0220",
+        phase: "typechecker",
+        meaning: "A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9)",
+        fix: "Fix the spelling (a `did you mean` suggestion is offered), or add the variant",
+    },
+    CodeEntry {
+        code: "E0221",
+        phase: "typechecker",
+        meaning: "Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public`",
+        fix: "Use a recognized one: `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public`",
+    },
+    CodeEntry {
+        code: "E0222",
+        phase: "typechecker",
+        meaning: "`await` outside an `async fn` (the innermost enclosing callable decides, so a sync lambda inside an `async fn` is flagged)",
+        fix: "Mark the enclosing callable `async fn` (a sync lambda is its own context)",
+    },
+    CodeEntry {
+        code: "E0223",
+        phase: "typechecker",
+        meaning: "A `match` arm produces no value while the `match` is used as a value (an empty block, or a block whose tail is a `let`/`mut`/`for`/`loop`)",
+        fix: "End the arm with an expression, or `return` from it",
+    },
+    CodeEntry {
+        code: "E0224",
+        phase: "typechecker",
+        meaning: "Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there. Use `record.get`, which returns `Option<V>`",
+        fix: "`record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine",
+    },
+    CodeEntry {
+        code: "E0225",
+        phase: "typechecker",
+        meaning: "A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await`",
+        fix: "Move the read after the `await`. A local counter across an `await` is fine and is not reported",
+    },
+    CodeEntry {
+        code: "E0226",
+        phase: "typechecker",
+        meaning: "A `match` whose scrutinee has no variant set to count against, where every arm's pattern can fail and no arm is a catch-all. Add an `else`",
+        fix: "Add an `else` arm",
+    },
+    CodeEntry {
+        code: "E0227",
+        phase: "typechecker",
+        meaning: "`Nullable<T>` where `T` is itself `Nullable` or `Option` (D45). Two states would share one runtime spelling, or a tagged object would sit under a null-tolerant field. Write `Nullable` over the plain type",
+        fix: "Write `Nullable<int>`; convert to an `Option` inside the program with `nullable.to_option`",
+    },
+    CodeEntry {
+        code: "E0228",
+        phase: "typechecker",
+        meaning: "A type's name where a value is expected (`return Order { id: \"a\" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error",
+        fix: "Write the value on its own (`return { id: \"a\" }`) and let the annotation carry the type. `Order.parse(raw)` and `Order.is(v)`, the descriptor forms, are not this error",
+    },
+    // ----- emitter (E03xx) -----
+    CodeEntry {
+        code: "E0300",
+        phase: "emitter",
+        meaning: "Construct not supported by the v1 TypeScript emitter",
+        fix: "Use a supported form",
+    },
+    CodeEntry {
+        code: "E0301",
+        phase: "emitter",
+        meaning: "An `<else>` that is not the immediate sibling of its `<if>` (D6)",
+        fix: "Move the `<else>` next to its `<if>`",
+    },
+    CodeEntry {
+        code: "E0302",
+        phase: "emitter",
+        meaning: "`?` in an arm of a `match` nested inside a larger expression (bind the match first)",
+        fix: "Bind the match first (`let x = match ...`), then use `?`",
+    },
+    CodeEntry {
+        code: "E0303",
+        phase: "emitter",
+        meaning: "`?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first)",
+        fix: "Bind the operand first (`let r = f(x)?`), then use `r`",
+    },
+    CodeEntry {
+        code: "E0304",
+        phase: "emitter",
+        meaning: "`parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine",
+        fix: "Split the wire type from the domain type: parse the checkable fields, then build the record",
+    },
+    CodeEntry {
+        code: "E0305",
+        phase: "emitter",
+        meaning: "Two arms of one `match` lower to the same `case` label, so the later arm can never run",
+        fix: "Remove the later arm, or give the two arms patterns that test different values",
+    },
+    CodeEntry {
+        code: "E0310",
+        phase: "emitter",
+        meaning: "`glyph run` on a module with no `fn main` (it's a library — nothing to run)",
+        fix: "Add `fn main`, or `glyph build` it as a library",
+    },
 ];
+
+/// The phases, in the order the catalogue lists them, each with the range it
+/// allocates from. Read by the catalogue renderer so the section headings and
+/// the `phase` field cannot name different sets.
+pub const PHASES: &[(&str, &str, &str)] = &[
+    ("parser", "Parser", "E000x"),
+    ("resolver", "Resolver", "E01xx"),
+    ("typechecker", "Typechecker", "E02xx"),
+    ("emitter", "Emitter", "E03xx"),
+];
+
+/// Every code that `explain` documents, for the catalogue test and tooling.
+/// Derived from `CODES` rather than kept beside it: the two lists disagreed
+/// about `E0304` for as long as they were written out separately.
+pub fn all_codes() -> Vec<&'static str> {
+    CODES.iter().map(|e| e.code).collect()
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// The catalogue every diagnostic's footer points a reader at. Read here so
-    /// the test below can compare the two directions; `ALL_CODES` alone only
+    /// the test below can compare the two directions; the code list alone only
     /// proved that codes we already knew about had text, which let three codes
     /// ship in the catalogue with `--explain` answering "no documentation".
     const CATALOGUE: &str = include_str!("../../../../docs/error-codes.md");
@@ -963,7 +1533,7 @@ mod tests {
 
     #[test]
     fn every_catalogued_code_has_an_explanation() {
-        for code in ALL_CODES {
+        for code in all_codes() {
             assert!(explain(code).is_some(), "missing --explain text for {code}");
             // The body should at least restate the code.
             assert!(explain(code).unwrap().contains(code), "{code} body omits its code");
@@ -984,7 +1554,7 @@ mod tests {
                 "{code} is in docs/error-codes.md but `glyph --explain {code}` says there is no documentation"
             );
         }
-        for code in ALL_CODES {
+        for code in all_codes() {
             assert!(
                 documented.iter().any(|d| d == code),
                 "{code} has --explain text but no row in docs/error-codes.md"
@@ -996,7 +1566,7 @@ mod tests {
     /// is the same code the caller asked for whatever case they spelled it in.
     #[test]
     fn every_code_answers_explain_json() {
-        for code in ALL_CODES {
+        for code in all_codes() {
             let answer = explain_json(code)
                 .unwrap_or_else(|| panic!("--explain {code} --json has no answer"));
             assert_eq!(&answer.code, code);
@@ -1008,6 +1578,11 @@ mod tests {
                 answer.counter_example.is_none(),
                 answer.counter_example_absent.is_some(),
                 "{code}: a null counter-example with no reason, or a reason with one"
+            );
+            assert_eq!(
+                answer.note.is_none(),
+                answer.note_absent.is_some(),
+                "{code}: a null note with no reason, or a reason with one"
             );
         }
         assert_eq!(

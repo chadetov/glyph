@@ -16,6 +16,7 @@ pub mod examples;
 pub mod fix;
 pub mod init;
 pub mod explain;
+pub mod llms;
 pub mod fmt;
 pub mod gen;
 pub mod publish;

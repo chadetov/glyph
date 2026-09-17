@@ -224,8 +224,22 @@ enum Command {
     },
     /// Print the agent bootstrap (the AGENTS.md / llms.txt reference) to stdout.
     /// Works offline: zero to correct, runnable Glyph in one document.
+    ///
+    /// `--json` answers the same knowledge as data, generated from the
+    /// compiler's own tables rather than from the prose: every diagnostic code
+    /// with a wrong program that draws it, the prelude and the stdlib
+    /// signatures, the language decisions, and the tool catalogue.
     #[command(visible_aliases = ["docs", "cheatsheet"])]
-    Llms,
+    Llms {
+        /// Emit the whole knowledge document as JSON instead of the prose.
+        #[arg(long, conflicts_with = "negative")]
+        json: bool,
+        /// Print the wrong programs the corpora pair with a diagnostic code,
+        /// each compiled here so the diagnostic beside it is this compiler's.
+        /// With no code, list the codes that have a case.
+        #[arg(long, value_name = "CODE", num_args = 0..=1, default_missing_value = "")]
+        negative: Option<String>,
+    },
     /// Check that the JavaScript toolchain (`node`/`tsx`/`tsc`) `glyph run` and
     /// `build --check` need is present and new enough, and report this compiler's
     /// version against the latest published one. Exits non-zero if a tool is
@@ -827,11 +841,16 @@ fn main() {
         Some(Command::Query { root, query }) => {
             std::process::exit(glyph_cli::query::run(root, &query));
         }
-        Some(Command::Llms) => {
-            // The bootstrap is embedded at compile time, so this works with no
+        Some(Command::Llms { json, negative }) => {
+            // Everything here is embedded at compile time, so it works with no
             // network and no repo checkout.
-            print!("{}", glyph_cli::LLMS_BOOTSTRAP);
-            std::process::exit(0);
+            let code = match (json, negative.as_deref()) {
+                (_, Some("")) => glyph_cli::llms::run_negative(None),
+                (_, Some(code)) => glyph_cli::llms::run_negative(Some(code)),
+                (true, None) => glyph_cli::llms::run_json(),
+                (false, None) => glyph_cli::llms::run_bootstrap(),
+            };
+            std::process::exit(code);
         }
         Some(Command::Doctor { json, offline }) => {
             std::process::exit(glyph_cli::doctor::run(json, offline));

@@ -61,8 +61,123 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.122</span>
+            <span class="rel-ver">0.1.123</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A string literal now has the type it spells</h3>
+            <p>Until this release the set of legal strings lived on the declaration and nothing lived on the value, so <code>"read"</code> was a <code>string</code> and <code>["read", "write"]</code> was an <code>Array&lt;string&gt;</code>. That made two programs indistinguishable: returning <code>["read", "write"]</code> where an <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and returning an <code>xs: Array&lt;string&gt;</code> in the same place, which it refuses. 0.1.122 declined the pairing rather than get it wrong, and buying the right program that way meant giving up the wrong one.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn ok()    -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad()   -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg         { return { mode: "nope" } }
+<span class="del">// 0.1.122: nothing, on all three                (exit 0)</span>
+<span class="add">// 0.1.123: [E0204] expected `Mode`, found `"nope"`
+//              return ["read", "nope"]
+//                              ───┬──
+//          [E0204] expected `Mode`, found `"nope"`      (exit 1)</span></pre>
+            </div>
+            <p>A written string literal carries the one-literal type it spells, an array literal's element type is the join of its elements', and a record literal's fields carry their literals. A written array or object literal is then checked element by element and field by field against the declared type, so the message names the offending literal and underlines it instead of the whole value.</p>
+            <p>The literal widens back to <code>string</code> where TypeScript widens it: a <code>let</code> with no annotation, an array bound to one, and the element binding of a <code>for</code> over a written array, all three of which widen in the emitted TypeScript too. A <code>const</code> keeps its literal, because a Glyph <code>const</code> emits a TypeScript <code>const</code> and <code>takes_mode(CM)</code> compiles, so widening it would refuse a program <code>tsc</code> accepts. A literal type that arrived through a name is not fresh and is not widened, which is TypeScript's own freshness rule. Every row of that was settled by writing the equivalent TypeScript and running <code>tsc --strict</code> on it, which is why the <code>const</code> row and the <code>for</code> row point in opposite directions.</p>
+            <p>Four shapes are still undecided and each says why. The key argument of a <code>Record</code> against another <code>Record</code>'s, because TypeScript writes <code>Record&lt;string, V&gt;</code> as an index signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it both ways. A literal inside <code>Some(...)</code>, because a prelude constructor's type is pending generic instantiation and it is the constructor that has no type here, not the literal. A record literal bound to an unannotated <code>let</code>, because nothing synthesizes a record type for an object literal yet. And a concatenation, because a binary expression has no type here at all.</p>
+
+            <h3>The prelude <code>Result</code> has an address</h3>
+            <p><code>Result</code> and <code>Option</code> are declared by no project module, so an <code>E0200</code> over one of them used to carry <code>cause: null</code>, no tool keyed their variants, and <code>glyph fix</code> declined the single most common shape it exists for: <code>match r { Ok(v) =&gt; v, }</code>. The identity turned out not to need inventing. The resolver registers <code>std/result</code> with <code>Result</code>, <code>Ok</code> and <code>Err</code>; the emitter writes <code>import { Ok, type Result } from "./.glyph-runtime/std/result"</code> into a program that never imported it; and <code>import std/result { Result }</code> already resolves. One layer was throwing that away.</p>
+            <div class="code">
+              <span class="cap">glyph check --agent --no-tsc, on a match over a prelude Result</span>
+<pre>"code": "E0200",
+"message": "non-exhaustive match on `Result`: missing variants `Err`",
+"entity": "main::total",
+<span class="del">// 0.1.122: "cause": null,
+//          "union": { "declaration": null, "kind": "builtin",
+//                     "module": null, "name": "Result" }</span>
+<span class="add">"cause": "std/result::Result",
+"union": { "declaration": "std/result::Result", "kind": "builtin",
+           "module": "std/result", "name": "Result" },
+"symbols": [ { "entity": "std/result::Result", "kind": "union",
+  "generics": ["T", "E"],
+  "variants": [ { "name": "Ok",  "payload": "T", "construct": "Ok(T)" },
+                { "name": "Err", "payload": "E", "construct": "Err(E)" } ],
+  "path": null,
+  "path_absent": "the stdlib is TypeScript the compiler carries and
+    stages into the build (`runtime/std/*.ts`), not Glyph source under
+    this project, so there is no `.glyph` file holding this
+    declaration and no span in one to report" } ]</span></pre>
+            </div>
+            <p>With the payload shapes in hand, the repair follows.</p>
+            <div class="code">
+              <span class="cap">glyph fix src</span>
+<pre>glyph fix: applied E0200 in src/main.glyph: added 1 arm(s) to the
+           match on `Result`: `Err`, and wrote `import std/process`
+           for the arm bodies
+
+<span class="add">  return match r {
+    Ok(v) =&gt; v,
+    // TODO(glyph fix): `Result` variant `Err` is unhandled; write this arm
+    Err(payload) =&gt; {
+      print("unhandled Result variant Err (arm written by glyph fix)")
+      process.exit(1)
+    },
+  }</span>
+
+<span class="cm">// glyph check (with tsc): 1 module(s) checked, no diagnostics.</span></pre>
+            </div>
+            <p>No import is written for the variants, because the prelude already binds <code>Ok</code> and <code>Err</code>; the <code>std/process</code> import is the one every <code>E0200</code> repair adds for the <code>TODO</code> body. The same rule gives <code>Option</code> its <code>std/option</code> address, <code>Nullable</code> its <code>std/nullable</code> one, and <code>fs.ErrorKind</code> the address <code>std/fs::ErrorKind</code>. <code>glyph query symbol --entity std/result::Result</code>, <code>glyph query variants</code> and <code>glyph query exports --module std/result</code> all answer instead of refusing, with <code>path</code> and <code>range</code> null beside the reason rather than missing. A project that declares its own <code>pub type Result</code> still keys as <code>orders::Result</code>.</p>
+            <p>Two spellings were considered and rejected. A reserved segment such as <code>&lt;prelude&gt;::Result</code> is collision-proof and nothing else: it gives one declaration two identities, the agent's and the emitter's, and adds a fourth module-path grammar beside project paths, npm-scoped paths and <code>extern/</code>. A discriminator field beside a bare name was already shipped and is the thing that was broken, since the union entity has carried <code>kind: "builtin"</code> next to <code>name: "Result"</code> all along and it buys an agent no next call. The whole surface rests on forwarding one flat string from a diagnostic into the next query, and a string whose meaning depends on a sibling field cannot be forwarded. <code>union.kind</code> stays <code>builtin</code>, because it still answers whether this project can add a variant. The names no stdlib module declares, <code>Array</code>, <code>Record</code>, <code>Schema</code>, <code>Component</code>, <code>Issue</code>, <code>par</code>, <code>print</code>, <code>assert</code> and <code>infer_output</code>, stay unkeyed with a reason each rather than getting an invented <code>std/prelude</code>.</p>
+
+            <h3>Everything an agent has to know, out of the compiler</h3>
+            <p><code>glyph llms --json</code> emits one document and no line of it is written by hand. <code>diagnostics</code>: 61 codes, each with the catalogue sentence, the one-line fix, the long <code>--explain</code> text, the help and note read off a real diagnostic, and a wrong program compiled at the moment you ask. <code>prelude</code>: 24 names out of the resolver's own table. <code>stdlib</code>: 36 modules and 327 exports, 100 with a signature read out of the checker's tables and 227 saying in a <code>signature_absent</code> line that the checker models none. <code>decisions</code>: 47 parsed out of the spec. <code>tools</code>: the eleven the MCP server serves, each with its <code>glyph query</code> verb and its full manual.</p>
+            <div class="code">
+              <span class="cap">glyph llms --json, trimmed</span>
+<pre>"stdlib": {
+  "modules": [ { "path": "std/array", "exports": [
+    { "name": "filter",
+      "signature": "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
+    { "name": "find",
+      "signature": "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" }, ... ] } ],
+  "modeled": 100, "unmodeled": 227 },
+"decisions": { "count": 47, "duplicate_numbers": [43], ... },
+"tools": { "count": 11, "tools": [
+  { "name": "glyph_symbol", "cli_verb": "glyph query symbol",
+    "manual": "...", "input_schema": { ... } }, ... ] }</pre>
+            </div>
+            <p>The code catalogue is one table in the compiler now, and <code>docs/error-codes.md</code> and the diagnostic table in <code>AGENTS.md</code> are written from it by a script that fails on drift. Merging the three hand-maintained copies turned up <code>E0304</code>, which had an explanation and no place in the code list, and an <code>E0111</code> row whose escaped pipe had gone unnoticed. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a tool count that disagrees with the list, fails the build. That is what let "exposes five tools" survive two releases against a server serving seven.</p>
+            <p>Every Glyph fence in those two documents compiles. <code>AGENTS.md</code> was 19 fences with 2 compiled and 17 skipped as fragments; it is 24, with 20 compiled and 4 marked as fragments of a named complete example that is itself compiled. <code>docs/reference/stdlib.md</code> was 4 of 8 and is 8 of 8. Five wrong forms the bootstrap warns about are now programs paired with the diagnostic each draws. Compiling the documents found two things reading them was never going to find: an inline triple backtick in <code>AGENTS.md</code> that read as a fence opener, so 250 lines counted as one snippet, and a worked server in the stdlib reference calling <code>http.serve</code>, which <code>std/http</code> does not export. The function is <code>listen</code>.</p>
+            <p>The wrong programs are readable too. <code>glyph llms --negative E0200</code> prints the <code>tests/negative/</code> and <code>catches/</code> cases that draw the code, each compiled here, the <code>catches/</code> ones carrying the TypeScript a <code>tsc --strict</code> project accepts beside the Glyph that refuses it. With no code it lists 68 cases over 40 of the 61 codes and names the 21 codes that have none.</p>
+            <p>And <code>tools/list</code> stopped costing what it cost. Eleven tools carried 31,446 bytes of description in a 45,509-byte reply; the same eleven carry 8,627 in a 20,386-byte reply, which every session pays on connect. Nothing was deleted: the previous text is held verbatim, keyed by tool name, and published in <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away.</p>
+
+            <h3>A module under <code>std/</code> is an error instead of dead code</h3>
+            <p>A project file could declare <code>module std/io</code>. It compiled clean and was unreachable: an import of that path resolves to the stdlib module the compiler carries, and the project file is never read. The prefixes were reserved for imports and nothing rejected the declaration.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc, on src/io.glyph declaring `module std/io`</span>
+<pre><span class="del">// 0.1.122: glyph check: 2 module(s) checked, no diagnostics.   (exit 0)</span>
+<span class="add">// 0.1.123: [E0113] `std/io` declares a module under `std/`, a prefix
+//                  reserved for the modules the compiler carries (D15)
+//          Help: Rename the module to a path of your own (`io`,
+//          `app/io`).                                           (exit 1)</span></pre>
+            </div>
+            <p>The prefix is matched as a whole first segment, so <code>standard</code>, <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are untouched, and an import under either prefix still resolves. This is a dead-code hole on its own account, and it is also the guard the stdlib identities above rest on.</p>
+
+            <h3>Two smaller things</h3>
+            <p>An imported string-literal union prints its declared name. It used to lower straight to its literal set, so one declaration said expected <code>"read" | "write"</code> through a named import and expected <code>Alias</code> through an alias, and neither matched what the same declaration prints locally. It is expected <code>Mode</code> under both spellings now, and the literal set is read from the declaration through one accessor that assignability, exhaustiveness, the query tools and the emitter all go through. The emitted TypeScript is unchanged.</p>
+            <p><code>glyph_impact</code>'s signature-type table decides a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools can no longer disagree about one pairing. One consequence is visible on a common shape and worth naming: a written literal is no longer a primitive argument, it is a one-literal union, so <code>f("x")</code> against <code>f(s: string)</code> reports argument 1 <code>SAFE</code> where 0.1.122 reported <code>WILL_FAIL</code>. The new answer is the accurate one.</p>
+            <p>Two things this release does not settle, named here rather than left silent. The spec numbers two different decisions D43, the <code>mut</code>-across-<code>await</code> rule and <code>never</code> as the bottom type; <code>glyph llms --json</code> reports the collision in <code>duplicate_numbers</code> rather than hiding it, and renumbering one of them is a change to a public index other documents cite. And <code>glyph fmt</code> still prints a Rust debug dump in one path for a file that does not parse, where <code>glyph check</code> prints the diagnostic.</p>
+
+            <p class="rel-note"><strong>Breaking.</strong> In the checking direction, established by running the published 0.1.122 and this release on the same programs rather than by reading the diff. <code>fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }</code> is <code>1 module(s) checked, no diagnostics.</code> and exit 0 under 0.1.122, and <code>[E0204] type mismatch: expected `Mode`, found `"nope"`</code> with exit 1 here. Eight programs <code>tsc --strict</code> refuses and 0.1.122 accepted are <code>E0204</code> or <code>E0211</code> now, so a full <code>glyph build</code> was already failing on every one of them and what changes is which compiler tells you. The four correct programs the old fence existed to protect are accepted by the rule rather than by a declined pairing, the 31 apps and <code>examples/</code> answer identically under both binaries, and the positive corpus grew from thirteen programs to nineteen, each run under 0.1.122 with <code>tsc</code> in the loop before it was added. <code>E0113</code> is breaking in the same direction and loses nothing: a two-file project declaring <code>module std/io</code> is <code>2 module(s) checked, no diagnostics.</code> and exit 0 under 0.1.122 and <code>[E0113]</code> with exit 1 here, and no importer could ever reach that file's code.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.122</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

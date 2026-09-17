@@ -6662,6 +6662,115 @@ fn non_exhaustive_imported_union_match_is_caught() {
     );
 }
 
+/// G239: a project union named like a prelude type, imported, lost its
+/// exhaustiveness check entirely.
+///
+/// `import orders { Result }` bound the name to the prelude container because
+/// the lowerer read the name before the import path, so a bare `Result`
+/// annotation lowered to the prelude `Result` rather than to `orders::Result`.
+/// A bare prelude `Result` is not an application, so no variant list was
+/// required and the match was never checked: the program compiled clean and
+/// the emitted TypeScript threw `non-exhaustive match` at run time on `Lost`.
+///
+/// The three-way reproduction the review isolated is asserted in full, because
+/// which of the three is silent is the whole finding: rename the type and the
+/// check fires, declare it locally and the check fires, import it under a
+/// prelude name and it did not. `Option` and `Nullable` collided the same way.
+#[test]
+fn an_imported_union_named_like_a_prelude_type_is_exhaustiveness_checked() {
+    let orders = "module orders\npub type Result =\n  | Won\n  | Lost\n";
+    let outcomes = "module outcomes\npub type Outcome =\n  | Won\n  | Lost\n";
+    let containers =
+        "module containers\npub type Option =\n  | Yes\n  | No\npub type Nullable =\n  | A\n  | B\n";
+    let cases: [(&str, &str, &str, &str); 5] = [
+        // (case, the declaring module's source, main's source, the variant
+        // the diagnostic has to name)
+        (
+            "imported-result",
+            orders,
+            "module main\nimport orders { Result, Won }\n\
+             pub fn f(r: Result) -> string {\n  return match r {\n    Won => \"won\",\n  }\n}\n",
+            "Lost",
+        ),
+        (
+            "imported-outcome",
+            outcomes,
+            "module main\nimport outcomes { Outcome, Won }\n\
+             pub fn f(r: Outcome) -> string {\n  return match r {\n    Won => \"won\",\n  }\n}\n",
+            "Lost",
+        ),
+        (
+            "imported-option",
+            containers,
+            "module main\nimport containers { Option, Yes }\n\
+             pub fn f(o: Option) -> string {\n  return match o {\n    Yes => \"yes\",\n  }\n}\n",
+            "No",
+        ),
+        (
+            "imported-nullable",
+            containers,
+            "module main\nimport containers { Nullable, A }\n\
+             pub fn f(n: Nullable) -> string {\n  return match n {\n    A => \"a\",\n  }\n}\n",
+            "B",
+        ),
+        (
+            // The local declaration, which was always checked. Here so the
+            // three spellings are one assertion rather than one plus a memory.
+            "local-result",
+            orders,
+            "module main\npub type Result =\n  | Won\n  | Lost\n\
+             pub fn f(r: Result) -> string {\n  return match r {\n    Won => \"won\",\n  }\n}\n",
+            "Lost",
+        ),
+    ];
+    for (case, declaring, main, missing) in cases {
+        let root = unique_tmp("g239");
+        let src = root.join("src");
+        let module = declaring
+            .lines()
+            .next()
+            .and_then(|l| l.strip_prefix("module "))
+            .expect("a module line");
+        write_file(&src, &format!("{module}.glyph"), declaring);
+        write_file(&src, "main.glyph", main);
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+        assert!(report.has_errors(), "{case}: {:?}", report.diagnostics);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.contains("E0200") && d.contains(missing)),
+            "{case}: {:?}",
+            report.diagnostics
+        );
+    }
+}
+
+/// The other half of G239: `import std/result { Result }` is still the prelude
+/// container, because the prelude is a curated re-export of the stdlib and the
+/// two are one declaration (Q3, G231). Only a non-`std/` import shadows.
+#[test]
+fn an_import_of_the_stdlib_result_is_still_the_prelude_container() {
+    let root = unique_tmp("g239std");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/result { Result, Ok, Err }\n\
+         pub fn f(r: Result<number, string>) -> string {\n\
+         \x20 return match r {\n    Ok(n) => \"ok\",\n  }\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Err")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
 /// G143: the imported-union coverage check only ever counted the outer
 /// union's variant tags, with no equivalent of `check_patterns_exhaustive`'s
 /// recursion into a constructor arm's payload. `B(X)` over an imported

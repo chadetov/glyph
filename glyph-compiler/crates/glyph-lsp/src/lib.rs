@@ -41,6 +41,10 @@ pub use analysis::enclosing_decl_name;
 /// this crate reads it, and a format with two implementations is two formats
 /// the first time one of them changes.
 pub use mcp::generated;
+/// The tool catalogue, its full text and the server's `instructions`, so
+/// `glyph llms --json` publishes the object the server serves rather than a
+/// second description of it.
+pub use mcp::{instructions, tool_manual, tool_specs};
 
 /// Run the Model Context Protocol server over stdio, exposing Glyph's language
 /// analysis to a coding agent as tools (see `mcp`). `root` is the project the

@@ -10,6 +10,22 @@ use glyph_ast::Span;
 
 pub use crate::reserved::ShadowOrigin;
 
+/// E0113's message. Two shapes, because a module declared as the bare reserved
+/// segment is not under anything: `module std` used to read "`std` declares a
+/// module under `std/`", naming a path with no `std/` in it.
+fn reserved_module_prefix_message(path: &str, prefix: &str) -> String {
+    if path == prefix {
+        return format!(
+            "`{path}` declares a module named `{prefix}`, the segment reserved for the \
+             modules the compiler carries (D15)"
+        );
+    }
+    format!(
+        "`{path}` declares a module under `{prefix}/`, a prefix reserved for the modules the \
+         compiler carries (D15)"
+    )
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ResolveError {
     #[error("name `{name}` declared more than once")]
@@ -25,7 +41,7 @@ pub enum ResolveError {
     /// unreachable: `import std/io { println }` takes the stub's `println`,
     /// and `import std/io { shout }` reports the project's own function as a
     /// name `std/io` does not export (G238). `span` is the module path.
-    #[error("`{path}` declares a module under `{prefix}/`, a prefix reserved for the modules the compiler carries (D15)")]
+    #[error("{}", reserved_module_prefix_message(path, prefix))]
     ReservedModulePrefix {
         /// `std` or `extern`, the segment that is reserved.
         prefix: String,

@@ -548,7 +548,7 @@ pub fn tool_specs() -> Value {
     // one source. A schema that listed them itself would be a second set again,
     // silently, the first time one of them changed.
     let vocabulary_enum: Vec<&str> = Relation::all().map(|r| r.wire()).to_vec();
-    const VOCABULARY: &str = "The vocabulary is closed and holds five names, each spelled the same way in a request, in a reply and in a coverage statement: `CALLS` (the site applies the entity to an argument list), `REFERENCES` (it names the entity without applying it), `MATCH_SITES` (a `match` whose scrutinee is the entity, answered by `glyph_variants`), `FIELD_ACCESS` (a read or a write of a record field) and `GENERATED_FROM` (a declaration a `glyph gen` run wrote, and the artifact it came from). A name outside the set is an error rather than an ignored key, and so is a name in the set that this answer does not hold: an empty list would read as `no such edges exist`.";
+    const VOCABULARY: &str = "The vocabulary is closed and holds five names, spelled the same way in a request, in a reply and in a coverage statement: `CALLS`, `REFERENCES`, `MATCH_SITES`, `FIELD_ACCESS`, `GENERATED_FROM`. A name outside the set is an error rather than an ignored key, and so is a name in the set that this answer does not hold: an empty list would read as `no such edges exist`. The `relations` entry of `glyph llms --json`'s `tools` section says what each one is.";
     let relation = json!({
         "type": ["string", "array"],
         "items": { "type": "string", "enum": vocabulary_enum },

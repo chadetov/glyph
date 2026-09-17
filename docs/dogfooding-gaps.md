@@ -9661,7 +9661,7 @@ and is the owner's to confirm.
   *Two written forms are read off the expression rather than its type, because
   the type map does not keep what they prove. A string literal is typed
   `string`, so `"rw"` and a `string`-typed identifier arrive at the relation as
-  one `Ty`; `written_ty` hands the literal over as the one-literal union it
+  one `Ty`; `written_literal_refusal` hands the literal over as the one-literal union it
   spells, and the diagnostic then says ``expected `Mode`, found `"rw"` `` with
   `read` and `write` in `alternatives`. An object literal is typed
   `Ty::Unknown`, so the record rule never saw one; the written `{ ... }` emits
@@ -9690,7 +9690,7 @@ and is the owner's to confirm.
   produced whose arms this cannot read: `match` is where the walk's own join
   loses the literals, and `csvql`'s `fn agg_of(name: string) -> Agg { return
   match name { "sum" => "sum", ... } }` is a correct program `tsc` compiles that
-  the first cut of this rule rejected. `written_ty` reads the arms when every
+  the first cut of this rule rejected. `written_literal_refusal` reads the arms when every
   one is a written literal or an expression already typed as a string-literal
   union, and answers `Unknown` when an arm is a block or something else, which
   leaves the pairing to `tsc` rather than refusing a `string` that may not be a

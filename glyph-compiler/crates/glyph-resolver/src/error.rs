@@ -18,6 +18,22 @@ pub enum ResolveError {
     #[error("relative imports are not allowed (D15)")]
     RelativeImport { span: Span },
 
+    /// A `module` declaration whose first segment is `std` or `extern`. Both
+    /// prefixes name the compiler's own modules (D15), so an import of that
+    /// path resolves to the stdlib stub or to a staged `.ts` file and never to
+    /// the declaring file. Without this the file compiles clean and is
+    /// unreachable: `import std/io { println }` takes the stub's `println`,
+    /// and `import std/io { shout }` reports the project's own function as a
+    /// name `std/io` does not export (G238). `span` is the module path.
+    #[error("`{path}` declares a module under `{prefix}/`, a prefix reserved for the modules the compiler carries (D15)")]
+    ReservedModulePrefix {
+        /// `std` or `extern`, the segment that is reserved.
+        prefix: String,
+        /// The whole declared path, as the `module` line spells it.
+        path: String,
+        span: Span,
+    },
+
     /// A module whose only top-level declarations are imports (no `fn`,
     /// `type`, `const`, or `component`). D15 forbids barrel files; since
     /// Glyph imports never re-export, such a file does nothing and is the
@@ -166,6 +182,7 @@ impl ResolveError {
         match self {
             ResolveError::DuplicateName { second_span, .. } => *second_span,
             ResolveError::RelativeImport { span } => *span,
+            ResolveError::ReservedModulePrefix { span, .. } => *span,
             ResolveError::BarrelFile { span } => *span,
             ResolveError::UnresolvedName { span, .. } => *span,
             ResolveError::UnresolvedModule { span, .. } => *span,
@@ -208,6 +225,7 @@ impl ResolveError {
             ResolveError::ShadowedGlobalName { .. } => "E0110",
             ResolveError::PrimitiveUnionType { .. } => "E0111",
             ResolveError::NoExportSurface { .. } => "E0112",
+            ResolveError::ReservedModulePrefix { .. } => "E0113",
         }
     }
 
@@ -313,6 +331,9 @@ impl ResolveError {
             }
             ResolveError::NoExportSurface { .. } => {
                 "Mark what this module exports with `pub`, add a `fn main`, or import it from another module in this project. A module nothing reaches never runs."
+            }
+            ResolveError::ReservedModulePrefix { .. } => {
+                "Rename the module to a path of your own (`io`, `app/io`). `std/` names the stdlib modules the compiler carries and `extern/<name>` names a hand-written TypeScript file under `<src>/extern/`, so an import of either path reaches the compiler's module and never this file."
             }
         })
     }

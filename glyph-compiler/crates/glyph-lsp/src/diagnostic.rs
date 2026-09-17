@@ -482,6 +482,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::DuplicateName { .. } => "collect",
         ResolveError::RelativeImport { .. } => "collect",
         ResolveError::BarrelFile { .. } => "collect",
+        ResolveError::ReservedModulePrefix { .. } => "collect",
         ResolveError::UnknownExportedName { .. } => "import",
         ResolveError::UnresolvedName { .. } => "resolve",
         ResolveError::UnresolvedModule { .. } => "import",
@@ -798,12 +799,13 @@ mod tests {
         );
     }
 
-    /// A prelude union has a fixed variant table and no declaration in any
-    /// project module, so there is nothing to address. `builtin` says that;
-    /// a `module::name` invented for `Result` would name a module no project
-    /// has.
+    /// A prelude union is keyed by the stdlib module that declares it (G231),
+    /// so `cause` and `union.declaration` are `std/result::Result` and an
+    /// agent has a next call to make. `kind` stays `builtin` because it still
+    /// answers the question that follows, which is whether this project can
+    /// add a variant to it.
     #[test]
-    fn a_prelude_unions_gap_is_a_builtin_with_no_declaration() {
+    fn a_prelude_unions_gap_keys_under_its_stdlib_module() {
         let src = "module app\n\n\
             import std/result { Ok, Err }\n\n\
             fn f(r: Result<number, string>) -> number {\n\
@@ -813,8 +815,8 @@ mod tests {
         let union = d.union.as_ref().expect("E0200 names a union");
         assert_eq!(union.kind, "builtin");
         assert_eq!(union.name, "Result");
-        assert_eq!(union.module, None);
-        assert_eq!(union.declaration, None);
+        assert_eq!(union.module.as_deref(), Some("std/result"));
+        assert_eq!(union.declaration.as_deref(), Some("std/result::Result"));
         assert_eq!(d.missing_variants.as_deref(), Some(["Err".to_string()].as_slice()));
     }
 

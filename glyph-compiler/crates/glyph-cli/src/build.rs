@@ -611,6 +611,26 @@ fn build_project_inner_with(
             report.error_count += 1;
         }
 
+        // A `module` declaration under `std/` or `extern/`. Both prefixes are
+        // the compiler's own (D15), so an import of that path never reaches
+        // this file and everything in it is unreachable (G238).
+        if let Some(ast) = parsed.module() {
+            for e in &glyph_resolver::verify_module_declaration(ast) {
+                report
+                    .diagnostics
+                    .push(render_resolve_error(module_path, &source, e, with_color));
+                report
+                    .structured
+                    .push(crate::diagnostic::from_resolve_error(
+                        module_path,
+                        &source,
+                        e,
+                        ast,
+                    ));
+                report.error_count += 1;
+            }
+        }
+
         // A local import that names no module under the build root gets a real
         // diagnostic here. `import_diagnostics` is deliberately permissive
         // about unknown modules (npm packages have no exports table), which

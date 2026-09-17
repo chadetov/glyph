@@ -512,6 +512,46 @@ pub fn verify_local_imports(
     errors
 }
 
+/// The two module-path prefixes a project file may not declare (D15).
+///
+/// `std/` names the stdlib modules the compiler carries; `extern/<name>` names
+/// a hand-written TypeScript file the build stages into the output. Both are
+/// resolved by the compiler rather than by the project walk, which is what
+/// makes a project file declared under either one unreachable.
+pub const RESERVED_MODULE_PREFIXES: [&str; 2] = ["std", "extern"];
+
+/// Reject a `module` declaration whose first segment is `std` or `extern`.
+///
+/// The prefixes were reserved for *imports* only: `verify_local_imports` skips
+/// them and nothing looked at the declaration, so `module std/io` in a project
+/// file compiled clean and was dead code. An import of that path resolves to
+/// the stdlib stub, so `import std/io { println }` takes the compiler's
+/// `println` and `import std/io { shout }` reports the project's own function
+/// as a name `std/io` does not export, with no diagnostic anywhere pointing at
+/// the file that declared it (G238).
+///
+/// This is also what makes a stdlib module key an identity a project cannot
+/// collide with, which is what `std/result::Result` rests on (G231).
+///
+/// A file with no `module` line declares no path and is not checked here.
+pub fn verify_module_declaration(module: &Module) -> Vec<ResolveError> {
+    let Some(path) = module.module_path.as_ref() else {
+        return Vec::new();
+    };
+    let Some(first) = path.segments.first() else {
+        return Vec::new();
+    };
+    let first = first.as_ref();
+    if !RESERVED_MODULE_PREFIXES.contains(&first) {
+        return Vec::new();
+    }
+    vec![ResolveError::ReservedModulePrefix {
+        prefix: first.to_string(),
+        path: path_key(path),
+        span: path.span,
+    }]
+}
+
 /// Where a build found a file that could answer to an unresolved import path.
 ///
 /// The distinction is what lets E0104 tell "you spelled the path wrong" from
@@ -1052,5 +1092,90 @@ mod module_id_tests {
         let paths = import_paths("module x\nimport db/catalog\n");
         let mut ids = ModuleInterner::new();
         assert_eq!(ids.intern(&decl), ids.intern(&paths[0]));
+    }
+}
+
+#[cfg(test)]
+mod reserved_module_prefix_tests {
+    use super::*;
+    use glyph_parser::parse;
+
+    fn errors(src: &str) -> Vec<ResolveError> {
+        verify_module_declaration(&parse(src).expect("parse"))
+    }
+
+    fn reported(src: &str) -> (String, String) {
+        match errors(src).as_slice() {
+            [ResolveError::ReservedModulePrefix { prefix, path, .. }] => {
+                (prefix.clone(), path.clone())
+            }
+            other => panic!("expected one E0113, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_module_under_std_is_rejected() {
+        let (prefix, path) = reported("module std/io\n\npub fn shout() -> void {}\n");
+        assert_eq!(prefix, "std");
+        assert_eq!(path, "std/io");
+    }
+
+    #[test]
+    fn a_module_under_extern_is_rejected() {
+        let (prefix, path) = reported("module extern/helper\n\npub fn assist() -> void {}\n");
+        assert_eq!(prefix, "extern");
+        assert_eq!(path, "extern/helper");
+    }
+
+    /// The bare prefix is the same collision: `module std` is the module every
+    /// `std/...` import path is counted under.
+    #[test]
+    fn the_bare_prefix_is_rejected_too() {
+        assert_eq!(reported("module std\n\npub fn f() -> void {}\n").0, "std");
+        assert_eq!(
+            reported("module extern\n\npub fn f() -> void {}\n").0,
+            "extern"
+        );
+    }
+
+    /// The prefix is a whole segment, not a string prefix. A project module
+    /// called `standard` or `externals` is nobody's collision.
+    #[test]
+    fn a_segment_that_merely_starts_with_the_prefix_is_fine() {
+        for src in [
+            "module standard\n\npub fn f() -> void {}\n",
+            "module externals/io\n\npub fn f() -> void {}\n",
+            "module app/std\n\npub fn f() -> void {}\n",
+            "module app/extern/helper\n\npub fn f() -> void {}\n",
+        ] {
+            assert!(errors(src).is_empty(), "wrongly rejected: {src}");
+        }
+    }
+
+    /// A file with no `module` line declares no path, so there is nothing to
+    /// collide with.
+    #[test]
+    fn a_file_with_no_module_line_is_not_checked() {
+        assert!(errors("pub fn f() -> void {}\n").is_empty());
+    }
+
+    /// The declaration is rejected; the import is not. Both prefixes stay
+    /// importable, which is the whole point of reserving them.
+    #[test]
+    fn importing_under_either_prefix_still_works() {
+        let src = "module app\n\nimport std/io\nimport extern/helper\n\n\
+                   pub fn f() -> void { io.println(\"x\") }\n";
+        assert!(errors(src).is_empty(), "an import is not a declaration");
+        let module = parse(src).expect("parse");
+        let reported = verify_local_imports(
+            &module,
+            "root",
+            &|_| ModuleResolution::Unresolved,
+            &|_| None,
+        );
+        assert!(
+            reported.is_empty(),
+            "`std/` and `extern/` imports are still skipped: {reported:?}"
+        );
     }
 }

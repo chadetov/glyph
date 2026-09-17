@@ -37,12 +37,12 @@ pub use error::{ResolveError, Severity, ShadowOrigin};
 pub use lints::{module_lints, no_export_surface_lint};
 pub use reserved::JS_GLOBALS;
 pub use module_graph::{
-    path_key, verify_imports, verify_local_imports, verify_qualified_type_refs, CompositeGraph,
-    ModuleExports, ModuleGraph, ModuleId, ModuleInterner, ModuleResolution, ModuleSite,
-    StdlibStubs,
+    path_key, verify_imports, verify_local_imports, verify_module_declaration,
+    verify_qualified_type_refs, CompositeGraph, ModuleExports, ModuleGraph, ModuleId,
+    ModuleInterner, ModuleResolution, ModuleSite, StdlibStubs, RESERVED_MODULE_PREFIXES,
 };
 pub use stdlib_types::{is_stdlib_type_only, stdlib_type_only_pairs};
-pub use prelude::{build_prelude, Prelude};
+pub use prelude::{build_prelude, prelude_declaring_module, Prelude};
 pub use resolve::{
     resolve_module, QualifiedTypeRef, ResolutionMap, ResolvedModule, ResolvedRef,
 };

@@ -15,7 +15,6 @@ use std::sync::Arc;
 use glyph_ast::{Decl, Ident, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
-use crate::assign::DeclTyResolver;
 use crate::ty::{
     FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, Ty, UnionVariant,
 };
@@ -26,10 +25,6 @@ use crate::ty::{
 pub struct Lowerer<'a> {
     pub resolved: &'a ResolvedModule,
     pub prelude: &'a Prelude,
-    /// Cross-module lookup for types whose declaration lives in a sibling
-    /// module. `None` for callers with no project context (every db-less
-    /// caller), which keeps those at module-local lowering.
-    imports: Option<&'a dyn DeclTyResolver>,
     /// Set only on a `for_export` lowerer: the module path of the file being
     /// lowered, used to render a *module-local* type as a `Ty::Imported`
     /// anchored on this module. That is what keeps this module's `SymbolId`s
@@ -42,30 +37,12 @@ impl<'a> Lowerer<'a> {
         Self {
             resolved,
             prelude,
-            imports: None,
-            export_module: None,
-        }
-    }
-
-    /// A `Lowerer` that can reach across a module boundary through the
-    /// supplied `DeclTyResolver`. Used where an annotation's lowered `Ty` has
-    /// to be right for an imported type: the Assigner's walk (param and `let`
-    /// annotations) and the `decl_ty` query (fn signatures).
-    pub fn with_imports(
-        resolved: &'a ResolvedModule,
-        prelude: &'a Prelude,
-        imports: &'a dyn DeclTyResolver,
-    ) -> Self {
-        Self {
-            resolved,
-            prelude,
-            imports: Some(imports),
             export_module: None,
         }
     }
 
     /// The **export view** of a module: lowering a declaration as another
-    /// module will see it. Identical to `with_imports` except that a
+    /// module will see it. Identical to `new` except that a
     /// module-local `type` name lowers to `Ty::Imported { module_path, name }`
     /// instead of a `Ty::Named` carrying this module's `SymbolId` — a foreign
     /// id would index an unrelated symbol in the consumer's table.
@@ -81,13 +58,11 @@ impl<'a> Lowerer<'a> {
     pub fn for_export(
         resolved: &'a ResolvedModule,
         prelude: &'a Prelude,
-        imports: &'a dyn DeclTyResolver,
         module_path: &'a str,
     ) -> ExportLowerer<'a> {
         ExportLowerer(Self {
             resolved,
             prelude,
-            imports: Some(imports),
             export_module: Some(module_path),
         })
     }
@@ -107,13 +82,16 @@ impl<'a> Lowerer<'a> {
                     //
                     // A two-segment path through a *project* namespace import
                     // (`catalog.ColType`, or `c.ColType` through
-                    // `import catalog as c`) gets the same D30 treatment as the
-                    // named-import spelling below: the sibling module's
-                    // string-literal union keeps its literal set, so a `match`
-                    // over it stays exhaustive without an `else`.
+                    // `import catalog as c`) is a `Ty::Imported`, the same type
+                    // the named-import spelling below produces for the same
+                    // declaration. A string-literal union declared in the
+                    // sibling is no exception (G233): the literal set is read
+                    // from the declaration on demand
+                    // (`imported_string_literal_union_values`), so the type
+                    // keeps the name its author gave it and D30's
+                    // exhaustiveness still crosses the boundary.
                     return self
                         .stdlib_path_ty(segments, *span)
-                        .or_else(|| self.qualified_string_literal_union(segments, *span))
                         .or_else(|| self.qualified_imported_ty(segments, *span))
                         .unwrap_or(Ty::Unknown);
                 }
@@ -159,9 +137,6 @@ impl<'a> Lowerer<'a> {
                             SymbolKind::ImportNamed { original, path } => self
                                 .imported_prelude_container(original)
                                 .or_else(|| self.imported_stdlib_modeled_ty(path, original))
-                                .or_else(|| {
-                                    self.imported_string_literal_union(path, original)
-                                })
                                 .unwrap_or_else(|| Ty::Imported {
                                     module: module_key(path),
                                     name: original.clone(),
@@ -402,38 +377,6 @@ impl<'a> Lowerer<'a> {
         }
     }
 
-    /// The `Ty` for `ns.Name` when `ns` is a namespace import of a project
-    /// sibling and `Name` is a string-literal union declared there. Keeps D30's
-    /// exhaustiveness guarantee alive across the two namespace spellings, the
-    /// same way `imported_string_literal_union` does for the named spelling.
-    fn qualified_string_literal_union(
-        &self,
-        segments: &[Ident],
-        span: glyph_ast::Span,
-    ) -> Option<Ty> {
-        if segments.len() != 2 {
-            return None;
-        }
-        let path = self.namespace_import_path(span)?;
-        self.imported_string_literal_union(path, segments.get(1)?)
-    }
-
-    /// The `Ty` for an imported name that a project sibling declares as a
-    /// string-literal union (`pub type Kind = "a" | "b"`). Returning the same
-    /// `Ty::StringLiteralUnion` the local declaration lowers to is what makes
-    /// the match-exhaustiveness check work unchanged across the boundary:
-    /// verifiability does not get to stop at a file edge.
-    fn imported_string_literal_union(
-        &self,
-        path: &glyph_ast::ModulePath,
-        name: &Ident,
-    ) -> Option<Ty> {
-        let module = module_key(path);
-        self.imports?
-            .imported_string_literal_union(module.as_str(), name.as_ref())
-            .map(Ty::StringLiteralUnion)
-    }
-
     /// The `Ty` for `ns.Name` when `ns` is a namespace import (`import catalog`)
     /// or an aliased one (`import catalog as c`). Produces the same
     /// `Ty::Imported` the named spelling produces for the same declaration:
@@ -603,6 +546,7 @@ pub fn lower_type_expr(te: &TypeExpr, resolved: &ResolvedModule, prelude: &Prelu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::assign::DeclTyResolver;
     use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module};
 
     /// Parse `src`, resolve, then return the field-type lowering for the
@@ -836,8 +780,9 @@ type T = { f: Result<User, FeedError> }
     }
 
     /// A `DeclTyResolver` with no overrides: every method takes the trait's
-    /// default. Proves `with_imports` over such a resolver is identical to
-    /// `new` — the cross-module answers come from the impl, never the default.
+    /// default. Lowering reaches across no module boundary at all since G233,
+    /// so this stands for the export view's resolver argument and nothing
+    /// else.
     struct NoImports;
 
     impl DeclTyResolver for NoImports {
@@ -858,7 +803,7 @@ type T = { f: Result<User, FeedError> }
             other => panic!("expected Fn, got {other:?}"),
         };
         let imports = NoImports;
-        let with = Lowerer::with_imports(&resolved, &prelude, &imports).lower(&f.params[0].ty);
+        let with = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
         let without = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
         assert_eq!(with, without, "the trait default must not be load-bearing");
     }
@@ -896,7 +841,7 @@ type T = { f: Result<User, FeedError> }
             other => panic!("expected Type, got {other:?}"),
         };
         let imports = NoImports;
-        let decl = Lowerer::for_export(&resolved, &prelude, &imports, "catalog")
+        let decl = Lowerer::for_export(&resolved, &prelude, "catalog")
             .lower_exported_type(td);
         assert_eq!(decl.name.as_ref(), "Book");
         let Ty::Record { fields } = &decl.body else {
@@ -926,7 +871,7 @@ type T = { f: Result<User, FeedError> }
             other => panic!("expected Type, got {other:?}"),
         };
         let imports = NoImports;
-        let decl = Lowerer::for_export(&resolved, &prelude, &imports, "catalog")
+        let decl = Lowerer::for_export(&resolved, &prelude, "catalog")
             .lower_exported_type(td);
         assert_eq!(
             decl.generics.iter().map(|g| g.as_ref()).collect::<Vec<_>>(),

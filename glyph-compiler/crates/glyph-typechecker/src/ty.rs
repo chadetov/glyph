@@ -76,12 +76,20 @@ pub enum Ty {
     /// Tagged union (D8): `Ok(T) | Err(E)`. Variants carry an optional payload.
     Union { variants: Vec<UnionVariant> },
 
-    /// A string-literal union type (`"free" | "pro"`, D30). Behaves like
-    /// `Prim(String)` for assignability (Glyph does not track string-literal
-    /// expression types, so any `string` is assignable and vice versa; `tsc`
-    /// enforces the narrowed type on the emitted TS). The literal set is carried
-    /// only so a `match` over this type can be exhaustive without an `else` when
-    /// every literal is covered.
+    /// A string-literal union type (`"free" | "pro"`, D30), and the type of a
+    /// written string literal, which is the one-literal union it spells
+    /// (G237).
+    ///
+    /// The literal set drives three things: a `match` over the type is
+    /// exhaustive without an `else` when every literal is covered;
+    /// assignability compares two sets by subset, so `"read"` fits a `Mode`
+    /// and `"nope"` does not; and the emitter re-states the set as a
+    /// TypeScript assertion so `tsc` does not narrow a binding to the literal
+    /// last written into it.
+    ///
+    /// A declaration in another module does *not* appear here: it keeps its
+    /// name as a `Ty::Imported` and the set is read from the declaration
+    /// through `imported_string_literal_union_values` (G233).
     StringLiteralUnion(Vec<String>),
 
     /// A type whose declaration lives in another module (`import catalog { Sheet }`,
@@ -482,10 +490,11 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
         Ty::Fn { .. } => "function".to_string(),
         Ty::Union { .. } => "union".to_string(),
         // The literal set, not a category word. A union spelled inline has no
-        // name to print, and one brought in from a sibling module lowers
-        // straight to its literal set (`imported_string_literal_union`), so
-        // "?" was what a mismatch against an imported `Mode` named before G230
-        // gave the pairing a diagnostic at all.
+        // name to print, and a written literal is the set holding just
+        // itself, which is what puts `found `"nope"`` on the diagnostic in
+        // place of `found `string``. A union declared in another module is a
+        // `Ty::Imported` and prints its name (G233); nothing reaches here
+        // that has a name to print.
         Ty::StringLiteralUnion(values) => values
             .iter()
             .map(|v| format!("{v:?}"))

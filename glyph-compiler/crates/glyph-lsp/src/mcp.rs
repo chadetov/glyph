@@ -3416,10 +3416,9 @@ fn union_shape(
             // reading of the source. The names survive a module whose symbols
             // do not collect; the payloads say so rather than going quiet.
             let resolved = glyph_db::resolve(db, file.file);
-            let imports = SalsaDeclTy::new(db, file.file);
             let lowerer = resolved
                 .resolved()
-                .map(|rm| Lowerer::with_imports(rm, db.prelude(), &imports));
+                .map(|rm| Lowerer::new(rm, db.prelude()));
             let why = format!(
                 "module `{module}` does not resolve, so the payload of this variant was \
                  never lowered and the syntax that constructs it is not known here"
@@ -8151,7 +8150,7 @@ fn tool_assignable(args: &Value, server: &mut Server) -> Result<String, String> 
     };
 
     let decls = SalsaDeclTy::new(db, probe);
-    let lowerer = Lowerer::with_imports(probe_resolved, db.prelude(), &decls);
+    let lowerer = Lowerer::new(probe_resolved, db.prelude());
     let body = |name: &str| {
         probe_ast.items.iter().find_map(|d| match d {
             glyph_ast::Decl::Type(t) if t.name.as_ref() == name => Some(&t.body),
@@ -8604,8 +8603,7 @@ fn declared_ty(project: &Project, file: SourceFile, what: &DeclaredAs<'_>, name:
         DeclaredAs::Variant { variant, .. } => {
             let resolved = glyph_db::resolve(db, file);
             let resolved_module = resolved.resolved()?;
-            let imports = SalsaDeclTy::new(db, file);
-            let lowerer = Lowerer::with_imports(resolved_module, db.prelude(), &imports);
+            let lowerer = Lowerer::new(resolved_module, db.prelude());
             Some(crate::analysis::variant_ty(
                 &variant.name,
                 variant.payload.as_ref(),
@@ -8621,8 +8619,7 @@ fn body_lowered(project: &Project, file: SourceFile, decl: &glyph_ast::Decl) -> 
     let db = &project.db;
     let resolved = glyph_db::resolve(db, file);
     let resolved_module = resolved.resolved()?;
-    let imports = SalsaDeclTy::new(db, file);
-    let lowerer = Lowerer::with_imports(resolved_module, db.prelude(), &imports);
+    let lowerer = Lowerer::new(resolved_module, db.prelude());
     let types = glyph_db::type_map(db, file);
     crate::analysis::declaration_ty(decl, &lowerer, types.type_map())
 }

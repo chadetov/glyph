@@ -105,23 +105,6 @@ pub trait DeclTyResolver {
         None
     }
 
-    /// Cross-module string-literal-union resolution: for the project module at
-    /// `module_path`, if `type_name` is declared as `type X = "a" | "b"`, return
-    /// its literal set. `None` with no cross-module context (db-less callers) or
-    /// when the module is not a project sibling / declares no such type.
-    ///
-    /// The D30 counterpart of `imported_union_of_variant`. Without it an
-    /// imported string-literal union lowers to `Ty::Unknown` in the consuming
-    /// module, so an exhaustive `match` over it is reported as needing an
-    /// `else` — the exact catch-all that destroys the guarantee D30 sells.
-    fn imported_string_literal_union(
-        &self,
-        _module_path: &str,
-        _type_name: &str,
-    ) -> Option<Vec<String>> {
-        None
-    }
-
     /// The general cross-module type query: for the project module at
     /// `module_path`, return the `type <type_name> = ...` declaration lowered on
     /// the *source* side, so its body names types that resolve against the
@@ -130,11 +113,11 @@ pub trait DeclTyResolver {
     /// (`std/fs`), or for a name that module does not declare as a `type`.
     ///
     /// This is what gives an imported record a field set, so `s.rowz` is an
-    /// `UnknownField` and `for i, r in s.rows` lowers as an array loop. The two
-    /// per-shape queries above (`imported_union_of_variant`,
-    /// `imported_string_literal_union`) answer questions this one could also
-    /// answer; folding them in is the natural follow-up, deliberately not done
-    /// in the same change that introduces this one.
+    /// `UnknownField` and `for i, r in s.rows` lowers as an array loop. It is
+    /// also where an imported string-literal union's literal set comes from
+    /// since G233, through `imported_string_literal_union_values`; the
+    /// per-shape query that used to answer that separately is gone.
+    /// `imported_union_of_variant` is the one still beside it.
     ///
     /// Answered by `glyph_db::exported_type`, which lowers the declaration on
     /// the source side and wraps it in an `ExportedTypeDecl`. One declaration,
@@ -314,7 +297,7 @@ pub fn assign_types_with_relations(
     {
         let mut assigner = Assigner {
             module,
-            lowerer: Lowerer::with_imports(resolved, prelude, decl_ty_resolver),
+            lowerer: Lowerer::new(resolved, prelude),
             resolved,
             tm: &mut tm,
             errors: &mut errors,
@@ -405,7 +388,7 @@ pub fn assignability(
     let mut field_uses = FileFieldUses::default();
     let assigner = Assigner {
         module,
-        lowerer: Lowerer::with_imports(resolved, prelude, decl_ty_resolver),
+        lowerer: Lowerer::new(resolved, prelude),
         resolved,
         tm: &mut tm,
         errors: &mut errors,
@@ -5270,17 +5253,19 @@ impl Assigner<'_> {
         if let Ty::StringLiteralUnion(values) = ty {
             return Some(values.clone());
         }
-        // A string-literal union reached through an imported record's *field*
-        // (`match sheet.kind { ... }`). The direct spelling is already answered
-        // by `imported_string_literal_union` at lowering; the field type comes
-        // from the sibling's own lowering, so it arrives as a `Ty::Imported`
-        // and needs the same resolution D30 promises for the direct case.
+        // Every string-literal union declared in another module, whichever
+        // spelling brought it here: the annotation `Mode` under a named
+        // import, `modes.Mode` under a namespace one, an alias of either, and
+        // the type of a field read off an imported record. All four lower to
+        // a `Ty::Imported` (G233), so the literal set is read from the
+        // declaration here rather than baked into the type, and the type keeps
+        // the name its author gave it everywhere a diagnostic prints one.
         if let Ty::Imported { module, name } = ty {
-            let decl = self.imported_type_body(module.as_str(), name)?;
-            let Ty::StringLiteralUnion(values) = decl.body else {
-                return None;
-            };
-            return Some(values);
+            return imported_string_literal_union_values(
+                self.decl_ty_resolver,
+                module.as_str(),
+                name.as_ref(),
+            );
         }
         let Ty::Named { symbol, .. } = ty else { return None };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
@@ -7310,6 +7295,32 @@ pub fn imported_decl_chain_end(
             }
             _ => return Some((module, name, decl)),
         }
+    }
+}
+
+/// The literal set of a string-literal union declared in another module, or
+/// `None` for anything else.
+///
+/// The one accessor every consumer of an imported D30 union goes through
+/// (G233): assignability, match exhaustiveness, the emitter's narrowing
+/// assertion and comparison lowering, `glyph_symbol`'s `literals`, and
+/// `glyph_assignable`. The type itself carries the declaration's address and
+/// its name, never the set, so `expected `Mode`` is what a diagnostic prints
+/// through every import spelling, exactly as it prints for the same
+/// declaration read locally.
+///
+/// The chain of second names is followed to its end, so `pub type Alias =
+/// Mode` in the sibling answers `Mode`'s literals the way a local
+/// `type Alias = Mode` does.
+pub fn imported_string_literal_union_values(
+    resolver: &dyn DeclTyResolver,
+    module: &str,
+    name: &str,
+) -> Option<Vec<String>> {
+    let (_, _, decl) = imported_decl_chain_end(resolver, module, name)?;
+    match decl.body {
+        Ty::StringLiteralUnion(values) => Some(values),
+        _ => None,
     }
 }
 
@@ -13145,7 +13156,7 @@ component View(s: Status) -> Component {
         let mut field_uses = FileFieldUses::default();
         let assigner = Assigner {
             module: &m,
-            lowerer: Lowerer::with_imports(&resolved, &prelude, resolver),
+            lowerer: Lowerer::new(&resolved, &prelude),
             resolved: &resolved,
             tm: &mut tm,
             errors: &mut errors,
@@ -14398,14 +14409,6 @@ fn f(a: Answer) -> number {
         impl DeclTyResolver for ModesModule {
             fn decl_ty(&self, _decl_idx: u32) -> Ty {
                 Ty::Unknown
-            }
-            fn imported_string_literal_union(
-                &self,
-                module_path: &str,
-                type_name: &str,
-            ) -> Option<Vec<String>> {
-                (module_path == "modes" && type_name == "Mode")
-                    .then(|| vec!["read".to_string(), "write".to_string()])
             }
             fn imported_type_decl(
                 &self,

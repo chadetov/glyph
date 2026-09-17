@@ -37,6 +37,7 @@ pub mod type_map;
 pub use assign::{
     alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
     assign_types_with_resolver, assignability, direct_type_decl, imported_decl_chain_end,
+    imported_string_literal_union_values,
     prelude_app, prelude_container, resolve_alias_chain, split_type_app, stdlib_signature,
     Assignability,
     CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention, CoverageSite,

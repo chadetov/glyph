@@ -5798,7 +5798,7 @@ impl Assigner<'_> {
     /// which is the one container `prelude_container_incompatible` descends
     /// with the value's type intact (G216).
     ///
-    /// The condition on `written_ty` reading a literal, so `let m:
+    /// The condition on `written_literal_refusal` reading a literal, so `let m:
     /// Nullable<Mode> = "read"` is read the way `let m: Mode = "read"` is. Any
     /// other container refuses a string outright, and there is nothing to
     /// gain by naming the literal in that refusal.
@@ -5874,7 +5874,7 @@ impl Assigner<'_> {
     /// What does reach this arm holding literals is a value-position `match`
     /// whose arms are literals, whose join the walk records as `string`
     /// (`fn agg_of(name: string) -> Agg { return match name { "sum" => "sum",
-    /// ... } }`, which `csvql` contains and `tsc` compiles). `written_ty`
+    /// ... } }`, which `csvql` contains and `tsc` compiles). `written_literal_refusal`
     /// reads that form, and the written literal, before this is asked, and
     /// answers `Unknown` for the arms it cannot read, so the `string` left
     /// here is one no written form pinned to a narrower set.

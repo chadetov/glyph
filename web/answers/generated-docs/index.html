@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Is the documentation my agent reads generated, or written by hand and out of date? · Glyph</title>
+    <meta name="description" content="glyph llms --json emits the diagnostic catalogue, the prelude, the stdlib signatures, the language decisions and the tool manual out of the compiler's own tables. Every code example in the agent bootstrap compiles, and the wrong programs are readable too." />
+    <link rel="canonical" href="https://glyphlang.io/answers/generated-docs/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/embedding/"><span class="n">05</span> Inside your app</a>
+        <a href="/answers/typed-apis/"><span class="n">06</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">07</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">08</span> React</a>
+        <a href="/answers/state/"><span class="n">09</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">10</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">11</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">12</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
+        <a href="/answers/impact/"><span class="n">15</span> Before you edit</a>
+        <a href="/answers/ask-the-compiler/"><span class="n">16</span> Ask the compiler</a>
+        <a href="/answers/repair-protocol/"><span class="n">17</span> Fixing a red build</a>
+        <a href="/answers/generated-docs/" class="active"><span class="n">18</span> Docs that can't drift</a>
+        <a href="/answers/debugging/"><span class="n">19</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">20</span> The language</a>
+        <a href="/answers/finance/"><span class="n">21</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">22</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">23</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">24</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">25</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">26</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">27</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">28</span> Binary data</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">18 &middot; Docs that can't drift</p>
+      <h1 class="q-title">Is the documentation my agent reads generated, or written by hand and out of date?</h1>
+
+      <p class="short-answer">
+        Generated. <code>glyph llms --json</code> emits the diagnostic catalogue, the prelude,
+        the stdlib signatures, the language decisions and the tool manual out of the compiler's
+        own tables, and a gate fails the build when a hand-written copy disagrees. Every Glyph
+        example in the document an agent bootstraps from is compiled, including the wrong ones.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          The question is not rhetorical, because the honest answer used to be "written by hand,
+          and yes." The agent bootstrap said the MCP server "exposes five tools" and listed five.
+          The server served seven. The two the server's own instructions tell an agent to reach
+          for first appeared in it zero times. The 58 error codes lived in three hand-maintained
+          copies, checked only for whether the code string was present. Of 19 Glyph examples in
+          that document, 2 were compiled and 17 were skipped as fragments.
+        </p>
+        <p>
+          Every one of those is the same defect. A document about a compiler, maintained beside
+          the compiler, by people who meant well. An agent that reads it cannot tell which
+          sentences are still true, and neither could we.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          Six sections, each read off a table the compiler already has. A diagnostic entry carries
+          the catalogue sentence, the one-line fix, the long explanation, the help and note taken
+          from a diagnostic the compiler drew, and a wrong program that draws it,
+          compiled at the moment you ask.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --json, the E0200 entry (trimmed)</span>
+<pre>{
+  "code": "E0200",
+  "phase": "typechecker",
+  "meaning": "Non-exhaustive `match` on a tagged union (yours, a prelude
+    `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
+    string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ...",
+  "fix": "Handle every variant, or add an `else`",
+  "help": "Add an arm for each missing variant, or an `else` arm to catch
+           the rest.",
+  "note": "Tagged unions are sealed (D9): adding a variant forces every
+           match to be updated. A `_`/`else` catch-all is allowed but
+           forfeits that guarantee.",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "files": [ { "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+      "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+      "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a
+      case: an entry is a wrong program and the code it draws. A fix
+      invented here would compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          61 codes come out of one table in the compiler, and <code>docs/error-codes.md</code>
+          and the catalogue table in the agent bootstrap are written from it by a script that
+          fails on drift. Merging the three copies that used to exist turned up a code with an
+          explanation and no place in the list, and a row whose escaped pipe had quietly broken
+          the table it sat in.
+        </p>
+
+        <p class="block-label">The prelude, the stdlib, and the decisions</p>
+        <p>
+          The prelude is the 24 names the resolver resolves against, with what each one is. The
+          stdlib is 36 modules and 327 exports, and each signature is read out of the checker's
+          own tables and printed by the same type printer a diagnostic uses, so the signature in
+          the document is the signature the checker will hold you to.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">"stdlib"</span>
+<pre>{ "path": "std/array", "exports": [
+  { "name": "filter",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Array&lt;T&gt;" },
+  { "name": "find",
+    "signature":
+      "fn(Array&lt;T&gt;, fn(T) -&gt; bool) -&gt; Option&lt;T&gt;" },
+  { "name": "fold",
+    "signature":
+      "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
+
+"modeled": 100, "unmodeled": 227</pre>
+        </div>
+        <div class="code">
+          <span class="cap">"prelude" and "decisions"</span>
+<pre>"prelude": { "count": 24, "names": [
+  { "name": "int", "role": "type" },
+  { "name": "Ok",  "role": "value" },
+  { "name": "par", "role": "namespace" }, ... ] }
+
+"decisions": { "count": 47,
+  "duplicate_numbers": [43],
+  "decisions": [
+    { "id": "D9",
+      "section": "Control flow &amp; expressions",
+      "title": "`else` is a catch-all arm; `_` is a
+        position-level wildcard; a PascalCase arm
+        head is a variant reference ..." }, ... ] }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>duplicate_numbers</code> is there because the generator reads the spec's own list
+          and found two different decisions both numbered D43. It reports the collision rather
+          than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a
+          D number, so no program is affected; a reader following a citation is.
+        </p>
+
+        <p class="block-label">The wrong programs are readable too</p>
+        <p>
+          The compiler's negative corpus is a set of programs that must fail, with the code each
+          one must draw. It used to be visible only to <code>cargo test</code>. An agent learning
+          what a rule refuses is exactly the reader it was written for, so it answers now, and
+          each case is compiled when you ask so the diagnostic beside it is this compiler's.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph llms --negative E0008</span>
+<pre>{
+  "code": "E0008",
+  "meaning": "Assignment without `mut` (`x = e` should be `mut x = e`, or
+              `let x = e` for a new binding; D5)",
+  "fix": "Write `mut x = e`, or `let x = e` for a new binding",
+  "negative": [ {
+    "name": "bare_assignment_without_mut",
+    "files": [ { "path": "bare_assignment_without_mut.glyph",
+      "source": "module neg\n\nfn count() -&gt; number {\n  let total = 0\n
+                 total = total + 1\n  return total\n}\n" } ],
+    "diagnostic": { "code": "E0008", "stage": "parse",
+      "message": "assignment requires `mut`",
+      "help": "Glyph marks every mutation (D5): write `mut x = ...` to
+               reassign an existing binding, or `let x = ...` to
+               introduce a new one.",
+      "range": { "start": { "line": 5, "col": 3, "offset": 53 }, ... } } } ],
+  "catches": [],
+  "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          With no code it lists 68 cases over 40 of the 61 codes, and names the 21 that have
+          none rather than leaving you to infer coverage from what came back. A second corpus,
+          <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph
+          that refuses it, and those come back on the same answer where they exist. Both are
+          embedded from the directories themselves, so a case added to either is in the answer
+          with no second edit to remember.
+        </p>
+
+        <p class="block-label">Every example compiles, including the wrong ones</p>
+        <p>
+          Generating the reference is half of it. The other half is the prose an agent
+          bootstraps from, where the examples are the part it copies. Every Glyph fence in that
+          document is either a complete program that compiles, or is marked as a fragment of a
+          named complete example whose lines it has to appear in. It was 19 fences with 2
+          compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib
+          reference went from 4 of 8 to 8 of 8.
+        </p>
+        <p>
+          A fence can also be marked as a program that must fail, naming the code it draws, which
+          is how the document carries the five wrong forms it warns you about: the one that draws
+          <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning
+          paired with the diagnostic is checkable. A warning written in prose is a promise.
+        </p>
+        <p>
+          Compiling the documents found two things reading them was never going to find. An
+          inline triple backtick had read as a fence opener, so 250 lines counted as one snippet
+          and nothing inside them was checked. And a worked server in the stdlib reference called
+          <code>http.serve</code>, which <code>std/http</code> does not export. The function is
+          <code>listen</code>.
+        </p>
+
+        <p class="block-label">What it costs to hand over, and what it stopped costing</p>
+        <p>
+          The eleven MCP tools used to carry their whole manual in the <code>tools/list</code>
+          reply, which every session pays for on connect: 31,446 bytes of description in a
+          45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now.
+          Nothing was deleted. The previous text is held verbatim, keyed by tool name, and
+          published inside <code>glyph llms --json</code>, so the contract you need at the moment
+          of the call is in the description and the rest is one command away instead of in every
+          session's first reply. A test reads the tool list and the document together, so a
+          document naming a tool the server does not serve, or a count that disagrees with the
+          list, fails the build. That is the check "exposes five tools" needed.
+        </p>
+        <p>
+          All of this is offline and local. <code>glyph llms</code> prints the prose,
+          <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong
+          programs. The same prose is served at <a href="/llms.txt">llms.txt</a> for an agent
+          with a network and no binary. What an agent asks about <em>your</em> code, rather than
+          about the language, is the <a href="/answers/ask-the-compiler/">query tools</a>.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>glyph llms --json</code> emits six sections out of the compiler: 61 diagnostic codes with a compiled counter-example each, the 24 prelude names, 36 stdlib modules with 327 exports, 47 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Where it stops</p>
+          <p>21 of the 61 codes have no wrong program in the corpus, and the answer names them rather than inventing one. 227 of the 327 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks, and Glyph's own checker models no declaration for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. The checker does hold a real function type for a good number of them, but the tables that hold it need a lowering context to call, so lifting them out is a refactor of its own rather than a line in the branch that would read them. The spec numbers two different decisions D43, reported in <code>duplicate_numbers</code> and not yet renumbered, because the number is a public index other documents cite. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/repair-protocol/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">When the build fails, does the compiler tell my agent how to fix it?</span>
+        </a>
+        <a href="/answers/debugging/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">When it breaks in production at 3am, what does on-call see?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/generated-docs/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

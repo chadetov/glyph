@@ -90,9 +90,10 @@
         <p class="block-label">See it</p>
         <p>
           Six sections, each read off a table the compiler already has. A diagnostic entry carries
-          the catalogue sentence, the one-line fix, the long explanation, the help and note taken
-          from a diagnostic the compiler drew, and a wrong program that draws it,
-          compiled at the moment you ask.
+          the catalogue sentence, the one-line fix, the long explanation, and the help and note
+          taken from a diagnostic the compiler drew. 38 of the 61 codes also carry a wrong program
+          that draws the code, compiled at the moment you ask; the other 23 say the corpus has no
+          case for it.
         </p>
       </div>
 
@@ -138,7 +139,12 @@
           The prelude is the 24 names the resolver resolves against, with what each one is. The
           stdlib is 36 modules and 327 exports, and each signature is read out of the checker's
           own tables and printed by the same type printer a diagnostic uses, so the signature in
-          the document is the signature the checker will hold you to.
+          the document is the signature the checker will hold you to. The exports split three
+          ways and never two: 24 signatures are modeled in every position, 76 carry a
+          <code>?</code> where a parameter type belongs and are counted
+          <code>partially_modeled</code> with a line saying how many positions are left, and 227
+          have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is
+          never published as a complete signature.
         </p>
       </div>
 
@@ -156,7 +162,8 @@
     "signature":
       "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
 
-"modeled": 100, "unmodeled": 227</pre>
+"modeled": 24, "partially_modeled": 76,
+"unmodeled": 227</pre>
         </div>
         <div class="code">
           <span class="cap">"prelude" and "decisions"</span>
@@ -218,7 +225,7 @@
 
       <div class="detail">
         <p>
-          With no code it lists 68 cases over 40 of the 61 codes, and names the 21 that have
+          With no code it lists 69 cases over 40 of the 61 codes, and names the 21 that have
           none rather than leaving you to infer coverage from what came back. A second corpus,
           <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph
           that refuses it, and those come back on the same answer where they exist. Both are
@@ -278,7 +285,7 @@
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p>21 of the 61 codes have no wrong program in the corpus, and the answer names them rather than inventing one. 227 of the 327 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks, and Glyph's own checker models no declaration for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. The checker does hold a real function type for a good number of them, but the tables that hold it need a lowering context to call, so lifting them out is a refactor of its own rather than a line in the branch that would read them. The spec numbers two different decisions D43, reported in <code>duplicate_numbers</code> and not yet renumbered, because the number is a public index other documents cite. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
+          <p>Two counts of the wrong programs appear in this document and they count different things: 38 of the 61 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 69 cases over 40 codes because it reads <code>catches/</code> as well. Either way, 21 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 227 of the 327 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 100 that do have one, 76 model only the arity and the return. The spec numbers two different decisions D43, reported in <code>duplicate_numbers</code> and not yet renumbered, because the number is a public index other documents cite. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
         </div>
       </div>
 

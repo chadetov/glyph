@@ -546,7 +546,6 @@ pub fn lower_type_expr(te: &TypeExpr, resolved: &ResolvedModule, prelude: &Prelu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assign::DeclTyResolver;
     use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module};
 
     /// Parse `src`, resolve, then return the field-type lowering for the
@@ -779,35 +778,6 @@ type T = { f: Result<User, FeedError> }
         );
     }
 
-    /// A `DeclTyResolver` with no overrides: every method takes the trait's
-    /// default. Lowering reaches across no module boundary at all since G233,
-    /// so this stands for the export view's resolver argument and nothing
-    /// else.
-    struct NoImports;
-
-    impl DeclTyResolver for NoImports {
-        fn decl_ty(&self, _decl_idx: u32) -> Ty {
-            Ty::Unknown
-        }
-    }
-
-    #[test]
-    fn trait_default_yields_the_same_ty_as_no_import_context() {
-        let src = "module x\nimport catalog { Kind }\nfn label(k: Kind) -> string { return \"a\" }\n";
-        let m = glyph_parser::parse(src).unwrap();
-        let syms = collect_module_symbols(&m).unwrap();
-        let prelude = build_prelude();
-        let (resolved, _) = resolve_module(&m, syms, &prelude);
-        let f = match &m.items[1] {
-            glyph_ast::Decl::Fn(f) => f,
-            other => panic!("expected Fn, got {other:?}"),
-        };
-        let imports = NoImports;
-        let with = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
-        let without = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
-        assert_eq!(with, without, "the trait default must not be load-bearing");
-    }
-
     #[test]
     fn a_db_less_caller_never_checks_a_field_on_an_imported_type() {
         // The identity is available to every caller; the *declaration* is not,
@@ -840,7 +810,6 @@ type T = { f: Result<User, FeedError> }
             glyph_ast::Decl::Type(td) => td,
             other => panic!("expected Type, got {other:?}"),
         };
-        let imports = NoImports;
         let decl = Lowerer::for_export(&resolved, &prelude, "catalog")
             .lower_exported_type(td);
         assert_eq!(decl.name.as_ref(), "Book");
@@ -870,7 +839,6 @@ type T = { f: Result<User, FeedError> }
             glyph_ast::Decl::Type(td) => td,
             other => panic!("expected Type, got {other:?}"),
         };
-        let imports = NoImports;
         let decl = Lowerer::for_export(&resolved, &prelude, "catalog")
             .lower_exported_type(td);
         assert_eq!(

@@ -1407,13 +1407,13 @@ impl Assigner<'_> {
                 if let Some(te) = &c.ty {
                     let expected = self.lowerer.lower(te);
                     let found = self.tm.get(c.value.span()).clone();
-                    if let Some(found) = self.value_refusal(&c.value, &found, &expected) {
-                        let accepted = self.accepted_values(&expected);
+                    if let Some(r) = self.value_refusal(&c.value, &found, &expected) {
+                        let accepted = self.accepted_values(&r.expected);
                         self.errors.push(TypeError::TypeMismatch {
-                            expected: ty_display(&expected),
-                            found,
+                            expected: ty_display(&r.expected),
+                            found: r.found,
                             accepted,
-                            span: c.value.span(),
+                            span: r.span,
                         });
                     }
                 }
@@ -1572,7 +1572,8 @@ impl Assigner<'_> {
                 // argument.
                 let ty = match &l.ty {
                     Some(te) => self.lowerer.lower(te),
-                    None => self.tm.get(l.value.span()).clone(),
+                    None => self
+                        .widen_fresh_literals(&l.value, self.tm.get(l.value.span()).clone()),
                 };
                 // G149: an explicit annotation that disagrees with the
                 // initializer's inferred type must be flagged here, the same
@@ -1587,13 +1588,13 @@ impl Assigner<'_> {
                 // value, not the annotation.
                 if l.ty.is_some() {
                     let found = self.tm.get(l.value.span()).clone();
-                    if let Some(found) = self.value_refusal(&l.value, &found, &ty) {
-                        let accepted = self.accepted_values(&ty);
+                    if let Some(r) = self.value_refusal(&l.value, &found, &ty) {
+                        let accepted = self.accepted_values(&r.expected);
                         self.errors.push(TypeError::TypeMismatch {
-                            expected: ty_display(&ty),
-                            found,
+                            expected: ty_display(&r.expected),
+                            found: r.found,
                             accepted,
-                            span: l.value.span(),
+                            span: r.span,
                         });
                     }
                 }
@@ -1701,6 +1702,11 @@ impl Assigner<'_> {
                 };
                 if let Some(v) = elem_binding {
                     if let Some(elem) = array_elem_ty(&self.tm.get(f.iter.span()).clone()) {
+                        // A written array widens here the way it widens at a
+                        // `let` (G237): `for m in ["read", "write"]` emits a
+                        // TypeScript loop over a `string[]`, so the binding is
+                        // a `string` in the program that runs.
+                        let elem = self.widen_fresh_literals(&f.iter, elem);
                         self.local_tys.insert(v.span.start, elem);
                     }
                 }
@@ -1718,7 +1724,14 @@ impl Assigner<'_> {
     fn walk_expr(&mut self, e: &Expr) {
         match e {
             Expr::Number { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::Number)),
-            Expr::String { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::String)),
+            // A written string literal is typed as the one-literal union it
+            // spells (G237), which is what TypeScript reads it as. The rule
+            // that widens it back to `string` is `widen_fresh_literals`, and
+            // it runs where TypeScript's own widening runs: at a binding whose
+            // type is inferred from the value.
+            Expr::String { span, value } => self
+                .tm
+                .insert(*span, Ty::StringLiteralUnion(vec![value.clone()])),
             Expr::Bool { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::Bool)),
             Expr::Void { span } => self.tm.insert(*span, Ty::Prim(Primitive::Void)),
             // The escape hatch is opaque to Glyph's checker; `tsc` checks its
@@ -1975,13 +1988,13 @@ impl Assigner<'_> {
                     for (p, a) in params.iter().zip(args.iter()) {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
-                        if let Some(found) = self.value_refusal(a, &found, &expected) {
-                            let accepted = self.accepted_values(&expected);
+                        if let Some(r) = self.value_refusal(a, &found, &expected) {
+                            let accepted = self.accepted_values(&r.expected);
                             self.errors.push(TypeError::ArgumentTypeMismatch {
-                                expected: ty_display(&expected),
-                                found,
+                                expected: ty_display(&r.expected),
+                                found: r.found,
                                 accepted,
-                                span: a.span(),
+                                span: r.span,
                             });
                         }
                     }
@@ -2212,9 +2225,15 @@ impl Assigner<'_> {
 
     /// Infer the element type of an array literal from its already-walked
     /// elements. Returns a concrete type only when every element is a plain
-    /// (non-spread) expression with the same decidable type; a spread element,
-    /// an empty literal, or any type disagreement yields `Unknown`, keeping the
-    /// literal at `Array<Unknown>`.
+    /// (non-spread) expression with a decidable type that joins with the rest;
+    /// a spread element, an empty literal, or a disagreement the join cannot
+    /// close yields `Unknown`, keeping the literal at `Array<Unknown>`.
+    ///
+    /// The join is `join_ty`'s, so `["read", "write"]` is an
+    /// `Array<"read" | "write">` rather than the `Array<Unknown>` an equality
+    /// test made of two different literal types (G237). That is what
+    /// `Array<Mode>` is compared against, and the comparison is a subset test
+    /// on the two literal sets.
     fn infer_array_elem_ty(&self, elements: &[ArrayElem]) -> Ty {
         let mut inferred: Option<Ty> = None;
         for el in elements {
@@ -2231,7 +2250,10 @@ impl Assigner<'_> {
             match &inferred {
                 None => inferred = Some(ty.clone()),
                 Some(prev) if prev == ty => {}
-                Some(_) => return Ty::Unknown,
+                Some(prev) => match join_ty(prev, ty) {
+                    Ty::Unknown => return Ty::Unknown,
+                    joined => inferred = Some(joined),
+                },
             }
         }
         inferred.unwrap_or(Ty::Unknown)
@@ -3686,13 +3708,13 @@ impl Assigner<'_> {
             return;
         };
         let found = self.tm.get(value.span()).clone();
-        if let Some(found) = self.value_refusal(value, &found, &expected) {
-            let accepted = self.accepted_values(&expected);
+        if let Some(r) = self.value_refusal(value, &found, &expected) {
+            let accepted = self.accepted_values(&r.expected);
             self.errors.push(TypeError::TypeMismatch {
-                expected: ty_display(&expected),
-                found,
+                expected: ty_display(&r.expected),
+                found: r.found,
                 accepted,
-                span: value.span(),
+                span: r.span,
             });
         }
     }
@@ -5655,112 +5677,120 @@ impl Assigner<'_> {
     /// recursion through records, applications and containers asks, and what
     /// [`assignability`] answers for a surface holding two `Ty` values and no
     /// program text.
-    fn value_refusal(&self, value: &Expr, found: &Ty, expected: &Ty) -> Option<String> {
-        let read = self.written_ty(value, found, expected);
-        if self.assign_incompatible(&read, expected) {
-            return Some(ty_display(&read));
+    fn value_refusal(&self, value: &Expr, found: &Ty, expected: &Ty) -> Option<Refusal> {
+        // A written array or object literal is checked element by element and
+        // field by field first, so the refusal names the one that is wrong and
+        // underlines it rather than the whole literal (G237).
+        if let Some(inner) = self.written_literal_refusal(value, expected) {
+            return Some(inner);
+        }
+        if self.assign_incompatible(found, expected) {
+            return Some(self.refusal(expected, self.found_display(found, expected), value.span()));
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
         // would name the value nothing. The written form is what the reader
         // sees, and it is what the rule read.
         if self.object_literal_outside_union(value, expected) {
-            return Some("record".to_string());
+            return Some(self.refusal(expected, "record".to_string(), value.span()));
         }
         None
     }
 
-    /// The type the relation reads for a written value: the type the walk
-    /// recorded, except for a string literal written where a string-literal
-    /// union is declared, which is the one-literal union it spells (G230).
-    ///
-    /// Glyph types every string literal `string` (D30: the literal set rides
-    /// on the declaration, not on the value), so `"read"` and a `string`-typed
-    /// identifier arrive at `assign_incompatible` as the same `Ty`. The two
-    /// are not the same value where `Mode` is declared: one is correct and the
-    /// other is `TS2322`. The text is right here at all four sites, so the
-    /// literal is handed to the relation as what it is and every
-    /// string-literal-union rule then reads it: `"read"` is a subset of
-    /// `Mode`'s set and is accepted, `"rw"` is not and is refused with the
-    /// accepted set beside it.
-    ///
-    /// Narrow on purpose, in three ways. Only where the declared type is a
-    /// string-literal union, so no other diagnostic starts naming a literal
-    /// where it named `string`. Only a literal whose recorded type really is
-    /// `string`, so nothing overrides a type the walk decided some other way.
-    /// And only `Expr::String`: a template string is `string` under `tsc` too,
-    /// and nothing here has read a literal out of one.
-    fn written_ty(&self, value: &Expr, found: &Ty, expected: &Ty) -> Ty {
-        if !matches!(found, Ty::Prim(Primitive::String)) {
-            return found.clone();
+    fn refusal(&self, expected: &Ty, found: String, span: Span) -> Refusal {
+        Refusal {
+            expected: expected.clone(),
+            found,
+            span,
         }
-        if !self.declares_string_literal_union(expected) {
-            return found.clone();
+    }
+
+    /// The name a refused value goes on the diagnostic under.
+    ///
+    /// A fresh literal type is printed as the literal where the declared type
+    /// is a string-literal union, and as `string` everywhere else. That is
+    /// TypeScript's own rule for the same message: `let n: number = "hi"` is
+    /// *"Type 'string' is not assignable to type 'number'"* there, while
+    /// `let m: Mode = "nope"` is *"Type '\"nope\"' is not assignable to type
+    /// 'Mode'"*. The literal is the useful half of the sentence exactly when
+    /// the reader has to compare it against a set.
+    fn found_display(&self, read: &Ty, expected: &Ty) -> String {
+        if self.declares_string_literal_union(expected) {
+            ty_display(read)
+        } else {
+            ty_display(&widen_literals(read))
         }
+    }
+
+    /// The refusal a written array or object literal draws from the declared
+    /// type's own element or field type, or `None` when nothing inside it is
+    /// refused.
+    ///
+    /// The value rule applied one level in, and then recursively, which is how
+    /// a literal keeps its type through a container: `["read", "nope"]`
+    /// against an `Array<Mode>` is the element `"nope"` against `Mode`, and
+    /// `[{ mode: "nope" }]` against an `Array<Cfg>` is that same pairing two
+    /// levels down. The span is the element's or the field value's, so the
+    /// diagnostic underlines the literal the reader has to change.
+    ///
+    /// Only where the declared type says what the element or field should be.
+    /// An object literal field the declared record does not declare is left
+    /// alone: TypeScript refuses an excess property on a fresh object literal
+    /// and Glyph does not, and widening this rule to cover that would be a
+    /// separate decision about a shape with no string-literal union in it.
+    fn written_literal_refusal(&self, value: &Expr, expected: &Ty) -> Option<Refusal> {
+        let canonical = self.canonicalize_aliases(expected);
         match value {
-            Expr::String { value: text, .. } => Ty::StringLiteralUnion(vec![text.clone()]),
-            // A `match` in value position is where the walk's own join loses
-            // the literals: every arm of `match name { "sum" => "sum", ... }`
-            // is a `string`, so the join is `string`, and `csvql`'s `fn
-            // agg_of(name: string) -> Agg` is a correct program `tsc` compiles.
-            // Read the arms when they can be read, and answer `Unknown` when
-            // they cannot, which leaves the pairing undetermined rather than
-            // refusing a `string` that may not be a bare one.
-            Expr::Match { arms, .. } => match self.match_arm_literals(arms) {
-                Some(values) => Ty::StringLiteralUnion(values),
-                None => Ty::Unknown,
-            },
-            // A call whose `string` is an instantiated type parameter, not a
-            // declared `string`. `fn id<T>(x: T) -> T` called with `"read"`
-            // records `string` for the call, because `collect_type_param_
-            // bindings` binds `T` to the argument's recorded type and D30
-            // types every string literal `string`. TypeScript infers the
-            // literal type for the same call and `id("read")` is a `Mode`
-            // there, so refusing it would refuse a program `tsc --strict`
-            // compiles. Answer `Unknown`, which leaves the pairing to `tsc`:
-            // `id(some_string)` is `TS2322` and still reported, by `tsc`.
-            Expr::Call { callee, .. } if self.returns_a_type_param(callee) => Ty::Unknown,
-            _ => found.clone(),
-        }
-    }
-
-    /// Whether a callee's declared return type is written as a type parameter
-    /// of its own signature, so the type the walk recorded for the call is
-    /// whatever the arguments bound that parameter to.
-    ///
-    /// Read off the callee's `Ty::Fn` before instantiation, which is what the
-    /// type map holds for the callee's own span; the call's span holds the
-    /// substituted form, where a `Ty::Param` is no longer visible.
-    fn returns_a_type_param(&self, callee: &Expr) -> bool {
-        matches!(self.tm.get(callee.span()), Ty::Fn { return_ty, .. } if mentions_type_param(return_ty))
-    }
-
-    /// The literal set a value-position `match` produces, or `None` when an
-    /// arm produces something this cannot read.
-    ///
-    /// An arm counts when its body is a written string literal, a nested
-    /// `match` of the same shape, or an expression the walk already typed as a
-    /// string-literal union. A block-bodied arm is not read at all: the value
-    /// it produces is its tail, `return` inside it is checked at the `return`
-    /// itself, and guessing at the rest would be the one thing this exists to
-    /// avoid.
-    fn match_arm_literals(&self, arms: &[MatchArm]) -> Option<Vec<String>> {
-        let mut values: Vec<String> = Vec::new();
-        for arm in arms {
-            let MatchArmBody::Expr(e) = &arm.body else {
-                return None;
-            };
-            let arm_values = match e {
-                Expr::String { value, .. } => vec![value.clone()],
-                Expr::Match { arms, .. } => self.match_arm_literals(arms)?,
-                _ => self.string_literal_union_values(self.tm.get(e.span()))?,
-            };
-            for v in arm_values {
-                if !values.contains(&v) {
-                    values.push(v);
-                }
+            Expr::Array { elements, .. } => {
+                let (_, args) = self.prelude_container(&canonical)?;
+                let elem = args.first()?.clone();
+                elements.iter().find_map(|el| {
+                    let ArrayElem::Expr(e) = el else { return None };
+                    self.value_refusal(e, &self.tm.get(e.span()).clone(), &elem)
+                })
             }
+            Expr::Object { fields, .. } => {
+                let declared = self.record_fields_of(&canonical)?;
+                fields.iter().find_map(|f| {
+                    let ObjectField::KeyValue { key, value, .. } = f else {
+                        return None;
+                    };
+                    let declared = declared.iter().find(|d| d.name == *key)?;
+                    self.value_refusal(value, &self.tm.get(value.span()).clone(), &declared.ty)
+                })
+            }
+            _ => None,
         }
-        Some(values)
+    }
+
+    /// The type a binding takes from a value written for it, with a *fresh*
+    /// literal type widened to `string` (G237).
+    ///
+    /// TypeScript's rule, and Glyph's for the same reason: a `let` emits a
+    /// TypeScript `let`, which widens, so `let l = "read"` is a `string` in
+    /// the program that actually runs and `takes_mode(l)` is `TS2345` there.
+    /// A binding that kept the one-literal type would accept a call `tsc`
+    /// refuses, which is the one direction this checker may not take.
+    ///
+    /// Fresh is decided from the written form, not from the type. A literal
+    /// type reaching a binding through a name (`fn f(m: "read" | "write") {
+    /// let m2 = m }`) is not fresh, and TypeScript does not widen it either:
+    /// `m2` is a `"read" | "write"` there and `takes_mode(m2)` compiles. The
+    /// test is deliberately narrow, because the two ways of being wrong are
+    /// not symmetric. Reading a fresh value as not fresh leaves a pairing
+    /// undetermined; reading a name as fresh refuses a program `tsc` accepts.
+    ///
+    /// Three positions take a type from a value this way: a `let` with no
+    /// annotation, and the element binding of a `for` loop over a written
+    /// array. A `const` with no annotation lowers to `Unknown` and reaches
+    /// nothing here, which is the right answer for it: a `const` emits a
+    /// TypeScript `const`, which keeps the literal, so widening it would
+    /// refuse `takes_mode(CM)` where `tsc` accepts it.
+    fn widen_fresh_literals(&self, value: &Expr, ty: Ty) -> Ty {
+        if produces_fresh_literal(value) {
+            widen_literals(&ty)
+        } else {
+            ty
+        }
     }
 
     /// Whether the relation will reach a string-literal union on its way into
@@ -5849,29 +5879,25 @@ impl Assigner<'_> {
     /// answers `Unknown` for the arms it cannot read, so the `string` left
     /// here is one no written form pinned to a narrower set.
     ///
-    /// That arm is the top-level one, and only the top-level one. A bare
-    /// `string` reached through a generic argument is undetermined: `["read",
-    /// "write"]` is typed `Array<string>` because Glyph types every string
-    /// literal `string` (D30), so `Array<string>` against `Array<Mode>` is the
-    /// ordinary spelling of a correct program and `tsc` reads the same
-    /// expression as `Array<"read" | "write">` and accepts it. Refusing it
-    /// would reject `fn arr() -> Array<Mode> { return ["read", "write"] }`,
-    /// which is the spelling of a list of modes, roles or statuses. The
-    /// `Nesting` argument carries the distinction: `assign_incompatible`'s
-    /// `Ty::App` recursion asks every argument pairing under
-    /// `Nesting::UnderArgument`, and this arm declines there. Deciding it
-    /// rather than fencing it needs literal-typed expressions (G237).
+    /// That arm holds at every depth since G237, and the generic-argument
+    /// fence 0.1.122 shipped is gone. `["read", "write"]` is an
+    /// `Array<"read" | "write">` now, so the correct program the fence
+    /// existed to protect (`fn arr() -> Array<Mode> { return ["read",
+    /// "write"] }`) is accepted by the literal-set rule rather than by a
+    /// declined pairing, and the wrong one the fence swallowed is refused:
+    /// `let xs = ["read", "write"]` widens to `Array<string>` at the binding
+    /// and `return xs` against an `Array<Mode>` is `TS2322` under `tsc` and
+    /// `E0204` here.
     ///
-    /// Undetermined, deliberately: a string-literal union nested inside a
-    /// record field. The relation's record recursion is
-    /// `definitely_incompatible`'s, a free function with no declaration to
-    /// read, so `{ mode: string }` against `{ mode: Mode }` is decided by
-    /// nothing here. It is the same boundary G201 and G216 stop at.
+    /// The one position that still declines is the key argument of a
+    /// `Record`, where TypeScript's index signature accepts a `string` key
+    /// against a literal-union key in both directions. See
+    /// `Position::RecordKey`.
     fn string_literal_union_verdict(
         &self,
         found: &Ty,
         expected: &Ty,
-        nesting: Nesting,
+        position: Position,
     ) -> Option<bool> {
         let f = self.string_literal_union_values(found);
         let e = self.string_literal_union_values(expected);
@@ -5890,9 +5916,9 @@ impl Assigner<'_> {
             .then_some(true),
             (None, Some(_)) => {
                 if matches!(found, Ty::Prim(Primitive::String)) {
-                    // Refused where the union itself is declared, undetermined
-                    // under a generic argument. See the doc comment above.
-                    return (nesting == Nesting::Top).then_some(true);
+                    // Refused everywhere but a `Record`'s key. See the doc
+                    // comment above.
+                    return (position != Position::RecordKey).then_some(true);
                 }
                 self.assign_incompatible(found, &Ty::Prim(Primitive::String))
                     .then_some(true)
@@ -5902,19 +5928,20 @@ impl Assigner<'_> {
     }
 
     fn assign_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
-        self.assign_incompatible_at(found, expected, Nesting::Top)
+        self.assign_incompatible_at(found, expected, Position::Ordinary)
     }
 
     /// `assign_incompatible`, plus where in a type the pairing sits.
     ///
-    /// One rule reads `nesting` and no other does: a bare `string` where a
-    /// string-literal union is declared, which is refused at the top level and
-    /// left to `tsc` under a generic argument (G230, and see
+    /// One rule reads `position` and no other does: a bare `string` where a
+    /// string-literal union is declared, which is refused everywhere except
+    /// the key argument of a `Record`, where TypeScript's index signature
+    /// accepts it (see `Position::RecordKey` and
     /// `string_literal_union_verdict`). Every other refusal the relation makes
     /// is made at every depth, so a `number`, a `bool`, a record, a tagged
     /// union and a literal outside the declared set are refused inside
     /// `Array<Mode>` exactly as they are against `Mode`.
-    fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, nesting: Nesting) -> bool {
+    fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, position: Position) -> bool {
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
                 // A value carries its members structurally: the same
@@ -5932,17 +5959,21 @@ impl Assigner<'_> {
             };
         }
         if let (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) = (found, expected) {
-            // The base keeps the nesting it was asked at: it is the
-            // constructor, not an argument. Every argument pairing is asked
-            // under `UnderArgument`, and stays there however deep the
-            // recursion goes, so `Array<Array<Mode>>` fences the same way
-            // `Array<Mode>` does.
+            // The base is the constructor, not an argument, so it is asked
+            // under `Ordinary`. So is every argument, with one exception: the
+            // key of a `Record` on both sides, which TypeScript compares
+            // through an index signature rather than by assignability.
+            let both_records = self.resolves_to_map(found) && self.resolves_to_map(expected);
             return fa.len() != ea.len()
-                || self.assign_incompatible_at(fb, eb, nesting)
-                || fa
-                    .iter()
-                    .zip(ea.iter())
-                    .any(|(f, e)| self.assign_incompatible_at(f, e, Nesting::UnderArgument));
+                || self.assign_incompatible_at(fb, eb, Position::Ordinary)
+                || fa.iter().zip(ea.iter()).enumerate().any(|(i, (f, e))| {
+                    let at = if both_records && i == 0 {
+                        Position::RecordKey
+                    } else {
+                        Position::Ordinary
+                    };
+                    self.assign_incompatible_at(f, e, at)
+                });
         }
         // G201. A declared union or record where a `string`, a `number` or a
         // `bool` is expected. `definitely_incompatible` cannot judge this on its
@@ -6011,7 +6042,7 @@ impl Assigner<'_> {
         // G230. A declared string-literal union refused nothing at all: a
         // `number`, a record and a tagged union all passed where `Mode` was
         // declared, on every surface that runs without tsc.
-        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected, nesting) {
+        if let Some(verdict) = self.string_literal_union_verdict(&found, &expected, position) {
             return verdict;
         }
         definitely_incompatible(&found, &expected)
@@ -6726,48 +6757,42 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 
 // ----- assignability (conservative) -----
 
-/// Whether a type is written in terms of a type parameter anywhere inside it:
-/// `T`, `Array<T>`, `{ value: T }`, `fn(a: T) -> void`.
-///
-/// The question `returns_a_type_param` asks of a signature's return type.
-fn mentions_type_param(ty: &Ty) -> bool {
-    match ty {
-        Ty::Param { .. } => true,
-        Ty::App { base, args } => {
-            mentions_type_param(base) || args.iter().any(mentions_type_param)
-        }
-        Ty::Record { fields } => fields.iter().any(|f| mentions_type_param(&f.ty)),
-        Ty::Fn {
-            params, return_ty, ..
-        } => params.iter().any(|p| mentions_type_param(&p.ty)) || mentions_type_param(return_ty),
-        Ty::Union { variants } => variants
-            .iter()
-            .any(|v| v.payload.as_ref().is_some_and(mentions_type_param)),
-        Ty::Unknown
-        | Ty::Prim(_)
-        | Ty::UnknownTop
-        | Ty::Never
-        | Ty::Named { .. }
-        | Ty::StringLiteralUnion(_)
-        | Ty::Imported { .. } => false,
-    }
-}
-
 /// Where in a type a pairing the assignability relation is deciding sits: the
 /// declared type itself, or an argument of a generic application the relation
 /// recursed into.
 ///
-/// One rule turns on it (G230's bare `string` against a string-literal union),
+/// A written value the relation refuses: what was declared where it was
+/// written, what the value reads as, and where to underline.
+///
+/// The type rather than its rendering, because the call site builds the
+/// diagnostic and needs the declared type to list the values it accepts. The
+/// span is the value's own at the top and the offending element's or field's
+/// when the rule descended into a written literal.
+struct Refusal {
+    expected: Ty,
+    found: String,
+    span: Span,
+}
+
+/// One rule turns on it (the `string` half of `string_literal_union_verdict`),
 /// and it exists rather than a `bool` so the two ends of the distinction are
 /// named at every call site.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Nesting {
-    /// The pairing the caller asked about: `Mode` against what was written
-    /// where `Mode` is declared.
-    Top,
-    /// A pairing the `Ty::App` recursion reached: the `Mode` of an
-    /// `Array<Mode>`, an `Option<Mode>` or a `Nullable<Mode>`.
-    UnderArgument,
+enum Position {
+    /// Every position the relation compares two types in: the pairing the
+    /// caller asked about, a generic argument, a record field, a payload.
+    Ordinary,
+    /// The key argument of a `Record<K, V>` against the key argument of
+    /// another `Record<K, V>`.
+    ///
+    /// TypeScript writes `Record<string, V>` as an index signature, which
+    /// covers every key a `Record<Mode, V>` declares, so it accepts the
+    /// pairing in both directions; refusing it here would refuse a program
+    /// `tsc --strict` compiles. Established by running both compilers:
+    /// `Record<string, number>` into a `Record<Mode, number>` and back are
+    /// each clean under `tsc --strict`, while `Array<string>` into an
+    /// `Array<Mode>` is `TS2322`.
+    RecordKey,
 }
 
 /// True only when `found` is *provably* not assignable to `expected`. Used for
@@ -7298,6 +7323,58 @@ pub fn imported_decl_chain_end(
     }
 }
 
+/// Whether a written expression produces a *fresh* literal type: one this
+/// program's text created here, rather than one that arrived through a name.
+///
+/// True only for the forms whose literal type is written out: a string
+/// literal, an array literal whose every element is one of these, and a
+/// value-position `match` whose every arm is. Everything else answers false,
+/// which leaves its type alone.
+fn produces_fresh_literal(e: &Expr) -> bool {
+    match e {
+        Expr::String { .. } => true,
+        Expr::Array { elements, .. } => {
+            !elements.is_empty()
+                && elements.iter().all(|el| match el {
+                    ArrayElem::Expr(e) => produces_fresh_literal(e),
+                    ArrayElem::Spread(_) => false,
+                })
+        }
+        Expr::Match { arms, .. } => arms.iter().all(|a| match &a.body {
+            MatchArmBody::Expr(e) => produces_fresh_literal(e),
+            MatchArmBody::Block(_) => false,
+        }),
+        _ => false,
+    }
+}
+
+/// `ty` with every string-literal type in it replaced by `string`: at the top,
+/// inside a generic application's arguments, and inside a record's fields.
+///
+/// Deep, because TypeScript's widening is: `let xs = ["read", "write"]` is a
+/// `string[]` there, not a `("read" | "write")[]`, and `return xs` against an
+/// `Array<Mode>` is `TS2322`.
+fn widen_literals(ty: &Ty) -> Ty {
+    match ty {
+        Ty::StringLiteralUnion(_) => Ty::Prim(Primitive::String),
+        Ty::App { base, args } => Ty::App {
+            base: Arc::new(widen_literals(base)),
+            args: args.iter().map(widen_literals).collect(),
+        },
+        Ty::Record { fields } => Ty::Record {
+            fields: fields
+                .iter()
+                .map(|f| RecordField {
+                    name: f.name.clone(),
+                    ty: widen_literals(&f.ty),
+                    optional: f.optional,
+                })
+                .collect(),
+        },
+        _ => ty.clone(),
+    }
+}
+
 /// The literal set of a string-literal union declared in another module, or
 /// `None` for anything else.
 ///
@@ -7374,6 +7451,28 @@ fn ty_requires_value(ty: &Ty) -> bool {
 fn join_ty(a: &Ty, b: &Ty) -> Ty {
     if a == b {
         return a.clone();
+    }
+    // Two literal sets join to their union, which is what makes an array
+    // literal of mixed literals an `Array<"read" | "write">` and a
+    // value-position `match` of literal arms the set of its arms (G237).
+    // TypeScript reads both the same way.
+    if let (Ty::StringLiteralUnion(x), Ty::StringLiteralUnion(y)) = (a, b) {
+        let mut values = x.clone();
+        for v in y {
+            if !values.contains(v) {
+                values.push(v.clone());
+            }
+        }
+        return Ty::StringLiteralUnion(values);
+    }
+    // A literal joined with a `string` is a `string`: the set stops being
+    // closed the moment one arm can produce anything.
+    if matches!(
+        (a, b),
+        (Ty::StringLiteralUnion(_), Ty::Prim(Primitive::String))
+            | (Ty::Prim(Primitive::String), Ty::StringLiteralUnion(_))
+    ) {
+        return Ty::Prim(Primitive::String);
     }
     // An arm that does not return (it calls `process.exit`, or a `-> never` of
     // your own) contributes nothing to the join, so the other arm's type is the
@@ -8373,15 +8472,19 @@ mod tests {
         ));
     }
 
+    /// A written string literal carries the one-literal type it spells
+    /// (G237), which is what `tsc` reads it as; the `let` that binds it widens
+    /// that back to `string`, which is also what `tsc` does, since the binding
+    /// emits a TypeScript `let`.
     #[test]
     fn string_literal_typed() {
         let (m, _, tm) = type_map_of(r#"module x
 fn main() { let x = "hi" }
 "#);
-        assert!(matches!(
+        assert_eq!(
             tm.get(first_let_value_span(&m)),
-            Ty::Prim(Primitive::String)
-        ));
+            &Ty::StringLiteralUnion(vec!["hi".to_string()])
+        );
     }
 
     #[test]
@@ -14300,10 +14403,18 @@ fn f(a: Answer) -> number {
         assert_eq!(mismatch_found(&bad), vec!["\"read\" | \"exec\""], "errs: {bad:?}");
     }
 
-    /// An arm this cannot read leaves the whole pairing undetermined rather
-    /// than refusing a `string` that may not be a bare one.
+    /// An arm whose value went through a binding is a `string`, and the join
+    /// of a `string` with a literal is a `string`, so the `match` is refused
+    /// where a `Mode` is declared.
+    ///
+    /// It used to be undetermined, deliberately, because the checker could not
+    /// tell a bare `string` arm from a literal one. It can now, and the answer
+    /// it reaches is `tsc`'s: run on this exact program, 0.1.122 is silent
+    /// under `--no-tsc` and `TS2322: Type 'string' is not assignable to type
+    /// 'Mode'` with `tsc` in the loop, where this build is `E0204` without
+    /// `tsc`.
     #[test]
-    fn a_match_arm_the_checker_cannot_read_leaves_the_pairing_undetermined() {
+    fn a_match_arm_whose_value_went_through_a_binding_is_a_string() {
         let errs = errors_of(&format!(
             "{MODE}\
              fn f(name: string) -> Mode {{\n\
@@ -14313,7 +14424,7 @@ fn f(a: Answer) -> number {
              \x20 }}\n\
              }}\n"
         ));
-        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+        assert_eq!(mismatch_found(&errs), vec!["string"], "errs: {errs:?}");
     }
 
     /// The reverse direction. Every literal in the set is a `string`, and
@@ -14489,14 +14600,13 @@ fn f(a: Answer) -> number {
 
     // ----- the generic-argument boundary (G230, corrected) -----
 
-    /// The review's `fp3` and `fp4`. `["read", "write"]` is typed
-    /// `Array<string>`, because D30 types every string literal `string`, so
-    /// the `Ty::App` recursion asked `(string, Mode)` and the top-level arm
-    /// refused it. `tsc --strict` reads the same expression as
-    /// `Array<"read" | "write">` and compiles all three of these, and a full
-    /// `glyph build` under 0.1.121 did too.
+    /// The review's `fp3` and `fp4`, which 0.1.122 fenced and this decides.
+    /// `["read", "write"]` is an `Array<"read" | "write">` (G237), so the
+    /// `Ty::App` recursion asks two literal sets and the subset rule accepts
+    /// them. `tsc --strict` reads the same expressions the same way and
+    /// compiles all four.
     #[test]
-    fn a_bare_string_under_a_generic_argument_is_undetermined() {
+    fn a_written_literal_under_a_generic_argument_is_accepted() {
         let errs = errors_of(&format!(
             "{MODE}\
              fn takes(xs: Array<Mode>) -> number {{\n  return xs.length\n}}\n\
@@ -14507,9 +14617,9 @@ fn f(a: Answer) -> number {
         assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
     }
 
-    /// The fence is exactly one pairing wide. A `number`, a `bool` and a
-    /// literal outside the declared set are refused inside `Array<Mode>` the
-    /// same way they are refused against `Mode`.
+    /// A `number`, a `bool` and a literal set that is not a subset are
+    /// refused inside `Array<Mode>` the same way they are refused against
+    /// `Mode`.
     #[test]
     fn a_wrong_value_under_a_generic_argument_is_still_refused() {
         let errs = errors_of(&format!(
@@ -14528,38 +14638,146 @@ fn f(a: Answer) -> number {
         );
     }
 
-    /// The review's `fp2`. `fn id<T>(x: T) -> T` called with a string literal
-    /// records `string` for the call, because `T` binds to the argument's
-    /// recorded type. TypeScript infers the literal type for the same call, so
-    /// `id("read")` is a `Mode` there; the pairing is left to `tsc`, which
-    /// still reports `id(s)` for a `string`-typed `s`.
+    /// The review's `fp2`, decided. `fn id<T>(x: T) -> T` called with a
+    /// string literal binds `T` to the literal type the walk now records, so
+    /// `id("read")` is a `Mode` here exactly as it is under `tsc`, and
+    /// `id(s)` for a `string`-typed `s` is refused there and here.
     #[test]
-    fn a_generic_call_returning_its_type_parameter_is_undetermined() {
+    fn a_generic_call_returning_its_type_parameter_is_instantiated() {
         let errs = errors_of(&format!(
             "{MODE}\
              fn id<T>(x: T) -> T {{\n  return x\n}}\n\
              fn plain() -> string {{\n  return \"read\"\n}}\n\
              fn viaGeneric() -> Mode {{\n  return id(\"read\")\n}}\n\
+             fn viaBad() -> Mode {{\n  return id(\"nope\")\n}}\n\
+             fn viaString(s: string) -> Mode {{\n  return id(s)\n}}\n\
              fn viaPlain() -> Mode {{\n  return plain()\n}}\n"
         ));
         assert_eq!(
             mismatch_found(&errs),
-            vec!["string"],
-            "the declared `string` is still refused, the instantiated one is not: {errs:?}"
+            vec!["\"nope\"", "string", "string"],
+            "the instantiated literal is accepted, the wrong one and the two \
+             `string`s are refused: {errs:?}"
         );
     }
 
-    /// The review's `asym`, both halves in one program. A wrong value in a
-    /// record field is silent and a right value in a generic argument is
-    /// accepted, which is the boundary the rule documents.
+    // ----- literal-typed expressions (G237) -----
+
+    /// Every pairing the literal type decides, in both directions, on one
+    /// program. Each verdict below was established by running `tsc --strict`
+    /// on the equivalent TypeScript: the accepted ones compile there and the
+    /// refused ones are `TS2322`/`TS2345`.
+    ///
+    /// `opt_bad` is the one wrong program here that draws nothing, and it is
+    /// asserted as a silence rather than left out. A prelude constructor
+    /// (`Ok`, `Err`, `Some`) has no type at all in this checker: the walk
+    /// records `Ty::Unknown` for it, pending use-site generic instantiation,
+    /// so `Some("nope")` reaches the relation as an undecidable value rather
+    /// than as an `Option<"nope">`. `tsc` reports it (`Type 'Option<"nope">'
+    /// is not assignable to type 'Option<Mode>'`), and it is the constructor's
+    /// missing type that keeps Glyph silent, not the literal's.
     #[test]
-    fn the_record_field_and_the_generic_argument_stop_at_the_same_place() {
+    fn a_written_literal_is_decided_against_every_container_it_is_written_in() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             type Cfg = {{ mode: Mode }}\n\
+             fn takes(m: Mode) -> string {{\n  return m\n}}\n\
+             fn arr_ok() -> Array<Mode> {{\n  return [\"read\", \"write\"]\n}}\n\
+             fn arr_bad() -> Array<Mode> {{\n  return [\"read\", \"nope\"]\n}}\n\
+             fn rec_ok() -> Cfg {{\n  return {{ mode: \"read\" }}\n}}\n\
+             fn rec_bad() -> Cfg {{\n  return {{ mode: \"nope\" }}\n}}\n\
+             fn opt_ok() -> Option<Mode> {{\n  return Some(\"read\")\n}}\n\
+             fn opt_bad() -> Option<Mode> {{\n  return Some(\"nope\")\n}}\n\
+             fn null_ok() -> Nullable<Mode> {{\n  return \"read\"\n}}\n\
+             fn null_bad() -> Nullable<Mode> {{\n  return \"nope\"\n}}\n\
+             fn deep_ok() -> Array<Cfg> {{\n  return [{{ mode: \"read\" }}]\n}}\n\
+             fn deep_bad() -> Array<Cfg> {{\n  return [{{ mode: \"nope\" }}]\n}}\n\
+             fn arg_ok() -> string {{\n  return takes(\"read\")\n}}\n\
+             fn arg_bad() -> string {{\n  return takes(\"nope\")\n}}\n"
+        ));
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["\"nope\""; 5],
+            "each refusal names the literal that is not in the set: {errs:?}"
+        );
+    }
+
+    /// The widening rule, stated as a program. A `let` with no annotation
+    /// emits a TypeScript `let`, which widens, so the binding is a `string`
+    /// and every use of it where a `Mode` is declared is refused: `tsc`
+    /// refuses the same three.
+    #[test]
+    fn a_fresh_literal_widens_at_a_binding_that_infers_its_type() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn takes(m: Mode) -> string {{\n  return m\n}}\n\
+             fn one() -> string {{\n  let l = \"read\"\n  return takes(l)\n}}\n\
+             fn many() -> Array<Mode> {{\n  let xs = [\"read\", \"write\"]\n  return xs\n}}\n\
+             fn each() -> string {{\n\
+             \x20 let out = \"\"\n\
+             \x20 for m in [\"read\", \"write\"] {{ mut out = out + takes(m) }}\n\
+             \x20 return out\n\
+             }}\n"
+        ));
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["string", "Array<string>", "string"],
+            "errs: {errs:?}"
+        );
+    }
+
+    /// Freshness is read off the written form, not off the type. A literal
+    /// type that arrived through a name is not widened, and TypeScript does
+    /// not widen it either, so `takes(m2)` compiles under both.
+    #[test]
+    fn a_literal_type_reached_through_a_name_does_not_widen() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn takes(m: Mode) -> string {{\n  return m\n}}\n\
+             fn named(m: Mode) -> string {{\n  let m2 = m\n  return takes(m2)\n}}\n\
+             fn inline(m: \"read\" | \"write\") -> string {{\n  let m2 = m\n  return takes(m2)\n}}\n"
+        ));
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
+    /// The `Record` key. TypeScript writes `Record<string, V>` as an index
+    /// signature, which covers every key a `Record<Mode, V>` declares, so it
+    /// accepts the pairing in both directions; `Array<string>` against
+    /// `Array<Mode>` is `TS2322` in the same file. Established by running
+    /// both, which is why the carve-out is this narrow.
+    #[test]
+    fn a_record_key_accepts_a_string_where_a_literal_union_is_declared() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             fn keys(r: Record<string, number>) -> Record<Mode, number> {{\n  return r\n}}\n\
+             fn back(r: Record<Mode, number>) -> Record<string, number> {{\n  return r\n}}\n\
+             fn arr(xs: Array<string>) -> Array<Mode> {{\n  return xs\n}}\n"
+        ));
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["Array<string>"],
+            "only the array is refused: {errs:?}"
+        );
+    }
+
+    /// The review's `asym`, both halves in one program. Both are decided now
+    /// (G237), and each the way `tsc --strict` decides it: the wrong value in
+    /// the record field is refused and named, and the right value in the
+    /// generic argument is accepted. 0.1.122 was silent on both, which is what
+    /// the review caught: it bought the second by giving up the first.
+    #[test]
+    fn the_record_field_and_the_generic_argument_are_both_decided() {
         let errs = errors_of(&format!(
             "{MODE}\
              type Cfg = {{ mode: Mode }}\n\
              fn wrong() -> Cfg {{\n  return {{ mode: \"nope\" }}\n}}\n\
              fn right() -> Array<Mode> {{\n  return [\"read\"]\n}}\n"
         ));
-        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+        assert_eq!(mismatch_found(&errs), vec!["\"nope\""], "errs: {errs:?}");
+        assert_eq!(
+            mismatch_accepted(&errs),
+            vec![vec!["read".to_string(), "write".to_string()]],
+            "the field's own declared type is what the refusal names: {errs:?}"
+        );
     }
 }

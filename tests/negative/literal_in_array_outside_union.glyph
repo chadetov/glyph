@@ -1,0 +1,16 @@
+module neg
+
+// G237, the same rule one container out. An array literal is checked element
+// by element against the declared element type, so `"nope"` is refused where
+// an `Array<Mode>` is declared. 0.1.122 accepted this: the pairing arrived as
+// `Array<string>` against `Array<Mode>` and the rule declined every pairing
+// under a generic argument.
+type Mode = "read" | "write"
+
+fn wrong() -> Array<Mode> {
+  return ["read", "nope"]
+}
+
+fn main() -> string {
+  return wrong()[0] ?? "read"
+}

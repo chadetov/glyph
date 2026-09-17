@@ -187,11 +187,24 @@ introduce a binding with `let` (function-level) or `const` (module-level), and t
 *change* it later you write a `mut` statement:
 
 ```glyph
-let total = 0          // binding (immutable by default; prefer let)
-mut total = total + 5  // reassignment: `mut` PREFIXES the assignment
-mut user.role = Admin  // field assignment
-mut grid[key] = value  // index assignment
-mut xs.push(item)      // mutating method call
+module bindings
+
+type Role =
+  | Admin
+  | Member
+
+type User = {
+  role: Role,
+}
+
+pub fn demo(user: User, grid: Record<string, number>, key: string, value: number, xs: Array<number>, item: number) -> number {
+  let total = 0          // binding (immutable by default; prefer let)
+  mut total = total + 5  // reassignment: `mut` PREFIXES the assignment
+  mut user.role = Admin  // field assignment
+  mut grid[key] = value  // index assignment
+  mut xs.push(item)      // mutating method call
+  return total
+}
 ```
 
 `mut` is legal in exactly four forms — `mut x = e`, `mut x.field = e`,
@@ -206,22 +219,33 @@ There is **no `if`/`else`**. Every branch is a `match`, and **every arm ends wit
 a trailing comma** (including the last).
 
 ```glyph
-let label = match user.role {
-  Admin => "admin",
-  Member => "member",
-  Guest => "guest",
-}
+module conditionals
 
-let sign = match n > 0 {     // match on a bool
-  true => "positive",
-  false => "non-positive",
-}
+type Role =
+  | Admin
+  | Member
+  | Guest
 
-let kind = match argv {                 // string-literal + array-destructuring patterns
-  [] => "empty",
-  ["add", text] => "add",
-  [head, ..._] => "other",
-  else => "fallback",                   // `else` is the catch-all, only as a whole arm
+pub fn describe(role: Role, n: number, argv: Array<string>) -> string {
+  let label = match role {
+    Admin => "admin",
+    Member => "member",
+    Guest => "guest",
+  }
+
+  let sign = match n > 0 {     // match on a bool
+    true => "positive",
+    false => "non-positive",
+  }
+
+  let kind = match argv {                 // string-literal + array-destructuring patterns
+    [] => "empty",
+    ["add", text] => "add",
+    [head, ..._] => "other",
+    else => "fallback",                   // `else` is the catch-all, only as a whole arm
+  }
+
+  return "${label} ${sign} ${kind}"
 }
 ```
 
@@ -231,14 +255,31 @@ statement accepts: a block-bodied arm, an `await` in an arm, a `break` or
 is assigning (the accumulator form).
 
 ```glyph
-mut in_fence = match is_fence(line) {   // reads the binding it assigns
-  true => !in_fence,
-  false => in_fence,
-}
+module accumulators
 
-let cache = match offline {
-  true => no_cache(),                   // `{}` here is an empty BLOCK, not a record
-  false => await fetch_all(urls),
+import std/array
+import std/io
+
+fn is_fence(line: string) -> bool { return line == "---" }
+
+fn no_cache() -> Array<string> { return [] }
+
+async fn fetch_all(urls: Array<string>) -> Array<string> { return urls }
+
+pub async fn render(lines: Array<string>, offline: bool, urls: Array<string>) -> void {
+  let in_fence = false
+  for line in lines {
+    mut in_fence = match is_fence(line) {   // reads the binding it assigns
+      true => !in_fence,
+      false => in_fence,
+    }
+  }
+
+  let cache = match offline {
+    true => no_cache(),                   // `{}` here is an empty BLOCK, not a record
+    false => await fetch_all(urls),
+  }
+  io.println("${in_fence} ${array.len(cache)}")
 }
 ```
 
@@ -259,30 +300,45 @@ There is no `while`. `for` iterates a bounded collection; `loop` is the
 unbounded form and needs a `break`.
 
 ```glyph
-for item in items {                  // one binding: the element
-  io.println(item.name)
+module loops
+
+import std/array
+import std/io
+
+type Item = {
+  name: string,
 }
 
-for i, item in items {               // two bindings: index (0-based number), element
-  io.println("${i}: ${item.name}")
-}
+fn done() -> bool { return true }
 
-for key, value in scores {           // over a Record: key (string), value
-  io.println("${key} = ${value}")
-}
+fn step() -> void { }
 
-// The array form is picked from the iterand's declared type. Iterating a call's
-// result directly gives you a STRING index and nothing complains, so bind it:
-let rows: Array<string> = array.slice(lines, 1)
+pub fn walk(items: Array<Item>, scores: Record<string, number>, lines: Array<string>) -> void {
+  for item in items {                  // one binding: the element
+    io.println(item.name)
+  }
 
-for i, row in rows {
-  io.println("${i}: ${row}")
-}
+  for i, item in items {               // two bindings: index (0-based number), element
+    io.println("${i}: ${item.name}")
+  }
 
-loop {                               // unbounded; `break`/`continue` are legal
-  match done() {
-    true => break,
-    false => step(),
+  for key, value in scores {           // over a Record: key (string), value
+    io.println("${key} = ${value}")
+  }
+
+  // The array form is picked from the iterand's declared type. Iterating a call's
+  // result directly gives you a STRING index and nothing complains, so bind it:
+  let rows: Array<string> = array.slice(lines, 1)
+
+  for i, row in rows {
+    io.println("${i}: ${row}")
+  }
+
+  loop {                               // unbounded; `break`/`continue` are legal
+    match done() {
+      true => break,
+      false => step(),
+    }
   }
 }
 ```
@@ -290,16 +346,34 @@ loop {                               // unbounded; `break`/`continue` are legal
 ### Closures
 
 ```glyph
-let double = fn(n: number) -> number { n * 2 }   // tail expression is the return value
-let log = fn(s: string) -> void { io.println(s) }
+module closures
+
+import std/io
+
+pub fn demo() -> number {
+  let double = fn(n: number) -> number { n * 2 }   // tail expression is the return value
+  let log = fn(s: string) -> void { io.println(s) }
+  log("two times four")
+  return double(4)
+}
 ```
 
 A function type is written the same way, and `async fn(...) -> T` is the type of
 one you have to await:
 
 ```glyph
-fn apply(f: fn(number) -> number, n: number) -> number { return f(n) }
-fn task_for(url: string) -> async fn() -> Fetched {
+module function_types
+
+type Fetched = {
+  url: string,
+  outcome: bool,
+}
+
+async fn check(url: string) -> bool { return url != "" }
+
+pub fn apply(f: fn(number) -> number, n: number) -> number { return f(n) }
+
+pub fn task_for(url: string) -> async fn() -> Fetched {
   return async fn() -> Fetched { return { url: url, outcome: await check(url) } }
 }
 ```
@@ -310,9 +384,11 @@ A plain `fn() -> T` emits `() => T`, so an async value does not fit it. Write th
 ### `Result` / `Option` and the `?` operator
 
 ```glyph
+module parsing
+
 import std/result { Result, Ok, Err }
 
-fn parse_age(s: string) -> Result<number, string> {
+pub fn parse_age(s: string) -> Result<number, string> {
   let n = number.parse(s)?    // `?` unwraps Ok, or returns the Err from this fn
   return Ok(n)
 }
@@ -327,6 +403,8 @@ conversion in v1).
 ### Record literals and sum types
 
 ```glyph
+module records
+
 type Role =
   | Admin
   | Member
@@ -337,9 +415,12 @@ type User = {
   role: Role,
 }
 
-let u: User = {                // bare object literal; type comes from the annotation
-  email: "a@b.com",            // every field, trailing comma, no `TypeName {}` prefix
-  role: Admin,
+pub fn one() -> User {
+  let u: User = {                // bare object literal; type comes from the annotation
+    email: "a@b.com",            // every field, trailing comma, no `TypeName {}` prefix
+    role: Admin,
+  }
+  return u
 }
 ```
 
@@ -347,11 +428,16 @@ A union **variant that carries a payload** is constructed
 `Variant({ field: value })`:
 
 ```glyph
+module shapes
+
 type Shape =
   | Circle({ radius: number })
   | Square({ side: number })
 
-let c: Shape = Circle({ radius: 2 })
+pub fn unit() -> Shape {
+  let c: Shape = Circle({ radius: 2 })
+  return c
+}
 ```
 
 There is **no object-literal shorthand** (`{ email }` is rejected; write
@@ -363,7 +449,7 @@ There is **no object-literal shorthand** (`{ email }` is rejected; write
 **restricted set of directives** — `<if>`, `<else>`, `<for>`, `<match>`,
 `<case>` — not arbitrary `{cond && ...}` expressions.
 
-```glyph
+```glyph needs-deps
 component Greeting(name: string) {
   return <div>
     <if cond={name != ""}>
@@ -609,9 +695,11 @@ cast in Glyph, so `T.parse` (or a `match`/`is` narrowing) is the only way to go
 from `unknown` to `T`.
 
 ```glyph
+module validate
+
 type User = { id: number, name: string }
 
-fn handle(body: unknown) -> string {
+pub fn handle(body: unknown) -> string {
   return match User.parse(body) {   // untrusted input, validated
     Ok(user) => user.name,
     Err(_) => "invalid",
@@ -640,10 +728,44 @@ To build a validator *combinator* (a `zod`-style `object_schema`) whose output
 type follows the shape you pass, use the `infer_output<Shape>` type operator so
 you don't repeat the output type by hand:
 
-```glyph
+```glyph fragment-of=infer-output
 fn object_schema<Shape: Record<string, Schema<unknown>>>(
   shape: Shape,
-) -> Schema<infer_output<Shape>> { ... }
+) -> Schema<infer_output<Shape>> {
+  // the body builds the validator; the whole program is below
+}
+
+// The shape must produce a `User`, or this does not compile:
+const user_schema: Schema<User> = object_schema({
+  name: string_schema(),
+  age: number_schema(),
+})
+```
+
+Whole, and compiled. `string_schema` and `number_schema` stand in for the leaf
+parsers a validator library gives you, which is what `extern_ts` is for:
+
+```glyph example=infer-output
+module schemas
+
+type User = {
+  name: string,
+  age: number,
+}
+
+fn string_schema() -> Schema<string> {
+  return extern_ts("{ parse: (v: unknown) => typeof v === 'string' ? { ok: true, value: v } : { ok: false, issues: [] } } as never")
+}
+
+fn number_schema() -> Schema<number> {
+  return extern_ts("{ parse: (v: unknown) => typeof v === 'number' ? { ok: true, value: v } : { ok: false, issues: [] } } as never")
+}
+
+fn object_schema<Shape: Record<string, Schema<unknown>>>(
+  shape: Shape,
+) -> Schema<infer_output<Shape>> {
+  return extern_ts("shape as never")
+}
 
 // The shape must produce a `User`, or this does not compile:
 const user_schema: Schema<User> = object_schema({
@@ -1273,7 +1395,7 @@ compile error.
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:
 
-```glyph
+```glyph needs-deps
 import react { useState }        // emits: import { useState } from "react";
 import http { createServer }     // emits: import { createServer } from "http";
 ```
@@ -1320,7 +1442,7 @@ src/
     http.d.ts        // declare module "http" { export function createServer(...): ... }
 ```
 
-```glyph
+```glyph needs-deps
 module main
 import http { createServer }
 // ... createServer is now typed from .types/http.d.ts
@@ -1361,26 +1483,30 @@ Two consequences worth knowing:
 Tests live next to the code and run on build:
 
 ```glyph
+module examples
+
 @example double(21) == 42
-fn double(n: number) -> number {
+pub fn double(n: number) -> number {
   n * 2
 }
 ```
 
 ```glyph
+module properties
+
 import std/stream
 import std/test
 import std/result { Ok }
 
 @example test.property(fn(n: number) -> bool { n + 0 == n }, stream.ints()) == Ok(void)
-fn identity_holds() -> bool { true }
+pub fn identity_holds() -> bool { true }
 ```
 
 They run on every `glyph build` (needs `tsx` on PATH; `--no-test` skips them).
 An `@example expr == expr` passes when both sides are structurally equal; a bare
-`@example expr` asserts the expression is `true`. `@doc """..."""` blocks with a
-` ```glyph @run ``` ` fence also execute. A failing one fails the build, under
-`--json` too. **Limitation:** an `@example` that compares against a prelude
+`@example expr` asserts the expression is `true`. A `@doc """..."""` block whose
+Markdown holds a `glyph @run` fence executes that fence too. A failing one fails
+the build, under `--json` too. **Limitation:** an `@example` that compares against a prelude
 constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 
 ## Gotchas (read these once, save an hour)
@@ -1411,6 +1537,74 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
   item to sit above). A comment always lands on its own line, so one written at
   the end of a code line moves to the line above the next item.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).
+
+### The five wrong forms, and the code each draws
+
+Each of these is a whole program that does not compile, and the diagnostic
+beside it is the one this compiler raises. They are compiled on every build of
+this document, so the pairing cannot go stale.
+
+Constructing a record by naming its type. Glyph has no `TypeName { ... }` form:
+
+```glyph expect-error E0228
+module wrong
+
+type Order = {
+  id: string,
+}
+
+pub fn make() -> Order {
+  return Order { id: "a" }
+}
+```
+
+Assigning without `mut`:
+
+```glyph expect-error E0008
+module wrong
+
+pub fn count(xs: Array<number>) -> number {
+  let total = 0
+  for x in xs {
+    total = total + x
+  }
+  return total
+}
+```
+
+Reaching for `if`/`else`:
+
+```glyph expect-error E0006
+module wrong
+
+pub fn label(ready: bool) -> string {
+  if (ready) { return "go" } else { return "wait" }
+}
+```
+
+Object-literal shorthand:
+
+```glyph expect-error E0002
+module wrong
+
+type User = {
+  email: string,
+}
+
+pub fn make(email: string) -> User {
+  return { email }
+}
+```
+
+Spelling the boolean type `boolean`:
+
+```glyph expect-error E0103
+module wrong
+
+pub fn ready(flag: boolean) -> boolean {
+  return flag
+}
+```
 
 ## Diagnostic codes
 

@@ -5431,6 +5431,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - The 76 stdlib signatures that model only arity and return, and the 227 exports with no signature, move toward modeled, starting with `std/fs` and `std/array`, since `fs.read_text(42)` silent under `--no-tsc` is the kind of hole the experiment measures
 - `alternatives` carries its kind (`variants`, `literals`, `fields`, `exports`) from the error variant, and the nested unmarked root spelling agrees across surfaces (both from the rolling lane)
 - The spec's second D43 is renumbered, with every reference moved, so `glyph llms --json` reports no `duplicate_numbers`
+- G241: `glyph fmt` prints a run of unary operators as nested parenthesised operands, so a file the parser accepts at 40 levels comes back from the formatter at 80 and draws E0011 on the next pass; the parser counts a parenthesised operand as one level, not two, and the fuzz input becomes a formatter regression test
 - The publish workflow moves to npm trusted publishing before this release's tag, per the pipeline lane: trusted publishers on the six packages, npm 11.5 or later on the runner, and no token in the publish steps
 
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps

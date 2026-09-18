@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-240 entries, 216 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-6 are open. G144, the D28 boundary cast that never reached the returns a
+241 entries, 216 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+7 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10078,3 +10078,22 @@ and is the owner's to confirm.
   widening. The case is removed and the corpus is eighteen.
 
   *Reproduced against 0.1.122, published, and against the 0.1.123 branch binary, on a one-module project: `glyph check --no-tsc --no-test src` is `glyph check: 1 module(s) checked, no diagnostics.`, exit 0, for `variant="danger"`, for `variant="nope"` and for `variant={42}`, under both binaries.*
+
+- **G241. `glyph fmt` writes a nesting the parser refuses.** The nightly fuzz
+  job's `format_idempotent` target found it the night after 0.1.122 shipped the
+  64-level limit (G229, E0011): a program holding a run of 75 unary minuses
+  (`-------...-print(...)`) parses as written, but the formatter prints every
+  level as a parenthesised operand, `-(-(-(...`, so the formatted file nests
+  twice per minus, the second pass draws E0011 at the 65th level, and
+  `glyph fmt` reports `0 formatted, 0 already formatted, 1 failed` on a file
+  it wrote itself. Two defects in one: the parser counts a bare run of unary
+  operators and a parenthesised one differently, and the formatter's output is
+  not guaranteed to stay under the limit the parser enforces. The invariant
+  `glyph fmt` promises, that its output parses and a second pass changes
+  nothing, is broken for any nesting between 33 and 64 levels that the
+  formatter parenthesises. The fix wants the parser to count a level once
+  whether or not it is written with parentheses (a grouping around an operand
+  is not a second construct), and the fuzz input as a formatter regression.
+
+  *Reproduced against 0.1.123: fuzz run 35200965892's `format_idempotent` input (2,796 bytes, a 75-minus run) is `check --no-tsc` exit 1 with only `E0103` resolve errors as written, so it parses; `glyph fmt` on it reports `1 formatted`; `glyph check` on the result is `[E0011] this unary operand nests deeper than the parser's limit of 64 levels` at 65:69, and a second `glyph fmt` reports `1 failed`. The `parse` and `lex` targets of the same run pass.*
+

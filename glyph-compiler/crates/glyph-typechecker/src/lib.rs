@@ -51,6 +51,28 @@ pub use ty::{
 };
 pub use type_map::{IdentPattern, TypeMap};
 
+pub use glyph_resolver::AlternativesKind;
+
+/// A finite set of things a position accepts, with the kind of thing it is.
+///
+/// The values alone are ambiguous: `["read", "write"]` is a pair of literals a
+/// string-literal union accepts and `["Pending", "Paid"]` is a pair of variant
+/// names, and a consumer writing one of them has to put quotes round the first
+/// and not round the second. The checker knows which at the moment it builds
+/// the list, so the kind rides along instead of being guessed from the shape of
+/// a second tool's answer about the declared type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Accepted {
+    pub kind: AlternativesKind,
+    pub values: Vec<String>,
+}
+
+impl Accepted {
+    pub fn new(kind: AlternativesKind, values: Vec<String>) -> Self {
+        Accepted { kind, values }
+    }
+}
+
 use glyph_ast::Span;
 
 /// Render a `Ty` for human display (LSP hover, diagnostics). Structural where
@@ -310,7 +332,7 @@ pub enum TypeError {
         /// the checker holds: a string-literal union's members. `None` for
         /// every other type, where the accepted set is not enumerable and an
         /// invented list would be a claim (D30).
-        accepted: Option<Vec<String>>,
+        accepted: Option<Accepted>,
         span: Span,
     },
 
@@ -420,7 +442,7 @@ pub enum TypeError {
         found: String,
         /// The values the parameter accepts, when it accepts a finite set the
         /// checker holds. Same rule as `TypeMismatch::accepted`.
-        accepted: Option<Vec<String>>,
+        accepted: Option<Accepted>,
         span: Span,
     },
 
@@ -948,9 +970,34 @@ impl TypeError {
                 Some(fields.clone())
             }
             TypeError::TypeMismatch { accepted, .. }
-            | TypeError::ArgumentTypeMismatch { accepted, .. } => accepted.clone(),
+            | TypeError::ArgumentTypeMismatch { accepted, .. } => {
+                accepted.as_ref().map(|a| a.values.clone())
+            }
             TypeError::UnknownVariantPattern { suggestion, .. } => {
                 suggestion.as_ref().map(|s| vec![s.clone()])
+            }
+            _ => None,
+        }
+    }
+
+    /// What kind of thing `alternatives` holds here: variant names, the
+    /// contents of string literals, a record's fields.
+    ///
+    /// Answers wherever `alternatives` answers and nowhere else, so a consumer
+    /// reads the two keys as one fact. Read off the error variant rather than
+    /// inferred from the names, which cannot be done: `Paid` and `read` are
+    /// both bare identifiers on the wire.
+    pub fn alternatives_kind(&self) -> Option<AlternativesKind> {
+        match self {
+            TypeError::UnknownField { fields, .. } if !fields.is_empty() => {
+                Some(AlternativesKind::Fields)
+            }
+            TypeError::TypeMismatch { accepted, .. }
+            | TypeError::ArgumentTypeMismatch { accepted, .. } => {
+                accepted.as_ref().map(|a| a.kind)
+            }
+            TypeError::UnknownVariantPattern { suggestion, .. } => {
+                suggestion.as_ref().map(|_| AlternativesKind::Variants)
             }
             _ => None,
         }

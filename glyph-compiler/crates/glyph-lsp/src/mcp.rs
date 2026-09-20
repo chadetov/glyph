@@ -10354,6 +10354,7 @@ pub fn f(u: U) -> string {
             "actual",
             "cause",
             "alternatives",
+            "alternatives_kind",
             "related",
             "explain",
         ]
@@ -10368,6 +10369,9 @@ pub fn f(u: U) -> string {
         // The record's own fields and its identity, which the checker held
         // when it refused the access.
         assert_eq!(d["alternatives"], json!(["name"]), "{value}");
+        // And what kind of name they are, which a consumer cannot read off the
+        // names themselves.
+        assert_eq!(d["alternatives_kind"], "fields", "{value}");
         assert_eq!(d["cause"], "a::U", "{value}");
         // `help` is its own field. The message is the sentence the compiler
         // wrote and nothing else.

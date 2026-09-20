@@ -29,7 +29,7 @@ use glyph_db::{Db, SourceFile};
 use glyph_emit::{EmitError, ProjectTables};
 use glyph_parser::ParseError;
 use glyph_resolver::ResolveError;
-use glyph_typechecker::{DiagnosticDecl, Severity, TypeError};
+use glyph_typechecker::{AlternativesKind, DiagnosticDecl, Severity, TypeError};
 
 /// One structured diagnostic.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -130,6 +130,22 @@ pub struct Diagnostic {
     /// `null` is the compiler having no enumerable set, never "anything goes".
     #[serde(default)]
     pub alternatives: Option<Vec<String>>,
+    /// What kind of thing `alternatives` holds: `"variants"` for a tagged
+    /// union's variant names, `"literals"` for a string-literal union's
+    /// contents with the quotes stripped, `"fields"` for a record's own
+    /// fields, `"exports"` for a module's export list.
+    ///
+    /// Four kinds arrived under one key and the wire could not tell them
+    /// apart: `["Pending", "Paid"]` and `["read", "write"]` are both lists of
+    /// bare names, and a consumer writing one of them has to put quotes round
+    /// the second and not round the first. Reading the declared type back
+    /// through `glyph_symbol` answered for a declared union and answered
+    /// nothing for one written inline. The compiler knows which at the moment
+    /// it builds the list, so the kind is set there and never guessed here.
+    ///
+    /// Non-null exactly when `alternatives` is, so the pair reads as one fact.
+    #[serde(default)]
+    pub alternatives_kind: Option<String>,
     /// The other names a reader of this diagnostic has to know about: the
     /// union's whole variant list on a non-exhaustive match, in declaration
     /// order. `missing_variants` is the gap; this is the set it came out of,
@@ -268,6 +284,7 @@ impl Diagnostic {
             actual: None,
             cause: None,
             alternatives: None,
+            alternatives_kind: None,
             related: None,
             explain: explain_pointer(code),
         }
@@ -298,12 +315,14 @@ impl Diagnostic {
         actual: Option<String>,
         cause: Option<String>,
         alternatives: Option<Vec<String>>,
+        alternatives_kind: Option<AlternativesKind>,
         related: Option<Vec<String>>,
     ) -> Self {
         self.expected = expected;
         self.actual = actual;
         self.cause = cause;
         self.alternatives = alternatives;
+        self.alternatives_kind = alternatives_kind.map(|k| k.as_str().to_string());
         self.related = related;
         self
     }
@@ -375,7 +394,14 @@ pub fn from_resolve_error(
     // The resolver compares no types and, on an unknown import, names a symbol
     // that does not exist, so there is no `cause` to give. What it does hold is
     // the module's export list, which is what it checked the name against.
-    .with_facts(None, None, None, err.alternatives(), None)
+    .with_facts(
+        None,
+        None,
+        None,
+        err.alternatives(),
+        err.alternatives_kind(),
+        None,
+    )
 }
 
 pub fn from_type_error(
@@ -422,6 +448,7 @@ pub fn from_type_error(
         err.actual().map(str::to_string),
         err.cause().and_then(|d| d.declaration(module_path)),
         err.alternatives(),
+        err.alternatives_kind(),
         err.related(),
     )
 }
@@ -446,7 +473,7 @@ pub fn from_emit_error(
     )
     // The emitter compares no two types and names no second declaration. The
     // one type it does hold is the field type E0304 refuses to validate.
-    .with_facts(None, err.actual().map(str::to_string), None, None, None)
+    .with_facts(None, err.actual().map(str::to_string), None, None, None, None)
 }
 
 /// The `module::name` identity of the top-level declaration enclosing byte
@@ -962,7 +989,14 @@ mod tests {
         let err = glyph_parser::parse("module main\npub fn f(\n").expect_err("fails to parse");
         let d = from_parse_error("main", "module main\npub fn f(\n", &err);
         let json = serde_json::to_string(&d).expect("serializes");
-        for field in ["expected", "actual", "cause", "alternatives", "related"] {
+        for field in [
+            "expected",
+            "actual",
+            "cause",
+            "alternatives",
+            "alternatives_kind",
+            "related",
+        ] {
             assert!(json.contains(&format!("\"{field}\":null")), "{field}: {json}");
         }
         // The pointer is still there: a parse error has an explanation too.
@@ -1011,8 +1045,94 @@ mod tests {
         assert_eq!(argument.alternatives.as_deref(), Some(accepted.as_slice()));
     }
 
+    /// `alternatives` says what kind of name it lists, because four kinds
+    /// arrive under the one key and the wire cannot tell them apart: a
+    /// record's fields, a union's variant names, a string-literal union's
+    /// contents. `["Paid"]` and `["read"]` are both lists of bare identifiers,
+    /// and writing one means putting quotes round it while writing the other
+    /// means not. The kind is set where the list is built.
+    ///
+    /// The module-graph kind, `exports`, needs two modules and is pinned in
+    /// `glyph-cli/tests/check_agent.rs`.
+    #[test]
+    fn alternatives_says_what_kind_of_name_it_lists() {
+        let record = "module main\n\ntype Order = {\n  id: string,\n  total: number,\n}\n\n\
+                      fn f(o: Order) -> number {\n  return o.totl\n}\n";
+        let tagged = "module main\n\ntype OrderStatus =\n  | Pending\n  | Paid\n\n\
+                      fn f() -> number {\n  let m: OrderStatus = \"pending\"\n  return 0\n}\n";
+        let literal = "module main\n\ntype Mode = \"read\" | \"write\"\n\n\
+                       fn f() -> number {\n  let m: Mode = \"rw\"\n  return 0\n}\n";
+        let pattern = "module main\n\ntype Feed =\n  | Loading\n  | Loaded\n\n\
+                       fn f(x: Feed) -> number {\n  return match x {\n    Loading => 1,\n\
+                       \x20   Loadd => 2,\n    Loaded => 3,\n  }\n}\n";
+        // An inline literal set is declared nowhere, so no tool describes it;
+        // the kind is the only thing that says how to write one of its values.
+        let inline = "module main\n\nfn f() -> number {\n\
+                      \x20 let m: \"read\" | \"write\" = \"rw\"\n  return 0\n}\n";
+
+        for (src, code, kind) in [
+            (record, "E0210", "fields"),
+            (tagged, "E0204", "variants"),
+            (literal, "E0204", "literals"),
+            (pattern, "E0220", "variants"),
+            (inline, "E0204", "literals"),
+        ] {
+            let d = diagnostic_of("main", src, code);
+            assert!(
+                d.alternatives.is_some(),
+                "{code}: the fixture is meant to carry a list"
+            );
+            assert_eq!(
+                d.alternatives_kind.as_deref(),
+                Some(kind),
+                "{code}: {:?}",
+                d.alternatives
+            );
+        }
+    }
+
+    /// The two keys are one fact, so they are absent together. A diagnostic
+    /// with a list and no kind would leave a consumer back where it started,
+    /// and a kind with no list would name the kind of nothing.
+    #[test]
+    fn the_kind_is_present_exactly_when_the_list_is() {
+        let sources = [
+            "module main\n\nfn f() -> number {\n  let x: string = 1\n  return 0\n}\n",
+            "module main\n\ntype Order = {\n  id: string,\n}\n\n\
+             fn f(o: Order) -> number {\n  return o.totl\n}\n",
+            "module main\n\ntype Feed =\n  | A\n  | B\n\n\
+             fn f(x: Feed) -> number {\n  return match x {\n    A => 1,\n  }\n}\n",
+        ];
+        for src in sources {
+            for d in diagnostics_of("main", src) {
+                assert_eq!(
+                    d.alternatives.is_some(),
+                    d.alternatives_kind.is_some(),
+                    "{}: alternatives {:?}, kind {:?}",
+                    d.code,
+                    d.alternatives,
+                    d.alternatives_kind
+                );
+            }
+        }
+    }
+
     /// The first diagnostic with `code` that `src` produces, as
     /// `glyph check --json` would report it under `module_path`.
+    /// Every typecheck diagnostic `src` produces, in the order the checker
+    /// raised them.
+    fn diagnostics_of(module_path: &str, src: &str) -> Vec<Diagnostic> {
+        let module = glyph_parser::parse(src).expect("fixture parses");
+        let symbols = glyph_resolver::collect_module_symbols(&module).expect("symbols collect");
+        let prelude = glyph_resolver::build_prelude();
+        let (resolved, _) = glyph_resolver::resolve_module(&module, symbols, &prelude);
+        let (_types, errors) = glyph_typechecker::assign_types(&module, &resolved, &prelude);
+        errors
+            .iter()
+            .map(|e| from_type_error(module_path, src, e, &module))
+            .collect()
+    }
+
     fn diagnostic_of(module_path: &str, src: &str, code: &str) -> Diagnostic {
         let module = glyph_parser::parse(src).expect("fixture parses");
         let symbols = glyph_resolver::collect_module_symbols(&module).expect("symbols collect");

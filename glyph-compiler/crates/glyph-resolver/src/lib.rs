@@ -33,7 +33,7 @@ mod resolve;
 mod symbol;
 
 pub use collect::{collect_module_symbols, ModuleSymbols};
-pub use error::{ResolveError, Severity, ShadowOrigin};
+pub use error::{AlternativesKind, ResolveError, Severity, ShadowOrigin};
 pub use lints::{module_lints, no_export_surface_lint};
 pub use reserved::JS_GLOBALS;
 pub use module_graph::{

@@ -263,6 +263,19 @@ impl ResolveError {
         }
     }
 
+    /// What kind of thing `alternatives` holds here, when it holds anything.
+    ///
+    /// One case today, matching the one `alternatives` answers for: the names
+    /// a module exports.
+    pub fn alternatives_kind(&self) -> Option<AlternativesKind> {
+        match self {
+            ResolveError::UnknownExportedName { exports, .. } if !exports.is_empty() => {
+                Some(AlternativesKind::Exports)
+            }
+            _ => None,
+        }
+    }
+
     /// A one-line, actionable fix.
     pub fn help(&self) -> Option<&'static str> {
         Some(match self {
@@ -542,5 +555,45 @@ mod suggestion_tests {
     fn a_module_with_no_exports_suggests_nothing() {
         let s = export_suggestion("anything", std::iter::empty());
         assert_eq!(s, "");
+    }
+}
+
+/// What a diagnostic's `alternatives` list holds.
+///
+/// `alternatives` carries four different kinds of name under one key: a
+/// record's own fields, a module's exports, a tagged union's variant names, a
+/// string-literal union's literal contents with their quotes stripped. A
+/// consumer that wants to write one of them has to know which, and the only
+/// way to know used to be to ask a second tool about the declared type and
+/// read the shape of its answer, which fails for a union written inline
+/// because no tool describes a type that is declared nowhere.
+///
+/// The compiler knows at the moment it builds the list, so the kind travels
+/// with it from the construction site rather than being reconstructed
+/// downstream. It lives in this crate because the resolver and the typechecker
+/// both build such lists and this is the lower of the two.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AlternativesKind {
+    /// The variant names of a tagged union (D8). A variant with a payload is a
+    /// constructor, so these are names and not values.
+    Variants,
+    /// The members of a string-literal union (D30), unquoted. Writing one means
+    /// putting the quotes back.
+    Literals,
+    /// The fields a record declares (D7).
+    Fields,
+    /// The names a module exports.
+    Exports,
+}
+
+impl AlternativesKind {
+    /// The wire spelling, which is what every structured surface prints.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AlternativesKind::Variants => "variants",
+            AlternativesKind::Literals => "literals",
+            AlternativesKind::Fields => "fields",
+            AlternativesKind::Exports => "exports",
+        }
     }
 }

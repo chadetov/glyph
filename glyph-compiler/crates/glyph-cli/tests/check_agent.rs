@@ -307,12 +307,14 @@ fn the_accepted_values_of_a_string_literal_union_are_quoted() {
     );
 }
 
-/// And where the compiler holds no form to write a value in, no sentence is
-/// written. An inline union names no declaration, so `glyph_symbol` has
-/// nothing to describe and the constraint list holds only the one invariant
-/// the compiler does state.
+/// An inline literal set is declared nowhere, so `glyph_symbol` describes it
+/// and every tool like it answers nothing. The sentence used to be dropped for
+/// that reason: the kind was recovered from the shape of the tool's answer, and
+/// there was no answer. `alternatives_kind` comes off the checker, which knew
+/// it was a literal set when it built the list, so the values are written for a
+/// union with no name exactly as they are for one with a name.
 #[test]
-fn an_inline_union_gets_no_accepted_values_sentence() {
+fn an_inline_literal_union_states_the_values_it_accepts() {
     let dir = unique_tmp("alt_inline");
     std::fs::write(
         dir.join("src/main.glyph"),
@@ -330,20 +332,76 @@ fn an_inline_union_gets_no_accepted_values_sentence() {
         .iter()
         .find(|d| d["code"] == "E0211")
         .expect("an argument mismatch");
+    assert_eq!(d["alternatives_kind"], "literals", "{d}");
     let constraints: Vec<&str> = d["constraints"]
         .as_array()
         .expect("array")
         .iter()
         .filter_map(|c| c.as_str())
         .collect();
+    let accepted = constraints
+        .iter()
+        .find(|c| c.contains("this position accepts"))
+        .unwrap_or_else(|| panic!("no accepted-values constraint in {constraints:?}"));
     assert!(
-        constraints.iter().all(|c| !c.contains("this position accepts")),
-        "no declaration to read a written form from, so no sentence: {constraints:?}"
+        accepted.contains("`\"read\"`") && accepted.contains("`\"write\"`"),
+        "the literals carry their quotes here too: {accepted}"
     );
     assert!(
         constraints.iter().any(|c| c.contains("do not cast")),
         "the invariant the compiler does hold is still stated: {constraints:?}"
     );
+}
+
+/// The fourth kind, and the one that needs two modules: the names a module
+/// exports, against an import of a name it does not. `E0105` is raised by the
+/// resolver rather than the checker, so the kind travels from a second
+/// construction site and the two surfaces have to agree on the spelling.
+#[test]
+fn an_unknown_import_lists_the_modules_exports_under_that_kind() {
+    let dir = unique_tmp("alt_exports");
+    std::fs::write(
+        dir.join("src/model.glyph"),
+        "module model\n\npub fn keep() -> int { return 1 }\n",
+    )
+    .expect("write model");
+    std::fs::write(
+        dir.join("src/main.glyph"),
+        "module main\n\nimport model { kept }\n\npub fn f() -> int { return kept() }\n",
+    )
+    .expect("write main");
+    let value = check_json(&dir, &["--agent"]);
+    let d = value["diagnostics"]
+        .as_array()
+        .expect("array")
+        .iter()
+        .find(|d| d["code"] == "E0105")
+        .unwrap_or_else(|| panic!("no E0105 in {value}"));
+    assert_eq!(d["alternatives"], serde_json::json!(["keep"]), "{d}");
+    assert_eq!(d["alternatives_kind"], "exports", "{d}");
+}
+
+/// A record's field list, under its own kind. Four kinds share `alternatives`
+/// and a consumer that writes one of them has to know which: a field is read
+/// with a dot, a literal is written with quotes, a variant is constructed.
+#[test]
+fn a_field_typo_lists_the_records_fields_under_that_kind() {
+    let dir = unique_tmp("alt_fields");
+    std::fs::write(
+        dir.join("src/main.glyph"),
+        "module main\n\ntype Order = { id: string, total: int }\n\n\
+         pub fn f(o: Order) -> int { return o.totl }\n",
+    )
+    .expect("write main");
+    let value = check_json(&dir, &["--agent"]);
+    let d = value["diagnostics"]
+        .as_array()
+        .expect("array")
+        .iter()
+        .find(|d| d["code"] == "E0210")
+        .unwrap_or_else(|| panic!("no E0210 in {value}"));
+    assert_eq!(d["alternatives"], serde_json::json!(["id", "total"]), "{d}");
+    assert_eq!(d["alternatives_kind"], "fields", "{d}");
 }
 
 /// The root the `file` strings are spelled under, on the surface that used to

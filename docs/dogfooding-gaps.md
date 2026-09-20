@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-241 entries, 216 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-7 are open. G144, the D28 boundary cast that never reached the returns a
+241 entries, 217 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+6 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10079,7 +10079,12 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.122, published, and against the 0.1.123 branch binary, on a one-module project: `glyph check --no-tsc --no-test src` is `glyph check: 1 module(s) checked, no diagnostics.`, exit 0, for `variant="danger"`, for `variant="nope"` and for `variant={42}`, under both binaries.*
 
-- **G241. `glyph fmt` writes a nesting the parser refuses.** The nightly fuzz
+- **G241. [FIXED] `glyph fmt` writes a nesting the parser refuses.** Fixed in
+  0.1.124 on the parser side: a parenthesised operand counts as one nesting
+  level, not two, so `-(x)` nests as deep as `-x` and the formatter's
+  parenthesised output is a fixpoint; the 40-minus run is a fuzz seed and a
+  formatter regression test, and the limit stays 64. Canonical formatter output
+  is unchanged. Original entry follows. The nightly fuzz
   job's `format_idempotent` target found it the night after 0.1.122 shipped the
   64-level limit (G229, E0011): a program holding a run of 75 unary minuses
   (`-------...-print(...)`) parses as written, but the formatter prints every

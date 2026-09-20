@@ -1,0 +1,11 @@
+module main
+
+// G240 across a module boundary. The guarantee may not depend on where the
+// component was declared: the props record reaches this module as a
+// `Ty::Imported` and the literal set is read from its declaration, so the
+// diagnostic names `Variant` here exactly as it does in `ui`.
+import ui { Button }
+
+pub component App() {
+  return <Button variant="nope" label="go" />
+}

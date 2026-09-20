@@ -2152,6 +2152,7 @@ impl Assigner<'_> {
         if j.name.as_ref() == "match" {
             self.check_jsx_match_exhaustiveness(j);
         }
+        self.check_jsx_component_attrs(j);
         for child in &j.children {
             match child {
                 JsxChild::Element(e) => self.walk_jsx(e),
@@ -2159,6 +2160,137 @@ impl Assigner<'_> {
                 JsxChild::Text { .. } => {}
             }
         }
+    }
+
+    /// Every attribute of a component element, against the props record the
+    /// component declares (G240).
+    ///
+    /// `<Button variant="nope" />` lowers to
+    /// `React.createElement(Button, { variant: "nope" })`, so an attribute is
+    /// an argument and the props record is the parameter it is passed to. The
+    /// rule is the call-argument relation reached through the same two
+    /// helpers, `value_refusal` and `accepted_values`, which is why a wrong
+    /// attribute draws the `E0211` a wrong argument draws, carries the same
+    /// `expected`/`found` pair, and carries a string-literal union's members
+    /// as its `alternatives` so `glyph fix` and `check --agent` can act on it
+    /// (D30). Before this, nothing in the front end read a JSX attribute at
+    /// all: `tsc` on the emitted TypeScript was the only thing that saw one,
+    /// which left `--no-tsc`, the language server, the MCP tools and the
+    /// playground blind.
+    ///
+    /// Three readings the rule is built on, each established by running the
+    /// program under `tsc --strict`:
+    ///
+    /// - **Children are not a prop.** The emitter passes them as
+    ///   `React.createElement(tag, props, ...children)` varargs, never inside
+    ///   the props object, and `tsc` accepts children on a component whose
+    ///   props record declares no `children` field. So nothing here reads
+    ///   `j.children`, and no component is ever asked for one.
+    /// - **A spread supplies what it supplies.** `<Button {...p} />` may carry
+    ///   every required prop, and `tsc` accepts it, so a missing attribute is
+    ///   not decidable next to a spread. An explicitly written attribute is
+    ///   still wrong when it is wrong, and `tsc` refuses that one with the
+    ///   spread present, so every attribute below is checked whether or not
+    ///   the element also spreads.
+    /// - **An optional field may be omitted.** `hint?: string` is
+    ///   `RecordField::optional`, and an element that omits it compiles.
+    ///   A written one is checked against the field's type like any other.
+    ///
+    /// `key` is React's own attribute (it lives on `Attributes`, not on the
+    /// props type) and `tsc` accepts it on every component, so it is never an
+    /// unknown one. The emitter also injects it itself on a `<for>`-mapped
+    /// element.
+    fn check_jsx_component_attrs(&mut self, j: &JsxElement) {
+        let Some((props_ty, shape)) = self.jsx_component_props_shape(j) else {
+            return;
+        };
+        for attr in &j.attrs {
+            // A positional attribute belongs to a directive, and a spread's
+            // object is checked where it is written, not against one field.
+            let (name, attr_span, written, found) = match attr {
+                JsxAttr::String { name, value, span } => (
+                    name,
+                    *span,
+                    None,
+                    Ty::StringLiteralUnion(vec![value.clone()]),
+                ),
+                JsxAttr::Expr { name, value, span } => (
+                    name,
+                    *span,
+                    Some(value),
+                    self.tm.get(value.span()).clone(),
+                ),
+                JsxAttr::Positional { .. } | JsxAttr::Spread { .. } => continue,
+            };
+            if name.as_ref() == "key" {
+                continue;
+            }
+            let Some(field) = shape.fields.iter().find(|f| f.name == *name) else {
+                self.errors.push(TypeError::UnknownField {
+                    field: name.to_string(),
+                    type_name: ty_display(&props_ty),
+                    fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
+                    record: self.field_owner_decl(&shape.owner),
+                    span: attr_span,
+                });
+                continue;
+            };
+            // A written `name={expr}` goes through the expression form of the
+            // relation, so an array or object literal is named by the element
+            // that is wrong rather than as a whole. A `name="literal"` has no
+            // expression to name: the attribute is its own span, and the
+            // literal it spells is the one-literal union a written string
+            // types as anywhere else.
+            let refusal = match written {
+                Some(value) => self.value_refusal(value, &found, &field.ty),
+                None => self.assign_incompatible(&found, &field.ty).then(|| {
+                    let display = self.found_display(&found, &field.ty);
+                    self.refusal(&field.ty, display, attr_span)
+                }),
+            };
+            if let Some(r) = refusal {
+                let accepted = self.accepted_values(&r.expected);
+                self.errors.push(TypeError::ArgumentTypeMismatch {
+                    expected: ty_display(&r.expected),
+                    found: r.found,
+                    accepted,
+                    span: r.span,
+                });
+            }
+        }
+    }
+
+    /// The props record a component element's attributes are checked against,
+    /// or `None` for every element this rule has nothing to say about.
+    ///
+    /// Four kinds of element reach here and only one qualifies. An intrinsic
+    /// (`<div>`, lowercase) is React's own element table, which Glyph does not
+    /// model. A directive (`<if>`, `<else>`, `<for>`, `<match>`, `<case>`) is
+    /// compiler-owned and its attributes are the directive's own. A dotted
+    /// name (`<Ctx.Provider>`) resolves its base segment only, so the type
+    /// behind the member is not in hand. What is left is a component
+    /// reference, and it qualifies when it resolves to a callable taking one
+    /// parameter whose type is a record: the props-record form `E0214` already
+    /// pushes every component toward. A component with no parameter takes no
+    /// props, and `tsc` accepts any attribute on one, so it is left alone.
+    /// The type is the one the component's parameter is *declared* with, not
+    /// the alias chain's end, so a diagnostic names `Props` where the author
+    /// wrote `Props` — the rule `E0210` already follows at a field access.
+    fn jsx_component_props_shape(&mut self, j: &JsxElement) -> Option<(Ty, RecordShape)> {
+        let name = j.name.as_ref();
+        if !name.starts_with(|c: char| c.is_ascii_uppercase()) || name.contains('.') {
+            return None;
+        }
+        let Ty::Fn { params, .. } = self.type_of_ident_ref(j.span) else {
+            return None;
+        };
+        let [param] = params.as_slice() else {
+            return None;
+        };
+        let declared = param.ty.clone();
+        let canonical = self.canonicalize_aliases(&declared);
+        let shape = self.record_shape_of(&canonical)?;
+        Some((declared, shape))
     }
 
     /// Exhaustiveness for a `<match value={s}>` JSX directive. Mirrors the
@@ -15159,5 +15291,156 @@ fn f(a: Answer) -> number {
              }\n",
         );
         assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
+    // -----------------------------------------------------------------------
+    // G240: a component element's attributes, against its props record
+    // -----------------------------------------------------------------------
+
+    /// The program the gap was written from. All three spellings passed
+    /// `glyph check --no-tsc` with no diagnostic: nothing in the front end
+    /// read a JSX attribute, so neither D30's literal set nor any other rule
+    /// reached one, and `tsc` on the emitted TypeScript was the only thing
+    /// that saw it.
+    const BUTTON: &str = "module m\n\
+         type Variant = \"primary\" | \"danger\"\n\
+         type Props = { variant: Variant, label: string, hint?: string }\n\
+         component Button(props: Props) -> Component {\n\
+         \x20 return <button>{props.label}</button>\n\
+         }\n";
+
+    #[test]
+    fn a_jsx_attribute_outside_the_declared_literal_set_is_refused() {
+        let errs = errors_of(&format!(
+            "{BUTTON}\
+             component App() -> Component {{\n\
+             \x20 return <Button variant=\"nope\" label=\"go\" />\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["\"nope\""], "errs: {errs:?}");
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, .. } if expected == "Variant"
+            )),
+            "the attribute is named by the field's own declared type: {errs:?}"
+        );
+        assert_eq!(
+            mismatch_accepted(&errs),
+            vec![vec!["primary".to_string(), "danger".to_string()]],
+            "the D30 literal set rides along as the alternatives: {errs:?}"
+        );
+    }
+
+    /// The expression form of the same attribute, so the refusal comes from
+    /// the type the walk recorded rather than from a written literal.
+    #[test]
+    fn a_jsx_attribute_expression_of_the_wrong_type_is_refused() {
+        let errs = errors_of(&format!(
+            "{BUTTON}\
+             component App() -> Component {{\n\
+             \x20 return <Button variant={{42}} label=\"go\" />\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["number"], "errs: {errs:?}");
+    }
+
+    /// An attribute the props record does not declare is the field diagnostic,
+    /// which carries the record's own field list, so `glyph fix` can take the
+    /// one field a character away from the typo.
+    #[test]
+    fn a_jsx_attribute_the_props_record_does_not_declare_is_refused() {
+        let errs = errors_of(&format!(
+            "{BUTTON}\
+             component App() -> Component {{\n\
+             \x20 return <Button variant=\"danger\" label=\"go\" bogus=\"x\" />\n\
+             }}\n"
+        ));
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, type_name, fields, .. }
+                    if field == "bogus"
+                        && type_name == "Props"
+                        && fields == &["variant", "label", "hint"]
+            )),
+            "an undeclared attribute names the props record and its fields: {errs:?}"
+        );
+    }
+
+    /// Every correct shape, in one program, all of which `tsc --strict`
+    /// compiles: the right attributes, an optional field written and omitted,
+    /// a function-typed prop, children on a component that declares no
+    /// `children` field, `key`, and the compiler's own directives.
+    #[test]
+    fn the_correct_jsx_attribute_shapes_draw_nothing() {
+        let errs = errors_of(
+            "module m\n\
+             type Variant = \"primary\" | \"danger\"\n\
+             type Props = { variant: Variant, label: string, hint?: string }\n\
+             component Button(props: Props) -> Component {\n\
+             \x20 return <button>{props.label}</button>\n\
+             }\n\
+             component Card(props: { title: string }) -> Component {\n\
+             \x20 return <div>{props.title}</div>\n\
+             }\n\
+             component App(a: { xs: Array<string> }) -> Component {\n\
+             \x20 return <div class=\"x\" bogus=\"ok\">\n\
+             \x20   <Button variant=\"danger\" label=\"go\" />\n\
+             \x20   <Button variant=\"primary\" label=\"b\" hint=\"h\" key={1} />\n\
+             \x20   <Card title=\"t\"><span>child</span></Card>\n\
+             \x20   <for x in={a.xs}><Card title={x} /></for>\n\
+             \x20   <if cond={a.xs.length == 0}><Card title=\"none\" /></if>\n\
+             \x20   <else><Card title=\"some\" /></else>\n\
+             \x20 </div>\n\
+             }\n",
+        );
+        assert!(errs.is_empty(), "no correct shape is refused: {errs:?}");
+    }
+
+    /// A spread may carry any prop, so an element that has one is not asked
+    /// for a missing attribute. What it writes explicitly is still checked:
+    /// `tsc` refuses the wrong literal and the undeclared name with the
+    /// spread present, and so does this.
+    #[test]
+    fn a_spread_leaves_the_written_attributes_checked() {
+        let errs = errors_of(&format!(
+            "{BUTTON}\
+             component App(p: Props) -> Component {{\n\
+             \x20 return <div>\n\
+             \x20   <Button {{...p}} />\n\
+             \x20   <Button {{...p}} variant=\"nope\" />\n\
+             \x20   <Button {{...p}} bogus=\"x\" />\n\
+             \x20 </div>\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["\"nope\""], "errs: {errs:?}");
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::UnknownField { field, .. } if field == "bogus")),
+            "an undeclared attribute is decidable next to a spread: {errs:?}"
+        );
+        assert_eq!(errs.len(), 2, "the spread alone draws nothing: {errs:?}");
+    }
+
+    /// A component declaring no parameter takes no props, and `tsc` accepts
+    /// any attribute on one, so nothing here does either. Same for a
+    /// component whose single parameter is not a record: `<Greeting
+    /// name="x" />` is already refused by `tsc` and the shape this rule reads
+    /// is the props record `E0214` pushes every component toward.
+    #[test]
+    fn a_component_without_a_props_record_is_left_alone() {
+        let errs = errors_of(
+            "module m\n\
+             component Bare() -> Component {\n  return <div>hi</div>\n}\n\
+             component Greeting(name: string) -> Component {\n  return <div>{name}</div>\n}\n\
+             component App() -> Component {\n\
+             \x20 return <div>\n\
+             \x20   <Bare nope=\"x\" />\n\
+             \x20   <Greeting name=\"x\" />\n\
+             \x20 </div>\n\
+             }\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
     }
 }

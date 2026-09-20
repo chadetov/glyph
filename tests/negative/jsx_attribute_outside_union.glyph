@@ -1,0 +1,18 @@
+module neg
+
+// G240. A component element's attributes are the argument of a one-parameter
+// call: `<Button ...>` lowers to `React.createElement(Button, { ... })` and
+// the props record is what that object is checked against. Before this, no
+// JSX attribute reached the assignability relation at all, so `variant="nope"`
+// passed `glyph check --no-tsc` silently and only `tsc` on the emitted
+// TypeScript refused it, as TS2769.
+type Variant = "primary" | "danger"
+type Props = { variant: Variant, label: string }
+
+component Button(props: Props) {
+  return <button>{props.label}</button>
+}
+
+pub component App() {
+  return <Button variant="nope" label="go" />
+}

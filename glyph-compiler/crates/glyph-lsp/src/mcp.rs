@@ -869,6 +869,10 @@ fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String>
 ///
 /// A file the project cannot read at all answers null, which is what a position
 /// in a file with no tree has always answered.
+///
+/// The reading itself is `analysis::hover_in`, which the language server's
+/// `textDocument/hover` also calls: one implementation, so the two surfaces
+/// cannot answer differently about one position (G219, G235).
 fn tool_hover(args: &Value, server: &mut Server) -> Result<String, String> {
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
@@ -879,22 +883,9 @@ fn tool_hover(args: &Value, server: &mut Server) -> Result<String, String> {
     let Some(entry) = project.queried(&path) else {
         return Ok("null".to_string());
     };
-    let db = &project.db;
-    let file = entry.file;
-    let parsed = glyph_db::parse_module(db, file);
-    let resolved = glyph_db::resolve(db, file);
-    let (Some(module_ast), Some(resolved_module)) = (parsed.module(), resolved.resolved()) else {
-        return Ok("null".to_string());
-    };
-    let decls = SalsaDeclTy::new(db, file);
-    let ftext = file.source_text(db);
-    Ok(to_json(&crate::analysis::hover_at_with_imports(
-        module_ast,
-        resolved_module,
-        db.prelude(),
-        glyph_db::type_map(db, file).type_map(),
-        &decls,
-        ftext,
+    Ok(to_json(&crate::analysis::hover_in(
+        &project.db,
+        entry.file,
         offset,
     )))
 }

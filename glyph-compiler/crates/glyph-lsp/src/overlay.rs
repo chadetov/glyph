@@ -253,13 +253,24 @@ impl ProjectDb {
     }
 
     /// Register the members with the database, if the set has changed.
+    ///
+    /// One entry per module path, because a project file list holding a path
+    /// twice is a module whose exports are whichever of the two the aggregation
+    /// happened to read last. Two URIs can name one file (a symlinked
+    /// directory, a client that sends a path the walk spells differently), and
+    /// the URI the editor opened is the one that keeps the slot: it is the one
+    /// carrying the buffer.
     fn publish(&mut self) {
-        let mut entries: Vec<(String, SourceFile)> = self
-            .handles
-            .values()
-            .filter_map(|h| h.module_path.clone().map(|m| (m, h.file)))
-            .collect();
-        entries.sort_by(|a, b| a.0.cmp(&b.0));
+        let mut by_uri: Vec<(&Url, &Handle)> = self.handles.iter().collect();
+        by_uri.sort_by(|a, b| a.0.cmp(b.0));
+        let mut by_module: std::collections::BTreeMap<String, SourceFile> =
+            std::collections::BTreeMap::new();
+        for (_, handle) in by_uri {
+            if let Some(module_path) = &handle.module_path {
+                by_module.entry(module_path.clone()).or_insert(handle.file);
+            }
+        }
+        let entries: Vec<(String, SourceFile)> = by_module.into_iter().collect();
         if entries != self.entries {
             self.db.set_project(entries.clone());
             self.entries = entries;

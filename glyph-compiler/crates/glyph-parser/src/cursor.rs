@@ -30,6 +30,10 @@ use crate::error::ParseError;
 /// about 515 KiB and the debug build about 580 KiB, so even the costlier build
 /// on the thinner stack uses under a third of it.
 ///
+/// A level is one construct the parser descends into, counted once however it
+/// is spelled: parentheses around an operand are that operand's level, not a
+/// second one, so `-(x)` nests as deep as `-x`. See `nested_operand`.
+///
 /// It is also far past anything anyone writes. Across the 343 `.glyph` files
 /// in this repository the deepest nesting is 16 levels, in
 /// `examples/apps/watchrun/main.glyph`; a file that reaches 64 was generated.
@@ -308,5 +312,37 @@ impl<'a> Cursor<'a> {
         let out = f(self);
         self.depth -= 1;
         out
+    }
+
+    /// Open a level for one operand expression, unless that operand is written
+    /// as a grouping, which opens the level itself.
+    ///
+    /// `(e)` builds no node: `parse_primary` returns `e`. So the operand slot
+    /// of a prefix or infix operator and the parentheses a writer may put
+    /// around it are the same expression, and charging both counted it twice.
+    /// `-x` cost one level and `-(x)` cost two, which made the limit depend on
+    /// a spelling that the AST does not record.
+    ///
+    /// That mattered because the formatter prints every unary operand
+    /// parenthesized: a run of 40 minuses parsed as 40 levels, `glyph fmt`
+    /// rewrote it as `-(-(-(...`, and the second pass counted 80 and refused
+    /// the file the formatter had just written (G241).
+    ///
+    /// The level is never dropped, only moved: when the operand starts with
+    /// `(`, `parse_primary`'s grouping arm charges it through `nested`, and a
+    /// grouping directly inside another grouping still charges one each, so
+    /// `((((...))))` stays bounded. Both spellings cost one level per level of
+    /// real recursion, and that level runs the whole precedence ladder either
+    /// way, which is what `MAX_NESTING_DEPTH` was measured against.
+    pub fn nested_operand<T>(
+        &mut self,
+        construct: &'static str,
+        span: Span,
+        f: impl FnOnce(&mut Cursor<'a>) -> Result<T, ParseError>,
+    ) -> Result<T, ParseError> {
+        if self.check(&Token::LParen) {
+            return f(self);
+        }
+        self.nested(construct, span, f)
     }
 }

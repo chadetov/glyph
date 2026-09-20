@@ -69,3 +69,28 @@ the request that genuinely has new text to analyse.
 The one number that moved the wrong way is the keystroke's growth exponent,
 n^1.49 before and n^1.64 after, because the smallest file gains proportionally
 more than the largest. Every size measured is faster than before.
+
+## The project measurement (0.1.124)
+
+The server that analyses a file inside its project, against 0.1.123, which
+analysed each open buffer on its own. Both run in one sitting. Medians, in
+milliseconds:
+
+| scenario | file | 0.1.123 | with the project | change |
+|---|---|---|---|---|
+| keystroke | json_parser (535) | 1.27 | 1.30 | +2% |
+| keystroke | sheet (1,652) | 6.96 | 7.13 | +2% |
+| keystroke | minilang (2,205) | 11.61 | 11.75 | +1% |
+| burst | json_parser | 1.76 | 1.92 | +9% |
+| burst | sheet | 8.76 | 9.13 | +4% |
+| burst | minilang | 14.49 | 14.71 | +2% |
+| references | csvql (11 files) | 1.36 | 1.41 | +4% |
+
+The keystroke is flat because it writes one input and nothing else: no walk,
+no re-read, no re-registered file list. What the project costs is paid once,
+when a document is opened and the tree is indexed, and again on a save or a
+watched-file notification. None of those is on the typing path.
+
+The machine was running other builds through this session and several runs
+carry a spike in one cell. The pair above is the one with none, and four pairs
+agree on the shape.

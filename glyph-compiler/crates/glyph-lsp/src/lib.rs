@@ -121,11 +121,20 @@ impl Backend {
     /// this one cannot be answered from the text the change replaced. The
     /// diagnostics are computed and the lock released before the `await`, so no
     /// guard or non-`Send` value crosses the suspension point.
-    async fn refresh(&self, uri: Url, text: String, version: Option<i32>) {
+    ///
+    /// `rescan` re-reads the project from disk first. It is set for a document
+    /// being opened and clear for a keystroke: the walk and the reads are the
+    /// one cost that scales with the project rather than with the edit, and
+    /// nothing about typing can have changed a file the editor did not send.
+    async fn refresh(&self, uri: Url, text: String, version: Option<i32>, rescan: bool) {
+        let root = self.analysis_root(&uri);
         let diagnostics = {
             let mut ws = self.ws.lock().expect("workspace mutex");
             ws.set_buffer(&uri, text);
-            match ws.diagnostics(&uri) {
+            if rescan {
+                ws.rescan(&root);
+            }
+            match ws.diagnostics(&root, &uri) {
                 Some((text, diagnostics)) => to_lsp_diagnostics(text, diagnostics),
                 None => Vec::new(),
             }
@@ -133,6 +142,37 @@ impl Backend {
         self.client
             .publish_diagnostics(uri, diagnostics, version)
             .await;
+    }
+
+    /// The project a document is analysed inside: its marked project, else its
+    /// own directory (D41/G180).
+    ///
+    /// This is the root `glyph query hover` counts the same file's imports
+    /// from, and the two surfaces answering one question alike is the whole
+    /// point of asking inside a project at all (G219). It is deliberately not
+    /// `project_root_for`, whose workspace-folder fallback is about which
+    /// files a workspace-wide rename ranges over rather than about where a
+    /// module's imports resolve.
+    ///
+    /// A document that is not a file on disk (an unsaved `untitled:` buffer)
+    /// has no project. Its root is the empty path, which walks nothing, so it
+    /// is analysed on its own exactly as it was before.
+    fn analysis_root(&self, uri: &Url) -> PathBuf {
+        let Ok(path) = uri.to_file_path() else {
+            return PathBuf::new();
+        };
+        let workspace = self
+            .root
+            .lock()
+            .expect("root mutex")
+            .clone()
+            .unwrap_or_else(|| {
+                path.parent()
+                    .filter(|p| !p.as_os_str().is_empty())
+                    .unwrap_or_else(|| Path::new("."))
+                    .to_path_buf()
+            });
+        module_root_for(&path, &workspace)
     }
 }
 
@@ -178,8 +218,18 @@ impl LanguageServer for Backend {
                 version: Some(env!("CARGO_PKG_VERSION").to_string()),
             }),
             capabilities: ServerCapabilities {
-                text_document_sync: Some(TextDocumentSyncCapability::Kind(
-                    TextDocumentSyncKind::FULL,
+                // Full sync, plus the save notification. The save is not for
+                // the file being saved, whose buffer the server already has;
+                // it is one of the two moments the project is re-read from
+                // disk, because a formatter or a generator may have written a
+                // sibling alongside it.
+                text_document_sync: Some(TextDocumentSyncCapability::Options(
+                    TextDocumentSyncOptions {
+                        open_close: Some(true),
+                        change: Some(TextDocumentSyncKind::FULL),
+                        save: Some(TextDocumentSyncSaveOptions::Supported(true)),
+                        ..Default::default()
+                    },
                 )),
                 document_formatting_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
@@ -197,6 +247,31 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
+        // Ask to hear about `.glyph` files changed by something that is not
+        // this editor: a branch switch, a generator, a second editor. Without
+        // it the server's view of the files it did not open goes stale until
+        // the next open or save. A client with no dynamic registration refuses
+        // this, which is why the failure is logged and not acted on.
+        let watcher = Registration {
+            id: "glyph-watched-files".to_string(),
+            method: "workspace/didChangeWatchedFiles".to_string(),
+            register_options: serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                watchers: vec![FileSystemWatcher {
+                    glob_pattern: GlobPattern::String("**/*.glyph".to_string()),
+                    kind: None,
+                }],
+            })
+            .ok(),
+        };
+        if self.client.register_capability(vec![watcher]).await.is_err() {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    "glyph-lsp: no file watching (the client does not register capabilities); \
+                     the project is re-read on open and on save",
+                )
+                .await;
+        }
         self.client
             .log_message(MessageType::INFO, "glyph-lsp ready")
             .await;
@@ -204,7 +279,30 @@ impl LanguageServer for Backend {
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
-        self.refresh(doc.uri, doc.text, Some(doc.version)).await;
+        // Opening a document is when the project is (re-)read from disk: it is
+        // the moment a file can have changed behind the editor's back, and it
+        // is not on the typing path.
+        self.refresh(doc.uri, doc.text, Some(doc.version), true).await;
+    }
+
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        // A save is the other moment worth re-reading on: a formatter, a
+        // generator or a build may have written a sibling alongside it.
+        let root = self.analysis_root(&params.text_document.uri);
+        self.ws.lock().expect("workspace mutex").rescan(&root);
+    }
+
+    async fn did_change_watched_files(&self, _: DidChangeWatchedFilesParams) {
+        // Files changed by something that is not this editor: a branch switch,
+        // a generator, another editor. Registered in `initialized`, so a client
+        // with no dynamic registration simply never sends this and the open and
+        // the save are what keep the project current.
+        //
+        // Every live project is re-read rather than the ones the event names.
+        // A changed file can be a member of a project rooted above it as well
+        // as the nearest one, and a deleted file names a root that may never
+        // have been a project at all.
+        self.ws.lock().expect("workspace mutex").rescan_live();
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
@@ -214,6 +312,7 @@ impl LanguageServer for Backend {
                 params.text_document.uri,
                 change.text,
                 Some(params.text_document.version),
+                false,
             )
             .await;
         }
@@ -255,13 +354,16 @@ impl LanguageServer for Backend {
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let pos = params.text_document_position_params;
+        let uri = pos.text_document.uri;
+        // Read before the workspace lock: `analysis_root` takes the root lock.
+        let root = self.analysis_root(&uri);
         let mut ws = self.ws.lock().expect("workspace mutex");
-        let Some((text, analysis)) = ws.open_view(&pos.text_document.uri) else {
+        let Some(text) = ws.buffer(&uri) else {
             return Ok(None);
         };
-        let index = LineIndex::new(text);
-        let offset = index.offset(text, pos.position.line, pos.position.character);
-        Ok(analysis.hover(text, offset).map(|ty| Hover {
+        let index = LineIndex::new(&text);
+        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        Ok(ws.hover(&root, &uri, offset).map(|ty| Hover {
             contents: HoverContents::Markup(MarkupContent {
                 kind: MarkupKind::Markdown,
                 value: format!("```glyph\n{ty}\n```"),
@@ -276,9 +378,11 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoDefinitionResponse>> {
         let pos = params.text_document_position_params;
         let uri = pos.text_document.uri;
+        // Read before the workspace lock: `analysis_root` takes the root lock.
+        let root = self.analysis_root(&uri);
         let here = {
             let mut ws = self.ws.lock().expect("workspace mutex");
-            let Some((text, analysis)) = ws.open_view(&uri) else {
+            let Some((text, analysis)) = ws.open_view(&root, &uri) else {
                 return Ok(None);
             };
             let index = LineIndex::new(text);
@@ -303,8 +407,9 @@ impl LanguageServer for Backend {
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         let uri = params.text_document.uri;
+        let root = self.analysis_root(&uri);
         let mut ws = self.ws.lock().expect("workspace mutex");
-        let Some((text, analysis)) = ws.open_view(&uri) else {
+        let Some((text, analysis)) = ws.open_view(&root, &uri) else {
             return Ok(None);
         };
         let index = LineIndex::new(text);
@@ -330,11 +435,12 @@ impl LanguageServer for Backend {
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri;
+        let root = self.analysis_root(&uri);
         let mut ws = self.ws.lock().expect("workspace mutex");
         if !ws.is_open(&uri) {
             return Ok(None);
         }
-        let Some((text, diagnostics)) = ws.diagnostics(&uri) else {
+        let Some((text, diagnostics)) = ws.diagnostics(&root, &uri) else {
             return Ok(None);
         };
         let index = LineIndex::new(text);
@@ -383,9 +489,10 @@ impl LanguageServer for Backend {
         // Use the parsed document's full candidate set; fall back to keywords +
         // prelude when the file is unknown or does not parse (mid-edit), which
         // is exactly when completion matters most.
+        let root = self.analysis_root(&uri);
         let completions = {
             let mut ws = self.ws.lock().expect("workspace mutex");
-            ws.open_view(&uri)
+            ws.open_view(&root, &uri)
                 .map(|(_, a)| a.completions())
                 .unwrap_or_else(base_completions)
         };
@@ -411,8 +518,9 @@ impl LanguageServer for Backend {
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
         let uri = params.text_document.uri;
+        let root = self.analysis_root(&uri);
         let mut ws = self.ws.lock().expect("workspace mutex");
-        let Some((text, analysis)) = ws.open_view(&uri) else {
+        let Some((text, analysis)) = ws.open_view(&root, &uri) else {
             return Ok(None);
         };
         let index = LineIndex::new(text);
@@ -438,9 +546,14 @@ impl LanguageServer for Backend {
         // ones it has open, disk for the rest.
         let uris = ws.workspace_docs(&root);
 
+        // One model for the whole sweep, rooted at the folder being swept. A
+        // per-file project would be right and unaffordable: every root the
+        // loop had not seen would index itself, and a workspace of more
+        // projects than the cache holds would re-index one on every file. An
+        // outline is a parse, which no project graph changes.
         let mut out = Vec::new();
         for uri in uris {
-            let Some((text, outline)) = ws.outline(&uri) else {
+            let Some((text, outline)) = ws.outline(&root, &uri) else {
                 continue;
             };
             let index = LineIndex::new(text);
@@ -466,11 +579,12 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position;
         let uri = pos.text_document.uri;
         let include_decl = params.context.include_declaration;
-        // Read before the workspace lock: `file_module` takes the root lock.
+        // Read before the workspace lock: both take the root lock.
         let file_module = self.file_module(&uri);
+        let here = self.analysis_root(&uri);
 
         let mut ws = self.ws.lock().expect("workspace mutex");
-        let Some((text, analysis)) = ws.open_view(&uri) else {
+        let Some((text, analysis)) = ws.open_view(&here, &uri) else {
             return Ok(None);
         };
         let index = LineIndex::new(text);
@@ -490,7 +604,11 @@ impl LanguageServer for Backend {
                     else {
                         continue;
                     };
-                    let Some((t2, a2)) = ws.view(&u2) else {
+                    // Read through the model rooted where the sweep is: an
+                    // occurrence is a name in a resolution table, which is a
+                    // reading of one file, so the root here scopes the sweep
+                    // rather than deciding an answer.
+                    let Some((t2, a2)) = ws.view(&root, &u2) else {
                         continue;
                     };
                     for (s, e) in a2.global_occurrences(&fm, &module, &name, t2, include_decl) {
@@ -513,11 +631,12 @@ impl LanguageServer for Backend {
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         let pos = params.text_document_position;
         let uri = pos.text_document.uri;
-        // Read before the workspace lock: `file_module` takes the root lock.
+        // Read before the workspace lock: both take the root lock.
         let file_module = self.file_module(&uri);
+        let here = self.analysis_root(&uri);
 
         let mut ws = self.ws.lock().expect("workspace mutex");
-        let Some((text, analysis)) = ws.open_view(&uri) else {
+        let Some((text, analysis)) = ws.open_view(&here, &uri) else {
             return Ok(None);
         };
         let index = LineIndex::new(text);
@@ -540,7 +659,7 @@ impl LanguageServer for Backend {
                     else {
                         continue;
                     };
-                    let Some((t2, a2)) = ws.view(&u2) else {
+                    let Some((t2, a2)) = ws.view(&root, &u2) else {
                         continue;
                     };
                     let idx2 = LineIndex::new(t2);
@@ -981,7 +1100,7 @@ impl Backend {
         // Through the overlay: the buffer when the editor has the other file
         // open, disk otherwise.
         let mut ws = self.ws.lock().expect("workspace mutex");
-        let (text, outline) = ws.outline(&uri)?;
+        let (text, outline) = ws.outline(&root, &uri)?;
         let (start, end) = find_symbol_span(&outline, name)?;
         Some(location_in(&uri, text, start, end))
     }

@@ -763,6 +763,55 @@ fn formatting_does_not_duplicate_a_comment_it_already_emitted() {
     );
 }
 
+/// G241: `glyph fmt` must not write a nesting its own parser refuses.
+///
+/// `-x` and `-(x)` are the same expression, but the parser charged a depth
+/// level for the operand slot and a second one for the parentheses around it,
+/// so the two spellings counted differently. The formatter parenthesizes every
+/// unary operand, so a run of minuses came back twice as deep as it went in: a
+/// 40-minus run parsed, `glyph fmt` rewrote it as `-(-(-(...`, and the next
+/// pass reported `[E0011] this parenthesized expression nests deeper than the
+/// parser's limit of 64 levels` and `0 formatted, 0 already formatted, 1
+/// failed` on a file the formatter had just written.
+///
+/// Built from `MAX_NESTING_DEPTH` so it stays on the boundary if the limit
+/// moves. The fuzz input that found it is in `fuzz/seeds` and runs through
+/// `fuzz_seeds_are_format_fixed_points` like every other seed.
+#[test]
+fn a_unary_run_at_the_depth_limit_formats_to_something_that_parses() {
+    let max = glyph_parser::MAX_NESTING_DEPTH as usize;
+    let src = format!("const n = {}1\n", "-".repeat(max));
+    glyph_parser::parse(&src).expect("a run at the limit parses as written");
+
+    let once = fmt(&src);
+    assert!(
+        once.contains("-(-("),
+        "the operands are still parenthesized:\n{once}"
+    );
+    glyph_parser::parse(&once).unwrap_or_else(|e| {
+        panic!("glyph fmt wrote a file the parser refuses: {e:?}\n--- output ---\n{once}")
+    });
+    assert_eq!(fmt(&once), once, "and a second pass changes nothing");
+}
+
+/// The same doubling reached `??` and the postfix `?`, which the formatter also
+/// reparenthesizes: `a ?? b ?? c` comes back as `a ?? (b ?? c)` and `-b?` as
+/// `-(b?)`. Both are fixed points now that a parenthesized operand costs one
+/// level rather than two.
+#[test]
+fn a_nullish_chain_at_the_depth_limit_formats_to_something_that_parses() {
+    let max = glyph_parser::MAX_NESTING_DEPTH as usize;
+    let src = format!("const n = 1\nconst m = {}\n", vec!["n"; max + 1].join(" ?? "));
+    glyph_parser::parse(&src).expect("a chain at the limit parses as written");
+
+    let once = fmt(&src);
+    assert!(once.contains("n ?? (n ?? "), "{once}");
+    glyph_parser::parse(&once).unwrap_or_else(|e| {
+        panic!("glyph fmt wrote a file the parser refuses: {e:?}\n--- output ---\n{once}")
+    });
+    assert_eq!(fmt(&once), once, "and a second pass changes nothing");
+}
+
 // These two guard the formatter against rewriting a string literal, which two
 // separate attempts at G151 both did: one searched `raw_args` for the comment's
 // text and split at the first textual match, the other spliced comments out in

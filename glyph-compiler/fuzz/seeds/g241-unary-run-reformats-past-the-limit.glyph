@@ -1,0 +1,3 @@
+// A run of unary minuses long enough that reparenthesizing every level
+// used to push the formatted file past the parser depth limit (G241).
+const n = ----------------------------------------1

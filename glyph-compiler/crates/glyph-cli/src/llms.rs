@@ -304,6 +304,41 @@ pub struct StdlibExport {
     pub signature_partial: Option<String>,
 }
 
+/// The three coverage counts and the export total, for the test that pins
+/// them. Reading them out of `stdlib()` rather than recounting keeps the pin
+/// on the same numbers the published document carries.
+pub fn stdlib_coverage() -> (usize, usize, usize, usize) {
+    let s = stdlib();
+    let total = s.modules.iter().map(|m| m.exports.len()).sum();
+    (s.modeled, s.partially_modeled, s.unmodeled, total)
+}
+
+/// One export with no complete signature, as `(module path, export name)`.
+pub type StdlibHole = (String, String);
+
+/// The exports that carry no complete signature, split in two: those whose
+/// signature renders a `?`, and those with no signature at all.
+///
+/// The split matters because the second list is not all holes. A stdlib
+/// module exports types and constants as well as functions, and neither of
+/// those has a signature to be missing; a caller that wants to know whether a
+/// module is fully modeled compares the second list against the names it knows
+/// are not functions.
+pub fn stdlib_signature_holes() -> (Vec<StdlibHole>, Vec<StdlibHole>) {
+    let mut partial = Vec::new();
+    let mut absent = Vec::new();
+    for m in stdlib().modules {
+        for e in m.exports {
+            match (&e.signature, &e.signature_partial) {
+                (Some(_), Some(_)) => partial.push((m.path.clone(), e.name)),
+                (None, _) => absent.push((m.path.clone(), e.name)),
+                _ => {}
+            }
+        }
+    }
+    (partial, absent)
+}
+
 fn stdlib() -> Stdlib {
     let built = build_prelude();
     let stubs = StdlibStubs::new();
@@ -334,11 +369,13 @@ fn stdlib() -> Stdlib {
                                 None,
                                 Some(format!(
                                     "this signature carries {n} `?`, which is the checker's \
-                                     rendering of `unknown`: the table models \
-                                     `{path}::{name}`'s arity and its return and leaves that \
-                                     many positions unmodeled, so an argument at one of them \
-                                     is compared by nothing here and `tsc` on a full `glyph \
-                                     build` is what reads it"
+                                     rendering of `unknown`: the table holds no type for that \
+                                     many positions of `{path}::{name}`, so an argument at one \
+                                     of them is compared by nothing here and `tsc` on a full \
+                                     `glyph build` is what reads it. A position is left this \
+                                     way either because the function accepts anything there \
+                                     (`string.from`) or because writing the type the \
+                                     TypeScript declares would reject a call `tsc` accepts"
                                 )),
                             )
                         }
@@ -350,7 +387,7 @@ fn stdlib() -> Stdlib {
                         None,
                         Some(format!(
                             "the checker models no signature for `{path}::{name}`: the runtime \
-                             ships TypeScript no Glyph pass reads, so a call to it is typed \
+                             ships TypeScript no Glyph pass reads, so a use of it is typed \
                              `unknown` here and checked by `tsc` alone"
                         )),
                         None,
@@ -376,11 +413,11 @@ fn stdlib() -> Stdlib {
                  disjoint and sum to the export total: `modeled` is a signature with a type in \
                  every position, `partially_modeled` is one the checker renders with a `?` \
                  somewhere, and `unmodeled` is an export the tables hold no type for at all. A \
-                 `?` is `unknown`: the tables model a function's arity and its return and leave \
-                 the parameters `unknown`, so modeling a function introduces no new \
-                 argument-type diagnostic, and `signature_partial` says how many positions of \
-                 that signature are left, so a signature with a `?` is never counted as a \
-                 complete one",
+                 `?` is `unknown`, a position the table holds no type for, so an argument there \
+                 is checked by `tsc` alone; `signature_partial` says how many such positions a \
+                 signature has, so one with a `?` is never counted as complete. A modeled \
+                 parameter is enforced: `fs.read_text(42)` is an error from `glyph check` \
+                 itself, with or without `--no-tsc`",
         modules: by_path
             .into_iter()
             .map(|(path, exports)| StdlibModule { path, exports })

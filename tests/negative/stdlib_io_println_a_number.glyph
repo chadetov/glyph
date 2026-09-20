@@ -1,0 +1,9 @@
+module neg
+
+// `io.println` takes a `string`. The whole module was unmodeled, so this was
+// silent under `glyph check --no-tsc`.
+import std/io
+
+pub fn main() -> void {
+  io.println(42)
+}

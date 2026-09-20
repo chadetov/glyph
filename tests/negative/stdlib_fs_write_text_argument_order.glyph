@@ -1,0 +1,14 @@
+module neg
+
+// The pair a caller gets backwards. `fs.write_text(contents, path)` has the
+// right arity and the wrong order, and while both parameters were `unknown`
+// nothing here could tell. Both are `string`, so this is caught by the second
+// argument's `number`, which is the shape the mistake usually arrives in.
+import std/fs
+
+pub fn main() -> void {
+  match fs.write_text("out.txt", 7) {
+    Ok(_) => print("wrote"),
+    Err(e) => print(e.message),
+  }
+}

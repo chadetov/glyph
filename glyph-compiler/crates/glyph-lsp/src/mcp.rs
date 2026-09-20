@@ -4903,7 +4903,7 @@ fn stdlib_entity_refusal(module: &str, name: &str, change: Option<&Change>) -> O
         ),
         Some(Change::Arity | Change::SignatureType) => format!(
             "{what}, so its signature is not one this project can change. The checker's \
-             `stdlib_*_fn_ty` tables hold whatever type it types a call against, and \
+             stdlib signature tables hold whatever type it types a call against, and \
              `glyph_symbol --entity {entity}` reports that signature or says the tables \
              hold none."
         ),
@@ -7814,8 +7814,8 @@ fn stdlib_exports(
                 "signature",
                 signature.as_ref().map(|ty| json!(display_ty(ty))),
                 format!(
-                    "the checker's `stdlib_*_fn_ty` tables hold no type for \
-                     `{module}::{name}`, so a call to it is typed `unknown` here and \
+                    "the checker's stdlib signature tables hold no type for \
+                     `{module}::{name}`, so a use of it is typed `unknown` here and \
                      checked by `tsc` alone"
                 ),
             );
@@ -7844,7 +7844,7 @@ fn stdlib_exports(
              `import` of it is verified against and the set E0105 lists when a name is not \
              on it. The compiler carries the implementation as TypeScript, so `kind` and \
              `signature` are reported for the unions the checker declares and the functions \
-             its `stdlib_*_fn_ty` tables type a call against, and an export in neither says \
+             its stdlib signature tables type a call against, and an export in neither says \
              so in `kind_absent` and `signature_absent`. A `?` inside a signature is a \
              parameter the table leaves `unknown`."
         ),
@@ -9237,9 +9237,9 @@ const STDLIB_NO_SOURCE: &str =
 /// Built from three tables the compiler already keeps: the resolver's export
 /// surface, which decides whether `module::name` names anything at all; the
 /// checker's builtin-union table, which is the same one exhaustiveness counts
-/// against; and the checker's `stdlib_*_fn_ty` tables, read through
-/// `glyph_typechecker::stdlib_signature`, which are the types it holds a call
-/// to a stdlib function against. The third was missing until 0.1.123's review
+/// against; and the checker's stdlib signature tables, read through
+/// `glyph_typechecker::stdlib_signature`, which are the types it holds a use
+/// of a stdlib export against. The third was missing until 0.1.123's review
 /// caught the consequence: `std/array::filter` came back with no kind and a
 /// sentence saying the checker does not read the stdlib, over a signature the
 /// same binary publishes in `glyph llms --json` and enforces at a call site.
@@ -9268,10 +9268,9 @@ fn describe_stdlib_symbol(
     let variant = owner
         .as_ref()
         .and_then(|u| u.variants.iter().find(|v| v.name == name).cloned());
-    // The type the checker's own `stdlib_*_fn_ty` tables hold for this export,
-    // which is the type it checks a call against. The walk behind it runs over
-    // an empty module and reads the prelude only, so building one here is the
-    // whole cost.
+    // The type the checker's own stdlib signature tables hold for this export,
+    // which is the type it checks a use against. They read the prelude and
+    // nothing else, so building one here is the whole cost.
     let signature = glyph_typechecker::stdlib_signature(&build_prelude(), module, name);
     let kind = match (&union, &variant, &signature) {
         (Some(_), _, _) => Some("union"),
@@ -9287,8 +9286,8 @@ fn describe_stdlib_symbol(
     let kind_absent = format!(
         "`{module}` exports `{name}` and the compiler models neither a declaration nor a \
          signature for it. It carries a declaration for the tagged unions it checks matches \
-         against ({}), and its `stdlib_*_fn_ty` tables carry a signature for the stdlib \
-         functions it types a call to; `{module}::{name}` is in neither, so its shape is in \
+         against ({}), and its stdlib signature tables carry a signature for the stdlib \
+         exports it types a use of; `{module}::{name}` is in neither, so its shape is in \
          the TypeScript the compiler stages for `tsc` and no Glyph pass reads it.",
         glyph_typechecker::builtin_unions()
             .iter()
@@ -16248,7 +16247,7 @@ pub fn f() -> number {
         );
         assert!(is_error, "{message}");
         assert!(message.contains("stdlib"), "{message}");
-        assert!(message.contains("stdlib_*_fn_ty"), "{message}");
+        assert!(message.contains("stdlib signature tables"), "{message}");
         assert!(!message.contains("no file of this project"), "{message}");
 
         let (message, is_error) = call_raw(
@@ -16313,19 +16312,25 @@ pub fn f() -> number {
 
     /// A parameter the table leaves `unknown` renders `?`, and a `?` is
     /// neither a type nor an absence. The parameter says which it is.
+    ///
+    /// `std/array::push` is the example because its second parameter is the
+    /// one the table deliberately holds back: the TypeScript says `T`, and a
+    /// second slot for a name the unifier has already bound would pin it to
+    /// the first argument's element type.
     #[test]
     fn a_partly_modeled_stdlib_signature_says_which_parameter_is_unknown() {
         let root = shop_root();
-        let value = symbol(&root, "std/array::len");
+        let value = symbol(&root, "std/array::push");
         assert_paired(&value);
         assert_eq!(value["kind"], "function", "{value}");
-        assert_eq!(value["type"], "fn(?) -> number", "{value}");
-        assert_eq!(value["returns"], "number", "{value}");
+        assert_eq!(value["type"], "fn(Array<T>, ?) -> Array<T>", "{value}");
+        assert_eq!(value["returns"], "Array<T>", "{value}");
         let params = value["parameters"].as_array().expect("parameters");
-        assert_eq!(params.len(), 1, "{value}");
-        assert!(params[0]["type"].is_null(), "{value}");
+        assert_eq!(params.len(), 2, "{value}");
+        assert_eq!(params[0]["type"], "Array<T>", "{value}");
+        assert!(params[1]["type"].is_null(), "{value}");
         assert!(
-            params[0]["type_absent"]
+            params[1]["type_absent"]
                 .as_str()
                 .is_some_and(|s| s.contains("lowered no type")),
             "a `?` parameter says why it is absent: {value}"
@@ -16337,7 +16342,7 @@ pub fn f() -> number {
     #[test]
     fn an_unmodeled_stdlib_export_says_what_is_missing_and_no_more() {
         let root = shop_root();
-        let value = symbol(&root, "std/io::println");
+        let value = symbol(&root, "std/log::info");
         assert_paired(&value);
         assert!(value["kind"].is_null(), "{value}");
         assert!(value["type"].is_null(), "{value}");
@@ -16347,8 +16352,8 @@ pub fn f() -> number {
             "{why}"
         );
         assert!(
-            why.contains("stdlib_*_fn_ty"),
-            "the reason names the table that holds the signatures: {why}"
+            why.contains("stdlib signature tables"),
+            "the reason names the tables that hold the signatures: {why}"
         );
         assert!(
             !why.contains("does not read"),

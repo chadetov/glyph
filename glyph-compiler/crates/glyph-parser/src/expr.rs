@@ -35,7 +35,7 @@ fn parse_await(p: &mut Cursor) -> Result<Expr, ParseError> {
     if matches!(p.peek(), Token::Await) {
         let kw_span = p.peek_span();
         p.advance();
-        let expr = p.nested("`await` operand", kw_span, parse_await)?; // right-assoc
+        let expr = p.nested_operand("`await` operand", kw_span, parse_await)?; // right-assoc
         // D18 places `await` (level 11) tighter than the postfix `?` (level 2),
         // so `await x?` means `(await x)?` — the `?` unwraps the awaited
         // `Result`. The recursive operand parse, however, binds the `?` to the
@@ -83,7 +83,7 @@ fn parse_nullish(p: &mut Cursor) -> Result<Expr, ParseError> {
     if matches!(p.peek(), Token::QQ) {
         let op_span = p.peek_span();
         p.advance();
-        let right = p.nested("`??` operand", op_span, parse_nullish)?; // right-assoc
+        let right = p.nested_operand("`??` operand", op_span, parse_nullish)?; // right-assoc
         let span = Span::new(left.span().start, right.span().end);
         return Ok(Expr::Binary {
             op: BinOp::NullishCoalesce,
@@ -224,7 +224,7 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
     match p.peek() {
         Token::Bang => {
             p.advance();
-            let operand = p.nested("unary operand", span, parse_unary)?;
+            let operand = p.nested_operand("unary operand", span, parse_unary)?;
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::Not,
@@ -234,7 +234,7 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
         }
         Token::Minus => {
             p.advance();
-            let operand = p.nested("unary operand", span, parse_unary)?;
+            let operand = p.nested_operand("unary operand", span, parse_unary)?;
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::Neg,
@@ -244,7 +244,7 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
         }
         Token::Tilde => {
             p.advance();
-            let operand = p.nested("unary operand", span, parse_unary)?;
+            let operand = p.nested_operand("unary operand", span, parse_unary)?;
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::BitNot,
@@ -327,7 +327,7 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             Token::LBracket => {
                 let open = p.peek_span();
                 p.advance();
-                let index = p.nested("index expression", open, parse_expr)?;
+                let index = p.nested_operand("index expression", open, parse_expr)?;
                 let close = p.expect(&Token::RBracket, "`]`")?;
                 let start = expr.span().start;
                 expr = Expr::Index {
@@ -378,7 +378,7 @@ fn parse_new_callee(p: &mut Cursor) -> Result<Expr, ParseError> {
             Token::LBracket => {
                 let open = p.peek_span();
                 p.advance();
-                let index = p.nested("index expression", open, parse_expr)?;
+                let index = p.nested_operand("index expression", open, parse_expr)?;
                 let close = p.expect(&Token::RBracket, "`]`")?;
                 let start = expr.span().start;
                 expr = Expr::Index {

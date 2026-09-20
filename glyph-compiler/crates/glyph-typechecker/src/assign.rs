@@ -2029,7 +2029,26 @@ impl Assigner<'_> {
                         f;
                     self.walk_expr(value);
                 }
-                self.tm.insert(*span, Ty::Unknown);
+                // Synthesize the record type the literal writes, so the value
+                // is compared against what it was written for (G232). Until
+                // this, an object literal was `Ty::Unknown`: `let g: string =
+                // { x: 1 }` drew nothing from `glyph check --no-tsc` while
+                // `tsc` refused it, and the same silence covered a `return`, a
+                // call argument and a record field. Every rule the type now
+                // reaches was already written — the record recursion in
+                // `definitely_incompatible`, the record-against-a-primitive arm
+                // and the width-subtyping comparison — and had no value to
+                // read.
+                //
+                // Only when every field is written out. A spread contributes
+                // fields this walk cannot enumerate, so a record built from
+                // one would claim a field set the value does not have, and
+                // "missing required field" would fire on a literal that
+                // carries it. That is a false refusal, which costs more than
+                // the silence, so a literal holding a spread stays `Unknown`
+                // exactly as before.
+                let ty = self.object_literal_ty(fields);
+                self.tm.insert(*span, ty);
             }
             Expr::Match { scrutinee, arms, span } => {
                 for arm in arms {
@@ -2257,6 +2276,44 @@ impl Assigner<'_> {
             }
         }
         inferred.unwrap_or(Ty::Unknown)
+    }
+
+    /// The structural record type a written object literal has (G232), or
+    /// `Ty::Unknown` for a literal whose field set this walk cannot enumerate.
+    ///
+    /// One field per written `key: value`, in the order they are written, each
+    /// carrying the type the walk already recorded for its value and none of
+    /// them optional: a key written in a literal is a key the value has.
+    ///
+    /// A field whose value is itself undecidable keeps `Ty::Unknown` as its
+    /// type rather than sinking the whole record. The record recursion in
+    /// `definitely_incompatible` declines an undecidable field on its own, so
+    /// a literal holding one still decides the fields around it and still
+    /// answers the "is a field missing" question, which is the half that does
+    /// not depend on any field's type.
+    ///
+    /// `Ty::Unknown` for a literal with a spread in it, for the reason stated
+    /// at the call site: the spread's fields are not enumerable here, so a
+    /// record built without them would be missing fields the value carries.
+    ///
+    /// Nothing about a `const` changes. An unannotated `const` lowers its
+    /// declaration to `Ty::Unknown` on purpose (G39) and reads its type from
+    /// the annotation or from nowhere; this types the *expression*, which is
+    /// what the four value sites compare, and leaves what a binding infers to
+    /// the rules that already decide it.
+    fn object_literal_ty(&self, fields: &[ObjectField]) -> Ty {
+        let mut out: Vec<RecordField> = Vec::with_capacity(fields.len());
+        for f in fields {
+            match f {
+                ObjectField::KeyValue { key, value, .. } => out.push(RecordField {
+                    name: key.clone(),
+                    ty: self.tm.get(value.span()).clone(),
+                    optional: false,
+                }),
+                ObjectField::Spread { .. } => return Ty::Unknown,
+            }
+        }
+        Ty::Record { fields: out }
     }
 
     fn type_of_ident_ref(&mut self, ref_span: glyph_ast::Span) -> Ty {
@@ -5797,7 +5854,34 @@ impl Assigner<'_> {
     /// nothing here, which is the right answer for it: a `const` emits a
     /// TypeScript `const`, which keeps the literal, so widening it would
     /// refuse `takes_mode(CM)` where `tsc` accepts it.
+    /// An object literal is read field by field, because TypeScript widens a
+    /// property whose value is a fresh literal and leaves one that arrived
+    /// through a name alone: `let c = { mode: "read", from: m }` is
+    /// `{ mode: string, from: Mode }` there, and a binding that kept `mode`
+    /// narrow would accept a call `tsc` refuses. Only where the written form
+    /// and the synthesized record line up, which for a spread-free literal
+    /// they always do (G232).
     fn widen_fresh_literals(&self, value: &Expr, ty: Ty) -> Ty {
+        if let (Expr::Object { fields, .. }, Ty::Record { fields: recorded }) = (value, &ty) {
+            if fields.len() == recorded.len() {
+                return Ty::Record {
+                    fields: fields
+                        .iter()
+                        .zip(recorded.iter())
+                        .map(|(written, field)| {
+                            let ObjectField::KeyValue { value, .. } = written else {
+                                return field.clone();
+                            };
+                            RecordField {
+                                name: field.name.clone(),
+                                ty: self.widen_fresh_literals(value, field.ty.clone()),
+                                optional: field.optional,
+                            }
+                        })
+                        .collect(),
+                };
+            }
+        }
         if produces_fresh_literal(value) {
             widen_literals(&ty)
         } else {
@@ -6057,6 +6141,29 @@ impl Assigner<'_> {
         if let Some(verdict) = self.string_literal_union_verdict(&found, &expected, position) {
             return verdict;
         }
+        // G232. A structural record where a *named* record is declared.
+        // `definitely_incompatible` compares two `Ty::Record`s field by field
+        // and has no arm at all for a record against a `Ty::Named`, so
+        // `let u: User = { name: "a" }` fell through to "not provably
+        // incompatible" and the missing `age` reached only `tsc`.
+        //
+        // Structural, not nominal, and that is TypeScript's rule for the same
+        // pairing: a value carrying `User`'s fields is a `User` there, so
+        // refusing it by name would refuse a program `tsc --strict` compiles.
+        // The nominal rule (Q15) is untouched: it decides two *names*, and
+        // this side has none.
+        //
+        // The field set comes from `record_fields_of`, so a local
+        // declaration, a second name for one (D46), an imported record and a
+        // stdlib type the runtime ships are all read the way every other site
+        // reads them. A name with no readable field set — a tagged union, a
+        // prelude container, an unresolved `.d.ts` type — answers `None` and
+        // the pairing stays where it was.
+        if matches!(found, Ty::Record { .. }) {
+            if let Some(fields) = self.record_fields_of(&expected) {
+                return definitely_incompatible(&found, &Ty::Record { fields });
+            }
+        }
         definitely_incompatible(&found, &expected)
     }
 
@@ -6285,6 +6392,26 @@ impl Assigner<'_> {
                 }
                 Some(_) => return true,
                 None => {}
+            }
+        }
+        // G232. A record where a `Nullable<T>` is declared is the pairing
+        // against `T`, for the reason the scalar arm above descends: a
+        // `Nullable<T>` admits a `T` or the null a boundary produced (D45),
+        // and a written record is not null, so the container changes nothing
+        // about the question. Without it `let u: Nullable<User> = { name: "a"
+        // }` stayed silent while `tsc` reported the missing `age`.
+        //
+        // Only `Nullable`. The other four containers are left undetermined for
+        // a record on purpose, where a scalar is refused outright: a
+        // `Record<K, V>` map *is* written as an object literal, so refusing a
+        // record against a container as a class would refuse the one spelling
+        // a map has, and `Option`/`Result` emit as tagged objects a record
+        // literal can legitimately spell.
+        if matches!(found, Ty::Record { .. }) {
+            if let Some(("Nullable", args)) = self.prelude_container(expected) {
+                return args
+                    .first()
+                    .is_some_and(|inner| self.assign_incompatible(found, inner));
             }
         }
         false
@@ -7339,12 +7466,20 @@ pub fn imported_decl_chain_end(
 /// program's text created here, rather than one that arrived through a name.
 ///
 /// True only for the forms whose literal type is written out: a string
-/// literal, an array literal whose every element is one of these, and a
-/// value-position `match` whose every arm is. Everything else answers false,
-/// which leaves its type alone.
+/// literal, an array literal whose every element is one of these, an object
+/// literal whose every field value is one of these, and a value-position
+/// `match` whose every arm is. Everything else answers false, which leaves its
+/// type alone.
 fn produces_fresh_literal(e: &Expr) -> bool {
     match e {
         Expr::String { .. } => true,
+        // A spread excluded for the same reason it stops the record being
+        // synthesized at all: its fields are not written here, so nothing can
+        // be said about them (G232).
+        Expr::Object { fields, .. } => fields.iter().all(|f| match f {
+            ObjectField::KeyValue { value, .. } => produces_fresh_literal(value),
+            ObjectField::Spread { .. } => false,
+        }),
         Expr::Array { elements, .. } => {
             !elements.is_empty()
                 && elements.iter().all(|el| match el {
@@ -14812,5 +14947,217 @@ fn f(a: Answer) -> number {
             vec![vec!["read".to_string(), "write".to_string()]],
             "the field's own declared type is what the refusal names: {errs:?}"
         );
+    }
+    // ----- G232: the type of an object literal -----
+
+    /// Every type an expression reports, keyed by the source text it spans.
+    /// Enough to state what a literal's type *is*, rather than only what the
+    /// relation does with it.
+    fn object_ty(src: &str, literal: &str) -> Ty {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (tm, _ty_errs) = assign_types(&m, &resolved, &prelude);
+        let start = src.find(literal).expect("the literal is in the source");
+        let span = Span::new(start as u32, (start + literal.len()) as u32);
+        tm.get(span).clone()
+    }
+
+    /// The finding. `{ x: 1 }` was `Ty::Unknown`, so nothing compared it to
+    /// anything and `let g: string = { x: 1 }` passed `glyph check --no-tsc`
+    /// on a program `tsc` refuses with TS2322.
+    #[test]
+    fn an_object_literal_has_the_record_type_it_writes() {
+        let ty = object_ty(
+            "module m\nfn f() -> void {\n  let g = { x: 1, s: \"a\" }\n}\n",
+            "{ x: 1, s: \"a\" }",
+        );
+        let Ty::Record { fields } = ty else {
+            panic!("an object literal is a record: {ty:?}");
+        };
+        assert_eq!(fields.len(), 2, "{fields:?}");
+        assert_eq!(fields[0].name.as_ref(), "x");
+        assert_eq!(fields[0].ty, Ty::Prim(Primitive::Number));
+        assert!(!fields[0].optional, "a written key is not optional");
+        assert_eq!(fields[1].name.as_ref(), "s");
+    }
+
+    /// A spread contributes fields this walk cannot enumerate. A record built
+    /// without them would be missing a field the value carries, and "missing
+    /// required field" would then fire on a literal that has it, so the
+    /// literal keeps no type at all.
+    #[test]
+    fn an_object_literal_with_a_spread_has_no_type() {
+        let ty = object_ty(
+            "module m\nfn f(base: { x: number }) -> void {\n  let g = { ...base, y: 1 }\n}\n",
+            "{ ...base, y: 1 }",
+        );
+        assert_eq!(ty, Ty::Unknown, "a spread's fields are not enumerable here");
+    }
+
+    /// A record where a primitive is declared, in each of the positions the
+    /// four value sites cover.
+    #[test]
+    fn a_record_where_a_primitive_is_declared_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             fn takes(s: string) -> void { }\n\
+             fn r() -> number {\n  return { x: 1 }\n}\n\
+             fn f() -> void {\n\
+             \x20 let g: string = { x: 1 }\n\
+             \x20 takes({ x: 1 })\n\
+             }\n",
+        );
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["record", "record", "record"],
+            "errs: {errs:?}"
+        );
+    }
+
+    /// A required field the literal does not write. The refusal names the
+    /// declared type by its own name, which is the half a reader repairs the
+    /// program from.
+    #[test]
+    fn a_record_missing_a_required_field_is_refused_and_names_the_type() {
+        let errs = errors_of(
+            "module m\n\
+             type User = { name: string, age: number }\n\
+             fn f() -> void {\n  let u: User = { name: \"a\" }\n}\n",
+        );
+        let found = errs
+            .iter()
+            .find_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, .. } => Some((expected, found)),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("errs: {errs:?}"));
+        assert_eq!(found.0, "User", "errs: {errs:?}");
+        assert_eq!(found.1, "record", "errs: {errs:?}");
+    }
+
+    /// An optional field on the declared side may be absent, and an extra
+    /// field on the value's side is fine: width subtyping is the rule, and
+    /// this change does not touch it. TypeScript refuses the excess property
+    /// on a fresh literal (TS2353) and Glyph does not, which predates G232.
+    #[test]
+    fn an_optional_field_may_be_absent_and_an_extra_field_is_accepted() {
+        let errs = errors_of(
+            "module m\n\
+             type Opt = { name: string, nick?: string }\n\
+             fn f() -> void {\n\
+             \x20 let a: Opt = { name: \"a\" }\n\
+             \x20 let b: Opt = { name: \"b\", nick: \"bb\", extra: 1 }\n\
+             }\n",
+        );
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
+    /// A field whose value the checker cannot type keeps `Unknown` and sinks
+    /// nothing around it: the missing-field question does not depend on any
+    /// field's type, so it is still answered.
+    #[test]
+    fn an_undecidable_field_value_does_not_stop_the_missing_field_rule() {
+        let errs = errors_of(
+            "module m\n\
+             type User = { name: string, age: number }\n\
+             fn f(raw: unknown) -> void {\n  let u: User = { name: raw }\n}\n",
+        );
+        assert_eq!(mismatch_found(&errs), vec!["record"], "errs: {errs:?}");
+    }
+
+    /// A binding takes the literal's type, so the use site is decided the way
+    /// the written literal is, and a fresh literal *field* widens on the way
+    /// in exactly as TypeScript widens it. Without the widening the binding
+    /// would carry a narrower type than the program that runs has, and the
+    /// call would be accepted where `tsc` reports TS2345.
+    #[test]
+    fn a_binding_carries_the_literal_type_with_fresh_fields_widened() {
+        let errs = errors_of(
+            "module m\n\
+             type Mode = \"read\" | \"write\"\n\
+             type User = { name: string, age: number }\n\
+             fn takes_mode(m: Mode) -> void { }\n\
+             fn takes_user(u: User) -> void { }\n\
+             fn f() -> void {\n\
+             \x20 let c = { mode: \"read\" }\n\
+             \x20 let u = { name: \"a\" }\n\
+             \x20 takes_mode(c.mode)\n\
+             \x20 takes_user(u)\n\
+             }\n",
+        );
+        assert_eq!(
+            mismatch_found(&errs),
+            vec!["string", "record"],
+            "errs: {errs:?}"
+        );
+    }
+
+    /// A field written through a name keeps its type: TypeScript does not
+    /// widen one that arrived that way either, so widening it here would
+    /// refuse a program `tsc` accepts.
+    #[test]
+    fn a_field_written_through_a_name_is_not_widened() {
+        let errs = errors_of(
+            "module m\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn takes_mode(m: Mode) -> void { }\n\
+             fn f(m: Mode) -> void {\n\
+             \x20 let c = { mode: m }\n\
+             \x20 takes_mode(c.mode)\n\
+             }\n",
+        );
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
+    /// `Nullable<T>` admits a `T` or the null a boundary produced (D45), and a
+    /// written record is not null, so the pairing is the one against `T`. The
+    /// other containers stay undetermined for a record on purpose: a
+    /// `Record<K, V>` map *is* written as an object literal.
+    #[test]
+    fn a_record_against_a_nullable_is_the_pairing_against_its_argument() {
+        let errs = errors_of(
+            "module m\n\
+             type User = { name: string, age: number }\n\
+             fn f() -> void {\n\
+             \x20 let bad: Nullable<User> = { name: \"a\" }\n\
+             \x20 let good: Nullable<User> = { name: \"b\", age: 1 }\n\
+             \x20 let map: Record<string, number> = { one: 1 }\n\
+             }\n",
+        );
+        assert_eq!(mismatch_found(&errs), vec!["record"], "errs: {errs:?}");
+    }
+
+    /// Two names for one declaration are one type (D46), and the field set
+    /// behind the second name is the one the comparison reads.
+    #[test]
+    fn a_record_is_compared_through_a_second_name_for_the_declaration() {
+        let errs = errors_of(
+            "module m\n\
+             type User = { name: string, age: number }\n\
+             type Person = User\n\
+             fn f() -> void {\n  let p: Person = { name: \"a\" }\n}\n",
+        );
+        assert_eq!(mismatch_found(&errs), vec!["record"], "errs: {errs:?}");
+    }
+
+    /// The nominal rule (Q15) decides two *names* and a written literal has
+    /// none, so the comparison against a declared record is structural, which
+    /// is what `tsc` does with the same pairing. A complete literal is
+    /// accepted whatever the declaration is called.
+    #[test]
+    fn a_complete_literal_satisfies_a_declared_record_structurally() {
+        let errs = errors_of(
+            "module m\n\
+             type User = { name: string, age: number }\n\
+             fn takes(u: User) -> void { }\n\
+             fn make() -> User {\n  return { name: \"m\", age: 0 }\n}\n\
+             fn f() -> void {\n\
+             \x20 let u: User = { name: \"a\", age: 1 }\n\
+             \x20 takes({ name: \"b\", age: 2 })\n\
+             }\n",
+        );
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
     }
 }

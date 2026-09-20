@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-241 entries, 217 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-6 are open. G144, the D28 boundary cast that never reached the returns a
+241 entries, 218 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+5 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -9819,7 +9819,15 @@ and is the owner's to confirm.
   `par`, `print`, `assert`, `infer_output`) stays unkeyed in
   `NOT_A_DECLARATION` with a reason each; there is no `std/prelude`.*
 
-- **G232. An object literal has no type, so nothing compares it to anything.** The
+- **G232. [FIXED] An object literal has no type, so nothing compares it to anything.**
+  Fixed in 0.1.124: a spread-free object literal has the structural record type
+  of the fields it writes, compared structurally at a `let`, `const`, `return`
+  (E0204) and a call argument (E0211) with the declared type named; the type
+  survives an unannotated `let` with fresh string-literal fields widened, so a
+  misspelled key read back off it is E0210. A literal holding a spread is
+  still untyped, an extra field is still accepted (width subtyping, unchanged),
+  and an unannotated `const` still infers nothing (G39). Original entry
+  follows. The
   checker types `{ x: 1 }` as `Ty::Unknown`, so `let g: string = { x: 1 }` passes
   `glyph check --no-tsc` with nothing but an unused-variable lint while `tsc`
   refuses it. G230 refused an object literal against a string-literal union, but

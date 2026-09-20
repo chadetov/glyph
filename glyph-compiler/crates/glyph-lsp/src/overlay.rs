@@ -39,8 +39,14 @@
 //! watched-file notification, and the workspace-wide queries, which walk the
 //! tree anyway. See [`Workspace::rescan`].
 //!
-//! What the incremental model costs, measured against the same server without
-//! it, on one machine in one sitting, by `benchmarks/lsp-latency/measure.py`.
+//! What the project costs, measured against the server that analysed each
+//! buffer on its own, by `benchmarks/lsp-latency/measure.py`: between one and
+//! four percent on the keystroke across the 535, 1,652 and 2,205-line sweep,
+//! and the same on a workspace-wide references. The table and the caveats are
+//! in `benchmarks/lsp-latency/README.md` under "The project measurement".
+//!
+//! What the incremental model itself cost, measured the same way when it
+//! landed, against the server that re-ran the front end on every request.
 //! Medians of 100 samples over the 2,205-line
 //! `examples/apps/minilang/main.glyph`:
 //!

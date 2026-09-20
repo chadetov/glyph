@@ -1,0 +1,16 @@
+module neg
+
+// G240. An attribute the props record does not declare is the field
+// diagnostic, carrying the record's own field list so `glyph fix` can take
+// the one field a character away from the typo. `tsc` refuses the same
+// program: the props object the emitter writes is a fresh object literal, so
+// an undeclared key is an excess property there.
+type Props = { variant: string, label: string }
+
+component Button(props: Props) {
+  return <button>{props.label}</button>
+}
+
+pub component App() {
+  return <Button variant="danger" labl="go" />
+}

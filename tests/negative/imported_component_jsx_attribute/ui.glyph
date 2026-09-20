@@ -1,0 +1,8 @@
+module ui
+
+pub type Variant = "primary" | "danger"
+pub type Props = { variant: Variant, label: string }
+
+pub component Button(props: Props) {
+  return <button>{props.label}</button>
+}

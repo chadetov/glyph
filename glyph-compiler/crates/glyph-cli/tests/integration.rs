@@ -14102,3 +14102,120 @@ fn g225_a_namespace_import_of_std_string_does_not_hide_a_string_mismatch() {
     );
     assert_eq!(stderr.matches("[E0204]").count(), 1, "stderr:\n{stderr}");
 }
+
+#[test]
+fn g240_a_jsx_attribute_is_checked_against_the_components_props_record() {
+    // The gap. `<Button variant="danger" />`, `<Button variant="nope" />` and
+    // `<Button variant={42} />` all exited 0 with no diagnostic under
+    // `--no-tsc`: no JSX attribute reached the assignability relation, so the
+    // only thing that saw one was `tsc` on the emitted TypeScript, which left
+    // `--no-tsc`, the language server, the MCP tools and the playground blind.
+    let root = unique_tmp("g240");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         type Variant = \"primary\" | \"danger\"\n\
+         type Props = { variant: Variant, label: string }\n\
+         component Button(props: Props) {\n\
+         \x20 return <button>{props.label}</button>\n\
+         }\n\
+         pub component App() {\n\
+         \x20 return <Button variant=\"nope\" label=\"go\" />\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0211]") && stderr.contains("expected `Variant`, found `\"nope\"`"),
+        "stderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn g240_an_imported_components_props_record_decides_the_same_attribute() {
+    // The guarantee may not depend on which module declared the component.
+    // The props record reaches the consumer as a `Ty::Imported` and its
+    // literal set is read from the declaration there, so the diagnostic names
+    // `Variant` under the import exactly as it does at home.
+    let root = unique_tmp("g240imported");
+    write_file(
+        &root,
+        "ui.glyph",
+        "module ui\n\
+         pub type Variant = \"primary\" | \"danger\"\n\
+         pub type Props = { variant: Variant, label: string, hint?: string }\n\
+         pub component Button(props: Props) {\n\
+         \x20 return <button>{props.label}</button>\n\
+         }\n",
+    );
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import ui { Button }\n\
+         pub component App() {\n\
+         \x20 return <div>\n\
+         \x20   <Button variant={42} label=\"go\" />\n\
+         \x20   <Button variant=\"danger\" label=\"go\" bogus=\"x\" />\n\
+         \x20 </div>\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0211]") && stderr.contains("expected `Variant`, found `number`"),
+        "stderr:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("[E0210]") && stderr.contains("type `Props` has no field `bogus`"),
+        "the imported record keeps its own name in the field diagnostic:\n{stderr}"
+    );
+}
+
+#[test]
+fn g240_the_shapes_tsc_accepts_stay_silent() {
+    // Run under `tsc --strict` with real `@types/react` before it was written
+    // here: every one of these compiles. A spread may carry any prop, so an
+    // element holding one is not asked for a missing attribute; children ride
+    // as `createElement` varargs rather than as a prop, so a component whose
+    // props record declares no `children` takes them; an optional field may be
+    // omitted; `key` is React's own attribute; and an intrinsic element's
+    // attributes are React's table, not Glyph's.
+    let root = unique_tmp("g240ok");
+    write_file(
+        &root,
+        "ui.glyph",
+        "module ui\n\
+         pub type Variant = \"primary\" | \"danger\"\n\
+         pub type Props = { variant: Variant, label: string, hint?: string }\n\
+         pub component Button(props: Props) {\n\
+         \x20 return <button>{props.label}</button>\n\
+         }\n",
+    );
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import ui { Button, Props }\n\
+         component Card(props: { title: string }) {\n\
+         \x20 return <div>{props.title}</div>\n\
+         }\n\
+         pub component App(a: { xs: Array<string>, p: Props }) {\n\
+         \x20 return <div class=\"x\" data-testid=\"y\">\n\
+         \x20   <Button variant=\"danger\" label=\"go\" />\n\
+         \x20   <Button variant=\"primary\" label=\"b\" hint=\"h\" key={1} />\n\
+         \x20   <Button {...a.p} />\n\
+         \x20   <Button {...a.p} variant=\"primary\" />\n\
+         \x20   <Card title=\"t\"><span>child</span></Card>\n\
+         \x20   <for x in={a.xs}><Card title={x} /></for>\n\
+         \x20 </div>\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 0, "stderr:\n{stderr}");
+    assert!(
+        !stderr.contains("[E02"),
+        "no correct shape is refused:\n{stderr}"
+    );
+}

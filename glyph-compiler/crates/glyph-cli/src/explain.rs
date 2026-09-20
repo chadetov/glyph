@@ -396,7 +396,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "E0210" => "E0210: no such field\n\n\
             A field access `x.field` where `x`'s type is a record (or named record \
             type) that has no field by that name — usually a typo or a renamed \
-            field.\n\n\
+            field. A JSX attribute draws it too: `<Button labl=\"go\" />` names a \
+            field of the component's props record, and one the record does not \
+            declare is the same mistake in a different spelling.\n\n\
             Check the field name, or add the field to the type. Only a value whose \
             type resolves to a concrete record is checked; access on an \
             unknown-typed or non-record value is left alone. A record declared in \
@@ -407,6 +409,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             to. v1 reports this only when both types are fully known and provably \
             differ (primitives, different named types, a generic over a different \
             base).\n\n\
+            A JSX attribute on a component element is an argument: the element \
+            lowers to a call passing one props object, so `<Button variant=\"nope\" \
+            />` is checked against the `variant` field of the component's props \
+            record and carries that field's accepted values when it declares a \
+            finite set.\n\n\
             Pass a value of the expected type, or change the parameter's type.",
 
         "E0212" => "E0212: cannot reassign a `const`\n\n\
@@ -1364,13 +1371,13 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "Field access on a record type that has no such field, including a record declared in a sibling module under any import spelling, where the message names that record's own type",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), or a JSX attribute naming a field of a component's props record. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name",
         fix: "Pass a value of the expected type",
     },
     CodeEntry {

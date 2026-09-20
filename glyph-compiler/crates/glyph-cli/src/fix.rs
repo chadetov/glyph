@@ -378,13 +378,13 @@ fn fix_one_file(
                 }),
             },
             "E0210" => match plan_e0210(&source, d) {
-                Ok(edit) => {
+                Ok((start, end, name, site)) => {
                     applied.push(Applied {
                         code: d.code.clone(),
                         file: path.to_path_buf(),
-                        what: format!("renamed the field read to `{}`", edit.2),
+                        what: format!("renamed the {site} to `{name}`"),
                     });
-                    edits.push(edit);
+                    edits.push((start, end, name));
                 }
                 Err(why) => report.declined.push(Declined {
                     code: d.code.clone(),
@@ -544,13 +544,14 @@ fn head_ident_span(source: &str, d: &Diagnostic) -> Option<(u32, u32)> {
 // E0210: the did-you-mean, when exactly one field is within edit distance one
 // ---------------------------------------------------------------------------
 
-/// Replace a field read the record does not declare with the one declared field
-/// a single character away from it.
+/// Replace a field the record does not declare with the one declared field a
+/// single character away from it, and name the site the repair landed on so
+/// the report says what it edited.
 ///
 /// `alternatives` carries the record's own field list. Zero candidates within
 /// distance one is a name that was not a typo; several is a choice the compiler
 /// does not make. Both decline.
-fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String> {
+fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String, &'static str), String> {
     let fields = d
         .alternatives
         .as_ref()
@@ -558,11 +559,21 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
     let (s, e) = range_bytes(source, d)
         .ok_or("the diagnostic's range is not a byte range of this file")?;
     let text = &source[s..e];
-    let after_dot = text
-        .rfind('.')
-        .map(|i| i + 1)
-        .ok_or("the access this diagnostic points at is not a `.field` read")?;
-    let raw = &text[after_dot..];
+    // Two shapes carry an E0210. A field read (`sheet.rowz`) names the field
+    // after the last dot. A JSX attribute (`<Button varient="x" />`, G240)
+    // names it before the `=`, and its own value may hold dots of its own
+    // (`varient={cfg.mode}`), so the attribute form is recognized first and
+    // the dot rule never sees it.
+    let (name_at, raw, site) = match jsx_attr_name(text) {
+        Some(name) => (0, name, "attribute"),
+        None => {
+            let after_dot = text
+                .rfind('.')
+                .map(|i| i + 1)
+                .ok_or("the access this diagnostic points at is not a `.field` read")?;
+            (after_dot, &text[after_dot..], "field read")
+        }
+    };
     let lead = raw.len() - raw.trim_start().len();
     let wrong = raw.trim();
     if !is_plain_ident(wrong) {
@@ -574,11 +585,12 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
         .collect();
     match near.len() {
         1 => {
-            let start = s + after_dot + lead;
+            let start = s + name_at + lead;
             Ok((
                 start as u32,
                 (start + wrong.len()) as u32,
                 near[0].clone(),
+                site,
             ))
         }
         0 => Err(format!(
@@ -591,6 +603,19 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
             quoted_list(&near.iter().map(|s| (*s).clone()).collect::<Vec<_>>())
         )),
     }
+}
+
+/// The attribute name of a JSX attribute an E0210 points at, or `None` when
+/// the diagnostic's text is not one.
+///
+/// The span a JSX attribute diagnostic carries runs from the name to the end
+/// of the value, so `varient="danger"` and `varient={cfg.mode}` both start
+/// with the name and then an `=`. Requiring the name to be a plain identifier
+/// and the very next character to be `=` is what keeps a field read out: no
+/// `.field` access has an `=` in its span at all.
+fn jsx_attr_name(text: &str) -> Option<&str> {
+    let (name, _) = text.split_once('=')?;
+    is_plain_ident(name).then_some(name)
 }
 
 // ---------------------------------------------------------------------------

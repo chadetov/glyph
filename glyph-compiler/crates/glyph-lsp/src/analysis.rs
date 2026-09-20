@@ -2002,7 +2002,11 @@ impl Analysis {
         self.types.type_map()
     }
 
-    /// See [`hover_at`].
+    /// See [`hover_at`]: the single-file reading, without the cross-module
+    /// half. Only the tests below call it. Both servers go through
+    /// [`hover_in`], which runs this reading first and then the one that needs
+    /// the project, so a position this answers answers the same there.
+    #[cfg(test)]
     pub fn hover(&self, text: &str, offset: usize) -> Option<String> {
         hover_at(
             self.module(),

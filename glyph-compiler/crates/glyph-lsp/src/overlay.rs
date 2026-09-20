@@ -1,23 +1,48 @@
-//! The overlay: what text the server analyses, and where that text comes from.
+//! The overlay: what the server analyses, and what it analyses it inside.
 //!
-//! A language server answers about a file the user is editing, which is not the
-//! file on disk. The rule here is one sentence: **the editor's buffer for a
-//! file it has open, the file on disk for everything else.** `didOpen` and
-//! `didChange` write the buffer, `didClose` drops it and disk becomes the truth
-//! again, and every read goes through [`Workspace::overlay_text`] so no query
-//! can pick the other one by accident.
+//! Two rules, and everything here is one of them.
 //!
-//! Underneath the overlay is the compiler's own incremental model, one
-//! [`CompilerDb`] for the server's lifetime. Each file the server has looked at
-//! has a `SourceFile` input in it; putting the overlay's text into that input
-//! is the only write, and salsa decides from there what has to run again. That
-//! is the whole of the change: the server used to hand a bare `&str` to the
-//! front end on every request, so a hover after a keystroke re-parsed,
-//! re-resolved and re-typechecked text it had just finished analysing.
+//! **The text.** The editor's buffer for a file it has open, the file on disk
+//! for everything else. `didOpen` and `didChange` write the buffer, `didClose`
+//! drops it and disk becomes the truth again, and every read goes through
+//! [`overlay_text`] so no query can pick the other one by accident.
 //!
-//! What it costs, measured against the same server without it, on one machine
-//! in one sitting, by `benchmarks/lsp-latency/measure.py`. Medians of 100
-//! samples over the 2,205-line `examples/apps/minilang/main.glyph`:
+//! **The project.** A file is analysed inside the project its imports are
+//! counted from (D41), not on its own. That is what lets the editor answer
+//! about a name another module declares: the type of an imported function at
+//! its call site, the type of a field read off an imported record, the
+//! signature behind a binding in an `import m { N }` list. Until 0.1.124 the
+//! server registered the buffers an editor opened and nothing else, so every
+//! one of those positions answered `null` in an editor while `glyph query
+//! hover` answered from the command line (G235). The tool being ahead of the
+//! editor is the wrong way round for a pair of surfaces that are meant to give
+//! one answer (G219).
+//!
+//! Underneath both is the compiler's own incremental model: one [`CompilerDb`]
+//! per project the session has touched, each holding a `SourceFile` input per
+//! file it has read and a registered project file list. Writing text into an
+//! input is the only write on the request path, and salsa decides from there
+//! what has to run again.
+//!
+//! ## What a keystroke costs
+//!
+//! A keystroke writes one input. It does not walk the tree, it does not re-read
+//! a file it did not change, and it does not re-register the project: the entry
+//! list is pushed only when the set of files actually changes, because
+//! `ProjectFiles::entries` is read directly by the cross-module queries and
+//! rewriting it would invalidate every one of them. Editing a function body
+//! re-runs that file's `module_exports`, which produces the same set of names,
+//! so salsa backdates it and no sibling module is re-analysed.
+//!
+//! The disk half is refreshed on the events that can mean a file changed
+//! behind the editor's back and on no others: a `didOpen`, a `didSave`, a
+//! watched-file notification, and the workspace-wide queries, which walk the
+//! tree anyway. See [`Workspace::rescan`].
+//!
+//! What the incremental model costs, measured against the same server without
+//! it, on one machine in one sitting, by `benchmarks/lsp-latency/measure.py`.
+//! Medians of 100 samples over the 2,205-line
+//! `examples/apps/minilang/main.glyph`:
 //!
 //! | | before | after |
 //! |---|---|---|
@@ -47,21 +72,17 @@
 //! is faster than before, so this is where to look first if a file well past
 //! the sweep ever feels slow.
 //!
-//! Two things this deliberately is not.
+//! ## What this is not
 //!
 //! It is not the MCP server's database. That one is keyed on disk truth and
 //! answers an agent; this one is keyed on buffer truth and answers an editor.
 //! They are peers over one compiler model, and neither is built on the other:
 //! a `SourceFile` holds one text, and an unsaved keystroke is not a question a
-//! disk-backed store can answer.
-//!
-//! It is not a project graph. The server's analysis sees exactly what it saw
-//! before, one file at a time, because `ProjectFiles` is left empty: with no
-//! entries the cross-module resolvers answer `None`, which is what the
-//! text path did too. Making the editor's diagnostics project-aware is a
-//! change to what the server *knows*, and this one is about what it *costs*.
+//! disk-backed store can answer. What they do share is the reading itself
+//! (`analysis::hover_in`), so the two surfaces cannot give one position two
+//! answers.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -69,74 +90,259 @@ use glyph_db::{CompilerDb, SourceFile};
 use glyph_resolver::{build_prelude, ModuleGraph, StdlibStubs};
 use tower_lsp::lsp_types::Url;
 
-use crate::analysis::{analysis_in, analyze_in, module_outline, Analysis, GlyphDiagnostic};
-use crate::collect_glyph_files;
+use crate::analysis::{analysis_in, analyze_in, hover_in, module_outline, Analysis, GlyphDiagnostic};
+use crate::{collect_glyph_files, module_path_of};
 
-/// The editor's buffers and the incremental model they feed.
+/// How many project databases stay live at once, least-recently-used evicted.
 ///
-/// Memory: the database keeps every memo it has computed, so the cost scales
+/// A database retains roughly 35x the source it analysed and `glyph-db` evicts
+/// nothing on its own, so an unbounded map is a leak in a server that runs for
+/// as long as the editor does. Four is what the MCP server holds, and for the
+/// same reason: a monorepo user moving between two or three marked apps must
+/// not pay a re-index on every switch.
+const MAX_LIVE_PROJECTS: usize = 4;
+
+/// The text the overlay says `uri` holds: the editor's buffer when it has the
+/// file open, the bytes on disk otherwise. `None` when the editor does not have
+/// it open and it cannot be read (it was deleted, or the URI does not name a
+/// file at all).
+fn overlay_text(uri: &Url, open: &HashMap<Url, String>) -> Option<String> {
+    if let Some(text) = open.get(uri) {
+        return Some(text.clone());
+    }
+    std::fs::read_to_string(uri.to_file_path().ok()?).ok()
+}
+
+/// One file inside a project database.
+struct Handle {
+    file: SourceFile,
+    /// The module path this file answers an `import` under, counted from the
+    /// project root, or `None` for a file that is not under it.
+    ///
+    /// A non-member is readable — the workspace-wide queries range over files
+    /// outside any one project, and a document the editor opened from
+    /// somewhere else still gets its own diagnostics — but it never reaches
+    /// the registered entry list. A file that is not a member of the project
+    /// must not answer another module's `import`, which is exactly what
+    /// putting it in the list would make it do.
+    module_path: Option<String>,
+}
+
+/// One project's incremental model: its database, the files it has read, and
+/// the entry list last registered with it.
+///
+/// Keyed by *project* root rather than by the editor's workspace folder because
+/// module paths are counted per project (D41). Merging two projects into one
+/// database would merge their module namespaces, so a sibling `lib` in one
+/// project would answer an `import lib` in the other.
+struct ProjectDb {
+    root: PathBuf,
+    db: CompilerDb,
+    /// Every file this database has read, member or not.
+    handles: HashMap<Url, Handle>,
+    /// The entry list last pushed to the database, so `set_project` fires only
+    /// when the set actually changed. The cross-module queries read
+    /// `ProjectFiles::entries` directly, so a write of an identical list
+    /// invalidates every memoized imported declaration for nothing.
+    entries: Vec<(String, SourceFile)>,
+}
+
+impl ProjectDb {
+    fn new(root: PathBuf, stdlib: &Arc<StdlibStubs>, sink: Option<&glyph_db::EventSink>) -> Self {
+        let graph: Arc<dyn ModuleGraph + Send + Sync> = stdlib.clone();
+        let db = match sink {
+            Some(sink) => {
+                CompilerDb::with_event_sink(build_prelude(), graph, Arc::clone(sink))
+            }
+            None => CompilerDb::new(build_prelude(), graph),
+        };
+        ProjectDb {
+            root,
+            db,
+            handles: HashMap::new(),
+            entries: Vec::new(),
+        }
+    }
+
+    /// Bring `uri`'s input in line with the overlay and hand back its handle.
+    ///
+    /// Writing text that is byte-identical to what the input already holds is
+    /// free (`set_file_text` compares first), so a request that changes nothing
+    /// invalidates nothing. Does not touch the entry list; the callers that can
+    /// change it say so themselves.
+    fn write(&mut self, uri: &Url, open: &HashMap<Url, String>) -> Option<SourceFile> {
+        let text = overlay_text(uri, open)?;
+        if let Some(handle) = self.handles.get(uri) {
+            let file = handle.file;
+            self.db.set_file_text(file, text);
+            return Some(file);
+        }
+        let path = uri.to_file_path().ok();
+        let module_path = path
+            .as_deref()
+            .and_then(|p| module_path_of(&self.root, p));
+        let name = path
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|| uri.to_string());
+        let file = SourceFile::new(&self.db, name, text);
+        self.handles.insert(
+            uri.clone(),
+            Handle {
+                file,
+                module_path,
+            },
+        );
+        Some(file)
+    }
+
+    /// `uri`'s handle, reading it into the database if this is the first time
+    /// the project has been asked about it.
+    ///
+    /// A file that is neither open nor readable is dropped rather than left
+    /// holding what it used to say, and dropping a member is a change to the
+    /// project, so the entry list is re-pushed for it.
+    fn file(&mut self, uri: &Url, open: &HashMap<Url, String>) -> Option<SourceFile> {
+        let known = self.handles.contains_key(uri);
+        match self.write(uri, open) {
+            Some(file) => {
+                if !known {
+                    self.publish();
+                }
+                Some(file)
+            }
+            None => {
+                if known {
+                    self.handles.remove(uri);
+                    self.publish();
+                }
+                None
+            }
+        }
+    }
+
+    /// Re-read every file the project has on disk, and notice files that
+    /// appeared or went away.
+    ///
+    /// This is the expensive half and it is deliberately not on the request
+    /// path: see [`Workspace::rescan`] for when it runs.
+    fn scan(&mut self, open: &HashMap<Url, String>) {
+        let mut walked = Vec::new();
+        collect_glyph_files(&self.root, &mut walked);
+        let mut seen: HashSet<Url> = HashSet::new();
+        for path in walked {
+            let Ok(uri) = Url::from_file_path(&path) else {
+                continue;
+            };
+            self.write(&uri, open);
+            seen.insert(uri);
+        }
+        // A member the walk no longer reaches was deleted or moved, and the
+        // project has to stop answering an `import` with it. A non-member is
+        // left alone: the walk was never what put it here, so the walk not
+        // finding it says nothing. Neither is an open buffer, which may be a
+        // file that has never been saved.
+        self.handles
+            .retain(|uri, h| h.module_path.is_none() || seen.contains(uri) || open.contains_key(uri));
+        // An unsaved new file under the root is a member no walk can see.
+        for uri in open.keys() {
+            if !seen.contains(uri) {
+                self.write(uri, open);
+            }
+        }
+        self.publish();
+    }
+
+    /// Register the members with the database, if the set has changed.
+    fn publish(&mut self) {
+        let mut entries: Vec<(String, SourceFile)> = self
+            .handles
+            .values()
+            .filter_map(|h| h.module_path.clone().map(|m| (m, h.file)))
+            .collect();
+        entries.sort_by(|a, b| a.0.cmp(&b.0));
+        if entries != self.entries {
+            self.db.set_project(entries.clone());
+            self.entries = entries;
+        }
+    }
+}
+
+/// The editor's buffers and the project models they feed.
+///
+/// Memory: each database keeps every memo it has computed, so the cost scales
 /// with the source the server has actually analysed, at roughly 35x its size
 /// (the figure the MCP server measured: 39.5 MB of memo for 1.1 MB of
-/// `.glyph`). Nothing is evicted. A workspace-wide rename is what loads the
-/// whole tree; a session that only edits a handful of files only ever holds
-/// those.
+/// `.glyph`). Nothing is evicted inside a database; whole projects are, at
+/// [`MAX_LIVE_PROJECTS`].
 pub(crate) struct Workspace {
-    db: CompilerDb,
-    /// The stdlib stub graph, shared between the database's module graph and
-    /// the import verification each analysis runs. Built once, because it is
-    /// the same graph on every keystroke.
+    /// The stdlib stub graph, shared by every project database and by the
+    /// import verification each analysis runs. Built once, because it is the
+    /// same graph on every keystroke.
     stdlib: Arc<StdlibStubs>,
     /// The editor's buffers, by document URI. Authoritative over disk for as
-    /// long as the editor says the file is open.
+    /// long as the editor says the file is open, in every project that holds
+    /// the file.
     open: HashMap<Url, String>,
-    /// One salsa input per file the server has read, reused across edits so a
-    /// write of unchanged bytes stays free and a memo survives.
-    files: HashMap<Url, SourceFile>,
+    /// The live project models, most-recently-used first.
+    projects: Vec<ProjectDb>,
+    /// Set only by tests, which use it to prove a repeat request executed no
+    /// queries. `None` in the shipped server, where salsa installs no callback.
+    sink: Option<glyph_db::EventSink>,
 }
 
 impl Workspace {
     pub(crate) fn new() -> Self {
-        let stdlib = Arc::new(StdlibStubs::new());
-        let graph: Arc<dyn ModuleGraph + Send + Sync> = stdlib.clone();
         Workspace {
-            db: CompilerDb::new(build_prelude(), graph),
-            stdlib,
+            stdlib: Arc::new(StdlibStubs::new()),
             open: HashMap::new(),
-            files: HashMap::new(),
+            projects: Vec::new(),
+            sink: None,
         }
     }
 
-    /// The same workspace, over a database that reports every salsa event to
+    /// The same workspace, over databases that report every salsa event to
     /// `sink`. Tests use it to prove a second request over an unchanged buffer
     /// executes nothing; there is no other way to observe the runtime from
     /// outside `glyph-db`.
     #[cfg(test)]
     fn with_event_sink(sink: glyph_db::EventSink) -> Self {
-        let stdlib = Arc::new(StdlibStubs::new());
-        let graph: Arc<dyn ModuleGraph + Send + Sync> = stdlib.clone();
         Workspace {
-            db: CompilerDb::with_event_sink(build_prelude(), graph, sink),
-            stdlib,
+            stdlib: Arc::new(StdlibStubs::new()),
             open: HashMap::new(),
-            files: HashMap::new(),
+            projects: Vec::new(),
+            sink: Some(sink),
         }
     }
 
     /// Record the editor's buffer for `uri`.
     ///
-    /// This and [`Workspace::close`] are the only writers of the overlay, and
-    /// they write nothing but the map. Putting text into the model is
-    /// [`Workspace::sync`]'s job, and every read goes through it first, so
-    /// there is one place where the model can disagree with the editor and it
-    /// is the place every answer passes through.
+    /// The buffer goes into the overlay and into every live project that has
+    /// already read this file, so an unsaved edit is what the file's own
+    /// project sees *and* what a project that merely contains it sees. A
+    /// project that has not read the file yet needs no write: it will read the
+    /// buffer the first time it is asked.
+    ///
+    /// This and [`Workspace::close`] are the only writers of the overlay.
     pub(crate) fn set_buffer(&mut self, uri: &Url, text: String) {
-        self.open.insert(uri.clone(), text);
+        self.open.insert(uri.clone(), text.clone());
+        for project in &mut self.projects {
+            if let Some(handle) = project.handles.get(uri) {
+                let file = handle.file;
+                project.db.set_file_text(file, text.clone());
+            }
+        }
     }
 
     /// Forget the editor's buffer for `uri`: the file on disk is the truth
-    /// again, and the next read picks it up.
+    /// again, in every project that holds it.
     pub(crate) fn close(&mut self, uri: &Url) {
         self.open.remove(uri);
+        let open = &self.open;
+        for project in &mut self.projects {
+            if project.handles.contains_key(uri) {
+                project.file(uri, open);
+            }
+        }
     }
 
     /// The open buffer's text, or `None` for a file the editor does not have
@@ -151,6 +357,91 @@ impl Workspace {
         self.open.contains_key(uri)
     }
 
+    /// The live model for the project rooted at `root`, most-recently-used
+    /// first. A root the session has not seen is indexed once, here, and the
+    /// index is what every later request reads from.
+    ///
+    /// Returns the index rather than a borrow so a caller can hold the
+    /// database and the overlay at the same time; they are separate fields and
+    /// the borrow checker will allow it only if nothing goes through `&mut
+    /// self` in between.
+    fn project(&mut self, root: &Path) -> usize {
+        match self.projects.iter().position(|p| p.root == root) {
+            Some(i) => {
+                let project = self.projects.remove(i);
+                self.projects.insert(0, project);
+            }
+            None => {
+                let mut project =
+                    ProjectDb::new(root.to_path_buf(), &self.stdlib, self.sink.as_ref());
+                project.scan(&self.open);
+                self.projects.insert(0, project);
+                self.projects.truncate(MAX_LIVE_PROJECTS);
+            }
+        }
+        0
+    }
+
+    /// Re-read the project at `root` from disk.
+    ///
+    /// Called for the events that can mean a file changed behind the editor's
+    /// back: a document being opened, a save. Never from a keystroke and never
+    /// from a position request, because the walk and the reads are the one cost
+    /// in this module that scales with the project rather than with the edit.
+    ///
+    /// A root this session has not seen is indexed rather than re-read, which
+    /// is the same walk once instead of twice: the first `didOpen` in a project
+    /// arrives here with nothing to refresh.
+    pub(crate) fn rescan(&mut self, root: &Path) {
+        let known = self.projects.iter().any(|p| p.root == root);
+        let i = self.project(root);
+        if known {
+            let open = &self.open;
+            self.projects[i].scan(open);
+        }
+    }
+
+    /// Re-read every project this session has open.
+    ///
+    /// What a watched-file notification asks for. The path it names says which
+    /// project the *file* belongs to, which is not the same question: a file
+    /// can be a member of a project rooted above it as well, and a deleted one
+    /// names a root that may never have been a project at all. Every live model
+    /// is at most [`MAX_LIVE_PROJECTS`] walks, and the notification arrives when
+    /// something outside the editor changed the tree, not while anyone types.
+    pub(crate) fn rescan_live(&mut self) {
+        for i in 0..self.projects.len() {
+            let open = &self.open;
+            self.projects[i].scan(open);
+        }
+    }
+
+    /// The diagnostics for `uri` and the text they are in coordinates of, read
+    /// inside the project at `root`.
+    pub(crate) fn diagnostics(
+        &mut self,
+        root: &Path,
+        uri: &Url,
+    ) -> Option<(&str, Vec<GlyphDiagnostic>)> {
+        let i = self.project(root);
+        let open = &self.open;
+        let project = &mut self.projects[i];
+        let file = project.file(uri, open)?;
+        let diagnostics = analyze_in(&project.db, file, &self.stdlib);
+        Some((file.source_text(&project.db).as_str(), diagnostics))
+    }
+
+    /// The analysis of `uri` and the text its spans index into. `None` when the
+    /// document does not parse or its symbols do not collect.
+    pub(crate) fn view(&mut self, root: &Path, uri: &Url) -> Option<(&str, Analysis)> {
+        let i = self.project(root);
+        let open = &self.open;
+        let project = &mut self.projects[i];
+        let file = project.file(uri, open)?;
+        let analysis = analysis_in(&project.db, file)?;
+        Some((file.source_text(&project.db).as_str(), analysis))
+    }
+
     /// [`Workspace::view`], restricted to a document the editor has open.
     ///
     /// Every per-document request goes through this rather than through `view`,
@@ -158,74 +449,44 @@ impl Workspace {
     /// disk is not what the request asked. The disk half of the overlay is for
     /// the workspace-wide queries, which do range over files the editor never
     /// opened.
-    pub(crate) fn open_view(&mut self, uri: &Url) -> Option<(&str, Analysis)> {
+    pub(crate) fn open_view(&mut self, root: &Path, uri: &Url) -> Option<(&str, Analysis)> {
         if !self.is_open(uri) {
             return None;
         }
-        self.view(uri)
+        self.view(root, uri)
     }
 
-    /// The text the overlay says `uri` holds: the editor's buffer when it has
-    /// the file open, the bytes on disk otherwise. `None` when the editor does
-    /// not have it open and it cannot be read (it was deleted, or the URI does
-    /// not name a file at all).
-    fn overlay_text(&self, uri: &Url) -> Option<String> {
-        if let Some(text) = self.open.get(uri) {
-            return Some(text.clone());
-        }
-        let path = uri.to_file_path().ok()?;
-        std::fs::read_to_string(path).ok()
-    }
-
-    /// Bring `uri`'s input in line with the overlay and hand back its handle.
+    /// The hover text at `offset` in `uri`, read inside the project at `root`.
     ///
-    /// Writing text that is byte-identical to what the input already holds is
-    /// free (`set_file_text` compares first), so a request that changes nothing
-    /// invalidates nothing. A file that has neither a buffer nor readable bytes
-    /// is dropped rather than left holding what it used to say.
-    fn sync(&mut self, uri: &Url) -> Option<SourceFile> {
-        let Some(text) = self.overlay_text(uri) else {
-            self.files.remove(uri);
+    /// Separate from [`Workspace::open_view`] because the reading needs the
+    /// database itself and an [`Analysis`] does not carry one: the cross-module
+    /// half of a hover is a set of salsa queries over the declaring module, not
+    /// a lookup in this file's own tables. The function it calls is the one
+    /// `glyph query hover` calls.
+    pub(crate) fn hover(&mut self, root: &Path, uri: &Url, offset: usize) -> Option<String> {
+        if !self.is_open(uri) {
             return None;
-        };
-        match self.files.get(uri) {
-            Some(&file) => {
-                self.db.set_file_text(file, text);
-                Some(file)
-            }
-            None => {
-                let name = uri
-                    .to_file_path()
-                    .map(|p| p.to_string_lossy().into_owned())
-                    .unwrap_or_else(|_| uri.to_string());
-                let file = SourceFile::new(&self.db, name, text);
-                self.files.insert(uri.clone(), file);
-                Some(file)
-            }
         }
-    }
-
-    /// The diagnostics for `uri` and the text they are in coordinates of.
-    pub(crate) fn diagnostics(&mut self, uri: &Url) -> Option<(&str, Vec<GlyphDiagnostic>)> {
-        let file = self.sync(uri)?;
-        let diagnostics = analyze_in(&self.db, file, &self.stdlib);
-        Some((file.source_text(&self.db).as_str(), diagnostics))
-    }
-
-    /// The analysis of `uri` and the text its spans index into. `None` when the
-    /// document does not parse or its symbols do not collect.
-    pub(crate) fn view(&mut self, uri: &Url) -> Option<(&str, Analysis)> {
-        let file = self.sync(uri)?;
-        let analysis = analysis_in(&self.db, file)?;
-        Some((file.source_text(&self.db).as_str(), analysis))
+        let i = self.project(root);
+        let open = &self.open;
+        let project = &mut self.projects[i];
+        let file = project.file(uri, open)?;
+        hover_in(&project.db, file, offset)
     }
 
     /// The document outline of `uri`, from the memoized parse.
-    pub(crate) fn outline(&mut self, uri: &Url) -> Option<(&str, Vec<crate::analysis::OutlineSymbol>)> {
-        let file = self.sync(uri)?;
-        let parsed = glyph_db::parse_module(&self.db, file);
+    pub(crate) fn outline(
+        &mut self,
+        root: &Path,
+        uri: &Url,
+    ) -> Option<(&str, Vec<crate::analysis::OutlineSymbol>)> {
+        let i = self.project(root);
+        let open = &self.open;
+        let project = &mut self.projects[i];
+        let file = project.file(uri, open)?;
+        let parsed = glyph_db::parse_module(&project.db, file);
         let outline = module_outline(parsed.module()?);
-        Some((file.source_text(&self.db).as_str(), outline))
+        Some((file.source_text(&project.db).as_str(), outline))
     }
 
     /// Every `.glyph` document in the workspace, in the order a walk of `root`
@@ -257,7 +518,6 @@ impl Workspace {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -276,7 +536,10 @@ mod tests {
             .join(format!("glyph_overlay_{name}_{}_{n}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("create temp dir");
-        dir
+        // macOS resolves the system temp directory through a symlink, and a
+        // project root that is not the spelling the file URIs carry makes
+        // every membership test fail.
+        std::fs::canonicalize(&dir).expect("canonical temp dir")
     }
 
     /// Write `text` to `dir/name.glyph` and return its URI.
@@ -288,16 +551,25 @@ mod tests {
 
     /// The text the model holds for `uri`, which is what the overlay put
     /// there. `None` when the overlay has no text for it at all.
-    fn model_text(ws: &mut Workspace, uri: &Url) -> Option<String> {
-        let file = ws.sync(uri)?;
-        Some(file.source_text(&ws.db).clone())
+    fn model_text(ws: &mut Workspace, root: &Path, uri: &Url) -> Option<String> {
+        let i = ws.project(root);
+        let open = &ws.open;
+        let project = &mut ws.projects[i];
+        let file = project.file(uri, open)?;
+        Some(file.source_text(&project.db).clone())
     }
 
     /// The diagnostic codes for `uri`, in order.
-    fn codes(ws: &mut Workspace, uri: &Url) -> Vec<String> {
-        ws.diagnostics(uri)
+    fn codes(ws: &mut Workspace, root: &Path, uri: &Url) -> Vec<String> {
+        ws.diagnostics(root, uri)
             .map(|(_, ds)| ds.into_iter().map(|d| d.code).collect())
             .unwrap_or_default()
+    }
+
+    /// The offset of the `n`th occurrence of `needle` in `text`, plus `skip`
+    /// bytes, for pointing a hover at a name inside a line.
+    fn at(text: &str, needle: &str, skip: usize) -> usize {
+        text.find(needle).expect("needle in fixture") + skip
     }
 
     /// The editor's truth is the buffer it just sent, not the one before it.
@@ -313,17 +585,17 @@ mod tests {
         let mut ws = Workspace::new();
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        assert!(codes(&mut ws, &uri).is_empty(), "the clean buffer is clean");
+        assert!(codes(&mut ws, &dir, &uri).is_empty(), "the clean buffer is clean");
 
         ws.set_buffer(&uri, BROKEN.to_string());
-        let after = codes(&mut ws, &uri);
+        let after = codes(&mut ws, &dir, &uri);
         assert!(!after.is_empty(), "the changed buffer must be re-analysed");
-        let (text, _) = ws.view(&uri).expect("analysis");
+        let (text, _) = ws.view(&dir, &uri).expect("analysis");
         assert_eq!(text, BROKEN, "the analysis is of the text the editor sent");
 
         // And back: an undo is a change like any other.
         ws.set_buffer(&uri, CLEAN.to_string());
-        assert!(codes(&mut ws, &uri).is_empty(), "the undo is re-analysed too");
+        assert!(codes(&mut ws, &dir, &uri).is_empty(), "the undo is re-analysed too");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -338,13 +610,13 @@ mod tests {
         let mut ws = Workspace::new();
 
         assert!(!ws.is_open(&uri), "nobody opened it");
-        assert_eq!(model_text(&mut ws, &uri).as_deref(), Some(BROKEN), "read from disk");
+        assert_eq!(model_text(&mut ws, &dir, &uri).as_deref(), Some(BROKEN), "read from disk");
         assert!(
-            !codes(&mut ws, &uri).is_empty(),
+            !codes(&mut ws, &dir, &uri).is_empty(),
             "the bytes on disk are what gets analysed"
         );
         assert!(
-            ws.open_view(&uri).is_none(),
+            ws.open_view(&dir, &uri).is_none(),
             "a per-document request still answers only for an open document"
         );
         let _ = std::fs::remove_dir_all(&dir);
@@ -360,12 +632,12 @@ mod tests {
 
         // Unsaved edits fix the file: the buffer is clean, disk is not.
         ws.set_buffer(&uri, CLEAN.to_string());
-        assert_eq!(model_text(&mut ws, &uri).as_deref(), Some(CLEAN));
-        assert!(codes(&mut ws, &uri).is_empty(), "the buffer is what counts");
+        assert_eq!(model_text(&mut ws, &dir, &uri).as_deref(), Some(CLEAN));
+        assert!(codes(&mut ws, &dir, &uri).is_empty(), "the buffer is what counts");
 
         ws.close(&uri);
-        assert_eq!(model_text(&mut ws, &uri).as_deref(), Some(BROKEN), "disk again");
-        assert!(!codes(&mut ws, &uri).is_empty());
+        assert_eq!(model_text(&mut ws, &dir, &uri).as_deref(), Some(BROKEN), "disk again");
+        assert!(!codes(&mut ws, &dir, &uri).is_empty());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -376,11 +648,11 @@ mod tests {
         let dir = tmp_dir("gone");
         let uri = on_disk(&dir, "m", CLEAN);
         let mut ws = Workspace::new();
-        assert_eq!(model_text(&mut ws, &uri).as_deref(), Some(CLEAN));
+        assert_eq!(model_text(&mut ws, &dir, &uri).as_deref(), Some(CLEAN));
 
         std::fs::remove_file(uri.to_file_path().unwrap()).expect("delete");
-        assert_eq!(model_text(&mut ws, &uri), None);
-        assert!(ws.view(&uri).is_none());
+        assert_eq!(model_text(&mut ws, &dir, &uri), None);
+        assert!(ws.view(&dir, &uri).is_none());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -396,17 +668,11 @@ mod tests {
     fn a_second_request_over_an_unchanged_buffer_executes_nothing() {
         let dir = tmp_dir("memo");
         let uri = on_disk(&dir, "m", CLEAN);
-        let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
-        let recorder = Arc::clone(&log);
-        let sink: glyph_db::EventSink = Arc::new(move |event: &glyph_db::Event| {
-            if let glyph_db::EventKind::WillExecute { database_key } = &event.kind {
-                recorder.lock().unwrap().push(format!("{database_key:?}"));
-            }
-        });
+        let (log, sink) = event_log();
         let mut ws = Workspace::with_event_sink(sink);
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        let _ = ws.diagnostics(&uri);
+        let _ = ws.diagnostics(&dir, &uri);
         let first: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(
             first.iter().any(|q| q.contains("parse_module")),
@@ -414,9 +680,9 @@ mod tests {
         );
 
         // Everything an editor fires after a keystroke, over the same buffer.
-        let _ = ws.view(&uri);
-        let _ = ws.outline(&uri);
-        let _ = ws.diagnostics(&uri);
+        let _ = ws.view(&dir, &uri);
+        let _ = ws.outline(&dir, &uri);
+        let _ = ws.diagnostics(&dir, &uri);
         let second: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(
             second.is_empty(),
@@ -426,7 +692,7 @@ mod tests {
         // A real edit does execute again, so the assertion above is a live
         // instrument rather than a claim about an inert database.
         ws.set_buffer(&uri, BROKEN.to_string());
-        let _ = ws.diagnostics(&uri);
+        let _ = ws.diagnostics(&dir, &uri);
         let third: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(!third.is_empty(), "an edit re-executes");
         let _ = std::fs::remove_dir_all(&dir);
@@ -441,21 +707,15 @@ mod tests {
     fn re_sending_the_same_buffer_executes_nothing() {
         let dir = tmp_dir("same");
         let uri = on_disk(&dir, "m", CLEAN);
-        let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
-        let recorder = Arc::clone(&log);
-        let sink: glyph_db::EventSink = Arc::new(move |event: &glyph_db::Event| {
-            if let glyph_db::EventKind::WillExecute { database_key } = &event.kind {
-                recorder.lock().unwrap().push(format!("{database_key:?}"));
-            }
-        });
+        let (log, sink) = event_log();
         let mut ws = Workspace::with_event_sink(sink);
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        let _ = ws.diagnostics(&uri);
+        let _ = ws.diagnostics(&dir, &uri);
         log.lock().unwrap().clear();
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        let _ = ws.diagnostics(&uri);
+        let _ = ws.diagnostics(&dir, &uri);
         let again: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(again.is_empty(), "identical text re-executed: {again:?}");
         let _ = std::fs::remove_dir_all(&dir);
@@ -483,6 +743,10 @@ mod tests {
     /// through a single function, and this is what holds them to that: an
     /// editor and an agent looking at identical text see identical
     /// diagnostics, code for code and span for span.
+    ///
+    /// Each source is its own project of one file, which is what the text path
+    /// analyses: a module with nothing to import from cannot differ from a
+    /// module read alone.
     #[test]
     fn the_text_path_and_the_incremental_path_agree() {
         let sources: [&str; 6] = [
@@ -498,12 +762,12 @@ mod tests {
             // An unknown name: a resolution error.
             "module m\nfn f() -> void {\n  print(nope)\n}\n",
         ];
-        let dir = tmp_dir("agree");
-        let mut ws = Workspace::new();
         for (i, src) in sources.iter().enumerate() {
-            let uri = on_disk(&dir, &format!("s{i}"), src);
+            let dir = tmp_dir(&format!("agree{i}"));
+            let mut ws = Workspace::new();
+            let uri = on_disk(&dir, "s", src);
             ws.set_buffer(&uri, (*src).to_string());
-            let (_, incremental) = ws.diagnostics(&uri).expect("diagnostics");
+            let (_, incremental) = ws.diagnostics(&dir, &uri).expect("diagnostics");
             let text_path = crate::analysis::analyze(src);
             let render = |ds: &[GlyphDiagnostic]| -> Vec<(String, u32, u32, String)> {
                 ds.iter()
@@ -515,7 +779,269 @@ mod tests {
                 render(&text_path),
                 "source {i} disagrees between the two paths"
             );
+            let _ = std::fs::remove_dir_all(&dir);
         }
+    }
+
+    // ------------------------------------------------------------------
+    // The project half (G235)
+    // ------------------------------------------------------------------
+
+    /// The module every fixture below imports from.
+    const ORDERS: &str = "module orders\n\n\
+        pub type Order = {\n  id: string,\n  total: number,\n}\n\n\
+        pub fn create(id: string) -> Order {\n  {\n    id: id,\n    total: 0,\n  }\n}\n";
+
+    /// The module that imports it.
+    const MAIN: &str = "module main\n\n\
+        import orders { Order, create, }\n\n\
+        fn describe(o: Order) -> string {\n  o.id\n}\n\n\
+        fn use_it() -> string {\n  describe(create(\"a1\"))\n}\n";
+
+    /// A two-module project on disk, with `main.glyph` open in the editor.
+    fn two_modules(name: &str) -> (PathBuf, Url, Workspace) {
+        let dir = tmp_dir(name);
+        on_disk(&dir, "orders", ORDERS);
+        let main = on_disk(&dir, "main", MAIN);
+        let mut ws = Workspace::new();
+        ws.set_buffer(&main, MAIN.to_string());
+        (dir, main, ws)
+    }
+
+    /// G235: the editor answers at a name another module declares.
+    ///
+    /// Three positions, each one the gap recorded as `null` over the protocol
+    /// while `glyph query hover` answered at the same byte: an imported
+    /// function at its call site, a field read off an imported record, and the
+    /// binding in the `import` list. The fourth is the control — a local
+    /// parameter answered before this change and has to keep answering.
+    #[test]
+    fn hover_answers_a_name_another_module_declares() {
+        let (dir, main, mut ws) = two_modules("crossmodule");
+
+        let call = at(MAIN, "create(\"a1\")", 0);
+        assert_eq!(
+            ws.hover(&dir, &main, call).as_deref(),
+            Some("fn(string) -> Order"),
+            "an imported function at its call site"
+        );
+
+        let field = at(MAIN, "o.id", 2);
+        assert_eq!(
+            ws.hover(&dir, &main, field).as_deref(),
+            Some("string"),
+            "a field read off an imported record"
+        );
+
+        let binding = at(MAIN, "{ Order, create, }", 9);
+        assert_eq!(
+            ws.hover(&dir, &main, binding).as_deref(),
+            Some("fn(string) -> Order"),
+            "the binding in the import list"
+        );
+
+        let local = at(MAIN, "(o: Order)", 1);
+        assert_eq!(
+            ws.hover(&dir, &main, local).as_deref(),
+            Some("Order"),
+            "the local parameter that answered before"
+        );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A hover is about the buffer, so a file nobody opened has none.
+    #[test]
+    fn hover_answers_only_for_an_open_document() {
+        let (dir, _main, mut ws) = two_modules("hoverclosed");
+        let orders = Url::from_file_path(dir.join("orders.glyph")).expect("uri");
+        assert!(
+            ws.hover(&dir, &orders, at(ORDERS, "pub fn create", 7)).is_none(),
+            "the editor does not have orders.glyph open"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// An unsaved edit to the *declaring* module is what the *consuming*
+    /// module is analysed against.
+    ///
+    /// This is the rule that makes the project view an overlay rather than a
+    /// second reading of the disk: the editor's buffer wins everywhere, not
+    /// just in the file the request is about. Changing `create`'s return type
+    /// in a buffer nobody has saved has to change what hovering its call site
+    /// in another file says.
+    #[test]
+    fn an_unsaved_edit_in_another_module_is_what_this_one_sees() {
+        let (dir, main, mut ws) = two_modules("unsaved");
+        let orders = Url::from_file_path(dir.join("orders.glyph")).expect("uri");
+        let call = at(MAIN, "create(\"a1\")", 0);
+        assert_eq!(
+            ws.hover(&dir, &main, call).as_deref(),
+            Some("fn(string) -> Order"),
+            "the file on disk, before anyone edits it"
+        );
+
+        // The editor opens orders.glyph and retypes the signature, without
+        // saving. Disk still says `-> Order`.
+        let edited = ORDERS.replace("pub fn create(id: string) -> Order", "pub fn create(id: string, n: number) -> Order");
+        ws.set_buffer(&orders, edited.clone());
+        assert_eq!(
+            ws.hover(&dir, &main, call).as_deref(),
+            Some("fn(string, number) -> Order"),
+            "the unsaved buffer outranks the bytes on disk across the module edge"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dir.join("orders.glyph")).unwrap(),
+            ORDERS,
+            "nothing was written to disk"
+        );
+
+        // Closing the file without saving puts disk back in charge.
+        ws.close(&orders);
+        assert_eq!(
+            ws.hover(&dir, &main, call).as_deref(),
+            Some("fn(string) -> Order"),
+            "a closed buffer stops outranking disk"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The editor reports the error an unsaved cross-module edit introduces.
+    ///
+    /// The hover above is a reading; this is the compiler acting on the same
+    /// knowledge. Calling `create` with one argument after a buffer gave it
+    /// two is an error `glyph check` reports, and before the project view the
+    /// editor reported nothing at all.
+    #[test]
+    fn a_cross_module_error_is_reported_from_the_buffer() {
+        let (dir, main, mut ws) = two_modules("crosserror");
+        let orders = Url::from_file_path(dir.join("orders.glyph")).expect("uri");
+        assert!(codes(&mut ws, &dir, &main).is_empty(), "the project checks clean");
+
+        let edited = ORDERS.replace("pub fn create(id: string) -> Order", "pub fn create(id: string, n: number) -> Order");
+        ws.set_buffer(&orders, edited);
+        assert!(
+            !codes(&mut ws, &dir, &main).is_empty(),
+            "the call in main.glyph now passes one argument to a function that takes two"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A keystroke inside a function body re-analyses that file and nothing
+    /// else.
+    ///
+    /// The project view is the thing that could have made every keystroke cost
+    /// the whole project, so this is the measurement that holds it: after the
+    /// project is warm, typing in `main.glyph` must not re-execute a single
+    /// query keyed on `orders.glyph`. What makes it true is that a body edit
+    /// leaves `module_exports` content-equal, so salsa backdates it and the
+    /// registered entry list is never rewritten.
+    #[test]
+    fn a_keystroke_does_not_re_analyse_the_rest_of_the_project() {
+        let dir = tmp_dir("keystroke");
+        on_disk(&dir, "orders", ORDERS);
+        let main = on_disk(&dir, "main", MAIN);
+        let (log, sink) = event_log();
+        let mut ws = Workspace::with_event_sink(sink);
+        ws.set_buffer(&main, MAIN.to_string());
+
+        // Warm: the first request analyses main and reads orders' exports.
+        let _ = ws.diagnostics(&dir, &main);
+        let _ = ws.hover(&dir, &main, at(MAIN, "create(\"a1\")", 0));
+        let warm: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
+        assert!(
+            warm.iter().any(|q| q.contains("exported_fn")),
+            "the warm-up did read the other module's signature: {warm:?}"
+        );
+
+        // A keystroke inside `describe`'s body.
+        let typed = MAIN.replace("  o.id\n", "  o.id\n  // x\n");
+        ws.set_buffer(&main, typed);
+        let _ = ws.diagnostics(&dir, &main);
+        let after: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
+        assert!(!after.is_empty(), "the edited file is re-analysed");
+        let re_run_elsewhere: Vec<&String> = after
+            .iter()
+            .filter(|q| q.contains("exported_fn") || q.contains("exported_type") || q.contains("project_exports"))
+            .collect();
+        assert!(
+            re_run_elsewhere.is_empty(),
+            "a keystroke re-ran cross-module work: {re_run_elsewhere:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A file outside the project root is readable but is not a member of it.
+    ///
+    /// The MCP server learned this the expensive way: a non-member that
+    /// reaches the registered entry list answers another module's `import`,
+    /// and keeps doing it for the life of the database. The editor opens files
+    /// from anywhere, so the same rule has to hold here.
+    #[test]
+    fn a_file_outside_the_root_is_readable_but_not_a_member() {
+        let outer = tmp_dir("outsider");
+        let root = outer.join("proj");
+        std::fs::create_dir_all(&root).expect("create root");
+        on_disk(&root, "orders", ORDERS);
+        // A second `orders` module, outside the project.
+        let stray = on_disk(&outer, "orders", "module orders\n\npub fn create(id: string) -> string {\n  id\n}\n");
+        let main = on_disk(&root, "main", MAIN);
+
+        let mut ws = Workspace::new();
+        ws.set_buffer(&main, MAIN.to_string());
+        ws.set_buffer(&stray, std::fs::read_to_string(stray.to_file_path().unwrap()).unwrap());
+
+        assert_eq!(
+            ws.hover(&root, &main, at(MAIN, "create(\"a1\")", 0)).as_deref(),
+            Some("fn(string) -> Order"),
+            "the project's own `orders`, not the stray one the editor also has open"
+        );
+        // And the stray file still answers about itself.
+        assert!(
+            ws.view(&root, &stray).is_some(),
+            "a non-member is still readable"
+        );
+        let _ = std::fs::remove_dir_all(&outer);
+    }
+
+    /// A file added to the project after the session started is picked up by a
+    /// rescan, and only by one.
+    #[test]
+    fn a_new_file_on_disk_arrives_with_the_rescan() {
+        let dir = tmp_dir("rescan");
+        let main = on_disk(&dir, "main", MAIN);
+        let mut ws = Workspace::new();
+        ws.set_buffer(&main, MAIN.to_string());
+
+        // `orders` does not exist yet: the import resolves to nothing, so the
+        // call site has no signature to report.
+        let call = at(MAIN, "create(\"a1\")", 0);
+        assert_eq!(ws.hover(&dir, &main, call), None, "nothing declares `create` yet");
+
+        on_disk(&dir, "orders", ORDERS);
+        assert_eq!(
+            ws.hover(&dir, &main, call),
+            None,
+            "a position request does not walk the tree"
+        );
+
+        ws.rescan(&dir);
+        assert_eq!(
+            ws.hover(&dir, &main, call).as_deref(),
+            Some("fn(string) -> Order"),
+            "the rescan is what notices a file that did not exist before"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A recorder of the salsa queries that actually executed.
+    fn event_log() -> (Arc<Mutex<Vec<String>>>, glyph_db::EventSink) {
+        let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let recorder = Arc::clone(&log);
+        let sink: glyph_db::EventSink = Arc::new(move |event: &glyph_db::Event| {
+            if let glyph_db::EventKind::WillExecute { database_key } = &event.kind {
+                recorder.lock().unwrap().push(format!("{database_key:?}"));
+            }
+        });
+        (log, sink)
     }
 }

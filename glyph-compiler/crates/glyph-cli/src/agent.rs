@@ -467,49 +467,57 @@ fn describe(root: &Path, file: &Path, entity: &str) -> Result<Value, String> {
 /// of type '(fields: { hex: string; }) => Color' is not assignable to
 /// parameter of type 'Color'`. For a string-literal union it is the literals
 /// with their quotes stripped, so `read` and `write` rendered in backticks are
-/// identifiers and the values are `"read"` and `"write"`. One field carried
-/// both shapes and the sentence flattened them into one.
+/// identifiers and the values are `"read"` and `"write"`.
 ///
-/// The form comes from `glyph_symbol`'s answer for the declared type, which
-/// this diagnostic already fetched: `construct` for a variant, the literal for
-/// a member of a string-literal union. Those are the compiler's own spellings,
-/// so this cannot describe a union differently from the tool that describes
-/// unions. A declared type with no answer here (an inline union, a type the
-/// tool refused) gets no sentence, which is the same bar every other
-/// constraint is held to.
+/// Which of the two it is comes off `alternatives_kind`, which the checker set
+/// when it built the list. It used to be read off the shape of `glyph_symbol`'s
+/// answer for the declared type, which meant a union written inline got no
+/// sentence at all: nothing declares it, so no tool describes it, so the kind
+/// could not be recovered. A literal set needs nothing beyond the kind, since
+/// the value is the literal with its quotes put back, and it is now written
+/// whether or not the union has a name.
+///
+/// A tagged union still needs `glyph_symbol`, because the form a variant is
+/// written in is `construct` and only the tool holds it. That is the compiler's
+/// own spelling, so this cannot describe a union differently from the tool that
+/// describes unions, and a union with no answer (one the tool refused) gets no
+/// sentence, which is the same bar every other constraint is held to.
 fn accepted_values(d: &Diagnostic, symbols: &[Value]) -> Option<String> {
     let alternatives = d.alternatives.as_deref().filter(|a| !a.is_empty())?;
-    let expected = d.expected.as_deref()?.trim();
-    let entity = type_as_entity(expected, d.module.as_deref());
-    let answer = symbols.iter().find(|s| {
-        let named = |k: &str| s.get(k).and_then(|v| v.as_str());
-        Some(expected) == named("name") || (entity.is_some() && entity.as_deref() == named("entity"))
-    })?;
 
-    if let Some(literals) = answer.get("literals").and_then(|v| v.as_array()) {
-        let known: Vec<&str> = literals.iter().filter_map(|l| l.as_str()).collect();
-        if !alternatives.iter().all(|a| known.contains(&a.as_str())) {
-            return None;
+    match d.alternatives_kind.as_deref()? {
+        "literals" => {
+            let written: Vec<String> = alternatives.iter().map(|a| format!("\"{a}\"")).collect();
+            Some(format!(
+                "the values this position accepts are {}.",
+                list(&written)
+            ))
         }
-        let written: Vec<String> = alternatives.iter().map(|a| format!("\"{a}\"")).collect();
-        return Some(format!(
-            "the values this position accepts are {}.",
-            list(&written)
-        ));
+        "variants" => {
+            let expected = d.expected.as_deref()?.trim();
+            let entity = type_as_entity(expected, d.module.as_deref());
+            let answer = symbols.iter().find(|s| {
+                let named = |k: &str| s.get(k).and_then(|v| v.as_str());
+                Some(expected) == named("name")
+                    || (entity.is_some() && entity.as_deref() == named("entity"))
+            })?;
+            let variants = answer.get("variants").and_then(|v| v.as_array())?;
+            let mut written: Vec<String> = Vec::new();
+            for name in alternatives {
+                let variant = variants
+                    .iter()
+                    .find(|v| v.get("name").and_then(|n| n.as_str()) == Some(name.as_str()))?;
+                written.push(variant.get("construct").and_then(|c| c.as_str())?.to_string());
+            }
+            Some(format!(
+                "the values this position accepts are the cases of `{expected}`, each written as {}.",
+                list(&written)
+            ))
+        }
+        // `fields` and `exports` do not reach an E0204 or an E0211, and a kind
+        // this does not know about is not one to write a sentence from.
+        _ => None,
     }
-
-    let variants = answer.get("variants").and_then(|v| v.as_array())?;
-    let mut written: Vec<String> = Vec::new();
-    for name in alternatives {
-        let variant = variants
-            .iter()
-            .find(|v| v.get("name").and_then(|n| n.as_str()) == Some(name.as_str()))?;
-        written.push(variant.get("construct").and_then(|c| c.as_str())?.to_string());
-    }
-    Some(format!(
-        "the values this position accepts are the cases of `{expected}`, each written as {}.",
-        list(&written)
-    ))
 }
 
 /// `` `a` ``, `` `b` `` for a sentence that enumerates names.

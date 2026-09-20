@@ -32,7 +32,7 @@ use crate::ty::{
     RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
-use crate::{DiagnosticDecl, TypeError};
+use crate::{Accepted, AlternativesKind, DiagnosticDecl, TypeError};
 
 /// How the innermost enclosing callable's declared return type relates to
 /// the `?` operator's requirement (D + week-3 task 2). Pushed onto
@@ -3830,15 +3830,27 @@ impl Assigner<'_> {
     /// only "expected `OrderStatus`, found `string`" has to go read the
     /// declaration to write the repair; the checker resolved that declaration
     /// to decide the mismatch (G220).
-    fn accepted_values(&self, ty: &Ty) -> Option<Vec<String>> {
+    ///
+    /// The two shapes are told apart by the `kind` on the answer, decided here
+    /// where the checker knows which branch it took. On the wire they are both
+    /// lists of bare names, so a consumer that has to write one of them cannot
+    /// recover the difference from the names themselves.
+    fn accepted_values(&self, ty: &Ty) -> Option<Accepted> {
         if let Some(values) = self.string_literal_union_values(ty) {
-            return Some(values);
+            return Some(Accepted::new(AlternativesKind::Literals, values));
         }
         if let Ty::Union { variants } = ty {
-            return Some(variants.iter().map(|v| v.name.to_string()).collect());
+            return Some(Accepted::new(
+                AlternativesKind::Variants,
+                variants.iter().map(|v| v.name.to_string()).collect(),
+            ));
         }
-        self.required_variants(ty)
-            .map(|(_, vs)| vs.iter().map(|v| v.to_string()).collect())
+        self.required_variants(ty).map(|(_, vs)| {
+            Accepted::new(
+                AlternativesKind::Variants,
+                vs.iter().map(|v| v.to_string()).collect(),
+            )
+        })
     }
 
     /// The record a field diagnostic is about, as a declaration to address.
@@ -14305,7 +14317,21 @@ fn f(a: Answer) -> number {
                 | TypeError::ArgumentTypeMismatch { accepted, .. } => Some(accepted.clone()),
                 _ => None,
             })
-            .map(|a| a.unwrap_or_default())
+            .map(|a| a.map(|a| a.values).unwrap_or_default())
+            .collect()
+    }
+
+    /// The kind each of those lists carries, so the values and the kind are
+    /// pinned together rather than one at a time.
+    fn mismatch_accepted_kinds(errs: &[TypeError]) -> Vec<Option<AlternativesKind>> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { accepted, .. }
+                | TypeError::ArgumentTypeMismatch { accepted, .. } => {
+                    Some(accepted.as_ref().map(|a| a.kind))
+                }
+                _ => None,
+            })
             .collect()
     }
 
@@ -14353,6 +14379,13 @@ fn f(a: Answer) -> number {
         ));
         assert_eq!(mismatch_found(&errs), vec!["\"rw\""], "only the literal outside the set: {errs:?}");
         assert_eq!(mismatch_accepted(&errs)[0], vec!["read".to_string(), "write".to_string()]);
+        // And the set is a set of literals, which is what a consumer has to
+        // know to put the quotes back: `read` is not a value, `"read"` is.
+        assert_eq!(
+            mismatch_accepted_kinds(&errs),
+            vec![Some(AlternativesKind::Literals)],
+            "errs: {errs:?}"
+        );
     }
 
     /// An object literal is typed `Ty::Unknown`, so the record rule never sees

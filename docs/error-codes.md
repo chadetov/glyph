@@ -148,8 +148,8 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0207` | `owned` resource used after it was consumed (D25) |
 | `E0208` | Non-exhaustive `match` on an array (length not covered) |
 | `E0209` | Non-exhaustive `match` on a `bool` |
-| `E0210` | Field access on a record type that has no such field, including a record declared in a sibling module under any import spelling, where the message names that record's own type |
-| `E0211` | Call argument type does not match the parameter type |
+| `E0210` | A field a record type does not declare: a field access (`x.rowz`), or a JSX attribute naming a field of a component's props record. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type |
+| `E0211` | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name |
 | `E0212` | `mut` reassigns a `const` binding (D20) |
 | `E0213` | Wrong number of call arguments |
 | `E0214` | Component declared with multiple parameters (use a props record) |

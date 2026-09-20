@@ -8168,6 +8168,27 @@ left is the record shapes: `stdlib_modeled_type` holds one for nine stdlib
 types, and `fields` on those is still absent with a reason where it could be
 answered.
 
+**G242 and G243, two JSX holes the G240 work found beside itself.** A
+component reached through a lowercase namespace alias (`import ui` then
+`<ui.Button />`) is classified as an intrinsic by its first character and
+emits a string tag, so the component is never called and `tsc` accepts the
+result (G242): a silent miscompile, and the fix is to classify a dotted name
+by what its base resolves to rather than by its case. And
+`component Greeting(name: string)` is accepted while `<Greeting name="x" />`
+can never type-check, because the emitter passes one props object (G243): the
+declaration should be refused, since a component's parameter is its props
+record. Both are scheduled for the next release; G242 first, because a green
+build that renders nothing is the class this language exists to remove.
+
+**A missing required field is named, at a literal and at a JSX element.**
+G232 and G240 both stop short of the same message: a record literal missing a
+field the declared record requires is refused as ``expected `User`, found
+`record` ``, and a component element missing a required attribute is not
+refused at all, because no existing code names which field is missing and
+`tsc` does (`Property 'age' is missing`). The two want one decision: the
+mismatch diagnostic carries the missing field names, in the message and as a
+`missing` list in `--json`, and the JSX element uses it. Next release.
+
 **G240. A JSX attribute is typed by nothing.** With
 `component Button(props: { variant: Variant, label: string })` over a
 `type Variant = "primary" | "danger"`, all three of `variant="danger"`,

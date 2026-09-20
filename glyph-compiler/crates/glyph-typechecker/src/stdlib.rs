@@ -19,7 +19,7 @@ use glyph_ast::Ident;
 use glyph_resolver::Prelude;
 
 use crate::assign::stdlib_named;
-use crate::ty::{FnParam, ParamOwner, Primitive, SymbolRef, Ty};
+use crate::ty::{FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty};
 
 /// The signature the checker models for a stdlib module's exported function,
 /// or `None` for a name it does not model.
@@ -212,6 +212,30 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if let Some(sig) = record_fn_ty(prelude, module_key, field) {
         return Some(sig);
     }
+    if let Some(sig) = fs_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = io_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = math_fn_ty(module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = path_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = time_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = regex_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = process_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
+    if let Some(sig) = timers_fn_ty(module_key, field) {
+        return Some(sig);
+    }
 
     // (arity, ok, err, is_async)
     let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
@@ -270,76 +294,6 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             stdlib_named("http", "Response"),
             stdlib_named("http", "HttpError"),
             true,
-        ),
-        ("std/fs", "read_text") => (
-            1,
-            Ty::Prim(Primitive::String),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "write_text") => (
-            2,
-            Ty::Prim(Primitive::Void),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "append_text") => (
-            2,
-            Ty::Prim(Primitive::Void),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "make_dir") => (
-            1,
-            Ty::Prim(Primitive::Void),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "remove") => (
-            1,
-            Ty::Prim(Primitive::Void),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "read_dir") => (
-            1,
-            array_ty(prelude, Ty::Prim(Primitive::String))?,
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "stat") => (
-            1,
-            stdlib_named("fs", "FileInfo"),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "read_bytes") => (
-            1,
-            stdlib_named("bytes", "Bytes"),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "write_bytes") | ("std/fs", "append_bytes") => (
-            2,
-            Ty::Prim(Primitive::Void),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        // G105. The reader is a handle, and `next_line` answers
-        // `Result<Option<string>, FsError>` rather than `Option<string>`
-        // so a read error is a value the caller has to match on and not
-        // an end of input. `close_lines` returns nothing and has no row.
-        ("std/fs", "open_lines") => (
-            1,
-            stdlib_named("fs", "LineReader"),
-            stdlib_named("fs", "FsError"),
-            false,
-        ),
-        ("std/fs", "next_line") => (
-            1,
-            option_ty(prelude, Ty::Prim(Primitive::String))?,
-            stdlib_named("fs", "FsError"),
-            false,
         ),
         // Every `std/bytes` entry that can fail does so for the same reason:
         // the input is not the thing it claims to be. `from_array` over a
@@ -474,80 +428,379 @@ pub(crate) fn string_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         return None;
     }
     let string = || Ty::Prim(Primitive::String);
-    let (arity, ret): (usize, Ty) = match field {
-        "from" => (1, string()),
-        "join" => (2, string()),
-        "split" => (2, array_ty(prelude, string())?),
-        "len" => (1, Ty::Prim(Primitive::Number)),
-        "trim" | "trim_start" | "trim_end" | "lower" | "upper" => (1, string()),
-        "contains" | "starts_with" | "ends_with" => (2, Ty::Prim(Primitive::Bool)),
-        "repeat" => (2, string()),
-        "replace_all" => (3, string()),
-        // The three with a trailing optional argument. `index_of` is the one
+    let count = || Ty::Prim(Primitive::Number);
+    let (params, ret): (Vec<FnParam>, Ty) = match field {
+        // The one parameter in this module that is `unknown` because the
+        // function really does take anything: `string.from` is the renderer,
+        // and `runtime/std/string.ts` declares it `(value: unknown)`.
+        "from" => (vec![required(Ty::Unknown)], string()),
+        // The element type is deliberately left off. `string.join` is where
+        // an `array.map` result lands, and an un-annotated callable's return
+        // lowers to `void` rather than to what it returns
+        // (`lower_callable_signature`), so `array.map(xs, fn(i: Note) {
+        // i.message })` is an `Array<void>` and `Array<string>` here would
+        // reject a program that runs and that `tsc` accepts. Saying `Array`
+        // and nothing more still rejects `string.join("abc", ",")`, which is
+        // the hole this row was missing. It takes a `string` element on the
+        // release that stops inferring an omitted return as `void`.
+        "join" => (
+            vec![required(array_ty(prelude, Ty::Unknown)?), required(string())],
+            string(),
+        ),
+        "split" => (
+            vec![required(string()), required(string())],
+            array_ty(prelude, string())?,
+        ),
+        "len" => (vec![required(string())], count()),
+        "trim" | "trim_start" | "trim_end" | "lower" | "upper" => {
+            (vec![required(string())], string())
+        }
+        "contains" | "starts_with" | "ends_with" => (
+            vec![required(string()), required(string())],
+            Ty::Prim(Primitive::Bool),
+        ),
+        "repeat" => (vec![required(string()), required(count())], string()),
+        "replace_all" => (
+            vec![required(string()), required(string()), required(string())],
+            string(),
+        ),
+        // The four with a trailing optional argument. `index_of` is the one
         // G39 was really about: unmodeled, its `Option<number>` was
         // `Unknown`, so a `match` over it skipped D9 exhaustiveness and a
         // missing `None` arm threw at run time on a clean build.
-        "index_of" => {
-            return Some(Ty::Fn {
-                params: vec![
-                    required(Ty::Unknown),
-                    required(Ty::Unknown),
-                    optional(Ty::Unknown),
-                ],
-                return_ty: Arc::new(
-                    option_ty(prelude, Ty::Prim(Primitive::Number))?,
-                ),
-                is_async: false,
-            })
-        }
-        "slice" => {
-            return Some(Ty::Fn {
-                params: vec![
-                    required(Ty::Unknown),
-                    required(Ty::Unknown),
-                    optional(Ty::Unknown),
-                ],
-                return_ty: Arc::new(string()),
-                is_async: false,
-            })
-        }
-        "pad_start" | "pad_end" => {
-            return Some(Ty::Fn {
-                params: vec![
-                    required(Ty::Unknown),
-                    required(Ty::Unknown),
-                    optional(Ty::Unknown),
-                ],
-                return_ty: Arc::new(string()),
-                is_async: false,
-            })
-        }
+        "index_of" => (
+            vec![required(string()), required(string()), optional(count())],
+            option_ty(prelude, count())?,
+        ),
+        "slice" => (
+            vec![required(string()), required(count()), optional(count())],
+            string(),
+        ),
+        // The pad is a string and the width is a number, which is the pair a
+        // caller gets backwards: `string.pad_start(s, "0", 4)` was two
+        // `unknown`s and is now the error it reads as.
+        "pad_start" | "pad_end" => (
+            vec![required(string()), required(count()), optional(string())],
+            string(),
+        ),
         _ => return None,
     };
     Some(Ty::Fn {
-        params: unknown_params(arity),
+        params,
         return_ty: Arc::new(ret),
         is_async: false,
     })
 }
 
-/// The signature of a `std/array` function whose arity is fixed.
+/// The signature of a `std/time` export.
+///
+/// Instants are epoch milliseconds, which is a `number`, so most of this
+/// module is number in, number out and the one thing worth saying is which
+/// arguments are instants and which are counts. `parse_iso` answers an
+/// `Option<number>`, so a string that is not a timestamp is a `None` the
+/// caller has to match rather than a `NaN` that propagates.
+///
+/// `Duration` is not a function: it is the constant whose `ms` builds the
+/// one `sleep` takes, so it answers a record with that single method.
+///
+/// `debounce` is the one export with no row. It is variadic over its wrapped
+/// function's arguments (`A extends ReadonlyArray<unknown>` in
+/// `runtime/std/time.ts`), and Glyph has no variadic type parameter to write
+/// that with. Naming a fixed arity here would reject the calls that do not
+/// have it, so it stays unmodeled and `tsc` checks it.
+pub(crate) fn time_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/time" {
+        return None;
+    }
+    let n = || Ty::Prim(Primitive::Number);
+    let duration = || stdlib_named("time", "Duration");
+    match field {
+        "Duration" => Some(Ty::Record {
+            fields: vec![RecordField {
+                name: Ident::from("ms"),
+                ty: Ty::Fn {
+                    params: vec![required(n())],
+                    return_ty: Arc::new(duration()),
+                    is_async: false,
+                },
+                optional: false,
+            }],
+        }),
+        "now" => Some(Ty::Fn {
+            params: Vec::new(),
+            return_ty: Arc::new(n()),
+            is_async: false,
+        }),
+        // Async, so the row carries the resolved type and `is_async`, the way
+        // the `std/http` rows do.
+        "sleep" => Some(Ty::Fn {
+            params: vec![required(duration())],
+            return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+            is_async: true,
+        }),
+        "format_iso" => Some(Ty::Fn {
+            params: vec![required(n())],
+            return_ty: Arc::new(Ty::Prim(Primitive::String)),
+            is_async: false,
+        }),
+        "parse_iso" => Some(Ty::Fn {
+            params: vec![required(Ty::Prim(Primitive::String))],
+            return_ty: Arc::new(option_ty(prelude, n())?),
+            is_async: false,
+        }),
+        "add_days" | "add_hours" => Some(Ty::Fn {
+            params: vec![required(n()), required(n())],
+            return_ty: Arc::new(n()),
+            is_async: false,
+        }),
+        "year" | "month" | "day" => Some(Ty::Fn {
+            params: vec![required(n())],
+            return_ty: Arc::new(n()),
+            is_async: false,
+        }),
+        _ => None,
+    }
+}
+
+/// The signature of a `std/regex` function.
+///
+/// Every one of them is `(pattern, text)`, in that order, and both are
+/// strings. That order is the whole reason these are worth a row: the
+/// receiver-first order the rest of the standard library uses would put the
+/// text first, the arguments are the same type, and swapping them silently
+/// searches the pattern for the text. A type cannot catch that. What it does
+/// catch is a non-string in either slot, and the returns, which differ in a
+/// way a caller has to know: `find_first` answers `""` and not an `Option`,
+/// while `captures_all` answers an array of arrays.
+pub(crate) fn regex_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/regex" {
+        return None;
+    }
+    let string = || Ty::Prim(Primitive::String);
+    let (params, ret): (Vec<FnParam>, Ty) = match field {
+        "matches" => (
+            vec![required(string()), required(string())],
+            Ty::Prim(Primitive::Bool),
+        ),
+        "find_first" => (vec![required(string()), required(string())], string()),
+        "find_all" | "captures" | "split" => (
+            vec![required(string()), required(string())],
+            array_ty(prelude, string())?,
+        ),
+        "captures_all" => (
+            vec![required(string()), required(string())],
+            array_ty(prelude, array_ty(prelude, string())?)?,
+        ),
+        "replace_all" => (
+            vec![required(string()), required(string()), required(string())],
+            string(),
+        ),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params,
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
+}
+
+/// The signature of a `std/process` export.
+///
+/// `env` is the one that changes what a program has to write: an environment
+/// variable that is not set is a `None`, so reading one is a match and not a
+/// string that turns out to be undefined three frames later.
+pub(crate) fn process_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/process" {
+        return None;
+    }
+    let n = || Ty::Prim(Primitive::Number);
+    let string = || Ty::Prim(Primitive::String);
+    let (params, ret): (Vec<FnParam>, Ty) = match field {
+        "args" => (Vec::new(), array_ty(prelude, string())?),
+        // The parameter is a number and the return is `never`, which Glyph
+        // has no way to write. `void` would be the wrong answer, not a
+        // rounder one: it would make a `match` arm that exits disagree with
+        // the arm beside it that produces a value, and that program is
+        // correct. The return stays unmodeled until there is a bottom type.
+        "exit" => (vec![required(n())], Ty::Unknown),
+        "set_exit_code" => (vec![required(n())], Ty::Prim(Primitive::Void)),
+        "exit_code" => (Vec::new(), n()),
+        "env" => (
+            vec![required(string())],
+            option_ty(prelude, string())?,
+        ),
+        "cwd" => (Vec::new(), string()),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params,
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
+}
+
+/// The signature of a `std/timers` export.
+///
+/// The handle `after` and `every` hand back is opaque: a program only passes
+/// it to `cancel` or `unref`, so it is a named type with no fields rather
+/// than anything a caller reads. The delay is milliseconds, a plain number,
+/// which is what tells `timers.sleep` apart from `time.sleep` and its
+/// `Duration`.
+pub(crate) fn timers_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/timers" {
+        return None;
+    }
+    let n = || Ty::Prim(Primitive::Number);
+    let timer = || stdlib_named("timers", "Timer");
+    let handler = || Ty::Fn {
+        params: Vec::new(),
+        return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+        is_async: false,
+    };
+    match field {
+        "after" | "every" => Some(Ty::Fn {
+            params: vec![required(n()), required(handler())],
+            return_ty: Arc::new(timer()),
+            is_async: false,
+        }),
+        "cancel" => Some(Ty::Fn {
+            params: vec![required(timer())],
+            return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+            is_async: false,
+        }),
+        "unref" => Some(Ty::Fn {
+            params: vec![required(timer())],
+            return_ty: Arc::new(timer()),
+            is_async: false,
+        }),
+        "sleep" => Some(Ty::Fn {
+            params: vec![required(n())],
+            return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+            is_async: true,
+        }),
+        _ => None,
+    }
+}
+
+/// The signature of a `std/io` function: the process's own streams.
+///
+/// The whole module was unmodeled, so `io.println(42)` was silent under
+/// `glyph check --no-tsc` and `io.read_line()` was `Unknown` rather than the
+/// `Option<string>` it is. That second one is the one that matters: an
+/// `Unknown` scrutinee skips D9 exhaustiveness, so a `match` over the end of
+/// input with no `None` arm built clean and threw when stdin closed.
+///
+/// `inspect` and `render` take `unknown` because they render anything, the
+/// same way `string.from` does.
+pub(crate) fn io_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/io" {
+        return None;
+    }
+    let string = || Ty::Prim(Primitive::String);
+    let (params, ret): (Vec<FnParam>, Ty) = match field {
+        "println" | "eprintln" | "print" | "eprint" => {
+            (vec![required(string())], Ty::Prim(Primitive::Void))
+        }
+        "is_terminal" | "stdin_is_terminal" => (Vec::new(), Ty::Prim(Primitive::Bool)),
+        "read_line" => (Vec::new(), option_ty(prelude, string())?),
+        "read_to_string" => (Vec::new(), string()),
+        "inspect" => (vec![required(Ty::Unknown)], Ty::Prim(Primitive::Void)),
+        "render" => (vec![required(Ty::Unknown)], string()),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params,
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
+}
+
+/// The signature of a `std/math` export.
+///
+/// Two of them are not functions. `math.PI` and `math.E` are `number`
+/// constants, and this table answers a type for any member of a `std/`
+/// namespace rather than only for a call, so they get one: a `math.PI` read
+/// into an `int` slot is now judged here instead of by `tsc`.
+pub(crate) fn math_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/math" {
+        return None;
+    }
+    let n = || Ty::Prim(Primitive::Number);
+    let arity = match field {
+        "PI" | "E" => return Some(n()),
+        "abs" | "floor" | "ceil" | "round" | "trunc" | "sqrt" | "sign" => 1,
+        "min" | "max" | "pow" | "imul" => 2,
+        "clamp" => 3,
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params: (0..arity).map(|_| required(n())).collect(),
+        return_ty: Arc::new(n()),
+        is_async: false,
+    })
+}
+
+/// The signature of a `std/path` function. Every one of them is string in,
+/// string out, except `join`, which takes the segments as an array, and
+/// `is_absolute`, which answers a `bool`.
+pub(crate) fn path_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/path" {
+        return None;
+    }
+    let string = || Ty::Prim(Primitive::String);
+    let (params, ret): (Vec<FnParam>, Ty) = match field {
+        // The one that is not a varargs call: the segments arrive as one
+        // array, so `path.join(dir, name)` is an arity error and not a
+        // silently dropped second argument. The element type is left off for
+        // the reason `string.join`'s is.
+        "join" => (vec![required(array_ty(prelude, Ty::Unknown)?)], string()),
+        "dirname" | "basename" | "extname" | "normalize" => {
+            (vec![required(string())], string())
+        }
+        "is_absolute" => (vec![required(string())], Ty::Prim(Primitive::Bool)),
+        "relative" => (vec![required(string()), required(string())], string()),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params,
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
+}
+
+/// The signature of every `std/array` function, with a type in every position.
 ///
 /// The element type travels as a `Ty::Param("T")`: `collect_type_param_bindings`
 /// binds it from the argument (`Array<string>` against `Array<T>` gives `T =
 /// string`) and `substitute_type_params` rewrites the return, so
 /// `array.filter(names, is_short)` is an `Array<string>` with no new
-/// machinery. `T` is placed on a parameter only where the *return* needs it;
-/// every other parameter stays `Unknown`, so this adds no argument-type
-/// diagnostic beyond "the first argument of an array function is an array".
-/// An `Unknown` argument leaves `T` unbound, which still leaves the return an
-/// `Array` — enough for the `for` lowering.
+/// machinery. An `Unknown` argument leaves `T` unbound, which still leaves the
+/// return an `Array`, enough for the `for` lowering.
+///
+/// `T` used to sit only on the parameters the *return* needed, so `len`,
+/// `contains` and `index_of` did not even know their receiver was an array:
+/// `array.len("not an array")` passed `glyph check --no-tsc` while `tsc`
+/// rejected it. Every receiver is an `Array<T>` now, and `concat`'s second
+/// argument is an array of its own.
+///
+/// What is still `unknown` is the *searched-for* or *appended* value in
+/// `push`, `contains` and `index_of`, and it is not because the TypeScript is
+/// vague: it says `T` in all three. `collect_type_param_bindings` takes the
+/// first candidate it sees for a name and never widens it, so a second `T`
+/// slot pins the parameter to whatever the first argument happened to be.
+/// `array.contains(["a", "b"], s)` would then be an error against `"a" | "b"`
+/// for a plain `string`, which `tsc` accepts and which no program should have
+/// to work around. The same thing happens to a user-declared `fn pair<T>(a:
+/// T, b: T)` called as `pair("lit", s)`, so this is the unifier's rule and not
+/// a stdlib question; these three take a second `T` on the release that joins
+/// candidates instead of taking the first.
 ///
 /// `map`, `flat_map`, and `zip` carry a *second* parameter `U`, which comes
 /// from the callback's return rather than from any argument's own type.
 /// `collect_type_param_bindings` walks into `Ty::Fn` on both sides, so
 /// `array.map(names, dup)` binds `T = string` from parameter 0 and `U =
-/// string` from the callback's return.
+/// string` from the callback's return. `zip` carries a third, `R`: its two
+/// arrays have unrelated element types and its callback's return is neither.
 ///
 /// Writing the callback as a *synchronous* `fn(T) -> U` is the point of
 /// modeling them, not a limitation of it. D40 holds `fn` and `async fn`
@@ -577,7 +830,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         name: None,
         owned: false,
         ty: Ty::Unknown,
-            optional: false,
+        optional: false,
     };
     let of = |ty: Ty| FnParam {
         name: None,
@@ -625,7 +878,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
     };
     let ys = array_ty(prelude, out())?;
     let (params, ret): (Vec<FnParam>, Ty) = match field {
-        "len" => (unknown_params(1), Ty::Prim(Primitive::Number)),
+        "len" => (vec![of(xs)], Ty::Prim(Primitive::Number)),
         // The three the comment above has described as modeled since before
         // 0.1.72 while none of them was. An `async fn` callback is now
         // rejected at the argument instead of producing an `Array<Promise<U>>`
@@ -636,13 +889,35 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
             ys,
         ),
         "any" => (vec![of(xs.clone()), of(pred())], Ty::Prim(Primitive::Bool)),
-        "contains" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
+        // The searched-for value stays `unknown` in both, and the reason is
+        // the note above `array_fn_ty`: writing it as the `T` the TypeScript
+        // declares turns `array.contains(["a", "b"], s)` into an error
+        // against `"a" | "b"`, which `tsc` accepts. What these gain is the
+        // receiver: `array.contains("abc", c)` was two `unknown`s and is now
+        // an `Array` against a `string`.
+        "contains" => (vec![of(xs), unknown()], Ty::Prim(Primitive::Bool)),
         "index_of" => (
-            unknown_params(2),
+            vec![of(xs), unknown()],
             option_ty(prelude, Ty::Prim(Primitive::Number))?,
         ),
         "reverse" => (vec![of(xs.clone())], xs),
-        "push" | "concat" => (vec![of(xs.clone()), unknown()], xs),
+        // `push` appends one element, so its second parameter is the element
+        // type and stays `unknown` for the same reason `contains`'s does.
+        "push" => (vec![of(xs.clone()), unknown()], xs),
+        // `concat` appends a whole array, which is a thing the table can say
+        // without a second `T`: a second *array*, of its own element type.
+        // `array.concat(xs, y)` over a non-array is refused, and the pair is
+        // never compared to each other, so nothing `tsc` accepts is lost.
+        "concat" => {
+            let other = || Ty::Param {
+                name: Ident::from("U"),
+                owner: ParamOwner::Unresolved,
+            };
+            (
+                vec![of(xs.clone()), of(array_ty(prelude, other())?)],
+                xs,
+            )
+        }
         "filter" => (vec![of(xs.clone()), of(pred())], xs),
         "sort" => (
             vec![
@@ -774,6 +1049,33 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
             ],
             option_ty(prelude, elem())?,
         ),
+        // `zip` walks two arrays of unrelated element types and combines them
+        // pairwise, so it carries three parameters where `map` carries two:
+        // `T` and `U` come from the two arrays and `R` from the callback's
+        // return. It stops at the shorter of the two, which is why there is no
+        // failure to model. Synchronous callback, for the reason `map`'s is.
+        "zip" => {
+            let second = || Ty::Param {
+                name: Ident::from("U"),
+                owner: ParamOwner::Unresolved,
+            };
+            let combined = || Ty::Param {
+                name: Ident::from("R"),
+                owner: ParamOwner::Unresolved,
+            };
+            (
+                vec![
+                    of(xs),
+                    of(array_ty(prelude, second())?),
+                    of(Ty::Fn {
+                        params: vec![of(elem()), of(second())],
+                        return_ty: Arc::new(combined()),
+                        is_async: false,
+                    }),
+                ],
+                array_ty(prelude, combined())?,
+            )
+        }
         _ => return None,
     };
     Some(Ty::Fn {
@@ -781,6 +1083,85 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         return_ty: Arc::new(ret),
         is_async: false,
     })
+}
+
+/// The signature of a `std/fs` function, with a type in every position.
+///
+/// The first module modeled all the way down rather than to its arity and its
+/// return. What the parameter types buy is the case this file existed without
+/// answering: `fs.read_text(42)` type-checked, because the row said one
+/// argument and said nothing about what it was, and only `tsc` on the emitted
+/// TypeScript rejected it. Under `glyph check --no-tsc` it was silent, and the
+/// `--no-tsc` answer is the one an editor and an agent read.
+///
+/// Every path is a `string`, every reader is the opaque `fs.LineReader` that
+/// `open_lines` hands back, and `write_bytes` takes the `bytes.Bytes` that
+/// `std/bytes` builds. The types are read off `runtime/std/fs.ts`, which is
+/// what `tsc` reads too, so a call this refuses is a call `tsc` refuses and
+/// the two cannot disagree about which programs are legal.
+///
+/// `exists`, `is_dir` and `close_lines` are here for the first time. None of
+/// them returns a `Result`, which is why the arity-and-return table had no
+/// room for them: it could only describe a function whose return was
+/// `Result<T, E>`. `exists` and `is_dir` answer `bool` and `close_lines`
+/// answers nothing.
+pub(crate) fn fs_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/fs" {
+        return None;
+    }
+    let path = || Ty::Prim(Primitive::String);
+    let text = || Ty::Prim(Primitive::String);
+    let reader = || stdlib_named("fs", "LineReader");
+    let raw = || stdlib_named("bytes", "Bytes");
+    let nothing = || Ty::Prim(Primitive::Void);
+    // Every failure in this module is an `fs.FsError`, whose `kind` is the
+    // `fs.ErrorKind` union a caller matches on.
+    let fallible = |params: Vec<FnParam>, ok: Ty| -> Option<Ty> {
+        Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(result_ty(prelude, ok, stdlib_named("fs", "FsError"))?),
+            is_async: false,
+        })
+    };
+    let plain = |params: Vec<FnParam>, ret: Ty| {
+        Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(ret),
+            is_async: false,
+        })
+    };
+    match field {
+        "read_text" => fallible(vec![required(path())], text()),
+        "write_text" | "append_text" => {
+            fallible(vec![required(path()), required(text())], nothing())
+        }
+        "read_bytes" => fallible(vec![required(path())], raw()),
+        "write_bytes" | "append_bytes" => {
+            fallible(vec![required(path()), required(raw())], nothing())
+        }
+        "make_dir" | "remove" => fallible(vec![required(path())], nothing()),
+        "read_dir" => fallible(
+            vec![required(path())],
+            array_ty(prelude, Ty::Prim(Primitive::String))?,
+        ),
+        "stat" => fallible(vec![required(path())], stdlib_named("fs", "FileInfo")),
+        // G105. The reader is a handle, and `next_line` answers
+        // `Result<Option<string>, FsError>` rather than `Option<string>`, so a
+        // read error is a value the caller has to match on and not an end of
+        // input.
+        "open_lines" => fallible(vec![required(path())], reader()),
+        "next_line" => fallible(
+            vec![required(reader())],
+            option_ty(prelude, Ty::Prim(Primitive::String))?,
+        ),
+        "close_lines" => plain(vec![required(reader())], nothing()),
+        "exists" | "is_dir" => plain(vec![required(path())], Ty::Prim(Primitive::Bool)),
+        // `ErrorKind` is the one export left. It is not a function: it is the
+        // constant carrying the five payload-free variants, and a program
+        // reaches them through `fs.ErrorKind.NotFound` in a match arm, which
+        // the pattern path resolves without asking this table for a type.
+        _ => None,
+    }
 }
 
 /// The signature of a `std/record` function. All six are fixed-arity.
@@ -826,22 +1207,28 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         ty,
         optional: true,
     };
+    // Every key in this module is a `string`: `Record<string, V>` is the only
+    // map shape Glyph has. It was `unknown` in all six, so `record.get(m, 1)`
+    // was silent under `glyph check --no-tsc`.
+    let key = || required(Ty::Prim(Primitive::String));
     let (params, ret): (Vec<FnParam>, Ty) = match field {
-        "get" => (
-            vec![of(rec), unknown()],
-            option_ty(prelude, value())?,
+        "get" => (vec![of(rec), key()], option_ty(prelude, value())?),
+        "has" => (
+            vec![of(rec), key()],
+            Ty::Prim(Primitive::Bool),
         ),
-        "has" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
         "keys" => (
-            unknown_params(1),
+            vec![of(rec)],
             array_ty(prelude, Ty::Prim(Primitive::String))?,
         ),
-        "values" => (
-            vec![of(rec)],
-            array_ty(prelude, value())?,
-        ),
-        "set" => (vec![of(rec.clone()), unknown(), unknown()], rec),
-        "remove" => (vec![of(rec.clone()), unknown()], rec),
+        "values" => (vec![of(rec)], array_ty(prelude, value())?),
+        // The stored value stays `unknown`. `runtime/std/record.ts` declares
+        // it `V`, the same `V` as the map's, and a second slot for a name the
+        // unifier has already bound pins it to the first argument's element
+        // type: see the note above `array_fn_ty` for what that does to a
+        // literal. It takes a `V` on the release that joins candidates.
+        "set" => (vec![of(rec.clone()), key(), unknown()], rec),
+        "remove" => (vec![of(rec.clone()), key()], rec),
         _ => return None,
     };
     Some(Ty::Fn {
@@ -917,9 +1304,6 @@ pub(crate) fn record_ty(prelude: &Prelude, key: Ty, value: Ty) -> Option<Ty> {
     })
 }
 
-/// `n` parameters of unmodeled type — the arity-only shape most of the stdlib
-/// table uses, so a modeled return never drags a new argument-type diagnostic
-/// in with it.
 /// A required parameter of the given type.
 fn required(ty: Ty) -> FnParam {
     FnParam { name: None, owned: false, ty, optional: false }
@@ -929,15 +1313,4 @@ fn required(ty: Ty) -> FnParam {
 /// Glyph `fn` cannot declare one.
 fn optional(ty: Ty) -> FnParam {
     FnParam { name: None, owned: false, ty, optional: true }
-}
-
-fn unknown_params(n: usize) -> Vec<FnParam> {
-    (0..n)
-        .map(|_| FnParam {
-            name: None,
-            owned: false,
-            ty: Ty::Unknown,
-                optional: false,
-        })
-        .collect()
 }

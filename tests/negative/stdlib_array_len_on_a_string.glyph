@@ -1,0 +1,11 @@
+module neg
+
+// `array.len` takes an array. Its receiver was `unknown`, so reaching for it
+// on a string passed the Glyph stages and was rejected only by `tsc`, whose
+// message names `readonly unknown[]` rather than the array the program meant.
+import std/array
+import std/string
+
+pub fn main() -> void {
+  print(string.from(array.len("not an array")))
+}

@@ -1,0 +1,14 @@
+module neg
+
+// `fs.read_text` takes a path, and a path is a `string`. The row for it used to
+// model the arity and the `Result` return and nothing else, so this call was
+// silent under `glyph check --no-tsc` and only `tsc` on the emitted TypeScript
+// rejected it. The `--no-tsc` answer is the one an editor and an agent read.
+import std/fs
+
+pub fn main() -> void {
+  match fs.read_text(42) {
+    Ok(text) => print(text),
+    Err(e) => print(e.message),
+  }
+}

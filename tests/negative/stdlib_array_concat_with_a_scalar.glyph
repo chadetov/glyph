@@ -1,0 +1,12 @@
+module neg
+
+// `array.concat` appends an array, not an element; `array.push` is the one
+// that appends an element. The second parameter was `unknown` in both, so each
+// of them accepted the other one's argument.
+import std/array
+import std/string
+
+pub fn main() -> void {
+  let joined = array.concat(["a", "b"], "c")
+  print(string.from(array.len(joined)))
+}

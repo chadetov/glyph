@@ -1,0 +1,14 @@
+module neg
+
+// Every key in `std/record` is a `string`: `Record<string, V>` is the only map
+// shape Glyph has. The key parameter was `unknown`, so indexing one with a
+// number was a Glyph-clean program that `tsc` refused.
+import std/record
+
+pub fn main() -> void {
+  let counts: Record<string, number> = { a: 1 }
+  match record.get(counts, 1) {
+    Some(n) => print("found"),
+    None => print("missing"),
+  }
+}

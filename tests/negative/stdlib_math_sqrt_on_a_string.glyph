@@ -1,0 +1,11 @@
+module neg
+
+// `std/math` had no rows at all, so every one of its fourteen exports was
+// `unknown` in and `unknown` out: `math.sqrt("9")` built clean and answered
+// `NaN` at run time.
+import std/math
+import std/string
+
+pub fn main() -> void {
+  print(string.from(math.sqrt("9")))
+}

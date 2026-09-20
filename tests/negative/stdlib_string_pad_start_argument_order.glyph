@@ -1,0 +1,10 @@
+module neg
+
+// `string.pad_start(s, width, pad)`: the width is a number and the pad is a
+// string. Written the other way round it is the same arity, and while every
+// parameter was `unknown` it type-checked and padded to the width `"0"`.
+import std/string
+
+pub fn main() -> void {
+  print(string.pad_start("7", "0", 4))
+}

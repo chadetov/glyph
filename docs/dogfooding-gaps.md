@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-241 entries, 218 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-5 are open. G144, the D28 boundary cast that never reached the returns a
+243 entries, 219 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+6 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10067,8 +10067,16 @@ and is the owner's to confirm.
   `tests/negative/imported_union_named_like_a_prelude_type/` pairs the wrong
   program with `E0200`.*
 
-- **G240. JSX attributes are typed by nothing, so a wrong one draws no
-  diagnostic.** With `type Variant = "primary" | "danger"` and a
+- **G240. [FIXED] JSX attributes are typed by nothing, so a wrong one draws no
+  diagnostic.** Fixed in 0.1.124: a component element's written attributes are
+  checked against its props record through the call-argument relation, so a
+  wrong value is E0211 (with `alternatives` for a string-literal union) and an
+  undeclared attribute is E0210, which `glyph fix` renames; the same across an
+  import. Children ride as `createElement` arguments and are not a prop; an
+  element with a spread is not asked for a missing attribute; a missing
+  required attribute is still caught only by `tsc` (see the rolling lane, where
+  it is decided together with the G232 missing-field message). Original entry
+  follows. With `type Variant = "primary" | "danger"` and a
   `component Button(props: { variant: Variant, label: string })`, all three of
   `<Button variant="danger" label="go" />`, `<Button variant="nope" label="go"
   />` and `<Button variant={42} label="go" />` pass `glyph check --no-tsc` with
@@ -10110,3 +10118,28 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.123: fuzz run 35200965892's `format_idempotent` input (2,796 bytes, a 75-minus run) is `check --no-tsc` exit 1 with only `E0103` resolve errors as written, so it parses; `glyph fmt` on it reports `1 formatted`; `glyph check` on the result is `[E0011] this unary operand nests deeper than the parser's limit of 64 levels` at 65:69, and a second `glyph fmt` reports `1 failed`. The `parse` and `lex` targets of the same run pass.*
 
+- **G242. A component reached through a lowercase namespace alias emits as a
+  string tag.** `JsxKind::classify` keys an element's kind on its first
+  character, so with `import ui` the element `<ui.Button variant="nope" />`
+  classifies as an intrinsic and emits `React.createElement("ui.Button", {
+  ... })`: the component is never called, React renders an unknown element,
+  and `tsc --strict` accepts the emitted TypeScript because a string tag with
+  arbitrary props is legal to it. G240's attribute check does not reach it
+  either, since the element is not resolved as a component. `<Ctx.Provider>`
+  (uppercase base) is classified and emitted correctly. A dotted name should
+  be resolved through its base whatever its case, and an alias that resolves
+  to a module should make the element a component element.
+
+  *Reproduced against 0.1.123, the version the release-branch binary reports before the bump, on a `glyph init --template web` project with React 18 types installed: `ui.glyph` declares `pub component Button(props: { variant: Variant, label: string })`, `main.glyph` writes `import ui` and `<ui.Button variant="nope" label="go" />`; `glyph check --no-test src` prints `tsc --strict passed`, exit 0, and `dist/main.ts` holds `createElement("ui.Button"`. Found by the 0.1.124 G240 work.*
+
+- **G243. A component whose one parameter is not a record cannot be
+  rendered, and nothing says so.** `component Greeting(name: string)` is
+  accepted, and `<Greeting name="x" />` emits `React.createElement(Greeting, {
+  name: "x" })`, which `tsc --strict` refuses (`Type '{ name: string; }' is
+  not assignable to type 'string'`, surfaced as TS2769 on the call). Glyph draws nothing on the declaration or
+  on the element, so the spelling is usable in the emit unit tests and unusable
+  in a program. Either the declaration is refused (a component's parameter is
+  its props record) or the element is; the first is the honest one, since the
+  emitter can only ever pass one object.
+
+  *Reproduced against 0.1.123, the version the release-branch binary reports before the bump, same project: `component Greeting(name: string) { return <p>{name}</p> }` plus `<Greeting name="x" />` is `glyph check --no-tsc --no-test src` clean, exit 0, and `glyph check --no-test src` is `[TS2769] Error: tsc: No overload matches this call.`, exit 1. Found by the 0.1.124 G240 work.*

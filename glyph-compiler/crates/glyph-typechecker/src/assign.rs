@@ -6075,7 +6075,7 @@ impl Assigner<'_> {
     /// `string_literal_union_verdict`:
     ///
     /// - `unknown` as the declared type accepts any value;
-    /// - `never` as the value's type fits any declaration (D43);
+    /// - `never` as the value's type fits any declaration (D47);
     /// - two primitives, when they are the same primitive;
     /// - two declared names, when both resolve to the same declaration (the
     ///   nominal rule, D46's second names followed first);
@@ -6118,7 +6118,7 @@ impl Assigner<'_> {
         }
         if matches!(found, Ty::Never) {
             return Some(
-                "`never` is the bottom type (D43): no value has it, so an expression of it \
+                "`never` is the bottom type (D47): no value has it, so an expression of it \
                  stands wherever a value is wanted",
             );
         }
@@ -6844,7 +6844,7 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(expected, Ty::UnknownTop) {
         return false;
     }
-    // `never` is the bottom type (D43): no value has it, so an expression of it
+    // `never` is the bottom type (D47): no value has it, so an expression of it
     // fits wherever a value is wanted, and nothing but itself fits into it.
     // Without the first arm a call to a non-returning function could not sit in
     // a `match` arm beside arms that produce a value, which is the whole point
@@ -6969,7 +6969,7 @@ fn prelude_type_construction(kind: PreludeKind) -> Option<&'static str> {
         PreludeKind::BigInt => "a value is a `bigint`, with the type on the annotation",
         PreludeKind::Bool => "a value is `true` or `false`",
         PreludeKind::Void => "`void` is the absence of a value; there is nothing to write",
-        PreludeKind::Never => "`never` has no values (D43); nothing can be written here",
+        PreludeKind::Never => "`never` has no values (D47); nothing can be written here",
         PreludeKind::UnknownTop => {
             "a value of any type is an `unknown`, with the type on the annotation"
         }

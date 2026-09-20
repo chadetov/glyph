@@ -38,7 +38,7 @@ pub enum Ty {
     /// compiler's "haven't figured it out yet" placeholder).
     UnknownTop,
 
-    /// `never` — the bottom type (D43). No value has it, so it is assignable to
+    /// `never` — the bottom type (D47). No value has it, so it is assignable to
     /// everything and nothing but itself is assignable to it. A function
     /// declared to return it does not return: the `return` a caller would
     /// otherwise need after calling it is unreachable, and a `match` arm that

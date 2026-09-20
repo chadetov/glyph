@@ -179,7 +179,7 @@ pub enum PreludeKind {
     Void,
     /// TypeScript's `unknown` keyword. A top type.
     UnknownTop,
-    /// `never` — the bottom type (D43). Nothing is a value of it, so a
+    /// `never` — the bottom type (D47). Nothing is a value of it, so a
     /// function returning it does not return.
     Never,
 

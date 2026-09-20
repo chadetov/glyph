@@ -440,6 +440,73 @@ fn e0210_declines_when_two_declared_fields_are_a_character_away() {
 }
 
 
+/// G240. An E0210 now also fires at a JSX attribute the props record does not
+/// declare, and that span runs from the attribute's name to the end of its
+/// value rather than being a `.field` read. The rule reads the attribute form
+/// first, so the dots inside a `{cfg.mode}` value never look like the access
+/// it used to expect.
+#[test]
+fn e0210_renames_a_misspelled_jsx_attribute() {
+    let dir = project(
+        "e0210jsx",
+        "module main\n\
+         \n\
+         type Props = { variant: string, label: string }\n\
+         \n\
+         component Button(props: Props) {\n\
+         \x20 return <button>{props.label}</button>\n\
+         }\n\
+         \n\
+         pub component App() {\n\
+         \x20 return <Button variant=\"danger\" labl=\"go\" />\n\
+         }\n",
+    );
+    let out = fix(&dir);
+    assert!(out.contains("applied E0210"), "{out}");
+    assert!(
+        out.contains("renamed the attribute to `label`"),
+        "the report says what it edited: {out}"
+    );
+    let after = source_of(&dir);
+    assert!(
+        after.contains("<Button variant=\"danger\" label=\"go\" />"),
+        "only the attribute name is rewritten:\n{after}"
+    );
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "{output}\n{after}");
+}
+
+/// The value of an attribute may hold dots of its own. Before the attribute
+/// form was read first, this declined with "not a plain name" after reading
+/// `mode}` as the field.
+#[test]
+fn e0210_renames_a_misspelled_jsx_attribute_whose_value_holds_a_dot() {
+    let dir = project(
+        "e0210jsxdot",
+        "module main\n\
+         \n\
+         type Cfg = { mode: string }\n\
+         type Props = { variant: string, label: string }\n\
+         \n\
+         component Button(props: Props) {\n\
+         \x20 return <button>{props.label}</button>\n\
+         }\n\
+         \n\
+         pub component App(c: Cfg) {\n\
+         \x20 return <Button varient={c.mode} label=\"go\" />\n\
+         }\n",
+    );
+    let out = fix(&dir);
+    assert!(out.contains("applied E0210"), "{out}");
+    let after = source_of(&dir);
+    assert!(
+        after.contains("<Button variant={c.mode} label=\"go\" />"),
+        "the name is rewritten and the value is untouched:\n{after}"
+    );
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "{output}\n{after}");
+}
+
 // ---------------------------------------------------------------------------
 // E0200 across a module boundary (G236)
 // ---------------------------------------------------------------------------

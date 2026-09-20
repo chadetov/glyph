@@ -1,0 +1,12 @@
+module neg
+
+// The plainest shape of E0210, which the corpus had only in its cross-module
+// spelling. `glyph --explain E0210` answers with the smallest case that draws
+// the code, and a field read is what a reader asking about the code is
+// holding; the JSX-attribute spelling beside it is the same mistake written
+// differently, not the one to lead with.
+type Sheet = { rows: number, cols: number }
+
+pub fn read(s: Sheet) -> number {
+  return s.rowz
+}

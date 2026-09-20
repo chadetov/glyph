@@ -290,6 +290,40 @@ pub fn analysis_in(db: &dyn Db, file: SourceFile) -> Option<Analysis> {
     })
 }
 
+/// The hover text at `offset` in `file`, read inside the project `db` holds.
+///
+/// One implementation, two surfaces. `glyph query hover` and the editor's
+/// `textDocument/hover` used to reach the front end by different routes, and a
+/// position that answered from the command line answered `null` in an editor
+/// (G235). They call this instead, so the string is the same string or neither
+/// has one, which is what G219 asks of a pair of surfaces over one compiler.
+///
+/// What the project buys is the reading a single file cannot do: an imported
+/// function at its call site, a field read off an imported record, the binding
+/// in an `import m { N }` list. Those go through the cross-module queries the
+/// checker itself runs, so the answer is the declaring module's own lowered
+/// declaration. A database with no project registered answers exactly what the
+/// single-file path always answered.
+///
+/// `None` for a file that does not parse or resolve, and for a position that
+/// names nothing.
+pub fn hover_in(db: &dyn Db, file: SourceFile, offset: usize) -> Option<String> {
+    let parsed = glyph_db::parse_module(db, file);
+    let resolved = glyph_db::resolve(db, file);
+    let (module, resolution) = (parsed.module()?, resolved.resolved()?);
+    let decls = glyph_db::SalsaDeclTy::new(db, file);
+    let types = glyph_db::type_map(db, file);
+    hover_at_with_imports(
+        module,
+        resolution,
+        db.prelude(),
+        types.type_map(),
+        &decls,
+        file.source_text(db),
+        offset,
+    )
+}
+
 /// What kind of thing a completion item names — maps to an editor icon.
 pub enum CompletionTag {
     Keyword,

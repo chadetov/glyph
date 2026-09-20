@@ -31,6 +31,7 @@ pub mod assign;
 pub mod concurrency;
 pub mod lower;
 pub mod owned;
+pub mod stdlib;
 pub mod ty;
 pub mod type_map;
 
@@ -38,13 +39,14 @@ pub use assign::{
     alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
     assign_types_with_resolver, assignability, direct_type_decl, imported_decl_chain_end,
     imported_string_literal_union_values,
-    prelude_app, prelude_container, resolve_alias_chain, split_type_app, stdlib_signature,
+    prelude_app, prelude_container, resolve_alias_chain, split_type_app,
     Assignability,
     CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention, CoverageSite,
     CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,
     FieldSite, FileFieldUses, FileMatchCoverage, LocalDeclTy,
 };
 pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
+pub use stdlib::stdlib_signature;
 pub use ty::{
     builtin_union, builtin_union_of_variant, builtin_unions, BuiltinUnion, BuiltinVariant, FnParam,
     ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,

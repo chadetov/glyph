@@ -174,8 +174,8 @@ pub fn nearest_project_root(start: &Path) -> Option<PathBuf> {
 /// resolve from, and the file itself spelled under that root.
 #[derive(Debug, PartialEq, Eq)]
 pub struct FileProject {
-    /// The resolution root: the nearest marked ancestor's `src`, else the file's
-    /// own directory.
+    /// The resolution root: the nearest marked ancestor's `src`, else the
+    /// nearest ancestor `src/`, else the file's own directory.
     pub src: PathBuf,
     /// The file, rewritten so it lies under `src`. Same path the caller passed
     /// when no project was found.
@@ -207,6 +207,19 @@ pub fn project_for_file(file: &Path) -> FileProject {
                 file: canon_file,
             };
         }
+    }
+    // No marker. An unmarked tree's resolution root is its `src/`, which is
+    // what `discover_projects` gives the build target and therefore what
+    // `glyph check <dir>` counts a nested module from. A file handed to this
+    // function has no target to apply that to, so the same rule is spelled by
+    // climbing to the nearest ancestor `src/`. The function is `glyph-lsp`'s,
+    // called rather than copied: the tools key their identities from it too,
+    // and two implementations of a module key is exactly what G180 was.
+    if let Some(src) = glyph_lsp::nearest_src_root(&canon_file, None) {
+        return FileProject {
+            src,
+            file: canon_file,
+        };
     }
     FileProject {
         src: parent.to_path_buf(),

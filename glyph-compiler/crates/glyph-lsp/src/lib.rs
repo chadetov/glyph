@@ -706,8 +706,46 @@ pub(crate) fn project_root_for(file: &Path, workspace: &Path) -> PathBuf {
     marked_root_for(file, workspace).unwrap_or_else(|| workspace.to_path_buf())
 }
 
+/// The nearest ancestor `src/` directory at or above `file`, which is the
+/// resolution root of an unmarked tree.
+///
+/// `glyph build` and `glyph check` over an unmarked directory already give it
+/// the source-directory rule a marked one gets, minus the marker: `src/` when
+/// it exists, else the directory (`discover_projects`). A file handed to a tool
+/// has no build target to apply that to, so the same rule is spelled by
+/// climbing: the first ancestor named `src` is the directory the build would
+/// have counted from.
+///
+/// Without it a nested file had two identities. On an unmarked tree holding
+/// `src/sub/deep.glyph`, `glyph check src` reported the module `sub/deep` and
+/// every tool reported `deep`, because the tools fell back to the file's own
+/// parent. One declaration with two names is the thing G180 was fixed to
+/// remove, and a nested directory brought it back.
+///
+/// The climb stops at `stop_at` (the editor's workspace folder) or at a
+/// directory holding `.git`, whichever comes first, so a `src/` far above an
+/// unrelated tree cannot capture a file. `None` when the climb finds none,
+/// which leaves each caller its own last resort.
+///
+/// `glyph-cli`'s `config::project_for_file` calls this rather than keeping a
+/// second copy: two implementations of a module key is what G180 was.
+pub fn nearest_src_root(file: &Path, stop_at: Option<&Path>) -> Option<PathBuf> {
+    let mut dir = file.parent();
+    while let Some(d) = dir {
+        if d.file_name().and_then(|n| n.to_str()) == Some("src") && d.is_dir() {
+            return Some(d.to_path_buf());
+        }
+        if stop_at == Some(d) || d.join(".git").exists() {
+            break;
+        }
+        dir = d.parent();
+    }
+    None
+}
+
 /// The root a declaration's `module::name` identity is counted from: its marked
-/// project, else the file's **own parent directory**.
+/// project, else the nearest ancestor `src/`, else the file's **own parent
+/// directory**.
 ///
 /// A declaration's identity must not change with where a tool was invoked or
 /// what the cwd was, and a workspace-root fallback makes it do exactly that.
@@ -719,17 +757,26 @@ pub(crate) fn project_root_for(file: &Path, workspace: &Path) -> PathBuf {
 /// does not vary with the invocation, so it is the one the two agree on
 /// (G180).
 ///
+/// The parent alone was not enough once a project had subdirectories. An
+/// unmarked tree's resolution root is its `src/`, which is what `glyph check`
+/// counts a nested module from, and the parent of `src/sub/deep.glyph` is
+/// `src/sub`. `nearest_src_root` is the rule the build already applies at its
+/// target, spelled for a file, and the parent stays the last resort for a tree
+/// that has no `src/` at all.
+///
 /// This is the root every identity-publishing surface uses. It is separate
 /// from `project_root_for` because the editor's workspace folder is a root the
 /// user opened, and narrowing it is a change to which files a workspace-wide
 /// query ranges over rather than to how a declaration is named.
 pub(crate) fn module_root_for(file: &Path, workspace: &Path) -> PathBuf {
-    marked_root_for(file, workspace).unwrap_or_else(|| {
-        file.parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."))
-            .to_path_buf()
-    })
+    marked_root_for(file, workspace)
+        .or_else(|| nearest_src_root(file, Some(workspace)))
+        .unwrap_or_else(|| {
+            file.parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                .unwrap_or_else(|| Path::new("."))
+                .to_path_buf()
+        })
 }
 
 /// The resolution root declared by `dir/package.json`, or `None` when there is
@@ -1096,6 +1143,56 @@ mod tests {
         assert_eq!(project_root_for(&file, &workspace), workspace);
         assert_eq!(module_path_of(&workspace, &file).as_deref(), Some("sub/b"));
         let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    /// The identity root on an unmarked tree is its `src/`, not the parent of
+    /// whatever subdirectory a file sits in. `glyph check` counts a nested
+    /// module from `src`, so `src/sub/deep.glyph` is `sub/deep`; the tools
+    /// answered `deep` until `nearest_src_root` gave them the same rule.
+    #[test]
+    fn a_nested_unmarked_tree_keys_its_modules_from_src() {
+        let workspace = tmp_dir("unmarked_nested");
+        let sub = workspace.join("src").join("sub");
+        std::fs::create_dir_all(&sub).expect("src/sub");
+        let file = sub.join("deep.glyph");
+        std::fs::write(&file, "module deep\n").expect("write deep");
+
+        let root = module_root_for(&file, &workspace);
+        assert_eq!(root, workspace.join("src"));
+        assert_eq!(module_path_of(&root, &file).as_deref(), Some("sub/deep"));
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    /// A tree with no `src/` keeps the parent fallback, which is the root that
+    /// does not vary with the invocation (G180). The climb is an addition to
+    /// that rule, not a replacement for it.
+    #[test]
+    fn a_tree_with_no_src_keeps_the_parent_fallback() {
+        let workspace = tmp_dir("no_src");
+        let sub = workspace.join("lib");
+        std::fs::create_dir_all(&sub).expect("lib");
+        let file = sub.join("b.glyph");
+        std::fs::write(&file, "module b\n").expect("write b");
+
+        assert_eq!(module_root_for(&file, &workspace), sub);
+        assert_eq!(nearest_src_root(&file, Some(&workspace)), None);
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    /// The climb stops at the workspace folder, so a `src/` above a tree the
+    /// editor did not open cannot capture a file inside it.
+    #[test]
+    fn the_src_climb_stops_at_the_workspace() {
+        let outer = tmp_dir("src_above");
+        let workspace = outer.join("src").join("inner");
+        let sub = workspace.join("pkg");
+        std::fs::create_dir_all(&sub).expect("pkg");
+        let file = sub.join("c.glyph");
+        std::fs::write(&file, "module c\n").expect("write c");
+
+        assert_eq!(nearest_src_root(&file, Some(&workspace)), None);
+        assert_eq!(module_root_for(&file, &workspace), sub);
+        let _ = std::fs::remove_dir_all(&outer);
     }
 
     #[test]

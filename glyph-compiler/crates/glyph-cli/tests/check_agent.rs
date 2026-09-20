@@ -404,6 +404,65 @@ fn a_field_typo_lists_the_records_fields_under_that_kind() {
     assert_eq!(d["alternatives_kind"], "fields", "{d}");
 }
 
+/// The same tree with a subdirectory, which is where the flat fixture above
+/// stopped covering it. An unmarked tree's resolution root is its `src/`, so
+/// `glyph check` counted `src/sub/deep.glyph` as `sub/deep` while every tool
+/// fell back to the file's own parent and counted it as `deep`. One
+/// declaration with two names is what G180 was fixed to remove, and a nested
+/// directory brought it back on a layout `glyph init` does not mark.
+///
+/// Four surfaces, one spelling: `check` over the tree, `check` over `src`,
+/// `check` on the file itself, and `glyph query diagnostics`, which is the
+/// same code path the MCP tools and the editor take.
+#[test]
+fn a_nested_unmarked_tree_spells_its_module_the_same_way_everywhere() {
+    let dir = unique_tmp("unmarked_nested");
+    std::fs::create_dir_all(dir.join("src/sub")).expect("mkdir sub");
+    std::fs::write(
+        dir.join("src/sub/deep.glyph"),
+        "module deep\n\npub fn boom() -> int {\n  return nope\n}\n",
+    )
+    .expect("write deep");
+    // No `package.json`: the whole point is the tree nobody marked.
+    assert!(!dir.join("package.json").exists());
+
+    let module_of = |args: &[&str]| -> String {
+        let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+            .current_dir(&dir)
+            .args(args)
+            .output()
+            .expect("run glyph");
+        let text = String::from_utf8_lossy(&out.stdout).to_string();
+        let value: Value = serde_json::from_str(&text)
+            .unwrap_or_else(|e| panic!("{args:?} printed no JSON ({e}): {text}"));
+        let d = value["diagnostics"]
+            .as_array()
+            .and_then(|a| a.first())
+            .unwrap_or_else(|| panic!("{args:?} reported nothing: {value}"));
+        assert_eq!(d["code"], "E0103", "{args:?}: {value}");
+        d["module"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{args:?} carries no module: {value}"))
+            .to_string()
+    };
+
+    let over_tree = module_of(&["check", "--no-tsc", "--no-test", "--json", "."]);
+    let over_src = module_of(&["check", "--no-tsc", "--no-test", "--json", "src"]);
+    let over_file = module_of(&[
+        "check",
+        "--no-tsc",
+        "--no-test",
+        "--json",
+        "src/sub/deep.glyph",
+    ]);
+    let over_query = module_of(&["query", "diagnostics", "--path", "src/sub/deep.glyph"]);
+
+    assert_eq!(over_tree, "sub/deep", "check over the tree");
+    assert_eq!(over_src, "sub/deep", "check over `src`");
+    assert_eq!(over_file, "sub/deep", "check on the file");
+    assert_eq!(over_query, "sub/deep", "query diagnostics on the file");
+}
+
 /// The root the `file` strings are spelled under, on the surface that used to
 /// carry no root at all. `glyph query diagnostics` has carried `project_root`
 /// since the diagnostic became an object; `check --json` and `check --agent`

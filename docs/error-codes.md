@@ -41,7 +41,7 @@ below.
 | `E0008` | Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5) |
 | `E0009` | Retired. An object pattern's field takes any pattern, so `Full({ color: Black })` matches the field value; the code is no longer emitted |
 | `E0010` | A union variant given more than one positional payload field, in a declaration (`Node(Color, Tree, int)`) or in a match arm's pattern (`Node(c, k)`); a variant carries one payload, and a multi-field payload is a record (D8) |
-| `E0011` | A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything |
+| `E0011` | A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything. A level is one construct the parser descends into, counted once however it is spelled: parentheses around an operand are that operand's level, not a second one, so `-(x)` nests as deep as `-x` |
 
 ### Resolver — `E01xx`
 

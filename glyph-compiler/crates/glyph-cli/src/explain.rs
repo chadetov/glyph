@@ -124,7 +124,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "E0011" => "E0011: nested too deep\n\n\
             The parser descends 64 levels of nested construct and stops there. \
             An expression, type or pattern nested past that is reported here, \
-            at the token that would have opened the next level.\n\n\
+            at the token that would have opened the next level. Parentheses around \
+            an operand are that operand's level, not a second one: `-(x)` nests \
+            as deep as `-x`.\n\n\
             Before:  const x = [[[[[ ... 65 levels ... ]]]]]\n\
             After:   let inner = [1, 2]\n         \
             const x = [inner]\n\n\
@@ -1210,7 +1212,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0011",
         phase: "parser",
-        meaning: "A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything",
+        meaning: "A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything. A level is one construct the parser descends into, counted once however it is spelled: parentheses around an operand are that operand's level, not a second one, so `-(x)` nests as deep as `-x`",
         fix: "Pull the inner levels into `let` bindings",
     },
     // ----- resolver (E01xx) -----

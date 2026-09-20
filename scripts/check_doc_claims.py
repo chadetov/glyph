@@ -23,6 +23,15 @@ Three checks:
 3. **The Next marker.** Exactly one release section carries it, and it names a
    version ahead of what has shipped.
 
+4. **Density figures.** The token totals the site's benchmarks page draws, and
+   any "N% fewer tokens than TypeScript" sentence in a live doc or page, have
+   to agree with the newest results file under benchmarks/results/. The
+   density claim was re-measured on 2026-09-06 when the fixtures were made to
+   compile (341 became 436), FINDINGS.md and the release notes were corrected,
+   and the page on glyphlang.io kept saying 341 and 29% for two weeks until an
+   outside reviewer quoted it back. A number that is published in two places
+   with one gate is a number that will disagree.
+
 Frozen history is exempt by design: archive/, the implementation plan, the open
 questions, and the per-release entries in releases.md and web/versions/ are
 records of what was true when written. Editing those to match the present is
@@ -176,6 +185,86 @@ def check_forward_refs(shipped_max: str, fails: list[str]) -> None:
                     )
 
 
+RESULT_FILE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.json$")
+BAR = re.compile(
+    r'<span class="bar-lang">([A-Za-z]+)</span>\s*<div class="bar-track">'
+    r'\s*<div class="bar-fill[^"]*"[^>]*>(\d+)</div>'
+)
+FEWER = re.compile(
+    r"(\d+)%\s+fewer(?:\s+tokens)?\s+than\s+(?:the\s+equivalent\s+)?"
+    r"(TypeScript|Go|Rust|Python)\b",
+    re.I,
+)
+DENSITY_PAGE = "web/benchmarks/index.html"
+
+
+def density_totals() -> dict[str, int] | None:
+    """Per-language token totals from the newest density results file."""
+    results = ROOT / "benchmarks" / "results"
+    files = sorted(p for p in results.glob("*.json") if RESULT_FILE.match(p.name))
+    if not files:
+        return None
+    import json
+
+    data = json.loads(files[-1].read_text(errors="replace"))
+    totals: dict[str, int] = {}
+    for m in data.get("measurements", []):
+        totals[m["language"].lower()] = totals.get(m["language"].lower(), 0) + int(m["tokens"])
+    return totals or None
+
+
+def density_files() -> list[pathlib.Path]:
+    files = live_files()
+    for rel in ("benchmarks/FINDINGS.md", "benchmarks/README.md"):
+        p = ROOT / rel
+        if p.exists():
+            files.append(p)
+    for p in sorted(ROOT.glob("web/**/index.html")):
+        rel = p.relative_to(ROOT).as_posix()
+        # web/versions/ is the release-notes record and stays as written.
+        if not rel.startswith("web/versions/"):
+            files.append(p)
+    return files
+
+
+def check_density_claims(fails: list[str]) -> dict[str, int] | None:
+    totals = density_totals()
+    if totals is None:
+        fails.append("no density results file under benchmarks/results/")
+        return None
+    page = ROOT / DENSITY_PAGE
+    if page.exists():
+        text = page.read_text(errors="replace")
+        drawn = {lang.lower(): int(n) for lang, n in BAR.findall(text)}
+        for lang, n in drawn.items():
+            if lang in totals and totals[lang] != n:
+                fails.append(
+                    f"{DENSITY_PAGE} draws {lang} at {n} tokens; the newest results "
+                    f"file totals {totals[lang]}"
+                )
+        if "glyph" not in drawn:
+            fails.append(f"{DENSITY_PAGE} draws no Glyph bar the gate can read")
+    glyph = totals.get("glyph")
+    if glyph is None:
+        return totals
+    for p in density_files():
+        rel = p.relative_to(ROOT).as_posix()
+        for i, line in enumerate(p.read_text(errors="replace").splitlines(), 1):
+            for m in FEWER.finditer(line):
+                claimed = int(m.group(1))
+                other = totals.get(m.group(2).lower())
+                if other is None:
+                    continue
+                actual = round((other - glyph) / other * 100)
+                if abs(claimed - actual) > 1:
+                    fails.append(
+                        f"{rel}:{i} claims {claimed}% fewer tokens than "
+                        f"{m.group(2)}; the newest results file says {actual}% "
+                        f"({glyph} to {other})\n      {line.strip()[:100]}"
+                    )
+    return totals
+
+
 def check_next_marker(fails: list[str]) -> str | None:
     rel = "docs/roadmap/releases.md"
     p = ROOT / rel
@@ -219,6 +308,7 @@ def main() -> int:
     top = check_next_marker(fails)
     if top:
         check_forward_refs(top, fails)
+    totals = check_density_claims(fails)
 
     total = args.tests
     if total is None:
@@ -251,7 +341,8 @@ def main() -> int:
         for f in fails:
             print(f"  - {f}")
         return 1
-    print(f"doc claims OK: test counts match {total}, no stale version promises")
+    density = f", density figures match {totals['glyph']} tokens" if totals else ""
+    print(f"doc claims OK: test counts match {total}, no stale version promises{density}")
     return 0
 
 

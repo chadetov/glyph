@@ -5433,6 +5433,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - The spec's second D43 is renumbered, with every reference moved, so `glyph llms --json` reports no `duplicate_numbers`
 - G241: `glyph fmt` prints a run of unary operators as nested parenthesised operands, so a file the parser accepts at 40 levels comes back from the formatter at 80 and draws E0011 on the next pass; the parser counts a parenthesised operand as one level, not two, and the fuzz input becomes a formatter regression test
 - The publish workflow moves to npm trusted publishing before this release's tag, per the pipeline lane: trusted publishers on the six packages, npm 11.5 or later on the runner, and no token in the publish steps
+- The benchmarks page on the site draws 436 tokens and says about 9% fewer than TypeScript, the figure `benchmarks/FINDINGS.md` and the release notes have carried since 2026-09-06; it had kept the withdrawn 341 and 29% for two weeks, and an outside review quoted them back. `check_doc_claims.py` now reads the newest results file and fails on a bar or a "N% fewer tokens than" sentence that disagrees with it. Landed on main
 
 ### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps
 
@@ -8076,6 +8077,78 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**An enterprise reviewer's list, 2026-09-20.** A DevSecOps-minded engineer read
+the repository, the tour, the roadmap and the benchmarks, rated the design
+strong and the ecosystem immature, and would run Glyph as a controlled proof of
+concept but not approve it for a regulated production platform. The review is
+on disk in the private feedback folder. Six of its points are gaps this lane
+did not carry; each is below with what is already true and what is not.
+
+**The VS Code extension is not on the Marketplace, and the name is taken
+nearby.** `editors/vscode/PUBLISHING.md` records it: nobody gets highlighting
+or the language server without building the extension from source, and a
+Marketplace search for "glyph language" returns `GlyphLang.glyphlang`, an
+unrelated REST DSL. The reviewer read the missing listing as the maturity
+signal, ahead of anything about the language. What has to be decided before
+the first `vsce publish` is the publisher id and display name, distinct enough
+from the other project that a search does not land on it, and whether Open VSX
+(Cursor, VSCodium) ships in the same step. The listing is one command once the
+id exists; the id is the owner's call.
+
+**A scanner's finding on the emitted TypeScript has no path back to the Glyph
+line.** Every build writes a v3 `.ts.map` beside each module and `glyph build`
+remaps `tsc` errors through it, so the bridge exists. What does not exist is
+the workflow a security review needs: a SAST tool (CodeQL, Sonar, Semgrep)
+reports `dist/orders.ts:742` in SARIF, and nothing turns that into
+`src/orders.glyph:118`. The reviewer's question was which artifact is
+authoritative for a security review, and the answer the docs should give is:
+the `.glyph` source is what is reviewed and changed, the committed TypeScript is
+what scanners read, and the map is the bridge. Two pieces: a `glyph`
+subcommand that rewrites the locations in a SARIF file, or a single
+`file:line`, onto Glyph source through the maps; and a guide,
+`docs/guide/security-review.md`, that says so and states the edge, which is
+that the maps are statement-level, so a finding lands on the statement rather
+than the token. An answer page beside it, in the format `web/answers/` uses.
+
+**The SBOM and the digest pin are already true and were nowhere written.**
+Checked on a `glyph init` project against 0.1.123: the compiler is pinned
+exactly as a devDependency, `package-lock.json` carries a sha512 integrity for
+`@glyphlang/glyph` and for each platform binary, and `npm sbom --sbom-format
+cyclonedx` lists the compiler and the installed platform package with hashes
+and purls. The reviewer asked for digest pinning and an SBOM as if both were
+open; they are in the lockfile npm already writes. The distribution guide now
+says so. Still open: `glyph doctor` could print the installed binary's digest
+so a review compares it to the release checksums without reading the lockfile.
+
+**The study's report gains two columns the review asked for.** The 0.2.0 gate
+above scores pass rate, missed sites, incorrect edits, repair iterations and
+time to green. The review's own list adds two that cost nothing to record and
+would be asked for afterwards: patch size against the reference patch per task,
+which is the diff-stability pillar measured where it matters, and security
+findings on both patches from the same scanner run on both outputs. Both go
+into the instrument before the first run, not after; the rule in the gate is
+that the columns are chosen before the numbers exist.
+
+**The README and the home page do not lead with the compiler as something an
+agent asks.** The review's model of Glyph is the table it drew: no `any`,
+`Result`, exhaustive `match`, canonical formatting, fewer tokens. It never
+mentions `glyph query`, the MCP server's queries, impact before an edit or the
+repair protocol, and its closing concern, that better tooling on TypeScript
+might win instead, is the comparison `web/answers/vs-tooled-ts/` and the 0.2.0
+gate exist to run. A careful reader of the README reached the end without the
+thing the study measures. The README's headings are the language, what the
+compiler catches, why not TypeScript, the pillars, status; "ask the compiler"
+is one sentence under status. Put it where the token chart is, and the chart
+after it.
+
+**Tests and coverage on a Glyph project are documented as `@example` and
+nothing after.** The getting-started guide says tests live next to the code and
+`@example` runs on every build; a reviewer listing test frameworks and coverage
+tools as ecosystem it expects found no answer for a test that needs a fixture,
+a mock or a coverage number. The emitted TypeScript runs under any Node test
+runner and c8 reads the `.ts.map`, which may be the whole answer, and it has to
+be tried on an app under `examples/apps/` and written down rather than assumed.
 
 **The spec numbers two decisions D43.** One is the rule that a `mut` whose read
 and write straddle an `await` is an error (E0225); the other is `never` as the

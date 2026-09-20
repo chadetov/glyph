@@ -50,6 +50,14 @@ package's data types, materialize them with `glyph gen dts <package>`. See
   attestations](https://docs.npmjs.com/generating-provenance-statements), tying
   the package to the source commit and CI run that built it. Do the same for your
   packages with `npm publish --provenance`.
+- **SBOM and digests.** The compiler is an npm devDependency, pinned to an
+  exact version by `glyph init`, so it appears in a project's software bill of
+  materials like any other package: `npm sbom --sbom-format cyclonedx` (or
+  `spdx`) lists `@glyphlang/glyph` and the installed platform binary package
+  with their hashes and purls, and `package-lock.json` holds a sha512 integrity
+  for each, which is the digest pin. Commit the lockfile; `npm ci` then refuses
+  a compiler whose digest has changed. Checked on a scaffolded project against
+  0.1.123.
 - **Auditing.** `npm audit` (and Dependabot, Socket, or your scanner of choice)
   works on a Glyph project's dependencies exactly as on any npm project.
 - **Private and self-hosted registries.** Point npm at a private registry

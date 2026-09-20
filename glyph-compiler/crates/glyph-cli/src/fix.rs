@@ -1160,7 +1160,7 @@ fn regression(
 ///
 /// Each arm carries a `TODO(glyph fix)` line naming the case, and a body that
 /// prints which case was reached and then leaves through `process.exit`, whose
-/// return type is `never` (D43). `never` contributes nothing to the arm join,
+/// return type is `never` (D47). `never` contributes nothing to the arm join,
 /// so the same body is legal whether the match is an expression owing a value
 /// or a statement owing none, and the compiler needs no guess about what the
 /// arm should produce. It is not a body anyone would mistake for a finished

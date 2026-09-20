@@ -186,9 +186,11 @@
       <div class="detail">
         <p>
           <code>duplicate_numbers</code> is there because the generator reads the spec's own list
-          and found two different decisions both numbered D43. It reports the collision rather
+          and found two different decisions both numbered D43. It reports a collision rather
           than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a
-          D number, so no program is affected; a reader following a citation is.
+          D number, so no program was affected; a reader following a citation was. That one is
+          fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code>
+          is D47, so the list comes back empty over 47 decisions.
         </p>
 
         <p class="block-label">The wrong programs are readable too</p>

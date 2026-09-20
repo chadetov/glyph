@@ -11245,7 +11245,7 @@ fn json_parse_of_a_type_reports_the_same_field_paths_as_its_parse() {
 
 #[test]
 fn never_is_spellable_and_behaves_as_a_bottom_type() {
-    // G89/D43. `std/process.exit` was typed `-> never`, so the concept existed
+    // G89/D47. `std/process.exit` was typed `-> never`, so the concept existed
     // and only user code could not name it. A `serve` that is driven by socket
     // events from then on had to say so in a doc comment, keep a `return` that
     // is never reached, and carry a dead `match` arm to stay exhaustive.

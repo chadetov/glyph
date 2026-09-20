@@ -400,8 +400,9 @@ pub struct Decisions {
     pub source: &'static str,
     pub count: usize,
     /// Numbers the spec uses for two different decisions. The index reports
-    /// both rather than picking one, because a reader joining on `D43` has to
-    /// know the key is not unique in the document it came from.
+    /// both rather than picking one, because a reader joining on a number has
+    /// to know the key is not unique in the document it came from. Empty since
+    /// 0.1.124, which is what found the one collision the spec had.
     pub duplicate_numbers: Vec<u32>,
     pub decisions: Vec<Decision>,
 }
@@ -800,11 +801,13 @@ mod tests {
         let mut sorted = numbers.clone();
         sorted.sort_unstable();
         assert_eq!(numbers, sorted, "the index is not sorted by number");
-        // The spec numbers two different decisions `D43`, and the index says so
-        // rather than dropping one of them.
+        // A D number is an identity other documents cite by. The spec carried
+        // two decisions numbered D43 for four releases and this index is what
+        // found it; the collision was resolved in 0.1.124 by moving `never` to
+        // D47, and the assertion is now that nothing has taken its place.
         assert!(
-            d.duplicate_numbers.contains(&43),
-            "the spec stopped using D43 twice: {:?}",
+            d.duplicate_numbers.is_empty(),
+            "two decisions share a number: {:?}",
             d.duplicate_numbers
         );
         assert_eq!(

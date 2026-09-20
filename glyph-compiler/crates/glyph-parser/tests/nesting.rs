@@ -171,12 +171,25 @@ fn the_span_is_where_the_limit_is_crossed() {
 /// roughly 580 KiB of the 2 MiB.
 #[test]
 fn the_limit_fits_a_two_megabyte_thread_stack() {
-    let src = nested_array(MAX);
-    let handle = std::thread::Builder::new()
-        .stack_size(2 * 1024 * 1024)
-        .spawn(move || glyph_parser::parse(&src).is_ok())
-        .expect("spawn");
-    assert!(handle.join().expect("no panic"), "a program at the limit must parse");
+    // Every shape that reaches the limit, not just the array literal the limit
+    // was measured from. A parenthesized operand counts once rather than twice
+    // (G241), so `-(-(...` now reaches MAX levels where it used to stop at
+    // half that, and each of those levels runs the whole precedence ladder.
+    let sources = [
+        nested_array(MAX),
+        format!("const x = {}1{}\n", "-(".repeat(MAX), ")".repeat(MAX)),
+        format!("const x = {}1{}\n", "(".repeat(MAX), ")".repeat(MAX)),
+        format!("const x = {}0{}\n", "a[(".repeat(MAX), ")]".repeat(MAX)),
+    ];
+    for src in sources {
+        let handle = std::thread::Builder::new()
+            .stack_size(2 * 1024 * 1024)
+            .spawn(move || glyph_parser::parse(&src).map_err(|e| e.to_string()))
+            .expect("spawn");
+        if let Err(e) = handle.join().expect("no panic") {
+            panic!("a program at the limit must parse: {e}");
+        }
+    }
 }
 
 /// Depth is per-construct nesting, not a budget spent over the whole file. A
@@ -187,4 +200,109 @@ fn sibling_constructs_do_not_accumulate_depth() {
     let one = "[[[1]]]";
     let src = format!("const x = [{}]\n", vec![one; 1000].join(", "));
     glyph_parser::parse(&src).expect("siblings do not accumulate");
+}
+
+// ---------------------------------------------------------------------------
+// A parenthesized operand costs one level, not two (G241)
+// ---------------------------------------------------------------------------
+
+/// `const x = ---...1`, `n` unary operators with nothing between them.
+fn unary_run(n: usize) -> String {
+    format!("const x = {}1\n", "-".repeat(n))
+}
+
+/// The same expression written the way `glyph fmt` prints it: every operand
+/// wrapped, `-(-(-(...1...)))`.
+fn unary_run_parenthesized(n: usize) -> String {
+    format!("const x = {}1{}\n", "-(".repeat(n), ")".repeat(n))
+}
+
+/// `const x = (((...1...)))`, `n` groupings and nothing else.
+fn grouping_run(n: usize) -> String {
+    format!("const x = {}1{}\n", "(".repeat(n), ")".repeat(n))
+}
+
+/// The accounting rule: parentheses count, and an operand slot counts only when
+/// it has none of its own. So the two spellings of one expression agree, which
+/// is what `glyph fmt` needs in order to promise that its output parses.
+///
+/// Before this, `-x` cost one level and `-(x)` cost two, so the formatter's
+/// habit of parenthesizing every unary operand doubled the depth of a run of
+/// minuses and `glyph fmt` reported `1 failed` on a file it had written itself.
+#[test]
+fn the_two_spellings_of_a_unary_run_are_the_same_depth() {
+    glyph_parser::parse(&unary_run(MAX)).expect("a bare run at the limit parses");
+    glyph_parser::parse(&unary_run_parenthesized(MAX))
+        .expect("the parenthesized spelling at the limit parses too");
+    assert_eq!(parse_err_code(&unary_run(MAX + 1)), "E0011");
+    assert_eq!(parse_err_code(&unary_run_parenthesized(MAX + 1)), "E0011");
+}
+
+/// A grouping nested directly inside another grouping is two levels of real
+/// recursion, and both still count. Charging only the outer one would leave
+/// `((((...))))` unbounded, which is the stack overflow E0011 exists to stop.
+#[test]
+fn a_grouping_inside_a_grouping_still_costs_a_level_each() {
+    glyph_parser::parse(&grouping_run(MAX)).expect("groupings at the limit parse");
+    assert_eq!(parse_err_code(&grouping_run(MAX + 1)), "E0011");
+}
+
+/// Index and `await` operands take the same rule, so the bracketed spellings
+/// agree with the bare ones as well.
+#[test]
+fn a_parenthesized_index_and_await_operand_cost_one_level() {
+    // `a[a[a[...0...]]]` against `a[(a[(a[(...0...)])])]`.
+    let bare = |n: usize| format!("const x = {}0{}\n", "a[".repeat(n), "]".repeat(n));
+    let wrapped = |n: usize| format!("const x = {}0{}\n", "a[(".repeat(n), ")]".repeat(n));
+    glyph_parser::parse(&bare(MAX)).expect("indexes at the limit parse");
+    glyph_parser::parse(&wrapped(MAX)).expect("parenthesized indexes at the limit parse");
+    assert_eq!(parse_err_code(&bare(MAX + 1)), "E0011");
+    assert_eq!(parse_err_code(&wrapped(MAX + 1)), "E0011");
+
+    // One level of the budget is the `fn` body block, so the run is `MAX - 1`.
+    let awaited = format!(
+        "async fn f() -> int {{\n  return {}0{}\n}}\n",
+        "await (".repeat(MAX - 1),
+        ")".repeat(MAX - 1)
+    );
+    glyph_parser::parse(&awaited).expect("awaits at the limit parse");
+    let awaited_over = format!(
+        "async fn f() -> int {{\n  return {}0{}\n}}\n",
+        "await (".repeat(MAX),
+        ")".repeat(MAX)
+    );
+    assert_eq!(parse_err_code(&awaited_over), "E0011");
+}
+
+/// Making a spelling cheaper must not make any of it unbounded. Each of these
+/// is thousands of levels deep in a shape the operand rule touches, and each
+/// has to come back as `E0011` on the 2 MiB stack a spawned thread gets rather
+/// than as `fatal runtime error: stack overflow`.
+#[test]
+fn deep_operand_runs_are_rejected_on_a_thin_stack() {
+    const N: usize = 10_000;
+    let cases = [
+        ("bare minuses", unary_run(N)),
+        ("parenthesized minuses", unary_run_parenthesized(N)),
+        ("groupings", grouping_run(N)),
+        (
+            "indexes",
+            format!("const x = {}0{}\n", "a[(".repeat(N), ")]".repeat(N)),
+        ),
+    ];
+    for (name, src) in cases {
+        let handle = std::thread::Builder::new()
+            .stack_size(2 * 1024 * 1024)
+            .spawn(move || {
+                glyph_parser::parse(&src)
+                    .err()
+                    .map(|e| e.code().to_string())
+            })
+            .expect("spawn");
+        assert_eq!(
+            handle.join().expect("no panic").as_deref(),
+            Some("E0011"),
+            "{name} should be refused, not parsed and not fatal"
+        );
+    }
 }

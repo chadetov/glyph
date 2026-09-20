@@ -5973,6 +5973,41 @@ fn fmt_normalizes_a_comment_free_file_in_place() {
     assert_eq!(report2.unchanged.len(), 1);
 }
 
+/// G241: `glyph fmt` must never report a failure on a file it just wrote.
+///
+/// A run of unary minuses parsed, and the formatter printed each operand
+/// parenthesized. The parser charged a depth level for the operand slot and
+/// another for the parentheses around it, so the formatted file counted twice
+/// as deep as the one that went in: the second pass reported `[E0011] this
+/// parenthesized expression nests deeper than the parser's limit of 64 levels`
+/// and `glyph fmt: 0 formatted, 0 already formatted, 1 failed`. A parenthesized
+/// operand counts once now, so both spellings are the same depth.
+#[test]
+fn fmt_output_of_a_deep_unary_run_still_parses() {
+    let root = unique_tmp("fmtdeep");
+    let minuses = "-".repeat(glyph_parser::MAX_NESTING_DEPTH as usize);
+    write_file(&root, "deep.glyph", &format!("module deep
+
+const n = {minuses}1
+"));
+    let file = root.join("deep.glyph");
+
+    let first = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    assert!(first.failed.is_empty(), "the input parses: {:?}", first.failed);
+    assert_eq!(first.formatted.len(), 1);
+
+    let rewritten = std::fs::read_to_string(&file).unwrap();
+    assert!(rewritten.contains("-(-("), "operands are parenthesized:\n{rewritten}");
+
+    let second = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    assert!(
+        second.failed.is_empty(),
+        "glyph fmt refused a file it wrote itself: {:?}",
+        second.failed
+    );
+    assert_eq!(second.unchanged.len(), 1, "and the rewrite is a fixed point");
+}
+
 #[test]
 fn fmt_check_reports_without_writing() {
     // F1: `glyph fmt --check` reports a file that would reformat but leaves it

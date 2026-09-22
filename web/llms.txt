@@ -1651,8 +1651,8 @@ machine-readably. The full catalogue:
 | E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |
 | E0208 | Non-exhaustive `match` on an array (length not covered) | Cover the length, or add a catch-all |
 | E0209 | Non-exhaustive `match` on a `bool` | Cover `true` and `false`, or add `else` |
-| E0210 | Field access on a record type that has no such field, including a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
-| E0211 | Call argument type does not match the parameter type | Pass a value of the expected type |
+| E0210 | A field a record type does not declare: a field access (`x.rowz`), or a JSX attribute naming a field of a component's props record. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
+| E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name | Pass a value of the expected type |
 | E0212 | `mut` reassigns a `const` binding (D20) | Use a function-level `let` |
 | E0213 | Wrong number of call arguments | One argument per parameter |
 | E0214 | Component declared with multiple parameters (use a props record) | Take a single props record |

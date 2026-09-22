@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-243 entries, 219 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-6 are open. G144, the D28 boundary cast that never reached the returns a
+243 entries, 220 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+5 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7240,7 +7240,7 @@ and is the owner's to confirm.
   wearing an exclusion's colour, which is a mistake this project has made once
   already and corrected.
 
-  *Reproduced against 0.1.118: re-measured with a coarser proxy, to refresh stale evidence rather than repeat the original study. `glyph check --no-tsc --json` over `tests/negative` (41 files), the 7 `catches/` cases and all 31 `examples/apps` gives 1,892 diagnostics; classifying each by indentation on its start line (>=2 leading spaces, a fast stand-in for "inside a function body" rather than the original's scanned body ranges cross-checked by hand) puts 1,274 inside a body: 67.3% overall, 70.4% of the 1,810 errors alone. Both are within a few points of the original 71.7%/75.0% and the conclusion is unchanged: diagnostics still land inside bodies close to the rate the corpus is bodies, so the exclusion still stands on the same argument. This did not repeat the original's two independent cross-checks; a full re-run of those is unscheduled. Previously, against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
+  *Reproduced against 0.1.124, on a release-branch build, with the same coarse proxy: `glyph check --no-tsc --no-test --json` over `tests/negative` (files and directories), the `catches/` cases and all 31 `examples/apps` gives 5,005 diagnostics, 3,315 of them (66.2%) starting on a line indented two or more spaces. The number has not moved in the direction that would reopen the question; the conclusion below stands. Previously, against 0.1.118: re-measured with a coarser proxy, to refresh stale evidence rather than repeat the original study. `glyph check --no-tsc --json` over `tests/negative` (41 files), the 7 `catches/` cases and all 31 `examples/apps` gives 1,892 diagnostics; classifying each by indentation on its start line (>=2 leading spaces, a fast stand-in for "inside a function body" rather than the original's scanned body ranges cross-checked by hand) puts 1,274 inside a body: 67.3% overall, 70.4% of the 1,810 errors alone. Both are within a few points of the original 71.7%/75.0% and the conclusion is unchanged: diagnostics still land inside bodies close to the rate the corpus is bodies, so the exclusion still stands on the same argument. This did not repeat the original's two independent cross-checks; a full re-run of those is unscheduled. Previously, against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
   `SymbolTarget::Local` arm and answers file-scoped occurrences rather than a
   project-wide identity, confirmed by reading the arm and by the tool's own
   behaviour. What is not measured, and is the whole question, is the fraction of
@@ -7300,7 +7300,7 @@ and is the owner's to confirm.
   and a disagreeing header is a diagnostic. Picking silently is what produced
   two spellings in the first place.
 
-  *Reproduced against 0.1.118: the identical two-file project (a file whose header reads `module app/models` while sitting at a path the project keys as `models`) still compiles with no diagnostic naming the disagreement. Previously, against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
+  *Reproduced against 0.1.124, on a release-branch build: the identical two-file project (`src/models.glyph` headed `module app/models`, imported from `main` as `models`) is `glyph check --no-tsc --no-test` with two unused warnings and exit 0, nothing naming the disagreement. Previously, against 0.1.118: the identical two-file project (a file whose header reads `module app/models` while sitting at a path the project keys as `models`) still compiles with no diagnostic naming the disagreement. Previously, against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
   this configuration and is covered by a test naming it.*
 
   **This is worse than a silent gap. It is a silent wrong answer, and it breaks
@@ -9909,8 +9909,14 @@ and is the owner's to confirm.
   now, which is one meaning across the table: the relation reads the pairing, or
   it does not.*
 
-- **G235. The editor's hover still answers single-file, so an imported name has no type
-  in an editor.** `glyph_hover` reads the file inside its project and answers at
+- **G235. [FIXED] The editor's hover still answers single-file, so an imported name has no type
+  in an editor.** Fixed in 0.1.124: the language server holds one database per
+  project the session touches, with open buffers layered over the files on
+  disk, so hover, definition, references and diagnostics answer across a module
+  boundary and give the answer `glyph query` gives; an unsaved edit in one
+  buffer is seen from another, and a keystroke writes one input and
+  re-registers nothing. Measured cost one to nine percent on a keystroke.
+  Original entry follows. `glyph_hover` reads the file inside its project and answers at
   every name declared in another module (G227). The language server does not:
   its overlay database registers the buffers an editor opened, not a project, so
   `textDocument/hover` on an imported function at its call site and on a field

@@ -5432,7 +5432,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - Editor go-to-definition across modules in an unmarked `src/` tree still resolves imports from the workspace folder rather than `src/` (`project_root_for`); narrowing it is a scope decision recorded with the module-key work
 - The enterprise review's items from the rolling lane as they are decided: the Marketplace listing once the publisher id exists, the SARIF remap through the source maps, and a test and coverage story past `@example`
 
-**0.1.124 — Landed on main · What the benchmark runs on, closed**
+**0.1.124 — Shipped 2026-09-22 · What the benchmark runs on, closed**
 - The agent-surface priorities are done; what remains before the 0.2.0 gate is the set of holes the two-agent experiment would find first, each already recorded and each scheduled here rather than left in a lane
 - G232: a synthesized record type for an object literal, so `let c = { mode: "read" }; return c` is decided the way the written literal already is, with every new refusal established against tsc one shape at a time (missing required field, wrong field type, record against primitive)
 - G235: the editor's own hover answers across a module boundary, which means the language server's overlay registers a project rather than a set of buffers

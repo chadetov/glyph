@@ -61,8 +61,71 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.123</span>
+            <span class="rel-ver">0.1.124</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release closes the holes a two-agent experiment would have found first, so that the study the roadmap gates 0.2.0 on measures the language rather than a checker that still leaned on <code>tsc</code>. It is breaking in four places, each established by running 0.1.123 and this build on the same program: an object literal that does not fit its declared type, a JSX attribute that does not fit its component's props, a wrong argument type to one of eleven stdlib modules, and a single-file check of a nested file in a tree with no <code>package.json</code> marker, which now agrees with the project build. All four went from exit 0 to exit 1 under <code>glyph check --no-tsc</code>.</p>
+
+            <h3>An object literal has a type</h3>
+            <p>Until now the checker typed <code>{ x: 1 }</code> as nothing at all. <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed to a parameter it does not fit all passed <code>glyph check</code> and were caught by <code>tsc</code> at the end of the build, which means the editor, the MCP tools and <code>--no-tsc</code> were blind to them.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc</span>
+<pre>type User = { name: string, age: int }
+fn takes(u: User) -&gt; int { return u.age }
+
+let g: string = { x: 1 }
+let u: User = { name: "a" }
+let c = { name: "a" }
+takes(c)
+<span class="del">// 0.1.123: nothing                                    (exit 0)</span>
+<span class="add">// 0.1.124: [E0204] expected `string`, found `record`
+//          [E0204] expected `User`, found `record`
+//          [E0211] expected `User`, found `record`       (exit 1)</span></pre>
+            </div>
+            <p>A spread-free object literal is the structural record of the fields it writes, compared structurally at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument, with the declared type named. The type survives a binding: <code>let c = { name: "a" }</code> carries <code>{ name: string }</code>, with a fresh string literal widened the way TypeScript widens it, so a misspelled key read back off it is E0210. Every refusal was established against <code>tsc --strict</code> one shape at a time, and every accepted shape still passes it. Two things deliberately do not change: a literal holding a spread has no type, because its fields are not enumerable there, and an extra field the record does not declare is still accepted, which is the width rule the record comparison has always applied. What still stops short is the message for a missing field, <code>found `record`</code> where <code>tsc</code> names the property; that is the first item of the next release.</p>
+
+            <h3>A JSX attribute is checked against the props record</h3>
+            <p>With <code>component Button(props: { variant: Variant, label: string })</code> over a <code>"primary" | "danger"</code> union, all of <code>variant="danger"</code>, <code>variant="nope"</code> and <code>variant={42}</code> passed <code>glyph check --no-tsc</code>. An attribute list never reached the assignability relation.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc</span>
+<pre>&lt;Button variant="nope" label="go" /&gt;
+&lt;Button variant="danger" labl="go" /&gt;
+<span class="del">// 0.1.123: nothing                                    (exit 0)</span>
+<span class="add">// 0.1.124: [E0211] expected `Variant`, found `"nope"`
+//          [E0210] type `Props` has no field `labl`      (exit 1)</span></pre>
+            </div>
+            <p>A component element's written attributes go through the same argument-versus-parameter check a call does, so a wrong value is E0211 carrying the values a string-literal union accepts, and an undeclared attribute is E0210 with the record's field list, which <code>glyph fix</code> renames when one declared field is a character away. It holds across an import, where the props record keeps its own name. Three readings were settled by running the equivalent TypeScript under React 18's types: children ride as <code>createElement</code> arguments and are not a prop; an element carrying a spread may get its props from the spread, so it is not asked about a missing attribute, but what it writes explicitly is still checked; and an optional field may be omitted. A missing required attribute is still caught only by <code>tsc</code>, for the same reason as the record literal above. The work also found two holes it did not fix, recorded as G242 and G243: a component reached through a lowercase namespace alias, <code>&lt;ui.Button /&gt;</code>, is classified by its first character and emitted as a string tag that React never calls while <code>tsc</code> accepts it, and <code>component Greeting(name: string)</code> is accepted although no element can ever render it. Both are in 0.1.125.</p>
+
+            <h3>The editor answers across a module boundary</h3>
+            <p><code>glyph query hover</code> answered at every name declared in another module and the language server did not: its overlay registered the buffers the editor had opened, not a project, so hovering an imported function at its call site, or a field read off an imported record, came back <code>null</code> where the tool answered.</p>
+            <div class="code">
+              <span class="cap">textDocument/hover, over the protocol, at the call to an imported create</span>
+<pre><span class="del">// 0.1.123: null</span>
+<span class="add">// 0.1.124: fn(string) -&gt; Order</span></pre>
+            </div>
+            <p>The server now holds one database per project the session touches, with the open buffers layered over the files on disk rather than standing in for them. A file is placed in the project its imports are counted from, which is the root <code>glyph query</code> uses and <code>glyph build</code> compiles from, so the two surfaces ask the same question and hover, definition, references and diagnostics agree with the tool. A buffer the editor has open outranks the bytes on disk everywhere, not only in the file the request is about: retyping a signature in an unsaved <code>orders.glyph</code> changes what hovering its call site in <code>main.glyph</code> says, and closing it without saving puts disk back in charge. A keystroke writes one input and re-registers nothing, and a body edit leaves a module's export surface content-equal so no sibling is re-analysed; measured on the latency lane's three files, a keystroke costs between one and nine percent more than it did single-file. Hover itself is now one function both surfaces call, which is how they came to give one answer.</p>
+
+            <h3>Eleven stdlib modules carry a type in every position</h3>
+            <p>The stdlib tables modeled a function's arity and its return and left every parameter unknown, so <code>fs.read_text(42)</code> passed <code>glyph check --no-tsc</code> and only <code>tsc</code> refused it. <code>std/fs</code>, <code>std/math</code>, <code>std/regex</code> and <code>std/io</code> now carry a type in every position of every function, and <code>std/array</code>, <code>std/string</code>, <code>std/record</code>, <code>std/path</code>, <code>std/process</code>, <code>std/time</code> and <code>std/timers</code> in every position but four, each of which says so on its row. Fully modeled exports go from 24 to 117 of 327; exports with no signature at all from 227 to 164. Every type was read off the TypeScript in the runtime, so a call these refuse is a call <code>tsc</code> refuses; eight such calls are pinned in the negative corpus, each exit 0 under 0.1.123 and refused here. Three exports of <code>std/fs</code> are new rather than retyped, because the old table could only describe a function returning a <code>Result</code>: <code>exists</code>, <code>is_dir</code> and <code>close_lines</code> have a row now, and <code>io.read_line</code> and <code>process.env</code> answer <code>Option&lt;string&gt;</code>, so the end of input and an unset variable are values a <code>match</code> has to cover. The four positions left <code>unknown</code> are a <code>T</code> the unifier has already bound from an earlier argument (<code>array.push</code>, <code>array.contains</code>, <code>array.index_of</code>, <code>record.set</code>), where writing the declared type would refuse <code>array.contains(["a", "b"], s)</code>; the unifier change that fixes that is its own release.</p>
+
+            <h3>A diagnostic says what kind of names it lists, and a file has one name</h3>
+            <p><code>alternatives</code> carried a record's fields, a union's variants, a string-literal union's literals or a module's exports with nothing in the object saying which, so <code>check --agent</code> re-read <code>glyph_symbol</code> to find out and dropped its sentence for an inline union. Every diagnostic now carries <code>alternatives_kind</code> beside it, one of <code>fields</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised and <code>null</code> exactly when <code>alternatives</code> is. <code>alternatives</code> itself is unchanged. Separately, a nested file in a tree with no <code>package.json</code> marker was <code>sub/deep</code> to <code>glyph check</code> and <code>deep</code> to the tools, because the build keyed it from the nearest <code>src/</code> and the tools from its own directory. One rule on every surface now, written into D41: the nearest marked ancestor, else the nearest ancestor named <code>src</code>, else the file's own directory. That is the fourth breaking change: checking <code>src/sub/deep.glyph</code> alone used to accept an import the project build rejected, and now agrees with it.</p>
+
+            <h3>Smaller things</h3>
+            <p><code>glyph fmt</code> no longer writes a file its own parser refuses: the formatter prints every unary operand in parentheses, and the parser charged a nesting level for the operand and another for the parentheses, so a run of forty minuses came back at eighty levels and the next pass drew E0011 on output the previous pass had produced. Parentheses around an operand are now that operand's level, so <code>-(x)</code> nests as deep as <code>-x</code>; the limit is still 64 and a run of bare parentheses is still counted one per bracket. The spec numbered two decisions D43; the <code>mut</code>-across-<code>await</code> rule keeps the number the shipped notes cite, and <code>never</code> as the bottom type is D47, with the old number noted on it, so <code>glyph llms --json</code> reports no duplicate. And the benchmarks page on this site had kept a withdrawn token figure for two weeks after the fixtures were made to compile; it now carries the measured 436 to TypeScript's 478, and the doc-claims gate reads the newest results file so the two cannot disagree again.</p>
+
+            <p>One planned item did not ship. The publish workflow was to move to npm trusted publishing before this tag; a trusted publisher is configured per package on npmjs.com by the account owner, and that was not done in time, so this release publishes on the token path and the move heads 0.1.125.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.123</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

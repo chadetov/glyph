@@ -5453,13 +5453,15 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G268: one pairing, one verdict, at an argument and at an attribute
 - **Toward a preview announcement**, decided 2026-10-11 by the owner: after one or two more releases, a readiness pass rather than a feature. `docs/launch/` is rewritten from the compiler as it is then (it was written for v0.1); outside-user agents run the getting-started path cold and every gap they hit is recorded; and a Linus review reads the announcement itself, the way it reads a release. The announcement says what Glyph catches today, shown with the `catches/` programs that are verified both ways, and says that the productivity claim has not been measured: the agent accuracy benchmark below is still the 0.2.0 gate, and the announcement is not it
 
-**0.1.126 — In development · Components emit, check and navigate the same way under every spelling**
+**0.1.126 — Ready to cut · Components emit, check and navigate the same way under every spelling**
 - G249: go-to-definition on a namespace member answers the declaration the named import answers, in the editor and in `glyph_definition`
 - G247: the prelude `Component` lowers to `React.ReactNode`, and an unannotated component returns it rather than `void`
 - G253: a missing required `children` explains that children written between the tags are not part of the props object
 - G246, decided 2026-10-11 by the owner: E0229 for an `unknown` or unbounded generic component parameter
 - G250: an import line is `SAFE` under an edit that keeps the name, and a namespace-qualified call is a call site under every spelling
 - The React answer page states what holds for real React and what does not yet
+- **The measurement.** The suite is 1844 tests, from 1820; the exact-or-absent corpus is 38 invariants, from 36; the gap ledger is 272 entries, 224 fixed and 30 open, the 19 new ones from the round that built a React app against real React 18 and from the three agents' own findings
+- **Breaking**, in the checking direction, established by running the published 0.1.125 and this build on the same programs. A component whose parameter is `unknown` exits 0 under 0.1.125 and 1 here (E0229), with attributes and without; an unbounded type parameter the same; `?` in a component body exits 0 under 0.1.125, `tsc` included, and handed React the `Err` object to render, and is E0201 here. A program writing the prelude `-> Component` goes the other way: `TS2304` twice under 0.1.125, `tsc --strict` passed here. Across the 31 apps and `examples/`, with and without `tsc`, the only verdict that changes is `examples/` with `tsc`, from failing on `TS2304 Cannot find name 'Component'` to passing
 
 **0.1.125 — Shipped 2026-10-11 · A component is checked, emitted and related under every spelling**
 - **What the release is.** Four holes in how Glyph handles a React component, three of which shipped green under 0.1.124 with `tsc` in the loop and were broken at run time: a component reached through `import ui` emitted as a string tag and never ran, an element with no attributes passed its required props as `null`, and an unexported component reached through a namespace was accepted. Each now draws a Glyph diagnostic, and the relations an agent reads (references, dependencies, impact, rename) see a component element under every import spelling

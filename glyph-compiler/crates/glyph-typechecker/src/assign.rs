@@ -1970,6 +1970,7 @@ impl Assigner<'_> {
                                 found: r.found,
                                 accepted,
                                 missing_fields: r.missing_fields,
+                                children_between_tags: false,
                                 span: r.span,
                             });
                         }
@@ -2245,6 +2246,7 @@ impl Assigner<'_> {
                     found: r.found,
                     accepted,
                     missing_fields: r.missing_fields,
+                    children_between_tags: false,
                     span: r.span,
                 });
             }
@@ -2280,11 +2282,18 @@ impl Assigner<'_> {
         if missing_fields.is_empty() {
             return;
         }
+        // Children written between the tags are `createElement` arguments
+        // after the props object, never a field of it, so they do not fill a
+        // required `children`. The refusal stands (`tsc` makes the same one);
+        // the flag is what lets the help say why.
+        let children_between_tags =
+            missing_fields.iter().any(|f| f == "children") && jsx_writes_children(&j.children);
         self.errors.push(TypeError::ArgumentTypeMismatch {
             expected: ty_display(props_ty),
             found: "record".to_string(),
             accepted: None,
             missing_fields,
+            children_between_tags,
             span: j.name_span,
         });
     }
@@ -7486,6 +7495,22 @@ fn levenshtein(a: &str, b: &str) -> usize {
         std::mem::swap(&mut prev, &mut curr);
     }
     prev[b.len()]
+}
+
+
+/// True when an element passes React at least one child: an element, an
+/// `{expr}`, or text that survives the emitter's whitespace rule. Text that
+/// spans lines and holds only spaces and tabs is formatting and is dropped;
+/// any other text, a lone space on one line included, is passed.
+fn jsx_writes_children(children: &[glyph_ast::JsxChild]) -> bool {
+    children.iter().any(|c| match c {
+        glyph_ast::JsxChild::Element(_) | glyph_ast::JsxChild::Expr(_) => true,
+        glyph_ast::JsxChild::Text { content, .. } => {
+            let spans_lines = content.contains('\n') || content.contains('\r');
+            content.chars().any(|ch| !matches!(ch, ' ' | '\t' | '\n' | '\r'))
+                || (!spans_lines && !content.is_empty())
+        }
+    })
 }
 
 #[cfg(test)]

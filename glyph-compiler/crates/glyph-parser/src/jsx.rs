@@ -42,11 +42,13 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             children,
             self_closing: false,
             name_span: open_span,
+            name_segments: Vec::new(),
+            close_name_segments: Vec::new(),
             span: Span::new(open_span.start, close.end),
         });
     }
 
-    let (name, name_span) = jsx_element_name(p)?;
+    let (name, name_span, name_segments) = jsx_element_name(p)?;
 
     // Parse attributes until `>` or `/>`.
     let mut attrs = Vec::new();
@@ -64,6 +66,8 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             children: Vec::new(),
             self_closing: true,
             name_span,
+            name_segments,
+            close_name_segments: Vec::new(),
             span: Span::new(open_span.start, close.end),
         });
     }
@@ -77,7 +81,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     // Closing tag.
     p.expect(&Token::LAngle, "`<` (open closing tag)")?;
     p.expect(&Token::Slash, "`/` (closing tag)")?;
-    let (close_name, close_name_span) = jsx_element_name(p)?;
+    let (close_name, close_name_span, close_name_segments) = jsx_element_name(p)?;
     if close_name != name {
         return Err(ParseError::Expected {
             expected: "closing tag matching the opening tag",
@@ -93,6 +97,8 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
         children,
         self_closing: false,
         name_span,
+        name_segments,
+        close_name_segments,
         span: Span::new(open_span.start, close.end),
     })
 }
@@ -254,19 +260,24 @@ fn jsx_name(p: &mut Cursor) -> Result<(Arc<str>, Span), ParseError> {
 /// as the `createElement` type, and the resolver resolves only the base
 /// segment. A `.` never follows an intrinsic tag or directive, so this is a
 /// no-op for those.
-fn jsx_element_name(p: &mut Cursor) -> Result<(Arc<str>, Span), ParseError> {
+///
+/// Returns the dotted name, the span of the whole path, and the span of each
+/// segment. The segments are separate tokens, so whitespace may sit between
+/// them and only their own spans say where each one is.
+fn jsx_element_name(p: &mut Cursor) -> Result<(Arc<str>, Span, Vec<Span>), ParseError> {
     let (first, first_span) = jsx_name(p)?;
     if !matches!(p.peek(), Token::Dot) {
-        return Ok((first, first_span));
+        return Ok((first, first_span, vec![first_span]));
     }
     let mut name = first.to_string();
-    let mut end = first_span.end;
+    let mut segments = vec![first_span];
     while matches!(p.peek(), Token::Dot) {
         p.advance(); // `.`
         let (seg, seg_span) = jsx_name(p)?;
         name.push('.');
         name.push_str(&seg);
-        end = seg_span.end;
+        segments.push(seg_span);
     }
-    Ok((Arc::from(name.as_str()), Span::new(first_span.start, end)))
+    let span = first_span.join(*segments.last().expect("one segment at least"));
+    Ok((Arc::from(name.as_str()), span, segments))
 }

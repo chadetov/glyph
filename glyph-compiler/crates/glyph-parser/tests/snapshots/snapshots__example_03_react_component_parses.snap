@@ -1117,6 +1117,13 @@ Module {
                                                             start: 1576,
                                                             end: 1581,
                                                         },
+                                                        name_segments: [
+                                                            Span {
+                                                                start: 1576,
+                                                                end: 1581,
+                                                            },
+                                                        ],
+                                                        close_name_segments: [],
                                                         span: Span {
                                                             start: 1575,
                                                             end: 1737,
@@ -1178,6 +1185,13 @@ Module {
                                                             start: 1743,
                                                             end: 1754,
                                                         },
+                                                        name_segments: [
+                                                            Span {
+                                                                start: 1743,
+                                                                end: 1754,
+                                                            },
+                                                        ],
+                                                        close_name_segments: [],
                                                         span: Span {
                                                             start: 1742,
                                                             end: 1805,
@@ -1190,6 +1204,18 @@ Module {
                                                 start: 1546,
                                                 end: 1549,
                                             },
+                                            name_segments: [
+                                                Span {
+                                                    start: 1546,
+                                                    end: 1549,
+                                                },
+                                            ],
+                                            close_name_segments: [
+                                                Span {
+                                                    start: 1810,
+                                                    end: 1813,
+                                                },
+                                            ],
                                             span: Span {
                                                 start: 1545,
                                                 end: 1814,
@@ -1409,6 +1435,18 @@ Module {
                                                                         start: 2198,
                                                                         end: 2199,
                                                                     },
+                                                                    name_segments: [
+                                                                        Span {
+                                                                            start: 2198,
+                                                                            end: 2199,
+                                                                        },
+                                                                    ],
+                                                                    close_name_segments: [
+                                                                        Span {
+                                                                            start: 2238,
+                                                                            end: 2239,
+                                                                        },
+                                                                    ],
                                                                     span: Span {
                                                                         start: 2197,
                                                                         end: 2240,
@@ -1421,6 +1459,18 @@ Module {
                                                             start: 2180,
                                                             end: 2184,
                                                         },
+                                                        name_segments: [
+                                                            Span {
+                                                                start: 2180,
+                                                                end: 2184,
+                                                            },
+                                                        ],
+                                                        close_name_segments: [
+                                                            Span {
+                                                                start: 2247,
+                                                                end: 2251,
+                                                            },
+                                                        ],
                                                         span: Span {
                                                             start: 2179,
                                                             end: 2252,
@@ -1467,6 +1517,18 @@ Module {
                                                                         start: 2279,
                                                                         end: 2280,
                                                                     },
+                                                                    name_segments: [
+                                                                        Span {
+                                                                            start: 2279,
+                                                                            end: 2280,
+                                                                        },
+                                                                    ],
+                                                                    close_name_segments: [
+                                                                        Span {
+                                                                            start: 2308,
+                                                                            end: 2309,
+                                                                        },
+                                                                    ],
                                                                     span: Span {
                                                                         start: 2278,
                                                                         end: 2310,
@@ -1479,6 +1541,18 @@ Module {
                                                             start: 2258,
                                                             end: 2262,
                                                         },
+                                                        name_segments: [
+                                                            Span {
+                                                                start: 2258,
+                                                                end: 2262,
+                                                            },
+                                                        ],
+                                                        close_name_segments: [
+                                                            Span {
+                                                                start: 2317,
+                                                                end: 2321,
+                                                            },
+                                                        ],
                                                         span: Span {
                                                             start: 2257,
                                                             end: 2322,
@@ -1581,6 +1655,18 @@ Module {
                                                                                     start: 2399,
                                                                                     end: 2400,
                                                                                 },
+                                                                                name_segments: [
+                                                                                    Span {
+                                                                                        start: 2399,
+                                                                                        end: 2400,
+                                                                                    },
+                                                                                ],
+                                                                                close_name_segments: [
+                                                                                    Span {
+                                                                                        start: 2431,
+                                                                                        end: 2432,
+                                                                                    },
+                                                                                ],
                                                                                 span: Span {
                                                                                     start: 2398,
                                                                                     end: 2433,
@@ -1593,6 +1679,18 @@ Module {
                                                                         start: 2361,
                                                                         end: 2363,
                                                                     },
+                                                                    name_segments: [
+                                                                        Span {
+                                                                            start: 2361,
+                                                                            end: 2363,
+                                                                        },
+                                                                    ],
+                                                                    close_name_segments: [
+                                                                        Span {
+                                                                            start: 2442,
+                                                                            end: 2444,
+                                                                        },
+                                                                    ],
                                                                     span: Span {
                                                                         start: 2360,
                                                                         end: 2445,
@@ -1767,6 +1865,18 @@ Module {
                                                                                                                         start: 2608,
                                                                                                                         end: 2612,
                                                                                                                     },
+                                                                                                                    name_segments: [
+                                                                                                                        Span {
+                                                                                                                            start: 2608,
+                                                                                                                            end: 2612,
+                                                                                                                        },
+                                                                                                                    ],
+                                                                                                                    close_name_segments: [
+                                                                                                                        Span {
+                                                                                                                            start: 2639,
+                                                                                                                            end: 2643,
+                                                                                                                        },
+                                                                                                                    ],
                                                                                                                     span: Span {
                                                                                                                         start: 2607,
                                                                                                                         end: 2644,
@@ -1810,6 +1920,18 @@ Module {
                                                                                                                         start: 2660,
                                                                                                                         end: 2664,
                                                                                                                     },
+                                                                                                                    name_segments: [
+                                                                                                                        Span {
+                                                                                                                            start: 2660,
+                                                                                                                            end: 2664,
+                                                                                                                        },
+                                                                                                                    ],
+                                                                                                                    close_name_segments: [
+                                                                                                                        Span {
+                                                                                                                            start: 2693,
+                                                                                                                            end: 2697,
+                                                                                                                        },
+                                                                                                                    ],
                                                                                                                     span: Span {
                                                                                                                         start: 2659,
                                                                                                                         end: 2698,
@@ -1822,6 +1944,18 @@ Module {
                                                                                                             start: 2547,
                                                                                                             end: 2549,
                                                                                                         },
+                                                                                                        name_segments: [
+                                                                                                            Span {
+                                                                                                                start: 2547,
+                                                                                                                end: 2549,
+                                                                                                            },
+                                                                                                        ],
+                                                                                                        close_name_segments: [
+                                                                                                            Span {
+                                                                                                                start: 2713,
+                                                                                                                end: 2715,
+                                                                                                            },
+                                                                                                        ],
                                                                                                         span: Span {
                                                                                                             start: 2546,
                                                                                                             end: 2716,
@@ -1834,6 +1968,18 @@ Module {
                                                                                                 start: 2499,
                                                                                                 end: 2502,
                                                                                             },
+                                                                                            name_segments: [
+                                                                                                Span {
+                                                                                                    start: 2499,
+                                                                                                    end: 2502,
+                                                                                                },
+                                                                                            ],
+                                                                                            close_name_segments: [
+                                                                                                Span {
+                                                                                                    start: 2729,
+                                                                                                    end: 2732,
+                                                                                                },
+                                                                                            ],
                                                                                             span: Span {
                                                                                                 start: 2498,
                                                                                                 end: 2733,
@@ -1846,6 +1992,18 @@ Module {
                                                                                     start: 2468,
                                                                                     end: 2470,
                                                                                 },
+                                                                                name_segments: [
+                                                                                    Span {
+                                                                                        start: 2468,
+                                                                                        end: 2470,
+                                                                                    },
+                                                                                ],
+                                                                                close_name_segments: [
+                                                                                    Span {
+                                                                                        start: 2744,
+                                                                                        end: 2746,
+                                                                                    },
+                                                                                ],
                                                                                 span: Span {
                                                                                     start: 2467,
                                                                                     end: 2747,
@@ -1858,6 +2016,18 @@ Module {
                                                                         start: 2453,
                                                                         end: 2457,
                                                                     },
+                                                                    name_segments: [
+                                                                        Span {
+                                                                            start: 2453,
+                                                                            end: 2457,
+                                                                        },
+                                                                    ],
+                                                                    close_name_segments: [
+                                                                        Span {
+                                                                            start: 2756,
+                                                                            end: 2760,
+                                                                        },
+                                                                    ],
                                                                     span: Span {
                                                                         start: 2452,
                                                                         end: 2761,
@@ -1870,6 +2040,18 @@ Module {
                                                             start: 2328,
                                                             end: 2332,
                                                         },
+                                                        name_segments: [
+                                                            Span {
+                                                                start: 2328,
+                                                                end: 2332,
+                                                            },
+                                                        ],
+                                                        close_name_segments: [
+                                                            Span {
+                                                                start: 2768,
+                                                                end: 2772,
+                                                            },
+                                                        ],
                                                         span: Span {
                                                             start: 2327,
                                                             end: 2773,
@@ -1932,6 +2114,18 @@ Module {
                                                                         start: 2814,
                                                                         end: 2815,
                                                                     },
+                                                                    name_segments: [
+                                                                        Span {
+                                                                            start: 2814,
+                                                                            end: 2815,
+                                                                        },
+                                                                    ],
+                                                                    close_name_segments: [
+                                                                        Span {
+                                                                            start: 2841,
+                                                                            end: 2842,
+                                                                        },
+                                                                    ],
                                                                     span: Span {
                                                                         start: 2813,
                                                                         end: 2843,
@@ -1944,6 +2138,18 @@ Module {
                                                             start: 2779,
                                                             end: 2783,
                                                         },
+                                                        name_segments: [
+                                                            Span {
+                                                                start: 2779,
+                                                                end: 2783,
+                                                            },
+                                                        ],
+                                                        close_name_segments: [
+                                                            Span {
+                                                                start: 2850,
+                                                                end: 2854,
+                                                            },
+                                                        ],
                                                         span: Span {
                                                             start: 2778,
                                                             end: 2855,
@@ -1956,6 +2162,18 @@ Module {
                                                 start: 2148,
                                                 end: 2153,
                                             },
+                                            name_segments: [
+                                                Span {
+                                                    start: 2148,
+                                                    end: 2153,
+                                                },
+                                            ],
+                                            close_name_segments: [
+                                                Span {
+                                                    start: 2860,
+                                                    end: 2865,
+                                                },
+                                            ],
                                             span: Span {
                                                 start: 2147,
                                                 end: 2866,

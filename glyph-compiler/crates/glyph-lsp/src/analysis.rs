@@ -1734,9 +1734,9 @@ pub struct RelatedSpan {
 /// Only a bare name counts. A member callee (`io.println()`), an indexed one
 /// (`handlers[k]()`) and a call through a local alias each apply something
 /// other than the named symbol. A JSX element naming a component
-/// (`<UserSearch />`) is not a call expression, and the resolver keys it by the
-/// whole element's span rather than by the name's, so it is not in this set
-/// either.
+/// (`<UserSearch />`, `<ui.UserSearch />`) is not a call expression, so it is
+/// not in this set either: it is a [`Relation::References`] site at the name,
+/// under every import spelling.
 ///
 /// Applying a tagged-union variant (`Ok(3)`) *is* in it. The site applies the
 /// constructor to an argument list and stops compiling when the payload
@@ -2864,6 +2864,85 @@ mod tests {
                 name: "foo".to_string()
             })
         );
+    }
+
+    /// `text` with every span in `spans` overwritten by `new`, which is the
+    /// edit the server's workspace rename sends for one file.
+    fn renamed(text: &str, spans: &[(u32, u32)], new: &str) -> String {
+        let mut out = text.to_string();
+        let mut spans = spans.to_vec();
+        spans.sort_unstable();
+        for (s, e) in spans.into_iter().rev() {
+            out.replace_range(s as usize..e as usize, new);
+        }
+        out
+    }
+
+    /// G244: a component element is a use of the component under every
+    /// import spelling, and a rename rewrites it under every one.
+    ///
+    /// The named spelling's element used to be keyed by the whole element, so
+    /// its occurrence was `<Button label="go" />` entire and a rename wrote
+    /// the new name over the attributes. The namespace spellings were not
+    /// recorded at all, so a rename left `<ui.Button>` naming a component
+    /// that no longer existed. A closing tag spells the name a second time and
+    /// is rewritten with the opening one, or the element stops parsing.
+    #[test]
+    fn workspace_rename_rewrites_a_component_element_under_every_import_spelling() {
+        let ui = "module ui\npub component Button(props: { label: string, }) {\n  return <button>{props.label}</button>\n}\n";
+        let cases = [
+            (
+                "module main\nimport ui { Button }\npub component App() {\n  return <Button label=\"go\" />\n}\n",
+                "module main\nimport ui { Action }\npub component App() {\n  return <Action label=\"go\" />\n}\n",
+            ),
+            (
+                "module main\nimport ui { Button }\npub component App() {\n  return <Button label=\"go\">hi</Button>\n}\n",
+                "module main\nimport ui { Action }\npub component App() {\n  return <Action label=\"go\">hi</Action>\n}\n",
+            ),
+            (
+                "module main\nimport ui\npub component App() {\n  return <ui.Button label=\"go\" />\n}\n",
+                "module main\nimport ui\npub component App() {\n  return <ui.Action label=\"go\" />\n}\n",
+            ),
+            (
+                "module main\nimport ui\npub component App() {\n  return <ui.Button label=\"go\">hi</ui.Button>\n}\n",
+                "module main\nimport ui\npub component App() {\n  return <ui.Action label=\"go\">hi</ui.Action>\n}\n",
+            ),
+            (
+                "module main\nimport ui as u\npub component App() {\n  return <u.Button label=\"go\" />\n}\n",
+                "module main\nimport ui as u\npub component App() {\n  return <u.Action label=\"go\" />\n}\n",
+            ),
+            (
+                "module main\nimport ui as u\npub component App() {\n  return <div><u.Button label=\"go\">hi</u.Button></div>\n}\n",
+                "module main\nimport ui as u\npub component App() {\n  return <div><u.Action label=\"go\">hi</u.Action></div>\n}\n",
+            ),
+        ];
+        let defining = analyze_full(ui).expect("ui parses");
+        let in_ui = defining.global_occurrences("ui", "ui", "Button", ui, true);
+        assert_eq!(spans_text(ui, &in_ui), vec!["Button"]);
+
+        for (before, after) in cases {
+            let an = analyze_full(before).expect("main parses");
+            let occ = an.global_occurrences("main", "ui", "Button", before, true);
+            assert!(
+                spans_text(before, &occ).iter().all(|s| *s == "Button"),
+                "an occurrence wider than the name in {before:?}: {:?}",
+                spans_text(before, &occ)
+            );
+            assert_eq!(renamed(before, &occ, "Action"), after, "renaming in {before:?}");
+
+            // The rename can start from the element as well as from the
+            // declaration, and both ends address the one declaration.
+            for at in before.match_indices("Button").map(|(i, _)| i + 1) {
+                assert_eq!(
+                    an.symbol_target(at, before, "main"),
+                    Some(SymbolTarget::Global {
+                        module: "ui".to_string(),
+                        name: "Button".to_string()
+                    }),
+                    "the target at byte {at} of {before:?}"
+                );
+            }
+        }
     }
 
     #[test]

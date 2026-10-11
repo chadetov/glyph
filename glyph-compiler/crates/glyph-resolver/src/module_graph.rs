@@ -599,7 +599,8 @@ pub fn verify_qualified_type_refs(
     graph: &dyn ModuleGraph,
 ) -> Vec<ResolveError> {
     let mut errors = Vec::new();
-    for r in refs {
+    // A JSX closing tag repeats its opening tag's name, which is checked.
+    for r in refs.iter().filter(|r| !r.closing_tag) {
         let Some(exports) = graph.exports_of(&r.module) else {
             continue;
         };

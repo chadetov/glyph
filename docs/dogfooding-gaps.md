@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-253 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-11 are open. G144, the D28 boundary cast that never reached the returns a
+271 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+29 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10346,3 +10346,144 @@ and is the owner's to confirm.
   decision about the React lowering. Found by the 0.1.125 release review.
 
   *Reproduced against 0.1.124, the version the release-branch binary reports before the bump, with the 0.1.125 change in place: `glyph check --no-tsc --no-test src` on that program prints the E0211 above and the generic help line.*
+
+- **G254. Browser globals cannot be named, so a React effect that touches the
+  page cannot be written.** `document`, `window`, `localStorage`,
+  `navigator`, `console`, `globalThis` and `setTimeout` are E0103 by
+  design: a global the stdlib does not wrap is a stdlib gap, and nothing wraps
+  the browser. The most common `useEffect`, setting the document title, is
+  unwritable. Decided 2026-10-11 by the owner: a typed `std/dom` module, on the
+  timers and WebSocket precedent. Found by the 0.1.126 React dogfood round, which
+  stopped there.
+
+  *Reproduced against 0.1.125: `useEffect(fn() { mut document.title = "${props.count} todos" }, [props.count])` in a component, with react@18 installed, draws ``[E0103] unresolved name `document` `` from `glyph check`.*
+
+- **G255. A hook's tuple cannot be destructured.** `let [count, set_count] =
+  useState(0)` is ``[E0002] expected variable name after `let`, found
+  LBracket``. The working spelling is `let s = useState(0)` and `s[0]` /
+  `s[1]`, which keeps the tuple element types in the emitted TypeScript but
+  costs three lines per hook. Decided 2026-10-11 by the owner: `let [a, b] =
+  expr` with an irrefutable array pattern and a tuple element type in the
+  checker, as a new D-decision.
+
+  *Reproduced against 0.1.125: the `let` line above is E0002.*
+
+- **G256. An import of a `std/` module that does not exist passes the Glyph
+  stages.** `import std/zzznope { thing }` is exit 0 under `glyph check
+  --no-tsc`; only `tsc` fails, with `TS2307 Cannot find module
+  './.glyph-runtime/std/zzznope'`. A missing local module is E0104, which skips
+  `std/*`. `import std/dom` today draws only an unused-import warning, which
+  reads as if the module exists.
+
+  *Reproduced against 0.1.125: that import with a use of `thing` exits 0 under `--no-tsc`.*
+
+- **G257. Glyph's checker does not type values that come from React.** A state
+  setter called with the wrong type, `set_count("x")` for a number state,
+  passes `--no-tsc` and is TS2345 under `tsc`, underlined across the whole
+  `return` line rather than at `"x"`. Hover on the hook's result answers
+  `null`. The editor and `glyph_diagnostics` never see it.
+
+  *Reproduced against 0.1.125: the counter with `set_count("x")` exits 0 under `--no-tsc` and fails `glyph check` with TS2345.*
+
+- **G258. AGENTS.md names the `<for>` directive and never shows its syntax.**
+  The dogfood agent guessed `<for each={todos} as={todo}>` and drew E0103 five
+  times. The form is `<for todo in={todos} key={todo.id}>`, shown only in the
+  React example built on the fictional stub.
+
+  *Reproduced against 0.1.125: AGENTS.md has no `<for` example; the guessed spelling draws E0103 for `todo`.*
+
+- **G259. Go-to-definition answers `null` on an import binding and on a
+  declaration's own name.** On `Button` in `import ui { Button }` and on
+  `Button` in `pub component Button`, both surfaces answer `null`, while hover
+  answers and the symbol target is `ui::Button`.
+
+  *Reproduced against 0.1.125: `glyph query definition` at the binding token prints `null`.*
+
+- **G260. Hover on a namespace base segment depends on position.** `ui` in
+  `ui.Button` (value or element) hovers `null`; `ui` in `ui.Props` hovers
+  `Props`, because the type entry spans the whole path.
+
+  *Reproduced against 0.1.125: `glyph query hover` on `ui` gives `null` in `let b = ui.Button` and `"Props"` in `let p: ui.Props`.*
+
+- **G261. A same-file definition is a zero-width range.** `glyph_definition`
+  answers a declaration in the same file as a zero-width range at its start,
+  and one in another module as the whole declaration.
+
+  *Reproduced against 0.1.125: definition on a local call gives `start == end`.*
+
+- **G262. The prelude `Component` takes type arguments without complaint.**
+  `-> Component<string>` passes Glyph; since 0.1.126 lowers `Component` to
+  `React.ReactNode`, `tsc` reports `TS2315 'ReactNode' is not generic`.
+
+  *Reproduced against 0.1.125: `fn v() -> Component<string>` passes `--no-tsc`.*
+
+- **G263. A generic bound is never resolved.** `component Show<T: Nope>(p: T)`
+  passes Glyph with `Nope` declared nowhere, and `tsc` reports TS2304. The
+  bound only reaches the emitter's `extends`, so `<T: string>` is silent too
+  while `tsc` refuses its elements.
+
+  *Reproduced against 0.1.125: `fn f<T: Nope>(x: T) -> T { return x }` passes `--no-tsc`.*
+
+- **G264. Elements of a bounded generic component are not checked by Glyph.**
+  `<Show />` and `<Show label="x" other="y" />` against
+  `component Show<T: HasLabel>(p: T)` pass Glyph and are TS2769 under `tsc`.
+
+  *Reproduced against 0.1.125: both elements pass `--no-tsc`.*
+
+- **G265. JSX is untyped in the checker, so a JSX value passes where a string is
+  declared.** `fn s() -> string { return <p>hi</p> }` passes Glyph and is
+  TS2322 under `tsc`; `component A() -> string` over JSX is silent the same
+  way. Decided in principle 2026-10-11: model the prelude `Component` in the
+  relation (JSX is `Component`; `Component` is not a `string` and a record is
+  not a `Component`), as its own change.
+
+  *Reproduced against 0.1.125: `fn s() -> string { return <p>hi</p> }` exits 0 under `--no-tsc`.*
+
+- **G266. A declared `children` type is never compared with what is written
+  between the tags.** With `children?: string`, `<Kids title="t">{5}</Kids>`
+  passes Glyph and `tsc` alike, because `createElement` children are
+  `ReactNode[]` outside the props object.
+
+  *Reproduced against 0.1.125: the element passes `glyph check` with `tsc`.*
+
+- **G267. `default as` on a Glyph module passes the Glyph stages.**
+  `import ui { default as f }` against a Glyph module with no default export
+  is exit 0 under `--no-tsc`; `tsc` reports TS1192 `Module has no default
+  export`.
+
+  *Reproduced against 0.1.125: with `ui` declaring `pub fn fmt`, `import ui { default as f }` and `f(1)` exit 0 under `--no-tsc` and 1 with TS1192.*
+
+- **G268. Impact gives one pairing two verdicts, at an argument and at an
+  attribute.** `take(5)` against `take(x: unknown)` is `UNDETERMINED` (the
+  cell table's catch-all), and `<Box x={n} />` against `{ x: unknown }` is
+  `WILL_FAIL` through the relation, under `change_signature_type`.
+
+  *Reproduced against 0.1.125 on the 0.1.126 impact branch: the two sites answer differently for `number` against `unknown`.*
+
+- **G269. A weak type is accepted where `tsc` refuses it.** A value
+  `{ x: number }` against a record whose fields are all optional,
+  `{ hint?: string }`, sharing none of them, passes Glyph and is TS2559 under
+  `tsc`; `glyph query assignable` answers `COMPATIBLE`. Decided 2026-10-11:
+  Glyph refuses what `tsc` refuses here.
+
+  *Reproduced against 0.1.125: `ti(v4)` with `ti(x: { hint?: string, })` and `let v4 = { x: 1 }` exits 0 under `--no-tsc`.*
+
+- **G270. Nested record fields are compared loosely, and impact reports a
+  WILL_FAIL that no diagnostic follows.** The structural record arm compares a
+  nested field with the free `definitely_incompatible`, while the accepting
+  rule recurses through the full relation. So `tx(v)` with `v = { o: o }`
+  against `tx(x: { o: Other })` passes Glyph (and is TS2345 under `tsc`),
+  while `glyph_impact` on `tx` reports that site `WILL_FAIL` with E0211. Live
+  since G228. Decided 2026-10-11: compare nested fields with the full relation.
+
+  *Reproduced against 0.1.125: changing `tx`'s parameter to `{ o: Other, }` draws no diagnostic under `--no-tsc`.*
+
+- **G271. The flagship React example is written against hooks React does not
+  have.** `examples/03_react_component.glyph` calls `use_state`, `use_effect`
+  and `use_memo` with a `{ value, set }` shape that exists only in the CI stub
+  `examples/.types/glyph-externals.d.ts`, imports an `api/users` the
+  repository does not hold, and declares a type and a variant with one name.
+  Against real React 18 it draws TS2724 three times and TS7006. It becomes a
+  program against real React once G254 and G255 land.
+
+  *Reproduced against 0.1.125: the example in a project with react@18 and a small `api/users` draws TS2724 for each of the three hooks.*

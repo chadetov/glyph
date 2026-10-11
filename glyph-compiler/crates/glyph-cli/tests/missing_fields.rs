@@ -518,3 +518,96 @@ fn a_namespace_component_element_is_asked_for_its_required_props() {
         assert_eq!(d["missing_fields"], serde_json::json!(want), "{name}: {d:#}");
     }
 }
+
+/// G253. Children written between a component element's tags are passed to
+/// `createElement` after the props object, never inside it, so they do not
+/// fill a required `children` field. `tsc --strict` with React 18's types
+/// refuses `createElement(Kids, { title: "t" }, "hello")` against
+/// `{ title: string; children: string }` with TS2769 (`Property 'children' is
+/// missing`), so the refusal stands; the help says why and names the two
+/// spellings that compile there, both established the same way.
+const KIDS: &str = "module main\n\
+                    \n\
+                    type KidsProps = { title: string, children: string }\n\
+                    \n\
+                    component Kids(props: KidsProps) {\n\
+                    \x20 return <div>{props.title}{props.children}</div>\n\
+                    }\n";
+
+const CHILDREN_HELP: &str = "Children written between the tags are not part of the props object";
+
+#[test]
+fn a_required_children_filled_between_the_tags_explains_itself() {
+    for (name, element, want) in [
+        ("text", "<Kids title=\"t\">hello</Kids>", &["children"][..]),
+        ("expr", "<Kids title=\"t\">{\"hello\"}</Kids>", &["children"][..]),
+        ("element", "<Kids title=\"t\"><b>hi</b></Kids>", &["children"][..]),
+        ("and_title", "<Kids>hello</Kids>", &["title", "children"][..]),
+    ] {
+        let src = format!("{KIDS}\npub component App() {{\n  return {element}\n}}\n");
+        let v = check_json(name, &src);
+        let errs = errors(&v);
+        assert_eq!(errs.len(), 1, "{name}: {v:#}");
+        let d = &errs[0];
+        assert_eq!(d["code"], "E0211", "{name}: {d:#}");
+        assert_eq!(d["missing_fields"], serde_json::json!(want), "{name}: {d:#}");
+        let help = d["help"].as_str().unwrap_or_default();
+        assert!(help.contains(CHILDREN_HELP), "{name}: {d:#}");
+        assert!(help.contains("`children?: T`"), "{name}: {d:#}");
+        assert!(help.contains("`children={...}`"), "{name}: {d:#}");
+    }
+}
+
+/// The ordinary help stays wherever the children explanation would be wrong:
+/// no children written, a different field missing, or only the line-spanning
+/// whitespace the emitter drops between the tags.
+#[test]
+fn the_children_explanation_needs_children_and_a_missing_children_field() {
+    let optional = "module main\n\
+                    \n\
+                    type P = { title: string, children?: string }\n\
+                    \n\
+                    component Kids(props: P) {\n\
+                    \x20 return <div>{props.title}</div>\n\
+                    }\n";
+    for (name, decls, element) in [
+        ("no_children", KIDS, "<Kids title=\"t\" />"),
+        ("whitespace", KIDS, "<Kids title=\"t\">\n  </Kids>"),
+        ("other_field", optional, "<Kids>hello</Kids>"),
+    ] {
+        let src = format!("{decls}\npub component App() {{\n  return {element}\n}}\n");
+        let v = check_json(name, &src);
+        let errs = errors(&v);
+        assert_eq!(errs.len(), 1, "{name}: {v:#}");
+        let d = &errs[0];
+        assert_eq!(d["code"], "E0211", "{name}: {d:#}");
+        let help = d["help"].as_str().unwrap_or_default();
+        assert!(!help.contains(CHILDREN_HELP), "{name}: {d:#}");
+        assert!(help.contains("Pass a value of the expected type"), "{name}: {d:#}");
+    }
+}
+
+/// The two fixes the help offers, both compiled under `tsc --strict` with
+/// React 18's types: an optional `children` read as optional, and `children`
+/// written as an attribute.
+#[test]
+fn the_two_fixes_the_children_help_names_are_accepted() {
+    let optional = "module main\n\
+                    \n\
+                    type KidsProps = { title: string, children?: string }\n\
+                    \n\
+                    component Kids(props: KidsProps) {\n\
+                    \x20 return <div>{props.title}{props.children ?? \"\"}</div>\n\
+                    }\n\
+                    \n\
+                    pub component App() {\n\
+                    \x20 return <Kids title=\"t\">hello</Kids>\n\
+                    }\n";
+    let attribute = format!(
+        "{KIDS}\npub component App() {{\n  return <Kids title=\"t\" children={{\"hello\"}} />\n}}\n"
+    );
+    for (name, src) in [("optional", optional.to_string()), ("attribute", attribute)] {
+        let v = check_json(name, &src);
+        assert!(errors(&v).is_empty(), "{name}: {v:#}");
+    }
+}

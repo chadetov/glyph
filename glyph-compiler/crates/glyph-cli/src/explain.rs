@@ -422,7 +422,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             field lists it in the message and in `missing_fields`: `<Card \
             title=\"x\" />` against `{ title: string, count: number }` is missing \
             `count`. An element with a `{...spread}` is not asked, since the spread \
-            may supply it.\n\n\
+            may supply it. Children written between the tags are passed to React \
+            after the props object rather than inside it, so they never fill a \
+            required `children` field: declare it `children?: T`, or write it as the \
+            attribute `children={...}`.\n\n\
             Pass a value of the expected type, or change the parameter's type.",
 
         "E0212" => "E0212: cannot reassign a `const`\n\n\

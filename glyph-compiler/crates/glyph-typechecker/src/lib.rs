@@ -457,6 +457,12 @@ pub enum TypeError {
         /// rule as `TypeMismatch::missing_fields`; for a JSX component element these
         /// are the props it does not write.
         missing_fields: Vec<String>,
+        /// True for a component element that leaves out a required `children`
+        /// while writing children between its tags. Those children are
+        /// `createElement` arguments after the props object, so they never
+        /// fill the field; the help says so and names the two spellings that
+        /// compile. False everywhere else.
+        children_between_tags: bool,
         span: Span,
     },
 
@@ -838,6 +844,9 @@ impl TypeError {
             }
             TypeError::UnknownField { .. } => {
                 "Check the field name for a typo, or add the field to the type."
+            }
+            TypeError::ArgumentTypeMismatch { children_between_tags: true, .. } => {
+                "Children written between the tags are not part of the props object: the element passes them to React as separate arguments, so they never fill a required `children` field. Declare it optional (`children?: T`) and read it as optional, or pass it as an attribute: `children={...}`."
             }
             TypeError::ArgumentTypeMismatch { .. } => {
                 "Pass a value of the expected type, or change the parameter's type."

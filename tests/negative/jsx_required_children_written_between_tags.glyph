@@ -1,0 +1,16 @@
+module neg
+
+// G253. Children written between a component element's tags are passed to
+// `React.createElement` after the props object, not inside it, so they never
+// fill a required `children` field. `tsc` refuses the element the same way
+// (TS2769, `Property 'children' is missing`). The E0211 says why and offers
+// `children?: string` or `children={...}`.
+type KidsProps = { title: string, children: string }
+
+component Kids(props: KidsProps) {
+  return <div>{props.title}{props.children}</div>
+}
+
+pub component App() {
+  return <Kids title="t">hello</Kids>
+}

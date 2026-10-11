@@ -588,9 +588,9 @@ fn build_wraps_multi_child_conditional_branches_in_a_fragment() {
         "main.glyph",
         "module f\n\
          import react { Component }\n\
-         component Panel(show: bool) -> Component {\n\
+         component Panel(props: { show: bool }) -> Component {\n\
          \x20 return <div>\n\
-         \x20   <if cond={show}>\n\
+         \x20   <if cond={props.show}>\n\
          \x20     <span>one child</span>\n\
          \x20   </if>\n\
          \x20   <else>\n\
@@ -14353,5 +14353,65 @@ fn g240_the_shapes_tsc_accepts_stay_silent() {
     assert!(
         !stderr.contains("[E02"),
         "no correct shape is refused:\n{stderr}"
+    );
+}
+
+/// G243 across a module boundary. A component's parameter type declared in a
+/// sibling reaches this module as a `Ty::Imported`, and whether it is a props
+/// record is read from the declaration at the end of its chain, so the verdict
+/// is the one the same declaration gets locally, under a named and a namespace
+/// import alike. The records and the re-exported second name of one draw
+/// nothing; a string-literal union, a tagged union and a second name for a
+/// primitive are each one E0229 at the parameter.
+#[test]
+fn an_imported_parameter_type_is_judged_by_its_declaration_for_e0229() {
+    let root = unique_tmp("component_param_imported");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "ui.glyph",
+        "module ui\n\
+         pub type Props = { name: string }\n\
+         pub type Rows = Props\n\
+         pub type Tier = \"free\" | \"pro\"\n\
+         pub type State =\n  | Idle\n  | Busy(number)\n\
+         pub type Id = string\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import ui { Props, Rows, Tier, State, Id }\n\
+         import ui\n\
+         pub component A(props: Props) {\n  return <p>{props.name}</p>\n}\n\
+         pub component B(rows: Rows) {\n  return <p>{rows.name}</p>\n}\n\
+         pub component C(qualified: ui.Props) {\n  return <p>{qualified.name}</p>\n}\n\
+         pub component D(tier: Tier) {\n  return <p>{\"d\"}</p>\n}\n\
+         pub component E(state: State) {\n  return <p>{\"e\"}</p>\n}\n\
+         pub component F(id: Id) {\n  return <p>{id}</p>\n}\n\
+         pub component G(spelled: ui.Tier) {\n  return <p>{\"g\"}</p>\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ran");
+    let refused: Vec<&String> = report
+        .diagnostics
+        .iter()
+        .filter(|d| d.contains("[E0229]"))
+        .collect();
+    for param in ["`tier`", "`state`", "`id`", "`spelled`"] {
+        assert!(
+            refused.iter().any(|d| d.contains(param)),
+            "expected E0229 on {param}; got: {:?}",
+            report.diagnostics
+        );
+    }
+    assert_eq!(refused.len(), 4, "only the four non-records: {refused:?}");
+    assert!(
+        !report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("[E02") && !d.contains("[E0229]")),
+        "no other typecheck code: {:?}",
+        report.diagnostics
     );
 }

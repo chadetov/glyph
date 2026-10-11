@@ -2681,13 +2681,17 @@ fn ident(x: string) -> string { return x }
         let file = new_file(
             &db,
             "comp.glyph",
-            "module x\npub component Btn(label: string) -> Component { return <button></button> }\n",
+            "module x\npub component Btn(props: { label: string }) -> Component { return <button></button> }\n",
         );
         let d = decl_ty(&db, file, name("Btn"));
         match d.ty() {
             Ty::Fn { params, .. } => {
                 assert_eq!(params.len(), 1);
-                assert!(matches!(params[0].ty, Ty::Prim(Primitive::String)));
+                assert!(
+                    matches!(&params[0].ty, Ty::Record { fields } if fields.len() == 1 && fields[0].name.as_ref() == "label" && matches!(fields[0].ty, Ty::Prim(Primitive::String))),
+                    "{:?}",
+                    params[0].ty
+                );
             }
             other => panic!("expected Ty::Fn, got {other:?}"),
         }

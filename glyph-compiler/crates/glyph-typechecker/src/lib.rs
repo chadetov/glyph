@@ -569,6 +569,28 @@ pub enum TypeError {
     #[error("a component takes a single props record, not {count} parameters")]
     ComponentMultipleParams { count: usize, span: Span },
 
+    /// A `component` whose one parameter is not a record (G243). React calls a
+    /// component with the single props object the element builds, and the
+    /// emitter has no other way to pass anything, so the parameter receives
+    /// that object whatever type it declares. `<Greeting name="x" />` over
+    /// `component Greeting(name: string)` is refused by `tsc` (TS2769), and
+    /// `<Greeting />` is accepted there while `name` holds `{}` at run time.
+    ///
+    /// Raised only for a type the checker can decide is not a record: a
+    /// primitive, a string-literal union, a tagged union, an `Array`, `Option`,
+    /// `Result` or `Nullable`, or a function type, seen through any second
+    /// name. A type it cannot see into (a generic parameter, an `extern_ts`
+    /// body, an opaque library type) and `unknown` and `Record<K, V>`, which
+    /// truthfully describe a props object, draw nothing. `span` is the
+    /// parameter, and `ty` is its type as the source writes it.
+    #[error("component `{component}` takes its props as one record, but its parameter `{param}` is `{ty}`")]
+    ComponentParamNotRecord {
+        component: String,
+        param: String,
+        ty: String,
+        span: Span,
+    },
+
     /// `let g = h` whose initializer is a bare reference to a live `owned`
     /// handle. Aliasing a handle creates a second binding to the same resource,
     /// so both could be consumed — defeating single-consumption (D25). Consume
@@ -680,6 +702,7 @@ impl TypeError {
             TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
             TypeError::ComponentMultipleParams { span, .. } => *span,
+            TypeError::ComponentParamNotRecord { span, .. } => *span,
             TypeError::OwnedAliased { span, .. } => *span,
             TypeError::UnreachableMatchArm { span } => *span,
             TypeError::UnusedResult { span } => *span,
@@ -716,6 +739,7 @@ impl TypeError {
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
             TypeError::ComponentMultipleParams { .. } => "E0214",
+            TypeError::ComponentParamNotRecord { .. } => "E0229",
             TypeError::OwnedAliased { .. } => "E0215",
             TypeError::UnreachableMatchArm { .. } => "E0216",
             TypeError::UnusedResult { .. } => "E0217",
@@ -797,6 +821,9 @@ impl TypeError {
             TypeError::ComponentMultipleParams { .. } => {
                 "Take a single props record: `component C(props: P)` with `type P = { ... }`, then read `props.field`."
             }
+            TypeError::ComponentParamNotRecord { .. } => {
+                "A component takes one props record. Declare the parameter as one, e.g. `props: { name: string }`, and read `props.name`."
+            }
             TypeError::OwnedAliased { .. } => {
                 "An `owned` handle cannot be rebound. Consume it directly (pass it to an `owned` parameter) instead of aliasing it."
             }
@@ -854,6 +881,9 @@ impl TypeError {
             ),
             TypeError::MatchArmProducesNoValue { .. } => Some(
                 "A value-position arm lowers to `case X: { break; }` when it yields nothing, so the value would be `undefined` at run time.",
+            ),
+            TypeError::ComponentParamNotRecord { .. } => Some(
+                "React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: `<Greeting />` hands it `{}`, and an element with attributes does not type-check (TS2769).",
             ),
             _ => None,
         }
@@ -939,6 +969,8 @@ impl TypeError {
             // "a resource type" is a rule, not a type, so there is no
             // `expected` to pair with; the type in hand is still reported.
             TypeError::OwnedRequiresResourceType { ty, .. } => Some(ty),
+            // "a props record" is a rule, as "a resource type" is above.
+            TypeError::ComponentParamNotRecord { ty, .. } => Some(ty),
             _ => None,
         }
     }

@@ -428,11 +428,9 @@ jobs:
       # transaction. A failure at call four leaves three packages permanently
       # published at a version the launcher will never point at, and the only
       # way out is to burn the version and bump. These two steps turn the
-      # common causes of that (a version already published, a packaging error)
-      # into a clean stop before the first real publish. A missing trusted
-      # publisher cannot be tested before publishing, since the OIDC exchange is
-      # per package at publish time, so `npm trust list` on all six packages is a
-      # step of the release ceremony before the tag.
+      # common causes of that (a version already published, a packaging error,
+      # a package whose trusted publisher is missing or does not match this
+      # workflow) into a clean stop before the first real publish.
       - name: None of these versions may already exist on the registry
         run: |
           set -uo pipefail
@@ -451,13 +449,31 @@ jobs:
           fi
           echo "none of the six packages exist at $VERSION yet."
 
-      - name: Dry-run every package before publishing any
+      # A dry-run performs the same per-package OIDC exchange the real publish
+      # does, but npm swallows a failed exchange (a verbose log line) and a
+      # dry-run without credentials only warns, so a dry-run alone passes with
+      # no trusted publisher at all. npm logs `oidc Successfully retrieved and
+      # set token` only after the registry returned a token for that package,
+      # so each dry-run runs at verbose level and that line is required. This
+      # is what the `npm whoami` gate proved on the token path, per package
+      # instead of per account. The wording is npm 11.21.0's, pinned above; a
+      # change to it fails this step before anything is published.
+      - name: Dry-run every package and prove its trusted publisher
         run: |
           set -euo pipefail
-          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
-            npm publish "./npm/platform/$key" --access public --dry-run
+          for dir in npm/platform/darwin-arm64 npm/platform/darwin-x64 npm/platform/linux-x64 npm/platform/linux-arm64 npm/platform/win32-x64 npm/glyph; do
+            if ! out=$(npm publish "./$dir" --access public --dry-run --loglevel verbose 2>&1); then
+              printf '%s\n' "$out"
+              echo "::error::the dry-run of $dir failed. Nothing has been published."
+              exit 1
+            fi
+            if ! grep -q "oidc Successfully retrieved and set token" <<<"$out"; then
+              printf '%s\n' "$out" | grep -i "oidc" || true
+              echo "::error::$dir: the OIDC token exchange did not return a token, so its trusted publisher on npmjs.com is missing or does not match chadetov/glyph, release.yml, no environment. Nothing has been published."
+              exit 1
+            fi
+            echo "$dir: dry-run passed and its trusted publisher returned a token"
           done
-          npm publish ./npm/glyph --access public --dry-run
 
       # Publish the platform packages first so the launcher's optional
       # dependencies exist when it is published.

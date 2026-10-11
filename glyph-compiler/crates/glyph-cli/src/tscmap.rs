@@ -183,6 +183,7 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                     // onto Glyph source is not about a Glyph declaration.
                     union: None,
                     missing_variants: None,
+                    missing: None,
                     help: None,
                     note: None,
                     // Nor any of the structured facts. This diagnostic is

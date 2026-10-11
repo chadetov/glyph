@@ -1386,6 +1386,7 @@ impl Assigner<'_> {
                             expected: ty_display(&r.expected),
                             found: r.found,
                             accepted,
+                            missing: r.missing,
                             span: r.span,
                         });
                     }
@@ -1567,6 +1568,7 @@ impl Assigner<'_> {
                             expected: ty_display(&r.expected),
                             found: r.found,
                             accepted,
+                            missing: r.missing,
                             span: r.span,
                         });
                     }
@@ -1967,6 +1969,7 @@ impl Assigner<'_> {
                                 expected: ty_display(&r.expected),
                                 found: r.found,
                                 accepted,
+                                missing: r.missing,
                                 span: r.span,
                             });
                         }
@@ -2158,7 +2161,12 @@ impl Assigner<'_> {
     ///   `React.createElement(tag, props, ...children)` varargs, never inside
     ///   the props object, and `tsc` accepts children on a component whose
     ///   props record declares no `children` field. So nothing here reads
-    ///   `j.children`, and no component is ever asked for one.
+    ///   `j.children`. The converse holds too: written children do not
+    ///   supply a `children` field the props record requires, because `tsc`
+    ///   checks the props object alone against the record and reports
+    ///   `children` missing from it. A required `children` is therefore asked
+    ///   for like any other required prop, as an attribute, and a
+    ///   `children?:` field is never asked for.
     /// - **A spread supplies what it supplies.** `<Button {...p} />` may carry
     ///   every required prop, and `tsc` accepts it, so a missing attribute is
     ///   not decidable next to a spread. An explicitly written attribute is
@@ -2168,6 +2176,17 @@ impl Assigner<'_> {
     /// - **An optional field may be omitted.** `hint?: string` is
     ///   `RecordField::optional`, and an element that omits it compiles.
     ///   A written one is checked against the field's type like any other.
+    /// - **A required field may not be omitted, once there is a props
+    ///   object.** `<Card title="x" />` lowers to `createElement(Card, {
+    ///   title: "x" })`, and `tsc` refuses that object when `Card` requires a
+    ///   `count`: the props object is the argument, so the element draws the
+    ///   `E0211` an argument record missing a field draws, at the element's
+    ///   name, with the missing names as `missing`. An element that writes no
+    ///   attribute at all lowers to `createElement(Card, null)`, and React's
+    ///   own declaration accepts a `null` props argument for any component,
+    ///   so `tsc --strict` compiles `<Card />` whatever `Card` requires. That
+    ///   element is not asked, because refusing it would refuse a program
+    ///   `tsc` accepts.
     ///
     /// `key` is React's own attribute (it lives on `Attributes`, not on the
     /// props type) and `tsc` accepts it on every component, so it is never an
@@ -2227,10 +2246,54 @@ impl Assigner<'_> {
                     expected: ty_display(&r.expected),
                     found: r.found,
                     accepted,
+                    missing: r.missing,
                     span: r.span,
                 });
             }
         }
+        self.check_jsx_required_props(j, &props_ty, &shape);
+    }
+
+    /// The required props a component element does not write (see the last
+    /// reading on `check_jsx_component_attrs`).
+    ///
+    /// Asked only of an element whose props object the emitter writes as an
+    /// object and whose every field this walk can see: at least one named
+    /// attribute (`key` counts, since it is written into the same object) and
+    /// no spread. `found` is `record`, the name a written object literal has
+    /// on every other refusal of one.
+    fn check_jsx_required_props(&mut self, j: &JsxElement, props_ty: &Ty, shape: &RecordShape) {
+        let mut writes_props = false;
+        let mut written: Vec<&Ident> = Vec::new();
+        for attr in &j.attrs {
+            match attr {
+                JsxAttr::String { name, .. } | JsxAttr::Expr { name, .. } => {
+                    writes_props = true;
+                    written.push(name);
+                }
+                JsxAttr::Spread { .. } => return,
+                JsxAttr::Positional { .. } => {}
+            }
+        }
+        if !writes_props {
+            return;
+        }
+        let missing: Vec<String> = shape
+            .fields
+            .iter()
+            .filter(|f| !f.optional && !written.iter().any(|w| **w == f.name))
+            .map(|f| f.name.to_string())
+            .collect();
+        if missing.is_empty() {
+            return;
+        }
+        self.errors.push(TypeError::ArgumentTypeMismatch {
+            expected: ty_display(props_ty),
+            found: "record".to_string(),
+            accepted: None,
+            missing,
+            span: j.name_span,
+        });
     }
 
     /// The props record a component element's attributes are checked against,
@@ -3124,6 +3187,7 @@ impl Assigner<'_> {
                 expected: ty_display(&r.expected),
                 found: r.found,
                 accepted,
+                missing: r.missing,
                 span: r.span,
             });
         }
@@ -5107,7 +5171,9 @@ impl Assigner<'_> {
             return Some(inner);
         }
         if self.assign_incompatible(found, expected) {
-            return Some(self.refusal(expected, self.found_display(found, expected), value.span()));
+            let mut r = self.refusal(expected, self.found_display(found, expected), value.span());
+            r.missing = self.missing_required_fields(found, expected);
+            return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
         // would name the value nothing. The written form is what the reader
@@ -5122,8 +5188,46 @@ impl Assigner<'_> {
         Refusal {
             expected: expected.clone(),
             found,
+            missing: Vec::new(),
             span,
         }
+    }
+
+    /// The required fields of `expected`'s record that the structural record
+    /// `found` does not have, in `expected`'s declaration order.
+    ///
+    /// Read from the same field set the relation decided the refusal from:
+    /// `record_fields_of`, which answers for a local record, a second name for
+    /// one, an imported record, a generic application of one, a structural
+    /// interface and a stdlib type the runtime ships. A `Nullable<T>` is read
+    /// through to `T`, the descent `prelude_container_incompatible` makes for
+    /// a record. "Required" is `RecordField::optional` being false, which is
+    /// exactly the fields written without `?`: the only ones TypeScript
+    /// requires (`Option<T>` and `Nullable<T>` fields are required there too,
+    /// and `tsc --strict` reports each as missing when it is left out).
+    ///
+    /// Empty for any other pairing, including a value whose type is a named
+    /// record: that pairing is refused by name (Q15), and a list of fields
+    /// would describe a reason the relation did not use.
+    fn missing_required_fields(&self, found: &Ty, expected: &Ty) -> Vec<String> {
+        let Ty::Record { fields: have } = found else {
+            return Vec::new();
+        };
+        let canonical = self.canonicalize_aliases(expected);
+        if let Some(("Nullable", args)) = self.prelude_container(&canonical) {
+            return args
+                .first()
+                .map(|inner| self.missing_required_fields(found, inner))
+                .unwrap_or_default();
+        }
+        let Some(declared) = self.record_fields_of(&canonical) else {
+            return Vec::new();
+        };
+        declared
+            .iter()
+            .filter(|d| !d.optional && !have.iter().any(|f| f.name == d.name))
+            .map(|d| d.name.to_string())
+            .collect()
     }
 
     /// The name a refused value goes on the diagnostic under.
@@ -6260,9 +6364,14 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 /// diagnostic and needs the declared type to list the values it accepts. The
 /// span is the value's own at the top and the offending element's or field's
 /// when the rule descended into a written literal.
+///
+/// `missing` is the declared record's required fields the value's record
+/// lacks, when the value is a structural record and the declared type has a
+/// field set to compare it against. Empty otherwise.
 struct Refusal {
     expected: Ty,
     found: String,
+    missing: Vec<String>,
     span: Span,
 }
 

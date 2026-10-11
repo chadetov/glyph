@@ -326,7 +326,7 @@ pub enum TypeError {
     /// deliberately narrow — assignability over named, generic, record, and
     /// function types is a later day — so it never fires on a type it can't
     /// judge with certainty.
-    #[error("type mismatch: expected `{expected}`, found `{found}`")]
+    #[error("type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing))]
     TypeMismatch {
         expected: String,
         found: String,
@@ -335,6 +335,14 @@ pub enum TypeError {
         /// every other type, where the accepted set is not enumerable and an
         /// invented list would be a claim (D30).
         accepted: Option<Accepted>,
+        /// The required fields of the declared record that the value's record
+        /// does not have, in the declared record's order. Empty unless the
+        /// value is a structural record and at least one is absent.
+        ///
+        /// "found `record`" said a record was refused and not which field it
+        /// lacked, where `tsc` names the property. The checker read the
+        /// declared field set to decide the refusal, so the names were in hand.
+        missing: Vec<String>,
         span: Span,
     },
 
@@ -438,13 +446,17 @@ pub enum TypeError {
     /// application over a different base) — an argument or parameter whose type
     /// can't be judged stays permissive, so the check never produces a false
     /// positive.
-    #[error("argument type mismatch: expected `{expected}`, found `{found}`")]
+    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing))]
     ArgumentTypeMismatch {
         expected: String,
         found: String,
         /// The values the parameter accepts, when it accepts a finite set the
         /// checker holds. Same rule as `TypeMismatch::accepted`.
         accepted: Option<Accepted>,
+        /// The parameter record's required fields the argument lacks. Same
+        /// rule as `TypeMismatch::missing`; for a JSX component element these
+        /// are the props it does not write.
+        missing: Vec<String>,
         span: Span,
     },
 
@@ -663,6 +675,24 @@ pub enum TypeError {
 pub enum Severity {
     Error,
     Warning,
+}
+
+/// The tail a type mismatch's sentence gets when the refused record lacks
+/// required fields: `: missing field `age`` for one, `: missing fields `age`,
+/// `email`` for several, nothing when none is missing. The names are quoted
+/// the way the exhaustiveness message quotes the variants it lists.
+fn missing_fields_suffix(missing: &[String]) -> String {
+    match missing {
+        [] => String::new(),
+        [one] => format!(": missing field `{one}`"),
+        many => format!(
+            ": missing fields {}",
+            many.iter()
+                .map(|f| format!("`{f}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    }
 }
 
 impl TypeError {
@@ -933,6 +963,24 @@ impl TypeError {
             TypeError::NonExhaustiveMatch {
                 missing_variants, ..
             } => Some(missing_variants),
+            _ => None,
+        }
+    }
+
+    /// The required record fields this error reports absent, in the declared
+    /// record's order, when it reports any.
+    ///
+    /// `None` on every other error, and on a type mismatch that is not about a
+    /// missing field, for the reason `missing_variants` answers `None`: an
+    /// empty list would claim nothing is missing.
+    pub fn missing_fields(&self) -> Option<&[String]> {
+        match self {
+            TypeError::TypeMismatch { missing, .. }
+            | TypeError::ArgumentTypeMismatch { missing, .. }
+                if !missing.is_empty() =>
+            {
+                Some(missing)
+            }
             _ => None,
         }
     }

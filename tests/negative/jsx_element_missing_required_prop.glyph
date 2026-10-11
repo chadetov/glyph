@@ -1,0 +1,17 @@
+module neg
+
+// A component element that writes a props object without a field the props
+// record requires. `<Card title="x" />` lowers to
+// `React.createElement(Card, { title: "x" })`, and the props object is the
+// argument, so a missing `count` is the E0211 an argument record missing a
+// field draws. Before this, `glyph check --no-tsc` accepted it and only `tsc`
+// on the emitted TypeScript refused it, as TS2769.
+type Props = { title: string, count: number }
+
+component Card(props: Props) {
+  return <div>{props.title}</div>
+}
+
+pub component App() {
+  return <Card title="x" />
+}

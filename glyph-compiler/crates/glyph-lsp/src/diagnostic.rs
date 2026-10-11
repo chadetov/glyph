@@ -88,6 +88,17 @@ pub struct Diagnostic {
     /// never an empty list, which would say "none are missing".
     #[serde(default)]
     pub missing_variants: Option<Vec<String>>,
+    /// The required fields a refused record lacks, in the declared record's
+    /// order, on an E0204 or E0211 whose value is a record missing one: an
+    /// object literal against a declared record, or a JSX component element
+    /// against its props record. `tsc` names the property in its sentence
+    /// and Glyph used to say only "found `record`"; the checker read the
+    /// declared field set to decide the refusal, so the names were in hand.
+    ///
+    /// Explicit `null` on every other diagnostic, never an empty list, for the
+    /// reason `missing_variants` is.
+    #[serde(default)]
+    pub missing: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub help: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -278,6 +289,7 @@ impl Diagnostic {
             entity,
             union: None,
             missing_variants: None,
+            missing: None,
             help: help.map(str::to_string),
             note: note.map(str::to_string),
             expected: None,
@@ -301,6 +313,14 @@ impl Diagnostic {
     ) -> Self {
         self.union = union;
         self.missing_variants = missing_variants;
+        self
+    }
+
+    /// Attach the required fields a refused record lacks. Separate from
+    /// `with_facts` for the reason `about_union` is: one more argument on an
+    /// already long list, for a fact only two codes carry.
+    fn missing_fields(mut self, missing: Option<Vec<String>>) -> Self {
+        self.missing = missing;
         self
     }
 
@@ -451,6 +471,7 @@ pub fn from_type_error(
         err.alternatives_kind(),
         err.related(),
     )
+    .missing_fields(err.missing_fields().map(<[String]>::to_vec))
 }
 
 pub fn from_emit_error(
@@ -943,6 +964,21 @@ mod tests {
                        fn main() -> number {\n  let out = shout(1)\n  return 0\n}\n",
                 fields: &["expected", "actual"],
             },
+            // G232's object literal against a declared record, missing a
+            // required field: the names arrive under `missing`.
+            Row {
+                code: "E0204",
+                src: "module main\n\ntype User = {\n  name: string,\n  age: number,\n}\n\n\
+                       fn make() -> User {\n  return { name: \"a\" }\n}\n",
+                fields: &["expected", "actual", "missing"],
+            },
+            Row {
+                code: "E0211",
+                src: "module main\n\ntype User = {\n  name: string,\n  age: number,\n}\n\n\
+                       fn age_of(u: User) -> number {\n  return u.age\n}\n\n\
+                       fn main() -> number {\n  return age_of({ name: \"a\" })\n}\n",
+                fields: &["expected", "actual", "missing"],
+            },
             Row {
                 code: "E0202",
                 src: "module main\n\nfn f() -> Result<number, string> {\n  let n = 1?\n  return Ok(n)\n}\n",
@@ -996,6 +1032,7 @@ mod tests {
             "alternatives",
             "alternatives_kind",
             "related",
+            "missing",
         ] {
             assert!(json.contains(&format!("\"{field}\":null")), "{field}: {json}");
         }
@@ -1017,6 +1054,39 @@ mod tests {
             d.alternatives.as_deref(),
             Some(["id".to_string(), "total".to_string()].as_slice())
         );
+    }
+
+    /// A record refused for the fields it lacks lists them, in the declared
+    /// record's order and unquoted, and says them in the sentence. A mismatch
+    /// that is not about a missing field carries an explicit `null`: the same
+    /// code, a different fact.
+    #[test]
+    fn a_record_missing_fields_lists_them_and_any_other_mismatch_says_null() {
+        let src = "module main\n\ntype User = {\n  name: string,\n  age: number,\n  email: string,\n}\n\n\
+                   fn make() -> User {\n  return { name: \"a\" }\n}\n";
+        let d = diagnostic_of("main", src, "E0204");
+        assert_eq!(
+            d.missing.as_deref(),
+            Some(["age".to_string(), "email".to_string()].as_slice())
+        );
+        assert_eq!(
+            d.message,
+            "type mismatch: expected `User`, found `record`: missing fields `age`, `email`"
+        );
+
+        let one = "module main\n\ntype User = {\n  name: string,\n  age: number,\n}\n\n\
+                   fn make() -> User {\n  return { name: \"a\" }\n}\n";
+        let d = diagnostic_of("main", one, "E0204");
+        assert_eq!(
+            d.message,
+            "type mismatch: expected `User`, found `record`: missing field `age`"
+        );
+
+        let other = "module main\n\nfn f() -> number {\n  let x: string = 1\n  return 0\n}\n";
+        let d = diagnostic_of("main", other, "E0204");
+        assert_eq!(d.missing, None);
+        let json = serde_json::to_string(&d).expect("serializes");
+        assert!(json.contains("\"missing\":null"), "{json}");
     }
 
     /// A tagged union accepts a finite set the checker holds, so a mismatch

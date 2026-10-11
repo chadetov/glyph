@@ -480,10 +480,9 @@ def case_import_spelling() -> tuple[bool, str]:
     workspace rename writes its edits from, so a site reported as the whole
     `render.label` would rewrite the namespace along with the name.
 
-    What this does not assert: which relation the site lands under. The
-    qualified call is reported, but as REFERENCES rather than CALLS, because
-    `callee_name_spans` records a callee only when it is a bare identifier. A
-    green result here is not coverage of that half.
+    Which relation the site lands under is asserted by
+    `case_call_spelling`, over all three spellings: the qualified call is a
+    CALLS site, as the bare one is.
     """
     root = CORPUS / "import-spelling"
     answers = {}
@@ -506,6 +505,70 @@ def case_import_spelling() -> tuple[bool, str]:
             f"named={sorted(answers['named'])} qualified={sorted(answers['qualified'])}"
         )
     return True, "both spellings name the declaration and the call, at the name"
+
+
+CALL_SPELLING = CORPUS / "call-spelling"
+
+
+def case_call_spelling() -> tuple[bool, str]:
+    """A call is one site whichever way its import is spelled.
+
+    `main::go` writes `fmt(1)` under `import ui { fmt }`, `ui.fmt(1)` under
+    `import ui` and `u.fmt(1)` under `import ui as u`. All three apply
+    `ui::fmt` to one argument, and the checker treats them alike: adding a
+    parameter is E0213 at each, retyping it is E0211. Until 0.1.126 the two
+    qualified spellings were filed under REFERENCES, so `glyph_impact` answered
+    them NOT_INDEXED with "this site reads the name rather than applying it",
+    a verdict that depended on spelling and a reason that was false.
+
+    Asserted on the three surfaces that read the relation: references (the
+    relation and the covered text), dependencies of the caller, and impact
+    under both signature edits, where the entry must be identical across
+    spellings in relation, verdict, diagnostic, reason and argument detail.
+    """
+    refs, deps, impacts = {}, {}, {}
+    for spelling in ELEMENT_SPELLINGS:
+        project = CALL_SPELLING / spelling
+        a = references(project, "src/ui.glyph", "fmt")
+        if "error" in a:
+            return False, f"{spelling}: references refused: {a['error'][:120]}"
+        refs[spelling] = sorted(
+            (e.get("relation"), e.get("from"), covered(project, e))
+            for e in edges_of(a) if e.get("path") == "src/main.glyph"
+            and e.get("from") is not None
+        )
+        d = call(project, "glyph_dependencies", {"entity": "main::go"})
+        if "error" in d:
+            return False, f"{spelling}: dependencies refused: {d['error'][:120]}"
+        deps[spelling] = sorted(
+            (e.get("relation"), e.get("to"), covered(project, e)) for e in edges_of(d)
+        )
+        impacts[spelling] = {}
+        for kind in ("change_arity", "change_signature_type"):
+            i = impact(project, "ui::fmt", {"kind": kind})
+            if "error" in i:
+                return False, f"{spelling}: impact {kind} refused: {i['error'][:120]}"
+            impacts[spelling][kind] = [
+                {k: e.get(k) for k in ("relation", "entity", "line", "verdict", "diagnostic",
+                                       "because", "arguments")}
+                for e in i.get("impact") or [] if e.get("entity") == "main::go"
+            ]
+    if refs["named"] != [("CALLS", "main::go", "fmt")]:
+        return False, f"the named spelling's call is not one CALLS edge at the name: {refs['named']}"
+    if deps["named"] != [("CALLS", "ui::fmt", "fmt")]:
+        return False, f"`main::go` does not depend on `ui::fmt` through CALLS: {deps['named']}"
+    want = {"change_arity": ("WILL_FAIL", "E0213"), "change_signature_type": ("WILL_FAIL", "E0211")}
+    for kind, (verdict, code) in want.items():
+        sites = impacts["named"][kind]
+        if [(s["relation"], s["verdict"], s["diagnostic"]) for s in sites] != [("CALLS", verdict, code)]:
+            return False, f"the named call under {kind} is not CALLS {verdict} {code}: {sites}"
+    for spelling in ELEMENT_SPELLINGS[1:]:
+        for name, got in (("references", refs), ("dependencies", deps), ("impact", impacts)):
+            if got[spelling] != got["named"]:
+                return False, (f"{name} depends on the import spelling: "
+                               f"named={got['named']} {spelling}={got[spelling]}")
+    return True, ("the call is one CALLS site under all three spellings, in references, "
+                  "dependencies and impact, with the same verdict, reason and arguments")
 
 
 ELEMENT_SPELLING = CORPUS / "element-spelling"
@@ -1965,6 +2028,7 @@ HARD = [
     ("a component element under any import spelling", case_element_spelling),
     ("its dependencies and impact under any spelling", case_element_spelling_dependencies_and_impact),
     ("definition and hover under any spelling", case_member_spelling_definition_and_hover),
+    ("a call under any import spelling", case_call_spelling),
     ("CALLS is the applied sites, with coverage", case_calls_relation),
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),

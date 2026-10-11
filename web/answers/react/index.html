@@ -120,15 +120,52 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Are props checked before tsc?</p>
+        <p>
+          Yes. Glyph compares each element with its component's props record itself, so a wrong
+          value, a misspelled prop and a missing required one are Glyph errors that name the prop.
+          You see them in the editor and over MCP, not only in a full build. It works the same
+          whether the component was imported by name or through its module:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph, with <code>Card</code> declared in <code>ui.glyph</code></span>
+<pre>import ui
+
+pub component App() {
+  return &lt;div&gt;
+    &lt;ui.Card title="Q3" /&gt;
+    &lt;ui.Card title="Q4" cout={2} /&gt;
+  &lt;/div&gt;
+}
+
+<span class="add">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`
+// E0210 type `CardProps` has no field `cout`
+// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--json</code> carries the missing names as a <code>missing_fields</code> list, so
+          an agent can add the props without parsing the message. A component also has to take
+          its props as one record: <code>component Greeting(name: string)</code> is E0229 at the
+          parameter, because React only ever passes the props object and that element could never
+          type-check. If you call it as a function rather than render it, declare it with
+          <code>fn</code>.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), built-in and custom hooks, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
+          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, built-in and custom hooks, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A Context primitive story for effectful custom hooks that composes with the JSX-purity rule, so more of the React-library surface works without a shim.</p>
+          <p>A Context primitive story for effectful custom hooks that composes with the JSX-purity rule, so more of the React-library surface works without a shim. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name.</p>
         </div>
       </div>
 

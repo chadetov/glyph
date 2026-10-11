@@ -18,11 +18,10 @@ standalone-library bundling. Full notes in `archive/glyph-day-0-parser.md §Part
   the exit code; a `GLYPH_BINARY` override makes it testable against a local
   build. `npm/scripts/stage.mjs` stages a built binary into its platform package
   and `.github/workflows/release.yml` builds all five on native runners and
-  publishes on a `v*` tag (gated on an `NPM_TOKEN` secret). End user story:
+  publishes on a `v*` tag through npm trusted publishing (each package trusts `release.yml`; no token is stored). End user story:
   `npm install -g @glyphlang/glyph` / `npx @glyphlang/glyph`. Verified locally (launcher passes argv
-  and exit codes; 7 resolver unit tests pass). **The one remaining step is the
-  user running the publish** (needs the npm account + `NPM_TOKEN`); everything
-  up to `npm publish` is automated.
+  and exit codes; 7 resolver unit tests pass). Pushing the tag is the whole publish;
+  everything from the build to `npm publish` is automated.
 - **`"glyph"` key + `glyph publish` audit gate — shipped.** The `"glyph"` key in
   `package.json` is read by a typed config layer (`glyph-cli/src/config.rs`): an
   `imports` map carrying per-import `audit` (`first-party`/`third-party`/

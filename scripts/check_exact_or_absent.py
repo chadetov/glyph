@@ -591,6 +591,12 @@ def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
     `glyph_impact` reads it inward from `ui::Button`. Both used to answer
     nothing under the namespace spellings: no dependency of the component that
     renders it, and a rename of `ui::Button` with no site to rewrite.
+
+    The two count differently, and each count is asserted. A dependency edge
+    is an occurrence with a range, the same edge `glyph_references` reports
+    with its ends swapped, so the closing tag is one. An impact entry is a
+    site, and one element is one site under every change kind, so the closing
+    tag folds into the opening one: two elements are two sites, not three.
     """
     deps, impacts = {}, {}
     for spelling in ELEMENT_SPELLINGS:
@@ -602,27 +608,38 @@ def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
             (e.get("relation"), e.get("to"), e["range"]["start"]["line"], covered(project, e))
             for e in edges_of(a)
         ), key=repr)
-        i = impact(project, "ui::Button", {"kind": "rename"})
-        if "error" in i:
-            return False, f"{spelling}: impact refused: {i['error'][:120]}"
-        impacts[spelling] = sorted((
-            (e.get("relation"), e.get("entity"), e.get("line"), e.get("verdict"))
-            for e in i.get("impact") or []
-            if e.get("entity") is not None
-        ), key=repr)
+        impacts[spelling] = {}
+        for kind in ("rename", "remove", "change_arity", "change_signature_type"):
+            i = impact(project, "ui::Button", {"kind": kind})
+            if "error" in i:
+                return False, f"{spelling}: impact {kind} refused: {i['error'][:120]}"
+            impacts[spelling][kind] = sorted((
+                (e.get("relation"), e.get("entity"), e.get("line"), e.get("verdict"),
+                 covered(project, e), e.get("because"))
+                for e in i.get("impact") or []
+                if e.get("entity") is not None
+            ), key=repr)
 
     want = [("REFERENCES", "ui::Button", line, "Button") for line in (6, 7, 7)]
     for spelling in ELEMENT_SPELLINGS:
         if deps[spelling] != want:
             return False, f"{spelling}: `main::App` depends on {deps[spelling]}, not {want}"
-        if len(impacts[spelling]) != 3:
-            return False, f"{spelling}: a rename of `ui::Button` reaches {impacts[spelling]}"
+        for kind, sites in impacts[spelling].items():
+            if [(s[1], s[2], s[4]) for s in sites] != [("main::App", 6, "Button"),
+                                                       ("main::App", 7, "Button")]:
+                return False, (
+                    f"{spelling}: {kind} on `ui::Button` is not one site per element "
+                    f"at the opening tag: {sites}"
+                )
         if impacts[spelling] != impacts["named"]:
             return False, (
-                "the impact of one rename depends on the import spelling: "
+                "the impact of one edit depends on the import spelling: "
                 f"named={impacts['named']} {spelling}={impacts[spelling]}"
             )
-    return True, "dependencies and the rename's impact match across all three spellings"
+    because = impacts["named"]["change_signature_type"][0][5] or ""
+    if "JSX element" not in because or "function value" in because:
+        return False, f"an element site under change_signature_type gives the wrong reason: {because}"
+    return True, "dependency edges and per-element impact sites match across all three spellings"
 
 
 def case_calls_relation() -> tuple[bool, str]:

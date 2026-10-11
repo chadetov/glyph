@@ -44,8 +44,9 @@ use glyph_typechecker::{
 
 use crate::analysis::{
     analyze_full, call_argument_spans, enclosing_decl_name, extern_ts_escape,
-    global_relations_in, module_outline, outline_of, relations_at, symbol_target_at,
-    Definition, LineIndex, OutlineSymbol, RelatedSpan, Relation, SymbolTarget,
+    global_relations_in, jsx_component_tags, module_outline, outline_of, relations_at,
+    symbol_target_at, Definition, JsxTag, LineIndex, OutlineSymbol, RelatedSpan, Relation,
+    SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
@@ -5843,7 +5844,17 @@ fn impact_occurrences(
                 params: callee_params_as_seen_from(project, plan, entry),
             });
         let index = LineIndex::new(ftext);
+        // A component element is one site however many tags spell its name.
+        // The closing tag is an occurrence (a rename rewrites it, and the
+        // references relation lists it), and what an edit does to the
+        // element is already said at the opening tag, so it is folded there
+        // rather than counted a second time.
+        let tags = jsx_component_tags(fmodule);
         for span in spans {
+            let tag = tags.get(&(span.start, span.end)).copied();
+            if tag == Some(JsxTag::Closing) {
+                continue;
+            }
             let mut out = serde_json::Map::new();
             let decl = enclosing_decl_name(fmodule, span.start);
             // Read off the parse already in hand. The node this entry carries a
@@ -5930,7 +5941,7 @@ fn impact_occurrences(
                 }
                 _ => {
                     let (verdict, because, code, absent) =
-                        occurrence_verdict(change, span.relation);
+                        occurrence_verdict(change, span.relation, tag.is_some());
                     SiteVerdict {
                         verdict,
                         because: because.to_string(),
@@ -5968,9 +5979,16 @@ fn impact_occurrences(
 /// here: `impact_occurrences` dispatches that pair to `signature_type_site`,
 /// which reads the arguments, so this function's `SignatureType` arm is only
 /// ever reached for a site that reads the name.
+///
+/// `element` says the site is a component element (`<Button>`,
+/// `<ui.Button>`). An element is a reference rather than a call, and the
+/// checker reads it differently from a value read of the same name: it
+/// compares the element's attributes against the component's props record.
+/// Only the reason a parameter type change gives depends on that today.
 fn occurrence_verdict(
     change: &Change,
     relation: Relation,
+    element: bool,
 ) -> (Verdict, &'static str, Option<&'static str>, &'static str) {
     const NAME_GONE: &str = "this site spells a name the edit takes away, so it no longer \
                              resolves to anything";
@@ -6009,6 +6027,23 @@ fn occurrence_verdict(
                  fit its expected type, on the emitted TypeScript",
             ),
         },
+        // Since G240 the checker reads an element's attributes, and the
+        // required props it leaves out, against the props record, so the
+        // value-read reason below would be false here. The verdict stays
+        // undecided: impact does not yet compare an element against the
+        // props record the edit would leave.
+        Change::SignatureType if element => (
+            Verdict::NotIndexed,
+            "this site is a JSX element, and the checker compares the attributes it \
+             writes, and the required props it leaves out, against the component's props \
+             record; impact does not model the props record the edit would leave, so what \
+             the edit does to this element is not determined here",
+            None,
+            "the checker raises `E0211` at an element whose attribute does not fit the \
+             props record or that leaves a required prop out, and `E0210` at an attribute \
+             the record does not declare; whether this element draws one after the edit is \
+             not computed",
+        ),
         Change::SignatureType => (
             Verdict::NotIndexed,
             "this site reads the name rather than applying it, so no argument is paired \
@@ -14665,6 +14700,80 @@ pub fn f() -> number {
             !references["not_indexed"].as_array().unwrap().is_empty(),
             "{references}"
         );
+    }
+
+    /// G244: a component element is one impact site, whichever import
+    /// spelling reached it and whether or not it has a closing tag, and its
+    /// reason says what the checker does with an element.
+    ///
+    /// The closing tag is an occurrence of the name (the references relation
+    /// lists it and a rename rewrites it) and not a second element, so it
+    /// folds into the opening tag's site under every change kind. The reason
+    /// a value read gives under `change_signature_type`, that Glyph does not
+    /// compare a function value against its use context, is false for an
+    /// element: the checker compares the element's attributes against the
+    /// props record. Both sites keep `NOT_INDEXED`.
+    #[test]
+    fn a_component_element_is_one_impact_site_with_its_own_reason() {
+        let ui = "module ui\npub component Button(props: { label: string, }) {\n  \
+                  return <button>{props.label}</button>\n}\n";
+        let mains = [
+            "module main\nimport ui { Button }\npub component App() {\n  \
+             return <div><Button label=\"a\">one</Button><Button label=\"b\" /></div>\n}\n\
+             pub fn f() {\n  let b = Button\n}\n",
+            "module main\nimport ui\npub component App() {\n  \
+             return <div><ui.Button label=\"a\">one</ui.Button><ui.Button label=\"b\" /></div>\n}\n\
+             pub fn f() {\n  let b = ui.Button\n}\n",
+            "module main\nimport ui as u\npub component App() {\n  \
+             return <div><u.Button label=\"a\">one</u.Button><u.Button label=\"b\" /></div>\n}\n\
+             pub fn f() {\n  let b = u.Button\n}\n",
+        ];
+        let mut per_spelling = Vec::new();
+        for main in mains {
+            let root = tmp_root();
+            std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+            write(&root, "ui.glyph", ui);
+            write(&root, "main.glyph", main);
+            let mut server = Server::new(root.clone());
+            let mut sites = Vec::new();
+            for kind in ["rename", "remove", "change_arity", "change_signature_type"] {
+                let answer = impact(
+                    &mut server,
+                    json!({ "entity": "ui::Button", "change": { "kind": kind } }),
+                );
+                let entries: Vec<&Value> = answer["impact"]
+                    .as_array()
+                    .unwrap_or_else(|| panic!("{answer}"))
+                    .iter()
+                    .filter(|e| e["entity"] != Value::Null)
+                    .collect();
+                let in_app: Vec<_> = entries.iter().filter(|e| e["entity"] == "main::App").collect();
+                assert_eq!(in_app.len(), 2, "two elements are two sites under {kind}: {answer}");
+                sites.push((kind, entries.len()));
+                if kind != "change_signature_type" {
+                    continue;
+                }
+                let element = in_app[0]["because"].as_str().unwrap_or_default();
+                let value = entries
+                    .iter()
+                    .find(|e| e["entity"] == "main::f")
+                    .unwrap_or_else(|| panic!("no value-read site: {answer}"))["because"]
+                    .as_str()
+                    .unwrap_or_default();
+                assert!(element.contains("JSX element"), "{element}");
+                assert!(element.contains("props record"), "{element}");
+                assert!(!element.contains("function value"), "{element}");
+                assert!(value.contains("reads the name rather than applying it"), "{value}");
+                assert_ne!(element, value);
+                for e in &in_app {
+                    assert_eq!(e["verdict"], "NOT_INDEXED", "{e}");
+                    assert_eq!(e["because"], in_app[0]["because"], "{e}");
+                }
+            }
+            per_spelling.push(sites);
+        }
+        assert_eq!(per_spelling[0], per_spelling[1], "named against namespace");
+        assert_eq!(per_spelling[0], per_spelling[2], "named against alias");
     }
 
     /// The single-argument `change_signature_type` answer for one program:

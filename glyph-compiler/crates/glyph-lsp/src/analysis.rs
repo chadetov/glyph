@@ -1818,6 +1818,89 @@ fn jsx_callees(el: &JsxElement, out: &mut Callees) {
     }
 }
 
+/// Which tag of a component element an occurrence sits in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JsxTag {
+    /// `<Button ...>`: the site that stands for the element.
+    Opening,
+    /// `</Button>`: the same name spelled again. An occurrence of the name,
+    /// which a rename has to rewrite, and not a second site of the element.
+    Closing,
+}
+
+/// Every name segment of every component element's tags in `module`, with the
+/// tag it is in.
+///
+/// An occurrence of a component in an element is one of these segments: the
+/// whole name for `<Button>`, the member `Button` for `<ui.Button>` (the tail
+/// of the qualified reference the resolver records there). So a surface that
+/// reports *sites* rather than occurrences looks an occurrence up here to fold
+/// a closing tag into its element, and to tell an element apart from a value
+/// read of the same name.
+pub fn jsx_component_tags(module: &Module) -> BTreeMap<(u32, u32), JsxTag> {
+    let mut out = BTreeMap::new();
+    let mut note = |el: &JsxElement| {
+        if el.kind() != glyph_ast::JsxKind::Component {
+            return;
+        }
+        for (tag, segments) in [
+            (JsxTag::Opening, &el.name_segments),
+            (JsxTag::Closing, &el.close_name_segments),
+        ] {
+            for s in segments {
+                out.insert((s.start, s.end), tag);
+            }
+        }
+    };
+    for decl in &module.items {
+        match decl {
+            Decl::Fn(f) => block_jsx(&f.body, &mut note),
+            Decl::Component(c) => block_jsx(&c.body, &mut note),
+            Decl::Const(c) => expr_jsx(&c.value, &mut note),
+            Decl::Type(t) => {
+                if let Some(pred) = &t.refinement {
+                    expr_jsx(pred, &mut note);
+                }
+            }
+            Decl::Interface(_) | Decl::Import(_) => {}
+        }
+    }
+    out
+}
+
+fn block_jsx(block: &Block, f: &mut dyn FnMut(&JsxElement)) {
+    for stmt in &block.stmts {
+        glyph_ast::visit::stmt_exprs(stmt, &mut |e| expr_jsx(e, f));
+        glyph_ast::visit::stmt_blocks(stmt, &mut |b| block_jsx(b, f));
+    }
+}
+
+fn expr_jsx(e: &Expr, f: &mut dyn FnMut(&JsxElement)) {
+    glyph_ast::visit::child_exprs(e, &mut |c| expr_jsx(c, f));
+    glyph_ast::visit::child_blocks(e, &mut |b| block_jsx(b, f));
+    // `child_exprs` does not descend into a JSX element (see `expr_callees`).
+    if let Expr::Jsx(el) = e {
+        element_jsx(el, f);
+    }
+}
+
+fn element_jsx(el: &JsxElement, f: &mut dyn FnMut(&JsxElement)) {
+    f(el);
+    for attr in &el.attrs {
+        match attr {
+            JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => expr_jsx(value, f),
+            JsxAttr::String { .. } | JsxAttr::Positional { .. } => {}
+        }
+    }
+    for child in &el.children {
+        match child {
+            JsxChild::Element(inner) => element_jsx(inner, f),
+            JsxChild::Expr(value) => expr_jsx(value, f),
+            JsxChild::Text { .. } => {}
+        }
+    }
+}
+
 fn relation_of(callees: &BTreeSet<(u32, u32)>, start: u32, end: u32) -> Relation {
     if callees.contains(&(start, end)) {
         Relation::Calls

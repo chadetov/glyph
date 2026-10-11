@@ -1,0 +1,10 @@
+module main
+
+import ui { Button }
+
+pub component App() {
+  return <div>
+    <Button label="go" />
+    <Button label="again">twice</Button>
+  </div>
+}

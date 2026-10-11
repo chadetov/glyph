@@ -456,6 +456,22 @@ fn qualified_name_span(q: &QualifiedTypeRef, text: &str) -> Option<(u32, u32)> {
     (!leads_a_longer_word).then_some((start as u32, end as u32))
 }
 
+/// The recorded `ns.name` whose name half covers `offset`, or `None`.
+///
+/// The one reading of "the cursor is on a namespace member" that definition,
+/// hover and the symbol target all share, so they cannot disagree about which
+/// positions are members.
+fn qualified_ref_at<'a>(
+    resolved: &'a ResolvedModule,
+    text: &str,
+    offset: usize,
+) -> Option<&'a QualifiedTypeRef> {
+    resolved
+        .qualified_type_refs
+        .iter()
+        .find(|q| covers(qualified_name_span(q, text), offset))
+}
+
 /// Why a rename request was refused.
 #[derive(Debug, PartialEq, Eq)]
 pub enum RenameError {
@@ -747,10 +763,8 @@ fn imported_name_at(
             }
         }
     }
-    for q in &resolved.qualified_type_refs {
-        if covers(qualified_name_span(q, text), offset) {
-            return Some((join_segments(&q.module.segments), q.name.to_string()));
-        }
+    if let Some(q) = qualified_ref_at(resolved, text, offset) {
+        return Some((join_segments(&q.module.segments), q.name.to_string()));
     }
     for decl in &module.items {
         let Decl::Import(im) = decl else { continue };
@@ -1206,9 +1220,28 @@ fn every_param_list(module: &Module) -> Vec<&[Param]> {
 /// `InModule`, which the server resolves to a file). A prelude built-in or no
 /// reference yields `None`.
 ///
-/// Takes only the resolution table: unlike its siblings this query never reads
-/// the AST, so it does not ask for a `Module` it would ignore.
-pub fn definition_at(resolved: &ResolvedModule, offset: usize) -> Option<Definition> {
+/// The name half of a namespace-qualified `ns.Name` is read first, off the
+/// qualified references the resolver records, because the resolution table
+/// cannot answer it. In value position and in a JSX tag the table's entry sits
+/// on `ns`, so the cursor on `Button` in `ui.Button` covered nothing and the
+/// answer was `None`. In type position the entry spans the whole `ui.Props`
+/// path and names the namespace import, so the cursor on `Props` jumped to the
+/// `import ui` line. Under `import ui { Button }` the same name answers the
+/// declaration in `ui`, and one declaration has one definition whichever way
+/// the import is spelled (G249). The member answers `InModule` with the name
+/// it reads, which is what the named import's `ImportNamed` symbol answers, so
+/// a member the module does not declare (`ui.Nope`) falls out where an
+/// unresolved named import does: the declaring file has no such name.
+///
+/// Takes the resolution table and the text, which `qualified_name_span` reads
+/// the name half of a path out of; it never needs the AST.
+pub fn definition_at(resolved: &ResolvedModule, text: &str, offset: usize) -> Option<Definition> {
+    if let Some(q) = qualified_ref_at(resolved, text, offset) {
+        return Some(Definition::InModule {
+            module_path: join_segments(&q.module.segments),
+            name: q.name.to_string(),
+        });
+    }
     match innermost_ref(resolved, offset)? {
         ResolvedRef::Local(def_start) => Some(Definition::Here(def_start, def_start)),
         ResolvedRef::Module(id) => {
@@ -1433,6 +1466,24 @@ pub fn symbol_target_at(
     text: &str,
     this_module: &str,
 ) -> Option<SymbolTarget> {
+    // 0. The name half of a namespace-qualified `ns.name`.
+    //
+    // The resolution table cannot reach it. In value position and in a JSX tag
+    // the entry recorded for the path sits on `ns`, so without this the cursor
+    // on `label` in `render.label` addressed nothing, and `glyph_references`
+    // answered `[]` for a symbol with at least the reference under the cursor.
+    // In type position the entry spans the whole `ui.Props` path and names the
+    // namespace import, which has no identity, so this has to be asked before
+    // step 1 or the cursor on `Props` answered `None` there (G249). The set of
+    // references has to be the same whichever site of it the caller points at,
+    // for the same reason it has to be the same whichever way the import is
+    // spelled.
+    if let Some(q) = qualified_ref_at(resolved, text, offset) {
+        return Some(SymbolTarget::Global {
+            module: join_segments(&q.module.segments),
+            name: q.name.to_string(),
+        });
+    }
     // 1. A reference position.
     if let Some(r) = innermost_ref(resolved, offset) {
         return match r {
@@ -1498,25 +1549,6 @@ pub fn symbol_target_at(
                 if (ns as usize) <= offset && offset < (ne as usize) {
                     return Some(SymbolTarget::Local);
                 }
-            }
-        }
-    }
-    // 5. The name half of a namespace-qualified `ns.name`.
-    //
-    // Step 1 cannot reach it: the resolution recorded for that expression sits
-    // on `ns` and names the module. Without this the cursor on `label` in
-    // `render.label` addressed nothing, and `glyph_references` answered `[]`
-    // for a symbol with at least the reference under the cursor. The set of
-    // references has to be the same whichever site of it the caller points at,
-    // for the same reason it has to be the same whichever way the import is
-    // spelled.
-    for q in &resolved.qualified_type_refs {
-        if let Some((ns, ne)) = qualified_name_span(q, text) {
-            if (ns as usize) <= offset && offset < (ne as usize) {
-                return Some(SymbolTarget::Global {
-                    module: join_segments(&q.module.segments),
-                    name: q.name.to_string(),
-                });
             }
         }
     }
@@ -2160,8 +2192,8 @@ impl Analysis {
     }
 
     /// See [`definition_at`].
-    pub fn definition(&self, offset: usize) -> Option<Definition> {
-        definition_at(self.resolution(), offset)
+    pub fn definition(&self, offset: usize, text: &str) -> Option<Definition> {
+        definition_at(self.resolution(), text, offset)
     }
 
     /// See [`references_at`].
@@ -2718,11 +2750,79 @@ mod tests {
         let text = "module x\nfn helper() -> number {\n  return 1\n}\nfn main() -> number {\n  return helper()\n}\n";
         let a = analyze_full(text).expect("parses");
         let call = text.rfind("helper").unwrap(); // the call site
-        match a.definition(call).expect("resolves") {
+        match a.definition(call, text).expect("resolves") {
             Definition::Here(start, _) => {
                 assert!(start < call as u32, "def at {start} should precede call at {call}");
             }
             Definition::InModule { .. } => panic!("a same-file call should resolve Here"),
+        }
+    }
+
+    /// One consumer of `ui` under `import ui as u`, naming its declarations in
+    /// value position, type position, and both tags of an element.
+    const ALIASED_MEMBERS: &str = "module main\n\nimport ui as u\n\n\
+        pub fn pick(p: u.Props) -> string {\n  let _b = u.Button\n  return p.label\n}\n\n\
+        pub component App() {\n  return <u.Button label=\"x\">t</u.Button>\n}\n";
+
+    /// G249: the member half of `ns.Name` is a use of `Name` declared in `ns`,
+    /// which is what `import ui { Name }` makes the bare name. Before the fix
+    /// the value and element positions answered `None`, and the type position
+    /// answered the `import` line, because the resolution table's entry for a
+    /// qualified type spans the whole path and names the namespace.
+    #[test]
+    fn goto_definition_reads_a_namespace_member_out_of_its_module() {
+        let text = ALIASED_MEMBERS;
+        let a = analyze_full(text).expect("parses");
+        for (needle, skip, want) in [
+            ("u.Props", 2, "Props"),
+            ("u.Button\n", 2, "Button"),
+            ("<u.Button", 3, "Button"),
+            ("</u.Button", 4, "Button"),
+        ] {
+            let at = text.find(needle).unwrap() + skip;
+            match a.definition(at, text) {
+                Some(Definition::InModule { module_path, name }) => {
+                    assert_eq!((module_path.as_str(), name.as_str()), ("ui", want), "at {needle}");
+                }
+                Some(Definition::Here(s, _)) => panic!("{needle}: answered this file at {s}"),
+                None => panic!("{needle}: answered nothing"),
+            }
+        }
+    }
+
+    /// The base segment is the namespace binding, not a member: it answers the
+    /// import that binds it, and the member lookup above must not reach it.
+    #[test]
+    fn goto_definition_on_the_namespace_answers_its_import() {
+        let text = ALIASED_MEMBERS;
+        let a = analyze_full(text).expect("parses");
+        let import = text.find("import ui as u").unwrap() as u32;
+        for needle in ["u.Props", "u.Button\n", "<u.Button"] {
+            let at = text.find(needle).unwrap() + usize::from(needle.starts_with('<'));
+            assert!(
+                matches!(a.definition(at, text), Some(Definition::Here(s, _)) if s == import),
+                "{needle}: the base segment did not answer its import"
+            );
+        }
+    }
+
+    /// The identity half of the same fix: a member in type position is keyed
+    /// by the declaration it names. It was `None`, so `glyph_definition` had
+    /// no entity there and `glyph_references` by position answered no edges.
+    #[test]
+    fn a_namespace_member_in_type_position_is_keyed_by_its_declaration() {
+        let text = ALIASED_MEMBERS;
+        let a = analyze_full(text).expect("parses");
+        for (needle, want) in [("u.Props", "Props"), ("u.Button\n", "Button")] {
+            let at = text.find(needle).unwrap() + 2;
+            assert_eq!(
+                a.symbol_target(at, text, "main"),
+                Some(SymbolTarget::Global {
+                    module: "ui".to_string(),
+                    name: want.to_string(),
+                }),
+                "at {needle}"
+            );
         }
     }
 

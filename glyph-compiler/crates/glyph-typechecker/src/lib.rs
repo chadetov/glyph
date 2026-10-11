@@ -822,7 +822,7 @@ impl TypeError {
                 "Take a single props record: `component C(props: P)` with `type P = { ... }`, then read `props.field`."
             }
             TypeError::ComponentParamNotRecord { .. } => {
-                "A component takes one props record. Declare the parameter as one, e.g. `props: { name: string }`, and read `props.name`."
+                "A component takes one props record. Declare the parameter as one, e.g. `props: { name: string }`, and read `props.name`. If you call it as a function rather than render it as an element, declare it with `fn`."
             }
             TypeError::OwnedAliased { .. } => {
                 "An `owned` handle cannot be rebound. Consume it directly (pass it to an `owned` parameter) instead of aliasing it."

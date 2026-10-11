@@ -486,7 +486,7 @@ const DIAGNOSTICS_MANUAL: &str = "Every diagnostic the compiler reports for one 
 
 const HOVER_MANUAL: &str = "The type at a position in a Glyph file, read inside the file's project. It answers an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it) and a local binding at its definition site. A name declared in another module answers too, from that module's own lowered declaration rather than from the import binding: the binding inside `import m { N }`, an imported function where it is called (named or through a namespace), an imported variant used as a value, an imported annotated `const`, and a field read off an imported record. `null` where the compiler holds no type for the position: a keyword, a literal, whitespace, an unannotated `const` (the checker lowers its declaration to `Unknown` on purpose, so printing the initializer's type would report a type nothing checks its uses against), and a namespace import binding, which names a module rather than a declaration.";
 
-const DEFINITION_MANUAL: &str = "Where the name at a position is defined (a file path and range), following imports across modules.";
+const DEFINITION_MANUAL: &str = "Where the name at a position is defined (a file path and range), following imports across modules, with the `module::name` `entity` it names so the answer chains into the other tools. One declaration has one answer whichever way it is imported: `Button` under `import ui { Button }`, the member half of `ui.Button` under `import ui` or `import ui as u` (in value position, in type position as `ui.Props`, and in both tags of a `<ui.Button>` element) all answer the declaration in `ui`. The namespace itself (`ui` in `ui.Button`) answers the `import` that binds it, with `entity` null and `entity_absent` saying why. A stdlib name keeps its `entity` and answers `path` and `range` null, with `path_absent` and `range_absent` saying the stdlib has no `.glyph` source. A name an npm package or a Node builtin declares is refused, since its declaration is TypeScript. `null` where the position is on no name, and on a name no module declares (an unbound name, or `ui.Nope`).";
 
 const REFERENCES_MANUAL: &str = "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. Relation names come from one closed vocabulary shared by every tool here, and this tool answers three of them for a symbol address. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, so `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. `GENERATED_FROM`: the declaration was written by a `glyph gen` run, and the edge names the source artifact it was written from. It is read out of the generation record the generator writes into the file's header, one line per declaration that run wrote, so a declaration somebody added below the generated ones gets no edge and a variant of a generated union gets one. The edge carries `generator` (`openapi`, `dts` or `zod`), `source` (the artifact, resolved against the project root), `source_hash` (its content at generation time), `source_hash_now`, and `source_state`: `UNCHANGED` when the artifact still holds those bytes, `CHANGED` when it does not, and null with `source_state_absent` when it could not be read, which is a third answer rather than a difference. `source_state` is a fact about that one artifact's bytes: it does not say a fresh run would write this file, and for `dts` and `zod`, which follow references out of the entry file, it does not cover the files they followed into. Its `to` is null with `to_absent`, because the far end is an artifact rather than a declaration and has no `module::name` identity. Its `provenance` is `ASSERTED`: the record is the generator's own claim and nothing in the compiler re-derives it, which is why the hash is there. Coverage for this relation is its own and not the sweep's, since the record lives in the file that declares the entity: `unindexed` names that file when it was generated and its record cannot be read (written before records existed, or a format version this build does not know), and `not_indexed` names the classes a record cannot be keyed by, of which a local binding is one. An empty list under this relation means the declaring file was read and nothing records the declaration as generated. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
 
@@ -922,32 +922,107 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
             ),
         ),
     };
-    let mut value = match a.definition(offset) {
+    let mut value = match a.definition(offset, &text) {
         None => Value::Null,
         Some(Definition::Here(start, _)) => {
             let index = LineIndex::new(&text);
             location_value(FileCtx { path: &path, root, text: &text }, &index, start, start)
         }
         Some(Definition::InModule { module_path, name }) => {
-            // The import path is counted from the *importing* file's project
-            // root (D41), which is the marked ancestor when there is one and
-            // the file's own directory otherwise (see `module_root_for`).
-            let file = crate::module_root_for(&path, root)
-                .join(&module_path)
-                .with_extension("glyph");
-            let ftext = std::fs::read_to_string(&file)
-                .map_err(|e| format!("cannot read {}: {e}", file.display()))?;
-            let (start, end) = crate::analysis::find_symbol_span(&outline_of(&ftext), &name)
-                .ok_or_else(|| format!("`{name}` is not defined in module `{module_path}`"))?;
-            let index = LineIndex::new(&ftext);
-            location_value(FileCtx { path: &file, root, text: &ftext }, &index, start, end)
+            match declared_in_module(&path, root, &module_path, &name)? {
+                Declared::At(location) => location,
+                // The name has an identity and no span to point at: the
+                // location is absent with its reason, the way `glyph_symbol`
+                // reports the same declaration, and the entity stays.
+                Declared::Stdlib => json!({
+                    "path": Value::Null,
+                    "path_absent": STDLIB_NO_SOURCE,
+                    "range": Value::Null,
+                    "range_absent": STDLIB_NO_SOURCE,
+                }),
+                // The module declares no such name, so the position is on a
+                // name nothing declares, and it answers what an unbound name
+                // answers. Both spellings reach this arm: `import ui { Nope }`
+                // and `ui.Nope` are one unresolved name (E0105 either way).
+                Declared::Nowhere => Value::Null,
+            }
         }
     };
     if value.is_object() {
         value["entity"] = entity;
         value["entity_absent"] = entity_absent;
+        if value.get("path_absent").is_none() {
+            value["path_absent"] = Value::Null;
+            value["range_absent"] = Value::Null;
+        }
     }
     Ok(to_json(&value))
+}
+
+/// Where `module_path::name` is declared, for a definition answer.
+enum Declared {
+    /// In a `.glyph` file of this project, at this location.
+    At(Value),
+    /// In a stdlib module the compiler carries, which has no `.glyph` source.
+    Stdlib,
+    /// Nowhere: the module exists and declares no such name.
+    Nowhere,
+}
+
+/// Find the declaration `module_path::name` that a use in `path` names.
+///
+/// One function for every import spelling: a use through `import ui
+/// { Button }` and a read of `ui.Button` through `import ui` both arrive as
+/// `Definition::InModule { "ui", "Button" }`, so the answer cannot depend on
+/// how the consumer wrote its import (G249). Before 0.1.126 the namespace
+/// spelling never got here and answered `null`, while the named spelling of a
+/// stdlib name was refused as an unreadable `src/std/io.glyph`.
+///
+/// A module that is neither the stdlib nor a file of this project (an npm
+/// package, a Node builtin) is refused: its declarations are TypeScript, and
+/// this tool points into Glyph source.
+fn declared_in_module(
+    path: &Path,
+    root: &Path,
+    module_path: &str,
+    name: &str,
+) -> Result<Declared, String> {
+    if let Some(exports) = StdlibStubs::new().exports_of(&module_path_from_key(module_path)) {
+        return Ok(if exports.contains(name) {
+            Declared::Stdlib
+        } else {
+            Declared::Nowhere
+        });
+    }
+    // The import path is counted from the *importing* file's project root
+    // (D41), which is the marked ancestor when there is one and the file's own
+    // directory otherwise (see `module_root_for`).
+    let file = crate::module_root_for(path, root)
+        .join(module_path)
+        .with_extension("glyph");
+    let ftext = match std::fs::read_to_string(&file) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(format!(
+                "no file of this project is module `{module_path}`, so `{module_path}::{name}` \
+                 is declared outside its Glyph source (an npm package or a Node builtin, whose \
+                 declarations are TypeScript) and there is no `.glyph` location to go to"
+            ));
+        }
+        Err(e) => return Err(format!("cannot read {}: {e}", file.display())),
+    };
+    Ok(match crate::analysis::find_symbol_span(&outline_of(&ftext), name) {
+        Some((start, end)) => {
+            let index = LineIndex::new(&ftext);
+            Declared::At(location_value(
+                FileCtx { path: &file, root, text: &ftext },
+                &index,
+                start,
+                end,
+            ))
+        }
+        None => Declared::Nowhere,
+    })
 }
 
 /// The global identity of the top-level name `name` in this module, or `None`
@@ -17392,6 +17467,197 @@ pub fn f() -> number {
                 .contains("file-private"),
             "{value}"
         );
+    }
+
+    // ---- one definition per declaration, whatever the import spelling ----
+
+    const SPELLING_UI: &str = "module ui\n\npub type Props = { label: string, }\n\n\
+        pub component Button(props: Props) {\n  return <button>{props.label}</button>\n}\n";
+
+    /// The three ways `main` can bring in `ui`, each with the qualifier its
+    /// uses are written with: none for the named import.
+    const SPELLINGS: [(&str, &str); 3] = [
+        ("import ui { Button, Props }", ""),
+        ("import ui", "ui."),
+        ("import ui as u", "u."),
+    ];
+
+    /// `main` naming `ui`'s declarations under one spelling, in type position,
+    /// value position, and both tags of an element.
+    fn spelling_main(import: &str, ns: &str) -> String {
+        format!(
+            "module main\n\n{import}\n\npub fn pick(p: {ns}Props) -> string {{\n  \
+             let _b = {ns}Button\n  return p.label\n}}\n\npub component App() {{\n  \
+             return <div>\n    <{ns}Button label=\"go\" />\n    \
+             <{ns}Button label=\"again\">twice</{ns}Button>\n  </div>\n}}\n"
+        )
+    }
+
+    /// Each site as (what it is, a substring of its line, the name, which
+    /// occurrence of the name on that line).
+    const MEMBER_SITES: [(&str, &str, &str, usize); 5] = [
+        ("type position", "pub fn pick", "Props", 0),
+        ("value position", "let _b =", "Button", 0),
+        ("a self-closing element", "label=\"go\"", "Button", 0),
+        ("an opening tag", "label=\"again\"", "Button", 0),
+        ("a closing tag", "label=\"again\"", "Button", 1),
+    ];
+
+    /// The 0-based position of the `nth` `name` on the line holding `needle`.
+    fn site_in(text: &str, needle: &str, name: &str, nth: usize) -> (usize, usize) {
+        let (line, l) = text
+            .lines()
+            .enumerate()
+            .find(|(_, l)| l.contains(needle))
+            .unwrap_or_else(|| panic!("no line holds {needle}"));
+        let (character, _) = l
+            .match_indices(name)
+            .nth(nth)
+            .unwrap_or_else(|| panic!("no {name} #{nth} on {l}"));
+        (line, character)
+    }
+
+    /// `tool` at every member site, one row per spelling, named first.
+    fn answers_by_spelling(tool: &str) -> Vec<Vec<Value>> {
+        SPELLINGS
+            .iter()
+            .map(|(import, ns)| {
+                let root = tmp_root();
+                write(&root, "ui.glyph", SPELLING_UI);
+                let main = spelling_main(import, ns);
+                write(&root, "main.glyph", &main);
+                let mut server = Server::new(root);
+                MEMBER_SITES
+                    .iter()
+                    .map(|(what, needle, name, nth)| {
+                        let (line, character) = site_in(&main, needle, name, *nth);
+                        let (v, is_error) = call_on(
+                            &mut server,
+                            tool,
+                            json!({ "path": "main.glyph", "line": line, "character": character }),
+                        );
+                        assert!(!is_error, "{tool} at {what} under `{import}`: {v}");
+                        v
+                    })
+                    .collect()
+            })
+            .collect()
+    }
+
+    /// G249: `glyph_definition` on `Button` in `ui.Button`, `<ui.Button>` and
+    /// `</ui.Button>`, and on `Props` in `ui.Props`, answers what the same
+    /// name answers under `import ui { Button, Props }`: the entity, the file
+    /// and the range. It was `null` at the value and element positions, and in
+    /// type position the `import ui` line with no entity.
+    #[test]
+    fn definition_of_a_namespace_member_is_the_named_imports_answer() {
+        let answers = answers_by_spelling("glyph_definition");
+        for ((what, _, name, _), v) in MEMBER_SITES.iter().zip(&answers[0]) {
+            assert_eq!(v["entity"], json!(format!("ui::{name}")), "{what}: {v}");
+            assert_eq!(v["path"], "ui.glyph", "{what}: {v}");
+            assert!(v["range"].is_object(), "{what}: {v}");
+            assert_paired(v);
+        }
+        for (row, (import, _)) in answers.iter().zip(SPELLINGS).skip(1) {
+            for ((what, ..), (got, want)) in MEMBER_SITES.iter().zip(row.iter().zip(&answers[0])) {
+                assert_eq!(got, want, "{what} under `{import}`");
+            }
+        }
+    }
+
+    /// Hover on the member segment answers what the named import's hover
+    /// answers, at every site. 0.1.125 made the element position answer and
+    /// nothing held it there.
+    #[test]
+    fn hover_on_a_namespace_member_is_the_named_imports_answer() {
+        let answers = answers_by_spelling("glyph_hover");
+        for ((what, ..), v) in MEMBER_SITES.iter().zip(&answers[0]) {
+            assert!(v.as_str().is_some_and(|s| !s.is_empty()), "{what}: {v}");
+        }
+        for (row, (import, _)) in answers.iter().zip(SPELLINGS).skip(1) {
+            for ((what, ..), (got, want)) in MEMBER_SITES.iter().zip(row.iter().zip(&answers[0])) {
+                assert_eq!(got, want, "{what} under `{import}`");
+            }
+        }
+    }
+
+    /// A name `ui` does not declare answers what an unbound name answers,
+    /// whichever way it is imported. Both are E0105 to the checker. The named
+    /// spelling used to be refused as "`Nope` is not defined in module `ui`"
+    /// while the namespace spelling answered `null`.
+    #[test]
+    fn definition_of_a_name_the_module_does_not_declare_is_null() {
+        let root = tmp_root();
+        write(&root, "ui.glyph", SPELLING_UI);
+        let ns = "module ns\n\nimport ui\n\npub fn f() -> string {\n  let _a = ui.Nope\n  return \"x\"\n}\n";
+        let named = "module named\n\nimport ui { Nope }\n\npub fn f() -> string {\n  let _a = Nope\n  return \"x\"\n}\n";
+        write(&root, "ns.glyph", ns);
+        write(&root, "named.glyph", named);
+        for (file, text) in [("ns.glyph", ns), ("named.glyph", named)] {
+            let (line, character) = site_in(text, "let _a", "Nope", 0);
+            let (value, is_error) = call(
+                &root,
+                "glyph_definition",
+                json!({ "path": file, "line": line, "character": character }),
+            );
+            assert!(!is_error, "{file}: {value}");
+            assert!(value.is_null(), "{file}: {value}");
+        }
+    }
+
+    /// A stdlib name has an identity and no `.glyph` file. The answer keeps
+    /// the entity and states why the location is absent, in the words
+    /// `glyph_symbol` uses for the same declaration, under all three
+    /// spellings. The named spelling was refused as an unreadable
+    /// `std/io.glyph`, and the namespace spellings answered `null`.
+    #[test]
+    fn definition_of_a_stdlib_name_keeps_the_entity_and_says_why_there_is_no_file() {
+        let root = tmp_root();
+        let files = [
+            ("named.glyph", "module named\n\nimport std/io { println }\n\npub fn f() -> void {\n  let _p = println\n}\n", "println"),
+            ("ns.glyph", "module ns\n\nimport std/io\n\npub fn f() -> void {\n  let _p = io.println\n}\n", "println"),
+            ("aliased.glyph", "module aliased\n\nimport std/io as sio\n\npub fn f() -> void {\n  let _p = sio.println\n}\n", "println"),
+        ];
+        let mut answers = Vec::new();
+        for (file, text, name) in files {
+            write(&root, file, text);
+            let (line, character) = site_in(text, "let _p", name, 0);
+            let (value, is_error) = call(
+                &root,
+                "glyph_definition",
+                json!({ "path": file, "line": line, "character": character }),
+            );
+            assert!(!is_error, "{file}: {value}");
+            assert_eq!(value["entity"], "std/io::println", "{file}: {value}");
+            assert!(value["path"].is_null() && value["range"].is_null(), "{file}: {value}");
+            assert_eq!(value["path_absent"], STDLIB_NO_SOURCE, "{file}: {value}");
+            assert_paired(&value);
+            answers.push(value);
+        }
+        assert!(answers.windows(2).all(|w| w[0] == w[1]), "{answers:?}");
+    }
+
+    /// A name an npm package or a Node builtin declares is refused under
+    /// either spelling: its declaration is TypeScript, and the refusal says so
+    /// rather than naming a `.glyph` file that was never going to exist.
+    #[test]
+    fn definition_of_a_package_name_is_refused_under_either_spelling() {
+        let root = tmp_root();
+        let files = [
+            ("named.glyph", "module named\n\nimport path { join }\n\npub fn f() -> void {\n  let _j = join\n}\n"),
+            ("ns.glyph", "module ns\n\nimport path\n\npub fn f() -> void {\n  let _j = path.join\n}\n"),
+        ];
+        for (file, text) in files {
+            write(&root, file, text);
+            let (line, character) = site_in(text, "let _j", "join", 0);
+            let (message, is_error) = call_raw(
+                &mut Server::new(root.clone()),
+                "glyph_definition",
+                json!({ "path": file, "line": line, "character": character }),
+            );
+            assert!(is_error, "{file}: {message}");
+            assert!(message.contains("no file of this project is module `path`"), "{file}: {message}");
+        }
     }
 
     #[test]

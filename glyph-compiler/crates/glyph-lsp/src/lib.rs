@@ -387,7 +387,7 @@ impl LanguageServer for Backend {
             };
             let index = LineIndex::new(text);
             let offset = index.offset(text, pos.position.line, pos.position.character);
-            match analysis.definition(offset) {
+            match analysis.definition(offset, text) {
                 None => None,
                 Some(Definition::Here(start, end)) => {
                     Some(Ok(location_in(&uri, text, start, end)))

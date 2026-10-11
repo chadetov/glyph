@@ -3,10 +3,12 @@ name: Release
 # Build the glyph binary for every supported platform, stage each into its
 # `@glyphlang/<platform>` package, and publish the platform packages plus the
 # `glyph` launcher to npm. Triggered by pushing a `v*` tag (e.g. `v0.1.0`) or
-# manually; only a tag publishes anything. Publishing requires the `NPM_TOKEN`
-# secret, and a tagged run without it fails rather than going green with its
-# publish steps skipped, which is how a "successful" release could reach the
-# GitHub Release page having shipped nothing to npm.
+# manually; only a tag publishes anything. Publishing authenticates through
+# npm trusted publishing: each of the six packages trusts this repository's
+# `release.yml` on npmjs.com, and the publish job exchanges the run's OIDC token
+# for a short-lived publish credential, so no npm token is stored anywhere. A
+# package whose trusted publisher is missing fails its `npm publish` loudly; it
+# cannot be skipped and report green.
 #
 # The shape of this workflow is set by one fact: **npm versions are immutable**.
 # Once `@glyphlang/linux-x64@0.1.81` exists it exists forever, and it cannot be
@@ -369,32 +371,31 @@ jobs:
     # 360-minute default, eight times deeper into the next release's wait.
     timeout-minutes: 45
     permissions:
-      # OIDC token for npm build provenance (`npm publish --provenance`), which
-      # links each published tarball to this workflow run + commit. Verifiable
-      # with `npm audit signatures`.
+      # The OIDC token is the publish credential: npm trusted publishing
+      # exchanges it for a short-lived token scoped to one package, and the same
+      # token signs the build provenance that links each tarball to this run and
+      # commit (verifiable with `npm audit signatures`).
       id-token: write
       contents: read
     env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       VERSION: ${{ needs.preflight.outputs.version }}
     steps:
-      # This job only runs for a tag, and a tag means "publish". Gating the
-      # publish steps on the token instead would skip them and still report the
-      # job green, so a rotated or misnamed secret would produce a release that
-      # announced a version npm never received.
-      - name: The publish token must be present
-        run: |
-          if [ -z "${NPM_TOKEN}" ]; then
-            echo "::error::NPM_TOKEN is not set, and this is a tagged release."
-            echo "Set the NPM_TOKEN repository secret and re-run this job."
-            exit 1
-          fi
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm 11.5.1 or later, and Node 22 ships npm 10,
+      # which would fall through to token auth, find none, and fail at the first
+      # publish. Pinned rather than `latest` so a new npm major cannot change the
+      # publish path between two releases.
+      - name: Install an npm that supports trusted publishing
+        run: |
+          set -euo pipefail
+          npm install -g npm@11.21.0
+          npm --version
+          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); if (a<11||(a===11&&(b<5||(b===5&&c<1)))) { console.error("npm "+process.argv[1]+" cannot use trusted publishing"); process.exit(1) }' "$(npm --version)"
 
       # Restore each platform package's staged binary over the (binary-less)
       # checked-in package directories.
@@ -427,8 +428,11 @@ jobs:
       # transaction. A failure at call four leaves three packages permanently
       # published at a version the launcher will never point at, and the only
       # way out is to burn the version and bump. These two steps turn the
-      # common causes of that (a version already published, a bad token, a
-      # packaging error) into a clean stop before the first real publish.
+      # common causes of that (a version already published, a packaging error)
+      # into a clean stop before the first real publish. A missing trusted
+      # publisher cannot be tested before publishing, since the OIDC exchange is
+      # per package at publish time, so `npm trust list` on all six packages is a
+      # step of the release ceremony before the tag.
       - name: None of these versions may already exist on the registry
         run: |
           set -uo pipefail
@@ -448,11 +452,8 @@ jobs:
           echo "none of the six packages exist at $VERSION yet."
 
       - name: Dry-run every package before publishing any
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          npm whoami
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
             npm publish "./npm/platform/$key" --access public --dry-run
           done
@@ -461,8 +462,6 @@ jobs:
       # Publish the platform packages first so the launcher's optional
       # dependencies exist when it is published.
       - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
@@ -470,8 +469,6 @@ jobs:
           done
 
       - name: Publish the glyph launcher
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish ./npm/glyph --access public --provenance
 
   smoke:

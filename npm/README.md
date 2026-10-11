@@ -45,9 +45,13 @@ on a `v*` tag push:
 3. Publishes the five `@glyphlang/<platform>` packages, then the `glyph` launcher
    (platform packages first, so the launcher's optional deps already exist).
 
-Publishing needs an `NPM_TOKEN` repository secret with publish rights to the
-`glyph` name and the `@glyph` scope. Without it the build matrix still runs and
-uploads artifacts; the publish steps are skipped.
+Publishing uses npm trusted publishing, with no stored token. Each of the six
+packages has a trusted publisher on npmjs.com for this repository's
+`release.yml`, and the publish job exchanges its GitHub OIDC token for a
+short-lived publish credential. A package without one fails at its
+`npm publish`. Check all six with `npm trust list @glyphlang/<name>` before
+pushing a tag, because a missing one cannot be detected before the first
+package is already published.
 
 To cut a release: bump the `version` in `npm/glyph/package.json`, the five
 `npm/platform/*/package.json`, and the launcher's `optionalDependencies` to the

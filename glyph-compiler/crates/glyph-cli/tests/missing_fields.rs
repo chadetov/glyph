@@ -216,7 +216,7 @@ fn every_record_site_names_the_missing_fields_in_the_sentence_and_the_json() {
         assert_eq!(d["code"], case.code, "{}: {d:#}", case.name);
         assert_eq!(d["actual"], "record", "{}: {d:#}", case.name);
         assert_eq!(
-            d["missing"],
+            d["missing_fields"],
             serde_json::json!(case.missing),
             "{}: {d:#}",
             case.name
@@ -252,15 +252,15 @@ fn a_mismatch_that_is_not_about_a_missing_field_carries_null() {
     let errs = errors(&v);
     assert_eq!(errs.len(), 1, "{v:#}");
     assert_eq!(errs[0]["code"], "E0204");
-    assert!(errs[0]["missing"].is_null(), "{:#}", errs[0]);
-    assert!(errs[0].as_object().unwrap().contains_key("missing"));
+    assert!(errs[0]["missing_fields"].is_null(), "{:#}", errs[0]);
+    assert!(errs[0].as_object().unwrap().contains_key("missing_fields"));
     // And an unrelated code carries the key as an explicit null too.
     let typo = "fn main() -> number {\n  let u: User = { name: \"a\", age: 1, tag: None, seen: nullable.from_option(None) }\n  return u.agee\n}\n";
     let v = check_json("other_code", &format!("{RECORDS}\n{typo}"));
     let errs = errors(&v);
     assert_eq!(errs[0]["code"], "E0210", "{v:#}");
-    assert!(errs[0].as_object().unwrap().contains_key("missing"));
-    assert!(errs[0]["missing"].is_null(), "{:#}", errs[0]);
+    assert!(errs[0].as_object().unwrap().contains_key("missing_fields"));
+    assert!(errs[0]["missing_fields"].is_null(), "{:#}", errs[0]);
 }
 
 const COMPONENTS: &str = "module main\n\
@@ -398,7 +398,7 @@ fn a_component_element_is_asked_for_the_props_it_does_not_write() {
                 let d = &errs[0];
                 assert_eq!(d["code"], "E0211", "{}: {d:#}", case.name);
                 assert_eq!(d["actual"], "record", "{}: {d:#}", case.name);
-                assert_eq!(d["missing"], serde_json::json!(missing), "{}: {d:#}", case.name);
+                assert_eq!(d["missing_fields"], serde_json::json!(missing), "{}: {d:#}", case.name);
                 let message = d["message"].as_str().expect("message");
                 assert!(message.ends_with(&suffix(missing)), "{}: {message}", case.name);
             }
@@ -442,5 +442,5 @@ fn the_agent_surface_carries_the_missing_list() {
         .into_iter()
         .find(|d| d["code"] == "E0211")
         .unwrap_or_else(|| panic!("no E0211: {text}"));
-    assert_eq!(d["missing"], serde_json::json!(["count"]), "{d:#}");
+    assert_eq!(d["missing_fields"], serde_json::json!(["count"]), "{d:#}");
 }

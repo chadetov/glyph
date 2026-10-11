@@ -326,7 +326,7 @@ pub enum TypeError {
     /// deliberately narrow — assignability over named, generic, record, and
     /// function types is a later day — so it never fires on a type it can't
     /// judge with certainty.
-    #[error("type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing))]
+    #[error("type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing_fields))]
     TypeMismatch {
         expected: String,
         found: String,
@@ -342,7 +342,7 @@ pub enum TypeError {
         /// "found `record`" said a record was refused and not which field it
         /// lacked, where `tsc` names the property. The checker read the
         /// declared field set to decide the refusal, so the names were in hand.
-        missing: Vec<String>,
+        missing_fields: Vec<String>,
         span: Span,
     },
 
@@ -446,7 +446,7 @@ pub enum TypeError {
     /// application over a different base) — an argument or parameter whose type
     /// can't be judged stays permissive, so the check never produces a false
     /// positive.
-    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing))]
+    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing_fields))]
     ArgumentTypeMismatch {
         expected: String,
         found: String,
@@ -454,9 +454,9 @@ pub enum TypeError {
         /// checker holds. Same rule as `TypeMismatch::accepted`.
         accepted: Option<Accepted>,
         /// The parameter record's required fields the argument lacks. Same
-        /// rule as `TypeMismatch::missing`; for a JSX component element these
+        /// rule as `TypeMismatch::missing_fields`; for a JSX component element these
         /// are the props it does not write.
-        missing: Vec<String>,
+        missing_fields: Vec<String>,
         span: Span,
     },
 
@@ -975,11 +975,11 @@ impl TypeError {
     /// empty list would claim nothing is missing.
     pub fn missing_fields(&self) -> Option<&[String]> {
         match self {
-            TypeError::TypeMismatch { missing, .. }
-            | TypeError::ArgumentTypeMismatch { missing, .. }
-                if !missing.is_empty() =>
+            TypeError::TypeMismatch { missing_fields, .. }
+            | TypeError::ArgumentTypeMismatch { missing_fields, .. }
+                if !missing_fields.is_empty() =>
             {
-                Some(missing)
+                Some(missing_fields)
             }
             _ => None,
         }

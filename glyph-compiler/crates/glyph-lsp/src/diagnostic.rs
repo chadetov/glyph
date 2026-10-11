@@ -98,7 +98,7 @@ pub struct Diagnostic {
     /// Explicit `null` on every other diagnostic, never an empty list, for the
     /// reason `missing_variants` is.
     #[serde(default)]
-    pub missing: Option<Vec<String>>,
+    pub missing_fields: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub help: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -289,7 +289,7 @@ impl Diagnostic {
             entity,
             union: None,
             missing_variants: None,
-            missing: None,
+            missing_fields: None,
             help: help.map(str::to_string),
             note: note.map(str::to_string),
             expected: None,
@@ -319,8 +319,8 @@ impl Diagnostic {
     /// Attach the required fields a refused record lacks. Separate from
     /// `with_facts` for the reason `about_union` is: one more argument on an
     /// already long list, for a fact only two codes carry.
-    fn missing_fields(mut self, missing: Option<Vec<String>>) -> Self {
-        self.missing = missing;
+    fn missing_fields(mut self, missing_fields: Option<Vec<String>>) -> Self {
+        self.missing_fields = missing_fields;
         self
     }
 
@@ -965,19 +965,19 @@ mod tests {
                 fields: &["expected", "actual"],
             },
             // G232's object literal against a declared record, missing a
-            // required field: the names arrive under `missing`.
+            // required field: the names arrive under `missing_fields`.
             Row {
                 code: "E0204",
                 src: "module main\n\ntype User = {\n  name: string,\n  age: number,\n}\n\n\
                        fn make() -> User {\n  return { name: \"a\" }\n}\n",
-                fields: &["expected", "actual", "missing"],
+                fields: &["expected", "actual", "missing_fields"],
             },
             Row {
                 code: "E0211",
                 src: "module main\n\ntype User = {\n  name: string,\n  age: number,\n}\n\n\
                        fn age_of(u: User) -> number {\n  return u.age\n}\n\n\
                        fn main() -> number {\n  return age_of({ name: \"a\" })\n}\n",
-                fields: &["expected", "actual", "missing"],
+                fields: &["expected", "actual", "missing_fields"],
             },
             Row {
                 code: "E0202",
@@ -1032,7 +1032,7 @@ mod tests {
             "alternatives",
             "alternatives_kind",
             "related",
-            "missing",
+            "missing_fields",
         ] {
             assert!(json.contains(&format!("\"{field}\":null")), "{field}: {json}");
         }
@@ -1066,7 +1066,7 @@ mod tests {
                    fn make() -> User {\n  return { name: \"a\" }\n}\n";
         let d = diagnostic_of("main", src, "E0204");
         assert_eq!(
-            d.missing.as_deref(),
+            d.missing_fields.as_deref(),
             Some(["age".to_string(), "email".to_string()].as_slice())
         );
         assert_eq!(
@@ -1084,9 +1084,9 @@ mod tests {
 
         let other = "module main\n\nfn f() -> number {\n  let x: string = 1\n  return 0\n}\n";
         let d = diagnostic_of("main", other, "E0204");
-        assert_eq!(d.missing, None);
+        assert_eq!(d.missing_fields, None);
         let json = serde_json::to_string(&d).expect("serializes");
-        assert!(json.contains("\"missing\":null"), "{json}");
+        assert!(json.contains("\"missing_fields\":null"), "{json}");
     }
 
     /// A tagged union accepts a finite set the checker holds, so a mismatch

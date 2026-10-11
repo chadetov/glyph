@@ -209,6 +209,7 @@ spelling on every code.
 | `related` | The union's whole variant list, in declaration order (`E0200`) |
 | `union` | The union a `match` diagnostic is over: `kind`, `module`, `name`, `declaration` |
 | `missing_variants` | The variants the match leaves unmentioned, in declaration order |
+| `missing_fields` | The required fields a refused record lacks, in the declared record's order, on an `E0204` or `E0211` whose value is a record literal missing one or a component element missing a required prop. A field declared with `?` is never listed |
 | `explain` | `command` (`glyph --explain E0200`, which takes `--json`) and `docs`, the catalogue section for the code. `null` for a `tsc` passthrough code, which has no Glyph documentation |
 
 A wrong argument *count* (`E0213`) is not a type comparison: its two numbers stay

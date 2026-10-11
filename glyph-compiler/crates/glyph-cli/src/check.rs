@@ -153,17 +153,21 @@ pub fn check_path(path: &Path, with_color: bool, run_tsc: bool) -> Result<CheckR
     // file to name something that was about to be thrown away. `glyph run`
     // fingerprints because it keeps its build (`glyph-run-cache`); this one
     // does not keep anything, so it does not pay for a key.
+    //
+    // The directory sits directly in the temp dir rather than under a shared
+    // parent. A shared parent that each check removed on the way out raced a
+    // concurrent check between choosing its path and creating it: the parent
+    // went away underneath `create_dir_all`, and the check failed with an IO
+    // error on a scratch directory that had nothing to do with the program.
     let n = SCRATCH_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let root = std::env::temp_dir().join("glyph-check-scratch");
-    let out = root.join(format!("{}-{n}", std::process::id()));
+    let out = std::env::temp_dir().join(format!(
+        "glyph-check-scratch-{}-{n}",
+        std::process::id()
+    ));
     let _ = remove_dir_all_retry(&out);
 
     let result = check_in(&src, &out, with_color, run_tsc, path.is_dir());
     let _ = remove_dir_all_retry(&out);
-    // Take the parent too, so a machine that ran `glyph check` once is not left
-    // with an empty directory under /tmp forever. Non-recursive on purpose: it
-    // fails, harmlessly, while another check still has a directory in there.
-    let _ = std::fs::remove_dir(&root);
     result
 }
 

@@ -20,7 +20,7 @@ Original 12-step plan: `archive/glyph-strategy.md`. Revisions to steps 4–9 are
 | # | Step | Status | Source of truth |
 |---|------|--------|-----------------|
 | 7 | Ship the LSP (4 weeks → revised 5–6 weeks) | ✅ **v1 complete.** New `glyph-lsp` crate (tower-lsp + tokio), launched via `glyph lsp` over stdio. All eight v1 deliverables ship and are verified end to end over JSON-RPC: **diagnostics** (parse/resolve/typecheck errors with stable codes + help, UTF-16 ranges), **hover** types, **go-to-definition** (within-file + cross-module via D15 full-path imports), **completion** (keywords/decls/prelude), **format-on-save**, **document + workspace symbols** (Q12), the **canonical agent view** (Q32 core: `glyph fmt` layout + stable `Lddd` line numbers + per-declaration FNV-1a fingerprints, via `glyph canonical` and the `glyph/canonicalView` request), and the **gated structured edit** (Q29: `glyph/applyEdit` applies LSP `TextEdit`s only if the result type-checks clean, else rejects with the would-be errors — the abandoned `edit{}@verify{}` syntax re-derived as a protocol op). A **VS Code extension** (`editors/vscode/`) makes it installable. v1.1 tails: Q32 SSA renaming + position mapper, and Q29 test-suite gating. Rename and find-references shipped workspace-wide in 0.1.11. | `docs/roadmap/07-lsp.md` |
-| 8 | Formatter and package story (2 weeks) | 🟦 Planned, `glyph.json` rejected in favor of `"glyph"` key in `package.json` | `docs/roadmap/08-09-packaging.md` |
+| 8 | Formatter and package story (2 weeks) | ✅ **Shipped.** The compiler is published to npm as `@glyphlang/glyph` with one platform package per target, by `.github/workflows/release.yml` on a `v*` tag (npm trusted publishing since 0.1.125); `glyph fmt` is the formatter; a project is marked by a `"glyph"` key in `package.json` rather than a `glyph.json` | `docs/roadmap/08-09-packaging.md` |
 | 9 | Installer and playground (2 weeks) | ✅ **Done.** Installer = the npm CLI distribution (step 8). Playground = `playground/` — a zero-backend web playground where the compiler runs in the browser as WebAssembly (`crates/glyph-wasm` exposes `compile(source) -> { ts, diagnostics }`, built to wasm32 + wasm-bindgen). Three panes: live Glyph editor, the emitted TypeScript, and a diff-stability demo (an agent's one-line Glyph edit → a one-line TS diff). `build.sh` regenerates the wasm; `.github/workflows/playground.yml` deploys it to GitHub Pages. Verified end to end (the real web artifact compiles in Node; all assets serve with correct MIME). | `playground/`, `docs/roadmap/08-09-packaging.md` |
 | 10 | Docs and book outline (4 weeks) | 🟨 **User-facing docs shipped:** `docs/guide/` (five-minute tour, getting-started, Glyph-for-TypeScript-developers delta sheet, 30-minute todo-CLI tutorial — every snippet compiles) plus `docs/book-outline.md`. Remaining: the complete prose reference (the spec covers it for now) and writing the book itself. | `docs/guide/`, `docs/book-outline.md` |
 | 11 | Killer demo (6–8 weeks) | 🟨 **Evidence shipped (honest, reproducible).** `benchmarks/verifiability/` — paired programs where Glyph rejects a bug `tsc --strict` accepts (non-exhaustive match, unsafe cast), asserted by `check.sh`. Density: Glyph ~26% fewer tokens than equivalent TypeScript across the 3 measured functions. Diff stability is demonstrated live in the playground. Synthesized in `benchmarks/FINDINGS.md`. **Deliberately not claimed:** a measured agent-productivity speedup (it is framed as the hypothesis these structural metrics support, pending a real agent study). | `benchmarks/FINDINGS.md` |
@@ -45,19 +45,17 @@ Scope creep. At step 5, effect types. At step 7, a custom protocol instead of LS
 
 ## Current status (where the work actually is)
 
-**Phase 1 is complete and step 6 (dogfooding) is core-complete.** The compiler
-works end to end (`glyph build`/`run`/`fmt`/`--explain`), the fridge
-dogfood app has been built, used, extended, and hardened across three rounds,
-and the gap list it produced is closed (no open bugs; remaining items are
-forward-compatible v1.1 deferrals — see `docs/dogfooding-gaps.md`).
+Live status is in two places, and this section points at them rather than
+copying them, because a copy here went stale once already (it said Phase 2 had
+not started and the gap list was closed, long after the LSP shipped and while
+gaps were open):
 
-**Next is Phase 2 (steps 7–12), none of which is started:** the LSP / editor
-support (7), the npm package story (8 — the `glyph fmt` half is done), the
-installer + web playground (9), docs + book (10), the killer demo (11), and
-launch / first users (12). An early, scrappy exposure to an outside engineering
-group pulls a thin slice of steps 7/9/10/12 forward (a quickstart, a
-TS-developer tour, and basic editor highlighting) ahead of building them
-properly — useful for signal, but those prerequisites do not yet exist.
+- The step table above, for the twelve build steps.
+- [`releases.md`](releases.md), for the 0.1.x feature line: the release with the
+  **Next** marker is the committed target, and each shipped release says what it
+  did. The open gaps and their count are in
+  [`../dogfooding-gaps.md`](../dogfooding-gaps.md), reconciled by
+  `scripts/check_gaps.py`.
 
 The historical day-by-day record below is retained for traceability.
 

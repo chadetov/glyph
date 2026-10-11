@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-252 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-10 are open. G144, the D28 boundary cast that never reached the returns a
+253 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+11 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10329,3 +10329,20 @@ and is the owner's to confirm.
   of a one-module project, 64 at a time, gave 3 failures with that error.
   After: 4,000 runs over two passes gave none and left no scratch directory
   behind.*
+
+- **G253. A required `children` prop is reported missing on an element that
+  writes children, and the message does not say why.** With
+  `type KidsProps = { title: string, children: string }`, the element
+  `<Kids title="t">hello</Kids>` draws ``argument type mismatch: expected
+  `KidsProps`, found `record`: missing field `children` `` with the generic help
+  "Pass a value of the expected type, or change the parameter's type." The
+  refusal is right: the emitter passes written children as extra
+  `createElement` arguments rather than inside the props object, and `tsc`
+  refuses the same element (`Property 'children' is missing`). But the reader
+  can see `hello` written between the tags, and nothing in the diagnostic says
+  that children are not part of the props or suggests `children?`. Either the
+  diagnostic says so when the missing field is `children` and the element has
+  children, or the emitter passes children inside props, which is a language
+  decision about the React lowering. Found by the 0.1.125 release review.
+
+  *Reproduced against 0.1.124, the version the release-branch binary reports before the bump, with the 0.1.125 change in place: `glyph check --no-tsc --no-test src` on that program prints the E0211 above and the generic help line.*

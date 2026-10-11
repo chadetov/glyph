@@ -5940,8 +5940,9 @@ fn impact_occurrences(
                     site
                 }
                 _ => {
+                    let read = ReadSite::of(fmodule, &tags, &span);
                     let (verdict, because, code, absent) =
-                        occurrence_verdict(change, span.relation, tag.is_some());
+                        occurrence_verdict(change, span.relation, read);
                     SiteVerdict {
                         verdict,
                         because: because.to_string(),
@@ -5970,6 +5971,72 @@ fn impact_occurrences(
     (searches, entries)
 }
 
+/// What kind of site a non-applying occurrence is, which decides what is
+/// true to say about it under an edit that keeps the name.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ReadSite {
+    /// The name read as a value: `let b = width`, `apply(width)`.
+    Value,
+    /// A component element, `<Button>` or `<ui.Button>`. The checker compares
+    /// its attributes against the props record rather than reading the name
+    /// as a function value.
+    Element,
+    /// The binding token in `import m { Name }`, which brings the name into
+    /// the module and uses it nowhere.
+    ImportBinding,
+}
+
+impl ReadSite {
+    /// The kind of the occurrence at `span` in `module`, given the file's
+    /// component tags.
+    fn of(
+        module: &glyph_ast::Module,
+        tags: &BTreeMap<(u32, u32), JsxTag>,
+        span: &RelatedSpan,
+    ) -> Self {
+        if tags.contains_key(&(span.start, span.end)) {
+            return ReadSite::Element;
+        }
+        let in_import = module.items.iter().any(|d| match d {
+            glyph_ast::Decl::Import(im) => {
+                im.span.start <= span.start && span.end <= im.span.end
+            }
+            _ => false,
+        });
+        if in_import {
+            ReadSite::ImportBinding
+        } else {
+            ReadSite::Value
+        }
+    }
+}
+
+/// The element reason, shared by the two kinds that change what an element's
+/// props record holds. Since G240 the checker reads an element's attributes,
+/// and the required props it leaves out, against the props record, so the
+/// value-read reason would be false here. The verdict stays undecided: impact
+/// does not yet compare an element against the props record the edit would
+/// leave.
+const ELEMENT_BECAUSE: &str = "this site is a JSX element, and the checker compares the \
+     attributes it writes, and the required props it leaves out, against the component's \
+     props record; impact does not model the props record the edit would leave, so what the \
+     edit does to this element is not determined here";
+const ELEMENT_ABSENT: &str = "the checker raises `E0211` at an element whose attribute does \
+     not fit the props record or that leaves a required prop out, and `E0210` at an attribute \
+     the record does not declare; whether this element draws one after the edit is not \
+     computed";
+
+/// The import-binding reason, for the kinds that keep the name. Under a
+/// rename or a removal the binding stops resolving, which `NAME_GONE` already
+/// says truthfully.
+const IMPORT_BECAUSE: &str = "this occurrence is the `import` that brings the name into the \
+     module; it names the declaration without using it, so what an edit does to it is \
+     decided by whether the name survives, and this edit keeps the name. The sites that use \
+     the binding are where the edit's effect lands, and they are listed on their own";
+const IMPORT_ABSENT: &str = "an `import` line resolves the name against the module's exports \
+     and reads nothing else of the declaration, so it raises a diagnostic only when the name \
+     is gone (`E0105`)";
+
 /// What one occurrence does under one change.
 ///
 /// Every arm was run against the compiler rather than reasoned about. A name
@@ -5980,15 +6047,15 @@ fn impact_occurrences(
 /// which reads the arguments, so this function's `SignatureType` arm is only
 /// ever reached for a site that reads the name.
 ///
-/// `element` says the site is a component element (`<Button>`,
-/// `<ui.Button>`). An element is a reference rather than a call, and the
-/// checker reads it differently from a value read of the same name: it
-/// compares the element's attributes against the component's props record.
-/// Only the reason a parameter type change gives depends on that today.
+/// `site` says what kind of non-applying occurrence this is. A value read, a
+/// component element and an import binding all stay undecided under an edit
+/// that keeps the name, and the reason for each is different: only a value
+/// read is a function value the checker does not compare against its use
+/// context.
 fn occurrence_verdict(
     change: &Change,
     relation: Relation,
-    element: bool,
+    site: ReadSite,
 ) -> (Verdict, &'static str, Option<&'static str>, &'static str) {
     const NAME_GONE: &str = "this site spells a name the edit takes away, so it no longer \
                              resolves to anything";
@@ -6017,6 +6084,12 @@ fn occurrence_verdict(
                 Some("E0213"),
                 "",
             ),
+            _ if site == ReadSite::Element => {
+                (Verdict::NotIndexed, ELEMENT_BECAUSE, None, ELEMENT_ABSENT)
+            }
+            _ if site == ReadSite::ImportBinding => {
+                (Verdict::NotIndexed, IMPORT_BECAUSE, None, IMPORT_ABSENT)
+            }
             _ => (
                 Verdict::NotIndexed,
                 "this site reads the name rather than applying it, and Glyph does not \
@@ -6027,23 +6100,12 @@ fn occurrence_verdict(
                  fit its expected type, on the emitted TypeScript",
             ),
         },
-        // Since G240 the checker reads an element's attributes, and the
-        // required props it leaves out, against the props record, so the
-        // value-read reason below would be false here. The verdict stays
-        // undecided: impact does not yet compare an element against the
-        // props record the edit would leave.
-        Change::SignatureType if element => (
-            Verdict::NotIndexed,
-            "this site is a JSX element, and the checker compares the attributes it \
-             writes, and the required props it leaves out, against the component's props \
-             record; impact does not model the props record the edit would leave, so what \
-             the edit does to this element is not determined here",
-            None,
-            "the checker raises `E0211` at an element whose attribute does not fit the \
-             props record or that leaves a required prop out, and `E0210` at an attribute \
-             the record does not declare; whether this element draws one after the edit is \
-             not computed",
-        ),
+        Change::SignatureType if site == ReadSite::Element => {
+            (Verdict::NotIndexed, ELEMENT_BECAUSE, None, ELEMENT_ABSENT)
+        }
+        Change::SignatureType if site == ReadSite::ImportBinding => {
+            (Verdict::NotIndexed, IMPORT_BECAUSE, None, IMPORT_ABSENT)
+        }
         Change::SignatureType => (
             Verdict::NotIndexed,
             "this site reads the name rather than applying it, so no argument is paired \
@@ -14712,7 +14774,11 @@ pub fn f() -> number {
     /// a value read gives under `change_signature_type`, that Glyph does not
     /// compare a function value against its use context, is false for an
     /// element: the checker compares the element's attributes against the
-    /// props record. Both sites keep `NOT_INDEXED`.
+    /// props record. The `Button` token in `import ui { Button }` is a third
+    /// kind of site: it names the declaration without using it, and under an
+    /// edit that keeps the name neither of the other two reasons is true of
+    /// it. Under `change_arity` and `change_signature_type` the three reasons
+    /// are three different strings; every site keeps its verdict.
     #[test]
     fn a_component_element_is_one_impact_site_with_its_own_reason() {
         let ui = "module ui\npub component Button(props: { label: string, }) {\n  \
@@ -14750,7 +14816,21 @@ pub fn f() -> number {
                 let in_app: Vec<_> = entries.iter().filter(|e| e["entity"] == "main::App").collect();
                 assert_eq!(in_app.len(), 2, "two elements are two sites under {kind}: {answer}");
                 sites.push((kind, entries.len()));
-                if kind != "change_signature_type" {
+                // The import binding is the one entry at module level, and
+                // only the named spelling writes one.
+                let binding: Vec<&Value> = answer["impact"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|e| e["entity"] == Value::Null)
+                    .collect();
+                assert_eq!(binding.len(), main.contains("{ Button }") as usize, "{answer}");
+                if kind == "rename" || kind == "remove" {
+                    // The name goes, and every site that spells it stops
+                    // resolving, the binding included: one true reason.
+                    for e in in_app.iter().copied().chain(binding.iter()) {
+                        assert_eq!(e["verdict"], "WILL_FAIL", "{e}");
+                    }
                     continue;
                 }
                 let element = in_app[0]["because"].as_str().unwrap_or_default();
@@ -14760,11 +14840,21 @@ pub fn f() -> number {
                     .unwrap_or_else(|| panic!("no value-read site: {answer}"))["because"]
                     .as_str()
                     .unwrap_or_default();
-                assert!(element.contains("JSX element"), "{element}");
-                assert!(element.contains("props record"), "{element}");
-                assert!(!element.contains("function value"), "{element}");
-                assert!(value.contains("reads the name rather than applying it"), "{value}");
-                assert_ne!(element, value);
+                assert!(element.contains("JSX element"), "{kind}: {element}");
+                assert!(element.contains("props record"), "{kind}: {element}");
+                assert!(!element.contains("function value"), "{kind}: {element}");
+                assert!(value.contains("reads the name rather than applying it"), "{kind}: {value}");
+                assert!(value.contains("function value"), "{kind}: {value}");
+                assert_ne!(element, value, "{kind}");
+                if let Some(b) = binding.first() {
+                    let import = b["because"].as_str().unwrap_or_default();
+                    assert!(import.contains("`import`"), "{kind}: {import}");
+                    assert!(!import.contains("function value"), "{kind}: {import}");
+                    assert!(!import.contains("JSX element"), "{kind}: {import}");
+                    assert_ne!(import, value, "{kind}");
+                    assert_ne!(import, element, "{kind}");
+                    assert_eq!(b["verdict"], "NOT_INDEXED", "{b}");
+                }
                 for e in &in_app {
                     assert_eq!(e["verdict"], "NOT_INDEXED", "{e}");
                     assert_eq!(e["because"], in_app[0]["because"], "{e}");
@@ -17139,7 +17229,9 @@ pub fn f() -> number {
     /// `glyph_references` reports into the same symbol, at the same place,
     /// with the ends swapped. Asserted as a property rather than as a fixed
     /// list, so a change to either walk that moved one and not the other
-    /// fails here.
+    /// fails here. A component element's closing tag is an edge on both
+    /// sides; only `glyph_impact` folds it into its element and counts one
+    /// site.
     #[test]
     fn dependencies_and_references_agree_over_one_declaration() {
         let root = shop_root();

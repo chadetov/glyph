@@ -112,7 +112,8 @@
 
 use glyph_ast::{
     ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, FnTypeParam, GenericParam, Ident,
-    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm, MatchArmBody,
+    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, JsxKind, LiteralPattern, MatchArm,
+    MatchArmBody,
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
@@ -5830,7 +5831,7 @@ impl<'a> Emitter<'a> {
     /// `<else>` and `<case>` are only meaningful inside their directive and are
     /// consumed there.
     fn emit_jsx(&self, j: &JsxElement) -> Result<String, EmitError> {
-        match JsxKind::classify(&j.name) {
+        match j.kind() {
             JsxKind::Match => self.emit_jsx_match(j),
             JsxKind::For => self.emit_jsx_for(j),
             // A standalone `<if>` (not paired with a sibling `<else>`, which is
@@ -5853,14 +5854,15 @@ impl<'a> Emitter<'a> {
 
     /// Emit an intrinsic or component element as `React.createElement(tag,
     /// props, ...children)`. An intrinsic's tag is its name as a string
-    /// literal; a component's tag is the identifier. `extra_prop` injects an
+    /// literal; a component's tag is the value its name reads, an identifier
+    /// (`Button`) or a member access (`ui.Button`). `extra_prop` injects an
     /// extra prop (used to push a `<for key={...}>` onto the mapped element).
     fn emit_jsx_element(
         &self,
         j: &JsxElement,
         extra_prop: Option<(&str, String)>,
     ) -> Result<String, EmitError> {
-        let kind = JsxKind::classify(&j.name);
+        let kind = j.kind();
         let tag = match kind {
             JsxKind::Intrinsic => escape_double_quoted(&j.name),
             JsxKind::Component => j.name.to_string(),
@@ -5945,7 +5947,7 @@ impl<'a> Emitter<'a> {
                     }
                 }
                 JsxChild::Expr(e) => out.push(self.expr(e)?),
-                JsxChild::Element(el) => match JsxKind::classify(&el.name) {
+                JsxChild::Element(el) => match el.kind() {
                     JsxKind::If => {
                         let cond = self.jsx_attr_expr(el, "cond")?;
                         let then = self.jsx_branch_node(&el.children)?;
@@ -5979,7 +5981,7 @@ impl<'a> Emitter<'a> {
                 JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {
                     j += 1
                 }
-                JsxChild::Element(el) if JsxKind::classify(&el.name) == JsxKind::Else => {
+                JsxChild::Element(el) if el.kind() == JsxKind::Else => {
                     return Ok((self.jsx_branch_node(&el.children)?, Some(j)));
                 }
                 _ => break,
@@ -6027,7 +6029,7 @@ impl<'a> Emitter<'a> {
         for child in &j.children {
             match child {
                 JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {}
-                JsxChild::Element(el) if JsxKind::classify(&el.name) == JsxKind::Case => {
+                JsxChild::Element(el) if el.kind() == JsxKind::Case => {
                     let variant = first_positional(&el.attrs).ok_or(EmitError::Unsupported {
                         construct: "a `<case>` without a variant name",
                         span: el.span,
@@ -6970,41 +6972,6 @@ fn contains_await(e: &Expr) -> bool {
         }),
         // Leaves, lambdas (own async context), and JSX.
         _ => false,
-    }
-}
-
-/// Classification of a JSX element name (mirrors the resolver's `JsxKind`):
-/// the compiler-owned directives, an intrinsic (lowercase HTML element), or a
-/// component reference (capitalized).
-#[derive(PartialEq, Eq)]
-enum JsxKind {
-    Intrinsic,
-    Component,
-    Fragment,
-    If,
-    Else,
-    For,
-    Match,
-    Case,
-}
-
-impl JsxKind {
-    fn classify(name: &Ident) -> Self {
-        match name.as_ref() {
-            "" => JsxKind::Fragment,
-            "if" => JsxKind::If,
-            "else" => JsxKind::Else,
-            "for" => JsxKind::For,
-            "match" => JsxKind::Match,
-            "case" => JsxKind::Case,
-            other => {
-                if other.chars().next().is_some_and(|c| c.is_ascii_lowercase()) {
-                    JsxKind::Intrinsic
-                } else {
-                    JsxKind::Component
-                }
-            }
-        }
     }
 }
 

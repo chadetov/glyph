@@ -1,0 +1,12 @@
+module main
+
+// G242. A dotted element name is a member access, so `<ui.Button>` is the
+// component `ui` exports, whatever the case of `ui`. It was once classified
+// by its first character as an intrinsic and emitted as the string tag
+// "ui.Button", which tsc accepts with any props, so this attribute went
+// unchecked and the component never ran.
+import ui
+
+pub component App() {
+  return <ui.Button variant="nope" label="go" />
+}

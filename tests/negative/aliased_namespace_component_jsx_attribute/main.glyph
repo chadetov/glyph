@@ -1,0 +1,10 @@
+module main
+
+// G242 under the aliased namespace spelling. The component is the same
+// declaration `import ui { Button }` reaches, so the attribute draws the
+// same diagnostic whichever spelling imported it.
+import ui as u
+
+pub component App() {
+  return <u.Button variant="nope" label="go" />
+}

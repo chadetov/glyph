@@ -26,6 +26,7 @@ in the right-hand column.
 | `export` by default | private by default, `pub` to export | The public API is `grep '^pub'`; a helper stays internal |
 | `try`/`finally` cleanup | `defer expr` | Cleanup runs on every exit path, greppable |
 | backtick templates | `"${expr}"` in normal strings, newlines included | Two forms: `"..."` decodes escapes, `"""..."""` is raw; both interpolate |
+| `function Card({ title }: Props)` | `component Card(props: Props)` | One props record, read as `props.title`; the element is checked against it before `tsc` |
 
 The rest of this page expands each.
 
@@ -300,6 +301,32 @@ fn read_config() -> string {
 ```glyph
 let results = await task.all([fn() { fetch_a() }, fn() { fetch_b() }])
 ```
+
+## Components take one props record
+
+A React component is a `component`, and it takes no parameter or exactly one,
+the props record. There is no destructuring in the parameter list, so you read
+`props.title`:
+
+```glyph needs-deps
+type CardProps = { title: string, count: number, note?: string }
+
+component Card(props: CardProps) {
+  return <p>{props.title}: {props.count}</p>
+}
+```
+
+Writing it the way a plain function takes arguments, `component Greeting(name:
+string)`, is E0229. React only ever hands a component the one props object its
+element builds, so that parameter would hold an object while its type says
+`string`. A function that returns JSX and is called directly rather than
+rendered is an `fn`.
+
+Elements are checked against the props record by Glyph itself, before `tsc`
+runs: `<Card title="Q3" />` is E0211 naming the missing `count`, a misspelled
+prop is E0210, and a `?` prop like `note` may be left out. An element whose
+name is dotted, such as `<ui.Card />` under `import ui`, is a component
+whatever the case of its first letter, the same rule TypeScript applies.
 
 ## Async is the same, with one nicety
 

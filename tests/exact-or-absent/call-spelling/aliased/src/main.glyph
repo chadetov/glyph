@@ -1,0 +1,7 @@
+module main
+
+import ui as u
+
+pub fn go() -> string {
+  return u.fmt(1)
+}

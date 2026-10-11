@@ -1675,11 +1675,14 @@ pub enum Relation {
     /// the symbol to an argument list. This is the set that stops compiling
     /// when the symbol's parameters, arity, or variant payload change.
     ///
-    /// The callee has to be the name itself. `io.println()` applies a member of
-    /// `io` rather than `io`; `let g = foo` then `g()` applies `g`; `fs[k]()`
-    /// applies whatever the index yields. In each of those the named symbol is
-    /// read and something else is applied, so the call is not a call *of* it,
-    /// and the site is still reported under [`Relation::References`].
+    /// The callee has to be the name itself, spelled either way an import lets
+    /// it be spelled: `fmt()` under `import ui { fmt }`, and `ui.fmt()` under
+    /// `import ui` or `u.fmt()` under `import ui as u`, which apply `ui::fmt`
+    /// exactly as the first does. Elsewhere the named symbol is read and
+    /// something else is applied: `io.println()` applies a member of `io`
+    /// rather than `io`, `let g = foo` then `g()` applies `g`, and `fs[k]()`
+    /// applies whatever the index yields. None of those is a call *of* the
+    /// symbol read, and that site is reported under [`Relation::References`].
     Calls,
     /// The site names the entity without applying it: the declaration's own
     /// name, an `import` binding, a type annotation naming the symbol, a value
@@ -1763,9 +1766,16 @@ pub struct RelatedSpan {
 /// can be compared against an occurrence span directly rather than by
 /// containment.
 ///
-/// Only a bare name counts. A member callee (`io.println()`), an indexed one
-/// (`handlers[k]()`) and a call through a local alias each apply something
-/// other than the named symbol. A JSX element naming a component
+/// A bare name counts, and so does the member name of a callee written
+/// `ns.name` (`ui.fmt` in `ui.fmt(1)`), recorded at the member's own span,
+/// which is the span a namespace-qualified occurrence is keyed by
+/// (`qualified_name_span`). A namespace or aliased import is a spelling of the
+/// same call a named import writes, so it is the same site. The
+/// namespace itself is not a callee: `io.println()` applies `println`, not
+/// `io`. An indexed callee (`handlers[k]()`) and a call through a local alias
+/// each apply something other than the named symbol. A member of anything
+/// but a bare name (`a.b.c()`) is not recorded: nothing qualifies a module
+/// symbol that way, so no occurrence could sit at it. A JSX element naming a component
 /// (`<UserSearch />`, `<ui.UserSearch />`) is not a call expression, so it is
 /// not in this set either: it is a [`Relation::References`] site at the name,
 /// under every import spelling.
@@ -1818,11 +1828,21 @@ fn block_callees(block: &Block, out: &mut Callees) {
 
 fn expr_callees(e: &Expr, out: &mut Callees) {
     if let Expr::Call { callee, args, .. } | Expr::New { callee, args, .. } = e {
-        if let Expr::Ident { span, .. } = &**callee {
-            out.insert(
-                (span.start, span.end),
-                args.iter().map(|a| a.span()).collect(),
-            );
+        let named = match &**callee {
+            Expr::Ident { span, .. } => Some((span.start, span.end)),
+            Expr::Member {
+                object,
+                field,
+                span,
+                ..
+            } if matches!(**object, Expr::Ident { .. }) => {
+                let len = field.as_ref().len() as u32;
+                (span.end >= span.start + len).then(|| (span.end - len, span.end))
+            }
+            _ => None,
+        };
+        if let Some(at) = named {
+            out.insert(at, args.iter().map(|a| a.span()).collect());
         }
     }
     glyph_ast::visit::child_exprs(e, &mut |c| expr_callees(c, out));

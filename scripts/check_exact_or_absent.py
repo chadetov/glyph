@@ -701,24 +701,130 @@ def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
             )
     # An element and the named import's binding token are neither of them a
     # function value read in a use context, so under an edit that keeps the
-    # name each states its own reason.
+    # name each states its own reason. Since G250 and G251 each is decided:
+    # both elements write `label` against an inline props record, so each is
+    # WILL_FAIL under a type edit and ABSORBS under an arity edit, and the
+    # binding is SAFE under both.
     project = ELEMENT_SPELLING / "named"
-    for kind in ("change_arity", "change_signature_type"):
-        element = impacts["named"][kind][0][5] or ""
-        if "JSX element" not in element or "function value" in element:
-            return False, f"an element site under {kind} gives the wrong reason: {element}"
+    for kind, want in (("change_arity", "ABSORBS"), ("change_signature_type", "WILL_FAIL")):
+        for site in impacts["named"][kind]:
+            element = site[5] or ""
+            if "JSX element" not in element or "function value" in element:
+                return False, f"an element site under {kind} gives the wrong reason: {element}"
+            if site[3] != want:
+                return False, f"an element site under {kind} is {site[3]}, not {want}: {site}"
         i = impact(project, "ui::Button", {"kind": kind})
-        binding = [e.get("because") or "" for e in i.get("impact") or [] if e.get("entity") is None]
-        if len(binding) != 1 or "`import`" not in binding[0] or "function value" in binding[0]:
-            return False, f"the import binding under {kind} gives the wrong reason: {binding}"
-        # G250: an import line reads the name and nothing else of the
-        # declaration, and these two edits keep it.
-        verdicts = [e.get("verdict") for e in i.get("impact") or [] if e.get("entity") is None]
-        if verdicts != ["SAFE"]:
-            return False, f"the import binding under {kind} is {verdicts}, not SAFE"
+        binding = [e for e in i.get("impact") or [] if e.get("entity") is None]
+        because = [e.get("because") or "" for e in binding]
+        if len(binding) != 1 or "`import`" not in because[0] or "function value" in because[0]:
+            return False, f"the import binding under {kind} gives the wrong reason: {because}"
+        if binding[0].get("verdict") != "SAFE" or binding[0].get("diagnostic") is not None:
+            return False, f"the import binding under {kind} is not SAFE: {binding[0]}"
     return True, (
         "dependency edges and per-element impact sites match across all three spellings, "
-        "an element and an import binding each give their own reason, and the binding is SAFE"
+        "each element is decided, and the import binding is SAFE"
+    )
+
+
+ELEMENT_VERDICTS = CORPUS / "element-verdicts"
+
+#: `main::App`'s elements in `element-verdicts`, by 0-based line: the
+#: component each renders, and what it writes.
+ELEMENT_LINES = {
+    10: "Inline",  # label="go" hint={s}
+    11: "Inline",  # {...p}
+    12: "Named",   # label="go", against a declared `Props`
+    13: "Opt",     # nothing
+    14: "Opt",     # a child
+    15: "Plain",   # a component with no parameter
+    16: "Card",    # a `fn` rendered as a component
+}
+
+
+def case_element_verdicts() -> tuple[bool, str]:
+    """Every element is decided the way the checker treats it (G251), under
+    every import spelling, and the one way an element can be compared with a
+    call is held: it answers as the call written with its props record.
+
+    Under `change_signature_type` an element is one argument, the props record
+    it builds, against the component's one parameter, through the cell a call
+    argument gets, so `<Inline label="go" hint={s} />` must answer what
+    `takes({ label: "go", hint: s })` answers against the same parameter type,
+    and `<Named label="go" />` what `takesn({ label: "go" })` answers. That is
+    asserted against the call's own answer and not a fixed verdict, so the two
+    cannot drift apart. The calls are read under the named spelling, where the
+    callee is the name itself. A spread is UNDETERMINED (the checker does not
+    ask what a spread supplies), and a parameterless component pairs nothing.
+
+    Under `change_arity` the one edit that keeps a component legal decides the
+    element: with the props record removed, an element that passes something
+    is ABSORBS and one that passes nothing is SAFE. A parameterless component's
+    element waits on a record the change does not name, and a `fn` meets no
+    bound, so both are NOT_INDEXED. Every one of these was run against the
+    checker by making the edit before it was written here.
+    """
+    sig_fixed = {10: "WILL_FAIL", 11: "UNDETERMINED", 13: "WILL_FAIL", 14: "WILL_FAIL",
+                 15: "UNDETERMINED", 16: "WILL_FAIL"}
+    arity_fixed = {10: "ABSORBS", 11: "ABSORBS", 12: "ABSORBS", 13: "SAFE", 14: "ABSORBS",
+                   15: "NOT_INDEXED", 16: "NOT_INDEXED"}
+    seen = {}
+    for spelling in ELEMENT_SPELLINGS:
+        project = ELEMENT_VERDICTS / spelling
+        got = {}
+        for kind in ("change_signature_type", "change_arity"):
+            for name in sorted(set(ELEMENT_LINES.values())):
+                a = impact(project, f"ui::{name}", {"kind": kind})
+                if "error" in a:
+                    return False, f"{spelling}: impact {kind} on {name} refused: {a['error'][:120]}"
+                for e in a.get("impact") or []:
+                    line = e.get("line")
+                    if e.get("entity") == "main::App" and ELEMENT_LINES.get(line) == name:
+                        args = [g.get("verdict") for g in e.get("arguments") or []]
+                        got[(kind, line)] = (e.get("verdict"), tuple(args))
+        missing = [(k, l) for k in ("change_signature_type", "change_arity")
+                   for l in ELEMENT_LINES if (k, l) not in got]
+        if missing:
+            return False, f"{spelling}: no element site at {missing}"
+        for line, want in sig_fixed.items():
+            if got[("change_signature_type", line)][0] != want:
+                return False, (f"{spelling}: the element at line {line} is "
+                               f"{got[('change_signature_type', line)]} under a type edit, not {want}")
+        for line, want in arity_fixed.items():
+            if got[("change_arity", line)][0] != want:
+                return False, (f"{spelling}: the element at line {line} is "
+                               f"{got[('change_arity', line)]} under an arity edit, not {want}")
+        seen[spelling] = got
+    for spelling in ELEMENT_SPELLINGS[1:]:
+        if seen[spelling] != seen["named"]:
+            return False, ("an element's verdict depends on the import spelling: "
+                           f"named={seen['named']} {spelling}={seen[spelling]}")
+
+    # The element against the call written with its props record.
+    project = ELEMENT_VERDICTS / "named"
+    for component, callee, el_line, call_line in (("Inline", "takes", 10, 7),
+                                                  ("Named", "takesn", 12, 8)):
+        a = impact(project, f"ui::{callee}", {"kind": "change_signature_type"})
+        call = [e for e in a.get("impact") or []
+                if e.get("relation") == "CALLS" and e.get("line") == call_line]
+        if len(call) != 1:
+            return False, f"no call site of {callee} at line {call_line}: {a}"
+        want = (call[0].get("verdict"),
+                tuple(g.get("verdict") for g in call[0].get("arguments") or []))
+        if seen["named"][("change_signature_type", el_line)] != want:
+            return False, (f"<{component}> answers {seen['named'][('change_signature_type', el_line)]} "
+                           f"and the call it lowers to, {callee}(...), answers {want}")
+
+    # The named import's binding, for every entity it names.
+    for name in sorted(set(ELEMENT_LINES.values())):
+        for kind, want in (("change_arity", "SAFE"), ("change_signature_type", "SAFE"),
+                           ("rename", "WILL_FAIL"), ("remove", "WILL_FAIL")):
+            a = impact(project, f"ui::{name}", {"kind": kind})
+            binding = [e.get("verdict") for e in a.get("impact") or [] if e.get("entity") is None]
+            if binding != [want]:
+                return False, f"the import binding of {name} under {kind} is {binding}, not [{want}]"
+    return True, (
+        "seven elements decided identically under three spellings, each element agreeing "
+        "with the call it lowers to, and the import binding SAFE under both signature edits"
     )
 
 
@@ -2029,6 +2135,7 @@ HARD = [
     ("its dependencies and impact under any spelling", case_element_spelling_dependencies_and_impact),
     ("definition and hover under any spelling", case_member_spelling_definition_and_hover),
     ("a call under any import spelling", case_call_spelling),
+    ("an element is decided as the call it lowers to", case_element_verdicts),
     ("CALLS is the applied sites, with coverage", case_calls_relation),
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),

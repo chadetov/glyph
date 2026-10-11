@@ -1,0 +1,31 @@
+module ui
+
+pub type Props = { label: string, }
+
+pub component Inline(props: { label: string, hint?: string, }) {
+  return <b>{props.label}</b>
+}
+
+pub component Named(props: Props) {
+  return <b>{props.label}</b>
+}
+
+pub component Opt(props: { hint?: string, }) {
+  return <b>opt</b>
+}
+
+pub component Plain() {
+  return <b>plain</b>
+}
+
+pub fn Card(props: { label: string, }) -> string {
+  return props.label
+}
+
+pub fn takes(props: { label: string, hint?: string, }) -> string {
+  return props.label
+}
+
+pub fn takesn(props: Props) -> string {
+  return props.label
+}

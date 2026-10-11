@@ -421,6 +421,45 @@ pub fn assignability(
     }
 }
 
+/// The fields of the props record a component element is compared against,
+/// given the type the component's one parameter is declared with, or `None`
+/// when the checker reads no record there and so compares the element's
+/// attributes against nothing (G240).
+///
+/// The same read the element rule makes, through the same method
+/// (`Assigner::props_record_of`), so a surface that reports what an element's
+/// attributes are paired with names the fields the checker paired them with:
+/// a structural record, a local or imported record and a second name for one,
+/// an interface, a stdlib record. A generic parameter, `unknown`, a
+/// `Record<K, V>` map and every type that is not a record answer `None`.
+pub fn props_record_fields(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    decl_ty_resolver: &dyn DeclTyResolver,
+    declared: &Ty,
+) -> Option<Vec<RecordField>> {
+    let mut tm = TypeMap::new();
+    let mut errors: Vec<TypeError> = Vec::new();
+    let mut coverage = FileMatchCoverage::default();
+    let mut field_uses = FileFieldUses::default();
+    let assigner = Assigner {
+        module,
+        lowerer: Lowerer::new(resolved, prelude),
+        resolved,
+        tm: &mut tm,
+        errors: &mut errors,
+        coverage: &mut coverage,
+        field_uses: &mut field_uses,
+        assign_target: None,
+        member_object: None,
+        decl_ty_resolver,
+        return_stack: Vec::new(),
+        local_tys: HashMap::new(),
+    };
+    assigner.props_record_of(declared).map(|shape| shape.fields)
+}
+
 // ============================================================================
 // Match coverage: the side channel the exhaustiveness dispatch fills
 // ============================================================================
@@ -2347,8 +2386,7 @@ impl Assigner<'_> {
             return None;
         };
         let declared = param.ty.clone();
-        let canonical = self.canonicalize_aliases(&declared);
-        let shape = self.record_shape_of(&canonical)?;
+        let shape = self.props_record_of(&declared)?;
         Some((declared, shape))
     }
 
@@ -2377,6 +2415,16 @@ impl Assigner<'_> {
             }
         }
         self.props_param(&self.lowerer.lower(&param.ty), 0)
+    }
+
+    /// The record a component's one parameter, declared as `declared`, holds
+    /// its props in: the declaration's second names followed to the end, then
+    /// read as a record. One method, because `props_record_fields` answers
+    /// for surfaces that report what an element was compared against, and
+    /// two reads of the same thing is how they come to disagree.
+    fn props_record_of(&self, declared: &Ty) -> Option<RecordShape> {
+        let canonical = self.canonicalize_aliases(declared);
+        self.record_shape_of(&canonical)
     }
 
     /// What a component's one parameter is as a props value (G243): a record,

@@ -1976,6 +1976,12 @@ pub struct DependencySpan {
 /// names the declaration itself and is reported: it is a use of the name like
 /// any other, and dropping it would make the list disagree with
 /// [`global_occurrences_in`] over the same span.
+///
+/// The same holds for a component element's closing tag (`</ui.Button>`):
+/// this list and the references relation each hold both tags as two
+/// occurrences, while impact folds the closing tag into its element and counts
+/// one site, which is why an element's edge count here and its site count in
+/// `glyph_impact` differ.
 pub fn global_dependencies_in(
     module: &Module,
     resolved: &ResolvedModule,

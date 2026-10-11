@@ -636,10 +636,22 @@ def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
                 "the impact of one edit depends on the import spelling: "
                 f"named={impacts['named']} {spelling}={impacts[spelling]}"
             )
-    because = impacts["named"]["change_signature_type"][0][5] or ""
-    if "JSX element" not in because or "function value" in because:
-        return False, f"an element site under change_signature_type gives the wrong reason: {because}"
-    return True, "dependency edges and per-element impact sites match across all three spellings"
+    # An element and the named import's binding token are neither of them a
+    # function value read in a use context, so under an edit that keeps the
+    # name each states its own reason.
+    project = ELEMENT_SPELLING / "named"
+    for kind in ("change_arity", "change_signature_type"):
+        element = impacts["named"][kind][0][5] or ""
+        if "JSX element" not in element or "function value" in element:
+            return False, f"an element site under {kind} gives the wrong reason: {element}"
+        i = impact(project, "ui::Button", {"kind": kind})
+        binding = [e.get("because") or "" for e in i.get("impact") or [] if e.get("entity") is None]
+        if len(binding) != 1 or "`import`" not in binding[0] or "function value" in binding[0]:
+            return False, f"the import binding under {kind} gives the wrong reason: {binding}"
+    return True, (
+        "dependency edges and per-element impact sites match across all three spellings, "
+        "and an element and an import binding each give their own reason"
+    )
 
 
 def case_calls_relation() -> tuple[bool, str]:

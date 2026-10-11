@@ -65,9 +65,11 @@
       <h1 class="q-title">Does it work with React: components, hooks, and Context?</h1>
 
       <p class="short-answer">
-        React is <strong>built in</strong>. A <code>component</code> compiles to a React function
-        component, JSX lowers to <code>createElement</code>, custom hooks are just functions,
-        and complex state is <strong>safer than plain TypeScript</strong>.
+        Yes, with two gaps worth knowing first. A <code>component</code> compiles to a React
+        function component, JSX lowers to <code>createElement</code>, React's own hooks are
+        imported and called like any npm function, and reducer state gets exhaustiveness plain
+        TypeScript does not have. A hook that touches the DOM can't be written yet, and a hook's
+        tuple is read by index rather than destructured.
       </p>
 
       <div class="detail">
@@ -75,36 +77,47 @@
         <p>
           A lot of the code agents write is React. Glyph treats it as a first-class target, not a
           bolt-on: <code>component</code> is its own keyword (so <code>grep "^component "</code>
-          audits your whole UI), and hooks work exactly as you'd expect because they're ordinary
-          function calls.
+          audits your whole UI). React's hooks are imported from <code>react</code> and called
+          with their real names and types, checked by <code>tsc</code> against React's own
+          declarations.
         </p>
 
         <p class="block-label">See it</p>
-        <p>A custom hook is a function that calls hooks. Reducer state gets something React alone can't give you, compile-time exhaustiveness on every action:</p>
+        <p>React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:</p>
       </div>
 
       <div class="code">
-        <span class="cap">counter.glyph: a custom hook + a reducer that can't miss a case</span>
-<pre>type Action = Inc | Dec | Reset
+        <span class="cap">counter.glyph, against react@18 and its types</span>
+<pre>import react { useReducer }
+
+type Action = Inc | Dec | Reset
 
 fn reducer(n: number, a: Action) -&gt; number {
   return match a {
     Inc =&gt; n + 1,
     Dec =&gt; n - 1,
     Reset =&gt; 0,
-<span class="add">    // add an Action variant ⇒ this match fails to compile</span>
+<span class="add">    // add an Action variant and this match is E0200</span>
   }
 }
 
-fn use_counter() -&gt; StateHandle&lt;number&gt; {
-  return use_reducer(reducer, 0)
+pub component Counter() {
+  let state = useReducer(reducer, 0)
+  let count = state[0]
+  let dispatch = state[1]
+  return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
 }</pre>
       </div>
 
       <div class="detail">
         <p>
-          Add a <code>SetTo(number)</code> action and every reducer that doesn't handle it stops
-          compiling: the bug a plain TypeScript <code>switch</code> would let ship. React
+          Add a <code>Double</code> action and the reducer stops compiling with
+          <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship.
+          The tuple is read as <code>state[0]</code> and <code>state[1]</code> because Glyph has no
+          <code>let [count, dispatch] = ...</code> yet; the types survive, since the emitted index
+          keeps TypeScript's tuple element types. Glyph's own checker does not type values that
+          come from React, so a wrong argument to <code>dispatch</code> or a state setter is
+          reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>. React
           <strong>Context</strong> works today through <code>createContext</code> /
           <code>useContext</code>, and member-expression element names
           (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.
@@ -161,11 +174,11 @@ pub component App() {
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, built-in and custom hooks, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
+          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A Context primitive story for effectful custom hooks that composes with the JSX-purity rule, so more of the React-library surface works without a shim. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name.</p>
+          <p>Browser globals (<code>document</code>, <code>window</code>, <code>localStorage</code>) are unresolved names in Glyph today, so a <code>useEffect</code> that sets the page title or reads storage can't be written; a typed <code>std/dom</code> module is planned for this. So is <code>let [a, b] = ...</code> for a hook's tuple. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in a Vite app works as <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a> describes.</p>
         </div>
       </div>
 

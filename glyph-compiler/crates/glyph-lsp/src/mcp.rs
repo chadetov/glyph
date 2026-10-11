@@ -16814,6 +16814,33 @@ pub fn f() -> number {
         assert!(value["fields"].is_null(), "{value}");
     }
 
+    /// D19: a component written without a return type returns the prelude
+    /// `Component`, the type `-> Component` names, so `glyph_symbol` reports
+    /// that rather than the `void` a plain unannotated `fn` keeps.
+    #[test]
+    fn symbol_reports_an_unannotated_component_as_returning_component() {
+        let root = tmp_root();
+        write(
+            &root,
+            "ui.glyph",
+            "module ui\n\
+             pub type Props = { label: string }\n\
+             pub component Button(props: Props) {\n\
+             \x20 return <button>{props.label}</button>\n\
+             }\n\
+             pub fn tick() {\n\
+             \x20 print(\"x\")\n\
+             }\n",
+        );
+        let value = symbol(&root, "ui::Button");
+        assert_paired(&value);
+        assert_eq!(value["kind"], "component", "{value}");
+        assert_eq!(value["type"], "fn(Props) -> Component", "{value}");
+        assert_eq!(value["returns"], "Component", "{value}");
+        let tick = symbol(&root, "ui::tick");
+        assert_eq!(tick["returns"], "void", "{tick}");
+    }
+
     #[test]
     fn symbol_describes_a_function() {
         let root = shop_root();

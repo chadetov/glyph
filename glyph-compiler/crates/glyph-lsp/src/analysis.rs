@@ -2667,6 +2667,34 @@ mod tests {
         );
     }
 
+    /// D19 gives a component an implied JSX-returning body, so one written
+    /// without `-> Component` hovers as returning the prelude `Component`,
+    /// exactly as the annotated spelling does. It used to hover as `-> void`,
+    /// the reading a plain unannotated `fn` keeps.
+    #[test]
+    fn hover_on_an_unannotated_component_reads_component() {
+        let src = "module ui\n\
+            pub type Props = { label: string }\n\
+            pub component Button(props: Props) {\n\
+            \x20 return <button>{props.label}</button>\n\
+            }\n\
+            pub component Card(props: Props) -> Component {\n\
+            \x20 return <div>{props.label}</div>\n\
+            }\n\
+            pub fn tick() {\n\
+            \x20 print(\"x\")\n\
+            }\n";
+        assert_eq!(
+            hover_at_text(src, "Button", 0),
+            Some("fn(Props) -> Component".to_string())
+        );
+        assert_eq!(
+            hover_at_text(src, "Card", 0),
+            Some("fn(Props) -> Component".to_string())
+        );
+        assert_eq!(hover_at_text(src, "tick", 0), Some("fn() -> void".to_string()));
+    }
+
     /// An interface has no lowered form of its own, so it hovers as the record
     /// shape a value satisfying it carries. `null` here was the whole reason
     /// an interface's members were reachable from nowhere.

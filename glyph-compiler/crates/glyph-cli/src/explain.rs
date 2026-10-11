@@ -660,7 +660,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
             a `Nullable` and a function type. A generic parameter, `unknown`, \
             `Record<K, V>` and a type the compiler cannot see into draw \
             nothing. A component with no parameters is also fine; one with \
-            several is E0214.",
+            several is E0214.\n\n\
+            Calling a component directly, `Greeting(\"x\")`, is refused with \
+            the declaration even though it runs: a `component` is something \
+            React renders, and calling one bypasses React, so hooks inside it \
+            break. A function that returns JSX and is called as a function is \
+            an `fn`.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1508,7 +1513,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0229",
         phase: "typechecker",
         meaning: "A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable` or a function type; a generic parameter, `unknown` and `Record<K, V>` draw nothing",
-        fix: "Take one props record: `component Greeting(props: { name: string })`, then read `props.name`",
+        fix: "Take one props record: `component Greeting(props: { name: string })`, then read `props.name`; a function called directly rather than rendered is an `fn`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

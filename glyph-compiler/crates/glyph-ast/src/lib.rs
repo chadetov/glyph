@@ -555,6 +555,16 @@ pub struct JsxElement {
     /// the element as a whole points. The opening `<` for a fragment, which
     /// has no name.
     pub name_span: Span,
+    /// The span of each dot-separated segment of the opening tag's name, in
+    /// order: one for `<Card>`, two for `<ui.Button>` (`ui`, then `Button`).
+    /// Empty for a fragment. Kept per segment because a dotted path is a run
+    /// of tokens, so its segments are not at fixed offsets from `name_span`.
+    pub name_segments: Vec<Span>,
+    /// The same for the closing tag (`</ui.Button>`), which spells the name a
+    /// second time. Empty for a self-closing element and a fragment, which
+    /// write no name there. Renaming the component rewrites both tags, so a
+    /// reference to it sits in each.
+    pub close_name_segments: Vec<Span>,
     pub span: Span,
 }
 
@@ -562,6 +572,26 @@ impl JsxElement {
     /// What kind of element this tag is (see `JsxKind::classify`).
     pub fn kind(&self) -> JsxKind {
         JsxKind::classify(&self.name)
+    }
+
+    /// The name segments of each tag that writes one, opening tag first: one
+    /// entry for a self-closing element, two when there is a closing tag.
+    ///
+    /// The first segment of a tag is where it names a binding (the whole
+    /// name for `<Button>`, the base `ui` for `<ui.Button>`, see
+    /// [`jsx_member_name`]). The resolver records the element's reference
+    /// there and the checker reads it back from the opening tag's, so both
+    /// agree on where the reference is without either re-deriving it.
+    pub fn tag_name_segments(&self) -> impl Iterator<Item = &[Span]> {
+        [self.name_segments.as_slice(), self.close_name_segments.as_slice()]
+            .into_iter()
+            .filter(|segments| !segments.is_empty())
+    }
+
+    /// The span of the segment the opening tag names a binding with, or
+    /// `None` for a fragment. See [`JsxElement::tag_name_segments`].
+    pub fn binding_span(&self) -> Option<Span> {
+        self.name_segments.first().copied()
     }
 }
 

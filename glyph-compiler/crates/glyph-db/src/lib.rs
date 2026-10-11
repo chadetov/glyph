@@ -3053,6 +3053,41 @@ fn use_helper(x: number) -> number { return helper(x) }
     }
 
     #[test]
+    fn a_component_element_through_a_namespace_is_held_to_the_export_rule() {
+        // G244. `import lib { Secret }` is E0105, and so is the member
+        // expression `lib.Secret`; the element `<lib.Secret>` reported nothing
+        // and left the unexported component to `tsc`. A closing tag spells the
+        // name again and is not a second diagnostic, and an exported
+        // component stays clean through the namespace and through an alias.
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\n\
+             component Secret(props: { label: string, }) {\n  return <b>{props.label}</b>\n}\n\
+             pub component Open(props: { label: string, }) {\n  return <b>{props.label}</b>\n}\n",
+        );
+        let app = new_file(
+            &db,
+            "app.glyph",
+            "module app\nimport lib\nimport lib as l\n\
+             pub component A() {\n  return <div><lib.Secret label=\"x\">hi</lib.Secret>\
+             <lib.Open label=\"y\" /><l.Open label=\"z\">hi</l.Open></div>\n}\n",
+        );
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let diags = import_diagnostics(&db, app);
+        let names: Vec<&str> = diags
+            .errors()
+            .iter()
+            .filter_map(|e| match e {
+                ResolveError::UnknownExportedName { name, .. } => Some(name.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(names, vec!["Secret"], "errors: {:?}", diags.errors());
+    }
+
+    #[test]
     fn the_namespace_spelling_of_a_pub_type_stays_clean() {
         // The other half of the pair: the check must not fire on an exported
         // sibling type, through either the plain namespace or the alias, and must

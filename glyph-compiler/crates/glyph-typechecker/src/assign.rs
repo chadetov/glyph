@@ -2317,11 +2317,12 @@ impl Assigner<'_> {
         if j.kind() != JsxKind::Component {
             return None;
         }
+        // The resolver keys the element's reference at the segment that
+        // names a binding, which `binding_span` is the one definition of.
+        let at = j.binding_span()?;
         let callee = match jsx_member_name(&j.name) {
-            None => self.type_of_ident_ref(j.span),
-            Some((_, member)) if !member.contains('.') => {
-                self.namespace_member_ty(j.span, member)?
-            }
+            None => self.type_of_ident_ref(at),
+            Some((_, member)) if !member.contains('.') => self.namespace_member_ty(at, member)?,
             Some(_) => return None,
         };
         let Ty::Fn { params, .. } = callee else {

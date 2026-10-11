@@ -57,6 +57,12 @@ pub struct QualifiedTypeRef {
     pub name: Ident,
     /// The whole `ns.Name` path, for the diagnostic.
     pub span: Span,
+    /// The path is a JSX closing tag (`</ui.Button>`), which spells its
+    /// opening tag's name a second time. It is an occurrence of the name like
+    /// any other, so references and rename see it, and the export check skips
+    /// it: the opening tag already holds the element to the rule, and one
+    /// unexported name is one diagnostic.
+    pub closing_tag: bool,
 }
 
 /// The output of `resolve_module`: the symbol table + a span-indexed
@@ -588,21 +594,56 @@ impl Resolver<'_> {
         }
     }
 
+    /// Record the reference a component element makes, at the name it is
+    /// written with, in every tag that writes it.
+    ///
+    /// A plain name (`<Button>`) is a use of the binding it spells. A dotted
+    /// name (`<ui.Button>`, `<Ctx.Provider>`) resolves its base segment only:
+    /// the rest is property access, not a separate binding, and a dotted name
+    /// is a component whatever the case of its base, so an unbound base is an
+    /// unresolved name. When the base is a namespace import, the member is
+    /// recorded as a qualified reference exactly as the member expression
+    /// `ui.Button` records it, so the export check, references, rename and
+    /// the relations read `<ui.Button>` as the same use of `ui::Button` that
+    /// `<Button>` is under `import ui { Button }` (G244).
+    ///
+    /// Each reference is keyed by the name's own span rather than the whole
+    /// element's. A reference keyed by the element covered its attributes and
+    /// children, so an occurrence reported for it was the whole element, and
+    /// a rename wrote the new name over all of it. The closing tag spells the
+    /// name again and is recorded again, from the opening tag's resolution
+    /// rather than a second lookup, so an unbound name is one diagnostic.
+    fn resolve_jsx_component(&mut self, j: &JsxElement) {
+        let (base, member) = match jsx_member_name(&j.name) {
+            Some((base, member)) => (Ident::from(base), member.split('.').next()),
+            None => (j.name.clone(), None),
+        };
+        let mut tags = j.tag_name_segments();
+        let Some(open) = tags.next() else { return };
+        let open_base = open[0];
+        self.resolve_name_ref(&base, open_base);
+        let resolved = self.resolutions.get(open_base);
+        let every_tag = std::iter::once((false, open)).chain(tags.map(|s| (true, s)));
+        for (closing_tag, segments) in every_tag {
+            if closing_tag {
+                if let Some(r) = resolved {
+                    self.resolutions.insert(segments[0], r);
+                }
+            }
+            // `ns.Member` is the first two segments, whatever follows them:
+            // `<ui.Button.Item>` reads `Button` out of `ui`, the way the
+            // member expression `ui.Button.Item` does.
+            if let (Some(member), Some(&member_span)) = (member, segments.get(1)) {
+                let path = segments[0].join(member_span);
+                self.record_qualified_ref_in(open_base, Ident::from(member), path, closing_tag);
+            }
+        }
+    }
+
     fn walk_jsx(&mut self, j: &JsxElement) {
         let kind = j.kind();
         if kind == JsxKind::Component {
-            // A member-expression name (`Ctx.Provider`, `ui.Button`) resolves
-            // its base segment only; the `.Provider` part is a property
-            // access, not a separate binding. A dotted name is a component
-            // whatever the case of its base, so `ui` here is a use of the
-            // `import ui` binding and an unbound base is an unresolved name.
-            match jsx_member_name(&j.name) {
-                Some((base, _)) => {
-                    let base_ident: Ident = std::sync::Arc::from(base);
-                    self.resolve_name_ref(&base_ident, j.span);
-                }
-                None => self.resolve_name_ref(&j.name, j.span),
-            }
+            self.resolve_jsx_component(j);
         }
 
         // Directive bindings introduce locals scoped to the element:
@@ -814,6 +855,7 @@ impl Resolver<'_> {
             module: path.clone(),
             name: segments[1].clone(),
             span,
+            closing_tag: false,
         });
     }
 
@@ -825,6 +867,17 @@ impl Resolver<'_> {
     /// resolution; `span` is the whole member expression, which is what the
     /// diagnostic should underline.
     fn record_qualified_ref(&mut self, obj_span: Span, field: Ident, span: Span) {
+        self.record_qualified_ref_in(obj_span, field, span, false);
+    }
+
+    /// `record_qualified_ref`, saying whether `span` is a JSX closing tag.
+    fn record_qualified_ref_in(
+        &mut self,
+        obj_span: Span,
+        field: Ident,
+        span: Span,
+        closing_tag: bool,
+    ) {
         let Some(ResolvedRef::Module(id)) = self.resolutions.get(obj_span) else {
             return;
         };
@@ -840,6 +893,7 @@ impl Resolver<'_> {
             module: path.clone(),
             name: field,
             span,
+            closing_tag,
         });
     }
 }

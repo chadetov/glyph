@@ -34,12 +34,14 @@ fn cheatsheet_jsx_example_uses_single_brace_interpolation() {
     // `${name}` in a JSX child is not template-string syntax: the `$` becomes
     // literal text and the emitted component renders "Hello, $Alice". The
     // headline Greeting example in the bootstrap must use the canonical form.
+    // It reads `props.name` since E0229: a component's one parameter is its
+    // props record.
     assert!(
-        glyph_cli::LLMS_BOOTSTRAP.contains("<span>Hello, {name}</span>"),
+        glyph_cli::LLMS_BOOTSTRAP.contains("<span>Hello, {props.name}</span>"),
         "cheatsheet Greeting example lost its single-brace JSX interpolation"
     );
     assert!(
-        !glyph_cli::LLMS_BOOTSTRAP.contains("<span>Hello, ${name}</span>"),
+        !glyph_cli::LLMS_BOOTSTRAP.contains("<span>Hello, ${props.name}</span>"),
         "cheatsheet Greeting example uses `${{name}}` in a JSX child; \
          that leaks a literal `$` into rendered text (use `{{name}}`)"
     );

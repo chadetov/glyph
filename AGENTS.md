@@ -449,13 +449,15 @@ There is **no object-literal shorthand** (`{ email }` is rejected; write
 
 `component` declarations emit React function components. JSX control flow uses a
 **restricted set of directives** — `<if>`, `<else>`, `<for>`, `<match>`,
-`<case>` — not arbitrary `{cond && ...}` expressions.
+`<case>` — not arbitrary `{cond && ...}` expressions. A component takes no
+parameter or one props record, which is the object its element's attributes
+build: `component Greeting(name: string)` is E0229.
 
 ```glyph needs-deps
-component Greeting(name: string) {
+component Greeting(props: { name: string }) {
   return <div>
-    <if cond={name != ""}>
-      <span>Hello, {name}</span>
+    <if cond={props.name != ""}>
+      <span>Hello, {props.name}</span>
     </if>
     <else>
       <span>Hello, stranger</span>

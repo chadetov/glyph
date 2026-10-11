@@ -31,7 +31,7 @@ use crate::ty::{
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
-use crate::{Accepted, AlternativesKind, DiagnosticDecl, TypeError};
+use crate::{Accepted, AlternativesKind, DiagnosticDecl, PropsRefusal, TypeError};
 
 /// How the innermost enclosing callable's declared return type relates to
 /// the `?` operator's requirement (D + week-3 task 2). Pushed onto
@@ -60,8 +60,8 @@ enum ReturnClass {
 enum PropsParam {
     /// A record the element's attributes are checked against.
     Record,
-    /// A type whose value is never an object of props.
-    NotRecord,
+    /// A type that cannot be a props object the component reads, and why.
+    NotRecord(PropsRefusal),
     /// A type this checker cannot see into, or one that describes any object.
     Undecided,
 }
@@ -1345,12 +1345,12 @@ impl Assigner<'_> {
                 // checker can decide is not a record can never be what it
                 // holds (G243, E0229).
                 if let [param] = c.params.as_slice() {
-                    let ty = self.lowerer.lower(&param.ty);
-                    if self.props_param(&ty, 0) == PropsParam::NotRecord {
+                    if let PropsParam::NotRecord(why) = self.component_props_param(c, param) {
                         self.errors.push(TypeError::ComponentParamNotRecord {
                             component: c.name.to_string(),
                             param: param.name.to_string(),
                             ty: type_expr_source(&param.ty),
+                            why,
                             span: param.span,
                         });
                     }
@@ -2346,6 +2346,33 @@ impl Assigner<'_> {
         Some((declared, shape))
     }
 
+    /// What a component's one parameter is as a props value, with its own type
+    /// parameters judged by whether they are bounded (G246).
+    ///
+    /// `component Show<T>(p: T)` cannot be rendered with props: `tsc` refuses
+    /// `<Show name="x" />` (TS2769), since an element cannot fill `T`, and a
+    /// direct caller may fill it with a primitive. A bound is what can make it
+    /// a props record, and `tsc --strict` with React 18's types accepts
+    /// `<Show label="x" />` against `<T: HasLabel>` and against `<T: L>` for a
+    /// record `L`. The resolver does not resolve a bound (it is emitted as a
+    /// TypeScript `extends` clause for `tsc` to enforce), so this checker
+    /// cannot read one, and a bounded parameter is undecided whatever the
+    /// bound says.
+    fn component_props_param(&self, c: &glyph_ast::ComponentDecl, param: &Param) -> PropsParam {
+        if let TypeExpr::Path { segments, .. } = &param.ty {
+            if let [name] = segments.as_slice() {
+                if let Some(g) = c.generics.iter().find(|g| g.name == *name) {
+                    return if g.bounds.is_empty() {
+                        PropsParam::NotRecord(PropsRefusal::TypeParam)
+                    } else {
+                        PropsParam::Undecided
+                    };
+                }
+            }
+        }
+        self.props_param(&self.lowerer.lower(&param.ty), 0)
+    }
+
     /// What a component's one parameter is as a props value (G243): a record,
     /// provably not one, or a type this checker cannot decide.
     ///
@@ -2358,10 +2385,12 @@ impl Assigner<'_> {
     /// function type, each seen through any chain of second names, local or
     /// imported.
     ///
-    /// Everything else is `Undecided`, because a refusal has to be proved. A
-    /// generic parameter may be filled with a record. `unknown` and
-    /// `Record<K, V>` describe a props object truthfully, and `tsc` accepts an
-    /// element against either with no attributes. An `extern_ts` or `typeof`
+    /// `unknown` is `NotRecord` too (G246): it describes the props object
+    /// truthfully, and gives the component nothing it can read.
+    ///
+    /// Everything else is `Undecided`, because a refusal has to be proved.
+    /// `Record<K, V>` describes a props object truthfully, and `tsc` accepts
+    /// an element against it with attributes or without. An `extern_ts` or `typeof`
     /// body, an imported `interface`, an opaque stdlib handle and the interop
     /// types (`Component<P>`, `Schema<T>`) are shapes this checker does not
     /// read. `depth` guards a cycle of second names.
@@ -2372,9 +2401,14 @@ impl Assigner<'_> {
         match ty {
             Ty::Record { .. } => return PropsParam::Record,
             Ty::Prim(_) | Ty::StringLiteralUnion(_) | Ty::Union { .. } | Ty::Fn { .. } => {
-                return PropsParam::NotRecord;
+                return PropsParam::NotRecord(PropsRefusal::NotAnObject);
             }
-            Ty::Unknown | Ty::UnknownTop | Ty::Never | Ty::Param { .. } => {
+            Ty::UnknownTop => return PropsParam::NotRecord(PropsRefusal::Unknown),
+            // A `Param` reached here is a generic declaration's own parameter,
+            // read through its unsubstituted body (`type Same<T> = T`), and the
+            // argument decides it. The component's own type parameters are
+            // judged by their bounds in `component_props_param`.
+            Ty::Unknown | Ty::Never | Ty::Param { .. } => {
                 return PropsParam::Undecided;
             }
             Ty::Named { .. } | Ty::App { .. } | Ty::Imported { .. } => {}
@@ -2389,13 +2423,13 @@ impl Assigner<'_> {
         if let Some((name, _)) = self.prelude_container(&canonical) {
             return match name {
                 "Record" => PropsParam::Undecided,
-                _ => PropsParam::NotRecord,
+                _ => PropsParam::NotRecord(PropsRefusal::NotAnObject),
             };
         }
         if self.string_literal_union_values(&canonical).is_some()
             || self.required_variants(&canonical).is_some()
         {
-            return PropsParam::NotRecord;
+            return PropsParam::NotRecord(PropsRefusal::NotAnObject);
         }
         // A declaration whose body is some other form, read through the body:
         // `type Name = string` is a second name for a primitive. A generic
@@ -7502,10 +7536,10 @@ fn levenshtein(a: &str, b: &str) -> usize {
 /// `{expr}`, or text that survives the emitter's whitespace rule. Text that
 /// spans lines and holds only spaces and tabs is formatting and is dropped;
 /// any other text, a lone space on one line included, is passed.
-fn jsx_writes_children(children: &[glyph_ast::JsxChild]) -> bool {
+fn jsx_writes_children(children: &[JsxChild]) -> bool {
     children.iter().any(|c| match c {
-        glyph_ast::JsxChild::Element(_) | glyph_ast::JsxChild::Expr(_) => true,
-        glyph_ast::JsxChild::Text { content, .. } => {
+        JsxChild::Element(_) | JsxChild::Expr(_) => true,
+        JsxChild::Text { content, .. } => {
             let spans_lines = content.contains('\n') || content.contains('\r');
             content.chars().any(|ch| !matches!(ch, ' ' | '\t' | '\n' | '\r'))
                 || (!spans_lines && !content.is_empty())
@@ -14852,7 +14886,7 @@ fn f(a: Answer) -> number {
             assert!(
                 matches!(
                     errs.as_slice(),
-                    [TypeError::ComponentParamNotRecord { component, param, ty: shown, .. }]
+                    [TypeError::ComponentParamNotRecord { component, param, ty: shown, why: PropsRefusal::NotAnObject, .. }]
                         if component == "C" && param == "p" && shown == ty
                 ),
                 "`p: {ty}` should be one E0229 naming it as written: {errs:?}"
@@ -14876,7 +14910,6 @@ fn f(a: Answer) -> number {
             ("interface Named {\n  name: string,\n}\n", "Named"),
             ("interface Empty {\n}\n", "Empty"),
             ("", "Record<string, string>"),
-            ("", "unknown"),
             ("type Same<T> = T\n", "Same<string>"),
             ("type Raw = extern_ts(\"{ name: string }\")\n", "Raw"),
         ];
@@ -14886,16 +14919,11 @@ fn f(a: Answer) -> number {
         }
     }
 
-    /// A generic component's parameter may be filled with a record, so it is
-    /// not refused, and a component with no parameter has nothing to refuse.
+    /// A component with no parameter has nothing to refuse.
     /// Two parameters stay E0214 alone: the second is the mistake that
     /// diagnostic names, and the first is not judged as a props record.
     #[test]
     fn e0229_reads_only_a_single_decidable_parameter() {
-        let generic = errors_of(
-            "module m\ncomponent Show<T>(p: T) -> Component {\n  return <div>hi</div>\n}\n",
-        );
-        assert!(generic.is_empty(), "{generic:?}");
         let bare = errors_of("module m\ncomponent Bare() -> Component {\n  return <div>hi</div>\n}\n");
         assert!(bare.is_empty(), "{bare:?}");
         let two = errors_of(
@@ -14905,5 +14933,64 @@ fn f(a: Answer) -> number {
             matches!(two.as_slice(), [TypeError::ComponentMultipleParams { count: 2, .. }]),
             "{two:?}"
         );
+    }
+
+    /// G246. `unknown` holds the props object and gives the component nothing
+    /// it can read, so it is E0229 under any second name. `tsc --strict` with
+    /// React 18's types refuses `<Greeting name="x" />` against it (TS2769)
+    /// and accepts `<Greeting />`; the declaration is refused either way.
+    #[test]
+    fn an_unknown_component_parameter_is_e0229() {
+        for (decls, ty) in [("", "unknown"), ("type Loose = unknown\n", "Loose")] {
+            let errs = props_param_errors(decls, ty);
+            assert!(
+                matches!(
+                    errs.as_slice(),
+                    [TypeError::ComponentParamNotRecord { ty: shown, why: PropsRefusal::Unknown, .. }]
+                        if shown == ty
+                ),
+                "`p: {ty}` should be one E0229 for `unknown`: {errs:?}"
+            );
+            let help = errs[0].help().unwrap_or_default();
+            assert!(help.contains("nothing it can read"), "{help}");
+        }
+    }
+
+    /// G246. A component's own type parameter with no bound cannot be filled
+    /// by an element (`<Show name="x" />` is TS2769) and may be filled with a
+    /// primitive by a caller, so it is E0229. A bounded one is left alone:
+    /// `tsc --strict` with React 18's types accepts `<Show label="x" />`
+    /// against `<T: HasLabel>` and against `<T: L>` for a record `L`, and the
+    /// checker does not read a bound, so it cannot refuse any other.
+    #[test]
+    fn an_unbounded_component_type_parameter_is_e0229() {
+        let iface = "interface HasLabel {\n  label: string,\n}\ntype L = { label: string }\n";
+        let generic = |generics: &str| {
+            errors_of(&format!(
+                "module m\n{iface}component Show<{generics}>(p: T) -> Component {{\n  return <div>hi</div>\n}}\n"
+            ))
+            .into_iter()
+            .filter(|e| e.code() == "E0229")
+            .collect::<Vec<_>>()
+        };
+        let errs = generic("T");
+        assert!(
+            matches!(
+                errs.as_slice(),
+                [TypeError::ComponentParamNotRecord { ty, why: PropsRefusal::TypeParam, .. }]
+                    if ty == "T"
+            ),
+            "`<T>` should be one E0229 for a type parameter: {errs:?}"
+        );
+        let help = errs[0].help().unwrap_or_default();
+        assert!(help.contains("record or interface bound"), "{help}");
+        for allowed in ["T: HasLabel", "T: L", "T: Record<string, string>"] {
+            let errs = generic(allowed);
+            assert!(errs.is_empty(), "`<{allowed}>` should draw no E0229: {errs:?}");
+        }
+        // A type parameter of a generic `type` read through its body is the
+        // argument's to decide, not the component's.
+        let same = props_param_errors("type Same<X> = X\n", "Same<{ name: string }>");
+        assert!(same.is_empty(), "{same:?}");
     }
 }

@@ -594,18 +594,22 @@ pub enum TypeError {
     /// `component Greeting(name: string)` is refused by `tsc` (TS2769), and
     /// `<Greeting />` is accepted there while `name` holds `{}` at run time.
     ///
-    /// Raised only for a type the checker can decide is not a record: a
+    /// Raised for a type the checker can decide is not a record: a
     /// primitive, a string-literal union, a tagged union, an `Array`, `Option`,
     /// `Result` or `Nullable`, or a function type, seen through any second
-    /// name. A type it cannot see into (a generic parameter, an `extern_ts`
-    /// body, an opaque library type) and `unknown` and `Record<K, V>`, which
-    /// truthfully describe a props object, draw nothing. `span` is the
-    /// parameter, and `ty` is its type as the source writes it.
-    #[error("component `{component}` takes its props as one record, but its parameter `{param}` is `{ty}`")]
+    /// name. Raised too for `unknown`, which holds the props object but gives
+    /// the component nothing it can read, and for a type parameter with no
+    /// record or interface bound, which may be filled with a primitive (G246).
+    /// A type it cannot see into (an `extern_ts` or `typeof` body, an opaque
+    /// library type) and `Record<K, V>` draw nothing. `span` is the parameter,
+    /// `ty` is its type as the source writes it, and `why` says which of the
+    /// three it is.
+    #[error("component `{component}` takes its props as one record, but its parameter `{param}` is `{ty}`{}", props_refusal_suffix(*.why))]
     ComponentParamNotRecord {
         component: String,
         param: String,
         ty: String,
+        why: PropsRefusal,
         span: Span,
     },
 
@@ -677,6 +681,30 @@ pub enum TypeError {
 /// Diagnostic severity. Most diagnostics are hard `Error`s that fail the build;
 /// a `Warning` is surfaced but does not (verifiability stays the lead pillar, so
 /// warnings are reserved for "legal but almost certainly a mistake").
+/// Why a component's one parameter cannot be its props record (E0229).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PropsRefusal {
+    /// A type whose value is never an object: a primitive, a string-literal
+    /// union, a tagged union, an `Array`, a `Nullable` or a function type.
+    NotAnObject,
+    /// `unknown`. It holds the props object, and gives the component nothing
+    /// it can read without a check.
+    Unknown,
+    /// A type parameter with no record or interface bound, which an element
+    /// cannot fill with props and a caller may fill with a primitive.
+    TypeParam,
+}
+
+/// The tail E0229's sentence gets for the two refusals the type alone does
+/// not explain.
+fn props_refusal_suffix(why: PropsRefusal) -> &'static str {
+    match why {
+        PropsRefusal::NotAnObject => "",
+        PropsRefusal::Unknown => ", which gives it nothing it can read",
+        PropsRefusal::TypeParam => ", a type parameter with no record or interface bound",
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
     Error,
@@ -860,7 +888,13 @@ impl TypeError {
             TypeError::ComponentMultipleParams { .. } => {
                 "Take a single props record: `component C(props: P)` with `type P = { ... }`, then read `props.field`."
             }
-            TypeError::ComponentParamNotRecord { .. } => {
+            TypeError::ComponentParamNotRecord { why: PropsRefusal::Unknown, .. } => {
+                "An `unknown` props object gives the component nothing it can read. Declare the props it takes as a record, e.g. `props: { name: string }`, and read `props.name`."
+            }
+            TypeError::ComponentParamNotRecord { why: PropsRefusal::TypeParam, .. } => {
+                "A type parameter may be filled with anything, a primitive included, so the props need a record or interface bound: `component Show<T: HasLabel>(props: T)`. Or declare the props as a record."
+            }
+            TypeError::ComponentParamNotRecord { why: PropsRefusal::NotAnObject, .. } => {
                 "A component takes one props record. Declare the parameter as one, e.g. `props: { name: string }`, and read `props.name`. If you call it as a function rather than render it as an element, declare it with `fn`."
             }
             TypeError::OwnedAliased { .. } => {

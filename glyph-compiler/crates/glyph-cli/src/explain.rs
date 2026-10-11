@@ -669,10 +669,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `interface` are all props records. The error is raised for a type \
             the compiler can decide is not one: a primitive, a string-literal \
             union, a tagged union (`Option` and `Result` included), an `Array`, \
-            a `Nullable` and a function type. A generic parameter, `unknown`, \
-            `Record<K, V>` and a type the compiler cannot see into draw \
-            nothing. A component with no parameters is also fine; one with \
-            several is E0214.\n\n\
+            a `Nullable` and a function type. It is raised for `unknown` too, \
+            which holds the props object but gives the component nothing it can \
+            read, and for a type parameter with no bound, which an element \
+            cannot fill and a caller may fill with a primitive: give it a record \
+            or interface bound (`component Show<T: HasLabel>(props: T)`). A \
+            bounded type parameter, `Record<K, V>` and a type the compiler \
+            cannot see into draw nothing. A component with no parameters is \
+            also fine; one with several is E0214.\n\n\
             Calling a component directly, `Greeting(\"x\")`, is refused with \
             the declaration even though it runs: a `component` is something \
             React renders, and calling one bypasses React, so hooks inside it \
@@ -1524,8 +1528,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0229",
         phase: "typechecker",
-        meaning: "A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable` or a function type; a generic parameter, `unknown` and `Record<K, V>` draw nothing",
-        fix: "Take one props record: `component Greeting(props: { name: string })`, then read `props.name`; a function called directly rather than rendered is an `fn`",
+        meaning: "A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable`, a function type, `unknown` (which gives the component nothing it can read) and a type parameter with no bound; a bounded type parameter and `Record<K, V>` draw nothing",
+        fix: "Take one props record: `component Greeting(props: { name: string })`, then read `props.name`; give a type parameter a record or interface bound (`<T: HasLabel>`); a function called directly rather than rendered is an `fn`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

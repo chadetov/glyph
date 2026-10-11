@@ -10339,6 +10339,7 @@ pub fn f(u: U) -> string {
             "entity",
             "union",
             "missing_variants",
+            "missing",
             "help",
             "expected",
             "actual",

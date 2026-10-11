@@ -326,7 +326,7 @@ pub enum TypeError {
     /// deliberately narrow — assignability over named, generic, record, and
     /// function types is a later day — so it never fires on a type it can't
     /// judge with certainty.
-    #[error("type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing_fields))]
+    #[error("type mismatch: expected `{expected}`, found `{found}`{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected))]
     TypeMismatch {
         expected: String,
         found: String,
@@ -343,6 +343,10 @@ pub enum TypeError {
         /// lacked, where `tsc` names the property. The checker read the
         /// declared field set to decide the refusal, so the names were in hand.
         missing_fields: Vec<String>,
+        /// The declared record's fields are all optional and the value shares
+        /// none of them, which is TypeScript's weak-type rule (TS2559) and the
+        /// whole of the reason for the refusal. False everywhere else.
+        no_common_field: bool,
         span: Span,
     },
 
@@ -446,7 +450,7 @@ pub enum TypeError {
     /// application over a different base) — an argument or parameter whose type
     /// can't be judged stays permissive, so the check never produces a false
     /// positive.
-    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}", missing_fields_suffix(.missing_fields))]
+    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected))]
     ArgumentTypeMismatch {
         expected: String,
         found: String,
@@ -457,6 +461,8 @@ pub enum TypeError {
         /// rule as `TypeMismatch::missing_fields`; for a JSX component element these
         /// are the props it does not write.
         missing_fields: Vec<String>,
+        /// Same rule as `TypeMismatch::no_common_field`.
+        no_common_field: bool,
         /// True for a component element that leaves out a required `children`
         /// while writing children between its tags. Those children are
         /// `createElement` arguments after the props object, so they never
@@ -715,6 +721,17 @@ pub enum Severity {
 /// required fields: `: missing field `age`` for one, `: missing fields `age`,
 /// `email`` for several, nothing when none is missing. The names are quoted
 /// the way the exhaustiveness message quotes the variants it lists.
+/// The tail a refusal under the weak-type rule gets: the value is refused
+/// because it shares no field with a record whose fields are all optional,
+/// and nothing else about it is wrong, so the sentence has to say so.
+fn no_common_field_suffix(no_common_field: bool, expected: &str) -> String {
+    if no_common_field {
+        format!(": it has no field in common with `{expected}`, whose fields are all optional")
+    } else {
+        String::new()
+    }
+}
+
 fn missing_fields_suffix(missing: &[String]) -> String {
     match missing {
         [] => String::new(),
@@ -828,6 +845,9 @@ impl TypeError {
             TypeError::QuestionErrorTypeMismatch { .. } => {
                 "v1 has no automatic error conversion. Map the error first (e.g. `.map_err(...)`) so its `E` matches the function's."
             }
+            TypeError::TypeMismatch { no_common_field: true, .. } => {
+                "Write at least one of the declared record's fields, or change the declared type. A value with none of them is refused by `tsc` too (TS2559)."
+            }
             TypeError::TypeMismatch { .. } => {
                 "Change the value, or the declared type, so the two agree."
             }
@@ -875,6 +895,9 @@ impl TypeError {
             }
             TypeError::ArgumentTypeMismatch { children_between_tags: true, .. } => {
                 "Children written between the tags are not part of the props object: the element passes them to React as separate arguments, so they never fill a required `children` field. Declare it optional (`children?: T`) and read it as optional, or pass it as an attribute: `children={...}`."
+            }
+            TypeError::ArgumentTypeMismatch { no_common_field: true, .. } => {
+                "Pass a value that writes at least one of the parameter record's fields, or change the parameter's type. A value with none of them is refused by `tsc` too (TS2559)."
             }
             TypeError::ArgumentTypeMismatch { .. } => {
                 "Pass a value of the expected type, or change the parameter's type."

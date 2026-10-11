@@ -1432,6 +1432,7 @@ impl Assigner<'_> {
                             found: r.found,
                             accepted,
                             missing_fields: r.missing_fields,
+                            no_common_field: r.no_common_field,
                             span: r.span,
                         });
                     }
@@ -1614,6 +1615,7 @@ impl Assigner<'_> {
                             found: r.found,
                             accepted,
                             missing_fields: r.missing_fields,
+                            no_common_field: r.no_common_field,
                             span: r.span,
                         });
                     }
@@ -2015,6 +2017,7 @@ impl Assigner<'_> {
                                 found: r.found,
                                 accepted,
                                 missing_fields: r.missing_fields,
+                                no_common_field: r.no_common_field,
                                 children_between_tags: false,
                                 span: r.span,
                             });
@@ -2291,6 +2294,7 @@ impl Assigner<'_> {
                     found: r.found,
                     accepted,
                     missing_fields: r.missing_fields,
+                    no_common_field: r.no_common_field,
                     children_between_tags: false,
                     span: r.span,
                 });
@@ -2338,6 +2342,7 @@ impl Assigner<'_> {
             found: "record".to_string(),
             accepted: None,
             missing_fields,
+            no_common_field: false,
             children_between_tags,
             span: j.name_span,
         });
@@ -3292,6 +3297,7 @@ impl Assigner<'_> {
                 found: r.found,
                 accepted,
                 missing_fields: r.missing_fields,
+                no_common_field: r.no_common_field,
                 span: r.span,
             });
         }
@@ -5277,6 +5283,7 @@ impl Assigner<'_> {
         if self.assign_incompatible(found, expected) {
             let mut r = self.refusal(expected, self.found_display(found, expected), value.span());
             r.missing_fields = self.missing_required_fields(found, expected);
+            r.no_common_field = self.shares_no_field_with_weak_record(found, expected);
             return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
@@ -5293,6 +5300,7 @@ impl Assigner<'_> {
             expected: expected.clone(),
             found,
             missing_fields: Vec::new(),
+            no_common_field: false,
             span,
         }
     }
@@ -5332,6 +5340,21 @@ impl Assigner<'_> {
             .filter(|d| !d.optional && !have.iter().any(|f| f.name == d.name))
             .map(|d| d.name.to_string())
             .collect()
+    }
+
+    /// Whether `found` against `expected` is refused by the weak-type rule
+    /// alone (`weak_record_disjoint`), read through the same field set and the
+    /// same `Nullable<T>` descent `missing_required_fields` reads, so the
+    /// diagnostic names the reason the relation used.
+    fn shares_no_field_with_weak_record(&self, found: &Ty, expected: &Ty) -> bool {
+        let canonical = self.canonicalize_aliases(expected);
+        if let Some(("Nullable", args)) = self.prelude_container(&canonical) {
+            return args
+                .first()
+                .is_some_and(|inner| self.shares_no_field_with_weak_record(found, inner));
+        }
+        self.record_fields_of(&canonical)
+            .is_some_and(|declared| weak_record_disjoint(found, &declared))
     }
 
     /// The name a refused value goes on the diagnostic under.
@@ -5731,9 +5754,18 @@ impl Assigner<'_> {
         // A written literal was already compared field by field through the
         // relation (`written_literal_refusal`), so the hole was a value of
         // structural type that is not a literal.
-        if let Ty::Record { fields: have } = &found {
+        //
+        // And TypeScript's weak-type rule (TS2559), mirrored exactly: a
+        // record whose fields are all optional refuses a value that shares
+        // none of them (`weak_record_disjoint`).
+        if matches!(found, Ty::Record { .. } | Ty::Fn { .. }) {
             if let Some(declared) = self.record_fields_of(&expected) {
-                return self.record_fields_incompatible(have, &declared);
+                if weak_record_disjoint(&found, &declared) {
+                    return true;
+                }
+                if let Ty::Record { fields: have } = &found {
+                    return self.record_fields_incompatible(have, &declared);
+                }
             }
         }
         definitely_incompatible(&found, &expected)
@@ -5745,6 +5777,23 @@ impl Assigner<'_> {
         declared.iter().any(|e| match have.iter().find(|f| f.name == e.name) {
             Some(f) => self.assign_incompatible_at(&f.ty, &e.ty, Position::Ordinary),
             None => !e.optional,
+        })
+    }
+
+    /// The accepting face of `record_fields_incompatible` and the weak-type
+    /// rule, for a structural record against any declared field set.
+    fn record_acceptance(&self, found: &Ty, have: &[RecordField], declared: &[RecordField]) -> bool {
+        if weak_record_disjoint(found, declared) {
+            return false;
+        }
+        declared.iter().all(|e| match have.iter().find(|f| f.name == e.name) {
+            // A field the value may not carry, where the declaration requires
+            // one. The relation is silent here and TypeScript is not (TS2345),
+            // so this is a pairing the rule does not read rather than one it
+            // accepts, and no acceptance is claimed for it.
+            Some(f) if f.optional && !e.optional => false,
+            Some(f) => self.accepting_rule(&f.ty, &e.ty).is_some(),
+            None => e.optional,
         })
     }
 
@@ -5897,22 +5946,7 @@ impl Assigner<'_> {
                 )
             }
             (Ty::Record { fields: ff }, Ty::Record { fields: ef }) => {
-                for e in ef.iter() {
-                    match ff.iter().find(|f| f.name == e.name) {
-                        // A field the value may not carry, where the
-                        // declaration requires one. The relation is silent
-                        // here and TypeScript is not (TS2345), so this is a
-                        // pairing the rule does not read rather than one it
-                        // accepts, and no acceptance is claimed for it.
-                        Some(f) if f.optional && !e.optional => return None,
-                        Some(f) => {
-                            self.accepting_rule(&f.ty, &e.ty)?;
-                        }
-                        None if e.optional => {}
-                        None => return None,
-                    }
-                }
-                Some(
+                self.record_acceptance(&found, ff, ef).then_some(
                     "two structural records are compared field by field with width \
                      subtyping, and every required field of the declared type is present, \
                      not optional on the value's side, and of an accepted type",
@@ -6496,6 +6530,8 @@ struct Refusal {
     expected: Ty,
     found: String,
     missing_fields: Vec<String>,
+    /// The refusal is the weak-type rule's (see `weak_record_disjoint`).
+    no_common_field: bool,
     span: Span,
 }
 
@@ -7113,6 +7149,31 @@ pub fn imported_string_literal_union_values(
 /// and `Tree` both answer with the union's own type.
 fn union_base(ty: &Ty) -> &Ty {
     split_type_app(ty).0
+}
+
+/// TypeScript's weak-type rule (TS2559), exactly as `tsc --strict` applies
+/// it, established row by row against it: a declared record with at least
+/// one field, every one of them optional, refuses a value that has at least
+/// one property (or is a function, which has a call signature) and shares no
+/// field name with it.
+///
+/// What it does not cover, as TypeScript does not: an empty record (`{}` has
+/// no field, so it is not weak), a record with a required field (refused for
+/// the missing field instead), a value with no field at all, and a value that
+/// shares one name, whatever that field's type (the shared field is compared
+/// on its own). An index signature would make a type not weak, and a Glyph
+/// record has none.
+fn weak_record_disjoint(found: &Ty, declared: &[RecordField]) -> bool {
+    if declared.is_empty() || !declared.iter().all(|f| f.optional) {
+        return false;
+    }
+    match found {
+        Ty::Fn { .. } => true,
+        Ty::Record { fields } => {
+            !fields.is_empty() && !fields.iter().any(|f| declared.iter().any(|d| d.name == f.name))
+        }
+        _ => false,
+    }
 }
 
 fn ty_is_decidable(ty: &Ty) -> bool {
@@ -14558,17 +14619,17 @@ fn f(a: Answer) -> number {
             "the field's own declared type is what the refusal names: {errs:?}"
         );
     }
-    // ----- The record arm through the whole relation -----
+    // ----- The record arm through the whole relation, and the weak-type rule -----
 
-    /// The line of each refusal, one per mismatch, 1-based so a row reads
-    /// against the program it came from.
-    fn record_refusals(src: &str) -> Vec<usize> {
+    /// The refusals, as `(line, no_common_field)`, one per mismatch, with the
+    /// line 1-based so a row reads against the program it came from.
+    fn record_refusals(src: &str) -> Vec<(usize, bool)> {
         errors_of(src)
             .iter()
             .filter_map(|e| match e {
-                TypeError::TypeMismatch { span, .. }
-                | TypeError::ArgumentTypeMismatch { span, .. } => {
-                    Some(src[..span.start as usize].matches('\n').count() + 1)
+                TypeError::TypeMismatch { no_common_field, span, .. }
+                | TypeError::ArgumentTypeMismatch { no_common_field, span, .. } => {
+                    Some((src[..span.start as usize].matches('\n').count() + 1, *no_common_field))
                 }
                 _ => None,
             })
@@ -14610,7 +14671,72 @@ fn f(a: Answer) -> number {
         // `status(vs)`: a `string` is never a tagged union. `deep(vd)`: the
         // same refusal one record further in. `named(vb)` is accepted: `B` is
         // a second name for `A` (D46), and `tsc` accepts it too.
-        assert_eq!(record_refusals(&src), vec![17; 4]);
+        let rows = record_refusals(&src);
+        assert_eq!(rows.len(), 4, "{rows:?}");
+        assert!(rows.iter().all(|(line, weak)| *line == 17 && !weak), "{rows:?}");
+    }
+
+    /// TypeScript's weak-type rule (TS2559), mirrored row by row against
+    /// `tsc --strict`: a declared record with at least one field, all of them
+    /// optional, refuses a value that has a property or is a function and
+    /// shares no field name with it. The refusal says so in its own words.
+    #[test]
+    fn a_value_sharing_no_field_with_an_all_optional_record_is_refused() {
+        let src = "module m\n\
+            type W = { a?: string }\n\
+            type W2 = { a?: string, b?: number }\n\
+            type E = { }\n\
+            type NotWeak = { a?: string, b: number }\n\
+            fn w(x: W) -> number { return 1 }\n\
+            fn w2(x: W2) -> number { return 1 }\n\
+            fn e(x: E) -> number { return 1 }\n\
+            fn nw(x: NotWeak) -> number { return 1 }\n\
+            fn inline(x: { a?: string }) -> number { return 1 }\n\
+            fn nullable(x: Nullable<W>) -> number { return 1 }\n\
+            fn deep(x: { o: W }) -> number { return 1 }\n\
+            fn f(g: fn() -> number, opt: { a?: string }) -> number {\n\
+            \x20 let vx = { x: 1 }\n\
+            \x20 let vax = { a: \"s\", x: 1 }\n\
+            \x20 let vn = { a: 1 }\n\
+            \x20 let vo = { o: { x: 1 } }\n\
+            \x20 let l: W = vx\n\
+            \x20 return w(vx) + w2(vx) + inline(vx) + nullable(vx) + w(g) + w({ x: 1 })\n\
+            \x20   + e(vx) + w(vax) + w(opt)\n\
+            \x20   + nw(vx) + w(vn) + deep(vo)\n\
+            }\n";
+        let rows = record_refusals(src);
+        // Line 18 is the annotated `let`: TS2559.
+        // Line 19: `w(vx)`, `w2(vx)`, `inline(vx)`, `nullable(vx)` and the
+        // function `w(g)` are TS2559, and the fresh `w({ x: 1 })` is TS2353
+        // (an excess property, refused by `tsc` first): six refusals, each the
+        // weak rule's.
+        // Line 20: an empty record is not weak, `vax` shares `a`, and `opt`
+        // shares `a` (optional on both sides): `tsc` accepts all three.
+        // Line 21: `NotWeak` requires `b` (TS2741, a missing field), `vn`
+        // shares `a` with the wrong type (TS2322), and `deep(vo)` is the weak
+        // rule one record in, refused as the outer record (TS2345): refused,
+        // and none of them by the weak rule at the top.
+        assert_eq!(
+            rows,
+            vec![
+                (18, true),
+                (19, true),
+                (19, true),
+                (19, true),
+                (19, true),
+                (19, true),
+                (19, true),
+                (21, false),
+                (21, false),
+                (21, false),
+            ],
+            "{rows:?}"
+        );
+        let message = errors_of(src)[0].to_string();
+        assert!(
+            message.contains("no field in common with `W`, whose fields are all optional"),
+            "{message}"
+        );
     }
 
     // ----- G232: the type of an object literal -----

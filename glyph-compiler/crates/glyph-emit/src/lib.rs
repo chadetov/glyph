@@ -5873,7 +5873,18 @@ impl<'a> Emitter<'a> {
         // applies only to intrinsic DOM elements. On a component, an attribute is
         // a user-defined prop name passed through verbatim (e.g. `on_select`).
         let is_intrinsic = kind == JsxKind::Intrinsic;
-        let props = self.jsx_props(&j.attrs, extra_prop, is_intrinsic)?;
+        let mut props = self.jsx_props(&j.attrs, extra_prop, is_intrinsic)?;
+        // A component element with no attributes passes an empty props object,
+        // not `null`. React's `createElement` declaration accepts a `null`
+        // props argument for every component, so `<Card />` compiled under
+        // `tsc --strict` whatever `Card` requires and crashed at render on the
+        // first prop it read. `{}` is checked against the props type like any
+        // other object: a component with no parameter, or with only optional
+        // props, still compiles, and one with a required prop is refused.
+        // Intrinsics and fragments keep `null`; they have no props type.
+        if kind == JsxKind::Component && props == "null" {
+            props = "{}".to_string();
+        }
         let children = self.jsx_children(&j.children)?;
         if children.is_empty() {
             Ok(format!("React.createElement({tag}, {props})"))
@@ -10059,6 +10070,24 @@ mod tests {
             "fragment lowers to React.Fragment: {ts}"
         );
         assert!(ts.contains("React.createElement(\"h1\", null, props.name)"), "{ts}");
+    }
+
+    /// A component element with no attributes passes `{}`, so `tsc` checks
+    /// it against the props type; `null` is accepted for any component by
+    /// React's declaration, which let `<Card />` compile with required props
+    /// unwritten and crash at render. An intrinsic and a fragment keep `null`.
+    #[test]
+    fn an_attribute_less_component_element_passes_an_empty_props_object() {
+        let ts = emit(
+            "module x\npub component Inner() -> Component {\n  return <div />\n}\n\
+             pub component Outer() -> Component {\n  return <section><Inner /><Inner>{\"kid\"}</Inner><>{\"f\"}</></section>\n}\n",
+        );
+        assert!(ts.contains("React.createElement(Inner, {})"), "{ts}");
+        assert!(ts.contains("React.createElement(Inner, {}, \"kid\")"), "{ts}");
+        assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
+        assert!(ts.contains("React.createElement(\"section\", null,"), "{ts}");
+        assert!(ts.contains("React.createElement(React.Fragment, null,"), "{ts}");
+        assert!(!ts.contains("React.createElement(Inner, null"), "{ts}");
     }
 
     #[test]

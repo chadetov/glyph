@@ -1,0 +1,12 @@
+module neg
+
+// G246. An unbounded type parameter cannot be filled by an element's props,
+// and `tsc` refuses `<Show name="x" />` against it (TS2769). A record or
+// interface bound, `component Show<T: HasLabel>(p: T)`, is what compiles.
+component Show<T>(p: T) {
+  return <p>hi</p>
+}
+
+pub component App() {
+  return <Show name="x" />
+}

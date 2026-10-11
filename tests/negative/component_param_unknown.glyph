@@ -1,0 +1,12 @@
+module neg
+
+// G246. A component's one parameter holds the props object its element
+// builds. `unknown` describes that object and gives the component nothing it
+// can read, and `tsc` refuses `<Greeting name="x" />` against it (TS2769).
+component Greeting(p: unknown) {
+  return <p>hi</p>
+}
+
+pub component App() {
+  return <Greeting name="x" />
+}

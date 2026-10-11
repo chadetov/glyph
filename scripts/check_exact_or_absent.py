@@ -654,6 +654,99 @@ def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
     )
 
 
+MEMBER_SPELLING = CORPUS / "member-spelling"
+
+#: Every position in `main.glyph` where the consumer names a declaration of
+#: `ui`, as (label, a substring of the line, the name, which occurrence of the
+#: name in that line). The line is found by its text, so the three spellings,
+#: whose columns differ, are asked about the same position.
+MEMBER_POSITIONS = (
+    ("type position", "pub fn pick", "Props", 0),
+    ("value position", "let _b =", "Button", 0),
+    ("a self-closing element", 'label="go"', "Button", 0),
+    ("an opening tag", 'label="again"', "Button", 0),
+    ("its closing tag", 'label="again"', "Button", 1),
+)
+
+
+def member_position(project: pathlib.Path, line_text: str, name: str, nth: int):
+    """The 0-based (line, character) of the `nth` `name` on the line holding
+    `line_text`, in `project`'s src/main.glyph."""
+    for i, line in enumerate((project / "src" / "main.glyph").read_text().splitlines()):
+        if line_text in line:
+            at = -1
+            for _ in range(nth + 1):
+                at = line.find(name, at + 1)
+            if at >= 0:
+                return i, at
+    return None
+
+
+def case_member_spelling_definition_and_hover() -> tuple[bool, str]:
+    """Definition and hover on a name are one answer whichever way it is imported.
+
+    The three projects differ only in how `main` brings in `ui`: `import ui
+    { Button, Props }`, `import ui`, `import ui as u`. At each position where
+    `main` names `Props` or `Button`, `glyph_definition` must answer the same
+    entity, file and range, and `glyph_hover` the same type, under all three.
+
+    Was G249. Under the two namespace spellings the definition of `Button` in
+    `ui.Button` and in `<ui.Button>` was `null`, because the answer read only
+    the resolution table and the table's entry for that path sits on `ui`. In
+    type position it was worse than absent: the entry spans all of `ui.Props`
+    and names the namespace import, so the answer was the `import ui` line
+    with no entity, an exact-looking location for the wrong thing. Hover on
+    the member segment was fixed in 0.1.125 and had no check behind it.
+
+    The named answer is required to be a real one, so three spellings agreeing
+    on `null` cannot pass.
+    """
+    defs, hovers = {}, {}
+    for spelling in ELEMENT_SPELLINGS:
+        project = MEMBER_SPELLING / spelling
+        defs[spelling], hovers[spelling] = [], []
+        for label, line_text, name, nth in MEMBER_POSITIONS:
+            at = member_position(project, line_text, name, nth)
+            if at is None:
+                return False, f"{spelling}: the corpus has no {label} naming `{name}`"
+            args = {"path": "src/main.glyph", "line": at[0], "character": at[1]}
+            d = call(project, "glyph_definition", args)
+            if isinstance(d, dict) and "error" in d:
+                return False, f"{spelling}: definition at the {label} refused: {d['error'][:120]}"
+            if d is not None:
+                d = {k: d.get(k) for k in ("entity", "entity_absent", "path", "range")}
+            defs[spelling].append((label, d))
+            h = call(project, "glyph_hover", args)
+            if isinstance(h, dict) and "error" in h:
+                return False, f"{spelling}: hover at the {label} refused: {h['error'][:120]}"
+            hovers[spelling].append((label, h))
+
+    for (label, d), (_, h), (_, _, name, _) in zip(defs["named"], hovers["named"], MEMBER_POSITIONS):
+        want = {"entity": f"ui::{name}", "path": "src/ui.glyph"}
+        if not d or {k: d.get(k) for k in want} != want or not d.get("range"):
+            return False, f"named: definition at the {label} is not `ui::{name}` in src/ui.glyph: {d}"
+        if not isinstance(h, str) or not h:
+            return False, f"named: hover at the {label} answered {h!r}"
+
+    for spelling in ELEMENT_SPELLINGS[1:]:
+        for (label, want), (_, got) in zip(defs["named"], defs[spelling]):
+            if got != want:
+                return False, (
+                    f"definition at the {label} depends on the import spelling: "
+                    f"named={want} {spelling}={got}"
+                )
+        for (label, want), (_, got) in zip(hovers["named"], hovers[spelling]):
+            if got != want:
+                return False, (
+                    f"hover at the {label} depends on the import spelling: "
+                    f"named={want!r} {spelling}={got!r}"
+                )
+    return True, (
+        f"{len(MEMBER_POSITIONS)} positions answer one definition and one hover "
+        "under every spelling"
+    )
+
+
 def case_calls_relation() -> tuple[bool, str]:
     """CALLS holds the sites that apply the symbol, and says what it missed.
 
@@ -1866,6 +1959,7 @@ HARD = [
     ("references under either import spelling", case_import_spelling),
     ("a component element under any import spelling", case_element_spelling),
     ("its dependencies and impact under any spelling", case_element_spelling_dependencies_and_impact),
+    ("definition and hover under any spelling", case_member_spelling_definition_and_hover),
     ("CALLS is the applied sites, with coverage", case_calls_relation),
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),

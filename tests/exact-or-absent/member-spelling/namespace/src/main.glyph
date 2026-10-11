@@ -1,0 +1,15 @@
+module main
+
+import ui
+
+pub fn pick(p: ui.Props) -> string {
+  let _b = ui.Button
+  return p.label
+}
+
+pub component App() {
+  return <div>
+    <ui.Button label="go" />
+    <ui.Button label="again">twice</ui.Button>
+  </div>
+}

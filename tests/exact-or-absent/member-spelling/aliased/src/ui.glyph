@@ -1,0 +1,7 @@
+module ui
+
+pub type Props = { label: string, }
+
+pub component Button(props: Props) {
+  return <button>{props.label}</button>
+}

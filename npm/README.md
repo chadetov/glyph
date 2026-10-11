@@ -48,10 +48,11 @@ on a `v*` tag push:
 Publishing uses npm trusted publishing, with no stored token. Each of the six
 packages has a trusted publisher on npmjs.com for this repository's
 `release.yml`, and the publish job exchanges its GitHub OIDC token for a
-short-lived publish credential. A package without one fails at its
-`npm publish`. Check all six with `npm trust list @glyphlang/<name>` before
-pushing a tag, because a missing one cannot be detected before the first
-package is already published.
+short-lived publish credential. Before the first real publish, the job
+dry-runs all six packages at verbose log level and requires npm's
+`oidc Successfully retrieved and set token` line from each, so a missing or
+mismatched trusted publisher stops the release before anything reaches the
+registry.
 
 To cut a release: bump the `version` in `npm/glyph/package.json`, the five
 `npm/platform/*/package.json`, and the launcher's `optionalDependencies` to the

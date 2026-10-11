@@ -421,18 +421,17 @@ pub fn assignability(
     }
 }
 
-/// The fields of the props record a component element is compared against,
-/// given the type the component's one parameter is declared with, or `None`
-/// when the checker reads no record there and so compares the element's
-/// attributes against nothing (G240).
-///
-/// The same read the element rule makes, through the same method
-/// (`Assigner::props_record_of`), so a surface that reports what an element's
-/// attributes are paired with names the fields the checker paired them with:
-/// a structural record, a local or imported record and a second name for one,
-/// an interface, a stdlib record. A generic parameter, `unknown`, a
-/// `Record<K, V>` map and every type that is not a record answer `None`.
-pub fn props_record_fields(
+/// The fields the checker compares a structural record against where
+/// `declared` is the declared type, or `None` when it reads no field set
+/// there. Two readers rest on it being the checker's own read, through one
+/// method (`Assigner::props_record_of`): the props record a component element
+/// is compared against (G240), and the record `glyph_assignable` names when it
+/// says which of a value's fields the declaration does not have. It answers
+/// for a structural record, a local or imported record and a second name for
+/// one, a generic application of one, an interface and a stdlib record; a
+/// generic parameter, `unknown`, a `Record<K, V>` map and every type that is
+/// not a record answer `None`.
+pub fn declared_record_fields(
     module: &Module,
     resolved: &ResolvedModule,
     prelude: &Prelude,
@@ -2424,7 +2423,7 @@ impl Assigner<'_> {
 
     /// The record a component's one parameter, declared as `declared`, holds
     /// its props in: the declaration's second names followed to the end, then
-    /// read as a record. One method, because `props_record_fields` answers
+    /// read as a record. One method, because `declared_record_fields` answers
     /// for surfaces that report what an element was compared against, and
     /// two reads of the same thing is how they come to disagree.
     fn props_record_of(&self, declared: &Ty) -> Option<RecordShape> {
@@ -5950,6 +5949,18 @@ impl Assigner<'_> {
                     "two structural records are compared field by field with width \
                      subtyping, and every required field of the declared type is present, \
                      not optional on the value's side, and of an accepted type",
+                )
+            }
+            // The accepting face of the same rule against a declared record,
+            // local, imported, generic or a second name for one: the field set
+            // `record_fields_of` reads is the one the refusing arm compared.
+            (Ty::Record { fields: ff }, _) => {
+                let ef = self.record_fields_of(&expected)?;
+                self.record_acceptance(&found, ff, &ef).then_some(
+                    "a structural record is compared against the fields of the declared \
+                     record it is given for, field by field with width subtyping, and every \
+                     required field of the declaration is present, not optional on the \
+                     value's side, and of an accepted type",
                 )
             }
             _ => None,

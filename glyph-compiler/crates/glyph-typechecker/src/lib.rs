@@ -39,7 +39,7 @@ pub use assign::{
     alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
     assign_types_with_resolver, assignability, direct_type_decl, imported_decl_chain_end,
     imported_string_literal_union_values,
-    prelude_app, prelude_container, props_record_fields, resolve_alias_chain, split_type_app,
+    prelude_app, prelude_container, declared_record_fields, resolve_alias_chain, split_type_app,
     Assignability,
     CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention, CoverageSite,
     CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,

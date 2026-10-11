@@ -571,6 +571,78 @@ def case_call_spelling() -> tuple[bool, str]:
                   "dependencies and impact, with the same verdict, reason and arguments")
 
 
+RECORD_DECLARED = CORPUS / "record-declared"
+
+#: (callee, caller, from, to, the verdict both tools must reach) for
+#: `record-declared`: a structural record value against a declared record,
+#: local, a second name, imported, generic, all-optional, mistyped, a tagged
+#: union, a nested imported field, and one with an extra field.
+RECORD_CELLS = (
+    ("api::tp", "api::cp", "{ label: string }", "P", "WILL_FAIL"),
+    ("api::tq", "api::cq", "{ label: string }", "Q", "WILL_FAIL"),
+    ("api::tr", "api::cr", "{ label: string }", "Remote", "WILL_FAIL"),
+    ("api::tb", "api::cb", "{ value: string }", "Box<string>", "WILL_FAIL"),
+    ("api::tw", "api::cw", "{ x: number }", "W", "WILL_FAIL"),
+    ("api::tp", "api::cn", "{ label: number }", "P", "WILL_FAIL"),
+    ("api::tu", "api::cu", "{ label: string }", "U", "UNDETERMINED"),
+    ("api::th", "api::ch", "{ o: Order }", "HO", "WILL_FAIL"),
+    ("api::tp", "api::cx", "{ label: string, extra: number }", "P", "WILL_FAIL"),
+)
+
+
+def case_record_against_declared_record() -> tuple[bool, str]:
+    """A structural record against a declared record: impact and assignable
+    agree on every pairing, in both directions.
+
+    The impact cell asks the relation, and the relation's accepting face is
+    the comparison its refusing arm makes, field by field through the whole
+    relation with TypeScript's weak-type rule. So an accepted pairing is
+    COMPATIBLE in `glyph_assignable` and WILL_FAIL in `glyph_impact`, a
+    refused one WILL_FAIL in both, and a pairing neither half reads
+    UNDETERMINED in both, each asserted against the tools' own answers rather
+    than a fixed table. Until 0.1.127 the cell said "the checker has no rule"
+    about a record against a declared record, which was false: the checker
+    refused `{ label: number }` against `P` with E0211.
+
+    An accepted pairing's `because` says it reports the checker's own
+    comparison, and names the one place it parts from `tsc` when the value
+    has a field the declaration does not: an excess property on a fresh
+    literal (TS2353).
+    """
+    seen = set()
+    for entity, caller, src, dst, want in RECORD_CELLS:
+        a = impact(RECORD_DECLARED, entity, {"kind": "change_signature_type"})
+        if "error" in a:
+            return False, f"impact on {entity} refused: {a['error'][:120]}"
+        entries = [e for e in a.get("impact") or []
+                   if e.get("entity") == caller and e.get("relation") == "CALLS"]
+        if len(entries) != 1:
+            return False, f"no one CALLS site of {entity} in {caller}: {entries}"
+        cell = (entries[0].get("arguments") or [{}])[0]
+        if cell.get("verdict") != want:
+            return False, f"the cell for `{src}` into `{dst}` is {cell.get('verdict')}, not {want}"
+        if "has no rule comparing" in (cell.get("because") or ""):
+            return False, f"the cell for `{src}` into `{dst}` still says no rule: {cell.get('because')}"
+        b = call(RECORD_DECLARED, "glyph_assignable", {"path": "src/api.glyph", "from": src, "to": dst})
+        if "error" in b:
+            return False, f"assignable `{src}` into `{dst}` refused: {b['error'][:120]}"
+        pairing = b.get("verdict")
+        seen.add(pairing)
+        expect = "WILL_FAIL" if pairing in ("COMPATIBLE", "WILL_FAIL") else pairing
+        if cell.get("verdict") != expect:
+            return False, (f"impact says {cell.get('verdict')} and assignable says {pairing} "
+                           f"about `{src}` into `{dst}`")
+        because = b.get("because") or ""
+        if pairing == "COMPATIBLE" and "checker's own comparison" not in because:
+            return False, f"an accepted pairing does not say whose comparison it is: {because}"
+        if pairing == "COMPATIBLE" and ("TS2353" in because) != ("extra" in src):
+            return False, f"the width divergence is named on the wrong pairing: {src} -> {because}"
+    if seen != {"COMPATIBLE", "WILL_FAIL", "UNDETERMINED"}:
+        return False, f"not every direction was exercised: {sorted(seen)}"
+    return True, ("nine pairings, accepted, refused and unread, each the same answer from "
+                  "impact and from assignable")
+
+
 RECORD_NESTED = CORPUS / "record-nested"
 
 
@@ -798,8 +870,8 @@ def case_element_verdicts() -> tuple[bool, str]:
     bound, so both are NOT_INDEXED. Every one of these was run against the
     checker by making the edit before it was written here.
     """
-    sig_fixed = {10: "WILL_FAIL", 11: "UNDETERMINED", 13: "WILL_FAIL", 14: "WILL_FAIL",
-                 15: "UNDETERMINED", 16: "WILL_FAIL"}
+    sig_fixed = {10: "WILL_FAIL", 11: "UNDETERMINED", 12: "WILL_FAIL", 13: "WILL_FAIL",
+                 14: "WILL_FAIL", 15: "UNDETERMINED", 16: "WILL_FAIL"}
     arity_fixed = {10: "ABSORBS", 11: "ABSORBS", 12: "ABSORBS", 13: "SAFE", 14: "ABSORBS",
                    15: "NOT_INDEXED", 16: "NOT_INDEXED"}
     seen = {}
@@ -2171,6 +2243,7 @@ HARD = [
     ("definition and hover under any spelling", case_member_spelling_definition_and_hover),
     ("a call under any import spelling", case_call_spelling),
     ("an element is decided as the call it lowers to", case_element_verdicts),
+    ("a record against a declared record, both tools", case_record_against_declared_record),
     ("a record cell is held to its edit", case_record_cell_held_to_the_edit),
     ("CALLS is the applied sites, with coverage", case_calls_relation),
     ("REFERENCES is everything else, with coverage", case_references_relation),

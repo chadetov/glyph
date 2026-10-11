@@ -550,6 +550,11 @@ pub struct JsxElement {
     pub children: Vec<JsxChild>,
     /// `<name ... />` form. When `self_closing` is true, `children` is empty.
     pub self_closing: bool,
+    /// The element's name in its opening tag (`Card` in `<Card title="x">`,
+    /// `Ctx.Provider` for a dotted name), which is where a diagnostic about
+    /// the element as a whole points. The opening `<` for a fragment, which
+    /// has no name.
+    pub name_span: Span,
     pub span: Span,
 }
 

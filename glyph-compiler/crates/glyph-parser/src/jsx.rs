@@ -41,11 +41,12 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             attrs: Vec::new(),
             children,
             self_closing: false,
+            name_span: open_span,
             span: Span::new(open_span.start, close.end),
         });
     }
 
-    let (name, _name_span) = jsx_element_name(p)?;
+    let (name, name_span) = jsx_element_name(p)?;
 
     // Parse attributes until `>` or `/>`.
     let mut attrs = Vec::new();
@@ -62,6 +63,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             attrs,
             children: Vec::new(),
             self_closing: true,
+            name_span,
             span: Span::new(open_span.start, close.end),
         });
     }
@@ -90,6 +92,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
         attrs,
         children,
         self_closing: false,
+        name_span,
         span: Span::new(open_span.start, close.end),
     })
 }

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-271 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-29 are open. G144, the D28 boundary cast that never reached the returns a
+272 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+30 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10487,3 +10487,13 @@ and is the owner's to confirm.
   program against real React once G254 and G255 land.
 
   *Reproduced against 0.1.125: the example in a project with react@18 and a small `api/users` draws TS2724 for each of the three hooks.*
+
+- **G272. `==` on an opaque host handle can recurse without end.** `==` on two
+  non-primitive values emits `__glyph_eq`, which walks both structurally with no
+  cycle guard. A host handle Glyph treats as opaque (`timers.Timer`, a socket,
+  and from 0.1.128 a `dom.Element`, which carries React's fiber keys) can hold a
+  cycle, so comparing two different handles can recurse until the stack
+  overflows. Found by the 0.1.128 design pass; the recommended fix is a checker
+  refusal of `==` on an opaque handle, as its own item.
+
+  *Reproduced against 0.1.125 by reading `__glyph_eq` in the bootstrap runtime: it recurses into object fields with no visited set; the cyclic-handle run is in the item's test plan.*

@@ -5432,11 +5432,13 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G265: the prelude `Component` modeled in the relation, so JSX is a `Component` and a `Component` is not a `string`; decided in principle, its own change
 - G266: a declared `children` type compared with what is written between the tags
 - G267: `default as` on a Glyph module with no default export refused by the Glyph stages
+- G272: `==` on an opaque host handle (`Timer`, a socket, `dom.Element`) refused by the checker, since `__glyph_eq` has no cycle guard
 - Tests the 0.1.125 review found missing: the `tsc` messages `missing_fields.rs` records are compared in a test with React types installed, and G252's concurrent checks get a regression test
 - Carried: the remaining stdlib signatures and the unifier change that widens a bound name (its own change, split by risk); editor go-to-definition across modules in an unmarked `src/` tree (`project_root_for`), which waits on the owner's scope call; and the enterprise review's items from the rolling lane as they are decided
 
 **0.1.128 — Planned · React against real React**
 - The 0.1.126 dogfood round wrote a counter-and-todo app against real React 18 and stopped at `document`. This release is measured by that app: it builds with Vite, renders in a headless browser, and every hook in it is React's own
+- The design is [`../plan/0.1.128-react-against-real-react.md`](../plan/0.1.128-react-against-real-react.md): three host modules (`std/dom`, `std/storage`, `std/console`) and D48
 - G254, decided 2026-10-11 by the owner: a typed `std/dom` module on the timers and WebSocket precedent, starting with what the app needs (the document title, an element by id as an `Option`, `window.location`, `localStorage` with an `Option` for a missing key, console output). A design pass maps the surface and the node-target question before code
 - G255, decided 2026-10-11 by the owner: `let [a, b] = expr` with an irrefutable array pattern and a tuple element type in the checker, as a new D-decision
 - G256: an import of a `std/` module that does not exist is E0104 like a missing local one

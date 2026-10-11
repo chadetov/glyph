@@ -5,7 +5,10 @@
 // sources.
 
 declare module "react" {
-  export type Component = unknown;
+  // What the prelude `Component` lowers to (`React.ReactNode`). The stub's
+  // `createElement` returns it, so an element is assignable to a component's
+  // return type here as it is under React's own types.
+  export type ReactNode = unknown;
 
   // A DOM-ish event handed to a Glyph JSX event handler.
   type GlyphEvent = { target: { value: string }; currentTarget: { value: string } };
@@ -26,7 +29,7 @@ declare module "react" {
     type: unknown,
     props: ElementProps | null,
     ...children: unknown[]
-  ): Component;
+  ): ReactNode;
   // `<>...</>` lowers to `createElement(React.Fragment, ...)`.
   export const Fragment: unknown;
   // A context object; `<Ctx.Provider>` is a member-expression element name.

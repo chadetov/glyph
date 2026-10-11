@@ -760,6 +760,7 @@ pub fn emit_module_mapped(
         used_schema: Rc::new(Cell::new(false)),
         used_result: Rc::new(Cell::new(false)),
         used_infer_output: Rc::new(Cell::new(false)),
+        used_react: Rc::new(Cell::new(false)),
         shadowed_globals: shadowed,
         desc_param_guards: RefCell::new(Vec::new()),
             assign_target: RefCell::new(None),
@@ -851,6 +852,11 @@ struct Emitter<'a> {
     /// the one injected mapped-type alias (`__GlyphInferOutput`) it lowers to.
     /// Shared across sub-emitters via the `Rc<Cell>` like the flags above.
     used_infer_output: Rc<Cell<bool>>,
+    /// Set once the output names the `React` namespace: a JSX element (which
+    /// lowers to `React.createElement`) or the prelude `Component` type (which
+    /// lowers to `React.ReactNode`). The module then gets the namespace import.
+    /// A `component` declaration sets it too, before its body is emitted.
+    used_react: Rc<Cell<bool>>,
     /// The `EMITTER_GLOBALS` this module shadows with a top-level declaration.
     /// Empty for almost every module, which is why the capture is conditional:
     /// a module that shadows nothing emits exactly what it emitted before.
@@ -976,6 +982,7 @@ impl<'a> Emitter<'a> {
             used_schema: Rc::clone(&self.used_schema),
             used_result: Rc::clone(&self.used_result),
             used_infer_output: Rc::clone(&self.used_infer_output),
+            used_react: Rc::clone(&self.used_react),
             shadowed_globals: Rc::clone(&self.shadowed_globals),
             // Descriptor field checks are generated on the main emitter, never a
             // sub-emitter (lambda/IIFE) body, so a sub starts with no guards.
@@ -1034,16 +1041,14 @@ impl<'a> Emitter<'a> {
         // Copy the `&Module` reference (references are `Copy`) so iterating it
         // doesn't borrow `self` across the `&mut self` emit calls.
         let module = self.module;
-        // A `component` lowers to React `createElement` calls, which need the
-        // React namespace in scope. The Glyph source imports named hooks from
-        // `react` but not React itself, so add the namespace import here.
+        // A `component` lowers to a React function component, so a module that
+        // declares one imports the React namespace whatever its body writes.
         if module
             .items
             .iter()
             .any(|d| matches!(d, Decl::Component(_)))
         {
-            self.line("import * as React from \"react\";");
-            self.out.push('\n');
+            self.used_react.set(true);
         }
         for (i, decl) in module.items.iter().enumerate() {
             if i > 0 {
@@ -1055,6 +1060,14 @@ impl<'a> Emitter<'a> {
         // below are prepended with `insert_str(0, ...)`, shifting the body; note
         // the body length now so the offsets can be corrected afterward.
         let body_len = self.out.len();
+        // JSX lowers to `React.createElement` and the prelude `Component` to
+        // `React.ReactNode`, both of which need the React namespace in scope.
+        // The Glyph source imports named hooks from `react` but not React
+        // itself, so the namespace import is added here. It is inserted first
+        // so it lands last, directly above the module's own declarations.
+        if self.used_react.get() {
+            self.out.insert_str(0, "import * as React from \"react\";\n\n");
+        }
         // A module that referenced a prelude tagged-union value/type
         // (`Ok`/`Err`/`Result`, `Some`/`None`/`Option`) without an explicit
         // import still needs the runtime `import` in the emitted TS — the
@@ -5831,6 +5844,7 @@ impl<'a> Emitter<'a> {
     /// `<else>` and `<case>` are only meaningful inside their directive and are
     /// consumed there.
     fn emit_jsx(&self, j: &JsxElement) -> Result<String, EmitError> {
+        self.used_react.set(true);
         match j.kind() {
             JsxKind::Match => self.emit_jsx_match(j),
             JsxKind::For => self.emit_jsx_for(j),
@@ -6099,6 +6113,16 @@ impl<'a> Emitter<'a> {
 
     // ----- types -----
 
+    /// The TypeScript type the prelude `Component` lowers to: anything React
+    /// can render. A component's body may return an element, a fragment, the
+    /// `null` a lone `<if>` lowers to, or the array a `<for>` maps to, and
+    /// `React.ReactNode` is the narrowest of React's types that accepts all
+    /// four. `React.ReactElement` and `React.JSX.Element` refuse the last two.
+    fn react_node(&self) -> String {
+        self.used_react.set(true);
+        "React.ReactNode".to_string()
+    }
+
     fn ty(&self, te: &TypeExpr) -> Result<String, EmitError> {
         Ok(match te {
             TypeExpr::Path { segments, .. } => {
@@ -6115,6 +6139,7 @@ impl<'a> Emitter<'a> {
                 match self.prelude_kind_of_name(te) {
                     Some(PreludeKind::Bool) => "boolean".to_string(),
                     Some(PreludeKind::Int) => "number".to_string(),
+                    Some(PreludeKind::Component) => self.react_node(),
                     _ => joined,
                 }
             }
@@ -6203,6 +6228,12 @@ impl<'a> Emitter<'a> {
                         // Same primitive mapping as `TypeExpr::Path`.
                         "bool" => "boolean".to_string(),
                         "int" => "number".to_string(),
+                        // The resolver records nothing for an inline union's
+                        // names, so the prelude `Component` is the one this
+                        // module does not declare or import itself.
+                        "Component" if !self.resolved.symbols.by_name.contains_key("Component") => {
+                            self.react_node()
+                        }
                         other => other.to_string(),
                     })
                     .collect::<Vec<_>>()
@@ -9348,7 +9379,7 @@ mod tests {
     #[test]
     fn empty_jsx_element_emits_null_props_and_no_children() {
         let ts = emit(
-            "module x\nimport react { Component }\npub component V() -> Component {\n  return <div></div>\n}\n",
+            "module x\npub component V() -> Component {\n  return <div></div>\n}\n",
         );
         assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
     }
@@ -9439,7 +9470,7 @@ mod tests {
         // `{...register("email")}` merges into the props object, alongside the
         // `class` -> `className` remap, exactly like `<input {...register()} />`.
         let ts = emit(
-            "module x\nimport react { Component }\npub fn register(n: string) -> unknown { return n }\n\
+            "module x\npub fn register(n: string) -> unknown { return n }\n\
              component F() -> Component {\n  return <input {...register(\"email\")} class=\"field\" />\n}\n",
         );
         assert!(
@@ -9452,7 +9483,7 @@ mod tests {
     fn nested_jsx_for_inside_if_lowers() {
         // A `<for>` nested inside an `<if>` branch, paired with an `<else>`.
         let ts = emit(
-            "module x\nimport react { Component }\npub component V(props: { xs: Array<string> }) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={props.xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
+            "module x\npub component V(props: { xs: Array<string> }) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={props.xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
         );
         assert!(
             ts.contains("(true ? props.xs.map((x) => React.createElement(\"li\", null, x)) : React.createElement(\"p\", null, \"empty\"))"),
@@ -10050,13 +10081,102 @@ mod tests {
         );
         assert!(ts.contains("import * as React from \"react\";"), "{ts}");
         assert!(
-            ts.contains("export function Greeting(props: { name: string }): Component {"),
+            ts.contains("export function Greeting(props: { name: string }): React.ReactNode {"),
             "{ts}"
         );
         assert!(
             ts.contains("return React.createElement(\"div\", { className: \"g\" }, props.name);"),
             "{ts}"
         );
+    }
+
+    /// G247. The prelude `Component` is a rendered React element, and TypeScript
+    /// has no `Component` in scope to mean it: written verbatim it was `TS2304`.
+    /// It lowers to `React.ReactNode` wherever a type is written, because a
+    /// component may return the `null` a lone `<if>` lowers to or the array a
+    /// `<for>` maps to, which `React.ReactElement` and `React.JSX.Element`
+    /// both refuse.
+    #[test]
+    fn prelude_component_lowers_to_react_node_in_every_type_position() {
+        let ts = emit(
+            "module x
+             pub type Slot = { header: Component, alt: Component | string }
+             pub type View = Component
+             pub fn wrap(c: Component) -> Component {\n  return <div>{c}</div>\n}
+             pub fn many(xs: Array<Component>) -> Option<Component> {\n  return None\n}
+             pub fn pick(f: fn(s: Slot) -> Component) -> View {\n  return <p>x</p>\n}
+",
+        );
+        for want in [
+            "export type Slot = { header: React.ReactNode; alt: React.ReactNode | string };",
+            "export type View = React.ReactNode;",
+            "export function wrap(c: React.ReactNode): React.ReactNode {",
+            "export function many(xs: Array<React.ReactNode>): Option<React.ReactNode> {",
+            "export function pick(f: (s: Slot) => React.ReactNode): View {",
+        ] {
+            assert!(ts.contains(want), "missing `{want}` in:\n{ts}");
+        }
+        assert!(!ts.contains(": Component"), "{ts}");
+        assert!(ts.contains("import * as React from \"react\";"), "{ts}");
+    }
+
+    /// A user's own `Component` is not the prelude's. React's class imported by
+    /// name and a module's own `type Component` both render as written, so the
+    /// lowering never rewrites a binding the module chose.
+    #[test]
+    fn a_users_own_component_type_is_left_as_written() {
+        let imported = emit(
+            "module x
+import react { Component }
+pub fn f(c: Component) -> Component {\n  return c\n}
+",
+        );
+        assert!(
+            imported.contains("export function f(c: Component): Component {"),
+            "{imported}"
+        );
+        assert!(!imported.contains("ReactNode"), "{imported}");
+        let local = emit(
+            "module x
+pub type Component = { name: string }
+             pub fn f(c: Component, o: { u: Component | string }) -> Component {\n  return c\n}
+",
+        );
+        assert!(
+            local.contains("export function f(c: Component, o: { u: Component | string }): Component {"),
+            "{local}"
+        );
+        assert!(!local.contains("ReactNode"), "{local}");
+        assert!(!local.contains("import * as React"), "{local}");
+    }
+
+    /// JSX lowers to `React.createElement` and the prelude `Component` to
+    /// `React.ReactNode`, so a module that writes either imports the React
+    /// namespace even when it declares no `component`. Before, only a
+    /// `component` declaration did, and a module of JSX-returning `fn`s failed
+    /// `tsc` with `Cannot find name 'React'`. A module that writes neither
+    /// imports nothing.
+    #[test]
+    fn jsx_or_the_prelude_component_imports_react_without_a_component_decl() {
+        let jsx = emit("module x
+pub fn view() -> Component {\n  return <p>hi</p>\n}
+");
+        assert!(jsx.contains("import * as React from \"react\";"), "{jsx}");
+        assert!(jsx.contains("export function view(): React.ReactNode {"), "{jsx}");
+        let ty_only = emit("module x
+pub fn pass(c: Component) -> Component {\n  return c\n}
+");
+        assert!(ty_only.contains("import * as React from \"react\";"), "{ty_only}");
+        let lambda = emit(
+            "module x
+pub fn later() -> fn() -> string {\n  return fn() { let e = <b>x</b>\n \"s\" }\n}
+",
+        );
+        assert!(lambda.contains("import * as React from \"react\";"), "{lambda}");
+        let plain = emit("module x
+pub fn n() -> number {\n  return 1\n}
+");
+        assert!(!plain.contains("React"), "{plain}");
     }
 
     #[test]
@@ -10108,7 +10228,7 @@ mod tests {
         // an `{expr}` child on the same line. Trimming both would render
         // "HelloAlicewelcome"; the space before and after `{name}` must survive.
         let ts = emit(
-            "module x\nimport react { Component }\npub component W(props: { name: string }) -> Component {\n  return <p>Hello {props.name} and welcome</p>\n}\n",
+            "module x\npub component W(props: { name: string }) -> Component {\n  return <p>Hello {props.name} and welcome</p>\n}\n",
         );
         assert!(
             ts.contains("React.createElement(\"p\", null, \"Hello \", props.name, \" and welcome\")"),
@@ -10122,7 +10242,7 @@ mod tests {
         // single-brace `{expr}` interpolation, so `$` carries no meaning and
         // must not be a lex error. It should survive into the emitted text run.
         let ts = emit(
-            "module x\nimport react { Component }\npub component Price() -> Component {\n  return <div><span>Cost: $5 today</span></div>\n}\n",
+            "module x\npub component Price() -> Component {\n  return <div><span>Cost: $5 today</span></div>\n}\n",
         );
         assert!(
             ts.contains("React.createElement(\"span\", null, \"Cost: $5 today\")"),

@@ -14356,6 +14356,125 @@ fn g240_the_shapes_tsc_accepts_stay_silent() {
     );
 }
 
+/// The parts of `@types/react` 18.3 a component build touches, copied in their
+/// real shapes: `ReactNode` is the union React renders (an element, text, an
+/// iterable of nodes, `null`), a function component returns one, and
+/// `createElement` returns an element. No test environment carries React's own
+/// types, so this stands in for them; what it must keep faithful is that
+/// `ReactElement` refuses `null` and an array while `ReactNode` takes both.
+const REACT_TYPES_SUBSET: &str = r#"export interface ReactElement<P = any> {
+  type: unknown;
+  props: P;
+  key: string | null;
+}
+export type ReactNode =
+  | ReactElement
+  | string
+  | number
+  | bigint
+  | Iterable<ReactNode>
+  | boolean
+  | null
+  | undefined;
+export interface FunctionComponent<P = {}> {
+  (props: P): ReactNode;
+}
+export declare const Fragment: unique symbol;
+export declare function createElement(
+  type: string | typeof Fragment,
+  props?: object | null,
+  ...children: ReactNode[]
+): ReactElement;
+export declare function createElement<P extends {}>(
+  type: FunctionComponent<P>,
+  props?: P | null,
+  ...children: ReactNode[]
+): ReactElement<P>;
+"#;
+
+/// G247 with `tsc` in the loop. The prelude `Component` used to be written into
+/// the TypeScript verbatim, where nothing declares it (`TS2304`), and a module
+/// of JSX-returning `fn`s with no `component` never imported React at all. The
+/// program covers every shape a component can return: an element, a component
+/// element, a fragment, the `null` of a lone `<if>`, an `<if>`/`<else>`
+/// ternary, a `<match>` IIFE and a `<for>` array. A lowering to
+/// `React.ReactElement` or `React.JSX.Element` fails on the last two.
+#[test]
+fn g247_the_prelude_component_type_checks_against_react_types() {
+    if !tsc_available() {
+        eprintln!("skipping G247 tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("g247");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &root,
+        "node_modules/@types/react/package.json",
+        r#"{ "name": "@types/react", "version": "18.3.0", "types": "index.d.ts" }"#,
+    );
+    write_file(&root, "node_modules/@types/react/index.d.ts", REACT_TYPES_SUBSET);
+    write_file(
+        &src,
+        "views.glyph",
+        "module views\n\
+         pub fn view() -> Component {\n\
+         \x20 return <p>hi</p>\n\
+         }\n\
+         pub fn boxed(c: Component, rest: Array<Component>) -> Component {\n\
+         \x20 return <div>{c}{rest}</div>\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import views { view, boxed }\n\
+         pub type S =\n\
+         \x20 | Idle\n\
+         \x20 | Loaded({ n: number })\n\
+         pub type Slot = { header: Component }\n\
+         pub component Inner() -> Component {\n\
+         \x20 return <span>x</span>\n\
+         }\n\
+         pub component Frag() -> Component {\n\
+         \x20 return <><Inner /><p>b</p></>\n\
+         }\n\
+         pub component Lone(props: { flag: bool }) -> Component {\n\
+         \x20 return <if cond={props.flag}><p>yes</p></if>\n\
+         }\n\
+         pub component Both(props: { flag: bool }) -> Component {\n\
+         \x20 return <>\n\
+         \x20   <if cond={props.flag}><p>yes</p></if>\n\
+         \x20   <else><p>no</p></else>\n\
+         \x20 </>\n\
+         }\n\
+         pub component Pick(props: { s: S }) -> Component {\n\
+         \x20 return <match value={props.s}>\n\
+         \x20   <case Idle><p>idle</p></case>\n\
+         \x20   <case Loaded bind={n}><p>{n}</p></case>\n\
+         \x20 </match>\n\
+         }\n\
+         pub component Each(props: { xs: Array<string> }) -> Component {\n\
+         \x20 return <for x in={props.xs} key={x}><li>{x}</li></for>\n\
+         }\n\
+         pub component App(props: { slot: Slot }) -> Component {\n\
+         \x20 return <div>{view()}{boxed(props.slot.header, [view()])}<Lone flag={true} /><Each xs={[\"a\"]} /></div>\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let views = std::fs::read_to_string(out.join("views.ts")).expect("views.ts written");
+    assert!(views.contains("import * as React from \"react\";"), "{views}");
+    assert!(views.contains("export function view(): React.ReactNode {"), "{views}");
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("the prelude `Component` did not type-check:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
 /// G243 across a module boundary. A component's parameter type declared in a
 /// sibling reaches this module as a `Ty::Imported`, and whether it is a props
 /// record is read from the declaration at the end of its chain, so the verdict

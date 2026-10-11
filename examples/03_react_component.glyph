@@ -7,7 +7,7 @@
 module components/user_search
 
 import std/result { Ok, Err }
-import react { use_state, use_effect, use_memo, Component }
+import react { use_state, use_effect, use_memo }
 import std/time { debounce, Duration }
 import api/users { search_users, SearchError }
 

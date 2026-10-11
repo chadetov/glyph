@@ -53,6 +53,19 @@ enum ReturnClass {
     Unknown,
 }
 
+/// What a component's one parameter is as a props value (G243). Three answers
+/// rather than a bool, because "not proved to be a record" and "proved not to
+/// be one" are different claims and only the second is E0229.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PropsParam {
+    /// A record the element's attributes are checked against.
+    Record,
+    /// A type whose value is never an object of props.
+    NotRecord,
+    /// A type this checker cannot see into, or one that describes any object.
+    Undecided,
+}
+
 /// The innermost enclosing callable's declared return type, tracked on a
 /// stack so nested lambdas check against their own return. Bundles the
 /// `ReturnClass` (for the `?` rule) with the lowered `Ty` (for return-type
@@ -1328,6 +1341,20 @@ impl Assigner<'_> {
                         span: c.params[1].span,
                     });
                 }
+                // The one parameter is that props object, so a type the
+                // checker can decide is not a record can never be what it
+                // holds (G243, E0229).
+                if let [param] = c.params.as_slice() {
+                    let ty = self.lowerer.lower(&param.ty);
+                    if self.props_param(&ty, 0) == PropsParam::NotRecord {
+                        self.errors.push(TypeError::ComponentParamNotRecord {
+                            component: c.name.to_string(),
+                            param: param.name.to_string(),
+                            ty: type_expr_source(&param.ty),
+                            span: param.span,
+                        });
+                    }
+                }
                 // A `component` lowers to a React function component; there is
                 // no `async component`, so it is never an async context.
                 let er = self.enclosing_return(c.return_ty.as_ref(), false);
@@ -2251,6 +2278,78 @@ impl Assigner<'_> {
         let canonical = self.canonicalize_aliases(&declared);
         let shape = self.record_shape_of(&canonical)?;
         Some((declared, shape))
+    }
+
+    /// What a component's one parameter is as a props value (G243): a record,
+    /// provably not one, or a type this checker cannot decide.
+    ///
+    /// React calls a component with the single object its element builds, so
+    /// the only declarations that can hold it are a record and the types that
+    /// describe any object. `NotRecord` is answered only where the value's
+    /// emitted form is settled whatever fills it: a primitive, a string-literal
+    /// union, a tagged union (`Option` and `Result` included), an `Array`, a
+    /// `Nullable` (which says the object may be `null`, and it never is) and a
+    /// function type, each seen through any chain of second names, local or
+    /// imported.
+    ///
+    /// Everything else is `Undecided`, because a refusal has to be proved. A
+    /// generic parameter may be filled with a record. `unknown` and
+    /// `Record<K, V>` describe a props object truthfully, and `tsc` accepts an
+    /// element against either with no attributes. An `extern_ts` or `typeof`
+    /// body, an imported `interface`, an opaque stdlib handle and the interop
+    /// types (`Component<P>`, `Schema<T>`) are shapes this checker does not
+    /// read. `depth` guards a cycle of second names.
+    fn props_param(&self, ty: &Ty, depth: usize) -> PropsParam {
+        if depth > 8 {
+            return PropsParam::Undecided;
+        }
+        match ty {
+            Ty::Record { .. } => return PropsParam::Record,
+            Ty::Prim(_) | Ty::StringLiteralUnion(_) | Ty::Union { .. } | Ty::Fn { .. } => {
+                return PropsParam::NotRecord;
+            }
+            Ty::Unknown | Ty::UnknownTop | Ty::Never | Ty::Param { .. } => {
+                return PropsParam::Undecided;
+            }
+            Ty::Named { .. } | Ty::App { .. } | Ty::Imported { .. } => {}
+        }
+        let canonical = self.canonicalize_aliases(ty);
+        // A named record, local or imported, an interface (whose members the
+        // checker reads as a record, and which the element's attributes are
+        // already checked against), and a stdlib record such as `fs.FileInfo`.
+        if self.record_shape_of(&canonical).is_some() {
+            return PropsParam::Record;
+        }
+        if let Some((name, _)) = self.prelude_container(&canonical) {
+            return match name {
+                "Record" => PropsParam::Undecided,
+                _ => PropsParam::NotRecord,
+            };
+        }
+        if self.string_literal_union_values(&canonical).is_some()
+            || self.required_variants(&canonical).is_some()
+        {
+            return PropsParam::NotRecord;
+        }
+        // A declaration whose body is some other form, read through the body:
+        // `type Name = string` is a second name for a primitive. A generic
+        // declaration's body is read unsubstituted, which can only move the
+        // answer to `Undecided`: a body that is its own parameter lowers to a
+        // `Ty::Param`, and every other form is decided by its outermost
+        // constructor, which the arguments do not change.
+        let (base, _) = split_type_app(&canonical);
+        if let Some(td) = self.local_type_decl(base) {
+            let body = self.lowerer.lower(&td.body);
+            return self.props_param(&body, depth + 1);
+        }
+        if let Ty::Imported { module, name } = base {
+            if let Some((_, _, decl)) =
+                imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())
+            {
+                return self.props_param(&decl.body, depth + 1);
+            }
+        }
+        PropsParam::Undecided
     }
 
     /// Exhaustiveness for a `<match value={s}>` JSX directive. Mirrors the
@@ -6930,8 +7029,9 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
 
 /// A written type as the source spells it, for a diagnostic that quotes the
 /// program back (`Nullable<Option<int>>` says `Option<int>`, not
-/// `Option<number>`). Paths and applications are exact; the other forms are
-/// summarized, since no D45 message has needed them yet.
+/// `Option<number>`). Every form is exact except a tagged union, which lists
+/// its variant names without payloads; E0229 quotes a component parameter of
+/// any form, a function type or `Nullable<{ name: string }>` included.
 fn type_expr_source(te: &TypeExpr) -> String {
     match te {
         TypeExpr::Path { segments, .. } => segments
@@ -6944,8 +7044,39 @@ fn type_expr_source(te: &TypeExpr) -> String {
             type_expr_source(base),
             args.iter().map(type_expr_source).collect::<Vec<_>>().join(", ")
         ),
-        TypeExpr::Fn { .. } => "fn(..)".to_string(),
-        TypeExpr::Record { .. } => "{ .. }".to_string(),
+        TypeExpr::Fn {
+            params,
+            return_ty,
+            is_async,
+            ..
+        } => {
+            let params = params
+                .iter()
+                .map(|p| match &p.name {
+                    Some(name) => format!("{name}: {}", type_expr_source(&p.ty)),
+                    None => type_expr_source(&p.ty),
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            let ret = return_ty
+                .as_ref()
+                .map(|r| format!(" -> {}", type_expr_source(r)))
+                .unwrap_or_default();
+            let prefix = if *is_async { "async " } else { "" };
+            format!("{prefix}fn({params}){ret}")
+        }
+        TypeExpr::Record { fields, .. } if fields.is_empty() => "{}".to_string(),
+        TypeExpr::Record { fields, .. } => format!(
+            "{{ {} }}",
+            fields
+                .iter()
+                .map(|f| {
+                    let mark = if f.optional { "?" } else { "" };
+                    format!("{}{mark}: {}", f.name, type_expr_source(&f.ty))
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         TypeExpr::Union { variants, .. } => variants
             .iter()
             .map(|v| v.name.to_string())
@@ -8187,8 +8318,8 @@ fn run(r: Result<Option<number>, string>) -> number {
         // not a silently-emitted `default: throw`.
         let src = r#"module x
 type Status = | Idle | Loading | Done
-component View(s: Status) -> Component {
-  return <match value={s}>
+component View(props: { s: Status }) -> Component {
+  return <match value={props.s}>
     <case Idle><span>idle</span></case>
     <case Loading><span>loading</span></case>
   </match>
@@ -8211,8 +8342,8 @@ component View(s: Status) -> Component {
         // whole payload and covers the variant), so no exhaustiveness error.
         let src = r#"module x
 type Status = | Idle | Loading | Done(number)
-component View(s: Status) -> Component {
-  return <match value={s}>
+component View(props: { s: Status }) -> Component {
+  return <match value={props.s}>
     <case Idle><span>idle</span></case>
     <case Loading><span>loading</span></case>
     <case Done bind={n}><span>{n}</span></case>
@@ -12548,8 +12679,8 @@ type Status =
   | Idle
   | Loading
   | Done
-component View(s: Status) -> Component {
-  return <match value={s}>
+component View(props: { s: Status }) -> Component {
+  return <match value={props.s}>
     <case Idle><span>idle</span></case>
     <case Loading><span>loading</span></case>
   </match>
@@ -14522,10 +14653,13 @@ fn f(a: Answer) -> number {
     }
 
     /// A component declaring no parameter takes no props, and `tsc` accepts
-    /// any attribute on one, so nothing here does either. Same for a
-    /// component whose single parameter is not a record: `<Greeting
-    /// name="x" />` is already refused by `tsc` and the shape this rule reads
-    /// is the props record `E0214` pushes every component toward.
+    /// any attribute on one, so nothing here does either.
+    ///
+    /// A component whose single parameter is not a record is refused at its
+    /// declaration (E0229, G243), and its element draws nothing more: the
+    /// attribute rule reads the props record, and a second diagnostic at
+    /// every element would say the same thing once per use. This test used to
+    /// assert that `Greeting(name: string)` drew nothing at all.
     #[test]
     fn a_component_without_a_props_record_is_left_alone() {
         let errs = errors_of(
@@ -14539,6 +14673,109 @@ fn f(a: Answer) -> number {
              \x20 </div>\n\
              }\n",
         );
-        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert!(
+            matches!(
+                errs.as_slice(),
+                [TypeError::ComponentParamNotRecord { component, param, .. }]
+                    if component == "Greeting" && param == "name"
+            ),
+            "errs: {errs:?}"
+        );
+    }
+
+    /// The E0229 the one parameter of `component C(p: <ty>)` draws, if any,
+    /// with `decls` declared above it.
+    fn props_param_errors(decls: &str, ty: &str) -> Vec<TypeError> {
+        errors_of(&format!(
+            "module m\n{decls}\ncomponent C(p: {ty}) -> Component {{\n  return <div>hi</div>\n}}\n"
+        ))
+        .into_iter()
+        .filter(|e| e.code() == "E0229")
+        .collect()
+    }
+
+    /// G243. Every type the checker can decide is not a record is refused at
+    /// the parameter, named as the source writes it. Each of these, rendered
+    /// with an attribute, is TS2769 under `tsc --strict`, and rendered with
+    /// none hands the parameter `{}`.
+    #[test]
+    fn a_component_parameter_that_is_not_a_record_is_e0229() {
+        let tier = "type Tier = \"free\" | \"pro\"\n";
+        let state = "type S =\n  | Idle\n  | Busy(number)\n";
+        let cases: &[(&str, &str)] = &[
+            ("", "string"),
+            ("", "number"),
+            ("", "int"),
+            ("", "bool"),
+            (tier, "Tier"),
+            ("", "\"free\" | \"pro\""),
+            (state, "S"),
+            ("", "Option<string>"),
+            ("", "Result<string, string>"),
+            ("", "Array<string>"),
+            ("", "Nullable<{ name: string }>"),
+            ("", "fn(n: number) -> string"),
+            ("type Name = string\n", "Name"),
+            ("type Name = string\ntype Label = Name\n", "Label"),
+            ("type Tree<T> =\n  | Leaf\n  | Node(T)\n", "Tree<string>"),
+        ];
+        for (decls, ty) in cases {
+            let errs = props_param_errors(decls, ty);
+            assert!(
+                matches!(
+                    errs.as_slice(),
+                    [TypeError::ComponentParamNotRecord { component, param, ty: shown, .. }]
+                        if component == "C" && param == "p" && shown == ty
+                ),
+                "`p: {ty}` should be one E0229 naming it as written: {errs:?}"
+            );
+            assert_eq!(errs[0].actual(), Some(*ty), "{errs:?}");
+            assert_eq!(errs[0].expected(), None, "a props record is a rule, not a type");
+        }
+    }
+
+    /// The other side of G243: a record in any spelling the checker reads as
+    /// one, and every type it cannot decide or that describes any object, draw
+    /// nothing. A refusal has to be proved (exact-or-absent).
+    #[test]
+    fn a_component_parameter_that_may_be_a_record_is_left_alone() {
+        let props = "type P = { name: string }\n";
+        let cases: &[(&str, &str)] = &[
+            ("", "{ name: string }"),
+            (props, "P"),
+            ("type P = { name: string }\ntype Q = P\n", "Q"),
+            ("type Box<T> = { value: T }\n", "Box<string>"),
+            ("interface Named {\n  name: string,\n}\n", "Named"),
+            ("interface Empty {\n}\n", "Empty"),
+            ("", "Record<string, string>"),
+            ("", "unknown"),
+            ("type Same<T> = T\n", "Same<string>"),
+            ("type Raw = extern_ts(\"{ name: string }\")\n", "Raw"),
+        ];
+        for (decls, ty) in cases {
+            let errs = props_param_errors(decls, ty);
+            assert!(errs.is_empty(), "`p: {ty}` should draw no E0229: {errs:?}");
+        }
+    }
+
+    /// A generic component's parameter may be filled with a record, so it is
+    /// not refused, and a component with no parameter has nothing to refuse.
+    /// Two parameters stay E0214 alone: the second is the mistake that
+    /// diagnostic names, and the first is not judged as a props record.
+    #[test]
+    fn e0229_reads_only_a_single_decidable_parameter() {
+        let generic = errors_of(
+            "module m\ncomponent Show<T>(p: T) -> Component {\n  return <div>hi</div>\n}\n",
+        );
+        assert!(generic.is_empty(), "{generic:?}");
+        let bare = errors_of("module m\ncomponent Bare() -> Component {\n  return <div>hi</div>\n}\n");
+        assert!(bare.is_empty(), "{bare:?}");
+        let two = errors_of(
+            "module m\ncomponent Row(label: string, count: number) -> Component {\n  return <p>{label}</p>\n}\n",
+        );
+        assert!(
+            matches!(two.as_slice(), [TypeError::ComponentMultipleParams { count: 2, .. }]),
+            "{two:?}"
+        );
     }
 }

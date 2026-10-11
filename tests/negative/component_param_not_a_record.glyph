@@ -1,0 +1,13 @@
+module neg
+
+// G243. A component's one parameter is its props record: React calls it with
+// the object `<Greeting name="x" />` builds, so `name` would hold
+// `{ name: "x" }`. `tsc` refuses the element (TS2769), and before E0229 Glyph
+// said nothing on either the declaration or the element.
+component Greeting(name: string) {
+  return <p>{name}</p>
+}
+
+pub component App() {
+  return <Greeting name="x" />
+}

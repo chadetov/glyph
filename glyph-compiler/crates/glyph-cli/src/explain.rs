@@ -639,6 +639,28 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `return Order { ... }` parsed as a `return` followed by an object \
             literal, so the only diagnostic was `E0108 unreachable code` on the \
             literal, and the build exited 0.",
+        "E0229" => "E0229: a component's parameter is not a record\n\n\
+            A `component` lowers to a React function component, and React calls \
+            it with the one props object its element builds. The emitter has no \
+            other way to pass anything, so the parameter holds that object \
+            whatever type it declares. `<Greeting name=\"x\" />` emits \
+            `React.createElement(Greeting, { name: \"x\" })`, which `tsc` refuses \
+            (TS2769) against a `string` parameter, and `<Greeting />` hands the \
+            parameter `{}` at run time while its type says `string`.\n\n\
+            Before:  component Greeting(name: string) {\n              \
+              return <p>{name}</p>\n            \
+            }\n\
+            After:   component Greeting(props: { name: string }) {\n              \
+              return <p>{props.name}</p>\n            \
+            }\n\n\
+            A named record, an alias of one, an imported record and an \
+            `interface` are all props records. The error is raised for a type \
+            the compiler can decide is not one: a primitive, a string-literal \
+            union, a tagged union (`Option` and `Result` included), an `Array`, \
+            a `Nullable` and a function type. A generic parameter, `unknown`, \
+            `Record<K, V>` and a type the compiler cannot see into draw \
+            nothing. A component with no parameters is also fine; one with \
+            several is E0214.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1481,6 +1503,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A type's name where a value is expected (`return Order { id: \"a\" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error",
         fix: "Write the value on its own (`return { id: \"a\" }`) and let the annotation carry the type. `Order.parse(raw)` and `Order.is(v)`, the descriptor forms, are not this error",
+    },
+    CodeEntry {
+        code: "E0229",
+        phase: "typechecker",
+        meaning: "A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable` or a function type; a generic parameter, `unknown` and `Record<K, V>` draw nothing",
+        fix: "Take one props record: `component Greeting(props: { name: string })`, then read `props.name`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

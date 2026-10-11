@@ -9441,10 +9441,10 @@ mod tests {
     fn nested_jsx_for_inside_if_lowers() {
         // A `<for>` nested inside an `<if>` branch, paired with an `<else>`.
         let ts = emit(
-            "module x\nimport react { Component }\npub component V(xs: Array<string>) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
+            "module x\nimport react { Component }\npub component V(props: { xs: Array<string> }) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={props.xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
         );
         assert!(
-            ts.contains("(true ? xs.map((x) => React.createElement(\"li\", null, x)) : React.createElement(\"p\", null, \"empty\"))"),
+            ts.contains("(true ? props.xs.map((x) => React.createElement(\"li\", null, x)) : React.createElement(\"p\", null, \"empty\"))"),
             "{ts}"
         );
     }
@@ -10035,15 +10035,15 @@ mod tests {
     #[test]
     fn component_emits_a_react_function_with_create_element() {
         let ts = emit(
-            "module x\npub component Greeting(name: string) -> Component {\n  return <div class=\"g\">{name}</div>\n}\n",
+            "module x\npub component Greeting(props: { name: string }) -> Component {\n  return <div class=\"g\">{props.name}</div>\n}\n",
         );
         assert!(ts.contains("import * as React from \"react\";"), "{ts}");
         assert!(
-            ts.contains("export function Greeting(name: string): Component {"),
+            ts.contains("export function Greeting(props: { name: string }): Component {"),
             "{ts}"
         );
         assert!(
-            ts.contains("return React.createElement(\"div\", { className: \"g\" }, name);"),
+            ts.contains("return React.createElement(\"div\", { className: \"g\" }, props.name);"),
             "{ts}"
         );
     }
@@ -10051,24 +10051,24 @@ mod tests {
     #[test]
     fn jsx_fragment_lowers_to_react_fragment() {
         let ts = emit(
-            "module x\npub component P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{\"body\"}</p>\n  </>\n}\n",
+            "module x\npub component P(props: { name: string }) -> Component {\n  return <>\n    <h1>{props.name}</h1>\n    <p>{\"body\"}</p>\n  </>\n}\n",
         );
         assert!(ts.contains("import * as React from \"react\";"), "{ts}");
         assert!(
             ts.contains("React.createElement(React.Fragment, null,"),
             "fragment lowers to React.Fragment: {ts}"
         );
-        assert!(ts.contains("React.createElement(\"h1\", null, name)"), "{ts}");
+        assert!(ts.contains("React.createElement(\"h1\", null, props.name)"), "{ts}");
     }
 
     #[test]
     fn member_expression_jsx_name_emits_the_dotted_type() {
         // `<Ctx.Provider value={x}>` — a namespaced component (React Context).
         let ts = emit(
-            "module x\npub component T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{\"c\"}</span>\n  </Ctx.Provider>\n}\n",
+            "module x\npub component T(props: { v: string }) -> Component {\n  return <Ctx.Provider value={props.v}>\n    <span>{\"c\"}</span>\n  </Ctx.Provider>\n}\n",
         );
         assert!(
-            ts.contains("React.createElement(Ctx.Provider, { value: v },"),
+            ts.contains("React.createElement(Ctx.Provider, { value: props.v },"),
             "dotted element name emits as the createElement type: {ts}"
         );
     }
@@ -10079,10 +10079,10 @@ mod tests {
         // an `{expr}` child on the same line. Trimming both would render
         // "HelloAlicewelcome"; the space before and after `{name}` must survive.
         let ts = emit(
-            "module x\nimport react { Component }\npub component W(name: string) -> Component {\n  return <p>Hello {name} and welcome</p>\n}\n",
+            "module x\nimport react { Component }\npub component W(props: { name: string }) -> Component {\n  return <p>Hello {props.name} and welcome</p>\n}\n",
         );
         assert!(
-            ts.contains("React.createElement(\"p\", null, \"Hello \", name, \" and welcome\")"),
+            ts.contains("React.createElement(\"p\", null, \"Hello \", props.name, \" and welcome\")"),
             "{ts}"
         );
     }
@@ -10132,7 +10132,7 @@ mod tests {
     #[test]
     fn jsx_match_lowers_to_a_switch_returning_iife() {
         let ts = emit(
-            "module x\npub type S =\n  | Idle\n  | Loaded({ items: number })\npub component V(s: S) -> Component {\n  return <match value={s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded bind={items}><p>{items}</p></case>\n  </match>\n}\n",
+            "module x\npub type S =\n  | Idle\n  | Loaded({ items: number })\npub component V(props: { s: S }) -> Component {\n  return <match value={props.s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded bind={items}><p>{items}</p></case>\n  </match>\n}\n",
         );
         assert!(ts.contains("((__v) => { switch (__v.tag) {"), "{ts}");
         assert!(
@@ -10143,16 +10143,16 @@ mod tests {
             ts.contains("case \"Loaded\": { const items = __v.items; return"),
             "{ts}"
         );
-        assert!(ts.contains("})(s)"), "{ts}");
+        assert!(ts.contains("})(props.s)"), "{ts}");
     }
 
     #[test]
     fn jsx_if_else_lowers_to_a_ternary() {
         let ts = emit(
-            "module x\npub component V(flag: bool) -> Component {\n  return <div>\n    <if cond={flag}><p>yes</p></if>\n    <else><p>no</p></else>\n  </div>\n}\n",
+            "module x\npub component V(props: { flag: bool }) -> Component {\n  return <div>\n    <if cond={props.flag}><p>yes</p></if>\n    <else><p>no</p></else>\n  </div>\n}\n",
         );
         assert!(
-            ts.contains("(flag ? React.createElement(\"p\", null, \"yes\") : React.createElement(\"p\", null, \"no\"))"),
+            ts.contains("(props.flag ? React.createElement(\"p\", null, \"yes\") : React.createElement(\"p\", null, \"no\"))"),
             "{ts}"
         );
     }
@@ -10163,7 +10163,7 @@ mod tests {
         // pairing (D6 adjacency rule). The diagnostic must name that rule and
         // must not frame it as an unimplemented feature.
         let err = emit_err(
-            "module f\npub component Sep(show: bool) -> Component {\n  return <div>\n    <if cond={show}><span>yes</span></if>\n    <p>middle</p>\n    <else><span>no</span></else>\n  </div>\n}\n",
+            "module f\npub component Sep(props: { show: bool }) -> Component {\n  return <div>\n    <if cond={props.show}><span>yes</span></if>\n    <p>middle</p>\n    <else><span>no</span></else>\n  </div>\n}\n",
         );
         assert!(matches!(err, EmitError::MisplacedElse { .. }), "{err:?}");
         assert_eq!(err.code(), "E0301");
@@ -10176,10 +10176,10 @@ mod tests {
     #[test]
     fn jsx_for_lowers_to_map_with_key_merged() {
         let ts = emit(
-            "module x\npub component V(xs: Array<string>) -> Component {\n  return <ul>\n    <for x in={xs} key={x}><li>{x}</li></for>\n  </ul>\n}\n",
+            "module x\npub component V(props: { xs: Array<string> }) -> Component {\n  return <ul>\n    <for x in={props.xs} key={x}><li>{x}</li></for>\n  </ul>\n}\n",
         );
         assert!(
-            ts.contains("xs.map((x) => React.createElement(\"li\", { key: x }, x))"),
+            ts.contains("props.xs.map((x) => React.createElement(\"li\", { key: x }, x))"),
             "{ts}"
         );
     }

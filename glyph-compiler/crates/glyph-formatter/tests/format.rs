@@ -283,7 +283,7 @@ fn async_closure_round_trips() {
 
 #[test]
 fn jsx_fragment_round_trips() {
-    let src = "module x\ncomponent P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{name}</p>\n  </>\n}\n";
+    let src = "module x\ncomponent P(props: { name: string }) -> Component {\n  return <>\n    <h1>{props.name}</h1>\n    <p>{props.name}</p>\n  </>\n}\n";
     let out = fmt(src);
     assert!(out.contains("return <>"), "opening fragment preserved:\n{out}");
     assert!(out.contains("</>"), "closing fragment preserved:\n{out}");
@@ -336,9 +336,9 @@ fn jsx_prop_spread_round_trips() {
 
 #[test]
 fn member_expression_jsx_name_round_trips() {
-    let src = "module x\ncomponent T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{v}</span>\n  </Ctx.Provider>\n}\n";
+    let src = "module x\ncomponent T(props: { v: string }) -> Component {\n  return <Ctx.Provider value={props.v}>\n    <span>{props.v}</span>\n  </Ctx.Provider>\n}\n";
     let out = fmt(src);
-    assert!(out.contains("<Ctx.Provider value={v}>"), "dotted name preserved:\n{out}");
+    assert!(out.contains("<Ctx.Provider value={props.v}>"), "dotted name preserved:\n{out}");
     assert!(out.contains("</Ctx.Provider>"), "dotted close preserved:\n{out}");
     assert_eq!(fmt(&out), out, "member-JSX format is not stable");
 }

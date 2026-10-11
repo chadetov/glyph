@@ -1720,6 +1720,7 @@ $ glyph check --json --no-tsc
         "name": "OrderStatus",
         "declaration": "orders::OrderStatus"
       },
+      "missing_fields": null,
       "missing_variants": ["Paid", "Cancelled"],
       "explain": {
         "command": "glyph --explain E0200",
@@ -1754,6 +1755,9 @@ second call:
   as well as for one with a name. It is null exactly when `alternatives` is.
 - `related` is the union's whole variant list on a non-exhaustive match;
   `missing_variants` is the gap inside it.
+- `missing_fields` lists the required fields a record literal or a component
+  element left out, on the E0204 or E0211 that refused it, in the declared
+  record's order. A field declared with `?` is never listed.
 - `explain` says where the code's own explanation is. `glyph --explain E0200
   --json` returns it as data, with the compiled counter-example that draws it.
 

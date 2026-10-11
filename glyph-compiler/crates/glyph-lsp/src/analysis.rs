@@ -1891,10 +1891,7 @@ pub enum JsxTag {
 /// read of the same name.
 pub fn jsx_component_tags(module: &Module) -> BTreeMap<(u32, u32), JsxTag> {
     let mut out = BTreeMap::new();
-    let mut note = |el: &JsxElement| {
-        if el.kind() != glyph_ast::JsxKind::Component {
-            return;
-        }
+    visit_component_elements(module, &mut |el: &JsxElement| {
         for (tag, segments) in [
             (JsxTag::Opening, &el.name_segments),
             (JsxTag::Closing, &el.close_name_segments),
@@ -1903,10 +1900,23 @@ pub fn jsx_component_tags(module: &Module) -> BTreeMap<(u32, u32), JsxTag> {
                 out.insert((s.start, s.end), tag);
             }
         }
+    });
+    out
+}
+
+/// Every component element in `module`, nested ones included, in source
+/// order. The walk `jsx_component_tags` keys its tags by, so a surface that
+/// reads an element's attributes finds the element at the name segment that
+/// table files it under.
+pub fn visit_component_elements(module: &Module, f: &mut dyn FnMut(&JsxElement)) {
+    let mut note = |el: &JsxElement| {
+        if el.kind() == glyph_ast::JsxKind::Component {
+            f(el);
+        }
     };
     for decl in &module.items {
         match decl {
-            Decl::Fn(f) => block_jsx(&f.body, &mut note),
+            Decl::Fn(fd) => block_jsx(&fd.body, &mut note),
             Decl::Component(c) => block_jsx(&c.body, &mut note),
             Decl::Const(c) => expr_jsx(&c.value, &mut note),
             Decl::Type(t) => {
@@ -1917,7 +1927,6 @@ pub fn jsx_component_tags(module: &Module) -> BTreeMap<(u32, u32), JsxTag> {
             Decl::Interface(_) | Decl::Import(_) => {}
         }
     }
-    out
 }
 
 fn block_jsx(block: &Block, f: &mut dyn FnMut(&JsxElement)) {

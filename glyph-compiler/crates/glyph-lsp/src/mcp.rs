@@ -37,16 +37,16 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{
-    display_ty, imported_decl_chain_end, prelude_container, Assignability, CoverageSiteRef, CoverageState,
-    CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner, FieldSite, FnParam, Lowerer,
-    Primitive, Ty, TypeMap,
+    display_ty, imported_decl_chain_end, prelude_container, props_record_fields, Assignability,
+    CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,
+    FieldSite, FnParam, Lowerer, Primitive, RecordField, Ty, TypeMap,
 };
 
 use crate::analysis::{
     analyze_full, call_argument_spans, enclosing_decl_name, extern_ts_escape,
     global_relations_in, jsx_component_tags, module_outline, outline_of, relations_at,
-    symbol_target_at, Definition, JsxTag, LineIndex, OutlineSymbol, RelatedSpan, Relation,
-    SymbolTarget,
+    symbol_target_at, visit_component_elements, Definition, JsxTag, LineIndex, OutlineSymbol,
+    RelatedSpan, Relation, SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
@@ -492,7 +492,7 @@ const REFERENCES_MANUAL: &str = "Every edge into a symbol across the whole proje
 
 const VARIANTS_MANUAL: &str = "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. The answer names its relation, `MATCH_SITES`, on the envelope and on every site it keyed, so an entry lifted out of the reply still says what put it there; a site under `unkeyed` carries `relation` null and `relation_absent` instead, because this project never joined it to the type and an edge it never made must not be claimed. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it. A union whose node is `opaque-ts` or `extern` has no variant list here, so a site over it is `scrutinee_unresolved` and never `exhaustive`: whether its arms are the whole union is not a question this project can answer.";
 
-const IMPACT_MANUAL: &str = "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), a `string`, `number` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both), a prelude container (`Option`, `Result`, `Array`, `Record`, `Nullable`) against a `string`, `number` or `bool`, reading the container and never its arguments (G216), and a `string`, `number` or `bool` against `Option`, `Result`, `Array` or `Record`; a `string`, `number` or `bool` against `Nullable<T>` is decided one level in, against `T`, since `Nullable<T>` emits as `T | null` and a bare `T` is one of the two. Three pairings are decided by running the relation rather than by a sentence written here, because their rules recurse and no sentence about two kinds is true of them: a prelude container against a prelude container, a structural record against a structural record, and a string-literal union on either side. Running it, the relation either reads the pairing or does not, and reading it is `WILL_FAIL` whichever way it came out, since an accepted pairing is a pairing a replacement can be refused at. Only a pairing it declines is `UNDETERMINED`. `glyph_assignable` is the same call and reports the acceptance as `COMPATIBLE`, which is what it is called when the question is about two types rather than about an edit. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, a prelude container against a `void` parameter or a `void` argument against a prelude container (the container rule is stated over `string`, `number` and `bool` only, as every shape rule in the checker is), or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects. The `import` line that names the declaration is `SAFE` under both kinds: an import resolves the name against the module's exports, which hold a declaration's name when it is `pub` and nothing else of it, and both edits keep the name and the `pub`. The `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
+const IMPACT_MANUAL: &str = "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), a `string`, `number` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both), a prelude container (`Option`, `Result`, `Array`, `Record`, `Nullable`) against a `string`, `number` or `bool`, reading the container and never its arguments (G216), and a `string`, `number` or `bool` against `Option`, `Result`, `Array` or `Record`; a `string`, `number` or `bool` against `Nullable<T>` is decided one level in, against `T`, since `Nullable<T>` emits as `T | null` and a bare `T` is one of the two. Three pairings are decided by running the relation rather than by a sentence written here, because their rules recurse and no sentence about two kinds is true of them: a prelude container against a prelude container, a structural record against a structural record, and a string-literal union on either side. Running it, the relation either reads the pairing or does not, and reading it is `WILL_FAIL` whichever way it came out, since an accepted pairing is a pairing a replacement can be refused at. Only a pairing it declines is `UNDETERMINED`. `glyph_assignable` is the same call and reports the acceptance as `COMPATIBLE`, which is what it is called when the question is about two types rather than about an edit. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, a prelude container against a `void` parameter or a `void` argument against a prelude container (the container rule is stated over `string`, `number` and `bool` only, as every shape rule in the checker is), or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects. A JSX element is decided as the call it lowers to, `createElement(Button, { label: \"go\" })`: one argument, the props record the element builds from its written attributes (`key` aside, which is React's own), against the component's one parameter, through the cell a call argument gets, so an element and the call written with that record answer alike. Its entry carries that argument under `arguments` and each written attribute under `attributes`, paired with the field of the props record the checker compares it against and decided by the relation on that pairing. An element that spreads an object into its props is `UNDETERMINED`, since the checker does not ask which props a spread supplies. Under `change_arity` an element of a component that takes one props record is `ABSORBS` when it passes anything (a prop, a spread, a child) and `SAFE` when it passes nothing: the edit that keeps the declaration legal removes the parameter, the checker compares an element of a parameterless component against nothing and `tsc` accepts it, and a second parameter is E0214 at the declaration. An element of a component with no parameter is `NOT_INDEXED`, since the record the edit adds is not named and E0211 at the element turns on its required fields, and so is an element of a `fn`, which no parameter bound applies to. The `import` line that names the declaration is `SAFE` under both kinds: an import resolves the name against the module's exports, which hold a declaration's name when it is `pub` and nothing else of it, and both edits keep the name and the `pub`. The `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
 
 const SYMBOL_MANUAL: &str = "Everything the compiler holds about one symbol, in one call: what it is, how it is written, and what a `match` over it must do. Address it by its `module::name` identity, the same one a diagnostic, `glyph_references` and `glyph_impact` report, or by a position (`path`, `line`, `character`). Ask this before writing a call, a record literal or a `match` over a type you did not declare; it is the answer grep cannot give, because the compiler resolved the name to emit the program.\n\nThe answer is one object. `kind` is the vocabulary the rest of it is read by: `record`, `union`, `string-literal-union`, `alias`, `function-type`, `extern-ts`, `typeof`, `function`, `component`, `const`, `interface`, `variant`. An `interface` is never reported as a `type`, because its members are a different fact from a record's fields. `entity`, `module` and `name` are the identity; `pub` is whether the symbol is exported from its module; `generics` are the type parameters it takes, in order; `path` and `range` are where it is declared; `origin` is what kind of declaration the compiler read, exactly as the other tools define it.\n\n`type` is the whole symbol lowered and rendered by the compiler. `fields` carries a record's fields with their types and whether each is optional. `variants` carries a tagged union's variants, each with its `payload` and the `construct` string that writes one (`Paid({ transaction_id: string })`, `Pending`), so a caller never has to guess the constructor's shape. `literals` carries a string-literal union's values. `parameters` and `returns` carry a callable's signature, each parameter with its ordinal, name, type, `owned` and `optional`. `members` carries an interface's members, each marked `method` or `property`. `owner` names the union a variant belongs to. `construct` is the syntax that builds a value: a variant has one, a record does not (a record is a bare object literal typed by its annotation, and the reason says so). `exhaustive_match` is whether a `match` whose scrutinee has this type must name every case. `examples` are the `@example` expressions written above the declaration, verbatim: each one is compiled and run by `glyph check`, so it is a use of this symbol known to work.\n\nEvery fact is a pair. A key is always present, and beside it `<key>_absent` says why it is null: `fields` is null on a union, `variants` is null on a record, and each says which. Absent is never omission and never a guess. `exhaustive_match` has three answers rather than two: `true` and `false` are what the exhaustiveness check does, and `null` is where the answer belongs to a declaration this one only names (an alias, an `extern_ts` body), where `false` would be a caller dropping an arm believing nothing stops it.\n\nWhat it refuses. A name the module does not declare is refused rather than answered with an empty shape. An import binding is refused, with the instruction to ask under the module that declares it. `module::Record.field` is refused: a field is read out of `fields`, and `glyph_references` and `glyph_impact` are the two that take the field form. A position on a file-private binding is refused, because it has no identity; `glyph_hover` answers there instead.";
 
@@ -5153,6 +5153,10 @@ struct OccurrencePlan {
     module: String,
     name: String,
     decl_span: (u32, u32),
+    /// What the entity is. Read by the `change_arity` cell for a JSX element,
+    /// since the bound on a component's parameters (E0214) is a rule about
+    /// `component` declarations and not about a `fn` rendered as one.
+    kind: EntityKind,
 }
 
 /// The field whose accesses carry the change.
@@ -5221,6 +5225,7 @@ fn plan_for(project: &Project, change: &Change, subject: &Subject) -> Result<Pla
         module: s.module.clone(),
         name: s.name.clone(),
         decl_span: s.decl_span,
+        kind: s.kind,
     };
     match change {
         Change::AddVariant { variant } | Change::RemoveVariant { variant } => {
@@ -5871,6 +5876,15 @@ fn impact_occurrences(
                  the emitted TypeScript."
                     .to_string(),
             );
+            search.not_indexed.push(
+                "what an arity edit does to a JSX element of a component that declares no \
+                 parameter, or of a `fn` rendered as a component. The first edit gives the \
+                 component a props record, and whether an element draws E0211 then depends \
+                 on which fields that record requires, which the change does not name; a \
+                 `fn` is held to no bound on its parameters at all. Those elements are in the \
+                 answer, each `NOT_INDEXED` with its reason."
+                    .to_string(),
+            );
         }
         searches.push(search);
     }
@@ -5916,9 +5930,28 @@ fn impact_occurrences(
             .then(|| SignatureView {
                 calls: call_argument_spans(fmodule),
                 types: glyph_db::type_map(db, entry.file),
-                decls: SalsaDeclTy::new(db, entry.file),
-                params: callee_params_as_seen_from(project, plan, entry),
             });
+        // The two kinds that change a signature decide a JSX element from
+        // what it writes and from the callee's parameters as this file sees
+        // them, so both are read under either kind and under no other.
+        let decides_elements = matches!(change, Change::SignatureType | Change::Arity);
+        let params = if decides_elements {
+            callee_params_as_seen_from(project, plan, entry)
+        } else {
+            None
+        };
+        let elements = if decides_elements {
+            component_elements(fmodule)
+        } else {
+            BTreeMap::new()
+        };
+        let decls = SalsaDeclTy::new(db, entry.file);
+        let scope = CellScope {
+            module: fmodule,
+            resolved: fresolved,
+            decls: &decls,
+            prelude: db.prelude(),
+        };
         let index = LineIndex::new(ftext);
         // A component element is one site however many tags spell its name.
         // The closing tag is an occurrence (a rename rewrites it, and the
@@ -5993,8 +6026,11 @@ fn impact_occurrences(
             let Some(search) = searches.iter().find(|s| s.relation == span.relation) else {
                 continue;
             };
-            let site = match (&signature, span.relation) {
-                (Some(view), Relation::Calls) => {
+            let element = (tag == Some(JsxTag::Opening))
+                .then(|| elements.get(&(span.start, span.end)))
+                .flatten();
+            let site = match (&signature, span.relation, element) {
+                (Some(view), Relation::Calls, _) => {
                     let args = view
                         .calls
                         .get(&(span.start, span.end))
@@ -6002,18 +6038,31 @@ fn impact_occurrences(
                         .unwrap_or_default();
                     let site = signature_type_site(
                         args,
-                        view.params.as_deref(),
+                        params.as_deref(),
                         view.types.type_map(),
-                        &CellScope {
-                            module: fmodule,
-                            resolved: fresolved,
-                            decls: &view.decls,
-                            prelude: db.prelude(),
-                        },
+                        &scope,
                         ftext,
                     );
                     out.insert("arguments".to_string(), json!(site.arguments));
                     site
+                }
+                // G251: an element is decided as the call it lowers to, one
+                // argument (the props record it builds) against the
+                // component's one parameter.
+                (Some(view), _, Some(el)) => {
+                    let site = element_signature_site(
+                        el,
+                        params.as_deref(),
+                        view.types.type_map(),
+                        &scope,
+                        ftext,
+                    );
+                    out.insert("arguments".to_string(), json!(site.arguments));
+                    out.insert("attributes".to_string(), json!(site.attributes));
+                    site
+                }
+                (None, _, Some(el)) if matches!(change, Change::Arity) => {
+                    element_arity_site(el, plan.kind, params.as_deref(), &scope)
                 }
                 _ => {
                     let read = ReadSite::of(fmodule, &tags, &span);
@@ -6025,6 +6074,7 @@ fn impact_occurrences(
                         code,
                         absent,
                         arguments: Vec::new(),
+                        attributes: Vec::new(),
                     }
                 }
             };
@@ -6087,16 +6137,16 @@ impl ReadSite {
     }
 }
 
-/// The element reason, shared by the two kinds that change what an element's
-/// props record holds. Since G240 the checker reads an element's attributes,
-/// and the required props it leaves out, against the props record, so the
-/// value-read reason would be false here. The verdict stays undecided: impact
-/// does not yet compare an element against the props record the edit would
-/// leave.
+/// The element reason for an element whose attributes this file's element
+/// table does not hold. `impact_occurrences` decides every element it finds
+/// there under the two kinds that change a signature (`element_signature_site`,
+/// `element_arity_site`), and the table is built by the same walk that files
+/// the element's tags, so this is the answer for a site the walk and the
+/// relation disagree about rather than one any program is expected to reach.
 const ELEMENT_BECAUSE: &str = "this site is a JSX element, and the checker compares the \
      attributes it writes, and the required props it leaves out, against the component's \
-     props record; impact does not model the props record the edit would leave, so what the \
-     edit does to this element is not determined here";
+     props record; impact could not read this element's attributes, so what the edit does \
+     to it is not determined here";
 const ELEMENT_ABSENT: &str = "the checker raises `E0211` at an element whose attribute does \
      not fit the props record or that leaves a required prop out, and `E0210` at an attribute \
      the record does not declare; whether this element draws one after the edit is not \
@@ -6152,11 +6202,12 @@ const IMPORT_ABSENT: &str = "nothing is raised at this line: an `import` raises 
 /// ever reached for a site that reads the name.
 ///
 /// `site` says what kind of non-applying occurrence this is. Under an edit
-/// that keeps the name a value read and a component element stay undecided,
-/// for different reasons: only a value read is a function value the checker
-/// does not compare against its use context. An import binding is `SAFE`,
-/// since an import line reads the name and nothing else of the declaration
-/// (G250).
+/// that keeps the name a value read stays undecided, since it is a function
+/// value the checker does not compare against its use context; an import
+/// binding is `SAFE`, since an import line reads the name and nothing else of
+/// the declaration (G250); and a component element is decided before this
+/// function is reached, from what it writes (G251), so the element arms here
+/// answer only for an element the file's element table does not hold.
 fn occurrence_verdict(
     change: &Change,
     relation: Relation,
@@ -6232,23 +6283,22 @@ struct SiteVerdict {
     code: Option<&'static str>,
     absent: &'static str,
     /// One entry per argument paired with a parameter, under
-    /// `change_signature_type`; empty for every other kind.
+    /// `change_signature_type`; empty for every other kind. A JSX element's
+    /// one entry is the props record it builds.
     arguments: Vec<Value>,
+    /// A JSX element's written attributes under `change_signature_type`, one
+    /// entry each, paired with the field of the props record the checker
+    /// compares it against; empty for every other site.
+    attributes: Vec<Value>,
 }
 
 /// The per-file reads `change_signature_type` needs and no other kind does.
-struct SignatureView<'a> {
+struct SignatureView {
     /// Each callee identifier's span, with the spans of the arguments it is
     /// applied to.
     calls: BTreeMap<(u32, u32), Vec<glyph_ast::Span>>,
     /// The checker's type for every expression in the file.
     types: glyph_db::Types,
-    /// The resolver the checker ran this file with, for reading the
-    /// declaration behind an imported type the way the checker read it.
-    decls: SalsaDeclTy<'a>,
-    /// The callee's parameters as this file's checker sees them, or `None`
-    /// when its signature did not lower to a function type.
-    params: Option<Vec<FnParam>>,
 }
 
 /// The callee's parameter list **as the calling module's checker sees it**,
@@ -7087,6 +7137,7 @@ fn signature_type_site(
         code: None,
         absent: ABSENT,
         arguments,
+        attributes: Vec::new(),
     };
     let Some(params) = params else {
         return undetermined(
@@ -7180,10 +7231,490 @@ fn signature_type_site(
             code: Some("E0211"),
             absent: "",
             arguments,
+            attributes: Vec::new(),
         }
     } else {
         undetermined(because, arguments)
     }
+}
+
+/// One component element as impact reads it: what it writes into the props
+/// object its `React.createElement` call receives.
+#[derive(Clone)]
+struct ElementProps {
+    /// Every attribute but `key`, which is React's own (it lives on
+    /// `Attributes`, not on the props type) and which the checker never
+    /// compares against the props record.
+    attrs: Vec<ElementAttr>,
+    /// Whether the element spreads an object into its props.
+    spread: bool,
+    /// Whether it has a child the emitter passes on: an element, an
+    /// expression, or text other than the whitespace it drops (a run of
+    /// spaces with a line break in it, see `normalize_jsx_text`).
+    children: bool,
+    /// The source from the first attribute to the last, when it writes any.
+    written: Option<(u32, u32)>,
+}
+
+#[derive(Clone)]
+struct ElementAttr {
+    name: String,
+    value: ElementAttrValue,
+    span: glyph_ast::Span,
+}
+
+#[derive(Clone)]
+enum ElementAttrValue {
+    /// `label="go"`: the one-literal union `"go"`, which is the type the
+    /// checker gives the attribute (G237, G240).
+    Literal(String),
+    /// `label={expr}`, typed by the expression's entry in the type map.
+    Expr(glyph_ast::Span),
+}
+
+/// Every component element of `module`, filed under each name segment of its
+/// opening tag, which is where the occurrence relation records it: the whole
+/// name for `<Button>`, `Button` for `<ui.Button>` and `<u.Button>`.
+fn component_elements(module: &glyph_ast::Module) -> BTreeMap<(u32, u32), ElementProps> {
+    use glyph_ast::{JsxAttr, JsxChild};
+    let mut out = BTreeMap::new();
+    visit_component_elements(module, &mut |el| {
+        let mut attrs = Vec::new();
+        let mut spread = false;
+        let mut written: Option<(u32, u32)> = None;
+        for attr in &el.attrs {
+            let span = match attr {
+                JsxAttr::String { span, .. }
+                | JsxAttr::Expr { span, .. }
+                | JsxAttr::Positional { span, .. }
+                | JsxAttr::Spread { span, .. } => *span,
+            };
+            written = Some(match written {
+                Some((start, _)) => (start, span.end),
+                None => (span.start, span.end),
+            });
+            match attr {
+                JsxAttr::String { name, .. } | JsxAttr::Expr { name, .. }
+                    if name.as_ref() == "key" => {}
+                JsxAttr::String { name, value, span } => attrs.push(ElementAttr {
+                    name: name.to_string(),
+                    value: ElementAttrValue::Literal(value.clone()),
+                    span: *span,
+                }),
+                JsxAttr::Expr { name, value, span } => attrs.push(ElementAttr {
+                    name: name.to_string(),
+                    value: ElementAttrValue::Expr(value.span()),
+                    span: *span,
+                }),
+                JsxAttr::Spread { .. } => spread = true,
+                JsxAttr::Positional { .. } => {}
+            }
+        }
+        let children = el.children.iter().any(|c| match c {
+            JsxChild::Text { content, .. } => {
+                let blank = content.chars().all(|c| matches!(c, ' ' | '\t' | '\n' | '\r'));
+                !(blank && content.contains(['\n', '\r']))
+            }
+            JsxChild::Element(_) | JsxChild::Expr(_) => true,
+        });
+        let props = ElementProps {
+            attrs,
+            spread,
+            children,
+            written,
+        };
+        for segment in &el.name_segments {
+            out.insert((segment.start, segment.end), props.clone());
+        }
+    });
+    out
+}
+
+/// The type the checker gives one written attribute: the one-literal union a
+/// `name="literal"` spells, and the type map's entry for a `name={expr}`.
+/// `None` for an expression with no entry, which the cells read as a type the
+/// checker does not hold.
+fn element_attr_ty(attr: &ElementAttr, types: &TypeMap) -> Option<Ty> {
+    match &attr.value {
+        ElementAttrValue::Literal(value) => Some(Ty::StringLiteralUnion(vec![value.clone()])),
+        ElementAttrValue::Expr(span) => types.has_entry(*span).then(|| types.get(*span).clone()),
+    }
+}
+
+/// What one JSX element does under `change_signature_type` (G251).
+///
+/// `<Button label="go" />` lowers to `React.createElement(Button, { label:
+/// "go" })`, so the element is a call passing one argument, the props record
+/// it builds, and it is decided as that call is: the record against the
+/// component's one parameter through `signature_type_cell`, the same cell a
+/// call argument written `{ label: "go" }` gets, under the same meaning of
+/// each verdict. So the element and the call it lowers to answer alike by
+/// construction, and a change to a cell changes both.
+///
+/// The record is what the checker reads at the element (G240): each written
+/// attribute, `key` left out, typed as the checker types it. Its fields are
+/// required, since a written attribute is present. The entry carries that one
+/// argument under `arguments`, and under `attributes` one entry per written
+/// attribute, paired with the field of the props record the checker compares
+/// it against and decided by the relation on that one pairing, which is the
+/// question the record comparison asks field by field.
+///
+/// A spread is not decided: the checker compares the written attributes next
+/// to one and leaves the required-prop check out, since a spread may supply
+/// anything, and a call argument written `{ ...p }` has no type in the map
+/// either, so both are `UNDETERMINED`.
+fn element_signature_site(
+    el: &ElementProps,
+    params: Option<&[FnParam]>,
+    types: &TypeMap,
+    scope: &CellScope<'_>,
+    text: &str,
+) -> SiteVerdict {
+    const ABSENT: &str = "Glyph raises none for the pairing named in `because`; `tsc` on the \
+                          emitted TypeScript is what would report it, on a full `glyph build`";
+    const CODES: &str = "the checker raises `E0211` at an element whose attribute does not fit \
+                         a replacement props record or that leaves one of its required props \
+                         out, and `E0210` at an attribute the replacement does not declare, so \
+                         which code lands here depends on the replacement";
+    let undetermined = |because: String, arguments: Vec<Value>, attributes: Vec<Value>| {
+        SiteVerdict {
+            verdict: Verdict::Undetermined,
+            because,
+            code: None,
+            absent: ABSENT,
+            arguments,
+            attributes,
+        }
+    };
+    let source = el
+        .written
+        .and_then(|(start, end)| text.get(start as usize..end as usize))
+        .unwrap_or_default();
+    let Some(params) = params else {
+        return undetermined(
+            "the component's signature did not lower to a function type, so the props record \
+             this element builds is paired with no parameter here"
+                .to_string(),
+            Vec::new(),
+            Vec::new(),
+        );
+    };
+    let param = match params {
+        [param] => param,
+        [] => {
+            return undetermined(
+                "the component declares no parameter, so the props record this element builds \
+                 is paired with nothing, as a call that passes no argument pairs nothing, and \
+                 no parameter type is compared at this site"
+                    .to_string(),
+                Vec::new(),
+                Vec::new(),
+            )
+        }
+        more => {
+            return undetermined(
+                format!(
+                    "the component declares {} parameters, which is E0214 at its declaration, \
+                     and the checker compares an element only against a component that takes \
+                     one props record, so this element is compared against nothing",
+                    more.len()
+                ),
+                Vec::new(),
+                Vec::new(),
+            )
+        }
+    };
+    let param_name = param.name.as_deref().unwrap_or("_");
+    let param_ty = display_ty(&param.ty);
+    let relation = |found: &Ty, expected: &Ty| {
+        glyph_typechecker::assignability(
+            scope.module,
+            scope.resolved,
+            scope.prelude,
+            scope.decls,
+            found,
+            expected,
+        )
+    };
+
+    // One entry per written attribute, against the field the checker reads
+    // it against.
+    let fields = props_record_fields(
+        scope.module,
+        scope.resolved,
+        scope.prelude,
+        scope.decls,
+        &param.ty,
+    );
+    let mut attributes = Vec::new();
+    for attr in &el.attrs {
+        let name = attr.name.as_str();
+        let attr_source = text
+            .get(attr.span.start as usize..attr.span.end as usize)
+            .unwrap_or_default();
+        let ty = element_attr_ty(attr, types);
+        let attr_ty = ty.as_ref().map(display_ty).unwrap_or_else(|| "?".to_string());
+        let field = fields
+            .as_ref()
+            .and_then(|fs| fs.iter().find(|f| f.name.as_ref() == name));
+        let (verdict, because) = match (&fields, field, &ty) {
+            (None, _, _) => (
+                Verdict::Undetermined,
+                format!(
+                    "`{param_ty}` is not a record the checker reads, so it compares this \
+                     attribute against no field"
+                ),
+            ),
+            (Some(_), None, _) => (
+                Verdict::WillFail,
+                format!(
+                    "the props record `{param_ty}` declares no `{name}`, so this attribute is \
+                     E0210 as it stands"
+                ),
+            ),
+            (Some(_), Some(_), None) => (
+                Verdict::Undetermined,
+                "the checker holds no type for this attribute's value, so it is compared \
+                 against nothing"
+                    .to_string(),
+            ),
+            (Some(_), Some(field), Some(ty)) => {
+                let field_ty = display_ty(&field.ty);
+                decided_cell(
+                    relation(ty, &field.ty),
+                    &format!(
+                        "the checker compares attribute `{name}` against the field \
+                         `{name}: {field_ty}` of the props record through the relation a call \
+                         argument is compared by (G240)"
+                    ),
+                    "No rule of the relation reads this pairing",
+                    &attr_ty,
+                    &field_ty,
+                )
+            }
+        };
+        attributes.push(json!({
+            "name": name,
+            "source": attr_source,
+            "type": attr_ty,
+            "field_type": field.map(|f| display_ty(&f.ty)),
+            "verdict": verdict.wire(),
+            "because": format!("attribute `{name}` (`{attr_source}`, `{attr_ty}`): {because}"),
+        }));
+    }
+
+    let argument = |verdict: Verdict, arg_ty: &str, because: &str| {
+        json!({
+            "ordinal": 1,
+            "source": source,
+            "type": arg_ty,
+            "parameter": param_name,
+            "parameter_type": param_ty,
+            "verdict": verdict.wire(),
+            "because": because,
+        })
+    };
+    if el.spread {
+        let because = format!(
+            "the props record this element builds against parameter `{param_name}: \
+             {param_ty}`: the element spreads an object into its props, and the checker does \
+             not ask which props a spread supplies (it compares each written attribute and \
+             leaves the required-prop check out next to a spread), so the record has no type \
+             here, as a call argument written `{{ ...p }}` has none in the type map, and it is \
+             compared against nothing. The written attributes are listed one by one"
+        );
+        return undetermined(
+            because.clone(),
+            vec![argument(Verdict::Undetermined, "?", &because)],
+            attributes,
+        );
+    }
+
+    let record = Ty::Record {
+        fields: el
+            .attrs
+            .iter()
+            .map(|attr| RecordField {
+                name: Arc::from(attr.name.as_str()),
+                ty: element_attr_ty(attr, types).unwrap_or(Ty::Unknown),
+                optional: false,
+            })
+            .collect(),
+    };
+    let arg_ty = display_ty(&record);
+    let decide = || relation(&record, &param.ty);
+    let (verdict, rule) = signature_type_cell(
+        &classify_argument(&record, scope),
+        &classify_parameter(&param.ty, scope),
+        &arg_ty,
+        &param_ty,
+        &decide,
+    );
+    let pairing = format!(
+        "the props record this element builds (`{arg_ty}`) against parameter \
+         `{param_name}: {param_ty}`: {rule}"
+    );
+    let arguments = vec![argument(verdict, &arg_ty, &pairing)];
+    if verdict == Verdict::WillFail {
+        SiteVerdict {
+            verdict,
+            because: format!(
+                "this JSX element lowers to a call passing one argument, the props record it \
+                 builds, and the relation reads that argument against the component's \
+                 parameter in full, so a replacement props record the comparison does not \
+                 accept is a diagnostic at this element. A replacement that is not a record \
+                 is E0229 at the declaration instead and compares nothing here. The pairing: \
+                 {pairing}"
+            ),
+            code: None,
+            absent: CODES,
+            arguments,
+            attributes,
+        }
+    } else {
+        undetermined(pairing, arguments, attributes)
+    }
+}
+
+/// What one JSX element does under `change_arity` (G251).
+///
+/// A component takes one props record or none, and a second parameter is
+/// E0214 at its declaration, so each arity has one edit that keeps the
+/// declaration legal. Measured against the checker and `tsc --strict` on all
+/// three import spellings, with identical results:
+///
+/// - **1 to 0.** The element draws nothing: the checker compares an element
+///   of a component with no parameter against nothing, and `tsc` accepts any
+///   attribute on one. Whatever the element passes (a prop, a spread, a child
+///   React hands over as `children`) reaches nothing the component can read,
+///   so an element that passes something is `ABSORBS` and one that passes
+///   nothing is `SAFE`.
+/// - **1 to 2.** E0214 at the declaration; the element draws nothing.
+/// - **0 to 1.** Decided by the record the edit adds, which the change does
+///   not name: E0211 at the element for a required prop it leaves out,
+///   nothing when every field is optional, E0229 at the declaration for a
+///   parameter that is not a record. `NOT_INDEXED`.
+/// - **0 to 2.** E0214 at the declaration.
+///
+/// A `fn` rendered as an element is held to no such bound (E0214 is a rule
+/// about `component` declarations), the checker compares an element only
+/// against a callee with exactly one parameter, and `tsc` accepts a
+/// two-parameter function as a component, so its elements stay `NOT_INDEXED`.
+fn element_arity_site(
+    el: &ElementProps,
+    kind: EntityKind,
+    params: Option<&[FnParam]>,
+    scope: &CellScope<'_>,
+) -> SiteVerdict {
+    const QUIET: &str = "nothing is raised at this element: the checker compares an element of \
+                         a component with no parameter against nothing and `tsc` accepts one, \
+                         and a second parameter is E0214 at the declaration rather than here";
+    let site = |verdict: Verdict, because: String, absent: &'static str| SiteVerdict {
+        verdict,
+        because,
+        code: None,
+        absent,
+        arguments: Vec::new(),
+        attributes: Vec::new(),
+    };
+    if kind != EntityKind::Component {
+        return site(
+            Verdict::NotIndexed,
+            "this JSX element renders a `fn` rather than a `component`, and an arity edit to a \
+             `fn` meets no bound at an element: the checker compares an element only against \
+             a callee with exactly one parameter, E0214 is a rule about `component` \
+             declarations, and `tsc` accepts a two-parameter function as a component, since \
+             React passes it a second argument of its own. What the edit does to this element \
+             is not a class impact models"
+                .to_string(),
+            "Glyph raises none at an element of a `fn` that does not take exactly one \
+             parameter, and `tsc` accepts one that takes two",
+        );
+    }
+    let Some(params) = params else {
+        return site(
+            Verdict::NotIndexed,
+            "the component's signature did not lower to a function type, so its parameter \
+             count is not read here and the edit's direction is not known"
+                .to_string(),
+            "no diagnostic is computed for an element of a component whose signature did not \
+             lower",
+        );
+    };
+    let param = match params {
+        [param] => param,
+        [] => {
+            return site(
+                Verdict::NotIndexed,
+                "this JSX element renders a component that declares no parameter, so the arity \
+                 edit that keeps its declaration legal gives it one props record, and what that does to this \
+                 element depends on fields the change does not name: an element that leaves a \
+                 required prop of the new record out is E0211 at its name, one whose record's \
+                 fields are all optional compiles, a parameter that is not a record is E0229 \
+                 at the declaration, and a second parameter is E0214 there"
+                    .to_string(),
+                "which code lands, if any, depends on the props record the edit adds: E0211 \
+                 here for a required prop this element leaves out, E0229 or E0214 at the \
+                 declaration",
+            )
+        }
+        more => {
+            return site(
+                Verdict::NotIndexed,
+                format!(
+                    "this JSX element renders a component that declares {} parameters, which \
+                     is E0214 at its declaration already, and the checker compares the element \
+                     against nothing until the component takes one props record",
+                    more.len()
+                ),
+                "E0214 is raised at the declaration, and nothing at this element",
+            )
+        }
+    };
+    let mut passed: Vec<String> = el.attrs.iter().map(|a| format!("`{}`", a.name)).collect();
+    if el.spread {
+        passed.push("a spread".to_string());
+    }
+    if el.children {
+        let declares_children = props_record_fields(
+            scope.module,
+            scope.resolved,
+            scope.prelude,
+            scope.decls,
+            &param.ty,
+        )
+        .is_some_and(|fields| fields.iter().any(|f| f.name.as_ref() == "children"));
+        passed.push(if declares_children {
+            "its children, which the props record declares as `children`".to_string()
+        } else {
+            "its children, which React hands to the component as `children`".to_string()
+        });
+    }
+    const LEGAL: &str = "this JSX element renders a component that takes one props record, so \
+                         the arity edit that keeps its declaration legal removes it (a second parameter is E0214 at the \
+                         declaration, and this element draws nothing then either)";
+    if passed.is_empty() {
+        return site(
+            Verdict::Safe,
+            format!(
+                "{LEGAL}. This element passes nothing, no prop, spread or child, so with no \
+                 parameter it compiles and renders as it does now: the checker compares an \
+                 element of a component with no parameter against nothing, and `tsc` accepts \
+                 it"
+            ),
+            QUIET,
+        );
+    }
+    site(
+        Verdict::Absorbs,
+        format!(
+            "{LEGAL}. With no parameter the checker compares an element against nothing and \
+             `tsc` accepts any attribute on it, so this element keeps compiling while what it \
+             passes ({}) reaches nothing the component can read",
+            passed.join(", ")
+        ),
+        QUIET,
+    )
 }
 
 /// Put the range's own line beside it, so every entry of one answer is located
@@ -14884,8 +15415,10 @@ pub fn f() -> number {
     /// kind of site: it names the declaration without using it, and under an
     /// edit that keeps the name neither of the other two reasons is true of
     /// it. Under `change_arity` and `change_signature_type` the three reasons
-    /// are three different strings. Since G250 the binding is `SAFE` under
-    /// both; the element and the value read keep their verdicts.
+    /// are three different strings. Since G250 and G251 the element and the
+    /// binding are decided rather than declined: both elements write `label`
+    /// against an inline props record, so each is `WILL_FAIL` under a type
+    /// edit and `ABSORBS` under an arity edit, and the binding is `SAFE`.
     #[test]
     fn a_component_element_is_one_impact_site_with_its_own_reason() {
         let ui = "module ui\npub component Button(props: { label: string, }) {\n  \
@@ -14962,9 +15495,9 @@ pub fn f() -> number {
                     assert_ne!(import, element, "{kind}");
                     assert_eq!(b["verdict"], "SAFE", "{b}");
                 }
+                let want = if kind == "change_arity" { "ABSORBS" } else { "WILL_FAIL" };
                 for e in &in_app {
-                    assert_eq!(e["verdict"], "NOT_INDEXED", "{e}");
-                    assert_eq!(e["because"], in_app[0]["because"], "{e}");
+                    assert_eq!(e["verdict"], want, "{kind}: {e}");
                 }
             }
             per_spelling.push(sites);
@@ -15024,6 +15557,226 @@ pub fn f() -> number {
     fn edited(text: &str, from: &str, to: &str) -> String {
         assert!(text.contains(from), "the edit matched nothing: {from}");
         text.replace(from, to)
+    }
+
+    const ELEMENT_UI: &str = "module ui\n\
+        pub type Props = { label: string, }\n\
+        pub component Inline(props: { label: string, hint?: string, }) {\n  return <b>{props.label}</b>\n}\n\
+        pub component Named(props: Props) {\n  return <b>{props.label}</b>\n}\n\
+        pub fn takes(props: { label: string, hint?: string, }) -> string {\n  return props.label\n}\n\
+        pub fn takesn(props: Props) -> string {\n  return props.label\n}\n";
+
+    /// G251: under `change_signature_type` an element is decided as the call
+    /// it lowers to. `<Inline label="go" hint={s} />` is
+    /// `createElement(Inline, { label: "go", hint: s })`, one argument against
+    /// one parameter, and its cell is the cell `takes({ label: "go", hint: s
+    /// })` gets against the same parameter type: same verdict, same pairing,
+    /// same reason for the record. Asserted against the call's own answer
+    /// rather than a fixed verdict, for an inline props record and for a
+    /// declared one, so the two cannot drift apart whichever way a cell
+    /// changes. The element also carries each attribute against the field the
+    /// checker compares it against.
+    ///
+    /// Then the verdict is held to the checker: with `label` retyped to
+    /// `number`, the element draws E0211, which is what `WILL_FAIL` says a
+    /// replacement the comparison refuses does.
+    #[test]
+    fn an_element_is_decided_as_the_call_it_lowers_to() {
+        let main = "pub component App() {\n  let s: string = \"s\"\n  \
+                    let a = takes({ label: \"go\", hint: s, })\n  \
+                    let b = takesn({ label: \"go\", })\n  \
+                    return <div>\n    <Inline label=\"go\" hint={s} />\n    \
+                    <Named label=\"go\" />\n    <i>{a}{b}</i>\n  </div>\n}\n";
+        let root = element_project(ELEMENT_UI, main, "named", "Inline, Named, takes, takesn");
+        let mut server = Server::new(root.clone());
+        for (component, call, element_line, call_line) in
+            [("Inline", "takes", 7, 4), ("Named", "takesn", 8, 5)]
+        {
+            let sig = json!({ "kind": "change_signature_type" });
+            let el = entry_at(
+                &impact(&mut server, json!({ "entity": format!("ui::{component}"), "change": sig })),
+                element_line,
+            );
+            let site = entry_at(
+                &impact(&mut server, json!({ "entity": format!("ui::{call}"), "change": sig })),
+                call_line,
+            );
+            assert_eq!(site["relation"], "CALLS", "{site}");
+            assert_eq!(el["verdict"], site["verdict"], "{component}: {el}\n{site}");
+            let (ea, ca) = (&el["arguments"][0], &site["arguments"][0]);
+            assert_eq!(el["arguments"].as_array().unwrap().len(), 1, "{el}");
+            for key in ["verdict", "type", "parameter", "parameter_type"] {
+                assert_eq!(ea[key], ca[key], "{component} `{key}`: {ea}\n{ca}");
+            }
+            let rule = |v: &Value| {
+                v["because"].as_str().unwrap().split_once("`: ").unwrap().1.to_string()
+            };
+            assert_eq!(rule(ea), rule(ca), "{component}");
+            assert!(el["because"].as_str().unwrap().contains("JSX element")
+                || el["verdict"] == "UNDETERMINED", "{el}");
+        }
+
+        let el = entry_at(
+            &impact(
+                &mut server,
+                json!({ "entity": "ui::Inline", "change": { "kind": "change_signature_type" } }),
+            ),
+            7,
+        );
+        assert_eq!(el["verdict"], "WILL_FAIL", "{el}");
+        assert_eq!(el["diagnostic"], Value::Null, "two codes are possible: {el}");
+        assert!(el["diagnostic_absent"].as_str().unwrap().contains("E0210"), "{el}");
+        let attrs: Vec<(String, String, String)> = el["attributes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|a| {
+                (
+                    a["name"].as_str().unwrap().to_string(),
+                    a["field_type"].as_str().unwrap_or("-").to_string(),
+                    a["verdict"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            attrs,
+            vec![
+                ("label".to_string(), "string".to_string(), "WILL_FAIL".to_string()),
+                ("hint".to_string(), "string".to_string(), "WILL_FAIL".to_string()),
+            ],
+            "{el}"
+        );
+
+        // The checker, after the edit.
+        write(&root, "ui.glyph", &edited(
+            ELEMENT_UI,
+            "Inline(props: { label: string,",
+            "Inline(props: { label: number,",
+        ));
+        let after = diagnostics_at(&root, "main.glyph");
+        assert!(after.contains(&(7, "E0211".to_string())), "{after:?}");
+    }
+
+    /// G251: an element that spreads an object into its props is not
+    /// decided, and neither is the call written with that record: the checker
+    /// does not ask which props a spread supplies, and a `{ ...p }` argument
+    /// has no type in the map. Held to the checker: with the props retyped,
+    /// Glyph reports nothing at the element, which is what `UNDETERMINED`
+    /// says (`tsc` is what refuses it, TS2769).
+    #[test]
+    fn an_element_with_a_spread_is_undetermined_as_its_call_is() {
+        let main = "pub component App() {\n  let p = { label: \"x\", }\n  \
+                    let a = takes({ ...p, })\n  \
+                    return <div>\n    <Inline {...p} />\n    <i>{a}</i>\n  </div>\n}\n";
+        let root = element_project(ELEMENT_UI, main, "named", "Inline, takes");
+        let mut server = Server::new(root.clone());
+        let sig = json!({ "kind": "change_signature_type" });
+        let el = entry_at(&impact(&mut server, json!({ "entity": "ui::Inline", "change": sig })), 6);
+        let site = entry_at(&impact(&mut server, json!({ "entity": "ui::takes", "change": sig })), 4);
+        assert_eq!(el["verdict"], "UNDETERMINED", "{el}");
+        assert_eq!(site["verdict"], "UNDETERMINED", "{site}");
+        assert!(el["because"].as_str().unwrap().contains("spread"), "{el}");
+
+        write(&root, "ui.glyph", &edited(
+            ELEMENT_UI,
+            "Inline(props: { label: string,",
+            "Inline(props: { label: number,",
+        ));
+        let after = diagnostics_at(&root, "main.glyph");
+        assert!(!after.iter().any(|(l, _)| *l == 6), "{after:?}");
+    }
+
+    /// G251 under `change_arity`. A component takes one props record or none
+    /// and a second parameter is E0214 at its declaration, so each arity has
+    /// one edit that keeps the declaration legal, and the cell says what the
+    /// checker does after it:
+    ///
+    /// - an element of a one-parameter component that passes something (a
+    ///   prop, a spread, a child) is `ABSORBS`, and one that passes nothing
+    ///   (`key` is React's own) is `SAFE`: with the parameter gone the checker
+    ///   compares the element against nothing;
+    /// - an element of a parameterless component is `NOT_INDEXED`, since the
+    ///   record the edit adds decides it: E0211 for a required prop the
+    ///   element leaves out, nothing when every field is optional;
+    /// - an element of a `fn` is `NOT_INDEXED`, since no bound applies.
+    ///
+    /// The verdicts are identical under the three import spellings, and each
+    /// is held to the checker by making the edit.
+    #[test]
+    fn element_arity_follows_the_one_legal_edit() {
+        let ui = "module ui\n\
+            pub component Inline(props: { label: string, }) {\n  return <b>{props.label}</b>\n}\n\
+            pub component Opt(props: { hint?: string, }) {\n  return <b>o</b>\n}\n\
+            pub component Plain() {\n  return <b>p</b>\n}\n\
+            pub fn Card(props: { label: string, }) -> string {\n  return props.label\n}\n";
+        let main = "pub component App() {\n  let p = { label: \"x\", }\n  let k: string = \"k\"\n  \
+                    return <div>\n    <Q.Inline label=\"go\" />\n    <Q.Inline {...p} />\n    \
+                    <Q.Opt />\n    <Q.Opt key={k} />\n    <Q.Opt>text</Q.Opt>\n    \
+                    <Q.Plain />\n    <Q.Card label=\"c\" />\n  </div>\n}\n";
+        let want: [(&str, u64, &str); 7] = [
+            ("Inline", 6, "ABSORBS"),
+            ("Inline", 7, "ABSORBS"),
+            ("Opt", 8, "SAFE"),
+            ("Opt", 9, "SAFE"),
+            ("Opt", 10, "ABSORBS"),
+            ("Plain", 11, "NOT_INDEXED"),
+            ("Card", 12, "NOT_INDEXED"),
+        ];
+        let mut per_spelling = Vec::new();
+        for spelling in ["named", "namespace", "aliased"] {
+            let root = element_project(ui, main, spelling, "Inline, Opt, Plain, Card");
+            let mut server = Server::new(root.clone());
+            let mut got = Vec::new();
+            for (component, line, verdict) in want {
+                let e = entry_at(
+                    &impact(
+                        &mut server,
+                        json!({ "entity": format!("ui::{component}"), "change": { "kind": "change_arity" } }),
+                    ),
+                    line,
+                );
+                assert_eq!(e["verdict"], verdict, "{spelling} {component} line {line}: {e}");
+                assert_eq!(e["diagnostic"], Value::Null, "{e}");
+                got.push((e["verdict"].clone(), e["because"].clone()));
+            }
+            per_spelling.push(got);
+
+            // 1 to 0 on both one-parameter components: every element of
+            // theirs keeps compiling.
+            let both = edited(
+                &edited(
+                    ui,
+                    "Inline(props: { label: string, }) {\n  return <b>{props.label}</b>",
+                    "Inline() {\n  return <b>i</b>",
+                ),
+                "Opt(props: { hint?: string, })",
+                "Opt()",
+            );
+            write(&root, "ui.glyph", &both);
+            assert_eq!(diagnostics_at(&root, "main.glyph"), vec![], "{spelling}: 1 to 0");
+            // 0 to 1 on `Plain` turns on the record the edit adds.
+            write(&root, "ui.glyph", &edited(ui, "Plain()", "Plain(props: { title: string, })"));
+            assert_eq!(
+                diagnostics_at(&root, "main.glyph"),
+                vec![(11, "E0211".to_string())],
+                "{spelling}: 0 to 1, a required prop"
+            );
+            write(&root, "ui.glyph", &edited(ui, "Plain()", "Plain(props: { title?: string, })"));
+            assert_eq!(diagnostics_at(&root, "main.glyph"), vec![], "{spelling}: 0 to 1, optional");
+            // 1 to 2 is E0214 at the declaration, and nothing at an element.
+            write(
+                &root,
+                "ui.glyph",
+                &edited(ui, "Opt(props: { hint?: string, })", "Opt(props: { hint?: string, }, n: number)"),
+            );
+            assert_eq!(diagnostics_at(&root, "main.glyph"), vec![], "{spelling}: 1 to 2");
+            assert!(
+                diagnostics_at(&root, "ui.glyph").iter().any(|(_, c)| c == "E0214"),
+                "{spelling}: 1 to 2 at the declaration"
+            );
+        }
+        assert_eq!(per_spelling[0], per_spelling[1], "named against namespace");
+        assert_eq!(per_spelling[0], per_spelling[2], "named against alias");
     }
 
     /// G250: the `import` line that names a declaration is `SAFE` under the

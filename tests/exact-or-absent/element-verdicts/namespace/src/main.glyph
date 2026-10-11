@@ -1,0 +1,20 @@
+module main
+
+import ui
+
+pub component App() {
+  let s: string = "s"
+  let p = { label: "x", }
+  let a = ui.takes({ label: "go", hint: s, })
+  let b = ui.takesn({ label: "go", })
+  return <div>
+    <ui.Inline label="go" hint={s} />
+    <ui.Inline {...p} />
+    <ui.Named label="go" />
+    <ui.Opt />
+    <ui.Opt>text</ui.Opt>
+    <ui.Plain />
+    <ui.Card label={a} />
+    <i>{b}</i>
+  </div>
+}

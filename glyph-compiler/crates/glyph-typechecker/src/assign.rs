@@ -5720,12 +5720,32 @@ impl Assigner<'_> {
         // reads them. A name with no readable field set — a tagged union, a
         // prelude container, an unresolved `.d.ts` type — answers `None` and
         // the pairing stays where it was.
-        if matches!(found, Ty::Record { .. }) {
-            if let Some(fields) = self.record_fields_of(&expected) {
-                return definitely_incompatible(&found, &Ty::Record { fields });
+        //
+        // Each field is compared through the whole relation, the way every
+        // other position is, rather than through `definitely_incompatible`.
+        // The free function reads two `Ty`s with no declaration in hand, so a
+        // field holding an imported record, a declared union, a second name
+        // or a string-literal union was compared by nothing: `{ o: Order }`
+        // passed where `{ o: Other }` was declared and `{ mode: string }`
+        // where `{ mode: Mode }` was, both of which `tsc` refuses (TS2345).
+        // A written literal was already compared field by field through the
+        // relation (`written_literal_refusal`), so the hole was a value of
+        // structural type that is not a literal.
+        if let Ty::Record { fields: have } = &found {
+            if let Some(declared) = self.record_fields_of(&expected) {
+                return self.record_fields_incompatible(have, &declared);
             }
         }
         definitely_incompatible(&found, &expected)
+    }
+
+    /// A structural record's fields against a declared field set: a required
+    /// field the value lacks, or a shared field the relation refuses.
+    fn record_fields_incompatible(&self, have: &[RecordField], declared: &[RecordField]) -> bool {
+        declared.iter().any(|e| match have.iter().find(|f| f.name == e.name) {
+            Some(f) => self.assign_incompatible_at(&f.ty, &e.ty, Position::Ordinary),
+            None => !e.optional,
+        })
     }
 
     /// The rule that positively accepts `found` where `expected` is declared,
@@ -14538,6 +14558,61 @@ fn f(a: Answer) -> number {
             "the field's own declared type is what the refusal names: {errs:?}"
         );
     }
+    // ----- The record arm through the whole relation -----
+
+    /// The line of each refusal, one per mismatch, 1-based so a row reads
+    /// against the program it came from.
+    fn record_refusals(src: &str) -> Vec<usize> {
+        errors_of(src)
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { span, .. }
+                | TypeError::ArgumentTypeMismatch { span, .. } => {
+                    Some(src[..span.start as usize].matches('\n').count() + 1)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    const RECORD_ROWS: &str = "module m\n\
+        type Mode = \"read\" | \"write\"\n\
+        type Status = | Active | Done\n\
+        type A = { k: string }\n\
+        type B = A\n\
+        fn mode(x: { mode: Mode }) -> number { return 1 }\n\
+        fn text(x: { u: string }) -> number { return 1 }\n\
+        fn status(x: { s: Status }) -> number { return 1 }\n\
+        fn deep(x: { w: { mode: Mode } }) -> number { return 1 }\n\
+        fn named(x: { a: A }) -> number { return 1 }\n";
+
+    /// A field of a structural record value is compared through the whole
+    /// relation, as every other position is. The free function it used to go
+    /// through had no declaration in hand, so a field holding a declared
+    /// union, a string-literal union or a second name was compared by nothing,
+    /// and each refusal below passed `glyph check --no-tsc` on a program
+    /// `tsc --strict` refuses with TS2345. The value is a `let` binding, not a
+    /// literal: a written literal was already compared field by field.
+    #[test]
+    fn a_record_value_is_compared_field_by_field_through_the_whole_relation() {
+        let src = format!(
+            "{RECORD_ROWS}fn f(st: Status, b: B) -> number {{\n\
+             \x20 let vm = {{ mode: \"read\" }}\n\
+             \x20 let vu = {{ u: st }}\n\
+             \x20 let vs = {{ s: \"x\" }}\n\
+             \x20 let vd = {{ w: {{ mode: \"read\" }} }}\n\
+             \x20 let vb = {{ a: b }}\n\
+             \x20 return mode(vm) + text(vu) + status(vs) + deep(vd) + named(vb)\n\
+             }}\n"
+        );
+        // `mode(vm)`: the `let` widens `"read"` to `string`, which `Mode`
+        // refuses. `text(vu)`: a tagged union is never a `string`.
+        // `status(vs)`: a `string` is never a tagged union. `deep(vd)`: the
+        // same refusal one record further in. `named(vb)` is accepted: `B` is
+        // a second name for `A` (D46), and `tsc` accepts it too.
+        assert_eq!(record_refusals(&src), vec![17; 4]);
+    }
+
     // ----- G232: the type of an object literal -----
 
     /// Every type an expression reports, keyed by the source text it spans.

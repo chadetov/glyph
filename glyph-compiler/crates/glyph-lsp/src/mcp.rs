@@ -16801,6 +16801,45 @@ pub fn f() -> number {
         }
     }
 
+    /// The false `WILL_FAIL` the call cell gave since G228. `tx(v)` passes a
+    /// structural record holding an imported `Order` where `{ o: Order }` is
+    /// declared, and the cell said a replacement the comparison refuses is
+    /// E0211 here. Under 0.1.125 the comparison did not refuse
+    /// `{ o: Other }`: the record arm compared the field through a function
+    /// that reads no declaration, so the edit drew nothing under
+    /// `glyph check --no-tsc` and only `tsc` refused it (TS2345). The field is
+    /// compared through the whole relation now, so the cell's claim holds:
+    /// made on purpose here, the edit is E0211 at the call.
+    #[test]
+    fn a_record_cell_that_claims_will_fail_is_held_to_the_edit() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        let lib = "module lib\npub type Order = { id: string, }\npub type Other = { code: number, }\n\
+                   pub fn mk() -> Order {\n  return { id: \"x\", }\n}\n";
+        let main = "module main\nimport lib { Order, Other, mk }\n\
+                    pub fn tx(x: { o: Order, }) -> number {\n  return 1\n}\n\
+                    pub fn go() -> number {\n  let o: Order = mk()\n  let v = { o: o, }\n  \
+                    return tx(v)\n}\n";
+        write(&root, "lib.glyph", lib);
+        write(&root, "main.glyph", main);
+        let mut server = Server::new(root.clone());
+        let e = entry_at(
+            &impact(
+                &mut server,
+                json!({ "entity": "main::tx", "change": { "kind": "change_signature_type" } }),
+            ),
+            8,
+        );
+        assert_eq!(e["verdict"], "WILL_FAIL", "{e}");
+        assert_eq!(e["diagnostic"], "E0211", "{e}");
+        write(&root, "main.glyph", &edited(main, "tx(x: { o: Order, })", "tx(x: { o: Other, })"));
+        assert_eq!(
+            diagnostics_at(&root, "main.glyph"),
+            vec![(8, "E0211".to_string())],
+            "the cell claimed E0211 at the call under this edit"
+        );
+    }
+
     /// G234, the same agreement on a string-literal union. The impact table
     /// said the checker had no rule comparing a `Mode` argument against a
     /// `Mode` parameter while `glyph_assignable` said `COMPATIBLE` about the

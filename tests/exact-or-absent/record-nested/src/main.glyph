@@ -1,0 +1,13 @@
+module main
+
+import lib { Order, Other, mk }
+
+pub fn tx(x: { o: Order, }) -> number {
+  return 1
+}
+
+pub fn go() -> number {
+  let o: Order = mk()
+  let v = { o: o, }
+  return tx(v)
+}

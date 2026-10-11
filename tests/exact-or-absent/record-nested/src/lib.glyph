@@ -1,0 +1,9 @@
+module lib
+
+pub type Order = { id: string, }
+
+pub type Other = { code: number, }
+
+pub fn mk() -> Order {
+  return { id: "x", }
+}

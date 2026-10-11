@@ -5825,9 +5825,12 @@ impl<'a> Emitter<'a> {
     fn emit_component(&mut self, c: &ComponentDecl) -> Result<(), EmitError> {
         let generics = self.generics(&c.generics)?;
         let params = self.params(&c.params)?;
+        // A component written without a return type returns the prelude
+        // `Component` (D19), so it is emitted with the type `-> Component`
+        // would write and `tsc` holds the body to what React can render.
         let ret = match &c.return_ty {
             Some(te) => format!(": {}", self.ty(te)?),
-            None => String::new(),
+            None => format!(": {}", self.react_node()),
         };
         self.pad();
         self.out
@@ -10118,6 +10121,22 @@ mod tests {
         }
         assert!(!ts.contains(": Component"), "{ts}");
         assert!(ts.contains("import * as React from \"react\";"), "{ts}");
+    }
+
+    /// D19: a component written without a return type returns the prelude
+    /// `Component`, so it is emitted with the type `-> Component` writes. A
+    /// plain `fn` with no annotation is left for TypeScript to infer.
+    #[test]
+    fn an_unannotated_component_is_emitted_returning_react_node() {
+        let ts = emit(
+            "module x\npub component Bare(props: { n: number }) {\n  return <p>{props.n}</p>\n}\n\
+             pub fn later() {\n  print(\"x\")\n}\n",
+        );
+        assert!(
+            ts.contains("export function Bare(props: { n: number }): React.ReactNode {"),
+            "{ts}"
+        );
+        assert!(ts.contains("export function later() {"), "{ts}");
     }
 
     /// A user's own `Component` is not the prelude's. React's class imported by

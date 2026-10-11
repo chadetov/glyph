@@ -1356,8 +1356,14 @@ impl Assigner<'_> {
                     }
                 }
                 // A `component` lowers to a React function component; there is
-                // no `async component`, so it is never an async context.
-                let er = self.enclosing_return(c.return_ty.as_ref(), false);
+                // no `async component`, so it is never an async context. One
+                // written without a return type returns the prelude
+                // `Component` (D19), and its body is held to exactly what
+                // `-> Component` would hold it to.
+                let er = match c.return_ty.as_ref() {
+                    Some(te) => self.enclosing_return(Some(te), false),
+                    None => self.enclosing_return_ty(self.lowerer.prelude_component(), false),
+                };
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.bind_param_tys(&c.params);
@@ -3056,6 +3062,19 @@ impl Assigner<'_> {
     /// missing annotation (legal under D4) or one that can't be resolved
     /// yields `ReturnClass::Unknown` and `Ty::Unknown`, so neither check
     /// fires on a type it can't judge.
+    /// The return context of a callable whose return type was not written
+    /// but is known anyway: an unannotated `component` returns the prelude
+    /// `Component`. Classified as `enclosing_return` classifies a written
+    /// type that is not a `Result`.
+    fn enclosing_return_ty(&self, ty: Ty, is_async: bool) -> EnclosingReturn {
+        let class = if self.is_decidably_non_result(&ty) {
+            ReturnClass::NonResult
+        } else {
+            ReturnClass::Unknown
+        };
+        EnclosingReturn { class, ty, is_async }
+    }
+
     fn enclosing_return(&self, return_ty: Option<&TypeExpr>, is_async: bool) -> EnclosingReturn {
         let Some(te) = return_ty else {
             return EnclosingReturn { class: ReturnClass::Unknown, ty: Ty::Unknown, is_async };
@@ -14933,6 +14952,26 @@ fn f(a: Answer) -> number {
             matches!(two.as_slice(), [TypeError::ComponentMultipleParams { count: 2, .. }]),
             "{two:?}"
         );
+    }
+
+    /// D19: a component written without a return type returns the prelude
+    /// `Component`, so its body is held to what `-> Component` holds it to.
+    /// A `?` in it is E0201 under both spellings: it would hand React the
+    /// propagated `Err` object to render. A plain `fn` with no annotation
+    /// keeps its permissive return context.
+    #[test]
+    fn an_unannotated_component_returns_the_prelude_component() {
+        let body = "{\n  let v = get()?\n  return <p>{v}</p>\n}\n";
+        let head = "module m\nfn get() -> Result<string, string> {\n  return Ok(\"x\")\n}\n";
+        for decl in ["component A()", "component A() -> Component"] {
+            let errs = errors_of(&format!("{head}{decl} {body}"));
+            assert!(
+                matches!(errs.as_slice(), [TypeError::QuestionOutsideResultFn { .. }]),
+                "`{decl}`: {errs:?}"
+            );
+        }
+        let plain = errors_of(&format!("{head}fn f() {body}"));
+        assert!(plain.is_empty(), "{plain:?}");
     }
 
     /// G246. `unknown` holds the props object and gives the component nothing

@@ -287,7 +287,22 @@ impl<'a> Lowerer<'a> {
     pub fn lower_decl_signature(&self, decl: &Decl) -> Ty {
         match decl {
             Decl::Fn(f) => self.lower_callable_signature(&f.params, f.return_ty.as_ref(), f.is_async),
-            Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
+            // D19 gives a component an implied JSX-returning body, so a
+            // component written without `-> Component` returns the prelude
+            // `Component` all the same. Reading the absence as `void`, as a
+            // plain `fn` does, told hover and `glyph_symbol` that a component
+            // returns nothing and refused its element as a `void`.
+            Decl::Component(c) => {
+                let sig = self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false);
+                match (sig, c.return_ty.is_none()) {
+                    (Ty::Fn { params, is_async, .. }, true) => Ty::Fn {
+                        params,
+                        return_ty: Arc::new(self.prelude_component()),
+                        is_async,
+                    },
+                    (sig, _) => sig,
+                }
+            }
             // G39. An annotated `const` is its annotation, lowered through the
             // same path a `let`'s annotation takes. Without it a module-level
             // `const` was `Ty::Unknown`, so the checks that read a receiver's
@@ -458,6 +473,17 @@ impl<'a> Lowerer<'a> {
             symbol: id.into(),
             path: vec![name.clone()],
         })
+    }
+
+    /// The prelude `Component`, the type an unannotated `component` returns
+    /// and the one `-> Component` names when the module has not bound the
+    /// name to something else.
+    pub fn prelude_component(&self) -> Ty {
+        let name: Ident = Arc::from("Component");
+        match self.prelude.lookup(name.as_ref()) {
+            Some(id) => self.prelude_ty(id, &name),
+            None => Ty::Unknown,
+        }
     }
 
     fn prelude_ty(&self, id: glyph_resolver::SymbolId, name: &Ident) -> Ty {

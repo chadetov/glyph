@@ -61,8 +61,54 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.124</span>
+            <span class="rel-ver">0.1.125</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">October 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release is about React components. Three programs passed <code>glyph check</code> with <code>tsc</code> in the loop under 0.1.124 and were broken when they ran: a component reached through <code>import ui</code> was emitted as a string tag and never called, an element with no attributes passed <code>null</code> as its props, and an unexported component reached through a namespace was accepted. All three are Glyph diagnostics now. It is breaking for that reason, and for two more programs that 0.1.124 left to <code>tsc</code>: a component whose parameter is not a record, and an element missing a required prop. Each was established by running 0.1.124 and this build on the same program.</p>
+
+            <h3>A dotted element is a component</h3>
+            <p>An element was classified by the first character of its name, so <code>&lt;ui.Button /&gt;</code> under <code>import ui</code> was treated like <code>&lt;div&gt;</code> and emitted as <code>createElement("ui.Button", ...)</code>. React rendered an unknown tag, <code>tsc</code> accepted a string tag with any props, and the only diagnostic was a wrong "unused import <code>ui</code>".</p>
+            <div class="code">
+              <span class="cap">import ui, then a wrong attribute</span>
+<pre>&lt;ui.Button variant="nope" label="go" /&gt;
+<span class="del">// 0.1.124: [E0106] unused import `ui`     tsc --strict passed  (exit 0)
+//          renders &lt;ui.Button variant="nope" label="go"&gt;&lt;/ui.Button&gt;</span>
+<span class="add">// 0.1.125: [E0211] expected `Variant`, found `"nope"`           (exit 1)
+//          renders &lt;button&gt;go&lt;/button&gt; once the value is fixed</span></pre>
+            </div>
+            <p>A dotted name is a component whatever the case of its base, which is TypeScript's rule for a member-expression tag. One classifier now decides it, where the resolver and the emitter each kept their own copy. The base resolves like any name, the props check reaches the component through a namespace or an aliased import, and the member goes through the same export check <code>ui.Button</code> does as a value, so <code>&lt;ui.Nope /&gt;</code> and an unexported component are E0105.</p>
+
+            <h3>A missing required prop is named, even with no attributes</h3>
+            <p>A record literal or an element missing a required field was refused as <code>found `record`</code>, or at the element not at all. The diagnostic now names what is missing, in the message and in a <code>missing_fields</code> list on <code>--json</code>, <code>--agent</code> and the MCP diagnostics.</p>
+            <div class="code">
+              <span class="cap">glyph check, with tsc</span>
+<pre>&lt;Button label="go" /&gt;
+&lt;Button /&gt;
+<span class="del">// 0.1.124: first line caught by tsc only; second line passes  (exit 0)</span>
+<span class="add">// 0.1.125: [E0211] expected `Props`, found `record`: missing field `variant`
+//          [E0211] expected `Props`, found `record`: missing fields `variant`, `label`</span></pre>
+            </div>
+            <p>The second line is the one that mattered. An element with no attributes was emitted with <code>null</code> props, and React's types accept <code>null</code> for any component, so <code>&lt;Button /&gt;</code> against required props passed <code>tsc --strict</code> and the component read <code>undefined</code> when it rendered. It passes <code>{}</code> now, so <code>tsc</code> refuses it too, and Glyph asks every component element without a spread for its required props. A <code>?</code> prop may be left out. A required <code>children</code> prop is reported missing even when children are written between the tags, because they are passed outside the props object; <code>tsc</code> says the same, and the message should explain it and does not yet.</p>
+
+            <h3>A component takes one props record</h3>
+            <p><code>component Greeting(name: string)</code> was accepted, and no element could ever render it: React hands a component the one props object its element builds. It is E0229 at the parameter now, for a primitive, a string-literal union, a tagged union, an array, a <code>Nullable</code> or a function type. A record, an alias of one, an imported record and an <code>interface</code> are props records. <code>unknown</code> and a bare generic draw nothing, because the checker cannot prove they are not records. A function that returns JSX and is called directly is an <code>fn</code>.</p>
+
+            <h3>References, rename and impact see an element at its name</h3>
+            <p>After the classification fix, <code>glyph query references</code> on a component still listed a use written <code>&lt;Button&gt;</code> under a named import and missed the same use written <code>&lt;ui.Button&gt;</code>, so the answer depended on how the component was imported, and <code>glyph_impact</code> missed the site. The named case was wrong too: it recorded the whole element, so a rename wrote the new name over the attributes and children, and the closing tag was never recorded. Every element is now recorded at its name, in the opening and closing tag alike. Rename rewrites both tags, and impact counts one site per element. Hover on <code>Button</code> in <code>&lt;ui.Button&gt;</code> answers the component's type instead of <code>null</code>. Two explanations in the impact table were false for an element and an import line, and each now has its own; the verdicts did not change.</p>
+
+            <h3>Smaller things</h3>
+            <p>Two <code>glyph check</code> runs at the same time could fail each other with <code>io error reading .../glyph-check-scratch/&lt;pid&gt;-0/: Invalid argument</code>: each staged under a shared temp directory and removed it on the way out. 2,000 concurrent checks gave 3 such failures; each check now owns its own directory, and 4,000 gave none. Publishing moved to npm trusted publishing, so no npm token is stored anywhere, and before the first package is published the release job proves each of the six packages' publisher through the same OIDC exchange a publish makes. Across the 31 apps and the examples, every exit code and diagnostic code is the same under both versions, with and without <code>tsc</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.124</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">September 2026</span>
           </div>

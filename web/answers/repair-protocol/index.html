@@ -317,7 +317,7 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
           too: <code>glyph llms --negative E0200</code> prints every wrong program that draws the
           code, each compiled when you ask, and where a second corpus pairs a program
           <code>tsc --strict</code> accepts with the Glyph that refuses it, that comes back beside
-          it. With no code it lists 68 cases over 40 of the 61 codes and names the 21 that have
+          it. With no code it lists 85 cases over 41 of the 62 codes and names the 21 that have
           none, so coverage is stated rather than inferred from what came back. That and the rest
           of what the compiler publishes about itself is
           <a href="/answers/generated-docs/">its own page</a>.
@@ -332,7 +332,7 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 21 of the 61 codes have no case at all. <code>glyph fix</code> still writes four rules and nothing else; everything it declines, it declines out loud.</p>
+          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 21 of the 62 codes have no case at all. <code>glyph fix</code> still writes four rules and nothing else; everything it declines, it declines out loud.</p>
         </div>
       </div>
 

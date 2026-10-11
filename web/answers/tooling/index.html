@@ -93,7 +93,8 @@
         <p>
           The server implements what an editor needs: live diagnostics with
           the stable codes below, hover types, go-to-definition
-          (including across modules), completion, document and workspace symbols for outline
+          (across modules through a named import; through a namespace, <code>ui.Button</code>
+          still answers nothing), completion, document and workspace symbols for outline
           and symbol search, workspace-wide find-references, rename, and formatting in the
           canonical <code>glyph fmt</code> layout for format-on-save. Rename is complete: renaming a module-level declaration edits
           its definition, every reference, and each importing module's <code>import</code> binding

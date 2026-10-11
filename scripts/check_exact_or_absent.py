@@ -571,6 +571,41 @@ def case_call_spelling() -> tuple[bool, str]:
                   "dependencies and impact, with the same verdict, reason and arguments")
 
 
+RECORD_NESTED = CORPUS / "record-nested"
+
+
+def case_record_cell_held_to_the_edit() -> tuple[bool, str]:
+    """A WILL_FAIL on a record argument is a fact about the edit it names.
+
+    `tx(v)` passes a structural record holding an imported `Order` where
+    `{ o: Order }` is declared. Since G228 the cell said WILL_FAIL with E0211,
+    and under 0.1.125 the edit to `{ o: Other }` drew nothing from Glyph: the
+    record arm compared the field through a function that reads no
+    declaration, so only `tsc` refused it (TS2345). The verdict was an
+    inferred answer standing as a proven one. The field is compared through
+    the whole relation now, and this makes the edit in a copy of the corpus
+    and reads E0211 at the call.
+    """
+    a = impact(RECORD_NESTED, "main::tx", {"kind": "change_signature_type"})
+    sites = [(e.get("line"), e.get("verdict"), e.get("diagnostic"))
+             for e in a.get("impact") or [] if e.get("relation") == "CALLS"]
+    if sites != [(11, "WILL_FAIL", "E0211")]:
+        return False, f"the call site is not WILL_FAIL E0211: {sites}"
+    with tempfile.TemporaryDirectory() as tmp:
+        work = pathlib.Path(tmp) / "record-nested"
+        shutil.copytree(RECORD_NESTED, work)
+        main = work / "src" / "main.glyph"
+        main.write_text(main.read_text().replace("tx(x: { o: Order, })", "tx(x: { o: Other, })"))
+        d = call(work, "glyph_diagnostics", {"path": "src/main.glyph"})
+        if "error" in d:
+            return False, f"diagnostics refused: {d['error'][:120]}"
+        got = [(x.get("code"), x["range"]["start"]["line"]) for x in d.get("diagnostics") or []
+               if x.get("severity") == "error"]
+    if got != [("E0211", 12)]:
+        return False, f"the edit the cell named draws {got}, not E0211 at the call"
+    return True, "the WILL_FAIL is E0211 at the call once the edit is made"
+
+
 ELEMENT_SPELLING = CORPUS / "element-spelling"
 
 #: The three ways a consumer can name a component it renders: `import ui
@@ -2136,6 +2171,7 @@ HARD = [
     ("definition and hover under any spelling", case_member_spelling_definition_and_hover),
     ("a call under any import spelling", case_call_spelling),
     ("an element is decided as the call it lowers to", case_element_verdicts),
+    ("a record cell is held to its edit", case_record_cell_held_to_the_edit),
     ("CALLS is the applied sites, with coverage", case_calls_relation),
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),

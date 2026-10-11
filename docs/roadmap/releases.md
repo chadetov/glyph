@@ -5423,14 +5423,28 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **The knowledge surface answers what the checker holds, which it did not at first.** `glyph_symbol` on `std/array::filter` reported no kind and a sentence saying Glyph's checker does not read the stdlib, while the same binary published `fn(Array<T>, fn(T) -> bool) -> Array<T>` for it in this release's own document and raised `E0211` on `array.filter(xs, 3)`. That was true of all 100 modeled exports, on the tool an agent is told to call first. `describe_stdlib_symbol` calls `stdlib_signature`, the entry point `glyph llms --json` already used, and fills `kind`, `type`, `parameters`, `returns`, `async` and `generics` from it; `glyph_exports` carries the signature beside the kind on every export. An export the tables hold nothing for keeps `kind: null` and says what is missing rather than what the checker cannot do. `glyph_impact` and `glyph_dependencies` on a stdlib entity stop answering "no file of this project is module `std/result`", the sentence G231 made obsolete, and refuse with the reason: this project cannot change a union the compiler declares
 - **G240, and a corpus entry that proved nothing.** A JSX attribute reaches no rule in the Glyph front end, so `variant="danger"`, `variant="nope"` and `variant={42}` against a `variant: Variant` prop all pass `glyph check --no-tsc` with nothing. The string-literal-union corpus held a `jsx_attribute` case as one of the nineteen programs the rule must not refuse, and it could not be refused by any rule, so it was a dead instrument that would pass under any widening. The case is removed, the corpus is eighteen, and the gap is recorded and scheduled in the rolling lane rather than left in the corpus looking like coverage
 
-**0.1.125 — Next · The holes 0.1.124 found beside itself**
-- The publish workflow moves to npm trusted publishing before the tag: the owner configures a trusted publisher on each of the six packages on npmjs.com (`chadetov/glyph`, `release.yml`), the runner gets npm 11.5 or later, and the token gate, `npm whoami` and `NODE_AUTH_TOKEN` leave the publish steps
-- G242: a component reached through a lowercase namespace alias (`import ui`, `<ui.Button />`) is classified by the base's case and emitted as a string tag, so the component never runs and `tsc` accepts it; a dotted name is classified by what its base resolves to
-- G243: `component Greeting(name: string)` is refused at the declaration, since the emitter can only ever pass one props object and the element can never type-check
-- A missing required field is named: the mismatch diagnostic carries the missing field names in the message and as a `missing` list in `--json`, at a record literal (G232's remaining shape) and at a component element (G240's), established against tsc
-- The remaining 164 stdlib exports with no signature, and the four positions left `unknown` in 0.1.124 (the bound `T` of `array.push`, `array.contains`, `array.index_of` and `record.set`), move toward modeled; the four need the unifier to widen a bound name rather than take the first candidate, which is its own change
-- Editor go-to-definition across modules in an unmarked `src/` tree still resolves imports from the workspace folder rather than `src/` (`project_root_for`); narrowing it is a scope decision recorded with the module-key work
-- The enterprise review's items from the rolling lane as they are decided: the Marketplace listing once the publisher id exists, the SARIF remap through the source maps, and a test and coverage story past `@example`
+**0.1.126 — Next · What impact owes a component, and what 0.1.125 deferred**
+- G251: `glyph_impact` decides a JSX element site under `change_signature_type` and `change_arity` from the props record the edit would leave, the way it decides a call's arguments, rather than answering `NOT_INDEXED`; a props change is the commonest edit to a component
+- G250: an import line under an edit that keeps the name and its visibility is `SAFE`, which is provable, with the verdict change reviewed on its own as G234's was
+- G249: go-to-definition on a namespace member (`ui.Button`, and the `Button` segment of `<ui.Button />`) answers the declaration the named import answers, rather than `null`
+- G245: a structural record is displayed by its fields in a diagnostic, so an inline props record reads as its shape rather than as `record`
+- G246: decide whether a component whose one parameter is `unknown` or a bare generic is refused, since `tsc` refuses its elements; a decision before code
+- G247: `-> Component` names React's class type and `tsc` refuses it; the language gives a rendered element a return spelling or refuses this one, and `examples/03_react_component.glyph` becomes a program that compiles against React's types
+- G248: a gate project with React and its types installed compiles every `needs-deps` fence with `tsc` in the loop
+- Carried from 0.1.125: npm trusted publishing if the owner's npmjs.com setup is not in place before 0.1.125's tag; the remaining stdlib signatures and the unifier change that widens a bound name (its own change, split by risk); editor go-to-definition across modules in an unmarked `src/` tree (`project_root_for`), which waits on the owner's scope call; and the enterprise review's items from the rolling lane as they are decided
+
+**0.1.125 — Ready to cut · A component is checked, emitted and related under every spelling**
+- **What the release is.** Four holes in how Glyph handles a React component, three of which shipped green under 0.1.124 with `tsc` in the loop and were broken at run time: a component reached through `import ui` emitted as a string tag and never ran, an element with no attributes passed its required props as `null`, and an unexported component reached through a namespace was accepted. Each now draws a Glyph diagnostic, and the relations an agent reads (references, dependencies, impact, rename) see a component element under every import spelling
+- **G242, a dotted element is a component.** `JsxKind::classify` keyed an element on its first character, so `<ui.Button />` under `import ui` emitted `createElement("ui.Button", ...)`: React rendered an unknown tag, `tsc` accepted a string tag with any props, and the resolver reported `ui` unused. A dotted name is a component whatever the case of its base, which is TypeScript's own JSX rule, and one classifier in `glyph-ast` replaces the copies the resolver and the emitter each kept. The base resolves like any name (an unbound one is E0103), the attribute check reaches the component through a namespace or aliased import, and the element emits `createElement(ui.Button, ...)`. Rendered with `renderToStaticMarkup`, 0.1.124 gives `<u.Button variant="danger" label="go"></u.Button>` and this build `<button>go</button>`
+- **G243, E0229.** `component Greeting(name: string)` could never be rendered, because the emitter passes one props object, and nothing said so until `tsc` reported TS2769 at the element. A component's one parameter is its props record now, refused at the parameter for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable` and a function type, each established as TS2769 under `tsc`. A record, an alias of one, an imported record and an `interface` are props records; `unknown`, a bare generic and `Record<K, V>` draw nothing, because the checker cannot prove they are not (G246 asks whether that is the right reading). Calling a component directly, `Greeting("x")`, is refused with the declaration even though it runs: a `component` is rendered by React, calling one bypasses React and its hooks, and a function called as a function is an `fn`. The bootstrap in `AGENTS.md` taught the refused spelling inside a `needs-deps` fence no gate compiles; it is corrected, and the gate is G248
+- **The missing fields, named.** A record refused for a missing required field says which: ``type mismatch: expected `User`, found `record`: missing field `age` ``, with the names in a `missing_fields` list on `--json`, `--agent` and the MCP diagnostics, and an explicit `null` on every other diagnostic. The name is `missing_fields` rather than `missing` because `missing_variants` already sits beside it. "Required" matches `tsc` exactly: a `?` field is optional, and an `Option` or `Nullable` field is required, as `tsc` reports it
+- **A component element missing a required prop is E0211**, at the element's name, with `missing_fields`. That includes an element with no attributes at all, which emitted `createElement(Card, null)`: React's types accept `null` props for any component, so `tsc --strict` passed `<Card />` against required props and the component read `undefined` at render. A component element with no attributes emits `{}` now, so `tsc` refuses it too; intrinsics and fragments keep `null`. Every refused shape was established as TS2769 under `tsc`, with the property names `tsc` reports matching the list. Required `children` written as children is refused, because the emitter passes children outside the props object, which is what `tsc` says too. An element with a spread is not asked
+- **G244, every relation sees an element at its name.** Once `<ui.Button>` was a component, `glyph query references` still listed the use under `import ui { Button }` and under `ui.Button` as a value, and nothing under `<ui.Button />`, so the answer changed with import spelling and `glyph_impact` missed the site. The named spelling was wrong too: it recorded the whole element, so the range covered attributes and children and a rename wrote the new name over all of it, and the closing tag was never recorded. Every element is recorded at its name segment now, opening and closing tag alike, and the member goes through the same export check `ui.X` does, so `<ui.Nope />` and an unexported `<ui.Secret />` are E0105. Impact counts one site per element; references and dependencies list both tags, which is what rename needs. Hover on the `Button` segment of `<ui.Button>` answers the component's type where it answered `null`
+- **Two false sentences in impact, corrected without changing a verdict.** An element site under `change_signature_type` or `change_arity` said Glyph does not compare a function value against its use context, which has been false for an element since G240, and an import binding was described as a value read. Each has its own reason now, and a test pins the element, value and import reasons as three different strings. Deciding the element site is G251; the import line's verdict is G250
+- **G252, two concurrent checks could fail each other.** `glyph check` staged under a shared temp parent and removed it on the way out, so a concurrent check lost the parent between choosing its path and creating it. 2,000 checks 64 at a time gave 3 failures with `io error reading .../glyph-check-scratch/<pid>-0/: Invalid argument`; each check owns its own top-level scratch directory now, and 4,000 runs gave none. It surfaced as a one-off suite failure while another worktree's suite ran beside it, which is the shape an editor, a CI matrix or a parallel agent produces
+- **What it does not do.** An inline props record still displays as `record` in front of its missing-field list (G245). Impact does not decide an element site (G251). Go-to-definition on a namespace member still answers `null` (G249). `-> Component` still names React's class type, which `tsc` refuses (G247). The npm trusted-publishing move, the remaining stdlib signatures and the editor's unmarked-`src/` definition scope did not land here and are carried into 0.1.126
+- **The measurement.** The suite is 1820 tests, from 1799; the exact-or-absent corpus is 36 invariants, from 34; the gap ledger is 252 entries, 224 fixed and 10 open
+- **Breaking**, in the checking direction, established by running the published 0.1.124 and this build on the same programs. Three programs pass `glyph check` with `tsc` in the loop under 0.1.124 and are broken at run time; all three exit 1 here: `<Button />` against required props (E0211), `<ui.Button variant="nope" ... />` under `import ui` (E0211), and `<ui.Secret />` for an unexported component (E0105). Two programs pass `--no-tsc` under 0.1.124 and fail only at `tsc`; both are Glyph diagnostics here: `component Greeting(name: string)` (E0229) and `<Button label="go" />` missing a required prop (E0211). A correct program using the named, namespace and aliased spellings exits 0 under both, with and without `tsc`. The emitted TypeScript changes for every component element with no attributes (`null` to `{}`); across the 31 apps and `examples/` every exit code and diagnostic-code list is identical under both binaries, with and without `tsc`
 
 **0.1.124 — Shipped 2026-09-22 · What the benchmark runs on, closed**
 - The agent-surface priorities are done; what remains before the 0.2.0 gate is the set of holes the two-agent experiment would find first, each already recorded and each scheduled here rather than left in a lane
@@ -8178,55 +8192,17 @@ left is the record shapes: `stdlib_modeled_type` holds one for nine stdlib
 types, and `fields` on those is still absent with a reason where it could be
 answered.
 
-**G242 and G243, two JSX holes the G240 work found beside itself.** A
-component reached through a lowercase namespace alias (`import ui` then
-`<ui.Button />`) is classified as an intrinsic by its first character and
-emits a string tag, so the component is never called and `tsc` accepts the
-result (G242): a silent miscompile, and the fix is to classify a dotted name
-by what its base resolves to rather than by its case. And
-`component Greeting(name: string)` is accepted while `<Greeting name="x" />`
-can never type-check, because the emitter passes one props object (G243): the
-declaration should be refused, since a component's parameter is its props
-record. Both are scheduled for the next release; G242 first, because a green
-build that renders nothing is the class this language exists to remove.
+**G242, G243 and the missing-field message closed in 0.1.125, and two
+impact gaps they left.** A dotted JSX element is a component whatever the case
+of its base, a component whose one parameter is not a record is E0229, and a
+refused record or element names the fields it is missing. G244 came out of the
+same work: once `<ui.Button>` was a component, the relations still did not see
+it, and they record every element at its name now. G232 (an object literal
+has a type) and G240 (a JSX attribute is checked) shipped in 0.1.124, and this
+is the half of each they left. What the impact table still owes an element is
+in G250 and G251, and both are scheduled in 0.1.126.
 
-**A missing required field is named, at a literal and at a JSX element.**
-G232 and G240 both stop short of the same message: a record literal missing a
-field the declared record requires is refused as ``expected `User`, found
-`record` ``, and a component element missing a required attribute is not
-refused at all, because no existing code names which field is missing and
-`tsc` does (`Property 'age' is missing`). The two want one decision: the
-mismatch diagnostic carries the missing field names, in the message and as a
-`missing` list in `--json`, and the JSX element uses it. Next release.
-
-**G240. A JSX attribute is typed by nothing.** With
-`component Button(props: { variant: Variant, label: string })` over a
-`type Variant = "primary" | "danger"`, all three of `variant="danger"`,
-`variant="nope"` and `variant={42}` pass `glyph check --no-tsc` with no
-diagnostic: an attribute list never reaches the assignability relation against
-the component's parameter record, so `tsc` on the emitted TypeScript is the only
-thing that sees a wrong one and `--no-tsc`, the language server, the MCP tools
-and the playground are blind to it, the same four surfaces G230 was about. Found
-by the 0.1.123 review while reading the string-literal-union corpus, which held
-a `jsx_attribute` case that could not be refused by any rule and would have
-passed under any widening of the rule it was meant to fence; the case is gone
-and the corpus is eighteen. Here rather than in a release because checking an
-attribute list against a component's parameter record is the JSX half of the
-call-argument relation, and what it does about children, spreads and the
-optional-field reading has to be settled before any of it is written.
-
-**G232. An object literal has no type.** The checker types `{ x: 1 }` as
-`Ty::Unknown`, so `let g: string = { x: 1 }` passes `glyph check --no-tsc` with
-an unused-variable lint while `tsc` refuses it. G230 refused an object literal
-against a string-literal union, but by reading the written braces off the
-expression rather than by giving the expression a type, so the general case is
-untouched: a `return`, a call argument and a field are all silent the same way.
-Here rather than in a release because the fix is a synthesized record type, which
-reaches the record recursion in `definitely_incompatible`, every width-subtyping
-site and the inference the language deliberately does not do at a `const` (G39).
-That is a type-system change with a blast radius, and it wants its own review
-rather than a slot.
-
+*Closed in 0.1.124. Kept as the record of the finding; the ledger entry is the live status.*
 **G235. The editor's hover answers single-file where the tool answers from the
 project.** `glyph_hover` answers at every name declared in another module since
 0.1.122 (G227); `glyph lsp` still answers `null` at the same positions, because
@@ -8237,6 +8213,7 @@ the project database `project_file_diagnostics` already builds rather than let
 them stand in for it, which is a change to how the server holds state and not a
 hover patch, so it is parked here until somebody scopes it.
 
+*Closed in 0.1.122. Kept as the record of the finding; the ledger entry is the live status.*
 **G236. `glyph fix` declines the E0200 repair over an imported union.** Fixed in
 0.1.122 before the tag, after an adversarial review reproduced it on the release
 branch. Both halves shipped: the self-check runs against the project rather than
@@ -8250,6 +8227,7 @@ where it was found, which was while writing the release notes, after the scope
 was set.
 
 
+*Closed; the ledger entry has the resolution. Kept as the record of the finding; the ledger entry is the live status.*
 **G156. Named-record identity is inconsistent, and the fork has to be settled
 before it is fixed.** `ship(d)` where `d: Draft` and `ship` takes a structurally
 identical `Paid` is `E0211`, which is more than `tsc --strict` does. `let p:
@@ -8270,6 +8248,7 @@ container and drops the thing the reader has to check), one arm over.
 `ty_display` should print the field shapes. Present on 0.1.120 as well, so it is
 not a regression.
 
+*Closed in 0.1.97. Kept as the record of the finding; the ledger entry is the live status.*
 **G157. `spec.md` D44 still calls G143 open.** It closed in 0.1.97. Cheap to
 fix, and it sits in the document a sceptical reader opens right after a claim
 about what the compiler catches.
@@ -8296,6 +8275,7 @@ noticed. Diff stability is the pillar all three attack.
 
 
 
+*Closed in 0.1.99. Kept as the record of the finding; the ledger entry is the live status.*
 **G149. Glyph's own checker does not catch a `let` annotation mismatch, and the
 editor is silent about it.** `let x: string = 42` produces no Glyph diagnostic;
 `tsc` reports `TS2322` at `glyph build` and the help line sends the reader to the

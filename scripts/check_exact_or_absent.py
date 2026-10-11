@@ -648,9 +648,14 @@ def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
         binding = [e.get("because") or "" for e in i.get("impact") or [] if e.get("entity") is None]
         if len(binding) != 1 or "`import`" not in binding[0] or "function value" in binding[0]:
             return False, f"the import binding under {kind} gives the wrong reason: {binding}"
+        # G250: an import line reads the name and nothing else of the
+        # declaration, and these two edits keep it.
+        verdicts = [e.get("verdict") for e in i.get("impact") or [] if e.get("entity") is None]
+        if verdicts != ["SAFE"]:
+            return False, f"the import binding under {kind} is {verdicts}, not SAFE"
     return True, (
         "dependency edges and per-element impact sites match across all three spellings, "
-        "and an element and an import binding each give their own reason"
+        "an element and an import binding each give their own reason, and the binding is SAFE"
     )
 
 

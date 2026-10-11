@@ -492,7 +492,7 @@ const REFERENCES_MANUAL: &str = "Every edge into a symbol across the whole proje
 
 const VARIANTS_MANUAL: &str = "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. The answer names its relation, `MATCH_SITES`, on the envelope and on every site it keyed, so an entry lifted out of the reply still says what put it there; a site under `unkeyed` carries `relation` null and `relation_absent` instead, because this project never joined it to the type and an edge it never made must not be claimed. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it. A union whose node is `opaque-ts` or `extern` has no variant list here, so a site over it is `scrutinee_unresolved` and never `exhaustive`: whether its arms are the whole union is not a question this project can answer.";
 
-const IMPACT_MANUAL: &str = "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), a `string`, `number` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both), a prelude container (`Option`, `Result`, `Array`, `Record`, `Nullable`) against a `string`, `number` or `bool`, reading the container and never its arguments (G216), and a `string`, `number` or `bool` against `Option`, `Result`, `Array` or `Record`; a `string`, `number` or `bool` against `Nullable<T>` is decided one level in, against `T`, since `Nullable<T>` emits as `T | null` and a bare `T` is one of the two. Three pairings are decided by running the relation rather than by a sentence written here, because their rules recurse and no sentence about two kinds is true of them: a prelude container against a prelude container, a structural record against a structural record, and a string-literal union on either side. Running it, the relation either reads the pairing or does not, and reading it is `WILL_FAIL` whichever way it came out, since an accepted pairing is a pairing a replacement can be refused at. Only a pairing it declines is `UNDETERMINED`. `glyph_assignable` is the same call and reports the acceptance as `COMPATIBLE`, which is what it is called when the question is about two types rather than about an edit. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, a prelude container against a `void` parameter or a `void` argument against a prelude container (the container rule is stated over `string`, `number` and `bool` only, as every shape rule in the checker is), or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects; and the `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
+const IMPACT_MANUAL: &str = "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), a `string`, `number` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both), a prelude container (`Option`, `Result`, `Array`, `Record`, `Nullable`) against a `string`, `number` or `bool`, reading the container and never its arguments (G216), and a `string`, `number` or `bool` against `Option`, `Result`, `Array` or `Record`; a `string`, `number` or `bool` against `Nullable<T>` is decided one level in, against `T`, since `Nullable<T>` emits as `T | null` and a bare `T` is one of the two. Three pairings are decided by running the relation rather than by a sentence written here, because their rules recurse and no sentence about two kinds is true of them: a prelude container against a prelude container, a structural record against a structural record, and a string-literal union on either side. Running it, the relation either reads the pairing or does not, and reading it is `WILL_FAIL` whichever way it came out, since an accepted pairing is a pairing a replacement can be refused at. Only a pairing it declines is `UNDETERMINED`. `glyph_assignable` is the same call and reports the acceptance as `COMPATIBLE`, which is what it is called when the question is about two types rather than about an edit. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, a string-literal union, an `extern_ts` or `typeof` body, an interface), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, a prelude container against a `void` parameter or a `void` argument against a prelude container (the container rule is stated over `string`, `number` and `bool` only, as every shape rule in the checker is), or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike, since Glyph never compares a function value against the type its use context expects. The `import` line that names the declaration is `SAFE` under both kinds: an import resolves the name against the module's exports, which hold a declaration's name when it is `pub` and nothing else of it, and both edits keep the name and the `pub`. The `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
 
 const SYMBOL_MANUAL: &str = "Everything the compiler holds about one symbol, in one call: what it is, how it is written, and what a `match` over it must do. Address it by its `module::name` identity, the same one a diagnostic, `glyph_references` and `glyph_impact` report, or by a position (`path`, `line`, `character`). Ask this before writing a call, a record literal or a `match` over a type you did not declare; it is the answer grep cannot give, because the compiler resolved the name to emit the program.\n\nThe answer is one object. `kind` is the vocabulary the rest of it is read by: `record`, `union`, `string-literal-union`, `alias`, `function-type`, `extern-ts`, `typeof`, `function`, `component`, `const`, `interface`, `variant`. An `interface` is never reported as a `type`, because its members are a different fact from a record's fields. `entity`, `module` and `name` are the identity; `pub` is whether the symbol is exported from its module; `generics` are the type parameters it takes, in order; `path` and `range` are where it is declared; `origin` is what kind of declaration the compiler read, exactly as the other tools define it.\n\n`type` is the whole symbol lowered and rendered by the compiler. `fields` carries a record's fields with their types and whether each is optional. `variants` carries a tagged union's variants, each with its `payload` and the `construct` string that writes one (`Paid({ transaction_id: string })`, `Pending`), so a caller never has to guess the constructor's shape. `literals` carries a string-literal union's values. `parameters` and `returns` carry a callable's signature, each parameter with its ordinal, name, type, `owned` and `optional`. `members` carries an interface's members, each marked `method` or `property`. `owner` names the union a variant belongs to. `construct` is the syntax that builds a value: a variant has one, a record does not (a record is a bare object literal typed by its annotation, and the reason says so). `exhaustive_match` is whether a `match` whose scrutinee has this type must name every case. `examples` are the `@example` expressions written above the declaration, verbatim: each one is compiled and run by `glyph check`, so it is a use of this symbol known to work.\n\nEvery fact is a pair. A key is always present, and beside it `<key>_absent` says why it is null: `fields` is null on a union, `variants` is null on a record, and each says which. Absent is never omission and never a guess. `exhaustive_match` has three answers rather than two: `true` and `false` are what the exhaustiveness check does, and `null` is where the answer belongs to a declaration this one only names (an alias, an `extern_ts` body), where `false` would be a caller dropping an arm believing nothing stops it.\n\nWhat it refuses. A name the module does not declare is refused rather than answered with an empty shape. An import binding is refused, with the instruction to ask under the module that declares it. `module::Record.field` is refused: a field is read out of `fields`, and `glyph_references` and `glyph_impact` are the two that take the field form. A position on a file-private binding is refused, because it has no identity; `glyph_hover` answers there instead.";
 
@@ -6101,16 +6101,44 @@ const ELEMENT_ABSENT: &str = "the checker raises `E0211` at an element whose att
      the record does not declare; whether this element draws one after the edit is not \
      computed";
 
-/// The import-binding reason, for the kinds that keep the name. Under a
-/// rename or a removal the binding stops resolving, which `NAME_GONE` already
-/// says truthfully.
+/// The import-binding reason, for the two kinds that keep the name: an arity
+/// edit and a parameter type edit (G250). Under a rename or a removal the
+/// binding stops resolving, which `NAME_GONE` already says truthfully.
+///
+/// `SAFE` because every check that runs at an import line reads the import's
+/// own spelling or the name, and none reads the declaration behind it. The
+/// resolver audit behind that, check by check:
+///
+/// - `verify_imports` (E0105) looks each named import up in the module's
+///   export set, and `module_exports` builds that set from names alone: a
+///   symbol is in it when it is `pub` and a `fn`, `type`, `const`,
+///   `component` or variant. The set holds no signature.
+/// - `verify_local_imports` (E0104) resolves the module path.
+/// - `collect_module_symbols` reads the path's shape (E0101) and interns the
+///   local name the line binds, which is where a duplicate (E0100), a
+///   reserved word (E0109) and a shadowed prelude name (E0110) are caught.
+/// - The barrel-file rule (E0102) reads whether the module declares anything
+///   besides imports.
+/// - `module_lints` (E0106) reads whether this module references the name.
+///
+/// The typechecker walks past an `import` declaration and anchors nothing at
+/// one. `tsc` checks an emitted `import { Button } from "./ui"` for the
+/// export's existence and its value-or-type kind, and an edit to a function's
+/// or a component's parameters changes neither. Measured by making each edit
+/// on a real project (a parameter type changed, a parameter added, one
+/// removed, on a `fn` and on a `component`) under `glyph check` with and
+/// without `tsc`: the import line drew nothing in any of them.
 const IMPORT_BECAUSE: &str = "this occurrence is the `import` that brings the name into the \
-     module; it names the declaration without using it, so what an edit does to it is \
-     decided by whether the name survives, and this edit keeps the name. The sites that use \
-     the binding are where the edit's effect lands, and they are listed on their own";
-const IMPORT_ABSENT: &str = "an `import` line resolves the name against the module's exports \
-     and reads nothing else of the declaration, so it raises a diagnostic only when the name \
-     is gone (`E0105`)";
+     module, and an import line is checked against the name alone: the resolver looks the \
+     name up in the set of names the module exports, which holds a declaration's name when \
+     it is `pub` and nothing else of it, and every other check at the line reads the \
+     import's own spelling (its path, the local name it binds, whether this module uses it). \
+     This edit keeps the name and its `pub`, so the line compiles after it as it does now. \
+     The sites that use the binding are where the edit's effect lands, and they are listed \
+     on their own";
+const IMPORT_ABSENT: &str = "nothing is raised at this line: an `import` raises a diagnostic \
+     about the declaration only when the name is gone or no longer `pub` (`E0105`), and this \
+     edit does neither";
 
 /// What one occurrence does under one change.
 ///
@@ -6122,11 +6150,12 @@ const IMPORT_ABSENT: &str = "an `import` line resolves the name against the modu
 /// which reads the arguments, so this function's `SignatureType` arm is only
 /// ever reached for a site that reads the name.
 ///
-/// `site` says what kind of non-applying occurrence this is. A value read, a
-/// component element and an import binding all stay undecided under an edit
-/// that keeps the name, and the reason for each is different: only a value
-/// read is a function value the checker does not compare against its use
-/// context.
+/// `site` says what kind of non-applying occurrence this is. Under an edit
+/// that keeps the name a value read and a component element stay undecided,
+/// for different reasons: only a value read is a function value the checker
+/// does not compare against its use context. An import binding is `SAFE`,
+/// since an import line reads the name and nothing else of the declaration
+/// (G250).
 fn occurrence_verdict(
     change: &Change,
     relation: Relation,
@@ -6163,7 +6192,7 @@ fn occurrence_verdict(
                 (Verdict::NotIndexed, ELEMENT_BECAUSE, None, ELEMENT_ABSENT)
             }
             _ if site == ReadSite::ImportBinding => {
-                (Verdict::NotIndexed, IMPORT_BECAUSE, None, IMPORT_ABSENT)
+                (Verdict::Safe, IMPORT_BECAUSE, None, IMPORT_ABSENT)
             }
             _ => (
                 Verdict::NotIndexed,
@@ -6179,7 +6208,7 @@ fn occurrence_verdict(
             (Verdict::NotIndexed, ELEMENT_BECAUSE, None, ELEMENT_ABSENT)
         }
         Change::SignatureType if site == ReadSite::ImportBinding => {
-            (Verdict::NotIndexed, IMPORT_BECAUSE, None, IMPORT_ABSENT)
+            (Verdict::Safe, IMPORT_BECAUSE, None, IMPORT_ABSENT)
         }
         Change::SignatureType => (
             Verdict::NotIndexed,
@@ -14853,7 +14882,8 @@ pub fn f() -> number {
     /// kind of site: it names the declaration without using it, and under an
     /// edit that keeps the name neither of the other two reasons is true of
     /// it. Under `change_arity` and `change_signature_type` the three reasons
-    /// are three different strings; every site keeps its verdict.
+    /// are three different strings. Since G250 the binding is `SAFE` under
+    /// both; the element and the value read keep their verdicts.
     #[test]
     fn a_component_element_is_one_impact_site_with_its_own_reason() {
         let ui = "module ui\npub component Button(props: { label: string, }) {\n  \
@@ -14928,7 +14958,7 @@ pub fn f() -> number {
                     assert!(!import.contains("JSX element"), "{kind}: {import}");
                     assert_ne!(import, value, "{kind}");
                     assert_ne!(import, element, "{kind}");
-                    assert_eq!(b["verdict"], "NOT_INDEXED", "{b}");
+                    assert_eq!(b["verdict"], "SAFE", "{b}");
                 }
                 for e in &in_app {
                     assert_eq!(e["verdict"], "NOT_INDEXED", "{e}");
@@ -14939,6 +14969,122 @@ pub fn f() -> number {
         }
         assert_eq!(per_spelling[0], per_spelling[1], "named against namespace");
         assert_eq!(per_spelling[0], per_spelling[2], "named against alias");
+    }
+
+    /// A two-module React project for the element and import-binding
+    /// cells: `ui` declares the components, `main` renders them through the
+    /// import spelling `spelling` names.
+    fn element_project(ui: &str, main_body: &str, spelling: &str, names: &str) -> PathBuf {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(&root, "ui.glyph", ui);
+        let (import, q) = match spelling {
+            "named" => (format!("import ui {{ {names} }}"), ""),
+            "namespace" => ("import ui".to_string(), "ui."),
+            _ => ("import ui as u".to_string(), "u."),
+        };
+        let body = main_body.replace("Q.", q);
+        write(&root, "main.glyph", &format!("module main\n{import}\n{body}"));
+        root
+    }
+
+    /// The impact entries of one answer that sit at `line` (0-based) of
+    /// `main.glyph`.
+    fn entry_at(answer: &Value, line: u64) -> Value {
+        answer["impact"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+            .iter()
+            .find(|e| e["path"] == "main.glyph" && e["line"] == line)
+            .cloned()
+            .unwrap_or_else(|| panic!("no site at line {line}: {answer}"))
+    }
+
+    /// The codes `glyph_diagnostics` reports on `file`, as `(line, code)`
+    /// with the line 0-based, the way impact reports it.
+    fn diagnostics_at(root: &Path, file: &str) -> Vec<(u64, String)> {
+        let (value, is_error) = call(root, "glyph_diagnostics", json!({ "path": file }));
+        assert!(!is_error, "{value}");
+        reported(&value)
+            .iter()
+            .filter(|d| d["severity"] == "error")
+            .map(|d| {
+                (
+                    d["range"]["start"]["line"].as_u64().unwrap() - 1,
+                    d["code"].as_str().unwrap().to_string(),
+                )
+            })
+            .collect()
+    }
+
+    /// `text` with `from` replaced by `to`, refusing an edit that matched
+    /// nothing, so a check made after it cannot pass on the unedited program.
+    fn edited(text: &str, from: &str, to: &str) -> String {
+        assert!(text.contains(from), "the edit matched nothing: {from}");
+        text.replace(from, to)
+    }
+
+    /// G250: the `import` line that names a declaration is `SAFE` under the
+    /// two kinds that keep the name, for a `fn` and for a `component`, and
+    /// still `WILL_FAIL` under the two that take the name away. Held to the
+    /// checker by making each edit (a parameter retyped, one added, one
+    /// removed) and reading the import line's diagnostics: there are none,
+    /// whatever the edit breaks further down the file.
+    #[test]
+    fn an_import_binding_is_safe_under_an_edit_that_keeps_the_name() {
+        let ui = "module ui\n\
+            pub fn fmt(n: number) -> string {\n  return \"x\"\n}\n\
+            pub component Button(props: { label: string, }) {\n  return <b>{props.label}</b>\n}\n";
+        let main = "pub fn go() -> string {\n  return fmt(1)\n}\n\
+                    pub component App() {\n  return <div><Button label=\"x\" /></div>\n}\n";
+        let root = element_project(ui, main, "named", "fmt, Button");
+        let mut server = Server::new(root.clone());
+        for entity in ["ui::fmt", "ui::Button"] {
+            for (kind, want) in [
+                ("change_arity", "SAFE"),
+                ("change_signature_type", "SAFE"),
+                ("rename", "WILL_FAIL"),
+                ("remove", "WILL_FAIL"),
+            ] {
+                let b = entry_at(
+                    &impact(&mut server, json!({ "entity": entity, "change": { "kind": kind } })),
+                    1,
+                );
+                assert_eq!(b["entity"], Value::Null, "{b}");
+                assert_eq!(b["verdict"], want, "{entity} {kind}: {b}");
+                if want == "SAFE" {
+                    assert_eq!(b["diagnostic"], Value::Null, "{b}");
+                    let why = b["because"].as_str().unwrap();
+                    assert!(why.contains("checked against the name alone"), "{why}");
+                    assert!(why.contains("`pub`"), "{why}");
+                }
+            }
+        }
+        // Each edit with the line (0-based) of `main.glyph` it breaks, if any,
+        // so a check that found nothing at the import line is known to have
+        // run on the edited program.
+        for (from, to, breaks) in [
+            ("fmt(n: number)", "fmt(n: string)", Some((3, "E0211"))),
+            ("fmt(n: number)", "fmt(n: number, m: number)", Some((3, "E0213"))),
+            ("fmt(n: number)", "fmt()", Some((3, "E0213"))),
+            ("Button(props: { label: string, })", "Button(props: { label: number, })", Some((6, "E0211"))),
+            ("Button(props: { label: string, })", "Button(props: { label: string, }, n: number)", None),
+            (
+                "Button(props: { label: string, }) {\n  return <b>{props.label}</b>",
+                "Button() {\n  return <b>b</b>",
+                None,
+            ),
+        ] {
+            write(&root, "ui.glyph", &edited(ui, from, to));
+            let after = diagnostics_at(&root, "main.glyph");
+            assert!(!after.iter().any(|(l, _)| *l == 1), "{to}: {after:?}");
+            match breaks {
+                Some((line, code)) => {
+                    assert!(after.contains(&(line, code.to_string())), "{to}: {after:?}")
+                }
+                None => assert_eq!(after, vec![], "{to}"),
+            }
+        }
     }
 
     /// The single-argument `change_signature_type` answer for one program:

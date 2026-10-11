@@ -1,0 +1,33 @@
+module api
+
+import lib { Remote, Order }
+
+pub type P = { label: string, }
+
+pub type Q = P
+
+pub type Box<T> = { value: T, }
+
+pub type W = { hint?: string, }
+
+pub type U = | Yes | No
+
+pub type HO = { o: Order, }
+
+pub fn tp(x: P) -> number { return 1 }
+pub fn tq(x: Q) -> number { return 1 }
+pub fn tr(x: Remote) -> number { return 1 }
+pub fn tb(x: Box<string>) -> number { return 1 }
+pub fn tw(x: W) -> number { return 1 }
+pub fn tu(x: U) -> number { return 1 }
+pub fn th(x: HO) -> number { return 1 }
+
+pub fn cp(v: { label: string, }) -> number { return tp(v) }
+pub fn cq(v: { label: string, }) -> number { return tq(v) }
+pub fn cr(v: { label: string, }) -> number { return tr(v) }
+pub fn cb(v: { value: string, }) -> number { return tb(v) }
+pub fn cw(v: { x: number, }) -> number { return tw(v) }
+pub fn cn(v: { label: number, }) -> number { return tp(v) }
+pub fn cu(v: { label: string, }) -> number { return tu(v) }
+pub fn ch(v: { o: Order, }) -> number { return th(v) }
+pub fn cx(v: { label: string, extra: number, }) -> number { return tp(v) }

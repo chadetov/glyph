@@ -1,0 +1,5 @@
+module lib
+
+pub type Remote = { label: string, }
+
+pub type Order = { id: string, }

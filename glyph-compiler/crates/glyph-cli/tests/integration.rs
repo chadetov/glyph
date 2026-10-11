@@ -14173,6 +14173,142 @@ fn g240_an_imported_components_props_record_decides_the_same_attribute() {
     );
 }
 
+/// The `ui` module every G242 test imports: one string-literal union and one
+/// component whose props record carries it.
+const G242_UI: &str = "module ui\n\
+     pub type Variant = \"primary\" | \"danger\"\n\
+     pub type Props = { variant: Variant, label: string }\n\
+     pub component Button(props: Props) {\n\
+     \x20 return <button>{props.label}</button>\n\
+     }\n";
+
+#[test]
+fn g242_a_dotted_element_through_a_namespace_import_is_a_component() {
+    // The miscompile. `<ui.Button>` under `import ui` was classified by the
+    // first character of its name, so it was an intrinsic: emitted as
+    // `React.createElement("ui.Button", ...)`, a string tag `tsc` accepts
+    // with any props, so the component never ran. The G240 check never saw
+    // it, and the resolver reported `ui` as an unused import. A dotted name
+    // is a member access, so it is a component whatever the case of its base.
+    let root = unique_tmp("g242ns");
+    write_file(&root, "ui.glyph", G242_UI);
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import ui\n\
+         pub component App() {\n\
+         \x20 return <ui.Button variant=\"nope\" label=\"go\" />\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0211]") && stderr.contains("expected `Variant`, found `\"nope\"`"),
+        "the attribute is checked against the props record:\n{stderr}"
+    );
+    assert!(
+        !stderr.contains("[E0106]"),
+        "`ui` is used by the element:\n{stderr}"
+    );
+}
+
+#[test]
+fn g242_an_aliased_namespace_import_reaches_the_same_component() {
+    // The guarantee may not depend on the import spelling: `import ui as u`
+    // and `<u.Button>` is the same declaration as `import ui { Button }` and
+    // `<Button>`, and draws the same diagnostic naming the same type.
+    let root = unique_tmp("g242alias");
+    write_file(&root, "ui.glyph", G242_UI);
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         import ui as u\n\
+         pub component App() {\n\
+         \x20 return <div>\n\
+         \x20   <u.Button variant=\"nope\" label=\"go\" />\n\
+         \x20   <u.Button variant=\"danger\" label=\"go\" bogus=\"x\" />\n\
+         \x20 </div>\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0211]") && stderr.contains("expected `Variant`, found `\"nope\"`"),
+        "stderr:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("[E0210]") && stderr.contains("type `Props` has no field `bogus`"),
+        "the imported record keeps its own name:\n{stderr}"
+    );
+    assert!(!stderr.contains("[E0106]"), "stderr:\n{stderr}");
+}
+
+#[test]
+fn g242_an_unbound_base_of_a_dotted_element_is_an_unresolved_name() {
+    // `nope` names nothing. As an intrinsic it resolved nothing and emitted
+    // the string `"nope.Button"`; as the member access it is, its base is a
+    // reference like any other.
+    let root = unique_tmp("g242unbound");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\
+         pub component App() {\n\
+         \x20 return <nope.Button label=\"go\" />\n\
+         }\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 1, "stderr:\n{stderr}");
+    assert!(
+        stderr.contains("[E0103]") && stderr.contains("nope"),
+        "stderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn g242_a_dotted_element_emits_its_tag_as_a_value() {
+    // The emitted tag is the member access `ui.Button`, not the string
+    // `"ui.Button"`, under both namespace spellings, and a correct program
+    // builds clean. An intrinsic stays a string.
+    let root = unique_tmp("g242emit");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "ui.glyph", G242_UI);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import ui\n\
+         pub component App() {\n\
+         \x20 return <div><ui.Button variant=\"danger\" label=\"go\" /></div>\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "other.glyph",
+        "module other\n\
+         import ui as u\n\
+         pub component Other() {\n\
+         \x20 return <u.Button variant=\"primary\" label=\"go\" />\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("[E0106]")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+    let main = std::fs::read_to_string(out.join("main.ts")).expect("main.ts written");
+    assert!(main.contains("React.createElement(ui.Button, "), "{main}");
+    assert!(!main.contains("\"ui.Button\""), "{main}");
+    assert!(main.contains("React.createElement(\"div\", "), "{main}");
+    let other = std::fs::read_to_string(out.join("other.ts")).expect("other.ts written");
+    assert!(other.contains("React.createElement(u.Button, "), "{other}");
+}
+
 #[test]
 fn g240_the_shapes_tsc_accepts_stay_silent() {
     // Run under `tsc --strict` with real `@types/react` before it was written

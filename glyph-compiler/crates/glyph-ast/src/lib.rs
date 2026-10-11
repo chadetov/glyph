@@ -553,6 +553,68 @@ pub struct JsxElement {
     pub span: Span,
 }
 
+impl JsxElement {
+    /// What kind of element this tag is (see `JsxKind::classify`).
+    pub fn kind(&self) -> JsxKind {
+        JsxKind::classify(&self.name)
+    }
+}
+
+/// What kind of element a JSX tag is.
+///
+/// This is the one classifier: the resolver decides from it which names
+/// resolve as references, the typechecker which elements have their
+/// attributes checked against a props record, and the emitter whether the tag
+/// is a string or a value. Two copies of it once disagreed with TypeScript in
+/// the same way at the same time (G242), and nothing downstream could see it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JsxKind {
+    /// A DOM element (`<div>`), emitted as a string tag.
+    Intrinsic,
+    /// A component reference (`<Button>`, `<ui.Button>`, `<Ctx.Provider>`),
+    /// emitted as a value.
+    Component,
+    /// `<>...</>`.
+    Fragment,
+    If,
+    Else,
+    For,
+    Match,
+    Case,
+}
+
+impl JsxKind {
+    /// Classify a JSX element name.
+    ///
+    /// The five directive names and the empty fragment name come first. A
+    /// dotted name (`ui.Button`, `ctx.Provider`) is always a component,
+    /// whatever the case of its base: it is a member access, so the tag is a
+    /// value, which is TypeScript's own JSX rule. A plain name is intrinsic
+    /// when it starts with a lowercase ASCII letter and a component otherwise.
+    pub fn classify(name: &str) -> Self {
+        match name {
+            "" => JsxKind::Fragment,
+            "if" => JsxKind::If,
+            "else" => JsxKind::Else,
+            "for" => JsxKind::For,
+            "match" => JsxKind::Match,
+            "case" => JsxKind::Case,
+            other if other.contains('.') => JsxKind::Component,
+            other if other.starts_with(|c: char| c.is_ascii_lowercase()) => JsxKind::Intrinsic,
+            _ => JsxKind::Component,
+        }
+    }
+}
+
+/// The base and member of a dotted JSX element name: `("ui", "Button")` for
+/// `ui.Button`, `("a", "b.C")` for `a.b.C`. `None` for a plain name.
+///
+/// The base is the only segment that names a binding; the rest is property
+/// access on the value it names.
+pub fn jsx_member_name(name: &str) -> Option<(&str, &str)> {
+    name.split_once('.')
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JsxAttr {
     /// `name="literal"`
@@ -1004,6 +1066,25 @@ mod tests {
             span: Span::new(0, 0),
         };
         assert_eq!(m.items.len(), 0);
+    }
+
+    #[test]
+    fn a_dotted_jsx_name_is_a_component_whatever_its_base() {
+        // G242: TypeScript reads a member-expression tag as a value lookup,
+        // so `ui.Button` is a component even with a lowercase base.
+        assert_eq!(JsxKind::classify("ui.Button"), JsxKind::Component);
+        assert_eq!(JsxKind::classify("u.Button"), JsxKind::Component);
+        assert_eq!(JsxKind::classify("ctx.provider"), JsxKind::Component);
+        assert_eq!(JsxKind::classify("Ctx.Provider"), JsxKind::Component);
+        assert_eq!(JsxKind::classify("a.b.C"), JsxKind::Component);
+        assert_eq!(JsxKind::classify("Button"), JsxKind::Component);
+        assert_eq!(JsxKind::classify("div"), JsxKind::Intrinsic);
+        assert_eq!(JsxKind::classify(""), JsxKind::Fragment);
+        assert_eq!(JsxKind::classify("for"), JsxKind::For);
+        assert_eq!(JsxKind::classify("case"), JsxKind::Case);
+        assert_eq!(jsx_member_name("ui.Button"), Some(("ui", "Button")));
+        assert_eq!(jsx_member_name("a.b.C"), Some(("a", "b.C")));
+        assert_eq!(jsx_member_name("Button"), None);
     }
 
     #[test]

@@ -20,8 +20,9 @@
 use std::collections::HashMap;
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, GenericParam, Ident, JsxAttr, JsxChild, JsxElement, MatchArmBody,
-    Module, ModulePath, ObjectField, Param, Pattern, Span, Stmt, TemplatePart, TypeExpr,
+    jsx_member_name, ArrayElem, Block, Decl, Expr, GenericParam, Ident, JsxAttr, JsxChild,
+    JsxElement, JsxKind, MatchArmBody, Module, ModulePath, ObjectField, Param, Pattern, Span, Stmt,
+    TemplatePart, TypeExpr,
 };
 
 use crate::collect::ModuleSymbols;
@@ -158,51 +159,6 @@ pub fn resolve_module(
 // ============================================================================
 // JSX classifier
 // ============================================================================
-
-/// What kind of element a JSX tag is. Drives directive-specific name
-/// resolution: `<for>` and `<case>` introduce bindings; intrinsics like `<div>`
-/// don't resolve as references; component-shaped names (uppercase) do.
-///
-/// The directive name list is duplicated from the parser's `jsx.rs`. If a new
-/// directive lands, both lists need updating — same drift risk the `KEYWORDS`
-/// table fixed for the lexer. Worth promoting to a shared `glyph-ast` helper
-/// if the count grows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum JsxKind {
-    Intrinsic,
-    Component,
-    Fragment,
-    If,
-    Else,
-    For,
-    Match,
-    Case,
-}
-
-impl JsxKind {
-    fn classify(name: &Ident) -> Self {
-        match name.as_ref() {
-            "" => JsxKind::Fragment,
-            "if" => JsxKind::If,
-            "else" => JsxKind::Else,
-            "for" => JsxKind::For,
-            "match" => JsxKind::Match,
-            "case" => JsxKind::Case,
-            other => {
-                if other
-                    .chars()
-                    .next()
-                    .map(|c| c.is_ascii_lowercase())
-                    .unwrap_or(false)
-                {
-                    JsxKind::Intrinsic
-                } else {
-                    JsxKind::Component
-                }
-            }
-        }
-    }
-}
 
 /// Whether a bare ident used in constructor position (a `Pattern::Ident`
 /// arm head) is constructor-shaped: PascalCase names (`Idle`, `Ok`, `None`)
@@ -633,12 +589,14 @@ impl Resolver<'_> {
     }
 
     fn walk_jsx(&mut self, j: &JsxElement) {
-        let kind = JsxKind::classify(&j.name);
+        let kind = j.kind();
         if kind == JsxKind::Component {
-            // A member-expression name (`Ctx.Provider`) resolves its base
-            // segment only; the `.Provider` part is a property access, not a
-            // separate binding.
-            match j.name.split_once('.') {
+            // A member-expression name (`Ctx.Provider`, `ui.Button`) resolves
+            // its base segment only; the `.Provider` part is a property
+            // access, not a separate binding. A dotted name is a component
+            // whatever the case of its base, so `ui` here is a use of the
+            // `import ui` binding and an unbound base is an unresolved name.
+            match jsx_member_name(&j.name) {
                 Some((base, _)) => {
                     let base_ident: Ident = std::sync::Arc::from(base);
                     self.resolve_name_ref(&base_ident, j.span);

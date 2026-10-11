@@ -17,9 +17,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild, JsxElement,
-    LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField, ObjectPatternField, Param, Pattern,
-    PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
+    jsx_member_name, ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild,
+    JsxElement, JsxKind, LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField,
+    ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
 use glyph_resolver::{
     Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolId, SymbolKind,
@@ -2209,25 +2209,39 @@ impl Assigner<'_> {
     /// The props record a component element's attributes are checked against,
     /// or `None` for every element this rule has nothing to say about.
     ///
-    /// Four kinds of element reach here and only one qualifies. An intrinsic
-    /// (`<div>`, lowercase) is React's own element table, which Glyph does not
-    /// model. A directive (`<if>`, `<else>`, `<for>`, `<match>`, `<case>`) is
-    /// compiler-owned and its attributes are the directive's own. A dotted
-    /// name (`<Ctx.Provider>`) resolves its base segment only, so the type
-    /// behind the member is not in hand. What is left is a component
-    /// reference, and it qualifies when it resolves to a callable taking one
-    /// parameter whose type is a record: the props-record form `E0214` already
-    /// pushes every component toward. A component with no parameter takes no
-    /// props, and `tsc` accepts any attribute on one, so it is left alone.
-    /// The type is the one the component's parameter is *declared* with, not
-    /// the alias chain's end, so a diagnostic names `Props` where the author
-    /// wrote `Props` — the rule `E0210` already follows at a field access.
+    /// Which elements are components is `JsxKind::classify`'s answer, the
+    /// one the resolver and the emitter use too. An intrinsic (`<div>`) is
+    /// React's own element table, which Glyph does not model, and a directive
+    /// (`<if>`, `<else>`, `<for>`, `<match>`, `<case>`) is compiler-owned with
+    /// attributes of its own. A component is reached one of two ways. A plain
+    /// name (`<Button>`) is the reference the resolver recorded. A dotted
+    /// name is a member of its base, and the member is in hand when the base
+    /// is a namespace import (`<ui.Button>` under `import ui` or
+    /// `import ui as u`): it is read through the same function the member
+    /// expression `ui.Button` is, so the component and its props are the
+    /// ones a named import would give. Any other dotted name
+    /// (`<Ctx.Provider>`, `<a.b.C>`) is a property of a value whose type is
+    /// not in hand, and is left to `tsc`.
+    ///
+    /// A component qualifies when it is a callable taking one parameter
+    /// whose type is a record: the props-record form `E0214` already pushes
+    /// every component toward. A component with no parameter takes no props,
+    /// and `tsc` accepts any attribute on one, so it is left alone. The type
+    /// is the one the component's parameter is *declared* with, not the alias
+    /// chain's end, so a diagnostic names `Props` where the author wrote
+    /// `Props` — the rule `E0210` already follows at a field access.
     fn jsx_component_props_shape(&mut self, j: &JsxElement) -> Option<(Ty, RecordShape)> {
-        let name = j.name.as_ref();
-        if !name.starts_with(|c: char| c.is_ascii_uppercase()) || name.contains('.') {
+        if j.kind() != JsxKind::Component {
             return None;
         }
-        let Ty::Fn { params, .. } = self.type_of_ident_ref(j.span) else {
+        let callee = match jsx_member_name(&j.name) {
+            None => self.type_of_ident_ref(j.span),
+            Some((_, member)) if !member.contains('.') => {
+                self.namespace_member_ty(j.span, member)?
+            }
+            Some(_) => return None,
+        };
+        let Ty::Fn { params, .. } = callee else {
             return None;
         };
         let [param] = params.as_slice() else {
@@ -2609,7 +2623,22 @@ impl Assigner<'_> {
         let Expr::Ident { span, .. } = object else {
             return None;
         };
-        let ResolvedRef::Module(id) = self.resolved.resolutions.get(*span)? else {
+        self.namespace_member_ty(*span, field)
+    }
+
+    /// The type of `field` read through the namespace import whose reference
+    /// the resolver recorded at `base_span`: `ui.Button` under `import ui` or
+    /// `import ui as u`, `http.get` under `import std/http`. `None` when the
+    /// reference is not a namespace import or the module declares no such
+    /// value.
+    ///
+    /// The member expression `ui.Button` and the JSX element `<ui.Button>`
+    /// both read the member through this one function, and it asks the same
+    /// declaration queries a named import does, so the component a
+    /// diagnostic is about is the same declaration whichever import spelling
+    /// reached it.
+    fn namespace_member_ty(&self, base_span: Span, field: &str) -> Option<Ty> {
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(base_span)? else {
             return None;
         };
         let sym = self.resolved.symbols.table.get(id)?;
@@ -2630,9 +2659,9 @@ impl Assigner<'_> {
         // And the namespace spelling of G205: `l.ORIGIN` reaches a sibling's
         // `pub const` here, with the same fallback order as the by-name arm.
         self.decl_ty_resolver
-            .imported_fn_decl(&key, field.as_ref())
-            .or_else(|| self.decl_ty_resolver.imported_const_decl(&key, field.as_ref()))
-            .or_else(|| self.stdlib_fn_ty(&key, field.as_ref()))
+            .imported_fn_decl(&key, field)
+            .or_else(|| self.decl_ty_resolver.imported_const_decl(&key, field))
+            .or_else(|| self.stdlib_fn_ty(&key, field))
     }
 
     /// The signature of `T.parse` for a module-local type `T` that emits a Q8

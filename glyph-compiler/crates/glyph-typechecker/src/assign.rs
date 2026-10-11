@@ -2176,17 +2176,15 @@ impl Assigner<'_> {
     /// - **An optional field may be omitted.** `hint?: string` is
     ///   `RecordField::optional`, and an element that omits it compiles.
     ///   A written one is checked against the field's type like any other.
-    /// - **A required field may not be omitted, once there is a props
-    ///   object.** `<Card title="x" />` lowers to `createElement(Card, {
-    ///   title: "x" })`, and `tsc` refuses that object when `Card` requires a
-    ///   `count`: the props object is the argument, so the element draws the
-    ///   `E0211` an argument record missing a field draws, at the element's
-    ///   name, with the missing names as `missing_fields`. An element that writes no
-    ///   attribute at all lowers to `createElement(Card, null)`, and React's
-    ///   own declaration accepts a `null` props argument for any component,
-    ///   so `tsc --strict` compiles `<Card />` whatever `Card` requires. That
-    ///   element is not asked, because refusing it would refuse a program
-    ///   `tsc` accepts.
+    /// - **A required field may not be omitted.** `<Card title="x" />` lowers
+    ///   to `createElement(Card, { title: "x" })`, and `tsc` refuses that
+    ///   object when `Card` requires a `count`: the props object is the
+    ///   argument, so the element draws the `E0211` an argument record missing
+    ///   a field draws, at the element's name, with the missing names as
+    ///   `missing_fields`. `<Card />` is the same question, because the
+    ///   emitter writes an attribute-less component's props as `{}`. It used
+    ///   to write `null`, which React's declaration accepts for any component,
+    ///   so `<Card />` compiled under `tsc --strict` and crashed at render.
     ///
     /// `key` is React's own attribute (it lives on `Attributes`, not on the
     /// props type) and `tsc` accepts it on every component, so it is never an
@@ -2257,26 +2255,21 @@ impl Assigner<'_> {
     /// The required props a component element does not write (see the last
     /// reading on `check_jsx_component_attrs`).
     ///
-    /// Asked only of an element whose props object the emitter writes as an
-    /// object and whose every field this walk can see: at least one named
-    /// attribute (`key` counts, since it is written into the same object) and
-    /// no spread. `found` is `record`, the name a written object literal has
-    /// on every other refusal of one.
+    /// Asked of every component element without a spread, since a spread
+    /// may carry anything. An element with no attribute at all is asked too:
+    /// the emitter writes its props as `{}`, never `null`, so `tsc` checks it
+    /// against the props type like any other object. That covers the element
+    /// a `<for ... key={x}>` maps, whose injected `key` is React's attribute
+    /// and not a field of the props record. `found` is `record`, the name a
+    /// written object literal has on every other refusal of one.
     fn check_jsx_required_props(&mut self, j: &JsxElement, props_ty: &Ty, shape: &RecordShape) {
-        let mut writes_props = false;
         let mut written: Vec<&Ident> = Vec::new();
         for attr in &j.attrs {
             match attr {
-                JsxAttr::String { name, .. } | JsxAttr::Expr { name, .. } => {
-                    writes_props = true;
-                    written.push(name);
-                }
+                JsxAttr::String { name, .. } | JsxAttr::Expr { name, .. } => written.push(name),
                 JsxAttr::Spread { .. } => return,
                 JsxAttr::Positional { .. } => {}
             }
-        }
-        if !writes_props {
-            return;
         }
         let missing_fields: Vec<String> = shape
             .fields

@@ -32,19 +32,29 @@ fn unique_tmp(prefix: &str) -> PathBuf {
 }
 
 fn stage(name: &str, source: &str) -> PathBuf {
+    stage_modules(name, &[("main.glyph", source)])
+}
+
+fn stage_modules(name: &str, modules: &[(&str, &str)]) -> PathBuf {
     let root = unique_tmp(name);
     std::fs::write(
         root.join("package.json"),
         format!("{{ \"name\": \"{name}\", \"version\": \"0.0.0\", \"glyph\": {{}} }}\n"),
     )
     .expect("write package.json");
-    std::fs::write(root.join("src").join("main.glyph"), source).expect("write module");
+    for (file, text) in modules {
+        std::fs::write(root.join("src").join(file), text).expect("write module");
+    }
     root
 }
 
 /// `glyph check --no-tsc --no-test --json` on `source`, parsed.
 fn check_json(name: &str, source: &str) -> serde_json::Value {
-    let root = stage(name, source);
+    check_json_modules(name, &[("main.glyph", source)])
+}
+
+fn check_json_modules(name: &str, modules: &[(&str, &str)]) -> serde_json::Value {
+    let root = stage_modules(name, modules);
     let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
         .args(["check", ".", "--no-tsc", "--no-test", "--json"])
         .current_dir(&root)
@@ -283,6 +293,10 @@ component Bare() {\n\
 \x20 return <div>x</div>\n\
 }\n\
 \n\
+component Opt(props: { title?: string, count?: number }) {\n\
+\x20 return <div>x</div>\n\
+}\n\
+\n\
 fn main() -> number {\n\
 \x20 return 0\n\
 }\n";
@@ -365,11 +379,40 @@ const ELEMENTS: &[Element] = &[
         missing: None,
         tsc: "TS2769 (not decided by Glyph)",
     },
-    // No attribute at all lowers to `createElement(Card, null)`, which React's
-    // declaration accepts for any component.
+    // No attribute at all lowers to `createElement(Card, {})`. It used to be
+    // `null`, which React's declaration accepts for any component, so this
+    // compiled under tsc and crashed at render.
     Element {
         name: "no_attributes",
         app: "  return <Card />\n",
+        missing: Some(&["title", "count"]),
+        tsc: "TS2769: Type '{}' is missing the following properties from type 'Props': title, count",
+    },
+    Element {
+        name: "no_attributes_with_children",
+        app: "  return <Card>hello</Card>\n",
+        missing: Some(&["title", "count"]),
+        tsc: "TS2769: Type '{}' is missing the following properties from type 'Props': title, count",
+    },
+    // A `<for>` with a `key` injects `key` into the mapped element's props.
+    // `key` is React's attribute, not a field of `Props`, so the element is
+    // still missing every required prop.
+    Element {
+        name: "for_mapped_with_key",
+        app: "  return <ul><for x in={[\"a\"]} key={x}><Card /></for></ul>\n",
+        missing: Some(&["title", "count"]),
+        tsc: "TS2769: Type '{ key: string; }' is missing the following properties from type 'Props': title, count",
+    },
+    // `createElement(Bare, {})` and `createElement(Opt, {})` both compile.
+    Element {
+        name: "no_parameter_no_attributes",
+        app: "  return <Bare />\n",
+        missing: None,
+        tsc: "accepted",
+    },
+    Element {
+        name: "all_optional_no_attributes",
+        app: "  return <Opt />\n",
         missing: None,
         tsc: "accepted",
     },
@@ -443,4 +486,35 @@ fn the_agent_surface_carries_the_missing_list() {
         .find(|d| d["code"] == "E0211")
         .unwrap_or_else(|| panic!("no E0211: {text}"));
     assert_eq!(d["missing_fields"], serde_json::json!(["count"]), "{d:#}");
+}
+
+/// The element reaches its props record through a namespace import too
+/// (G242), so `<ui.Button />` is asked for the same props `<Button />` is.
+#[test]
+fn a_namespace_component_element_is_asked_for_its_required_props() {
+    let ui = "module ui\n\
+              \n\
+              pub type Props = { label: string, count: number }\n\
+              \n\
+              pub component Button(props: Props) {\n\
+              \x20 return <button>{props.label}</button>\n\
+              }\n";
+    for (name, main) in [
+        (
+            "namespace",
+            "module main\n\nimport ui\n\npub component App() {\n  return <ui.Button label=\"go\" />\n}\n",
+        ),
+        (
+            "namespace_alias",
+            "module main\n\nimport ui as u\n\npub component App() {\n  return <u.Button />\n}\n",
+        ),
+    ] {
+        let v = check_json_modules(name, &[("main.glyph", main), ("ui.glyph", ui)]);
+        let errs = errors(&v);
+        assert_eq!(errs.len(), 1, "{name}: {v:#}");
+        let d = &errs[0];
+        assert_eq!(d["code"], "E0211", "{name}: {d:#}");
+        let want: &[&str] = if name == "namespace" { &["count"] } else { &["label", "count"] };
+        assert_eq!(d["missing_fields"], serde_json::json!(want), "{name}: {d:#}");
+    }
 }

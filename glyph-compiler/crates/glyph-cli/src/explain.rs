@@ -362,6 +362,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A value's type does not match the type required at its position (for \
             example, a `return` whose value differs from the declared return \
             type).\n\n\
+            A record that lacks a required field of the declared record names it: \
+            `return { name: \"a\" }` under `-> User` ends with \"missing field \
+            `age`\", and `--json` carries the names as `missing_fields`. A field \
+            declared with `?` is never required.\n\n\
             Change the value, or the declared type, so the two agree.",
         "E0205" => "E0205: `owned` requires a resource type\n\n\
             The `owned` modifier is the narrow D25 carve-out for resource handles \
@@ -414,6 +418,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             />` is checked against the `variant` field of the component's props \
             record and carries that field's accepted values when it declares a \
             finite set.\n\n\
+            An argument record, or a component element, that leaves out a required \
+            field lists it in the message and in `missing_fields`: `<Card \
+            title=\"x\" />` against `{ title: string, count: number }` is missing \
+            `count`. An element with a `{...spread}` is not asked, since the spread \
+            may supply it.\n\n\
             Pass a value of the expected type, or change the parameter's type.",
 
         "E0212" => "E0212: cannot reassign a `const`\n\n\

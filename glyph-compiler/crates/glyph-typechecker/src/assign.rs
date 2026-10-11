@@ -1386,7 +1386,7 @@ impl Assigner<'_> {
                             expected: ty_display(&r.expected),
                             found: r.found,
                             accepted,
-                            missing: r.missing,
+                            missing_fields: r.missing_fields,
                             span: r.span,
                         });
                     }
@@ -1568,7 +1568,7 @@ impl Assigner<'_> {
                             expected: ty_display(&r.expected),
                             found: r.found,
                             accepted,
-                            missing: r.missing,
+                            missing_fields: r.missing_fields,
                             span: r.span,
                         });
                     }
@@ -1969,7 +1969,7 @@ impl Assigner<'_> {
                                 expected: ty_display(&r.expected),
                                 found: r.found,
                                 accepted,
-                                missing: r.missing,
+                                missing_fields: r.missing_fields,
                                 span: r.span,
                             });
                         }
@@ -2181,7 +2181,7 @@ impl Assigner<'_> {
     ///   title: "x" })`, and `tsc` refuses that object when `Card` requires a
     ///   `count`: the props object is the argument, so the element draws the
     ///   `E0211` an argument record missing a field draws, at the element's
-    ///   name, with the missing names as `missing`. An element that writes no
+    ///   name, with the missing names as `missing_fields`. An element that writes no
     ///   attribute at all lowers to `createElement(Card, null)`, and React's
     ///   own declaration accepts a `null` props argument for any component,
     ///   so `tsc --strict` compiles `<Card />` whatever `Card` requires. That
@@ -2246,7 +2246,7 @@ impl Assigner<'_> {
                     expected: ty_display(&r.expected),
                     found: r.found,
                     accepted,
-                    missing: r.missing,
+                    missing_fields: r.missing_fields,
                     span: r.span,
                 });
             }
@@ -2278,20 +2278,20 @@ impl Assigner<'_> {
         if !writes_props {
             return;
         }
-        let missing: Vec<String> = shape
+        let missing_fields: Vec<String> = shape
             .fields
             .iter()
             .filter(|f| !f.optional && !written.iter().any(|w| **w == f.name))
             .map(|f| f.name.to_string())
             .collect();
-        if missing.is_empty() {
+        if missing_fields.is_empty() {
             return;
         }
         self.errors.push(TypeError::ArgumentTypeMismatch {
             expected: ty_display(props_ty),
             found: "record".to_string(),
             accepted: None,
-            missing,
+            missing_fields,
             span: j.name_span,
         });
     }
@@ -3187,7 +3187,7 @@ impl Assigner<'_> {
                 expected: ty_display(&r.expected),
                 found: r.found,
                 accepted,
-                missing: r.missing,
+                missing_fields: r.missing_fields,
                 span: r.span,
             });
         }
@@ -5172,7 +5172,7 @@ impl Assigner<'_> {
         }
         if self.assign_incompatible(found, expected) {
             let mut r = self.refusal(expected, self.found_display(found, expected), value.span());
-            r.missing = self.missing_required_fields(found, expected);
+            r.missing_fields = self.missing_required_fields(found, expected);
             return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
@@ -5188,7 +5188,7 @@ impl Assigner<'_> {
         Refusal {
             expected: expected.clone(),
             found,
-            missing: Vec::new(),
+            missing_fields: Vec::new(),
             span,
         }
     }
@@ -6365,13 +6365,13 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 /// span is the value's own at the top and the offending element's or field's
 /// when the rule descended into a written literal.
 ///
-/// `missing` is the declared record's required fields the value's record
-/// lacks, when the value is a structural record and the declared type has a
-/// field set to compare it against. Empty otherwise.
+/// `missing_fields` is the declared record's required fields the value's
+/// record lacks, when the value is a structural record and the declared type
+/// has a field set to compare it against. Empty otherwise.
 struct Refusal {
     expected: Ty,
     found: String,
-    missing: Vec<String>,
+    missing_fields: Vec<String>,
     span: Span,
 }
 

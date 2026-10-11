@@ -508,6 +508,123 @@ def case_import_spelling() -> tuple[bool, str]:
     return True, "both spellings name the declaration and the call, at the name"
 
 
+ELEMENT_SPELLING = CORPUS / "element-spelling"
+
+#: The three ways a consumer can name a component it renders: `import ui
+#: { Button }` then `<Button>`, `import ui` then `<ui.Button>`, and
+#: `import ui as u` then `<u.Button>`.
+ELEMENT_SPELLINGS = ("named", "namespace", "aliased")
+
+
+def covered(project: pathlib.Path, edge: dict) -> str:
+    """The source text an edge's range covers, read out of the corpus."""
+    lines = (project / edge["path"]).read_text().splitlines(keepends=True)
+    r = edge["range"]
+    start = sum(len(l) for l in lines[: r["start"]["line"]]) + r["start"]["character"]
+    end = sum(len(l) for l in lines[: r["end"]["line"]]) + r["end"]["character"]
+    return "".join(lines)[start:end]
+
+
+def element_edges(project: pathlib.Path, answer: dict) -> list:
+    """Every edge of `answer` as (relation, path, from, line, covered text)."""
+    return sorted((
+        (e.get("relation"), e.get("path"), e.get("from"), e["range"]["start"]["line"],
+         covered(project, e))
+        for e in edges_of(answer)
+    ), key=repr)
+
+
+def case_element_spelling() -> tuple[bool, str]:
+    """A component element is the same edge whichever way its import is spelled.
+
+    `main::App` renders `ui::Button` twice, once self-closing and once with a
+    closing tag, and the three projects differ only in how `main` imports
+    `ui`. Was G244: under `import ui` and `import ui as u` the elements were not
+    recorded at all, so `glyph_references` answered with the declaration alone
+    and `glyph_dependencies` said `main::App` depends on nothing. Under the
+    named import the site was recorded and keyed by the whole element, so the
+    range covered `<Button label="go" />` and a rename wrote the new name over
+    the attributes.
+
+    The named spelling has one edge the others cannot: the `Button` token in
+    `import ui { Button }`, at module level. A namespace import writes no such
+    token, so it is set aside by its position and every other edge must match
+    exactly, including the closing tag, which a rename has to rewrite too.
+    """
+    answers = {}
+    for spelling in ELEMENT_SPELLINGS:
+        project = ELEMENT_SPELLING / spelling
+        a = references(project, "src/ui.glyph", "Button")
+        if "error" in a:
+            return False, f"{spelling}: refused: {a['error'][:120]}"
+        answers[spelling] = element_edges(project, a)
+
+    binding = [e for e in answers["named"] if e[2] is None]
+    if [(e[1], e[4]) for e in binding] != [("src/main.glyph", "Button")]:
+        return False, f"the named import's binding token is not the one extra edge: {binding}"
+    answers["named"] = [e for e in answers["named"] if e[2] is not None]
+
+    for spelling, edges in answers.items():
+        uses = [e for e in edges if e[2] == "main::App"]
+        if len(uses) != 3:
+            return False, (
+                f"{spelling}: `main::App` names the component in two opening tags and one "
+                f"closing tag, and the answer has {len(uses)} of them: {edges}"
+            )
+        wide = [e[4] for e in edges if e[4] != "Button"]
+        if wide:
+            return False, f"{spelling} reported a span other than the name: {wide}"
+
+    for spelling in ELEMENT_SPELLINGS[1:]:
+        if answers[spelling] != answers["named"]:
+            return False, (
+                "the answer depends on how the consumer spelled its import: "
+                f"named={answers['named']} {spelling}={answers[spelling]}"
+            )
+    return True, "every spelling names both tags of both elements, at the name"
+
+
+def case_element_spelling_dependencies_and_impact() -> tuple[bool, str]:
+    """The two other surfaces that read the same relation agree too.
+
+    `glyph_dependencies` reads the relation outward from `main::App`, and
+    `glyph_impact` reads it inward from `ui::Button`. Both used to answer
+    nothing under the namespace spellings: no dependency of the component that
+    renders it, and a rename of `ui::Button` with no site to rewrite.
+    """
+    deps, impacts = {}, {}
+    for spelling in ELEMENT_SPELLINGS:
+        project = ELEMENT_SPELLING / spelling
+        a = call(project, "glyph_dependencies", {"entity": "main::App"})
+        if "error" in a:
+            return False, f"{spelling}: dependencies refused: {a['error'][:120]}"
+        deps[spelling] = sorted((
+            (e.get("relation"), e.get("to"), e["range"]["start"]["line"], covered(project, e))
+            for e in edges_of(a)
+        ), key=repr)
+        i = impact(project, "ui::Button", {"kind": "rename"})
+        if "error" in i:
+            return False, f"{spelling}: impact refused: {i['error'][:120]}"
+        impacts[spelling] = sorted((
+            (e.get("relation"), e.get("entity"), e.get("line"), e.get("verdict"))
+            for e in i.get("impact") or []
+            if e.get("entity") is not None
+        ), key=repr)
+
+    want = [("REFERENCES", "ui::Button", line, "Button") for line in (6, 7, 7)]
+    for spelling in ELEMENT_SPELLINGS:
+        if deps[spelling] != want:
+            return False, f"{spelling}: `main::App` depends on {deps[spelling]}, not {want}"
+        if len(impacts[spelling]) != 3:
+            return False, f"{spelling}: a rename of `ui::Button` reaches {impacts[spelling]}"
+        if impacts[spelling] != impacts["named"]:
+            return False, (
+                "the impact of one rename depends on the import spelling: "
+                f"named={impacts['named']} {spelling}={impacts[spelling]}"
+            )
+    return True, "dependencies and the rename's impact match across all three spellings"
+
+
 def case_calls_relation() -> tuple[bool, str]:
     """CALLS holds the sites that apply the symbol, and says what it missed.
 
@@ -1718,6 +1835,8 @@ HARD = [
      case_symbol_keys_a_prelude_identity_and_still_refuses_an_unkeyable_one),
     ("missing identity (as a change)", case_missing_identity_change),
     ("references under either import spelling", case_import_spelling),
+    ("a component element under any import spelling", case_element_spelling),
+    ("its dependencies and impact under any spelling", case_element_spelling_dependencies_and_impact),
     ("CALLS is the applied sites, with coverage", case_calls_relation),
     ("REFERENCES is everything else, with coverage", case_references_relation),
     ("provenance: proved vs asserted", case_provenance_is_proved_or_asserted),

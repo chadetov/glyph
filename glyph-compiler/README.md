@@ -7,7 +7,7 @@ The Rust workspace for the Glyph compiler. It is a complete transpile-to-TypeScr
 | Crate | Role |
 |---|---|
 | `glyph-lexer` | Hand-written lexer: keywords, significant newlines (D1), template literals (D22), triple-quoted strings, `//` comment recovery. |
-| `glyph-ast` | AST node types with a `Span` on every node. |
+| `glyph-ast` | AST node types with a `Span` on every node, and `JsxKind::classify`, the one intrinsic-or-component rule for a JSX element that the resolver, typechecker and emitter all read. |
 | `glyph-parser` | Pratt parser for every D-decision: JSX sub-grammar (D6) incl. prop spread, annotations (D27), `extern_ts` escape hatch (D29), string-literal unions (D30), `typeof` type queries (D32). |
 | `glyph-resolver` | Name resolution, module graph, cross-module import verification (D15), the prelude (incl. `int`, D31). |
 | `glyph-db` | Salsa-backed incremental query pipeline (parse → collect → resolve → typecheck), per-decl input slicing, cross-file auto-invalidation. |

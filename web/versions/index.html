@@ -61,8 +61,55 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.125</span>
+            <span class="rel-ver">0.1.126</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">October 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release finishes what 0.1.125 started on React components: the type a component returns now means something to <code>tsc</code>, go-to-definition works through a namespace import, and impact answers the same for a call however its callee was imported. It is breaking in two places, each established by running 0.1.125 and this build on the same program: a component whose parameter is <code>unknown</code> or an unbounded type parameter is E0229, and <code>?</code> inside a component body is E0201.</p>
+
+            <h3>A component returns a type tsc can read</h3>
+            <p><code>Component</code> is a prelude name, and <code>-&gt; Component</code> is how a component declares that it returns a rendered element. The emitter wrote the bare word into the TypeScript, which <code>tsc</code> could not resolve. The flagship React example only got past that by importing React's <code>Component</code> class over the prelude name, which <code>tsc</code> refuses for a different reason.</p>
+            <div class="code">
+              <span class="cap">glyph check, with React 18's types</span>
+<pre>fn view() -&gt; Component { return &lt;p&gt;hi&lt;/p&gt; }
+pub component App() -&gt; Component { return &lt;div&gt;{view()}&lt;/div&gt; }
+<span class="del">// 0.1.125: [TS2304] Cannot find name 'Component'      (twice, exit 1)</span>
+<span class="add">// 0.1.126: tsc --strict passed                         (exit 0)</span></pre>
+            </div>
+            <p>The prelude <code>Component</code> now lowers to <code>React.ReactNode</code>. It was picked by running <code>tsc</code> on every value a component can return in Glyph: an element, a fragment, an <code>&lt;if&gt;</code> without an <code>&lt;else&gt;</code> (which yields <code>null</code>), a <code>&lt;match&gt;</code> and a <code>&lt;for&gt;</code> list. <code>ReactNode</code> is the narrowest type that accepts all of them. A component with no annotation now returns <code>Component</code> too, where the checker used to record <code>void</code>, so hover and <code>glyph_symbol</code> read <code>fn(Props) -&gt; Component</code>. A module whose JSX lives only in plain functions now gets its <code>import * as React</code> line. One edge: React's types before 18.2.8 refuse a function component that returns <code>ReactNode</code>.</p>
+
+            <h3>Two things a component cannot be</h3>
+            <p>A component whose parameter is <code>unknown</code> or an unbounded type parameter receives a props object it can read nothing from, and <code>tsc</code> refuses its elements once they write attributes. Both are E0229 now, like a primitive. A type parameter bounded by a record or interface is still allowed. And <code>?</code> in a component body used to compile and hand React the <code>Err</code> object to render; now that a component's return type is <code>Component</code>, it is E0201 like <code>?</code> anywhere that does not return a <code>Result</code>.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc</span>
+<pre>component G(p: unknown) { return &lt;p&gt;x&lt;/p&gt; }
+pub component App() {
+  let v = get()?
+  return &lt;p&gt;{v}&lt;/p&gt;
+}
+<span class="del">// 0.1.125: nothing                                            (exit 0)</span>
+<span class="add">// 0.1.126: [E0229] ... parameter `p` is `unknown`, which gives it nothing it can read
+//          [E0201] ...                                         (exit 1)</span></pre>
+            </div>
+
+            <h3>Go-to-definition through a namespace</h3>
+            <p>Under <code>import ui</code>, go-to-definition on <code>Button</code> in <code>ui.Button</code> or <code>&lt;ui.Button&gt;</code> answered nothing, and on <code>Props</code> in <code>ui.Props</code> it jumped to the import line. It now answers the declaration in <code>ui.glyph</code>, as the named import <code>import ui { Button }</code> always did, in the editor and in <code>glyph_definition</code> alike. A test drives it over the language server protocol under all three import spellings.</p>
+
+            <h3>Impact, and a missing children prop</h3>
+            <p>A call written <code>ui.fmt(1)</code> was filed as a reference and answered "not indexed", where <code>fmt(1)</code> under a named import was a call that will fail. Both are calls now, with the same verdict and reason. An import line under an edit that keeps the name (a changed parameter type, an added parameter) is <code>SAFE</code>: an import checks only that the name exists and is exported, which was confirmed by reading every check at an import line and by making the edits. And when a required <code>children</code> prop is reported missing on an element that writes children, the help now says why: children between the tags are passed outside the props object, so declare <code>children?:</code> or pass <code>children={...}</code>.</p>
+
+            <h3>The React page, corrected</h3>
+            <p>The React answer page showed hooks named <code>use_state</code> and <code>use_reducer</code>. They existed only in a stub this repository uses for CI, not in React. A round that built a small app against real React 18 found it, along with what does not work yet. Browser globals such as <code>document</code> can't be named, so an effect that sets the page title can't be written. And a hook's tuple has to be read by index. The page now shows React's real <code>useReducer</code> and says both of those plainly. A typed <code>std/dom</code> module and <code>let [a, b] = ...</code> are planned. Across the 31 apps and the examples, the only verdict that changed is the React example, which went from failing <code>tsc</code> to passing.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.125</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">October 2026</span>
           </div>

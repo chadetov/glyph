@@ -5432,6 +5432,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G265: the prelude `Component` modeled in the relation, so JSX is a `Component` and a `Component` is not a `string`; decided in principle, its own change
 - G266: a declared `children` type compared with what is written between the tags
 - G267: `default as` on a Glyph module with no default export refused by the Glyph stages
+- The watch-mode test `build_watch_rebuilds_when_an_edit_lands_during_a_build` lost its race on CI on 2026-10-17, on a one-line docs change: the first build over 1500 filler modules finished while the edit was being written, and the test's own premise guard failed it. The guard is right to refuse a vacuous pass; the test needs a build that cannot finish before the write, rather than a filler count tuned to today's runner speed
 - G272: `==` on an opaque host handle (`Timer`, a socket, `dom.Element`) refused by the checker, since `__glyph_eq` has no cycle guard
 - Tests the 0.1.125 review found missing: the `tsc` messages `missing_fields.rs` records are compared in a test with React types installed, and G252's concurrent checks get a regression test
 - Carried: the remaining stdlib signatures and the unifier change that widens a bound name (its own change, split by risk); editor go-to-definition across modules in an unmarked `src/` tree (`project_root_for`), which waits on the owner's scope call; and the enterprise review's items from the rolling lane as they are decided

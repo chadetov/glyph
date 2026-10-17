@@ -5453,7 +5453,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G268: one pairing, one verdict, at an argument and at an attribute
 - **Toward a preview announcement**, decided 2026-10-11 by the owner: after one or two more releases, a readiness pass rather than a feature. `docs/launch/` is rewritten from the compiler as it is then (it was written for v0.1); outside-user agents run the getting-started path cold and every gap they hit is recorded; and a Linus review reads the announcement itself, the way it reads a release. The announcement says what Glyph catches today, shown with the `catches/` programs that are verified both ways, and says that the productivity claim has not been measured: the agent accuracy benchmark below is still the 0.2.0 gate, and the announcement is not it
 
-**0.1.126 — Ready to cut · Components emit, check and navigate the same way under every spelling**
+**0.1.126 — Shipped 2026-10-17 · Components emit, check and navigate the same way under every spelling**
 - G249: go-to-definition on a namespace member answers the declaration the named import answers, in the editor and in `glyph_definition`
 - G247: the prelude `Component` lowers to `React.ReactNode`, and an unannotated component returns it rather than `void`
 - G253: a missing required `children` explains that children written between the tags are not part of the props object

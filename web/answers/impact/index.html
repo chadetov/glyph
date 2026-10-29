@@ -104,7 +104,7 @@
         <p class="block-label">See it</p>
         <p>
           A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one
-          passes a string literal, one passes a value of a union imported from another module, and
+          passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and
           one reads <code>label</code> as a value and never calls it. Asking what
           <code>change_signature_type</code> does to each gets three different verdicts, because
           they're three different claims:
@@ -134,22 +134,24 @@
       "entity": "literal::probe",
       "verdict": "WILL_FAIL",
       "diagnostic": "E0211",
-      "because": "the checker compares a primitive argument
-        against a primitive parameter, and against a tagged
-        union or a record with at least one field declared in
-        this module, so a replacement primitive a `string`
-        does not satisfy ... is E0211 here"
+      "because": "every argument at this site is paired with
+        a parameter the relation reads in full, so a
+        replacement parameter type any of those pairings does
+        not accept is E0211 here. The pairings: argument 1
+        (`\"x\"`, `\"x\"`) against parameter `s: string`: ..."
     },
     {
       "entity": "imported::probe",
       "verdict": "UNDETERMINED",
       "diagnostic": null,
-      "because": "`Cell` is declared in another module, and
-        the checker's rule for a declared type against a
-        primitive reads only a declaration in the calling
-        module (G201); a cross-module type is compared
-        against nothing, so only `tsc` on a full `glyph
-        build` would report a mismatch here"
+      "because": "argument 1 (`c`, `Cell`) against parameter
+        `s: string`: `Cell` is declared in another module as
+        an alias for a primitive, and the checker compares an
+        imported declaration only when the declaration at the
+        end of its chain of names is a tagged union or a
+        record (G215, G226), so a replacement is compared
+        against nothing here and only `tsc` on a full `glyph
+        build` would see a mismatch"
     },
     {
       "entity": "reader::sizer",

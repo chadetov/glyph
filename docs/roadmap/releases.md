@@ -5446,7 +5446,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G258: AGENTS.md shows the `<for>` syntax
 - G271: `examples/03_react_component.glyph` rewritten against real React, and checked by a gate project with React's types installed
 
-**0.1.127 — Ready to cut · Records compared the way `tsc` compares them, and impact decides a component**
+**0.1.127 — Shipped 2026-10-30 · Records compared the way `tsc` compares them, and impact decides a component**
 - **G270, a nested record field is compared through the whole relation.** The structural record arm compared each field with the free `definitely_incompatible`, which has no declaration in hand, so `tx(v)` with `v = { o: { b: "x" } }` passed where `{ o: Other }` was declared, and `glyph_impact` reported a `WILL_FAIL` there that no diagnostic followed (live since G228). Both are E0211 now, as `tsc` refuses them (TS2345)
 - **G269, the weak-type rule.** A record whose fields are all optional refuses a value sharing none of them, mirroring TS2559 row by row: an empty record is not weak, a value with no fields is accepted, a function value is refused, and the diagnostic says why (`it has no field in common with ..., whose fields are all optional`)
 - **G274, four more positions the same hole reached**, found checking G270's premise: a field the value holds as optional where the declaration requires it, a declared record passed where a structural one is declared, a function whose return does not fit, and an interface member. Each passed `--no-tsc` under 0.1.126 and is TS2345 under `tsc`; each is E0211 now. The same change removed a false refusal: a record that names itself through a member (`{ kids: Array<Node> }`) against an interface that does the same was refused by name one level down, on a program `tsc` accepts. The relation assumes an interface pairing it is already deciding holds, as `tsc` does. A function's parameters are still compared by nothing
@@ -5455,6 +5455,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **G268, one pairing, one verdict.** An attribute and a call argument go through one function now, so `number` against `unknown` is the same answer at `take(n)` and at `<Box x={n} />`. `unknown` has its own cell: `WILL_FAIL` for a `string`, `number` or `bool`, whose rules decide every replacement the checker reads, and `UNDETERMINED` with the reason for anything else
 - **A type parameter bound from a literal.** `array.fold(xs, "", fn(out: string, ...) -> string { ... })` bound the accumulator to the literal `""` and kept it, which the function-return comparison then refused on two apps `tsc` accepts. A later `string` candidate supersedes an earlier literal one, which is what `tsc` infers from the two
 - The 0.1.126 ledger entries G246, G247, G249, G250 and G253 are marked fixed; they shipped without the marker
+- **The measurement.** The suite is 1855 tests, from 1844; the exact-or-absent corpus is 41 invariants, from 38; the gap ledger is 274 entries, 234 fixed and 22 open
+- **Breaking**, in the checking direction, established by running the published 0.1.126 and this build on the same programs. Six programs exit 0 under 0.1.126 with `--no-tsc` and 1 here, each refused by `tsc --strict` as TS2345 or TS2559: a nested record field of the wrong type, a value sharing no field with an all-optional record, an optional field where a required one is declared, a declared record passed where a structural one is declared, a function whose return does not fit, and an interface member of the wrong type. A self-referencing record against a self-referencing interface goes the other way: E0211 under 0.1.126, accepted here as `tsc` accepts it. Across the 31 apps and `examples/`, with and without `tsc`, every exit code and diagnostic-code list is identical under both binaries
 - **Toward a preview announcement**, decided 2026-10-11 by the owner, is not in this release. It is a readiness pass rather than a feature and follows 0.1.128: `docs/launch/` rewritten from the compiler as it is then, outside-user agents running the getting-started path cold, and a Linus review of the announcement itself. The announcement says what Glyph catches today, shown with the `catches/` programs verified both ways, and says that the productivity claim has not been measured
 
 **0.1.126 — Shipped 2026-10-17 · Components emit, check and navigate the same way under every spelling**
@@ -8136,6 +8138,31 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**E0211 between two unnamed records names no field.** The record rule
+0.1.127 completed produces ``expected `record`, found `record` `` for a
+nested mismatch, which tells the reader the comparison failed and not where.
+The diagnostic should name the first field path that does not fit
+(`o.a: expected number, found string`). Found by the 0.1.127 release review;
+it is the most visible cost of that release's new refusals.
+
+**A function's parameters are compared by nothing.** Since 0.1.127 the
+relation compares a function value's return, and a callback whose parameter
+type is wrong still passes `--no-tsc`. TypeScript compares parameters
+bivariantly for methods and contravariantly under `strictFunctionTypes`, so
+the rule needs deciding against both before it is written.
+
+**The docs gate skipped the newest release notes' code.** `check_docs_compile`
+adds the latest `web/versions` entry so its snippets are compiled, but a block
+with no `module` header is filed as a fragment and skipped, so the two 0.1.127
+samples, which did not parse at top level, passed the gate. The latest entry
+should be held to the strict rule: a fragment there is marked or it compiles.
+`check_doc_claims.py --tests N` also accepts the count it is meant to verify;
+it should require a finished log that agrees.
+
+**G268's `unknown` cell for a non-scalar value has no test.** The scalar
+case (`number` against `unknown` is `WILL_FAIL`) is pinned; a record against
+`unknown` answering `UNDETERMINED` with its reason is not.
 
 **G273, an undeclared field on a fresh object literal.** `tsc` refuses
 `let u: User = { name: "a", extra: 1 }` (TS2353) and Glyph accepts it, because

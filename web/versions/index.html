@@ -61,8 +61,56 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.126</span>
+            <span class="rel-ver">0.1.127</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">October 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release is about records. Glyph checked the top level of a record against its declaration and then compared what was inside it with a weaker rule, so a record nested in another record could be the wrong shape and pass <code>glyph check --no-tsc</code>. It is breaking for that reason: programs that 0.1.126 accepted and <code>tsc</code> refuses are now refused by Glyph too. That was established by running 0.1.126 and this build on each program below.</p>
+
+            <h3>Records are compared all the way down</h3>
+            <p>Every field of a record is now compared by the same rule as the record itself, so a nested record, a declared type and a string-literal union inside a record are checked the way they are at the top. The same gap reached four other places, and they are closed too: a field the value may not have (<code>a?: number</code>) where the declaration requires it, a declared record passed where an inline one is declared, a function whose return type doesn't fit, and an interface's members.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc</span>
+<pre>type Other = { a: number, }
+fn tx(x: { o: Other, }) -&gt; number { return 1 }
+pub fn g() -&gt; number {
+  let v = { o: { b: "x", }, }
+  return tx(v)
+}
+<span class="del">// 0.1.126: nothing                                         (exit 0)</span>
+<span class="add">// 0.1.127: [E0211] argument type mismatch: expected `record`, found `record`
+//                                                           (exit 1)</span></pre>
+            </div>
+            <p>The message still calls both sides <code>record</code> when neither has a name, which is a known display gap. One program goes the other way: a record that refers to itself through a field, such as <code>type Node = { kids: Array&lt;Node&gt;, }</code>, passed to an interface shaped the same way used to be refused by name one level down. <code>tsc</code> accepts it, and now Glyph does too.</p>
+
+            <h3>A record of only optional fields</h3>
+            <p>A record whose fields are all optional accepts almost anything, so TypeScript refuses a value that shares none of its fields (TS2559). Glyph now applies the same rule, with the same edges: an empty value is accepted, and one shared field is enough.</p>
+            <div class="code">
+              <span class="cap">glyph check --no-tsc</span>
+<pre>fn ti(x: { hint?: string, }) -&gt; number { return 1 }
+pub fn g() -&gt; number {
+  let v = { x: 1, }
+  return ti(v)
+}
+<span class="del">// 0.1.126: nothing                                         (exit 0)</span>
+<span class="add">// 0.1.127: [E0211] ... it has no field in common with `record`, whose fields
+//          are all optional                                 (exit 1)</span></pre>
+            </div>
+            <p>An extra field on a fresh object literal is still accepted. <code>tsc</code> refuses it (TS2353) and Glyph doesn't yet; that's recorded as G273.</p>
+
+            <h3>Impact on components</h3>
+            <p><code>glyph_impact</code> answered "not indexed" for a JSX element under a change to a component's props. It now treats <code>&lt;Card title="x" /&gt;</code> as the call it compiles to, one props record passed to <code>Card</code>, and lists each attribute against the field it is checked against. An attribute and a call argument of the same types now get the same verdict, because they go through the same code. With the record rule complete, <code>glyph_assignable</code> answers <code>COMPATIBLE</code> or <code>WILL_FAIL</code> for a record against a declared record, where it used to say it had no rule.</p>
+
+            <h3>Breaking, measured</h3>
+            <p>Across the 31 apps and <code>examples/</code>, with and without <code>tsc</code>, every exit code and every list of diagnostic codes is the same under 0.1.126 and this build. An early cut of this release refused two of the apps, <code>shortlink</code> and <code>zipper</code>: <code>array.fold(xs, "", ...)</code> inferred the accumulator as the literal type <code>""</code> instead of <code>string</code>. That was fixed before release, and it is now inferred as <code>string</code>, which is what <code>tsc</code> infers.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.126</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">October 2026</span>
           </div>

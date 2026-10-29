@@ -6391,6 +6391,8 @@ enum ArgKind {
 /// How the checker sees the parameter the argument is paired with.
 enum ParamKind {
     Primitive(Primitive),
+    /// `unknown`, the top type: the relation accepts every value there.
+    Top,
     /// A declared type of the calling module (`Ty::Named`), with what its
     /// declaration body is, since the rule comparing a primitive against it
     /// is decided on the body.
@@ -6637,6 +6639,7 @@ fn classify_parameter(ty: &Ty, scope: &CellScope<'_>) -> ParamKind {
     }
     match ty {
         Ty::Prim(p) => ParamKind::Primitive(*p),
+        Ty::UnknownTop => ParamKind::Top,
         Ty::StringLiteralUnion(_) => ParamKind::StringLiteralUnion,
         Ty::Named { .. } => match classify_named_body(ty, module, resolved) {
             NamedBody::StringLiteralUnion => ParamKind::StringLiteralUnion,
@@ -6769,6 +6772,24 @@ fn signature_type_cell(
             arg_ty,
             param_ty,
         ),
+        // G268. `unknown` accepts every value, so the site compiles as it
+        // stands, and what a replacement does is decided by the argument's
+        // own rules. A primitive's are total over every class a replacement
+        // can be in that the checker reads (a primitive, a tagged union, a
+        // fielded record of this module), which is the cell beside this one.
+        (A::Primitive(p), P::Top) if is_concrete_scalar(*p) => will_fail(format!(
+            "`unknown` accepts a `{arg_ty}` as the parameter stands, and the checker compares \
+             a primitive argument against a primitive parameter, and against a tagged union \
+             or a record with at least one field declared in this module, so a replacement \
+             primitive a `{arg_ty}` does not satisfy, or a replacement union or fielded \
+             record of this module, is E0211 here"
+        )),
+        (_, P::Top) => undetermined(format!(
+            "`unknown` accepts a `{arg_ty}` as the parameter stands, and whether the checker \
+             compares one against a replacement depends on what the replacement is, which \
+             this change does not name; this table decides that for a `string`, `number` or \
+             `bool` argument only"
+        )),
         (A::Primitive(_), P::Primitive(_)) => will_fail(format!(
             "the checker compares a primitive argument against a primitive parameter, and \
              against a tagged union or a record with at least one field declared in this \
@@ -7083,6 +7104,42 @@ fn signature_type_cell(
     }
 }
 
+/// The `change_signature_type` cell for one value type against one declared
+/// type: a call argument against its parameter, and a JSX attribute against
+/// the props field the checker reads it against. Both go through here, so one
+/// pairing has one verdict at an argument and at an attribute (G268); they
+/// used to be decided by two different functions, and `number` against
+/// `unknown` was `UNDETERMINED` at `take(5)` and `WILL_FAIL` at `<Box x={n} />`.
+///
+/// `found` is `None` when the checker holds no type for the value.
+fn pairing_cell(found: Option<&Ty>, expected: &Ty, scope: &CellScope<'_>) -> (Verdict, String) {
+    let kind = match found {
+        Some(ty) => classify_argument(ty, scope),
+        None => ArgKind::Unknown,
+    };
+    let found_ty = found.map(display_ty).unwrap_or_else(|| "?".to_string());
+    // The relation is asked lazily: it builds a lowerer and a scratch type
+    // map per call, and only some cells of the table read it.
+    let decide = || match found {
+        Some(ty) => glyph_typechecker::assignability(
+            scope.module,
+            scope.resolved,
+            scope.prelude,
+            scope.decls,
+            ty,
+            expected,
+        ),
+        None => Assignability::NoRule,
+    };
+    signature_type_cell(
+        &kind,
+        &classify_parameter(expected, scope),
+        &found_ty,
+        &display_ty(expected),
+        &decide,
+    )
+}
+
 /// One cell decided by the checker's own assignability relation rather than by
 /// a sentence written here (G228).
 ///
@@ -7199,30 +7256,8 @@ fn signature_type_site(
         let ty = types.get(*span);
         let arg_ty = display_ty(ty);
         let param_ty = display_ty(&param.ty);
-        let kind = if types.has_entry(*span) {
-            classify_argument(ty, scope)
-        } else {
-            ArgKind::Unknown
-        };
-        // The relation is asked lazily: it builds a lowerer and a scratch type
-        // map per call, and only two cells of the table read it.
-        let decide = || {
-            glyph_typechecker::assignability(
-                scope.module,
-                scope.resolved,
-                scope.prelude,
-                scope.decls,
-                ty,
-                &param.ty,
-            )
-        };
-        let (verdict, rule) = signature_type_cell(
-            &kind,
-            &classify_parameter(&param.ty, scope),
-            &arg_ty,
-            &param_ty,
-            &decide,
-        );
+        let (verdict, rule) =
+            pairing_cell(types.has_entry(*span).then_some(ty), &param.ty, scope);
         let param_name = param.name.as_deref().unwrap_or("_");
         let because = format!(
             "argument {} (`{source}`, `{arg_ty}`) against parameter `{param_name}: {param_ty}`: \
@@ -7513,16 +7548,15 @@ fn element_signature_site(
             ),
             (Some(_), Some(field), Some(ty)) => {
                 let field_ty = display_ty(&field.ty);
-                decided_cell(
-                    relation(ty, &field.ty),
-                    &format!(
+                let (verdict, rule) = pairing_cell(Some(ty), &field.ty, scope);
+                (
+                    verdict,
+                    format!(
                         "the checker compares attribute `{name}` against the field \
                          `{name}: {field_ty}` of the props record through the relation a call \
-                         argument is compared by (G240)"
+                         argument is compared by (G240), and this is the cell a call argument \
+                         of the same type against a parameter of that type gets: {rule}"
                     ),
-                    "No rule of the relation reads this pairing",
-                    &attr_ty,
-                    &field_ty,
                 )
             }
         };
@@ -15726,6 +15760,36 @@ pub fn f() -> number {
         ));
         let after = diagnostics_at(&root, "main.glyph");
         assert!(after.contains(&(7, "E0211".to_string())), "{after:?}");
+    }
+
+    /// G268: one pairing, one verdict. A `number` against `unknown` is the
+    /// same pairing as an argument to `take(x: unknown)` and as the attribute
+    /// `x={n}` against `{ x: unknown }`, and it used to be `UNDETERMINED` at
+    /// the first and `WILL_FAIL` at the second, because the attribute was
+    /// decided by the relation and the argument by the cell table. Both go
+    /// through `pairing_cell` now, and the attribute's reason carries the
+    /// argument's.
+    #[test]
+    fn an_attribute_and_an_argument_give_one_pairing_one_verdict() {
+        let ui = "module ui\n\
+            pub component Box(props: { x: unknown, }) {\n  return <b>box</b>\n}\n\
+            pub fn take(x: unknown) -> string {\n  return \"t\"\n}\n";
+        let main = "pub component App() {\n  let n: number = 5\n  \
+                    let a = take(n)\n  \
+                    return <div>\n    <Box x={n} />\n    <i>{a}</i>\n  </div>\n}\n";
+        let root = element_project(ui, main, "named", "Box, take");
+        let mut server = Server::new(root);
+        let sig = json!({ "kind": "change_signature_type" });
+        let el = entry_at(&impact(&mut server, json!({ "entity": "ui::Box", "change": sig })), 6);
+        let call = entry_at(&impact(&mut server, json!({ "entity": "ui::take", "change": sig })), 4);
+        let attr = &el["attributes"][0];
+        let arg = &call["arguments"][0];
+        assert_eq!(attr["name"], "x", "{el}");
+        assert_eq!(attr["verdict"], arg["verdict"], "{attr}\n{arg}");
+        assert_eq!(arg["verdict"], "WILL_FAIL", "{arg}");
+        let rule = arg["because"].as_str().unwrap().split_once("`: ").unwrap().1;
+        assert!(attr["because"].as_str().unwrap().ends_with(rule), "{attr}\n{arg}");
+        assert!(rule.contains("`unknown` accepts"), "{rule}");
     }
 
     /// G251: an element that spreads an object into its props is not

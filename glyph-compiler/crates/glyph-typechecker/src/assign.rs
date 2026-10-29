@@ -317,6 +317,7 @@ pub fn assign_types_with_relations(
             field_uses: &mut field_uses,
             assign_target: None,
             member_object: None,
+            relating: RefCell::new(Vec::new()),
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -408,6 +409,7 @@ pub fn assignability(
         field_uses: &mut field_uses,
         assign_target: None,
         member_object: None,
+        relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
         return_stack: Vec::new(),
         local_tys: HashMap::new(),
@@ -452,6 +454,7 @@ pub fn declared_record_fields(
         field_uses: &mut field_uses,
         assign_target: None,
         member_object: None,
+        relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
         return_stack: Vec::new(),
         local_tys: HashMap::new(),
@@ -1155,6 +1158,10 @@ struct Assigner<'a> {
     /// walked with it still set, and a flag would exempt every identifier
     /// underneath.
     member_object: Option<Span>,
+    /// The interface pairings the relation is in the middle of deciding, so a
+    /// type that names itself through a member does not recurse without end.
+    /// See the interface arm of `assign_incompatible_at`.
+    relating: RefCell<Vec<(Ty, Ty)>>,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
     /// the Assigner doesn't keep a local `decl_ty` map any more.
@@ -5623,15 +5630,35 @@ impl Assigner<'_> {
     fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, position: Position) -> bool {
         if let Some(members) = self.interface_member_fields(expected) {
             return match self.record_fields_of(found) {
-                // A value carries its members structurally: the same
-                // required-member / shared-field-type logic the record branch
-                // of `definitely_incompatible` already implements.
-                Some(found_fields) => definitely_incompatible(
-                    &Ty::Record {
-                        fields: found_fields,
-                    },
-                    &Ty::Record { fields: members },
-                ),
+                // A value carries its members structurally, and they are
+                // compared the way a record's fields are: through this whole
+                // relation, with the weak-type rule. The free function this
+                // went through had no declaration in hand, so a member holding
+                // a declared record passed against a record of another shape
+                // (G274).
+                Some(found_fields) => {
+                    // An interface can name itself through a member
+                    // (`interface Tree { kids: Array<Tree> }`), and so can the
+                    // record compared against it, so the walk can arrive back
+                    // at the pairing it started from. A pairing already being
+                    // related is assumed to hold, which is TypeScript's answer
+                    // for a recursive structural comparison: anything below it
+                    // that is refused is refused on its own. The free function
+                    // compared `Node` against `Tree` by name one level down and
+                    // refused a program `tsc` accepts.
+                    let pair = (found.clone(), expected.clone());
+                    if self.relating.borrow().contains(&pair) {
+                        return false;
+                    }
+                    self.relating.borrow_mut().push(pair);
+                    let value = Ty::Record {
+                        fields: found_fields.clone(),
+                    };
+                    let refused = weak_record_disjoint(&value, &members)
+                        || self.record_fields_incompatible(&found_fields, &members);
+                    self.relating.borrow_mut().pop();
+                    refused
+                }
                 // `found` is undecidable (an open generic, an unresolved value):
                 // stay permissive, exactly as the nominal path does.
                 None => false,
@@ -5767,13 +5794,56 @@ impl Assigner<'_> {
                 }
             }
         }
+        // G274. A declared record where a structural one is declared, `m: Mine`
+        // passed to `x: { b: string }`, is compared by field, which is
+        // TypeScript's rule. The nominal rule (Q15) decides two names and this
+        // pairing has a name on one side only, the mirror of the arm above.
+        if let Ty::Record { fields: declared } = &expected {
+            if !matches!(found, Ty::Record { .. }) {
+                if let Some(have) = self.record_fields_of(&found) {
+                    let value = Ty::Record {
+                        fields: have.clone(),
+                    };
+                    return weak_record_disjoint(&value, declared)
+                        || self.record_fields_incompatible(&have, declared);
+                }
+            }
+        }
+        // G274. A function's return is compared through this relation, under
+        // the guards `definitely_incompatible` documents for its function arm,
+        // so `fn() -> { o: { b: string } }` where `fn() -> { o: Other }` is
+        // declared is refused as `tsc` refuses it (TS2345, "call signature
+        // return types ... are incompatible"). The parameters are still
+        // compared by nothing.
+        if let (
+            Ty::Fn {
+                return_ty: fr,
+                is_async: fa,
+                ..
+            },
+            Ty::Fn {
+                return_ty: er,
+                is_async: ea,
+                ..
+            },
+        ) = (&found, &expected)
+        {
+            if ty_is_decidable(&found) && ty_is_decidable(&expected) {
+                return !matches!(**fr, Ty::Prim(Primitive::Void))
+                    && !matches!(**er, Ty::Prim(Primitive::Void))
+                    && (fa != ea || self.assign_incompatible(fr, er));
+            }
+        }
         definitely_incompatible(&found, &expected)
     }
 
     /// A structural record's fields against a declared field set: a required
-    /// field the value lacks, or a shared field the relation refuses.
+    /// field the value lacks, a field the value holds as optional where the
+    /// declaration requires it (TS2345, `number | undefined` is not a
+    /// `number`; G274), or a shared field the relation refuses.
     fn record_fields_incompatible(&self, have: &[RecordField], declared: &[RecordField]) -> bool {
         declared.iter().any(|e| match have.iter().find(|f| f.name == e.name) {
+            Some(f) if f.optional && !e.optional => true,
             Some(f) => self.assign_incompatible_at(&f.ty, &e.ty, Position::Ordinary),
             None => !e.optional,
         })
@@ -5787,9 +5857,8 @@ impl Assigner<'_> {
         }
         declared.iter().all(|e| match have.iter().find(|f| f.name == e.name) {
             // A field the value may not carry, where the declaration requires
-            // one. The relation is silent here and TypeScript is not (TS2345),
-            // so this is a pairing the rule does not read rather than one it
-            // accepts, and no acceptance is claimed for it.
+            // one: refused by `record_fields_incompatible` (G274), so never an
+            // acceptance.
             Some(f) if f.optional && !e.optional => false,
             Some(f) => self.accepting_rule(&f.ty, &e.ty).is_some(),
             None => e.optional,
@@ -5823,9 +5892,8 @@ impl Assigner<'_> {
     ///   type is present in the value's type, is not optional there, and is
     ///   itself accepted here. Width subtyping is the rule, so an extra field
     ///   in the value's type is fine. `optional` is read on both sides: a
-    ///   value whose field is optional where the declaration requires one
-    ///   draws nothing from this relation and `TS2345` from TypeScript, so the
-    ///   silence is not an acceptance and the pairing is left uncovered.
+    ///   value whose field is optional where the declaration requires one is
+    ///   refused (G274), as TypeScript refuses it (`TS2345`).
     ///
     /// Two more from G230: two string-literal unions, when every literal the
     /// value's type accepts is one the declared type accepts (D30); and a
@@ -7304,10 +7372,22 @@ fn join_ty(a: &Ty, b: &Ty) -> Ty {
 /// pinning it to `Unknown`). This is not full unification: it only walks
 /// `Param` positions and zips `App` arguments — enough for the common
 /// generic call shapes.
+///
+/// One exception to "first wins": a `string` candidate supersedes a
+/// string-literal one bound earlier. `array.fold(xs, "", fn(out: string, ..)
+/// -> string { .. })` binds `A` from the `""` first, and TypeScript, which
+/// takes every candidate, infers `string` from the two. Keeping `""` would
+/// make the callback's `string` return a mismatch against a literal set, on a
+/// program `tsc --strict` accepts.
 fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty>) {
     match (param, arg) {
         (Ty::Param { name, .. }, concrete) if !concrete.is_unknown() => {
-            out.entry(name.clone()).or_insert_with(|| concrete.clone());
+            let bound = out.entry(name.clone()).or_insert_with(|| concrete.clone());
+            if matches!(bound, Ty::StringLiteralUnion(_))
+                && matches!(concrete, Ty::Prim(Primitive::String))
+            {
+                *bound = concrete.clone();
+            }
         }
         // A callback's declared return type binds a parameter the same way a
         // container's element type does. `array.map(xs, fn(x: T) -> U { .. })`
@@ -7838,15 +7918,15 @@ mod tests {
     /// `optional` is read on both sides of the record rule.
     ///
     /// A value whose field is optional where the declaration requires one is
-    /// `TS2345` under `tsc` and draws nothing from this relation, so the
-    /// relation's silence proves nothing and no acceptance is claimed. The
-    /// tell that the old rule was wrong is that it was symmetric in a flag
+    /// `TS2345` under `tsc`, and the relation refuses it too since G274; it
+    /// drew nothing before, which is why this answered `NoRule` then. The
+    /// tell that the oldest rule was wrong is that it was symmetric in a flag
     /// TypeScript is not: both directions came back accepted.
     #[test]
     fn an_optional_value_field_is_not_accepted_where_a_required_one_is_declared() {
         assert_eq!(
             assignability_of(UNION, "{ a?: string }", "{ a: string }"),
-            Assignability::NoRule
+            Assignability::Incompatible
         );
         // The other direction is TypeScript's own: a value that always
         // carries the field satisfies a declaration that may go without it.
@@ -7863,7 +7943,7 @@ mod tests {
         // pairing is asked through this relation.
         assert_eq!(
             assignability_of(UNION, "{ r: { a?: string } }", "{ r: { a: string } }"),
-            Assignability::NoRule
+            Assignability::Incompatible
         );
     }
 
@@ -12098,6 +12178,27 @@ fn label(s: Status) -> string {
         );
     }
 
+    /// A `fold` seeded with `""` and stepped by a `string`-returning callback
+    /// accumulates a `string`, as `tsc` infers from the two candidates. The
+    /// accumulator used to stay bound to the literal `""`, and once a
+    /// function's return was compared through the relation (G274) the
+    /// callback was refused on `shortlink` and `zipper`, which `tsc` accepts.
+    /// A literal that reaches a literal set through `id` keeps its type.
+    #[test]
+    fn a_string_candidate_widens_a_literal_bound_earlier() {
+        let errs = errors_of(
+            "module x\nimport std/array\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn takes(m: Mode) -> number { return 1 }\n\
+             fn f(xs: Array<number>) -> string {\n\
+             \x20 let n = takes(id(\"read\"))\n\
+             \x20 return array.fold(xs, \"\", fn(out: string, _i: number) -> string { return out })\n\
+             }\n",
+        );
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+    }
+
     #[test]
     fn array_max_and_min_type_as_an_option_of_number() {
         // G100. The `Option` is the point: an empty array has no maximum, so
@@ -13096,6 +13197,7 @@ component View(props: { s: Status }) -> Component {
             field_uses: &mut field_uses,
             assign_target: None,
             member_object: None,
+            relating: RefCell::new(Vec::new()),
             decl_ty_resolver: resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -14630,6 +14732,113 @@ fn f(a: Answer) -> number {
             "the field's own declared type is what the refusal names: {errs:?}"
         );
     }
+    // ----- G274: the relation's other nested positions -----
+
+    /// The four positions the record arm did not reach, each a program that
+    /// passed `glyph check --no-tsc` and that `tsc --strict` refuses with
+    /// TS2345: an optional field where a required one is declared, a declared
+    /// record where a structural one is declared, a function whose return
+    /// does not fit, and an interface member holding the wrong record. Each
+    /// refused row is followed by the correct program beside it, which stays
+    /// accepted.
+    #[test]
+    fn the_relations_other_nested_positions_are_compared_by_field() {
+        let rows: [(&str, bool); 8] = [
+            (
+                "module m\n\
+                 fn req(x: { a: number }) -> number { return 1 }\n\
+                 fn opt(y: { a?: number }) -> number { return req(y) }\n",
+                true,
+            ),
+            (
+                "module m\n\
+                 fn req(x: { a?: number }) -> number { return 1 }\n\
+                 fn opt(y: { a: number }) -> number { return req(y) }\n",
+                false,
+            ),
+            (
+                "module m\n\
+                 type Mine = { b: number }\n\
+                 fn st(x: { b: string }) -> number { return 1 }\n\
+                 fn f(m: Mine) -> number { return st(m) }\n",
+                true,
+            ),
+            (
+                "module m\n\
+                 type Mine = { b: string, c: number }\n\
+                 fn st(x: { b: string }) -> number { return 1 }\n\
+                 fn f(m: Mine) -> number { return st(m) }\n",
+                false,
+            ),
+            (
+                "module m\n\
+                 type Other = { a: number }\n\
+                 fn tf(f: fn() -> { o: Other }) -> number { return 1 }\n\
+                 fn mk() -> { o: { b: string } } { return { o: { b: \"x\" } } }\n\
+                 fn g() -> number { return tf(mk) }\n",
+                true,
+            ),
+            (
+                "module m\n\
+                 type Other = { a: number }\n\
+                 fn tf(f: fn() -> { o: Other }) -> number { return 1 }\n\
+                 fn mk() -> { o: { a: number } } { return { o: { a: 1 } } }\n\
+                 fn g() -> number { return tf(mk) }\n",
+                false,
+            ),
+            (
+                "module m\n\
+                 type Other = { a: number }\n\
+                 interface Has { o: Other }\n\
+                 fn take(h: Has) -> number { return 1 }\n\
+                 fn g() -> number {\n\
+                 \x20 let v = { o: { b: \"x\" } }\n\
+                 \x20 return take(v)\n\
+                 }\n",
+                true,
+            ),
+            (
+                "module m\n\
+                 type Other = { a: number }\n\
+                 interface Has { o: Other }\n\
+                 fn take(h: Has) -> number { return 1 }\n\
+                 fn g() -> number {\n\
+                 \x20 let v = { o: { a: 1 } }\n\
+                 \x20 return take(v)\n\
+                 }\n",
+                false,
+            ),
+        ];
+        for (src, refused) in rows {
+            let errs = errors_of(src);
+            assert_eq!(!mismatch_found(&errs).is_empty(), refused, "{src}\nerrs: {errs:?}");
+        }
+    }
+
+    /// A record that names itself through a member, against an interface
+    /// that does the same, is compared structurally and terminates. It used
+    /// to be refused, `Node` against `Tree` by name one level down, on a
+    /// program `tsc --strict` accepts.
+    #[test]
+    fn a_self_referencing_interface_is_compared_structurally_and_terminates() {
+        let errs = errors_of(
+            "module m\n\
+             interface Tree { kids: Array<Tree> }\n\
+             type Node = { kids: Array<Node> }\n\
+             fn take(t: Tree) -> number { return 1 }\n\
+             fn g(n: Node) -> number { return take(n) }\n",
+        );
+        assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+        let errs = errors_of(
+            "module m\n\
+             interface Tree { kids: Array<Tree>, label: string }\n\
+             type Node = { kids: Array<Node>, label: number }\n\
+             fn take(t: Tree) -> number { return 1 }\n\
+             fn g(n: Node) -> number { return take(n) }\n",
+        );
+        assert_eq!(mismatch_found(&errs).len(), 1, "errs: {errs:?}");
+    }
+
     // ----- The record arm through the whole relation, and the weak-type rule -----
 
     /// The refusals, as `(line, no_common_field)`, one per mismatch, with the

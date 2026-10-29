@@ -7071,9 +7071,7 @@ fn signature_type_cell(
             ),
             "The comparison neither accepts nor refuses this pairing. It declines two \
              function types, which it reads by their returns alone while saying nothing \
-             about their parameters, and it declines a record whose field is optional where \
-             the declaration requires one, since TypeScript reports that (TS2345) and the \
-             relation does not",
+             about their parameters",
             arg_ty,
             param_ty,
         ),

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-272 entries, 224 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-30 are open. G144, the D28 boundary cast that never reached the returns a
+274 entries, 234 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+22 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10189,7 +10189,7 @@ and is the owner's to confirm.
   expected `record`, found `record`: missing field `count` ``. The display is
   unchanged from the published 0.1.124, where the same element drew nothing.*
 
-- **G246. A component whose one parameter is `unknown` or a bare generic
+- **G246. [FIXED] A component whose one parameter is `unknown` or a bare generic
   passes Glyph and fails `tsc` once it is given attributes.**
   `component Greeting(p: unknown)` with `<Greeting name="x" />`, and
   `component Show<T>(p: T)` with `<Show name="x" />`, are clean under
@@ -10200,12 +10200,14 @@ and is the owner's to confirm.
   element, so either E0229 covers `unknown` and a bare generic too, or the
   element is refused where the declaration is not. Needs a decision before code.
 
+  Fixed in 0.1.126: E0229 at the parameter, for `unknown` and for an unbounded type parameter, decided by the owner on 2026-10-11.
+
   *Reproduced against 0.1.124 on a `glyph init --template web` project with
   `react@18` and `@types/react@18` installed: both programs are
   `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc` and
   `[TS2769]` under `glyph check --no-test src`.*
 
-- **G247. `-> Component` names React's class type, and the flagship React
+- **G247. [FIXED] `-> Component` names React's class type, and the flagship React
   example uses it.** `import react { Component }` binds React's `Component`
   class, so `fn view() -> Component { return <p>hi</p> }` is refused by `tsc`
   with `TS2740: Type 'DetailedReactHTMLElement<...>' is missing the following
@@ -10218,6 +10220,8 @@ and is the owner's to confirm.
   gate has ever run it against React's types. Either Glyph gives the return
   type a spelling that means a rendered element, or it refuses `Component` in
   that position, and the example becomes a program that compiles.
+
+  Fixed in 0.1.126: the prelude `Component` lowers to `React.ReactNode`, and an unannotated component returns it.
 
   *Reproduced against 0.1.124 on the same project: the `view` program is clean
   under `--no-tsc` and `[TS2740]` with `tsc`. Copying the example in alone
@@ -10237,7 +10241,7 @@ and is the owner's to confirm.
   gate compiles them. Found by the G243 work, which corrected the bootstrap
   fence.*
 
-- **G249. Go-to-definition on a namespace member answers `null`, where the
+- **G249. [FIXED] Go-to-definition on a namespace member answers `null`, where the
   named import answers.** With `ui` declaring `pub component Button`,
   `glyph query definition` on `Button` in `let b = Button` under
   `import ui { Button }` answers `ui::Button` and its range; on `Button` in
@@ -10247,6 +10251,8 @@ and is the owner's to confirm.
   qualified references the resolver records for a member, and `glyph_definition`
   drops the `ui::Button` entity it already holds when no location comes back.
   An answer that depends on import spelling is the G75 class.
+
+  Fixed in 0.1.126: a namespace member answers the declaration the named import answers, in the editor and in `glyph_definition`.
 
   *Reproduced against 0.1.124: `glyph query definition --path src/main.glyph
   --line 5 --character 16` on the namespace spelling prints `null`; the named
@@ -10283,7 +10289,7 @@ and is the owner's to confirm.
   `5:43-49`, the aliased one `5:17-23` and `5:41-47`. The exact-or-absent gate
   holds the three spellings in `tests/exact-or-absent/element-spelling/`.*
 
-- **G250. Impact cannot say an import line survives an edit that keeps the
+- **G250. [FIXED] Impact cannot say an import line survives an edit that keeps the
   name.** Under `change_arity` and `change_signature_type`, the `Button` token
   in `import ui { Button }` is `NOT_INDEXED`. An import line resolves only the
   name against the module's exports, so an edit that keeps the name and its
@@ -10293,12 +10299,14 @@ and is the owner's to confirm.
   impact is the call 0.1.123's review refused once before the tag (G234) and
   wants its own review.
 
+  Fixed in 0.1.126: the import line is `SAFE` under both kinds, since an import reads only the name and the `pub`.
+
   *Reproduced against 0.1.124, the version the release-branch binary reports before the bump. `glyph query impact --entity
   ui::Button --change change_signature_type` answers the import line
   `NOT_INDEXED` with "this occurrence is the `import` that brings the name into
   the module".*
 
-- **G251. Impact does not decide a JSX element site.** Since G240 the checker
+- **G251. [FIXED] Impact does not decide a JSX element site.** Since G240 the checker
   compares an element's attributes against its component's props record, and
   since 0.1.125 its missing required props too, but `glyph_impact` under
   `change_signature_type` and `change_arity` answers an element site
@@ -10308,6 +10316,8 @@ and is the owner's to confirm.
   which said Glyph does not compare a function value's parameter types against
   its use context and has been false for an element since G240, with one that
   says what is true; deciding the site is the remaining work.
+
+  Fixed in 0.1.127: under `change_signature_type` an element is decided as the call it lowers to, its props record through the same cell a call argument written as that record gets, with each attribute listed against its field; under `change_arity` it follows what the checker does after the one edit that keeps the component legal, measured under all three import spellings.
 
   *Reproduced against 0.1.124, the version the release-branch binary reports before the bump. The element site under
   `change_signature_type` on `ui::Button` is `NOT_INDEXED`, "this site is a JSX
@@ -10330,7 +10340,7 @@ and is the owner's to confirm.
   After: 4,000 runs over two passes gave none and left no scratch directory
   behind.*
 
-- **G253. A required `children` prop is reported missing on an element that
+- **G253. [FIXED] A required `children` prop is reported missing on an element that
   writes children, and the message does not say why.** With
   `type KidsProps = { title: string, children: string }`, the element
   `<Kids title="t">hello</Kids>` draws ``argument type mismatch: expected
@@ -10344,6 +10354,8 @@ and is the owner's to confirm.
   diagnostic says so when the missing field is `children` and the element has
   children, or the emitter passes children inside props, which is a language
   decision about the React lowering. Found by the 0.1.125 release review.
+
+  Fixed in 0.1.126: the refusal says children written between the tags are passed outside the props object.
 
   *Reproduced against 0.1.124, the version the release-branch binary reports before the bump, with the 0.1.125 change in place: `glyph check --no-tsc --no-test src` on that program prints the E0211 above and the generic help line.*
 
@@ -10453,28 +10465,34 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: with `ui` declaring `pub fn fmt`, `import ui { default as f }` and `f(1)` exit 0 under `--no-tsc` and 1 with TS1192.*
 
-- **G268. Impact gives one pairing two verdicts, at an argument and at an
+- **G268. [FIXED] Impact gives one pairing two verdicts, at an argument and at an
   attribute.** `take(5)` against `take(x: unknown)` is `UNDETERMINED` (the
   cell table's catch-all), and `<Box x={n} />` against `{ x: unknown }` is
   `WILL_FAIL` through the relation, under `change_signature_type`.
 
+  Fixed in 0.1.127: an attribute and an argument go through one function, `pairing_cell`, so one pairing has one verdict at both; an `unknown` parameter has its own cell, `WILL_FAIL` for a `string`, `number` or `bool` and `UNDETERMINED` with the reason otherwise.
+
   *Reproduced against 0.1.125 on the 0.1.126 impact branch: the two sites answer differently for `number` against `unknown`.*
 
-- **G269. A weak type is accepted where `tsc` refuses it.** A value
+- **G269. [FIXED] A weak type is accepted where `tsc` refuses it.** A value
   `{ x: number }` against a record whose fields are all optional,
   `{ hint?: string }`, sharing none of them, passes Glyph and is TS2559 under
   `tsc`; `glyph query assignable` answers `COMPATIBLE`. Decided 2026-10-11:
   Glyph refuses what `tsc` refuses here.
 
+  Fixed in 0.1.127: the weak-type rule mirrors `tsc --strict`, with the reason in the diagnostic ("it has no field in common with `W`, whose fields are all optional").
+
   *Reproduced against 0.1.125: `ti(v4)` with `ti(x: { hint?: string, })` and `let v4 = { x: 1 }` exits 0 under `--no-tsc`.*
 
-- **G270. Nested record fields are compared loosely, and impact reports a
+- **G270. [FIXED] Nested record fields are compared loosely, and impact reports a
   WILL_FAIL that no diagnostic follows.** The structural record arm compares a
   nested field with the free `definitely_incompatible`, while the accepting
   rule recurses through the full relation. So `tx(v)` with `v = { o: o }`
   against `tx(x: { o: Other })` passes Glyph (and is TS2345 under `tsc`),
   while `glyph_impact` on `tx` reports that site `WILL_FAIL` with E0211. Live
   since G228. Decided 2026-10-11: compare nested fields with the full relation.
+
+  Fixed in 0.1.127: a structural record's fields go through the whole relation, so the case below is E0211, and impact's `WILL_FAIL` there is backed by a diagnostic.
 
   *Reproduced against 0.1.125: changing `tx`'s parameter to `{ o: Other, }` draws no diagnostic under `--no-tsc`.*
 
@@ -10497,3 +10515,32 @@ and is the owner's to confirm.
   refusal of `==` on an opaque handle, as its own item.
 
   *Reproduced against 0.1.125 by reading `__glyph_eq` in the bootstrap runtime: it recurses into object fields with no visited set; the cyclic-handle run is in the item's test plan.*
+
+- **G273. A fresh object literal with a field the declaration does not name is
+  accepted.** `let u: User = { name: "a", extra: 1 }` passes Glyph and is TS2353
+  under `tsc`, because the relation is width subtyping and a type cannot say
+  whether it came from a literal written at that site or from a binding holding
+  one, which `tsc` accepts. The written-literal walk (`written_literal_refusal`)
+  sees the literal and leaves an undeclared field alone. `glyph_assignable`
+  says so in the reason of an accepted pairing whose value has such a field.
+
+  *Reproduced against 0.1.126: `let b: Opt = { name: "b", extra: 1 }` with `type Opt = { name: string, nick?: string }` exits 0 under `--no-tsc` and is TS2353 under `tsc`.*
+
+- **G274. [FIXED] Four more positions compared loosely: an optional field, a
+  declared record against a structural one, a function's return, and an
+  interface member.** Found checking G270's premise, all the same hole: each
+  went through the free `definitely_incompatible`, which has no declaration in
+  hand. `req(y)` with `y: { a?: number }` against `x: { a: number }`, `st(m)`
+  with `m: Mine` (`{ b: number }`) against `x: { b: string }`, `tf(mk)` with
+  `mk` returning `{ o: { b: string } }` against `fn() -> { o: Other }`, and
+  `take(v)` with `v = { o: { b: "x" } }` against `interface Has { o: Other }`
+  each passed `--no-tsc` and are TS2345 under `tsc`. The other way round,
+  `take(n)` with `n: Node` (`{ kids: Array<Node> }`) against
+  `interface Tree { kids: Array<Tree> }` was refused, comparing `Node` against
+  `Tree` by name one level down, on a program `tsc` accepts.
+
+  Fixed in 0.1.127: all five go through the relation, an interface pairing
+  already being related is assumed to hold, as `tsc` assumes it, and a
+  function's parameters are still compared by nothing.
+
+  *Reproduced against 0.1.106 and 0.1.126: the four programs exit 0 under `--no-tsc` and 1 with TS2345, and the `Tree` program exits 1 with E0211.*

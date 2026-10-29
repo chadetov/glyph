@@ -5437,7 +5437,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - Tests the 0.1.125 review found missing: the `tsc` messages `missing_fields.rs` records are compared in a test with React types installed, and G252's concurrent checks get a regression test
 - Carried: the remaining stdlib signatures and the unifier change that widens a bound name (its own change, split by risk); editor go-to-definition across modules in an unmarked `src/` tree (`project_root_for`), which waits on the owner's scope call; and the enterprise review's items from the rolling lane as they are decided
 
-**0.1.128 — Planned · React against real React**
+**0.1.128 — Next · React against real React**
 - The 0.1.126 dogfood round wrote a counter-and-todo app against real React 18 and stopped at `document`. This release is measured by that app: it builds with Vite, renders in a headless browser, and every hook in it is React's own
 - The design is [`../plan/0.1.128-react-against-real-react.md`](../plan/0.1.128-react-against-real-react.md): three host modules (`std/dom`, `std/storage`, `std/console`) and D48
 - G254, decided 2026-10-11 by the owner: a typed `std/dom` module on the timers and WebSocket precedent, starting with what the app needs (the document title, an element by id as an `Option`, `window.location`, `localStorage` with an `Option` for a missing key, console output). A design pass maps the surface and the node-target question before code
@@ -5446,13 +5446,16 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - G258: AGENTS.md shows the `<for>` syntax
 - G271: `examples/03_react_component.glyph` rewritten against real React, and checked by a gate project with React's types installed
 
-**0.1.127 — Next · Records compared the way `tsc` compares them, and impact decides a component**
-- G270, decided 2026-10-11: a nested record field is compared with the full relation, not the looser free function, so `tx(v)` with `{ o: Other }` is refused as `tsc` refuses it and impact stops reporting a `WILL_FAIL` no diagnostic follows (live since G228). Breaking, in the checking direction
-- G269, decided 2026-10-11: a weak type (a record whose fields are all optional) is refused against a value sharing none of its fields, mirroring TS2559 exactly. Breaking
-- The accepting face of the structural record rule, total once the two above hold, so `glyph_assignable` and `glyph_impact` answer `COMPATIBLE` / `WILL_FAIL` for a record literal against a declared record instead of a false "no rule"
-- G251: a JSX element site decided as the call it lowers to, with per-attribute detail, under every import spelling; it waits for the three items above because a named props type, the common case, reads through the accepting face
-- G268: one pairing, one verdict, at an argument and at an attribute
-- **Toward a preview announcement**, decided 2026-10-11 by the owner: after one or two more releases, a readiness pass rather than a feature. `docs/launch/` is rewritten from the compiler as it is then (it was written for v0.1); outside-user agents run the getting-started path cold and every gap they hit is recorded; and a Linus review reads the announcement itself, the way it reads a release. The announcement says what Glyph catches today, shown with the `catches/` programs that are verified both ways, and says that the productivity claim has not been measured: the agent accuracy benchmark below is still the 0.2.0 gate, and the announcement is not it
+**0.1.127 — Ready to cut · Records compared the way `tsc` compares them, and impact decides a component**
+- **G270, a nested record field is compared through the whole relation.** The structural record arm compared each field with the free `definitely_incompatible`, which has no declaration in hand, so `tx(v)` with `v = { o: { b: "x" } }` passed where `{ o: Other }` was declared, and `glyph_impact` reported a `WILL_FAIL` there that no diagnostic followed (live since G228). Both are E0211 now, as `tsc` refuses them (TS2345)
+- **G269, the weak-type rule.** A record whose fields are all optional refuses a value sharing none of them, mirroring TS2559 row by row: an empty record is not weak, a value with no fields is accepted, a function value is refused, and the diagnostic says why (`it has no field in common with ..., whose fields are all optional`)
+- **G274, four more positions the same hole reached**, found checking G270's premise: a field the value holds as optional where the declaration requires it, a declared record passed where a structural one is declared, a function whose return does not fit, and an interface member. Each passed `--no-tsc` under 0.1.126 and is TS2345 under `tsc`; each is E0211 now. The same change removed a false refusal: a record that names itself through a member (`{ kids: Array<Node> }`) against an interface that does the same was refused by name one level down, on a program `tsc` accepts. The relation assumes an interface pairing it is already deciding holds, as `tsc` does. A function's parameters are still compared by nothing
+- **The accepting face of the record rule.** With the two refusals above, the record arm is total, so `glyph_assignable` and `glyph_impact` answer `COMPATIBLE` or `WILL_FAIL` for a record against a declared record (local, imported, generic or a second name) where they answered "no rule". The reason names the width-subtyping divergence when the value has a field the declaration does not, which `tsc` refuses on a fresh literal (TS2353) and Glyph does not; that is G273, recorded and open
+- **G251, impact decides a JSX element.** Under `change_signature_type` an element is the call it lowers to, `createElement(Button, { label: "go" })`, so its props record goes through the cell a call argument written as that record gets, and each attribute is listed against the field the checker compares it with. Under `change_arity` the verdict follows what the checker does after the one edit that keeps the component legal, measured under all three import spellings
+- **G268, one pairing, one verdict.** An attribute and a call argument go through one function now, so `number` against `unknown` is the same answer at `take(n)` and at `<Box x={n} />`. `unknown` has its own cell: `WILL_FAIL` for a `string`, `number` or `bool`, whose rules decide every replacement the checker reads, and `UNDETERMINED` with the reason for anything else
+- **A type parameter bound from a literal.** `array.fold(xs, "", fn(out: string, ...) -> string { ... })` bound the accumulator to the literal `""` and kept it, which the function-return comparison then refused on two apps `tsc` accepts. A later `string` candidate supersedes an earlier literal one, which is what `tsc` infers from the two
+- The 0.1.126 ledger entries G246, G247, G249, G250 and G253 are marked fixed; they shipped without the marker
+- **Toward a preview announcement**, decided 2026-10-11 by the owner, is not in this release. It is a readiness pass rather than a feature and follows 0.1.128: `docs/launch/` rewritten from the compiler as it is then, outside-user agents running the getting-started path cold, and a Linus review of the announcement itself. The announcement says what Glyph catches today, shown with the `catches/` programs verified both ways, and says that the productivity claim has not been measured
 
 **0.1.126 — Shipped 2026-10-17 · Components emit, check and navigate the same way under every spelling**
 - G249: go-to-definition on a namespace member answers the declaration the named import answers, in the editor and in `glyph_definition`
@@ -8133,6 +8136,15 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**G273, an undeclared field on a fresh object literal.** `tsc` refuses
+`let u: User = { name: "a", extra: 1 }` (TS2353) and Glyph accepts it, because
+the record relation is width subtyping and a type cannot say whether it came
+from a literal written at that site. The place to decide it is the
+written-literal walk, which sees the literal itself. It is a breaking
+verifiability change on its own, so it waits for a release with room to run
+both versions over every app; 0.1.127 records it and the assignability reason
+names the divergence in the meantime.
 
 **An enterprise reviewer's list, 2026-09-20.** A DevSecOps-minded engineer read
 the repository, the tour, the roadmap and the benchmarks, rated the design

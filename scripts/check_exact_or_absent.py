@@ -1995,9 +1995,10 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
     `fn(number) -> bool` is declared draws nothing and is not thereby correct.
     That pairing has to come back UNDETERMINED with the missing rule named,
     while a pairing a rule does read comes back decided either way. A record
-    whose field is optional against a declaration that requires it is the same
-    shape one level down, and a spelling that reaches a module or a function
-    rather than a type is refused rather than answered about.
+    whose field is optional against a declaration that requires it was the
+    same shape one level down until 0.1.127 gave it a rule, so it is now a
+    decided refusal, and a spelling that reaches a module or a function rather
+    than a type is refused rather than answered about.
     """
     silent = assignable(CORPUS / ASSIGNABLE, "fn(string) -> bool", "fn(number) -> bool")
     if "error" in silent:
@@ -2034,15 +2035,16 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
         return False, f"an unresolved spelling was answered: {unknown}"
 
     # A record field the value may not carry, where the declaration requires
-    # one. The relation reads `optional` on both sides now: it says nothing
-    # about this pairing, TypeScript says TS2345, and a silence that is not an
-    # acceptance must not be reported as one. The other direction, a value that
-    # always carries the field, is TypeScript's own rule and stays accepted.
+    # one. The relation refuses it since 0.1.127 (G274), as TypeScript does
+    # with TS2345, so the answer is a decided refusal with the codes the
+    # checker draws. The other direction, a value that always carries the
+    # field, is TypeScript's own rule and stays accepted.
     loose = assignable(CORPUS / ASSIGNABLE, "{ id?: string }", "{ id: string }")
-    if loose.get("verdict") != "UNDETERMINED":
+    if loose.get("verdict") != "WILL_FAIL":
         return False, f"an optional field into a required one is {loose.get('verdict')}: {loose}"
-    if "no rule" not in (loose.get("because") or ""):
-        return False, f"the optional-field pairing names no missing rule: {loose}"
+    loose_codes = [d.get("code") for d in loose.get("diagnostics") or []]
+    if loose_codes != ["E0204", "E0211"]:
+        return False, f"the optional-field refusal names no codes: {loose}"
     tight = assignable(CORPUS / ASSIGNABLE, "{ id: string }", "{ id?: string }")
     if tight.get("verdict") != "COMPATIBLE":
         return False, f"a required field into an optional one is {tight.get('verdict')}: {tight}"

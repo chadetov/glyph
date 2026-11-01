@@ -84,7 +84,7 @@ pub component Todos() {
         }} on_click={fn() { set_todos(toggle(todos, todo.id)) }}>{todo.text}</li>
       </for>
     </ul>
-    <p class="left">{left}left</p>
+    <p class="left">{left} left</p>
   </section>
 }
 

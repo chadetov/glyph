@@ -35,6 +35,7 @@ python3 scripts/check_catches.py
 | `unvalidated-boundary-read` | `const user: User = JSON.parse(body)`, where the annotation launders `any` | `TS18046` | verifiability |
 | `shadowed-array-type` | A local type named `Array`, taking the name for the rest of the module | `E0110` | greppability |
 | `nullable-into-int` | A `Nullable<int>` passed where an `int` is declared, which `tsc` accepts because the emitted `number \| null` narrows | `E0211` | verifiability |
+| `split-into-a-pair` | `const [user, host] = s.split("@")`, typing `host` as a `string` that is `undefined` when there is no `@` | `E0230` | verifiability |
 
 `unvalidated-boundary-read` is the one whose rejection comes from the `tsc` back
 end rather than a Glyph code, and it is in the list on purpose. Glyph has no

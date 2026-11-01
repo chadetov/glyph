@@ -12,7 +12,9 @@ npx @glyphlang/glyph --help
 ```
 
 You also need Node with `tsx` and `typescript` available, which Glyph uses to
-type-check and run the TypeScript it emits:
+type-check and run the TypeScript it emits. TypeScript 5 or later is what
+`glyph doctor` checks for; the floor the emitted code itself needs is 4.9, for
+the `satisfies` a destructuring `let` writes.
 
 ```sh
 npm install -g tsx typescript

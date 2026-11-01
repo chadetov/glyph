@@ -385,7 +385,10 @@ is already formatted.
 - No `if`/`else`, no ternary, no `switch` (use `match`).
 - No `any`, no non-null assertion `!`, no `as` casts in source.
 - No classes, no `this`, no methods on user types.
-- No object/array-destructuring shorthand beyond what patterns provide.
+- No object destructuring in a `let`. An array destructures with `let [a, b] =
+  expr` only when its length is proved: a written literal, or a tuple an npm
+  library returns, such as `useState`'s (D48). An `Array<T>` goes through a
+  `match` with an `else` arm.
 - No barrel files / re-export indirection.
 - Resource handles can use a narrow `owned` modifier (files/sockets/db
   connections) for single-consumption; that is the only affine-typing feature

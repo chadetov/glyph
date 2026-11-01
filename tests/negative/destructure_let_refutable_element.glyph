@@ -1,0 +1,8 @@
+module neg
+
+// D48. A `let` pattern always matches. A literal element can fail to match,
+// and only a `match` with a fallback arm says what happens then.
+pub fn command(words: Array<string>) -> string {
+  let ["add", name] = ["add", "x"]
+  return name
+}

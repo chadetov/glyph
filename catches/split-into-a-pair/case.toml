@@ -1,0 +1,3 @@
+code = "E0230"
+pillar = "verifiability"
+title = "Destructuring a split into two names, when the string may have no separator"

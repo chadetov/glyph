@@ -682,6 +682,31 @@ pub fn explain(code: &str) -> Option<&'static str> {
             React renders, and calling one bypasses React, so hooks inside it \
             break. A function that returns JSX and is called as a function is \
             an `fn`.",
+        "E0230" => "E0230: a destructuring `let` that might not match\n\n\
+            `let [a, b] = expr` (D48) binds each element of a fixed-length \
+            array, and it always matches: every name holds an element, never \
+            the `undefined` a short array leaves behind in TypeScript. Two \
+            things can break that, and both are this code.\n\n\
+            The pattern can test the value. A `let` pattern holds lowercase \
+            names, `_`, nested `[...]` patterns and a trailing `...rest`; a \
+            literal, a variant name, a constructor or an `is` guard can fail, \
+            and is refused at parse. So are `let owned [..]` (one handle is one \
+            binding), a type annotation on the pattern, and `const [..]` (a \
+            `const` binds one name).\n\n\
+            The length cannot be proved. A written array literal is counted, so \
+            `let [a, b] = [1, 2, 3]` is refused. An `Array<T>` has no length \
+            anything knows before run time, and a value that is not an array \
+            (a string, a record, `unknown`) has none at all.\n\n\
+            Before:  let [user, host] = string.split(s, \"@\")\n\
+            After:   match string.split(s, \"@\") {\n              \
+              [user, host] => greet(user, host),\n              \
+              else => reject(s),\n            \
+            }\n\n\
+            A tuple an npm library returns (`let [count, set_count] = \
+            useState(0)`) is a value the checker cannot see into, so the length \
+            is proved by `tsc`: the emitted `satisfies readonly [unknown, \
+            unknown]` is refused (TS1360) for an array, or for a tuple of \
+            another length. That needs TypeScript 4.9 or later.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1530,6 +1555,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable`, a function type, `unknown` (which gives the component nothing it can read) and a type parameter with no bound; a bounded type parameter and `Record<K, V>` draw nothing",
         fix: "Take one props record: `component Greeting(props: { name: string })`, then read `props.name`; give a type parameter a record or interface bound (`<T: HasLabel>`); a function called directly rather than rendered is an `fn`",
+    },
+    CodeEntry {
+        code: "E0230",
+        phase: "typechecker",
+        meaning: "A destructuring `let` that might not match (D48). Raised at parse for a pattern that tests the value (a literal, a variant, a constructor, an `is` guard), for `let owned [..]`, an annotated pattern and `const [..]`; raised at check when the length cannot be proved: a written literal of another length, an `Array<T>`, or a value that is not an array. A tuple from an npm library is proved by `tsc` through the emitted `satisfies`",
+        fix: "Match an `Array<T>` with a fallback arm, `match xs { [a, b] => ..., else => ... }`; write one name or `_` per element of a literal, or end the pattern with `...rest`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

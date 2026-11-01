@@ -1,0 +1,18 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { useState } from "react";
+
+export function pairs(): number {
+  let [count, set_count] = (useState(0)) satisfies readonly [unknown, unknown];
+  let [, setter] = (useState("a")) satisfies readonly [unknown, unknown];
+  let [head, ...tail] = ([1, 2, 3]) satisfies readonly [unknown, ...unknown[]];
+  let [[x, y], z] = ([[1, 2], 3]) satisfies readonly [readonly [unknown, unknown], unknown];
+  set_count(count);
+  setter("b");
+  head = (((head + x) + y) + z);
+  return (head + tail.length);
+}

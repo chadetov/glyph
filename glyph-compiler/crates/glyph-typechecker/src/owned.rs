@@ -445,6 +445,11 @@ impl OwnedChecker<'_> {
     /// a decidably non-resource type, and is silent (untracked) when the type
     /// can't be judged.
     fn try_track_owned(&mut self, l: &LetStmt) -> Option<(u32, BindingInfo)> {
+        // `let owned [..]` is refused at parse (E0230, D48): one handle is one
+        // binding, so only a named `let` can carry the release obligation.
+        let glyph_ast::LetBinding::Name(name) = &l.binding else {
+            return None;
+        };
         let ty = match &l.ty {
             Some(te) => self.lowerer.lower(te),
             None => self.tm.get(l.value.span()).clone(),
@@ -453,13 +458,13 @@ impl OwnedChecker<'_> {
             ResourceKind::Resource => Some((
                 l.span.start,
                 BindingInfo {
-                    name: l.name.to_string(),
+                    name: name.to_string(),
                     decl_span: l.span,
                 },
             )),
             ResourceKind::NotResource => {
                 self.errors.push(TypeError::OwnedRequiresResourceType {
-                    name: l.name.to_string(),
+                    name: name.to_string(),
                     ty: ty_display(&ty),
                     span: l.span,
                 });

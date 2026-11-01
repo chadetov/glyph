@@ -54,6 +54,15 @@ fn await_try_parses() {
     insta::assert_debug_snapshot!(ast);
 }
 
+/// D48: a destructuring `let` carries a `LetBinding::Pattern` holding D9's
+/// array pattern: names, `_`, a nested array pattern and a trailing rest.
+#[test]
+fn destructuring_let_parses() {
+    let source = fixture("destructuring_let.glyph");
+    let ast = glyph_parser::parse(&source).expect("destructuring_let.glyph should parse");
+    insta::assert_debug_snapshot!(ast);
+}
+
 /// Try parsing the real example files. Each test reports the first parse
 /// error if it fails. This is the week-1 acceptance criterion: all 4 example
 /// files parse to AST with snapshots checked into git.

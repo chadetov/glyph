@@ -682,6 +682,83 @@ pub enum TypeError {
     /// the value is `undefined` at run time with no TypeScript error.
     #[error("this `match` arm produces no value, but the `match` is used as a value")]
     MatchArmProducesNoValue { span: Span },
+
+    /// A destructuring `let` whose initializer cannot be proved to have the
+    /// pattern's length (D48, G255). A written array literal is counted, so a
+    /// count that disagrees is refused; an `Array<T>` has no length the checker
+    /// knows; anything else is not an array. A value whose type the checker
+    /// cannot see (an npm import) is not refused here: the emitted
+    /// `satisfies readonly [unknown, ...]` has `tsc` prove it instead. The
+    /// parser raises the same code for a pattern shape that can fail, the
+    /// E0010 and E0101 precedent of one rule caught at two stages. `span` is
+    /// the initializer, or the element a nested pattern destructures.
+    #[error("{}", why.message())]
+    DestructureUnproven { why: DestructureRefusal, span: Span },
+}
+
+/// Why a destructuring `let` was refused at check (D48, E0230).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DestructureRefusal {
+    /// A written array literal of another length. `at_least` is set when the
+    /// pattern ends in a rest, which takes any number of further elements.
+    Count {
+        pattern: usize,
+        at_least: bool,
+        literal: usize,
+    },
+    /// An `Array<T>`, whose length is known only at run time. `ty` is how the
+    /// checker displays it; `spread` is set for a written literal with a
+    /// spread in it, whose element type the checker does not read and whose
+    /// length the spread decides.
+    UnknownLength { ty: String, spread: bool },
+    /// A value that is not an array: a primitive, a record, a union,
+    /// `unknown`, a type parameter.
+    NotAnArray { ty: String },
+}
+
+impl DestructureRefusal {
+    fn message(&self) -> String {
+        match self {
+            DestructureRefusal::Count {
+                pattern,
+                at_least,
+                literal,
+            } => {
+                let takes = match at_least {
+                    true => "at least ",
+                    false => "",
+                };
+                let noun = |n: usize| match n {
+                    1 => "element",
+                    _ => "elements",
+                };
+                format!(
+                    "the pattern takes {takes}{pattern} {}, and the array has {literal}",
+                    noun(*pattern)
+                )
+            }
+            DestructureRefusal::UnknownLength { spread: true, .. } => {
+                "the length of an array literal with a spread in it is not known, so a name in the pattern could hold `undefined`".to_string()
+            }
+            DestructureRefusal::UnknownLength { ty, spread: false } => format!(
+                "the length of `{ty}` is not known, so a name in the pattern could hold `undefined`"
+            ),
+            DestructureRefusal::NotAnArray { ty } => {
+                format!("a `let` pattern destructures an array, and this value is `{ty}`")
+            }
+        }
+    }
+
+    fn type_shown(&self) -> Option<&str> {
+        match self {
+            DestructureRefusal::Count { .. } | DestructureRefusal::UnknownLength { spread: true, .. } => {
+                None
+            }
+            DestructureRefusal::UnknownLength { ty, .. } | DestructureRefusal::NotAnArray { ty } => {
+                Some(ty)
+            }
+        }
+    }
 }
 
 /// Diagnostic severity. Most diagnostics are hard `Error`s that fail the build;
@@ -790,6 +867,7 @@ impl TypeError {
             TypeError::UnknownVariantPattern { span, .. } => *span,
             TypeError::AwaitOutsideAsyncFn { span } => *span,
             TypeError::MatchArmProducesNoValue { span } => *span,
+            TypeError::DestructureUnproven { span, .. } => *span,
         }
     }
 
@@ -827,6 +905,7 @@ impl TypeError {
             TypeError::UnknownVariantPattern { .. } => "E0220",
             TypeError::AwaitOutsideAsyncFn { .. } => "E0222",
             TypeError::MatchArmProducesNoValue { .. } => "E0223",
+            TypeError::DestructureUnproven { .. } => "E0230",
         }
     }
 
@@ -938,6 +1017,15 @@ impl TypeError {
             TypeError::MatchArmProducesNoValue { .. } => {
                 "End the arm with an expression, or `return` from it. `X => {}` is a no-op only where the `match` is a statement."
             }
+            TypeError::DestructureUnproven { why: DestructureRefusal::Count { .. }, .. } => {
+                "Write one name or `_` per element, or end the pattern with `...rest` to take the elements left over."
+            }
+            TypeError::DestructureUnproven { why: DestructureRefusal::UnknownLength { .. }, .. } => {
+                "Its length is known only at run time, so match on it with a fallback arm: `match xs { [a, b] => ..., else => ... }`."
+            }
+            TypeError::DestructureUnproven { why: DestructureRefusal::NotAnArray { .. }, .. } => {
+                "Bind the value to one name and read from that. A `let` pattern takes an array whose length is known: a written array literal, or a tuple an npm library returns."
+            }
         })
     }
 
@@ -977,6 +1065,9 @@ impl TypeError {
             ),
             TypeError::MatchArmProducesNoValue { .. } => Some(
                 "A value-position arm lowers to `case X: { break; }` when it yields nothing, so the value would be `undefined` at run time.",
+            ),
+            TypeError::DestructureUnproven { .. } => Some(
+                "A destructuring `let` always matches (D48): every name it binds holds an element, never the `undefined` a short array leaves behind. The length is proved, never assumed.",
             ),
             TypeError::ComponentParamNotRecord { .. } => Some(
                 "React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: `<Greeting />` hands it `{}`, and an element with attributes does not type-check (TS2769).",
@@ -1085,6 +1176,8 @@ impl TypeError {
             TypeError::OwnedRequiresResourceType { ty, .. } => Some(ty),
             // "a props record" is a rule, as "a resource type" is above.
             TypeError::ComponentParamNotRecord { ty, .. } => Some(ty),
+            // "an array of known length" is a rule too.
+            TypeError::DestructureUnproven { why, .. } => why.type_shown(),
             _ => None,
         }
     }

@@ -977,7 +977,9 @@ Module {
                                                                                     stmts: [
                                                                                         Let(
                                                                                             LetStmt {
-                                                                                                name: "issues",
+                                                                                                binding: Name(
+                                                                                                    "issues",
+                                                                                                ),
                                                                                                 owned: false,
                                                                                                 ty: Some(
                                                                                                     Generic {
@@ -1022,7 +1024,9 @@ Module {
                                                                                         ),
                                                                                         Let(
                                                                                             LetStmt {
-                                                                                                name: "result",
+                                                                                                binding: Name(
+                                                                                                    "result",
+                                                                                                ),
                                                                                                 owned: false,
                                                                                                 ty: Some(
                                                                                                     Generic {
@@ -1103,7 +1107,9 @@ Module {
                                                                                                     stmts: [
                                                                                                         Let(
                                                                                                             LetStmt {
-                                                                                                                name: "field",
+                                                                                                                binding: Name(
+                                                                                                                    "field",
+                                                                                                                ),
                                                                                                                 owned: false,
                                                                                                                 ty: None,
                                                                                                                 value: Index {
@@ -1857,7 +1863,9 @@ Module {
                                                                                     stmts: [
                                                                                         Let(
                                                                                             LetStmt {
-                                                                                                name: "issues",
+                                                                                                binding: Name(
+                                                                                                    "issues",
+                                                                                                ),
                                                                                                 owned: false,
                                                                                                 ty: Some(
                                                                                                     Generic {
@@ -1902,7 +1910,9 @@ Module {
                                                                                         ),
                                                                                         Let(
                                                                                             LetStmt {
-                                                                                                name: "result",
+                                                                                                binding: Name(
+                                                                                                    "result",
+                                                                                                ),
                                                                                                 owned: false,
                                                                                                 ty: Some(
                                                                                                     Generic {
@@ -2710,7 +2720,9 @@ Module {
                     stmts: [
                         Let(
                             LetStmt {
-                                name: "input",
+                                binding: Name(
+                                    "input",
+                                ),
                                 owned: false,
                                 ty: Some(
                                     Path {
@@ -2921,7 +2933,9 @@ Module {
                                                                 stmts: [
                                                                     Let(
                                                                         LetStmt {
-                                                                            name: "location",
+                                                                            binding: Name(
+                                                                                "location",
+                                                                            ),
                                                                             owned: false,
                                                                             ty: None,
                                                                             value: Call {

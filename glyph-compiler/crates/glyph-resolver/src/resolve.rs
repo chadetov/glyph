@@ -21,7 +21,8 @@ use std::collections::HashMap;
 
 use glyph_ast::{
     jsx_member_name, ArrayElem, Block, Decl, Expr, GenericParam, Ident, JsxAttr, JsxChild,
-    JsxElement, JsxKind, MatchArmBody, Module, ModulePath, ObjectField, Param, Pattern, Span, Stmt,
+    JsxElement, JsxKind, LetBinding, MatchArmBody, Module, ModulePath, ObjectField, Param, Pattern,
+    Span, Stmt,
     TemplatePart, TypeExpr,
 };
 
@@ -407,7 +408,16 @@ impl Resolver<'_> {
         // a direct forward reference stays the error it was.
         for s in &block.stmts {
             if let Stmt::Let(l) = s {
-                self.bind_pending(l.name.clone(), l.span);
+                match &l.binding {
+                    LetBinding::Name(name) => self.bind_pending(name.clone(), l.span),
+                    // Each name a pattern binds is pending at its own span, the
+                    // key it is bound under once the initializer is walked.
+                    LetBinding::Pattern(p) => {
+                        for (name, span) in p.bindings() {
+                            self.bind_pending(name.clone(), span);
+                        }
+                    }
+                }
             }
         }
         for s in &block.stmts {
@@ -424,10 +434,25 @@ impl Resolver<'_> {
                 }
                 self.walk_expr(&l.value);
                 // Binding is visible *after* the initializer (sequential let).
-                if let Some(top) = self.pending.last_mut() {
-                    top.remove(&l.name);
+                match &l.binding {
+                    LetBinding::Name(name) => {
+                        if let Some(top) = self.pending.last_mut() {
+                            top.remove(name);
+                        }
+                        self.bind_local(name.clone(), l.span);
+                    }
+                    // D48: each name binds at its own span, the way a match
+                    // arm's pattern binds. The parser has already refused every
+                    // element that would resolve as a reference.
+                    LetBinding::Pattern(p) => {
+                        if let Some(top) = self.pending.last_mut() {
+                            for (name, _) in p.bindings() {
+                                top.remove(name);
+                            }
+                        }
+                        self.walk_pattern(p);
+                    }
                 }
-                self.bind_local(l.name.clone(), l.span);
             }
             Stmt::Mut(m) => match &m.kind {
                 glyph_ast::MutKind::Assign { target, value } => {
@@ -1170,5 +1195,65 @@ type Bundle = { finding: Finding }
             "module m\npub fn run() -> number {\n  let a = fn() -> number { return zzz() }\n  return a()\n}\n",
         );
         assert!(!errs.is_empty(), "unknown name inside a closure still reported");
+    }
+
+    // ----- D48: destructuring `let` -----
+
+    /// Each name a destructuring `let` binds resolves to its own def site, the
+    /// name's span, after the initializer.
+    #[test]
+    fn each_name_in_a_let_pattern_binds_at_its_own_span() {
+        let src = "module m\npub fn run() -> number {\n  let [a, [b, _], ...rest] = f()\n  return a + b + rest\n}\nfn f() -> number { return 1 }\n";
+        let (resolved, errs) = resolve(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let pattern_at = src.find("[a,").unwrap();
+        let uses_at = src.find("return a").unwrap() + "return ".len();
+        for (name, def_rel, use_rel) in [("a", 1, 0), ("b", 5, 4), ("rest", 15, 8)] {
+            let def = pattern_at + def_rel;
+            let use_at = uses_at + use_rel;
+            assert_eq!(&src[def..def + name.len()], name);
+            assert_eq!(&src[use_at..use_at + name.len()], name);
+            let hit = resolved
+                .resolutions
+                .iter()
+                .find(|(sp, _)| sp.start as usize == use_at)
+                .map(|(_, r)| r);
+            assert_eq!(hit, Some(ResolvedRef::Local(def as u32)), "{name}");
+        }
+    }
+
+    /// The names are not visible inside the initializer (sequential `let`).
+    #[test]
+    fn a_let_pattern_name_is_not_visible_in_its_own_initializer() {
+        let (_, errs) = resolve("module m\npub fn run() -> number {\n  let [a, b] = [b, 1]\n  return a\n}\n");
+        assert!(
+            errs.iter().any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "b")),
+            "errs: {errs:?}"
+        );
+    }
+
+    /// G92 holds for a pattern's names: a closure written before the `let`
+    /// can name one, and a direct forward read is still an error.
+    #[test]
+    fn a_closure_before_a_let_pattern_can_name_its_bindings() {
+        let (_, errs) = resolve(
+            "module m\npub fn run() -> number {\n  let get = fn() -> number { return second }\n  let [_, second] = [1, 2]\n  return get()\n}\n",
+        );
+        assert!(errs.is_empty(), "closure forward reference resolves: {errs:?}");
+        let (_, errs) = resolve(
+            "module m\npub fn run() -> number {\n  let x = second\n  let [_, second] = [1, 2]\n  return x\n}\n",
+        );
+        assert!(!errs.is_empty(), "a direct forward read of a pattern name is still rejected");
+    }
+
+    /// A reserved TypeScript word is refused as a pattern name, as it is as a
+    /// `let` name.
+    #[test]
+    fn a_reserved_word_in_a_let_pattern_is_refused() {
+        let (_, errs) = resolve("module m\npub fn run() -> number {\n  let [delete, b] = [1, 2]\n  return b\n}\n");
+        assert!(
+            errs.iter().any(|e| matches!(e, ResolveError::ReservedWordName { .. })),
+            "errs: {errs:?}"
+        );
     }
 }

@@ -1,0 +1,331 @@
+---
+source: crates/glyph-parser/tests/snapshots.rs
+expression: ast
+---
+Module {
+    module_path: Some(
+        ModulePath {
+            segments: [
+                "x",
+            ],
+            span: Span {
+                start: 0,
+                end: 8,
+            },
+        },
+    ),
+    items: [
+        Fn(
+            FnDecl {
+                name: "main",
+                annotations: [],
+                is_public: true,
+                is_async: false,
+                generics: [],
+                params: [],
+                return_ty: None,
+                body: Block {
+                    stmts: [
+                        Let(
+                            LetStmt {
+                                binding: Pattern(
+                                    Array {
+                                        elements: [
+                                            Ident {
+                                                name: "count",
+                                                span: Span {
+                                                    start: 33,
+                                                    end: 38,
+                                                },
+                                            },
+                                            Ident {
+                                                name: "set_count",
+                                                span: Span {
+                                                    start: 40,
+                                                    end: 49,
+                                                },
+                                            },
+                                        ],
+                                        rest: None,
+                                        span: Span {
+                                            start: 32,
+                                            end: 50,
+                                        },
+                                    },
+                                ),
+                                owned: false,
+                                ty: None,
+                                value: Call {
+                                    callee: Ident {
+                                        name: "use_state",
+                                        span: Span {
+                                            start: 53,
+                                            end: 62,
+                                        },
+                                    },
+                                    type_args: [],
+                                    args: [
+                                        Number {
+                                            raw: "0",
+                                            span: Span {
+                                                start: 63,
+                                                end: 64,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 53,
+                                        end: 65,
+                                    },
+                                },
+                                span: Span {
+                                    start: 28,
+                                    end: 65,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                binding: Pattern(
+                                    Array {
+                                        elements: [
+                                            Wildcard {
+                                                span: Span {
+                                                    start: 73,
+                                                    end: 74,
+                                                },
+                                            },
+                                            Ident {
+                                                name: "b",
+                                                span: Span {
+                                                    start: 76,
+                                                    end: 77,
+                                                },
+                                            },
+                                        ],
+                                        rest: None,
+                                        span: Span {
+                                            start: 72,
+                                            end: 78,
+                                        },
+                                    },
+                                ),
+                                owned: false,
+                                ty: None,
+                                value: Array {
+                                    elements: [
+                                        Expr(
+                                            Number {
+                                                raw: "1",
+                                                span: Span {
+                                                    start: 82,
+                                                    end: 83,
+                                                },
+                                            },
+                                        ),
+                                        Expr(
+                                            Number {
+                                                raw: "2",
+                                                span: Span {
+                                                    start: 85,
+                                                    end: 86,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    span: Span {
+                                        start: 81,
+                                        end: 87,
+                                    },
+                                },
+                                span: Span {
+                                    start: 68,
+                                    end: 87,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                binding: Pattern(
+                                    Array {
+                                        elements: [
+                                            Array {
+                                                elements: [
+                                                    Ident {
+                                                        name: "x",
+                                                        span: Span {
+                                                            start: 96,
+                                                            end: 97,
+                                                        },
+                                                    },
+                                                    Ident {
+                                                        name: "y",
+                                                        span: Span {
+                                                            start: 99,
+                                                            end: 100,
+                                                        },
+                                                    },
+                                                ],
+                                                rest: None,
+                                                span: Span {
+                                                    start: 95,
+                                                    end: 101,
+                                                },
+                                            },
+                                            Ident {
+                                                name: "z",
+                                                span: Span {
+                                                    start: 103,
+                                                    end: 104,
+                                                },
+                                            },
+                                        ],
+                                        rest: None,
+                                        span: Span {
+                                            start: 94,
+                                            end: 105,
+                                        },
+                                    },
+                                ),
+                                owned: false,
+                                ty: None,
+                                value: Array {
+                                    elements: [
+                                        Expr(
+                                            Array {
+                                                elements: [
+                                                    Expr(
+                                                        Number {
+                                                            raw: "1",
+                                                            span: Span {
+                                                                start: 110,
+                                                                end: 111,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Expr(
+                                                        Number {
+                                                            raw: "2",
+                                                            span: Span {
+                                                                start: 113,
+                                                                end: 114,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                span: Span {
+                                                    start: 109,
+                                                    end: 115,
+                                                },
+                                            },
+                                        ),
+                                        Expr(
+                                            Number {
+                                                raw: "3",
+                                                span: Span {
+                                                    start: 117,
+                                                    end: 118,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    span: Span {
+                                        start: 108,
+                                        end: 119,
+                                    },
+                                },
+                                span: Span {
+                                    start: 90,
+                                    end: 119,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                binding: Pattern(
+                                    Array {
+                                        elements: [
+                                            Ident {
+                                                name: "head",
+                                                span: Span {
+                                                    start: 127,
+                                                    end: 131,
+                                                },
+                                            },
+                                        ],
+                                        rest: Some(
+                                            Ident {
+                                                name: "tail",
+                                                span: Span {
+                                                    start: 136,
+                                                    end: 140,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 126,
+                                            end: 141,
+                                        },
+                                    },
+                                ),
+                                owned: false,
+                                ty: None,
+                                value: Array {
+                                    elements: [
+                                        Expr(
+                                            Number {
+                                                raw: "1",
+                                                span: Span {
+                                                    start: 145,
+                                                    end: 146,
+                                                },
+                                            },
+                                        ),
+                                        Expr(
+                                            Number {
+                                                raw: "2",
+                                                span: Span {
+                                                    start: 148,
+                                                    end: 149,
+                                                },
+                                            },
+                                        ),
+                                        Expr(
+                                            Number {
+                                                raw: "3",
+                                                span: Span {
+                                                    start: 151,
+                                                    end: 152,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    span: Span {
+                                        start: 144,
+                                        end: 153,
+                                    },
+                                },
+                                span: Span {
+                                    start: 122,
+                                    end: 153,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 24,
+                        end: 155,
+                    },
+                },
+                span: Span {
+                    start: 14,
+                    end: 155,
+                },
+            },
+        ),
+    ],
+    span: Span {
+        start: 0,
+        end: 156,
+    },
+}

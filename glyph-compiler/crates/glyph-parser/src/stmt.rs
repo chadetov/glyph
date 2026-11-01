@@ -1,14 +1,15 @@
 //! Statement and block parsing.
 
 use glyph_ast::{
-    Block, BreakStmt, ContinueStmt, Expr, ForBinding, ForStmt, LetStmt, LoopStmt, MutKind,
-    MutStmt, ReturnStmt, Stmt, TypeExpr,
+    Block, BreakStmt, ContinueStmt, Expr, ForBinding, ForStmt, LetBinding, LetStmt, LiteralPattern,
+    LoopStmt, MutKind, MutStmt, Pattern, ReturnStmt, Stmt, TypeExpr,
 };
 use glyph_lexer::{Span, Token};
 
 use crate::cursor::Cursor;
-use crate::error::ParseError;
+use crate::error::{LetPatternRefusal, ParseError};
 use crate::expr;
+use crate::pat;
 use crate::types;
 
 pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
@@ -43,6 +44,11 @@ pub(crate) fn parse_one_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
 fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
     match p.peek() {
         Token::Let => parse_let(p).map(Stmt::Let),
+        // `const [a, b] = ...` in a body: name the rule rather than let `const`
+        // demote to an identifier and the line fail as an index assignment.
+        Token::Const if matches!(p.peek_at(1), Some(Token::LBracket)) => {
+            Err(const_destructure_error(p))
+        }
         Token::Mut => parse_mut(p).map(Stmt::Mut),
         Token::Return => parse_return(p).map(Stmt::Return),
         Token::For => parse_for(p).map(Stmt::For),
@@ -196,14 +202,45 @@ fn parse_let(p: &mut Cursor) -> Result<LetStmt, ParseError> {
     let let_span = p.expect(&Token::Let, "`let`")?;
 
     // `owned` modifier (D25) — accepted at parse, body of analysis deferred.
-    let owned = if matches!(p.peek(), Token::Owned) {
+    let owned_span = matches!(p.peek(), Token::Owned).then(|| p.peek_span());
+    let owned = if owned_span.is_some() {
         p.advance();
         true
     } else {
         false
     };
 
-    let (name, _) = p.expect_ident("variable name after `let`")?;
+    let binding = match p.peek() {
+        // D48: `let [a, b] = expr`.
+        Token::LBracket => {
+            let pattern = pat::parse_pattern(p)?;
+            if let Some(span) = owned_span {
+                return Err(ParseError::DestructuringLet {
+                    refusal: LetPatternRefusal::Owned,
+                    span: span.join(pattern.span()),
+                });
+            }
+            check_let_pattern(&pattern)?;
+            if matches!(p.peek(), Token::Colon) {
+                return Err(ParseError::DestructuringLet {
+                    refusal: LetPatternRefusal::Annotated,
+                    span: p.peek_span(),
+                });
+            }
+            LetBinding::Pattern(pattern)
+        }
+        Token::LBrace => {
+            let open = p.peek_span();
+            let pattern = pat::parse_pattern(p)?;
+            return Err(ParseError::ObjectDestructuringLet {
+                span: open.join(pattern.span()),
+            });
+        }
+        _ => {
+            let (name, _) = p.expect_ident("variable name after `let`")?;
+            LetBinding::Name(name)
+        }
+    };
 
     // Optional `: Type` annotation.
     let ty: Option<TypeExpr> = if matches!(p.peek(), Token::Colon) {
@@ -218,12 +255,81 @@ fn parse_let(p: &mut Cursor) -> Result<LetStmt, ParseError> {
     let end = value.span().end;
 
     Ok(LetStmt {
-        name,
+        binding,
         owned,
         ty,
         value,
         span: Span::new(let_span.start, end),
     })
+}
+
+/// `const [a, b] = ...`, with the cursor on `const` (D20, D48): a `const` binds
+/// one name. The span covers `const` and the pattern, which is parsed only to
+/// find its end.
+pub(crate) fn const_destructure_error(p: &mut Cursor) -> ParseError {
+    let start = p.peek_span();
+    p.advance();
+    let span = match pat::parse_pattern(p) {
+        Ok(pattern) => start.join(pattern.span()),
+        Err(_) => start,
+    };
+    ParseError::DestructuringLet {
+        refusal: LetPatternRefusal::Const,
+        span,
+    }
+}
+
+/// D48: a destructuring `let` always matches. Its pattern holds lowercase
+/// bindings, `_`, nested array patterns and a trailing rest that is a name or
+/// `_`; anything that tests the value is refused here, where no type is needed
+/// to know it can fail. An object pattern is refused as the construct that is
+/// not designed yet (E0005), wherever it sits in the pattern.
+fn check_let_pattern(pattern: &Pattern) -> Result<(), ParseError> {
+    let refuse = |what: String, span: Span| ParseError::DestructuringLet {
+        refusal: LetPatternRefusal::Refutable { what },
+        span,
+    };
+    match pattern {
+        Pattern::Wildcard { .. } => Ok(()),
+        Pattern::Ident { name, span } => match glyph_ast::is_variant_shaped(name) {
+            true => Err(refuse(format!("the variant name `{name}`"), *span)),
+            false => Ok(()),
+        },
+        Pattern::Array { elements, rest, .. } => {
+            for e in elements {
+                check_let_pattern(e)?;
+            }
+            match rest.as_deref() {
+                None | Some(Pattern::Wildcard { .. }) => Ok(()),
+                Some(r @ Pattern::Ident { .. }) => check_let_pattern(r),
+                Some(other) => Err(refuse(
+                    "a rest that is not a name".to_string(),
+                    other.span(),
+                )),
+            }
+        }
+        Pattern::Object { span, .. } => Err(ParseError::ObjectDestructuringLet { span: *span }),
+        Pattern::Literal { value, span } => {
+            let written = match value {
+                LiteralPattern::Number(raw) => raw.clone(),
+                LiteralPattern::String(s) => format!("\"{s}\""),
+                LiteralPattern::Bool(b) => b.to_string(),
+                LiteralPattern::Void => "void".to_string(),
+            };
+            Err(refuse(format!("the literal `{written}`"), *span))
+        }
+        Pattern::Constructor { path, args, span } => {
+            let head = path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".");
+            let what = match args.is_empty() {
+                true => format!("the variant name `{head}`"),
+                false => format!("the constructor pattern `{head}(..)`"),
+            };
+            Err(refuse(what, *span))
+        }
+        Pattern::IsType { span, .. } => Err(refuse("an `is` guard".to_string(), *span)),
+        // `else` never reaches here: `parse_pattern` refuses it outside an arm.
+        Pattern::Else { span } => Err(refuse("`else`".to_string(), *span)),
+    }
 }
 
 fn parse_return(p: &mut Cursor) -> Result<ReturnStmt, ParseError> {

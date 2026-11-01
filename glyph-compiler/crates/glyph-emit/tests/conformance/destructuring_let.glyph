@@ -1,0 +1,15 @@
+// D48 `let [a, b] = expr`: emitted as `let`, with `satisfies` stating the arity.
+module x
+
+import react { useState }
+
+pub fn pairs() -> number {
+  let [count, set_count] = useState(0)
+  let [_, setter] = useState("a")
+  let [head, ...tail] = [1, 2, 3]
+  let [[x, y], z] = [[1, 2], 3]
+  set_count(count)
+  setter("b")
+  mut head = head + x + y + z
+  return head + tail.length
+}

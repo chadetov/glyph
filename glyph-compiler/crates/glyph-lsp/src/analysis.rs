@@ -2191,14 +2191,26 @@ impl Analysis {
     fn block_inlay_hints(&self, block: &glyph_ast::Block, text: &str, out: &mut Vec<(usize, String)>) {
         for stmt in &block.stmts {
             match stmt {
-                glyph_ast::Stmt::Let(l) if l.ty.is_none() => {
-                    let vs = l.value.span();
-                    if let Some(ty) = self.type_of_exact(vs) {
-                        if let Some(pos) = let_name_end(text, l) {
-                            out.push((pos, format!(": {ty}")));
+                glyph_ast::Stmt::Let(l) if l.ty.is_none() => match &l.binding {
+                    glyph_ast::LetBinding::Name(name) => {
+                        let vs = l.value.span();
+                        if let Some(ty) = self.type_of_exact(vs) {
+                            if let Some(pos) = let_name_end(text, l, name) {
+                                out.push((pos, format!(": {ty}")));
+                            }
                         }
                     }
-                }
+                    // D48: one hint per name, after the name, with the type the
+                    // checker gave that element. A name whose element only
+                    // `tsc` can see (an npm tuple) has none and shows none.
+                    glyph_ast::LetBinding::Pattern(p) => {
+                        for (_, span) in p.bindings() {
+                            if let Some(ty) = self.type_of_exact(span) {
+                                out.push((span.end as usize, format!(": {ty}")));
+                            }
+                        }
+                    }
+                },
                 glyph_ast::Stmt::For(f) => self.block_inlay_hints(&f.body, text, out),
                 glyph_ast::Stmt::Loop(l) => self.block_inlay_hints(&l.body, text, out),
                 _ => {}
@@ -2346,11 +2358,11 @@ impl Analysis {
 /// children.
 /// The byte offset just after a `let` binding's name, where an inlay type hint
 /// sits. Locates the name in the source between `let` and the initializer.
-fn let_name_end(text: &str, l: &glyph_ast::LetStmt) -> Option<usize> {
+fn let_name_end(text: &str, l: &glyph_ast::LetStmt, name: &glyph_ast::Ident) -> Option<usize> {
     let start = l.span.start as usize;
     let vs = l.value.span().start as usize;
     let head = text.get(start..vs)?;
-    let name = l.name.as_ref();
+    let name = name.as_ref();
     let rel = head.rfind(name)?;
     Some(start + rel + name.len())
 }

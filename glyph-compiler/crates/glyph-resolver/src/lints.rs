@@ -327,12 +327,29 @@ impl LintWalk<'_> {
     fn stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Let(l) => {
-                let name = l.name.as_ref();
-                if !name.starts_with('_') && !self.used_locals.contains(&l.span.start) {
-                    self.out.push(ResolveError::UnusedBinding {
-                        name: name.to_string(),
-                        span: l.span,
-                    });
+                match &l.binding {
+                    glyph_ast::LetBinding::Name(name) => {
+                        if !name.starts_with('_') && !self.used_locals.contains(&l.span.start) {
+                            self.out.push(ResolveError::UnusedBinding {
+                                name: name.to_string(),
+                                span: l.span,
+                            });
+                        }
+                    }
+                    // D48: one lint per name the pattern binds, at that name,
+                    // so `let [count, set_count] = ...` with `set_count` never
+                    // read points at `set_count` and the fix is to write `_`
+                    // in its place.
+                    glyph_ast::LetBinding::Pattern(p) => {
+                        for (name, span) in p.bindings() {
+                            if !name.starts_with('_') && !self.used_locals.contains(&span.start) {
+                                self.out.push(ResolveError::UnusedBinding {
+                                    name: name.to_string(),
+                                    span,
+                                });
+                            }
+                        }
+                    }
                 }
                 self.expr(&l.value);
             }
@@ -593,5 +610,27 @@ mod tests {
         let m = glyph_parser::parse("module app\nfn main() -> number {\n  return 0\n}\n")
             .expect("parse failed");
         assert!(no_export_surface_lint(&m, false).is_none());
+    }
+
+    /// D48: one E0107 per unused name in a destructuring `let`, at that name,
+    /// and none for a used one, an `_` or an `_`-prefixed name.
+    #[test]
+    fn flags_each_unused_name_in_a_let_pattern() {
+        let src = "module m\nfn f() -> number {\n  let [used, unused, _, _quiet, [deep, ...tail]] = g()\n  return used + deep\n}\nfn g() -> number { return 1 }\n";
+        let errs = lints_of(src);
+        let unused: Vec<(String, &str)> = errs
+            .iter()
+            .filter_map(|e| match e {
+                ResolveError::UnusedBinding { name, span } => {
+                    Some((name.clone(), &src[span.start as usize..span.end as usize]))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            unused,
+            vec![("unused".to_string(), "unused"), ("tail".to_string(), "tail")],
+            "{errs:?}"
+        );
     }
 }

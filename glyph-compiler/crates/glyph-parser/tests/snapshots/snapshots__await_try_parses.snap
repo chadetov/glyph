@@ -38,7 +38,9 @@ Module {
                     stmts: [
                         Let(
                             LetStmt {
-                                name: "x",
+                                binding: Name(
+                                    "x",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Postfix {

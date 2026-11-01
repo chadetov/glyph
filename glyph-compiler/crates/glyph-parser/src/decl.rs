@@ -475,6 +475,9 @@ fn parse_const_decl(
     annotations: Vec<Annotation>,
     is_public: bool,
 ) -> Result<ConstDecl, ParseError> {
+    if matches!(p.peek_at(1), Some(Token::LBracket)) {
+        return Err(crate::stmt::const_destructure_error(p));
+    }
     let const_span = p.expect(&Token::Const, "`const`")?;
     let (name, _) = p.expect_ident("constant name")?;
     let ty = if matches!(p.peek(), Token::Colon) {

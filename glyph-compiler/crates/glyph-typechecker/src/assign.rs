@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use glyph_ast::{
     jsx_member_name, ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild,
-    JsxElement, JsxKind, LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField,
+    JsxElement, JsxKind, LetBinding, LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField,
     ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
 use glyph_resolver::{
@@ -31,7 +31,9 @@ use crate::ty::{
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
-use crate::{Accepted, AlternativesKind, DiagnosticDecl, PropsRefusal, TypeError};
+use crate::{
+    Accepted, AlternativesKind, DestructureRefusal, DiagnosticDecl, PropsRefusal, TypeError,
+};
 
 /// How the innermost enclosing callable's declared return type relates to
 /// the `?` operator's requirement (D + week-3 task 2). Pushed onto
@@ -1588,6 +1590,13 @@ impl Assigner<'_> {
                 if let Expr::Match { arms, .. } = &l.value {
                     self.check_arms_produce_values(arms);
                 }
+                // D48: a pattern takes no annotation (the parser refuses one),
+                // and gives each name its own element's type.
+                if let LetBinding::Pattern(p) = &l.binding {
+                    let value_ty = self.tm.get(l.value.span()).clone();
+                    self.bind_let_pattern(p, &l.value, &value_ty);
+                    return;
+                }
                 // Record the binding's type so later references resolve
                 // concretely. An explicit annotation wins; otherwise infer
                 // from the initializer's type (week-2 task 5, local `let`
@@ -1744,6 +1753,122 @@ impl Assigner<'_> {
             Stmt::Break(_) | Stmt::Continue(_) => {}
             Stmt::Defer(d) => self.walk_expr(&d.expr),
             Stmt::Expr(e) => self.walk_expr(e),
+        }
+    }
+
+    /// D48: prove a destructuring `let`'s initializer has the pattern's
+    /// length, and give each name the type of its element.
+    ///
+    /// Four readings, the table in the spec:
+    /// - a written array literal with no spread is counted here, and each name
+    ///   takes its element's type widened the way a `let` widens (D30), so
+    ///   `let [m] = ["read"]` holds a `string` as `let m = "read"` does;
+    /// - a value whose type the checker cannot see (`Ty::Unknown`, an npm
+    ///   import) is left to `tsc`, which the emitted `satisfies` makes prove
+    ///   the length, and its names stay open;
+    /// - an `Array<T>` is refused: nothing knows its length before run time;
+    /// - anything else is refused as not an array.
+    ///
+    /// A nested pattern is read against its element by the same rules, so
+    /// `let [[a, b], c] = [[1, 2], 3]` is counted at both levels. Each name's
+    /// type is keyed at its own span, the def site the resolver bound it at,
+    /// and recorded in the type map there for inlay hints.
+    fn bind_let_pattern(&mut self, pattern: &Pattern, value: &Expr, ty: &Ty) {
+        let Pattern::Array { elements, rest, .. } = pattern else {
+            return;
+        };
+        if let Expr::Array { elements: written, .. } = value {
+            let exprs: Option<Vec<&Expr>> = written
+                .iter()
+                .map(|el| match el {
+                    ArrayElem::Expr(e) => Some(e),
+                    ArrayElem::Spread(_) => None,
+                })
+                .collect();
+            // A literal with a spread has no length written down; it falls
+            // through to its type, an `Array<T>`.
+            if let Some(exprs) = exprs {
+                let fits = match rest {
+                    Some(_) => exprs.len() >= elements.len(),
+                    None => exprs.len() == elements.len(),
+                };
+                if !fits {
+                    self.errors.push(TypeError::DestructureUnproven {
+                        why: DestructureRefusal::Count {
+                            pattern: elements.len(),
+                            at_least: rest.is_some(),
+                            literal: exprs.len(),
+                        },
+                        span: value.span(),
+                    });
+                    return;
+                }
+                for (sub, e) in elements.iter().zip(exprs.iter()) {
+                    self.bind_let_slot(sub, e);
+                }
+                if let Some(Pattern::Ident { span, .. }) = rest.as_deref() {
+                    // The rest holds the elements left over, as an array of
+                    // their joined type; with none left, or none that join,
+                    // the binding stays open rather than claim an element type.
+                    let mut joined: Option<Ty> = None;
+                    for e in &exprs[elements.len()..] {
+                        let t = self.widen_fresh_literals(e, self.tm.get(e.span()).clone());
+                        joined = match joined {
+                            None if ty_is_decidable(&t) => Some(t),
+                            Some(prev) if prev == t => Some(prev),
+                            Some(prev) if ty_is_decidable(&t) => match join_ty(&prev, &t) {
+                                Ty::Unknown => None,
+                                j => Some(j),
+                            },
+                            _ => None,
+                        };
+                        if joined.is_none() {
+                            break;
+                        }
+                    }
+                    if let Some(elem) = joined {
+                        let arr = self.array_ty(elem);
+                        self.tm.insert(*span, arr.clone());
+                        self.local_tys.insert(span.start, arr);
+                    }
+                }
+                return;
+            }
+        }
+        if ty.is_unknown() {
+            return;
+        }
+        let canonical = self.canonicalize_aliases(ty);
+        // Shown as a `let` would hold it: `"ab"` is a `string` there.
+        let shown = ty_display(&self.widen_fresh_literals(value, ty.clone()));
+        let why = match self.prelude_app(&canonical, "Array") {
+            Some(_) => DestructureRefusal::UnknownLength {
+                ty: shown,
+                spread: matches!(value, Expr::Array { .. }),
+            },
+            None => DestructureRefusal::NotAnArray { ty: shown },
+        };
+        self.errors.push(TypeError::DestructureUnproven {
+            why,
+            span: value.span(),
+        });
+    }
+
+    /// One element of a destructuring `let` over a written literal: a name
+    /// takes the element's widened type, a nested pattern is read against the
+    /// element, and `_` reads nothing.
+    fn bind_let_slot(&mut self, sub: &Pattern, e: &Expr) {
+        let ty = self.tm.get(e.span()).clone();
+        match sub {
+            Pattern::Ident { span, .. } => {
+                let widened = self.widen_fresh_literals(e, ty);
+                if !widened.is_unknown() {
+                    self.tm.insert(*span, widened.clone());
+                    self.local_tys.insert(span.start, widened);
+                }
+            }
+            Pattern::Array { .. } => self.bind_let_pattern(sub, e, &ty),
+            _ => {}
         }
     }
 
@@ -15500,5 +15625,153 @@ fn f(a: Answer) -> number {
         // argument's to decide, not the component's.
         let same = props_param_errors("type Same<X> = X\n", "Same<{ name: string }>");
         assert!(same.is_empty(), "{same:?}");
+    }
+
+    // ----- D48: destructuring `let` -----
+
+    fn destructure_errors(body: &str) -> Vec<TypeError> {
+        ty_errors_of(&format!(
+            "module x\nimport react {{ useState }}\nfn take_num(n: number) -> number {{ return n }}\nfn nums() -> Array<number> {{ return [1] }}\ntype R = {{ a: number }}\nfn rec() -> R {{ return {{ a: 1 }} }}\npub fn run() -> number {{\n{body}\n  return 0\n}}\n"
+        ))
+    }
+
+    fn e0230(errs: &[TypeError]) -> Vec<&DestructureRefusal> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::DestructureUnproven { why, .. } => Some(why),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Each name takes its own element's type: `b` is a `string` here, so
+    /// passing it where a number is wanted is E0211, and `a` passes.
+    #[test]
+    fn a_let_pattern_over_a_literal_types_each_element() {
+        let errs = destructure_errors("  let [a, b] = [1, \"x\"]\n  take_num(a)\n  take_num(b)");
+        let mismatches: Vec<&TypeError> =
+            errs.iter().filter(|e| e.code() == "E0211").collect();
+        assert_eq!(mismatches.len(), 1, "{errs:?}");
+        assert!(e0230(&errs).is_empty(), "{errs:?}");
+        let TypeError::ArgumentTypeMismatch { found, .. } = mismatches[0] else {
+            panic!("{mismatches:?}");
+        };
+        assert_eq!(found, "string");
+    }
+
+    /// The element types widen the way a `let` widens (D30): `["read"]`
+    /// gives a `string`, not the literal `"read"`.
+    #[test]
+    fn a_let_pattern_widens_a_fresh_literal_element() {
+        let errs = ty_errors_of(
+            "module x\ntype Mode = \"read\" | \"write\"\nfn take(m: Mode) -> Mode { return m }\npub fn run() -> Mode {\n  let [m] = [\"read\"]\n  return take(m)\n}\n",
+        );
+        assert!(errs.iter().any(|e| e.code() == "E0211"), "{errs:?}");
+    }
+
+    /// A nested pattern is typed against its element, and a rest is an array
+    /// of the elements left over.
+    #[test]
+    fn nested_patterns_and_a_rest_are_typed() {
+        let errs = destructure_errors(
+            "  let [[a, s], ...more] = [[1, \"x\"], 2, 3]\n  take_num(a)\n  take_num(s)\n  take_num(more)",
+        );
+        let found: Vec<String> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::ArgumentTypeMismatch { found, .. } => Some(found.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(found, ["string", "Array<number>"], "{errs:?}");
+    }
+
+    #[test]
+    fn a_literal_of_another_length_is_e0230() {
+        let errs = destructure_errors("  let [a, b] = [1, 2, 3]\n  take_num(a + b)");
+        assert_eq!(
+            e0230(&errs),
+            [&DestructureRefusal::Count { pattern: 2, at_least: false, literal: 3 }],
+            "{errs:?}"
+        );
+        let short = destructure_errors("  let [a, b, ...r] = [1]\n  take_num(a + b)\n  take_num(r)");
+        assert_eq!(
+            e0230(&short),
+            [&DestructureRefusal::Count { pattern: 2, at_least: true, literal: 1 }],
+            "{short:?}"
+        );
+        // A rest takes any number of further elements, none included.
+        let exact = destructure_errors("  let [a, ...r] = [1]\n  take_num(a)\n  take_num(r)");
+        assert!(e0230(&exact).is_empty(), "{exact:?}");
+    }
+
+    /// A nested literal is counted too.
+    #[test]
+    fn a_nested_literal_of_another_length_is_e0230() {
+        let errs = destructure_errors("  let [[a, b], c] = [[1], 2]\n  take_num(a + b + c)");
+        assert_eq!(
+            e0230(&errs),
+            [&DestructureRefusal::Count { pattern: 2, at_least: false, literal: 1 }],
+            "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn an_array_of_unknown_length_is_e0230_naming_the_match() {
+        let errs = destructure_errors("  let [a, b] = nums()\n  take_num(a + b)");
+        assert_eq!(
+            e0230(&errs),
+            [&DestructureRefusal::UnknownLength { ty: "Array<number>".to_string(), spread: false }],
+            "{errs:?}"
+        );
+        let e = errs.iter().find(|e| e.code() == "E0230").unwrap();
+        assert!(e.help().unwrap().contains("match xs { [a, b] => ..., else => ... }"));
+        // A literal with a spread has no written length either.
+        let spread = destructure_errors("  let [a, b] = [1, ...nums()]\n  take_num(a + b)");
+        assert!(
+            matches!(e0230(&spread)[..], [DestructureRefusal::UnknownLength { spread: true, .. }]),
+            "{spread:?}"
+        );
+    }
+
+    #[test]
+    fn a_value_that_is_not_an_array_is_e0230() {
+        for (init, ty) in [("rec()", "R"), ("\"ab\"", "string"), ("1", "number")] {
+            let errs = destructure_errors(&format!("  let [a] = {init}\n  take_num(a)"));
+            assert_eq!(
+                e0230(&errs),
+                [&DestructureRefusal::NotAnArray { ty: ty.to_string() }],
+                "{init}: {errs:?}"
+            );
+        }
+        let unknown = ty_errors_of(
+            "module x\npub fn run(v: unknown) -> number {\n  let [a] = v\n  return 0\n}\n",
+        );
+        assert!(
+            matches!(e0230(&unknown)[..], [DestructureRefusal::NotAnArray { .. }]),
+            "{unknown:?}"
+        );
+    }
+
+    /// A value the checker cannot see into is left to `tsc`, and its names
+    /// stay open rather than pinned to anything.
+    #[test]
+    fn an_npm_value_is_accepted_for_tsc_to_prove() {
+        let errs = destructure_errors(
+            "  let [count, set_count] = useState(0)\n  let [_, [x, y], ...rest] = useState(1)\n  take_num(count)\n  set_count(1)\n  take_num(x + y)\n  take_num(rest)",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// A `match` initializer is judged by the type the arms join to.
+    #[test]
+    fn a_match_initializer_is_judged_by_its_type() {
+        let errs = destructure_errors(
+            "  let [a, b] = match true {\n    true => nums(),\n    false => nums(),\n  }\n  take_num(a + b)",
+        );
+        assert!(
+            matches!(e0230(&errs)[..], [DestructureRefusal::UnknownLength { .. }]),
+            "{errs:?}"
+        );
     }
 }

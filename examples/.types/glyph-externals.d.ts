@@ -1,7 +1,6 @@
 // Stubs for the external (non-stdlib) modules the example programs import: the
-// React bindings and the example's own `api/users` module. These are NOT part
-// of the Glyph runtime — they are verification fixtures so the emitted examples
-// type-check standalone. A real project supplies these from npm / its own
+// React bindings. These are NOT part of the Glyph runtime — they are
+// verification fixtures so the emitted examples type-check standalone. A real project supplies these from npm / its own
 // sources.
 
 declare module "react" {
@@ -36,14 +35,11 @@ declare module "react" {
   type Context<T> = { Provider: unknown; Consumer: unknown; __t?: T };
   export function createContext<T>(initial: T): Context<T>;
   export function useContext<T>(ctx: Context<T>): T;
-  export function use_state<T>(initial: T): { value: T; set: (next: T) => void };
-  export function use_effect(effect: () => void, deps: ReadonlyArray<unknown>): void;
-  export function use_memo<T>(factory: () => T, deps: ReadonlyArray<unknown>): T;
-}
-
-declare module "api/users" {
-  import { Result } from "std/result";
-  export type SearchError = { tag: "SearchError"; message: string };
-  // The element type is the example's own `User`; `any` lets it bind there.
-  export function search_users(query: string): Result<Array<any>, SearchError>;
+  // React 18's hook signatures, narrowed to what the examples call. The
+  // example is also checked against the real `@types/react` by
+  // `scripts/check_react_example.py`; this stub only lets the examples tree
+  // build without installing React.
+  export function useState<T>(initial: T | (() => T)): [T, (next: T | ((prev: T) => T)) => void];
+  export function useEffect(effect: () => void | (() => void), deps?: ReadonlyArray<unknown>): void;
+  export function useMemo<T>(factory: () => T, deps: ReadonlyArray<unknown>): T;
 }

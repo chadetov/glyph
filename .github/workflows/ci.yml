@@ -150,6 +150,14 @@ jobs:
           done
           "$BIN" build ../examples --out "$RUNNER_TEMP/dist"
 
+      # The examples tree builds against a React stub, so the React example is
+      # also checked against React's own declarations, from the todo app's
+      # installed node_modules (G271). Runs after the step above installed it.
+      - name: Check the React example against @types/react
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: python3 scripts/check_react_example.py
+
       # The docs run against the compiler, not against a reader's memory. Both
       # of these need a built `glyph`, so they live here rather than in the
       # versions job.

@@ -1,15 +1,15 @@
-// A search-as-you-type component:
-//   - reactive state objects (no destructured tuples)
+// A search-as-you-type component against real React 18:
+//   - React's own hooks, imported by name, with a hook's pair destructured
 //   - setters are calls, not mutations (no `mut` on set)
 //   - restricted JSX expressions
 //   - compiler-owned directives: <if>, <for>, <match>, <case>, <else>
 
 module components/user_search
 
-import std/result { Ok, Err }
-import react { use_state, use_effect, use_memo }
-import std/time { debounce, Duration }
-import api/users { search_users, SearchError }
+import react { useState, useEffect, useMemo }
+import std/result { Result, Ok, Err }
+import std/time
+import std/time { Duration }
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,39 +23,49 @@ type SearchState =
   | Loaded({ users: Array<User> })
   | Failed({ message: string })
 
-type Props = { on_select: fn(user: User) -> void, placeholder?: string }
+type Props = {
+  search: fn(query: string) -> Result<Array<User>, string>,
+  on_select: fn(user: User) -> void,
+  placeholder?: string,
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-component UserSearch(props: Props) -> Component {
-  let query = use_state<string>("")
-  let state = use_state<SearchState>(Idle)
+pub component UserSearch(props: Props) -> Component {
+  let [query, set_query] = useState("")
+  let [state, set_state] = useState<SearchState>(Idle)
 
-  let debounced_search = use_memo(
-    fn() { return debounce(Duration.ms(250), fn(q: string) { run_search(q, state.set) }) },
+  // One debounced function for the component's lifetime, so a burst of
+  // keystrokes runs one search.
+  let debounced_search = useMemo(
+    fn() {
+      return time.debounce(Duration.ms(250), fn(q: string) { set_state(outcome(props.search(q))) })
+    },
     [],
   )
 
-  use_effect(
-    fn() {
-      match query.value.length {
-        0 => state.set(Idle),
+  // An effect returns nothing: a value it returned would reach React as a
+  // cleanup function.
+  useEffect(
+    fn() -> void {
+      match query.length {
+        0 => set_state(Idle),
         else => {
-          state.set(Loading)
-          debounced_search(query.value)
+          set_state(Loading)
+          debounced_search(query)
         },
       }
     },
-    [query.value],
+    [query],
   )
 
   return <div class="user-search">
-    <input type="text" value={query.value} placeholder={props.placeholder ?? "Search users..."} on_input={fn(
+    <input type="text" value={query} placeholder={props.placeholder ?? "Search users..."} on_change={fn(
       event,
-    ) { query.set(event.target.value) }} />
-    <ResultsList state={state.value} on_select={props.on_select} />
+    ) { set_query(event.currentTarget.value) }} />
+    <ResultsList state={state} on_select={props.on_select} />
   </div>
 }
 
@@ -98,9 +108,9 @@ component ResultsList(props: ResultsListProps) -> Component {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn run_search(query: string, set: fn(state: SearchState) -> void) -> void {
-  match await search_users(query) {
-    Ok(users) => set(Loaded({ users: users })),
-    Err(SearchError({ message })) => set(Failed({ message: message })),
+fn outcome(found: Result<Array<User>, string>) -> SearchState {
+  return match found {
+    Ok(users) => Loaded({ users: users }),
+    Err(message) => Failed({ message: message }),
   }
 }

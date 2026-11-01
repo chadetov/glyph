@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-275 entries, 235 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+277 entries, 237 are fixed, 7 are partly fixed, 11 are decided or resolved, and
 22 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -10562,3 +10562,33 @@ and is the owner's to confirm.
   example G258 asked for.
 
   *Reproduced against 0.1.127: a component with `type Load = Loading | Loaded(Array<string>)` and `<case Loaded bind={items}><p>{items.length}</p></case>` exits 0 under `--no-tsc`; the emitted TypeScript is `const items = __v.items`.*
+
+- **G276. [FIXED] `glyph fmt` dropped a space JSX renders.** The formatter
+  printed every JSX text child trimmed, so `<p>{n} left</p>` came back as
+  `<p>{n}left</p>` and the page read "2left": a formatting pass changed what a
+  component renders, with no diagnostic before or after. In a child list laid
+  out one per line, a space at the edge of a text run, or a lone space between
+  two elements on one line, was dropped the same way. Found formatting the
+  0.1.128 todo app.
+
+  Fixed in 0.1.128: the emitter's JSX whitespace rule moved into `glyph-ast`
+  (`jsx_text_value`), the formatter prints each text child as that value, and a
+  significant space at the edge of a run placed on its own line is written as
+  `{" "}`. A test formats seven whitespace shapes and requires the rendered text
+  of the emitted TypeScript to be unchanged and the output to be a fixed point.
+
+  *Reproduced against 0.1.127: `glyph fmt` on `return <p class="left">{n} left</p>` writes `{n}left`.*
+
+- **G277. [FIXED] Text on its own line below a JSX child kept its
+  indentation.** `<p>` holding `<b>x</b>` and, on the next line, `and` emitted
+  `"    and"` where JSX's rule, which the emitter follows, gives `"and"`. The
+  parser decided whether a text run started a fresh line from a flag that the
+  previous child's parser had already reset by consuming the newline. Found
+  testing the G276 fix, whose `{" "}` output depends on the rule holding.
+
+  Fixed in 0.1.128: the parser reads the fresh line from the source. No file in
+  `examples/` changes its emitted TypeScript; a program with text on its own
+  line after a child now renders it without the extra leading space, as the
+  same TSX does.
+
+  *Reproduced against 0.1.127: `<p>\n    <b>x</b>\n    and\n  </p>` emits `createElement("p", null, createElement("b", null, "x"), "    and")`.*

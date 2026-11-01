@@ -708,6 +708,45 @@ pub enum JsxAttr {
     Spread { value: Expr, span: Span },
 }
 
+/// The text a JSX text child renders, following the JSX whitespace rules (Babel's
+/// `cleanJSXElementLiteralChild`): split into lines, strip leading whitespace
+/// on every line after the first and trailing whitespace on every line before
+/// the last, tabs become spaces, and non-empty lines join with a single space.
+/// A whitespace-only run that spans a newline (the indentation between tags)
+/// collapses to empty and is dropped by the caller.
+///
+/// The emitter writes this and the formatter preserves it, so the two read one
+/// definition of what a text child means. A single-line run keeps its
+/// significant leading/trailing space, so text abutting an interpolated `{expr}`
+/// child on the same line (`Hello {name} and welcome`) preserves the space
+/// separating them, matching Babel/tsc.
+pub fn jsx_text_value(content: &str) -> String {
+    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    let lines: Vec<&str> = normalized.split('\n').collect();
+    let last_non_empty = lines
+        .iter()
+        .rposition(|l| l.chars().any(|c| c != ' ' && c != '\t'))
+        .unwrap_or(0);
+    let line_count = lines.len();
+    let mut out = String::new();
+    for (i, line) in lines.iter().enumerate() {
+        let mut trimmed = line.replace('\t', " ");
+        if i != 0 {
+            trimmed = trimmed.trim_start_matches(' ').to_string();
+        }
+        if i != line_count - 1 {
+            trimmed = trimmed.trim_end_matches(' ').to_string();
+        }
+        if !trimmed.is_empty() {
+            if i != last_non_empty {
+                trimmed.push(' ');
+            }
+            out.push_str(&trimmed);
+        }
+    }
+    out
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JsxChild {
     Element(JsxElement),

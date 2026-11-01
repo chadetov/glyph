@@ -7318,7 +7318,7 @@ struct ElementProps {
     spread: bool,
     /// Whether it has a child the emitter passes on: an element, an
     /// expression, or text other than the whitespace it drops (a run of
-    /// spaces with a line break in it, see `normalize_jsx_text`).
+    /// spaces with a line break in it, see `glyph_ast::jsx_text_value`).
     children: bool,
     /// The source from the first attribute to the last, when it writes any.
     written: Option<(u32, u32)>,

@@ -1618,17 +1618,41 @@ impl Printer {
             return;
         }
         self.push(">");
-        // Children with any element are laid out one-per-line; a single text or
-        // expression child stays inline.
+        // Children with any element are laid out one-per-line; text and
+        // expression children alone stay inline. Either way a text child is
+        // printed as the text it renders (`glyph_ast::jsx_text_value`), so a
+        // space JSX keeps, such as the one in `{n} left`, survives. On its own
+        // line a space at either end of the text would be dropped as layout,
+        // so it is written as `{" "}`, the spelling JSX formatters use.
         let has_element = j.children.iter().any(|c| matches!(c, JsxChild::Element(_)));
         if has_element {
             self.indent += 1;
             for child in &j.children {
-                if jsx_child_is_blank_text(child) {
-                    continue;
+                match child {
+                    JsxChild::Text { content, .. } => {
+                        let text = glyph_ast::jsx_text_value(content);
+                        if text.is_empty() {
+                            continue;
+                        }
+                        if text.starts_with(' ') {
+                            self.newline();
+                            self.push("{\" \"}");
+                        }
+                        let inner = text.trim_matches(' ');
+                        if !inner.is_empty() {
+                            self.newline();
+                            self.push(inner);
+                        }
+                        if text.ends_with(' ') && !inner.is_empty() {
+                            self.newline();
+                            self.push("{\" \"}");
+                        }
+                    }
+                    _ => {
+                        self.newline();
+                        self.jsx_child(child);
+                    }
                 }
-                self.newline();
-                self.jsx_child(child);
             }
             self.indent -= 1;
             self.newline();
@@ -1675,7 +1699,7 @@ impl Printer {
                 self.expr(e);
                 self.push("}");
             }
-            JsxChild::Text { content, .. } => self.push(content.trim()),
+            JsxChild::Text { content, .. } => self.push(&glyph_ast::jsx_text_value(content)),
         }
     }
 }
@@ -1708,12 +1732,6 @@ fn interface_member_start(m: &glyph_ast::InterfaceMember) -> u32 {
         glyph_ast::InterfaceMember::Method { span, .. } => span.start,
         glyph_ast::InterfaceMember::Field(f) => f.span.start,
     }
-}
-
-/// True when `child` is whitespace-only text (the layout-only newlines between
-/// elements the parser preserved); these are dropped when re-laying-out.
-fn jsx_child_is_blank_text(child: &JsxChild) -> bool {
-    matches!(child, JsxChild::Text { content, .. } if content.trim().is_empty())
 }
 
 /// The source offset a declaration begins at, including any leading

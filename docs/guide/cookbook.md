@@ -406,7 +406,6 @@ binds a number.
 
 ```glyph
 import std/io
-import std/number
 
 type Expense = { description: string, cents: int }
 type Ledger = { expenses: Array<Expense> }

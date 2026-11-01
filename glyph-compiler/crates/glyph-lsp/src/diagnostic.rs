@@ -534,6 +534,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::UnknownExportedName { .. } => "import",
         ResolveError::UnresolvedName { .. } => "resolve",
         ResolveError::UnresolvedModule { .. } => "import",
+        ResolveError::UnknownStdModule { .. } => "import",
         ResolveError::UnusedImport { .. } => "lint",
         ResolveError::UnusedBinding { .. } => "lint",
         ResolveError::UnreachableCode { .. } => "lint",

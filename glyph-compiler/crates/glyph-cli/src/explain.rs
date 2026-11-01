@@ -205,7 +205,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `<root>/.types/*.d.ts`, installed in the project's `node_modules`, \
             or listed in a `package.json` dependency field is resolved, even \
             when a local file shares its name. If the package is none of those, \
-            add it to your dependencies or declare it.",
+            add it to your dependencies or declare it.\n\n\
+            A `std/` path is checked against the modules the compiler carries. \
+            `import std/zzznope` is this error, and the message names the nearest \
+            real module, or lists them all. Before this check such an import \
+            passed every Glyph stage and failed only in `tsc`, with a TS2307 \
+            about generated code.",
         "E0105" => "E0105: unknown exported name\n\n\
             The module exists but does not export the name you imported. A name \
             is exported only if it is declared `pub`.\n\n\
@@ -1318,7 +1323,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0104",
         phase: "resolver",
-        meaning: "Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `\"glyph\"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead",
+        meaning: "Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `\"glyph\"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead. A `std/` path the standard library does not carry (`import std/zzznope`) is this error too, naming the nearest real module",
         fix: "Check the path / that the module exists",
     },
     CodeEntry {

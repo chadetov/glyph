@@ -91,8 +91,8 @@
         <p>
           Six sections, each read off a table the compiler already has. A diagnostic entry carries
           the catalogue sentence, the one-line fix, the long explanation, and the help and note
-          taken from a diagnostic the compiler drew. 39 of the 62 codes also carry a wrong program
-          that draws the code, compiled at the moment you ask; the other 23 say the corpus has no
+          taken from a diagnostic the compiler drew. 40 of the 62 codes also carry a wrong program
+          that draws the code, compiled at the moment you ask; the other 22 say the corpus has no
           case for it.
         </p>
       </div>
@@ -137,12 +137,12 @@
         <p class="block-label">The prelude, the stdlib, and the decisions</p>
         <p>
           The prelude is the 24 names the resolver resolves against, with what each one is. The
-          stdlib is 36 modules and 327 exports, and each signature is read out of the checker's
+          stdlib is 40 modules and 340 exports, and each signature is read out of the checker's
           own tables and printed by the same type printer a diagnostic uses, so the signature in
           the document is the signature the checker will hold you to. The exports split three
-          ways and never two: 117 signatures are modeled in every position, 46 carry a
+          ways and never two: 127 signatures are modeled in every position, 46 carry a
           <code>?</code> where a parameter type belongs and are counted
-          <code>partially_modeled</code> with a line saying how many positions are left, and 164
+          <code>partially_modeled</code> with a line saying how many positions are left, and 167
           have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is
           never published as a complete signature.
         </p>
@@ -162,8 +162,8 @@
     "signature":
       "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
 
-"modeled": 117, "partially_modeled": 46,
-"unmodeled": 164</pre>
+"modeled": 127, "partially_modeled": 46,
+"unmodeled": 167</pre>
         </div>
         <div class="code">
           <span class="cap">"prelude" and "decisions"</span>
@@ -283,11 +283,11 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>glyph llms --json</code> emits six sections out of the compiler: 62 diagnostic codes, 39 of them with a compiled counter-example, the 24 prelude names, 36 stdlib modules with 327 exports, 47 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.</p>
+          <p><code>glyph llms --json</code> emits six sections out of the compiler: 62 diagnostic codes, 40 of them with a compiled counter-example, the 24 prelude names, 40 stdlib modules with 340 exports, 47 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.</p>
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p>Two counts of the wrong programs appear in this document and they count different things: 39 of the 62 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 85 cases over 41 codes because it reads <code>catches/</code> as well. Either way, 21 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 164 of the 327 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 100 that do have one, 76 model only the arity and the return. The spec numbers two different decisions D43, reported in <code>duplicate_numbers</code> and not yet renumbered, because the number is a public index other documents cite. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
+          <p>Two counts of the wrong programs appear in this document and they count different things: 40 of the 62 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 95 cases over 42 codes because it reads <code>catches/</code> as well. Either way, 20 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 167 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 173 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. The spec numbers two different decisions D43, reported in <code>duplicate_numbers</code> and not yet renumbered, because the number is a public index other documents cite. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
         </div>
       </div>
 

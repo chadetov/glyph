@@ -2641,6 +2641,16 @@ mod tests {
         assert!(diags.iter().any(|d| d.code == "E0210"), "{:?}", diags.iter().map(|d| &d.code).collect::<Vec<_>>());
     }
 
+    /// G256 in the editor: an import of a `std/` module that does not exist
+    /// is E0104 here as it is under `glyph check`, and a real one is not.
+    #[test]
+    fn an_import_of_a_missing_std_module_is_e0104() {
+        let diags = analyze("module x\nimport std/zzznope { thing }\npub fn f() -> void {\n  thing()\n}\n");
+        assert!(diags.iter().any(|d| d.code == "E0104"), "{:?}", diags.iter().map(|d| &d.code).collect::<Vec<_>>());
+        let diags = analyze("module x\nimport std/dom\npub fn f() -> string {\n  return dom.title()\n}\n");
+        assert!(diags.is_empty(), "{:?}", diags.iter().map(|d| &d.message).collect::<Vec<_>>());
+    }
+
     #[test]
     fn line_index_maps_offsets() {
         let text = "ab\ncde\nf";

@@ -1,0 +1,10 @@
+module neg
+
+// G256: a `std/` path the stdlib does not carry names nothing. It used to be
+// skipped like an npm package and fail only in `tsc`, with a TS2307 about
+// generated code.
+import std/zzznope { thing }
+
+pub fn main() -> void {
+  thing()
+}

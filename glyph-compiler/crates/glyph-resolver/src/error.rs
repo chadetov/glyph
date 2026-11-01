@@ -97,6 +97,18 @@ pub enum ResolveError {
         span: Span,
     },
 
+    /// An import of a `std/` path the stdlib does not carry (G256). The same
+    /// code as a missing local module, because it is the same mistake: the
+    /// path names nothing. It was skipped like an npm package and surfaced only
+    /// as `tsc`'s TS2307 about `./.glyph-runtime/std/<name>`, after every Glyph
+    /// stage had passed. `suggestion` is the nearest real module, or the list.
+    #[error("unresolved import `{path}`: the standard library has no module `{path}`{suggestion}")]
+    UnknownStdModule {
+        path: String,
+        suggestion: String,
+        span: Span,
+    },
+
     /// `suggestion` is pre-rendered by `export_suggestion` and carries the
     /// module's actual exports, or the nearest one when the name is close.
     ///
@@ -202,6 +214,7 @@ impl ResolveError {
             ResolveError::BarrelFile { span } => *span,
             ResolveError::UnresolvedName { span, .. } => *span,
             ResolveError::UnresolvedModule { span, .. } => *span,
+            ResolveError::UnknownStdModule { span, .. } => *span,
             ResolveError::UnknownExportedName { span, .. } => *span,
             ResolveError::UnusedImport { span, .. } => *span,
             ResolveError::UnusedBinding { span, .. } => *span,
@@ -233,6 +246,7 @@ impl ResolveError {
             ResolveError::BarrelFile { .. } => "E0102",
             ResolveError::UnresolvedName { .. } => "E0103",
             ResolveError::UnresolvedModule { .. } => "E0104",
+            ResolveError::UnknownStdModule { .. } => "E0104",
             ResolveError::UnknownExportedName { .. } => "E0105",
             ResolveError::UnusedImport { .. } => "E0106",
             ResolveError::UnusedBinding { .. } => "E0107",
@@ -351,6 +365,9 @@ impl ResolveError {
                 "A local import resolves from the project root: the nearest directory holding a `package.json` with a `\"glyph\"` key, else the directory passed to `glyph build`/`glyph run` (D41). \
                  Spell the import path as it reads from that root, or give the module's own project a `\"glyph\"` marker. \
                  If this is an npm package, add it to your `package.json` dependencies, or declare it in `<root>/.types/*.d.ts`."
+            }
+            ResolveError::UnknownStdModule { .. } => {
+                "`std/` names only the modules the compiler carries; docs/reference/stdlib.md lists them. Check the spelling, or, if this is an npm package, import it by its package name without `std/`."
             }
             ResolveError::UnknownExportedName { .. } => {
                 "Check the spelling, and that the module actually exports this name."
@@ -526,6 +543,30 @@ pub fn export_suggestion<'a>(wanted: &str, mut exports: impl Iterator<Item = &'a
             names[..MAX_LISTED].join(", ")
         )
     }
+}
+
+/// The tail of an E0104 for a `std/` module that does not exist: the nearest
+/// real module when the name is one or two edits off, every module otherwise.
+/// The list is short enough to print whole, and an agent guessing module names
+/// is the case it exists for.
+pub fn std_module_suggestion(wanted: &str, modules: &[String]) -> String {
+    if modules.is_empty() {
+        return String::new();
+    }
+    let budget = match wanted.len() {
+        0..=3 => 1,
+        4..=7 => 2,
+        _ => 3,
+    };
+    let best = modules
+        .iter()
+        .map(|m| (edit_distance(wanted, m), m))
+        .filter(|(d, _)| *d <= budget)
+        .min_by_key(|(d, m)| (*d, m.len()));
+    if let Some((_, name)) = best {
+        return format!(" (did you mean `std/{name}`?)");
+    }
+    format!(" (the std modules: {})", modules.join(", "))
 }
 
 /// Levenshtein distance, two rows rather than a full matrix.

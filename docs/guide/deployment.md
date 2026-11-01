@@ -77,11 +77,36 @@ aliases and no plugins; a stock Vite scaffold compiles and bundles the output
 as-is. Mark what the app imports with `pub`, since a declaration without it is
 private to its module and is not exported.
 
-Two caveats. Rerun `glyph build` after editing `.glyph` sources; there is no
-watch mode yet, so wire it into your `dev` script or run it by hand. And a
+Two caveats. Rerun `glyph build` after editing `.glyph` sources, or leave
+`glyph build --watch` running beside the dev server. And a
 module that uses the Node-flavored parts of the standard library (`std/fs`,
 `std/net`, `std/process`) needs `@types/node` in the host project, same as any
 TypeScript that touches Node.
+
+## A whole browser app in Glyph
+
+An app can also be Glyph from the entry down, with no TypeScript of its own.
+`examples/apps/todo` is one: React 18 and its hooks imported by name,
+`std/dom` for the mount point and the title, `std/storage` for saved state.
+Glyph has no top-level statements, so the entry module declares `main` and the
+page calls it:
+
+```html
+<div id="root"></div>
+<script type="module">
+  import { main } from "./dist/gen/main.ts";
+  main();
+</script>
+```
+
+```sh
+glyph build . --out dist/gen && vite build --outDir dist/web
+```
+
+Vite compiles the emitted TypeScript and bundles it with React. Only the
+modules the host table in the [stdlib reference](../reference/stdlib.md) lists
+for a page can go into the bundle; the node-only ones import `node:` builtins
+when they load.
 
 ## Bundle size and tree-shaking
 

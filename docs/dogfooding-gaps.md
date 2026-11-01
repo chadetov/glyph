@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-277 entries, 237 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-22 are open. G144, the D28 boundary cast that never reached the returns a
+277 entries, 241 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+18 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10359,7 +10359,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.124, the version the release-branch binary reports before the bump, with the 0.1.125 change in place: `glyph check --no-tsc --no-test src` on that program prints the E0211 above and the generic help line.*
 
-- **G254. Browser globals cannot be named, so a React effect that touches the
+- **G254. [FIXED] Browser globals cannot be named, so a React effect that touches the
   page cannot be written.** `document`, `window`, `localStorage`,
   `navigator`, `console`, `globalThis` and `setTimeout` are E0103 by
   design: a global the stdlib does not wrap is a stdlib gap, and nothing wraps
@@ -10370,7 +10370,19 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: `useEffect(fn() { mut document.title = "${props.count} todos" }, [props.count])` in a component, with react@18 installed, draws ``[E0103] unresolved name `document` `` from `glyph check`.*
 
-- **G255. A hook's tuple cannot be destructured.** `let [count, set_count] =
+  Fixed in 0.1.128: three host modules. `std/dom` has `title`, `set_title`,
+  `element_by_id` (an `Option<Element>`) and `location` (a `url.Url`), with
+  `Element` opaque in the checker and React's `HTMLElement` in the TypeScript,
+  so `createRoot(root)` type-checks; under node a call throws naming the
+  function, and importing it is safe. `std/storage` has `get` (an `Option`),
+  `set` (a `Result` with `kind: "quota" | "unavailable"`) and `remove`, and
+  nothing in it throws. `std/console` has `log`, `warn` and `error`. E0103 on
+  `document`, `window`, `localStorage`, `console`, `setTimeout` and the rest
+  names the module that wraps it. The title is set with `dom.set_title(s)`, not
+  a `mut` assignment. `examples/apps/todo` uses all three against real React
+  and renders in a headless browser.
+
+- **G255. [FIXED] A hook's tuple cannot be destructured.** `let [count, set_count] =
   useState(0)` is ``[E0002] expected variable name after `let`, found
   LBracket``. The working spelling is `let s = useState(0)` and `s[0]` /
   `s[1]`, which keeps the tuple element types in the emitted TypeScript but
@@ -10380,7 +10392,15 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: the `let` line above is E0002.*
 
-- **G256. An import of a `std/` module that does not exist passes the Glyph
+  Fixed in 0.1.128 as D48: `let [count, set_count] = useState(0)` binds each
+  element, with names, `_`, nested patterns and a trailing `...rest`. A pattern
+  element that can fail to match is E0230 at parse. The length is proved: a
+  written literal is counted, an `Array<T>` is E0230 naming the `match` that
+  handles a short one, and a value only `tsc` can see is emitted with
+  `satisfies readonly [unknown, unknown]`, which `tsc` refuses for anything but
+  a tuple of that arity.
+
+- **G256. [FIXED] An import of a `std/` module that does not exist passes the Glyph
   stages.** `import std/zzznope { thing }` is exit 0 under `glyph check
   --no-tsc`; only `tsc` fails, with `TS2307 Cannot find module
   './.glyph-runtime/std/zzznope'`. A missing local module is E0104, which skips
@@ -10388,6 +10408,9 @@ and is the owner's to confirm.
   reads as if the module exists.
 
   *Reproduced against 0.1.125: that import with a use of `thing` exits 0 under `--no-tsc`.*
+
+  Fixed in 0.1.128: E0104 names the nearest real `std/` module, under `check
+  --no-tsc`, the build and the editor alike.
 
 - **G257. Glyph's checker does not type values that come from React.** A state
   setter called with the wrong type, `set_count("x")` for a number state,
@@ -10500,7 +10523,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: changing `tx`'s parameter to `{ o: Other, }` draws no diagnostic under `--no-tsc`.*
 
-- **G271. The flagship React example is written against hooks React does not
+- **G271. [FIXED] The flagship React example is written against hooks React does not
   have.** `examples/03_react_component.glyph` calls `use_state`, `use_effect`
   and `use_memo` with a `{ value, set }` shape that exists only in the CI stub
   `examples/.types/glyph-externals.d.ts`, imports an `api/users` the
@@ -10509,6 +10532,11 @@ and is the owner's to confirm.
   program against real React once G254 and G255 land.
 
   *Reproduced against 0.1.125: the example in a project with react@18 and a small `api/users` draws TS2724 for each of the three hooks.*
+
+  Fixed in 0.1.128: the example imports `useState`, `useEffect` and `useMemo`,
+  destructures each state pair and takes its search function as a prop.
+  `scripts/check_react_example.py` checks it against the real `@types/react`
+  installed for `examples/apps/todo`, in CI.
 
 - **G272. `==` on an opaque host handle can recurse without end.** `==` on two
   non-primitive values emits `__glyph_eq`, which walks both structurally with no

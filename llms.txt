@@ -215,6 +215,23 @@ pub fn demo(user: User, grid: Record<string, number>, key: string, value: number
 illegal. Because every mutation is marked, `grep -n "^\s*mut "` is a complete
 audit of all mutation in a file.
 
+A `let` can destructure a fixed-length array (D48), which is how a React hook's
+pair is written: `let [count, set_count] = useState(0)`. The pattern holds
+names, `_`, nested `[...]` patterns and a trailing `...rest`, and nothing that
+can fail to match. The length must be provable: a written array literal is
+counted, an `Array<T>` is refused (E0230) because it may be shorter, and an npm
+value is emitted with a `satisfies` clause so `tsc` proves it. A `const` binds
+one name and cannot destructure.
+
+```glyph
+module pairs
+
+pub fn demo() -> number {
+  let [first, [x, y], ...rest] = [1, [2, 3], 4, 5]
+  return first + x + y + rest.length
+}
+```
+
 ### `match` is the only conditional
 
 There is **no `if`/`else`**. Every branch is a `match`, and **every arm ends with
@@ -1205,6 +1222,58 @@ timers.sleep(delay_ms: number) -> Promise<void>            // for `await`
 `unref` opts a background tick out of holding the process open, and
 `cancel` on a timer that already fired (or was already cancelled) does
 nothing, so teardown paths are safe to run more than once.
+
+### std/dom, std/storage and std/console (browser code)
+
+`document`, `window`, `localStorage` and `console` are globals in JavaScript,
+and Glyph does not resolve ambient globals, so these three modules are how
+browser code reaches the page. Each is small on purpose: React owns the DOM it
+renders, so there are no element setters or event listeners here.
+
+```
+type Element                                     // opaque: hand it to a library
+dom.title() -> string
+dom.set_title(text: string) -> void
+dom.element_by_id(id: string) -> Option<Element>
+dom.location() -> url.Url
+
+type StorageError = { kind: "quota" | "unavailable", message: string }
+storage.get(key: string) -> Option<string>
+storage.set(key: string, value: string) -> Result<void, StorageError>
+storage.remove(key: string) -> void
+
+console.log(text: string) -> void
+console.warn(text: string) -> void
+console.error(text: string) -> void
+```
+
+Importing `std/dom` is safe anywhere, but its calls throw where there is no
+document (under `glyph run`, an `@example` or server rendering). Storage never
+throws: with no store a read is `None` and a write is an `Err`. Mount a React
+app by matching on the element:
+
+```glyph needs-deps
+module main
+
+import react-dom/client { createRoot }
+import std/dom
+import std/console
+import std/option { Some, None }
+import app { App }
+
+pub fn main() -> void {
+  match dom.element_by_id("root") {
+    Some(root) => createRoot(root).render(<App />),
+    None => console.error("the page has no #root element"),
+  }
+}
+```
+
+An effect is written `fn() -> void { ... }`. Without the annotation a lambda
+returns its last expression, and React calls whatever an effect returns as its
+cleanup, so `useEffect(fn() { storage.set(k, v) }, deps)` hands React a
+`Result` and `tsc` refuses it. `examples/apps/todo` is a whole app written
+this way.
 
 ### std/websocket
 

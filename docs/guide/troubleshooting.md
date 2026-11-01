@@ -17,6 +17,8 @@ project (`npm i -D tsx typescript`) or globally. `glyph init` scaffolds a
 **A build passes for me but fails in CI (or vice versa).** The type-check depends
 on the TypeScript version on the path. Pin `typescript` in `devDependencies` so
 every machine resolves the same one; a project pin wins over a global install.
+Below 4.9, a destructuring `let` fails to type-check, because the TypeScript it
+emits uses `satisfies`; `glyph doctor` asks for 5 or later.
 
 **`import fs` (a node builtin) doesn't type-check.** Node builtins work out of
 the box against a bundled shim. For the full surface, add `@types/node`

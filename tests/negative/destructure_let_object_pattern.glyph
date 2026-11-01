@@ -1,0 +1,8 @@
+module neg
+
+// D48 destructures an array only. Object destructuring in a `let` is not
+// designed yet.
+pub fn name_of(u: { name: string }) -> string {
+  let { name } = u
+  return name
+}

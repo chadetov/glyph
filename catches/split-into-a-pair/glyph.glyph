@@ -1,0 +1,8 @@
+module m
+
+import std/string
+
+pub fn describe(s: string) -> string {
+  let [user, host] = string.split(s, "@")
+  return "${user} at ${host}"
+}

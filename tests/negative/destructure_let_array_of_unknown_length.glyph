@@ -1,0 +1,9 @@
+module neg
+
+// D48. An `Array<T>` has no length the checker knows, so `let [a, b] = xs`
+// could leave `b` holding `undefined`. TypeScript accepts it and types `b` as a
+// `number`.
+pub fn sum_pair(xs: Array<number>) -> number {
+  let [a, b] = xs
+  return a + b
+}

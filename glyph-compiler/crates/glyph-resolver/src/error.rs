@@ -323,6 +323,26 @@ impl ResolveError {
                         "null" | "undefined" => {
                             "Glyph has no `null`/`undefined`; model absence with `Option<T>` (`Some`/`None`)."
                         }
+                        // A host global. Glyph resolves imported names, not
+                        // ambient ones, so each of these is reached through the
+                        // std module that wraps it (G254). Naming the module is
+                        // the whole fix; the generic advice sends the reader to
+                        // declare a `document` of their own.
+                        "document" | "window" => {
+                            "Browser globals are not in scope in Glyph. The page is reached through `import std/dom`: `dom.title()`, `dom.set_title(s)`, `dom.element_by_id(id)`, `dom.location()`."
+                        }
+                        "localStorage" | "sessionStorage" => {
+                            "Browser globals are not in scope in Glyph. Persistent storage is `import std/storage`: `storage.get(key)` is an `Option`, `storage.set(key, value)` a `Result`."
+                        }
+                        "console" => {
+                            "Host globals are not in scope in Glyph. Use `import std/console` (`console.log`, `console.warn`, `console.error`), or the prelude `print`."
+                        }
+                        "setTimeout" | "setInterval" | "clearTimeout" | "clearInterval" => {
+                            "Timer globals are not in scope in Glyph. Use `import std/timers`: `timers.after(ms, f)`, `timers.every(ms, f)`, `timers.cancel(t)`, `await timers.sleep(ms)`."
+                        }
+                        "globalThis" | "navigator" => {
+                            "Host globals are not in scope in Glyph; host features come through `std/*` modules (docs/reference/stdlib.md lists them). A feature no module wraps is a stdlib gap worth filing."
+                        }
                         _ => "Declare it, import it, or fix the spelling.",
                     }
                 }
@@ -402,6 +422,29 @@ mod tests {
         assert!(unresolved("Number").help().unwrap().contains("`number`"));
         assert!(unresolved("null").help().unwrap().contains("Option"));
         assert!(unresolved("undefined").help().unwrap().contains("Option"));
+    }
+
+    /// G254: a host global names the std module that wraps it, rather than
+    /// the generic advice to declare a `document` of one's own.
+    #[test]
+    fn a_host_global_is_pointed_at_the_std_module_that_wraps_it() {
+        for (name, module) in [
+            ("document", "std/dom"),
+            ("window", "std/dom"),
+            ("localStorage", "std/storage"),
+            ("sessionStorage", "std/storage"),
+            ("console", "std/console"),
+            ("setTimeout", "std/timers"),
+            ("setInterval", "std/timers"),
+            ("clearTimeout", "std/timers"),
+            ("clearInterval", "std/timers"),
+            ("globalThis", "std/*"),
+            ("navigator", "std/*"),
+        ] {
+            let help = unresolved(name).help().unwrap();
+            assert!(help.contains(module), "{name}: {help}");
+            assert!(!help.contains("fix the spelling"), "{name}: {help}");
+        }
     }
 
     #[test]

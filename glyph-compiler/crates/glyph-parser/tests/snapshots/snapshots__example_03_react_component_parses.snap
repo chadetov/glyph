@@ -433,7 +433,9 @@ Module {
                     stmts: [
                         Let(
                             LetStmt {
-                                name: "query",
+                                binding: Name(
+                                    "query",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Call {
@@ -477,7 +479,9 @@ Module {
                         ),
                         Let(
                             LetStmt {
-                                name: "state",
+                                binding: Name(
+                                    "state",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Call {
@@ -521,7 +525,9 @@ Module {
                         ),
                         Let(
                             LetStmt {
-                                name: "debounced_search",
+                                binding: Name(
+                                    "debounced_search",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Call {

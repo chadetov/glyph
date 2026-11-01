@@ -112,7 +112,8 @@
 
 use glyph_ast::{
     ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, FnTypeParam, GenericParam, Ident,
-    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, JsxKind, LiteralPattern, MatchArm,
+    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, JsxKind, LetBinding, LiteralPattern,
+    MatchArm,
     MatchArmBody,
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
@@ -2219,6 +2220,10 @@ impl<'a> Emitter<'a> {
         self.checkpoint(stmt.span());
         match stmt {
             Stmt::Let(l) => {
+                let name = match &l.binding {
+                    LetBinding::Name(name) => name,
+                    LetBinding::Pattern(p) => return self.emit_destructuring_let(p, &l.value),
+                };
                 // `let` (not `const`): a `mut` statement may reassign it later.
                 let ty = match &l.ty {
                     Some(te) => format!(": {}", self.ty(te)?),
@@ -2236,7 +2241,7 @@ impl<'a> Emitter<'a> {
                     // `default: throw` on an exhaustive switch keeps `tsc`'s
                     // definite-assignment happy.
                     Expr::Match { scrutinee, arms, .. } => {
-                        // When an arm also binds `l.name` (a destructured field
+                        // When an arm also binds `name` (a destructured field
                         // of the same name, or a `let` in a block arm), the
                         // arm's `const` would shadow the declaration this
                         // statement is assigning, emitting `const x = __m0.x;
@@ -2244,15 +2249,15 @@ impl<'a> Emitter<'a> {
                         // temporary in that case and copy it out afterward. The
                         // non-colliding case — every program that has ever
                         // compiled — emits byte-identical TS.
-                        let target = if match_binds_name(arms, l.name.as_ref()) {
+                        let target = if match_binds_name(arms, name.as_ref()) {
                             let t = self.fresh_temp("__a");
                             self.line(&format!("let {t}{ty};"));
                             Some(t)
                         } else {
-                            self.line(&format!("let {}{ty};", l.name));
+                            self.line(&format!("let {name}{ty};"));
                             None
                         };
-                        let assign = target.clone().unwrap_or_else(|| l.name.to_string());
+                        let assign = target.clone().unwrap_or_else(|| name.to_string());
                         let prev = self.assign_target.borrow_mut().replace(assign);
                         let res = self.emit_scoped_match(
                             scrutinee,
@@ -2263,7 +2268,7 @@ impl<'a> Emitter<'a> {
                         *self.assign_target.borrow_mut() = prev;
                         res?;
                         if let Some(t) = target {
-                            self.line(&format!("let {}{ty} = {t};", l.name));
+                            self.line(&format!("let {name}{ty} = {t};"));
                         }
                     }
                     _ => {
@@ -2272,7 +2277,7 @@ impl<'a> Emitter<'a> {
                         // (`let x = await f()?.g()`) propagate the `Err` and bind
                         // the `Ok` payload.
                         let value = self.emit_value(&l.value)?;
-                        if l.name.as_ref() == "_" {
+                        if name.as_ref() == "_" {
                             // `let _ = expr` discards. It is the spelling the
                             // unused-binding lint tells you to use, so a function
                             // that ignores two results writes it twice, and two
@@ -2283,7 +2288,7 @@ impl<'a> Emitter<'a> {
                             // collide. A named `_foo` still binds.
                             self.line(&format!("{value};"));
                         } else {
-                            self.line(&format!("let {}{ty} = {value};", l.name));
+                            self.line(&format!("let {name}{ty} = {value};"));
                         }
                     }
                 }
@@ -2498,6 +2503,49 @@ impl<'a> Emitter<'a> {
             "if ({r}.{TAG} === \"{RESULT_ERR}\") {{ return {ERR_CTOR}({r}.{PAYLOAD}); }}"
         ));
         Ok(r)
+    }
+
+    /// D48: `let [a, b] = value` as a TypeScript array destructuring.
+    ///
+    /// Written `let`, so a `mut` can reassign a name, and with the initializer
+    /// wrapped as `(value) satisfies readonly [unknown, ...]`. The clause is
+    /// written for every initializer the checker lets through, a written array
+    /// literal as well as a value only `tsc` can see:
+    ///
+    /// - for an npm value it is the proof of length the checker could not
+    ///   give, refused by `tsc` (TS1360) for an array or a tuple of another
+    ///   arity;
+    /// - for a written literal it makes `tsc` read the literal as a tuple, so
+    ///   each name takes its own element's type the way the checker gave it,
+    ///   where `let [a, b] = [1, "x"]` alone would give both `string | number`.
+    ///
+    /// A `match` initializer is assigned into a temporary first, through the
+    /// statement-level lowering a named `let` uses, and destructured after it.
+    fn emit_destructuring_let(&mut self, pattern: &Pattern, value: &Expr) -> Result<(), EmitError> {
+        let init = match value {
+            Expr::Match { scrutinee, arms, .. } => {
+                let t = self.fresh_temp("__a");
+                self.line(&format!("let {t};"));
+                let scoped = pattern
+                    .bindings()
+                    .iter()
+                    .any(|(n, _)| match_binds_name(arms, n.as_ref()));
+                let prev = self.assign_target.borrow_mut().replace(t.clone());
+                let res = self.emit_scoped_match(scrutinee, arms, ArmTerm::Assign, scoped);
+                *self.assign_target.borrow_mut() = prev;
+                res?;
+                t
+            }
+            // `emit_value` hoists a `?` first, so `let [a, b] = f()?` binds
+            // from the `Ok` payload.
+            _ => self.emit_value(value)?,
+        };
+        self.line(&format!(
+            "let {} = ({init}) satisfies {};",
+            destructure_target(pattern),
+            destructure_shape(pattern)
+        ));
+        Ok(())
     }
 
     /// Emit an expression that is a statement's value (a `let`/`return`/tail
@@ -6621,6 +6669,55 @@ fn pattern_binds_name(p: &Pattern, name: &str) -> bool {
     }
 }
 
+/// Whether a `let` declares `name`: its one name, or one a D48 pattern binds.
+fn let_binds_name(b: &LetBinding, name: &str) -> bool {
+    match b {
+        LetBinding::Name(n) => n.as_ref() == name,
+        LetBinding::Pattern(p) => pattern_binds_name(p, name),
+    }
+}
+
+/// The TypeScript tuple type a D48 pattern's initializer must satisfy:
+/// `readonly [unknown, unknown]` for `[a, b]`, a nested pattern as a nested
+/// tuple, and a trailing rest as `...unknown[]`. Every element is `unknown`,
+/// so the clause proves only the arity and leaves `tsc` to infer each name's
+/// type from the value, which `satisfies` (unlike an annotation) does not
+/// replace.
+fn destructure_shape(p: &Pattern) -> String {
+    let Pattern::Array { elements, rest, .. } = p else {
+        return "unknown".to_string();
+    };
+    let mut parts: Vec<String> = elements.iter().map(destructure_shape).collect();
+    if rest.is_some() {
+        parts.push("...unknown[]".to_string());
+    }
+    format!("readonly [{}]", parts.join(", "))
+}
+
+/// A D48 pattern as a TypeScript array binding pattern. `_` is an elision
+/// (`[, b]`), which binds nothing and so cannot collide with a second `_`; a
+/// `..._` rest is dropped, since a rest that binds nothing reads nothing.
+fn destructure_target(p: &Pattern) -> String {
+    match p {
+        Pattern::Ident { name, .. } => name.to_string(),
+        Pattern::Array { elements, rest, .. } => {
+            let mut parts: Vec<String> = elements
+                .iter()
+                .map(|e| match e {
+                    Pattern::Wildcard { .. } => String::new(),
+                    other => destructure_target(other),
+                })
+                .collect();
+            if let Some(r @ Pattern::Ident { .. }) = rest.as_deref() {
+                parts.push(format!("...{}", destructure_target(r)));
+            }
+            format!("[{}]", parts.join(", "))
+        }
+        // The parser admits nothing else in a `let` pattern (E0230).
+        _ => String::new(),
+    }
+}
+
 /// Whether lowering `arms` declares anything called `name` in a scope that
 /// encloses the arm's own assignment statement.
 ///
@@ -6645,7 +6742,7 @@ fn match_binds_name(arms: &[MatchArm], name: &str) -> bool {
                 MatchArmBody::Block(b) => b
                     .stmts
                     .iter()
-                    .any(|s| matches!(s, Stmt::Let(l) if l.name.as_ref() == name)),
+                    .any(|s| matches!(s, Stmt::Let(l) if let_binds_name(&l.binding, name))),
             }
     })
 }
@@ -11122,5 +11219,99 @@ pub fn n() -> number {\n  return 1\n}
         );
         let access = "(value as Record<string, unknown>).u";
         assert!(ts.contains(&format!("({access} === null || User.is({access}))")), "{ts}");
+    }
+
+    // ----- D48: destructuring `let` -----
+
+    fn emit_body(body: &str) -> String {
+        emit(&format!(
+            "module x\nimport react {{ useState }}\ntype K = | A | B\npub fn run(k: K) -> Result<number, string> {{\n{body}\n  return Ok(0)\n}}\n"
+        ))
+    }
+
+    #[test]
+    fn a_destructuring_let_emits_let_with_satisfies() {
+        let ts = emit_body("  let [count, set_count] = useState(0)\n  mut count = 1");
+        assert!(
+            ts.contains(
+                "let [count, set_count] = (useState(0)) satisfies readonly [unknown, unknown];"
+            ),
+            "{ts}"
+        );
+        // `let`, so `mut` reassigns a name.
+        assert!(ts.contains("count = 1;"), "{ts}");
+    }
+
+    #[test]
+    fn a_wildcard_element_is_an_elision() {
+        let ts = emit_body("  let [_, set_count] = useState(0)");
+        assert!(
+            ts.contains("let [, set_count] = (useState(0)) satisfies readonly [unknown, unknown];"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn a_rest_is_a_variadic_tuple_tail() {
+        let ts = emit_body("  let [head, ...tail] = useState(0)\n  let [first, ..._] = useState(1)");
+        assert!(
+            ts.contains(
+                "let [head, ...tail] = (useState(0)) satisfies readonly [unknown, ...unknown[]];"
+            ),
+            "{ts}"
+        );
+        // A rest that binds nothing is dropped from the target, and the
+        // arity it states stays in the clause.
+        assert!(
+            ts.contains("let [first] = (useState(1)) satisfies readonly [unknown, ...unknown[]];"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn a_nested_pattern_is_a_nested_tuple() {
+        let ts = emit_body("  let [[a, b], c] = [[1, 2], 3]");
+        assert!(
+            ts.contains(
+                "let [[a, b], c] = ([[1, 2], 3]) satisfies readonly [readonly [unknown, unknown], unknown];"
+            ),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn a_match_initializer_goes_through_a_temporary() {
+        let ts = emit_body("  let [p, q] = match k {\n    A => useState(1),\n    B => useState(2),\n  }");
+        assert!(ts.contains("let __a0;"), "{ts}");
+        assert!(ts.contains("__a0 = useState(1);"), "{ts}");
+        assert!(ts.contains("__a0 = useState(2);"), "{ts}");
+        assert!(
+            ts.contains("let [p, q] = (__a0) satisfies readonly [unknown, unknown];"),
+            "{ts}"
+        );
+    }
+
+    /// An arm binding a name the pattern also binds is scoped off, so the
+    /// arm's `const` cannot collide with the destructured name.
+    #[test]
+    fn a_match_arm_binding_a_pattern_name_is_scoped() {
+        let ts = emit(
+            "module x\ntype Sh = | Sq(number) | Ci(number)\npub fn run(s: Sh) -> number {\n  let [p, q] = match s {\n    Sq(p) => [p, p],\n    Ci(q) => [q, q],\n  }\n  return 0\n}\n",
+        );
+        assert!(ts.contains("let __a0;\n  {\n"), "{ts}");
+    }
+
+    #[test]
+    fn a_question_mark_on_the_initializer_unwraps_first() {
+        let ts = emit_body("  let [u, v] = useState(3)?");
+        assert!(ts.contains("const __r0 = useState(3);"), "{ts}");
+        assert!(
+            ts.contains("if (__r0.tag === \"Err\") { return __glyph_err(__r0.value); }"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("let [u, v] = (__r0.value) satisfies readonly [unknown, unknown];"),
+            "{ts}"
+        );
     }
 }

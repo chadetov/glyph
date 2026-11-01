@@ -395,9 +395,44 @@ pub struct ContinueStmt {
     pub span: Span,
 }
 
+/// What a `let` binds: one name, or (D48) an array pattern destructuring a
+/// fixed-length array into several.
+///
+/// An enum on the one statement rather than a second statement variant, so
+/// every site that read a `let`'s name has to decide what a pattern means
+/// there. A separate `Stmt` variant would be skipped silently by the
+/// `if let Stmt::Let` sites, the resolver's pending pre-pass among them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LetBinding {
+    /// `let x = ...`
+    Name(Ident),
+    /// `let [a, b] = ...` (D48). Always a `Pattern::Array` whose elements are
+    /// lowercase bindings, `_`, nested array patterns and an optional trailing
+    /// rest; the parser refuses every other shape (E0230).
+    Pattern(Pattern),
+}
+
+impl LetBinding {
+    /// The one name a `let x = ...` binds; `None` for a pattern.
+    pub fn as_name(&self) -> Option<&Ident> {
+        match self {
+            LetBinding::Name(n) => Some(n),
+            LetBinding::Pattern(_) => None,
+        }
+    }
+
+    /// The pattern a `let [..] = ...` destructures with; `None` for a name.
+    pub fn as_pattern(&self) -> Option<&Pattern> {
+        match self {
+            LetBinding::Name(_) => None,
+            LetBinding::Pattern(p) => Some(p),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LetStmt {
-    pub name: Ident,
+    pub binding: LetBinding,
     /// `D25 owned` modifier (deferred from this slice; parser will accept the
     /// keyword and set this to `true` in week 1 day 4+).
     pub owned: bool,
@@ -1056,6 +1091,51 @@ impl Pattern {
             | Pattern::Array { .. }
             | Pattern::IsType { .. } => true,
             Pattern::Object { fields, .. } => fields.iter().any(ObjectPatternField::is_refutable),
+        }
+    }
+
+    /// Every name this pattern binds, with the span the resolver keys it at,
+    /// in source order. A lowercase identifier binds; a variant-shaped one is a
+    /// reference and binds nothing. An object field binds at the field's span.
+    pub fn bindings(&self) -> Vec<(&Ident, Span)> {
+        let mut out = Vec::new();
+        self.collect_bindings(&mut out);
+        out
+    }
+
+    fn collect_bindings<'a>(&'a self, out: &mut Vec<(&'a Ident, Span)>) {
+        match self {
+            Pattern::Ident { name, span } => {
+                if !is_variant_shaped(name) {
+                    out.push((name, *span));
+                }
+            }
+            Pattern::Constructor { args, .. } => {
+                for a in args {
+                    a.collect_bindings(out);
+                }
+            }
+            Pattern::Object { fields, .. } => {
+                for f in fields {
+                    match (f.bound_name(), &f.pattern) {
+                        (Some(name), _) => out.push((name, f.span)),
+                        (None, Some(sub)) => sub.collect_bindings(out),
+                        (None, None) => {}
+                    }
+                }
+            }
+            Pattern::Array { elements, rest, .. } => {
+                for e in elements {
+                    e.collect_bindings(out);
+                }
+                if let Some(r) = rest {
+                    r.collect_bindings(out);
+                }
+            }
+            Pattern::Wildcard { .. }
+            | Pattern::Else { .. }
+            | Pattern::Literal { .. }
+            | Pattern::IsType { .. } => {}
         }
     }
 

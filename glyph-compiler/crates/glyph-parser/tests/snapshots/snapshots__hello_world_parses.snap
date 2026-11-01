@@ -246,7 +246,9 @@ Module {
                     stmts: [
                         Let(
                             LetStmt {
-                                name: "message",
+                                binding: Name(
+                                    "message",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: String {
@@ -297,7 +299,9 @@ Module {
                         ),
                         Let(
                             LetStmt {
-                                name: "x",
+                                binding: Name(
+                                    "x",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Binary {
@@ -343,7 +347,9 @@ Module {
                         ),
                         Let(
                             LetStmt {
-                                name: "y",
+                                binding: Name(
+                                    "y",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Index {
@@ -374,7 +380,9 @@ Module {
                         ),
                         Let(
                             LetStmt {
-                                name: "z",
+                                binding: Name(
+                                    "z",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Postfix {

@@ -38,7 +38,7 @@ mod stmt;
 mod types;
 
 pub use cursor::MAX_NESTING_DEPTH;
-pub use error::{ParseError, RELATIVE_IMPORT_HELP};
+pub use error::{LetPatternRefusal, ParseError, RELATIVE_IMPORT_HELP};
 
 use glyph_ast::Module;
 use glyph_lexer::{tokenize, Span};
@@ -291,7 +291,7 @@ mod smoke {
                 assert_eq!(f.body.stmts.len(), 1);
                 match &f.body.stmts[0] {
                     glyph_ast::Stmt::Let(l) => {
-                        assert_eq!(l.name.as_ref(), "x");
+                        assert_eq!(l.binding.as_name().map(|n| n.as_ref()), Some("x"));
                         assert!(matches!(&l.value, glyph_ast::Expr::Binary { .. }));
                     }
                     other => panic!("expected Let, got {other:?}"),
@@ -1985,5 +1985,139 @@ component C() -> Component {
         ] {
             parse(src).unwrap_or_else(|e| panic!("{src:?} must parse, got {e:?}"));
         }
+    }
+
+    // ----- D48: destructuring `let` -----
+
+    /// The first statement of the first `fn` in `src`, as a `let`.
+    fn first_let(src: &str) -> glyph_ast::LetStmt {
+        let m = parse_or_panic(src);
+        let glyph_ast::Decl::Fn(f) = &m.items[0] else {
+            panic!("first decl is not a fn");
+        };
+        let glyph_ast::Stmt::Let(l) = &f.body.stmts[0] else {
+            panic!("first stmt is not a let");
+        };
+        l.clone()
+    }
+
+    fn in_fn(body: &str) -> String {
+        format!("module x\nfn main() {{\n  {body}\n}}\n")
+    }
+
+    #[test]
+    fn a_destructuring_let_binds_each_name_in_order() {
+        let l = first_let(&in_fn("let [count, set_count] = use_state(0)"));
+        let p = l.binding.as_pattern().expect("a pattern binding");
+        let bound = p.bindings();
+        let names: Vec<&str> = bound.iter().map(|(n, _)| n.as_ref()).collect();
+        assert_eq!(names, ["count", "set_count"]);
+        assert!(l.binding.as_name().is_none());
+    }
+
+    #[test]
+    fn a_destructuring_let_takes_wildcards_nesting_and_a_rest() {
+        let src = in_fn("let [_, [a, b], ...tail] = f()");
+        let l = first_let(&src);
+        let glyph_ast::Pattern::Array { elements, rest, .. } = l.binding.as_pattern().unwrap() else {
+            panic!("an array pattern");
+        };
+        assert!(matches!(elements[0], glyph_ast::Pattern::Wildcard { .. }));
+        assert!(matches!(elements[1], glyph_ast::Pattern::Array { .. }));
+        assert!(matches!(rest.as_deref(), Some(glyph_ast::Pattern::Ident { .. })));
+        // Each name is keyed at its own span, the def site the resolver uses.
+        let p = l.binding.as_pattern().unwrap();
+        for (name, span) in p.bindings() {
+            assert_eq!(&src[span.start as usize..span.end as usize], name.as_ref());
+        }
+        let bound = p.bindings();
+        let names: Vec<&str> = bound.iter().map(|(n, _)| n.as_ref()).collect();
+        assert_eq!(names, ["a", "b", "tail"]);
+    }
+
+    #[test]
+    fn a_wildcard_rest_is_accepted() {
+        let l = first_let(&in_fn("let [a, ..._] = f()"));
+        assert!(l.binding.as_pattern().is_some());
+    }
+
+    /// The shape refusals, each E0230 with the refusal named.
+    #[test]
+    fn a_let_pattern_that_can_fail_is_e0230_at_parse() {
+        for (body, refusal) in [
+            ("let [a, 1] = f()", "the literal `1`"),
+            ("let [\"add\", n] = f()", "the literal `\"add\"`"),
+            ("let [a, true] = f()", "the literal `true`"),
+            ("let [a, None] = f()", "the variant name `None`"),
+            ("let [Some(x), b] = f()", "the constructor pattern `Some(..)`"),
+            ("let [a, [b, 2]] = f()", "the literal `2`"),
+        ] {
+            let err = parse(&in_fn(body)).expect_err(body);
+            assert_eq!(err.code(), "E0230", "{body}: {err:?}");
+            assert!(err.to_string().contains(refusal), "{body}: {err}");
+            assert!(err.help().unwrap().contains("match"), "{body}");
+        }
+    }
+
+    #[test]
+    fn an_is_guard_in_a_let_pattern_is_e0230() {
+        let err = parse(&in_fn("let [is string, b] = f()")).expect_err("is guard");
+        assert_eq!(err.code(), "E0230", "{err:?}");
+        assert!(err.to_string().contains("an `is` guard"), "{err}");
+    }
+
+    #[test]
+    fn an_owned_or_annotated_or_const_pattern_is_e0230() {
+        let owned = parse(&in_fn("let owned [a, b] = f()")).expect_err("owned");
+        assert!(matches!(
+            owned,
+            ParseError::DestructuringLet { refusal: LetPatternRefusal::Owned, .. }
+        ));
+        let annotated = parse(&in_fn("let [a, b]: Array<number> = f()")).expect_err("annotated");
+        assert!(matches!(
+            annotated,
+            ParseError::DestructuringLet { refusal: LetPatternRefusal::Annotated, .. }
+        ));
+        let in_body = parse(&in_fn("const [a, b] = f()")).expect_err("const in a body");
+        assert!(matches!(
+            in_body,
+            ParseError::DestructuringLet { refusal: LetPatternRefusal::Const, .. }
+        ));
+        let top = parse("module x\nconst [a, b] = [1, 2]\n").expect_err("const at the top");
+        assert!(matches!(
+            top,
+            ParseError::DestructuringLet { refusal: LetPatternRefusal::Const, .. }
+        ));
+        for e in [&owned, &annotated, &in_body, &top] {
+            assert_eq!(e.code(), "E0230");
+        }
+    }
+
+    /// The `const` refusal covers `const` and the pattern, which is where the
+    /// fix goes.
+    #[test]
+    fn the_const_refusal_spans_the_keyword_and_the_pattern() {
+        let src = "module x\nconst [a, b] = [1, 2]\n";
+        let err = parse(src).expect_err("const pattern");
+        let span = err.span();
+        assert_eq!(&src[span.start as usize..span.end as usize], "const [a, b]");
+    }
+
+    #[test]
+    fn object_destructuring_in_a_let_is_e0005() {
+        let err = parse(&in_fn("let { a, b } = r")).expect_err("object pattern");
+        assert_eq!(err.code(), "E0005");
+        assert!(matches!(err, ParseError::ObjectDestructuringLet { .. }));
+        // Nested inside an array pattern too.
+        let nested = parse(&in_fn("let [a, { b }] = f()")).expect_err("nested object");
+        assert_eq!(nested.code(), "E0005");
+    }
+
+    /// A plain `let` is unchanged by the new binding form.
+    #[test]
+    fn a_named_let_still_binds_one_name() {
+        let l = first_let(&in_fn("let owned conn = open()"));
+        assert_eq!(l.binding.as_name().map(|n| n.as_ref()), Some("conn"));
+        assert!(l.owned);
     }
 }

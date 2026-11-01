@@ -129,6 +129,68 @@ pub enum ParseError {
     /// shares the resolver's code because it is the same rule caught earlier.
     #[error("`{prefix}` is a relative import path, which Glyph does not allow (D15)")]
     RelativeImport { prefix: String, span: Span },
+
+    /// A destructuring `let` written in a shape D48 does not allow: a pattern
+    /// element that can fail to match, `let owned [..]`, an annotation on the
+    /// pattern, or `const [..]`. The checker raises the same code when the
+    /// initializer's length cannot be proved, because it is the same rule
+    /// (D48) read from the value's side; the E0010 and E0101 precedent.
+    #[error("{}", refusal.message())]
+    DestructuringLet { refusal: LetPatternRefusal, span: Span },
+
+    /// `let { a, b } = record`. Object destructuring in a `let` is not
+    /// designed yet; it shares E0005 with every other construct that is not
+    /// built, and names the two spellings that work today.
+    #[error("object destructuring in `let` is not supported yet")]
+    ObjectDestructuringLet { span: Span },
+}
+
+/// Why a destructuring `let` was refused at parse (D48, E0230).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LetPatternRefusal {
+    /// An element that tests the value: a literal, a variant name, a
+    /// constructor or an `is` guard. `what` names it as the author wrote it.
+    Refutable { what: String },
+    /// `let owned [..]`.
+    Owned,
+    /// `let [a, b]: T = ...`.
+    Annotated,
+    /// `const [a, b] = ...`.
+    Const,
+}
+
+impl LetPatternRefusal {
+    fn message(&self) -> String {
+        match self {
+            LetPatternRefusal::Refutable { what } => format!(
+                "a `let` pattern cannot test the value, and {what} can fail to match"
+            ),
+            LetPatternRefusal::Owned => {
+                "`let owned` binds one resource handle and cannot destructure".to_string()
+            }
+            LetPatternRefusal::Annotated => {
+                "a destructuring `let` takes no type annotation".to_string()
+            }
+            LetPatternRefusal::Const => "a `const` binds one name and cannot destructure".to_string(),
+        }
+    }
+
+    fn help(&self) -> &'static str {
+        match self {
+            LetPatternRefusal::Refutable { .. } => {
+                "A `let` pattern holds names, `_`, nested `[...]` patterns and a trailing `...rest`, so it always matches (D48). To test an element, use a `match` with a fallback arm: `match xs { [\"add\", name] => ..., else => ... }`."
+            }
+            LetPatternRefusal::Owned => {
+                "Bind the handle to one name, `let owned conn = ...`. The release obligation is tracked per binding (D25), and a pattern would split one handle across several names."
+            }
+            LetPatternRefusal::Annotated => {
+                "Drop the annotation; each name takes the type of its element. To hold an element to a type, bind it again on its own line: `let total: number = first`."
+            }
+            LetPatternRefusal::Const => {
+                "A `const` binds one name (D20). Declare one `const` per value, or destructure inside a function with `let [a, b] = ...` (D48)."
+            }
+        }
+    }
 }
 
 impl ParseError {
@@ -146,6 +208,9 @@ impl ParseError {
             | ParseError::PositionalVariantPattern { span, .. }
             | ParseError::NestingTooDeep { span, .. } => *span,
             | ParseError::RelativeImport { span, .. } => *span,
+            ParseError::DestructuringLet { span, .. } | ParseError::ObjectDestructuringLet { span } => {
+                *span
+            }
         }
     }
 
@@ -172,6 +237,10 @@ impl ParseError {
             // D15 violation whichever stage notices it first, and a reader who
             // looked E0101 up has already read the answer (G223).
             ParseError::RelativeImport { .. } => "E0101",
+            // The checker's code for the same rule: a destructuring `let` must
+            // always match (D48), whichever stage sees the shape that breaks it.
+            ParseError::DestructuringLet { .. } => "E0230",
+            ParseError::ObjectDestructuringLet { .. } => "E0005",
         }
     }
 
@@ -235,6 +304,10 @@ impl ParseError {
                 "Name the inner levels: pull them out into `let` bindings, or into a `fn` that returns one of them, so no single expression, type or pattern is more than {limit} levels deep. Hand-written Glyph does not come close to {limit}; an input that does was generated, and the parser stops there rather than running the process out of stack."
             )),
             ParseError::RelativeImport { .. } => Cow::Borrowed(RELATIVE_IMPORT_HELP),
+            ParseError::DestructuringLet { refusal, .. } => Cow::Borrowed(refusal.help()),
+            ParseError::ObjectDestructuringLet { .. } => Cow::Borrowed(
+                "Bind the record to one name and read its fields (`let user = load()`, then `user.name`), or destructure it in a `match` arm. A `let` destructures an array only (D48).",
+            ),
         })
     }
 }

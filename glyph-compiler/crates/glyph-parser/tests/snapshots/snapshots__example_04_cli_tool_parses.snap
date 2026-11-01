@@ -3327,7 +3327,9 @@ Module {
                     stmts: [
                         Let(
                             LetStmt {
-                                name: "text",
+                                binding: Name(
+                                    "text",
+                                ),
                                 owned: false,
                                 ty: None,
                                 value: Call {
@@ -3800,7 +3802,9 @@ Module {
                                                 stmts: [
                                                     Let(
                                                         LetStmt {
-                                                            name: "file",
+                                                            binding: Name(
+                                                                "file",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Postfix {
@@ -3871,7 +3875,9 @@ Module {
                                                     ),
                                                     Let(
                                                         LetStmt {
-                                                            name: "new_item",
+                                                            binding: Name(
+                                                                "new_item",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Object {
@@ -3940,7 +3946,9 @@ Module {
                                                     ),
                                                     Let(
                                                         LetStmt {
-                                                            name: "updated",
+                                                            binding: Name(
+                                                                "updated",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Object {
@@ -4278,7 +4286,9 @@ Module {
                                                 stmts: [
                                                     Let(
                                                         LetStmt {
-                                                            name: "file",
+                                                            binding: Name(
+                                                                "file",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Postfix {
@@ -4349,7 +4359,9 @@ Module {
                                                     ),
                                                     Let(
                                                         LetStmt {
-                                                            name: "visible",
+                                                            binding: Name(
+                                                                "visible",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Call {
@@ -4576,7 +4588,9 @@ Module {
                                                                                             stmts: [
                                                                                                 Let(
                                                                                                     LetStmt {
-                                                                                                        name: "mark",
+                                                                                                        binding: Name(
+                                                                                                            "mark",
+                                                                                                        ),
                                                                                                         owned: false,
                                                                                                         ty: None,
                                                                                                         value: Match {
@@ -4883,7 +4897,9 @@ Module {
                                                 stmts: [
                                                     Let(
                                                         LetStmt {
-                                                            name: "file",
+                                                            binding: Name(
+                                                                "file",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Postfix {
@@ -5174,7 +5190,9 @@ Module {
                                                                             stmts: [
                                                                                 Let(
                                                                                     LetStmt {
-                                                                                        name: "updated",
+                                                                                        binding: Name(
+                                                                                            "updated",
+                                                                                        ),
                                                                                         owned: false,
                                                                                         ty: None,
                                                                                         value: Object {
@@ -5659,7 +5677,9 @@ Module {
                                                 stmts: [
                                                     Let(
                                                         LetStmt {
-                                                            name: "file",
+                                                            binding: Name(
+                                                                "file",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Postfix {
@@ -5730,7 +5750,9 @@ Module {
                                                     ),
                                                     Let(
                                                         LetStmt {
-                                                            name: "before_count",
+                                                            binding: Name(
+                                                                "before_count",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Member {
@@ -5764,7 +5786,9 @@ Module {
                                                     ),
                                                     Let(
                                                         LetStmt {
-                                                            name: "updated",
+                                                            binding: Name(
+                                                                "updated",
+                                                            ),
                                                             owned: false,
                                                             ty: None,
                                                             value: Object {

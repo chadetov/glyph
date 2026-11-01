@@ -875,7 +875,10 @@ impl Printer {
                 if l.owned {
                     self.push("owned ");
                 }
-                self.push(&l.name);
+                match &l.binding {
+                    glyph_ast::LetBinding::Name(name) => self.push(name),
+                    glyph_ast::LetBinding::Pattern(p) => self.pattern(p),
+                }
                 if let Some(t) = &l.ty {
                     self.push(": ");
                     self.type_expr(t);

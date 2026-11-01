@@ -1496,3 +1496,15 @@ fn fixing_the_pairing_leaves_the_declaration_and_bracket_comments_alone() {
         );
     }
 }
+
+#[test]
+fn a_destructuring_let_round_trips() {
+    // D48: the pattern is printed as written, `_`, nesting and a rest included,
+    // and the layout is a fixed point that emits the same TypeScript.
+    let src = "module x\n\npub fn main() {\n  let [count, set_count] = use_state(0)\n  let [_, [a, b], ...tail] = f()\n  let [h, ..._] = g()\n}\n";
+    let out = fmt(src);
+    assert_eq!(out, src, "a canonical destructuring `let` changed:\n{out}");
+    let messy = "module x\npub fn main() {\n  let [ count ,set_count ] = use_state(0)\n  let [_,[a,b],...tail]=f()\n  let [h, ..._] = g()\n}\n";
+    assert_eq!(fmt(messy), src, "spacing inside the pattern is not normalised");
+    assert_eq!(emit_ts(messy), emit_ts(src));
+}

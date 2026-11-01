@@ -14534,3 +14534,107 @@ fn an_imported_parameter_type_is_judged_by_its_declaration_for_e0229() {
         report.diagnostics
     );
 }
+
+/// A project whose `extern/hooks.ts` returns a typed tuple, the shape React's
+/// `useState` has, and whose `main.glyph` destructures it with `body`. The
+/// checker sees the extern function as a value it cannot look into, so the
+/// length and the element types are `tsc`'s to prove (D48).
+fn destructure_project(tag: &str, body: &str) -> (PathBuf, PathBuf) {
+    let root = unique_tmp(tag);
+    let src = root.join("src");
+    write_file(
+        &src,
+        "extern/hooks.ts",
+        "export function useState<S>(s: S): [S, (v: S) => void] {\n  return [s, (_v: S) => {}];\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        &format!("module main\n\nimport extern/hooks {{ useState }}\n\nfn main() {{\n{body}\n}}\n"),
+    );
+    let out = root.join("dist");
+    (src, out)
+}
+
+#[test]
+fn a_destructured_tuple_keeps_its_element_types_under_tsc() {
+    // D48. `satisfies readonly [unknown, unknown]` proves the arity without
+    // replacing what `tsc` infers, so `count` is a `number` there: assigning it
+    // to a `string` is TS2322. Had the clause widened the inference to
+    // `unknown`, that line would fail differently (TS2322 against `unknown`)
+    // and the clean program below would fail on `count + 1`.
+    if !tsc_available() {
+        eprintln!("skipping destructuring tsc check: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+
+    let (src, out) = destructure_project(
+        "d48-tsc-clean",
+        "  let [count, set_count] = useState(0)\n  set_count(count + 1)\n  let [_, set_name] = useState(\"a\")\n  set_name(\"b\")",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("a correct destructuring failed tsc:\n{msg}"),
+        TscOutcome::NotFound => return,
+    }
+
+    let (src, out) = destructure_project(
+        "d48-tsc-narrow",
+        "  let [count, set_count] = useState(0)\n  let n: string = count\n  set_count(1)\n  print(n)",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Failed(msg) => {
+            assert!(
+                msg.contains("TS2322") && msg.contains("Type 'number' is not assignable to type 'string'"),
+                "expected TS2322 from number to string:\n{msg}"
+            );
+        }
+        other => panic!("`let n: string = count` must be TS2322, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_destructuring_of_the_wrong_arity_is_refused_by_tsc() {
+    // The length a checker cannot see is proved by `tsc`: three names over a
+    // pair is TS1360 on the emitted `satisfies`.
+    if !tsc_available() {
+        eprintln!("skipping destructuring arity check: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    let (src, out) = destructure_project(
+        "d48-tsc-arity",
+        "  let [a, b, c] = useState(0)\n  b(a)\n  print(\"${c}\")",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Failed(msg) => assert!(msg.contains("TS1360"), "expected TS1360:\n{msg}"),
+        other => panic!("a triple over a pair must fail tsc, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_destructuring_let_runs_end_to_end() {
+    // `glyph run`: a literal counted by Glyph, a nested pattern, a rest, an
+    // elision, a tuple from an extern function, and `mut` reassigning a
+    // destructured name.
+    if !js_toolchain_available() {
+        eprintln!("skipping destructuring run: node/tsx not available");
+        return;
+    }
+    let (src, _out) = destructure_project(
+        "d48-run",
+        "  let [count, set_count] = useState(41)\n  set_count(count)\n  mut count = count + 1\n  let [_, [x, y], ...rest] = [0, [1, 2], 3, 4]\n  print(\"${count} ${x + y} ${rest.length}\")",
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(stdout.trim(), "42 3 2", "{stdout}\n{stderr}");
+}

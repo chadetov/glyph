@@ -1,0 +1,8 @@
+module x
+
+pub fn main() {
+  let [count, set_count] = use_state(0)
+  let [_, b] = [1, 2]
+  let [[x, y], z] = [[1, 2], 3]
+  let [head, ...tail] = [1, 2, 3]
+}

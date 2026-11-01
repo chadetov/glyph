@@ -1414,6 +1414,35 @@ mod tests {
     }
 
     #[test]
+    fn inlay_hints_show_each_destructured_name_its_element_type() {
+        // D48: one hint per name, after that name, with its element's type. A
+        // name over an element the checker cannot see gets none.
+        let text = "module m\nfn f() -> number {\n  let [n, s, _] = [1, \"a\", true]\n  print(s)\n  return n\n}\n";
+        let a = analysis::analyze_full(text).expect("analyze");
+        let hints = a.inlay_type_hints(text);
+        let at: Vec<(&str, &str)> = hints
+            .iter()
+            .map(|(o, l)| (&text[o - 1..*o], l.as_str()))
+            .collect();
+        assert_eq!(at, [("n", ": number"), ("s", ": string")], "{hints:?}");
+    }
+
+    #[test]
+    fn hover_rename_and_references_reach_a_destructured_name() {
+        // Each name in a pattern is a real `let` binding: hover answers its
+        // element type, and rename edits the def site and every use.
+        let text = "module m\nfn f() -> number {\n  let [count, label] = [1, \"a\"]\n  print(label)\n  return count + count\n}\n";
+        let a = analysis::analyze_full(text).expect("analyze");
+        let def = text.find("count").unwrap();
+        assert_eq!(a.hover(text, def).as_deref(), Some("number"));
+        let edits = a.rename_edits(def, text, "total").expect("renameable");
+        assert_eq!(edits.len(), 3, "def and two uses: {edits:?}");
+        let refs = a.references(text.rfind("count").unwrap(), text, true);
+        assert_eq!(refs.len(), 3, "{refs:?}");
+        assert!(refs.contains(&(def as u32, (def + "count".len()) as u32)), "{refs:?}");
+    }
+
+    #[test]
     fn unused_import_drives_a_line_deletion_quick_fix() {
         // The unused-import diagnostic (E0106) plus line_span is what the code
         // action turns into a "delete this line" edit.

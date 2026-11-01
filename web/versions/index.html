@@ -61,8 +61,41 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.127</span>
+            <span class="rel-ver">0.1.128</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release is about writing a React app in Glyph against real React. The last attempt stopped at <code>document.title</code>, because browser globals are unresolved names in Glyph and nothing in the standard library reached the page. Now a counter and a todo list using React 18's own hooks builds, bundles with Vite and runs in a browser. It's in the repo as <code>examples/apps/todo</code>, and CI now drives it in headless Chromium and checks the text on the page.</p>
+
+            <h3>The page, through the standard library</h3>
+            <p>Three small modules. <code>std/dom</code> reads and sets the title, finds an element by id and gives you the page's address. <code>std/storage</code> wraps <code>localStorage</code>: a read is an <code>Option</code> and a write is a <code>Result</code>, because a full or blocked store is an ordinary failure in a real browser. <code>std/console</code> writes a line at three levels. An element is opaque to Glyph: you hand it to React, you don't poke at it.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>pub fn main() -&gt; void {
+  match dom.element_by_id("root") {
+    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
+    None =&gt; console.error("the page has no #root element"),
+  }
+}</pre>
+            </div>
+            <p>Writing <code>document</code> or <code>localStorage</code> is still E0103, and the message now names the module to import.</p>
+
+            <h3>A hook's pair, destructured</h3>
+            <p><code>let [count, set_count] = useState(0)</code> works now. The pattern can't test anything, so it always matches, and the length has to be provable: a written array is counted, an <code>Array&lt;T&gt;</code> is refused because it might be shorter, and a value from npm gets a <code>satisfies</code> clause in the emitted TypeScript so <code>tsc</code> checks it is really a pair. That makes <code>const [user, host] = s.split("@")</code>, which <code>tsc --strict</code> accepts, an error in Glyph (E0230).</p>
+
+            <h3>Two formatter and parser fixes in JSX</h3>
+            <p><code>glyph fmt</code> trimmed JSX text, so <code>&lt;p&gt;{n} left&lt;/p&gt;</code> came back as <code>{n}left</code> and the page read "2left". It now keeps every space JSX renders. Separately, text on its own line below an element kept its indentation in the output; it's dropped now, as in TSX. Neither fix changes the TypeScript emitted for any example.</p>
+
+            <h3>Breaking, measured</h3>
+            <p>An import of a <code>std/</code> module that doesn't exist exits 0 under 0.1.127 with <code>--no-tsc</code> and is E0104 here; with <code>tsc</code> it failed under both. Across the 31 apps that existed before this release, with and without <code>tsc</code>, every exit code and list of diagnostic codes is the same under both versions. The new todo app and the rewritten React example use the new syntax and modules, so 0.1.127 refuses them (E0002 and E0105) and this build passes them.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.127</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">October 2026</span>
           </div>

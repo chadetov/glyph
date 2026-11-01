@@ -1,0 +1,96 @@
+// A counter and a todo list against real React 18. Every hook is React's own,
+// imported by name, and the page is reached through std/dom and std/storage.
+
+module app
+
+import react { useState, useEffect }
+import std/array
+import std/string
+import std/dom
+import std/storage
+import std/console
+import std/option { Some, None }
+import std/result { Ok, Err }
+
+pub type Todo = { id: number, text: string, done: bool }
+
+// The saved list is one text per line; a fresh page starts empty.
+fn load_todos() -> Array<Todo> {
+  let saved = match storage.get("todos") {
+    Some(text) => text,
+    None => "",
+  }
+  let lines = array.filter(string.split(saved, "\n"), fn(line: string) { return line != "" })
+  return array.zip(
+    array.range(lines.length),
+    lines,
+    fn(i: number, line: string) -> Todo { return { id: i, text: line, done: false } },
+  )
+}
+
+fn save_todos(todos: Array<Todo>) -> void {
+  let texts = array.map(todos, fn(t: Todo) { return t.text })
+  match storage.set("todos", string.join(texts, "\n")) {
+    Ok(_) => {},
+    Err(e) => console.warn("could not save the list: ${e.message}"),
+  }
+}
+
+fn toggle(todos: Array<Todo>, id: number) -> Array<Todo> {
+  return array.map(
+    todos,
+    fn(t: Todo) -> Todo {
+      return match t.id == id {
+        true => { id: t.id, text: t.text, done: !t.done },
+        false => t,
+      }
+    },
+  )
+}
+
+fn remaining(todos: Array<Todo>) -> number {
+  return array.filter(todos, fn(t: Todo) { return !t.done }).length
+}
+
+pub component Counter() {
+  let [count, set_count] = useState(0)
+  return <div class="counter">
+    <button on_click={fn() { set_count(count - 1) }}>-</button>
+    <span>{count}</span>
+    <button on_click={fn() { set_count(count + 1) }}>+</button>
+  </div>
+}
+
+pub component Todos() {
+  let [todos, set_todos] = useState(load_todos())
+  let [draft, set_draft] = useState("")
+  let left = remaining(todos)
+
+  useEffect(fn() -> void { dom.set_title("${left} left") }, [left])
+
+  useEffect(fn() -> void { save_todos(todos) }, [todos])
+
+  return <section class="todos">
+    <input value={draft} on_change={fn(e) { set_draft(e.currentTarget.value) }} />
+    <button on_click={fn() {
+      set_todos(array.push(todos, { id: todos.length, text: draft, done: false }))
+      set_draft("")
+    }}>add</button>
+    <ul>
+      <for todo in={todos} key={todo.id}>
+        <li class={match todo.done {
+          true => "done",
+          false => "open",
+        }} on_click={fn() { set_todos(toggle(todos, todo.id)) }}>{todo.text}</li>
+      </for>
+    </ul>
+    <p class="left">{left}left</p>
+  </section>
+}
+
+pub component App() {
+  return <main>
+    <Counter />
+    <Todos />
+  </main>
+}

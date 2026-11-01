@@ -169,11 +169,14 @@ fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
             // when the run continues the same line (not fresh after a newline);
             // trailing whitespace only when the run abuts a same-line sibling
             // (`{` or `<`), not a newline or EOF.
-            let start = if crossed_newline {
-                text_start
-            } else {
-                p.extend_left_over_inline_ws(text_start)
-            };
+            //
+            // A fresh line is read from the source rather than from
+            // `crossed_newline` alone: the previous child's parser can consume
+            // the newline after it, so a run on its own line below an element
+            // or an `{expr}` used to keep its indentation as text.
+            let extended = p.extend_left_over_inline_ws(text_start);
+            let starts_line = extended == 0 || matches!(p.slice(extended - 1, extended), "\n" | "\r");
+            let start = if crossed_newline || starts_line { text_start } else { extended };
             let end = if matches!(p.peek(), Token::LBrace | Token::LAngle) {
                 p.extend_right_over_inline_ws(text_end)
             } else {

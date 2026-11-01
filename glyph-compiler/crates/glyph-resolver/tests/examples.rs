@@ -50,12 +50,11 @@ fn run_pipeline(name: &str) -> Vec<ResolveError> {
 }
 
 /// Project-local module graph for the example files. Carries entries for the
-/// third-party + project-local imports the four examples reference
-/// (`react`, `api/users`). Stdlib paths fall through to `StdlibStubs`.
+/// third-party imports the four examples reference (`react`). Stdlib paths
+/// fall through to `StdlibStubs`.
 fn example_project_graph() -> StdlibStubs {
     let mut g = StdlibStubs::empty();
-    g.add("react", &["use_state", "use_effect", "use_memo", "Component"]);
-    g.add("api/users", &["search_users", "SearchError"]);
+    g.add("react", &["useState", "useEffect", "useMemo", "Component"]);
     g
 }
 
@@ -127,7 +126,7 @@ fn example_02_imports_and_locals_resolve() {
 fn examples_pass_cross_module_verification() {
     // Day-4 acceptance: every named-import in every example file must resolve
     // to a real export of the target module. Stdlib stubs back `std/*`; a
-    // tiny project graph backs `react` and `api/users`.
+    // tiny project graph backs `react`.
     for name in [
         "01_validator.glyph",
         "02_async_errors.glyph",

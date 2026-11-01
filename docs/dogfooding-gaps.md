@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-274 entries, 234 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+275 entries, 235 are fixed, 7 are partly fixed, 11 are decided or resolved, and
 22 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -10397,12 +10397,16 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: the counter with `set_count("x")` exits 0 under `--no-tsc` and fails `glyph check` with TS2345.*
 
-- **G258. AGENTS.md names the `<for>` directive and never shows its syntax.**
+- **G258. [FIXED] AGENTS.md names the `<for>` directive and never shows its syntax.**
   The dogfood agent guessed `<for each={todos} as={todo}>` and drew E0103 five
   times. The form is `<for todo in={todos} key={todo.id}>`, shown only in the
   React example built on the fictional stub.
 
   *Reproduced against 0.1.125: AGENTS.md has no `<for` example; the guessed spelling draws E0103 for `todo`.*
+
+  Fixed in 0.1.128: AGENTS.md shows a `<match>` whose `<case>` binds a record
+  payload and holds a `<for todo in={todos} key={todo.id}>`, checked with
+  `tsc --strict` against React 18's types. Writing it found G275.
 
 - **G259. Go-to-definition answers `null` on an import binding and on a
   declaration's own name.** On `Button` in `import ui { Button }` and on
@@ -10544,3 +10548,17 @@ and is the owner's to confirm.
   function's parameters are still compared by nothing.
 
   *Reproduced against 0.1.106 and 0.1.126: the four programs exit 0 under `--no-tsc` and 1 with TS2345, and the `Tree` program exits 1 with E0211.*
+
+- **G275. `<case V bind={x}>` reads a field called `x`, whatever the payload
+  is.** The emitter lowers `bind={x}` to `const x = __v.x`, which is right for a
+  record payload (`Loaded({ users: ... })` with `bind={users}`) and wrong for a
+  positional one: `Loaded(Array<string>)` is `{ tag, value }` at run time, so
+  `bind={items}` binds `undefined` and `items.length` throws at render. The
+  checker gives the name no type and compares it with nothing, so a positional
+  payload, or a record payload with no field of that name, passes `--no-tsc`
+  and the editor, and only `tsc` objects (TS2339). Whether `bind` on a
+  positional payload binds the payload, as the arm `Loaded(items)` does, or is
+  refused, is a language decision. Found writing the `<for>` and `<match>`
+  example G258 asked for.
+
+  *Reproduced against 0.1.127: a component with `type Load = Loading | Loaded(Array<string>)` and `<case Loaded bind={items}><p>{items.length}</p></case>` exits 0 under `--no-tsc`; the emitted TypeScript is `const items = __v.items`.*

@@ -5424,6 +5424,7 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **G240, and a corpus entry that proved nothing.** A JSX attribute reaches no rule in the Glyph front end, so `variant="danger"`, `variant="nope"` and `variant={42}` against a `variant: Variant` prop all pass `glyph check --no-tsc` with nothing. The string-literal-union corpus held a `jsx_attribute` case as one of the nineteen programs the rule must not refuse, and it could not be refused by any rule, so it was a dead instrument that would pass under any widening. The case is removed, the corpus is eighteen, and the gap is recorded and scheduled in the rolling lane rather than left in the corpus looking like coverage
 
 **Later · Recorded from the 0.1.126 round, not yet in a release**
+- G275: a `<case>` binding typed by the checker from the variant's payload, and a decision on what `bind` means on a positional payload, which the emitter reads as a record field today and binds `undefined`
 - G245: a structural record displayed by its fields in a diagnostic, so an inline props record reads as its shape rather than as `record`
 - G248: a gate project with React and its types installed compiles every `needs-deps` fence with `tsc` in the loop; the cheap half first, `glyph check --no-tsc` on every `needs-deps` fence that declares a `component`
 - G257: values that come from React (a state setter, a hook result) are typed by Glyph's checker from React's declarations, so a wrong setter argument is a Glyph diagnostic at the argument; today `tsc` reports it across the whole line

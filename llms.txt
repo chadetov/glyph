@@ -466,6 +466,35 @@ component Greeting(props: { name: string }) {
 }
 ```
 
+`<for>` names its loop variable before `in`, and takes the list and the React
+key as attributes. `<match>` takes the value, and each `<case>` names a variant.
+`bind={name}` binds the field called `name` of a variant whose payload is a
+record, so give a variant a record payload when a `<case>` reads it:
+
+```glyph needs-deps
+type Todo = { id: number, text: string, }
+
+type Load = Loading | Loaded({ todos: Array<Todo> }) | Failed({ message: string })
+
+component TodoList(props: { load: Load }) {
+  return <match value={props.load}>
+    <case Loading>
+      <p>Loading...</p>
+    </case>
+    <case Loaded bind={todos}>
+      <ul>
+        <for todo in={todos} key={todo.id}>
+          <li>{todo.text}</li>
+        </for>
+      </ul>
+    </case>
+    <case Failed bind={message}>
+      <p>{message}</p>
+    </case>
+  </match>
+}
+```
+
 ### Template strings
 
 `"Hello, ${user.email}"` interpolates expressions, calls included:

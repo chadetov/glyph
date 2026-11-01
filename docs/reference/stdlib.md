@@ -507,7 +507,7 @@ There is no `serve`. It resolved only when the server closed, nothing could
 close one, and because a `match` on a `Result` must be exhaustive every caller
 was forced to write an arm that could never run.
 
-## std/bytes## std/bytes
+## std/bytes
 
 An immutable sequence of octets, and the codecs between octets and text. This is
 the type to reach for whenever the data is not text: a PNG's first byte is 137,

@@ -249,6 +249,40 @@ fn the_resolver_seed_lists_every_runtime_export() {
     );
 }
 
+/// The resolver's seed and the runtime name the same set of `std/` modules.
+///
+/// Since G256 the seed is the authority on which `std/` paths exist: an import
+/// of one it does not hold is E0104. A runtime module left out of it would turn
+/// every import of a module the compiler ships into a false error, and a seeded
+/// module with no runtime file would pass every Glyph stage and fail in `tsc`,
+/// which is the failure G256 removed.
+#[test]
+fn the_resolver_seed_and_the_runtime_name_the_same_std_modules() {
+    use std::collections::BTreeSet;
+    let runtime: BTreeSet<String> = fs::read_dir(repo_file("glyph-compiler/runtime/std"))
+        .expect("read runtime/std")
+        .map(|e| e.expect("dir entry").path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("ts"))
+        .map(|p| format!("std/{}", p.file_stem().unwrap().to_string_lossy()))
+        .collect();
+    let seeded: BTreeSet<String> = glyph_resolver::StdlibStubs::new()
+        .iter()
+        .map(|(k, _)| k.to_string())
+        .collect();
+    let unseeded: Vec<_> = runtime.difference(&seeded).collect();
+    assert!(
+        unseeded.is_empty(),
+        "the runtime ships std modules the resolver seed does not list, so importing them \
+         is a false E0104: {unseeded:?}. Add them to `StdlibStubs::new` in `module_graph.rs`."
+    );
+    let phantom: Vec<_> = seeded.difference(&runtime).collect();
+    assert!(
+        phantom.is_empty(),
+        "the resolver seed lists std modules with no runtime file, so an import of one \
+         passes the Glyph stages and fails in tsc: {phantom:?}"
+    );
+}
+
 /// The three host modules a browser program imports load in a page (G254).
 ///
 /// `std/dom`, `std/storage` and `std/console` exist because `std/io` imports

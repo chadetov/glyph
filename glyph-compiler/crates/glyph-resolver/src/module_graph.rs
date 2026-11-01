@@ -71,6 +71,22 @@ pub trait ModuleGraph {
     /// `Some(exports)` if the module is known, `None` if the verifier should
     /// skip cross-module verification for this path (permissive default).
     fn exports_of(&self, path: &ModulePath) -> Option<&ModuleExports>;
+
+    /// Whether this graph is the authority for `path`, so that a `None` from
+    /// `exports_of` means the module does not exist rather than "not mine to
+    /// judge". Only the stdlib seed claims anything: it is the complete list of
+    /// `std/` modules the compiler carries, so an import of a `std/` path it
+    /// does not hold names nothing (G256). Every other graph stays permissive.
+    fn owns(&self, path: &ModulePath) -> bool {
+        let _ = path;
+        false
+    }
+
+    /// Every module path this graph is the authority for, sorted, for the
+    /// diagnostic that names the nearest one. Empty wherever `owns` is false.
+    fn owned_modules(&self) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 // ============================================================================
@@ -85,12 +101,18 @@ pub trait ModuleGraph {
 #[derive(Debug, Default, Clone)]
 pub struct StdlibStubs {
     by_path: HashMap<String, ModuleExports>,
+    /// True for the seeded stdlib, which lists every `std/` module there is.
+    /// `empty()` builds a partial graph for tests and claims nothing.
+    complete: bool,
 }
 
 impl StdlibStubs {
     /// Seeded with the stdlib surface that the example files require.
     pub fn new() -> Self {
-        let mut s = Self::default();
+        let mut s = Self {
+            complete: true,
+            ..Self::default()
+        };
         // Q3 stdlib bootstrap list — the eight v1 modules. The names below are
         // the exported surface as of the brainstorm resolution; they will grow
         // as Phase 1 week 5 lands real stdlib sources.
@@ -284,6 +306,9 @@ impl StdlibStubs {
         s.add("std/storage", &["StorageError", "get", "set", "remove"]);
         // The host console, on any host: the browser-safe half of `std/io`.
         s.add("std/console", &["log", "warn", "error"]);
+        // The factory behind a record type's generated `T.schema`. Mostly
+        // internal, but documented, so an import of it is a real module.
+        s.add("std/schema", &["schema"]);
         // TCP. The last raw host call in the examples tree: a chat daemon
         // imported node's `net` and held an opaque `Socket` that E0304 would
         // not validate. Events are individual functions, as in `std/websocket`.
@@ -400,6 +425,19 @@ impl ModuleGraph for StdlibStubs {
     fn exports_of(&self, path: &ModulePath) -> Option<&ModuleExports> {
         self.by_path.get(&path_key(path))
     }
+
+    fn owns(&self, path: &ModulePath) -> bool {
+        self.complete && path.segments.first().map(|s| s.as_ref()) == Some("std")
+    }
+
+    fn owned_modules(&self) -> Vec<String> {
+        if !self.complete {
+            return Vec::new();
+        }
+        let mut keys: Vec<String> = self.by_path.keys().cloned().collect();
+        keys.sort();
+        keys
+    }
 }
 
 /// Compose two module graphs, checking `first` then `second`. Useful for
@@ -414,6 +452,18 @@ impl<'a> ModuleGraph for CompositeGraph<'a> {
         self.first
             .exports_of(path)
             .or_else(|| self.second.exports_of(path))
+    }
+
+    fn owns(&self, path: &ModulePath) -> bool {
+        self.first.owns(path) || self.second.owns(path)
+    }
+
+    fn owned_modules(&self) -> Vec<String> {
+        let mut keys = self.first.owned_modules();
+        keys.extend(self.second.owned_modules());
+        keys.sort();
+        keys.dedup();
+        keys
     }
 }
 
@@ -441,6 +491,12 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
     for item in &module.items {
         let Decl::Import(imp) = item else { continue };
         let Some(exports) = graph.exports_of(&imp.path) else {
+            // A `std/` path the stdlib does not carry. Skipping it, as an npm
+            // package is skipped, let the build pass every Glyph stage and fail
+            // only in `tsc` with a TS2307 about generated code (G256).
+            if graph.owns(&imp.path) {
+                errors.push(unknown_std_module(&imp.path, graph, imp.span));
+            }
             continue;
         };
         if let ImportKind::Named(names) = &imp.kind {
@@ -461,6 +517,23 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
         }
     }
     errors
+}
+
+/// The E0104 for a `std/` path the stdlib does not carry, naming the nearest
+/// real module when one is close enough to be a typo and the list otherwise.
+fn unknown_std_module(path: &ModulePath, graph: &dyn ModuleGraph, span: glyph_ast::Span) -> ResolveError {
+    let key = path_key(path);
+    let wanted = key.strip_prefix("std/").unwrap_or(&key).to_string();
+    let modules: Vec<String> = graph
+        .owned_modules()
+        .iter()
+        .filter_map(|m| m.strip_prefix("std/").map(str::to_string))
+        .collect();
+    ResolveError::UnknownStdModule {
+        path: key,
+        suggestion: crate::error::std_module_suggestion(&wanted, &modules),
+        span,
+    }
 }
 
 /// Report a local import that names no module under the build root.
@@ -804,6 +877,55 @@ mod tests {
             &StdlibStubs::new(),
         );
         assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    /// G256. A `std/` path the stdlib does not carry is E0104, as a missing
+    /// local module is, instead of being skipped like an npm package and left
+    /// to `tsc`'s TS2307.
+    #[test]
+    fn a_std_module_that_does_not_exist_is_e0104() {
+        for src in [
+            "module x\nimport std/zzznope { thing }\n",
+            "module x\nimport std/zzznope\n",
+            "module x\nimport std/zzznope as z\n",
+        ] {
+            let errs = verify(src, &StdlibStubs::new());
+            assert_eq!(errs.len(), 1, "{src}: {errs:?}");
+            assert_eq!(errs[0].code(), "E0104", "{src}: {errs:?}");
+            let msg = errs[0].to_string();
+            assert!(msg.contains("std/zzznope"), "{msg}");
+            // Nothing is close, so the message lists the modules there are.
+            assert!(msg.contains("dom") && msg.contains("timers"), "{msg}");
+        }
+    }
+
+    /// A typo of a real module names the module it was probably meant to be.
+    #[test]
+    fn a_misspelled_std_module_names_the_nearest_one() {
+        let errs = verify("module x\nimport std/websockt\n", &StdlibStubs::new());
+        assert_eq!(errs.len(), 1, "{errs:?}");
+        assert!(errs[0].to_string().contains("did you mean `std/websocket`?"), "{errs:?}");
+    }
+
+    /// The stdlib claims authority through a composite graph too, which is the
+    /// shape the build and the editor both verify against; a project graph
+    /// and a partial test graph claim nothing.
+    #[test]
+    fn only_the_seeded_stdlib_owns_std_paths() {
+        let stdlib = StdlibStubs::new();
+        let project = StdlibStubs::empty();
+        let composite = CompositeGraph {
+            first: &stdlib,
+            second: &project,
+        };
+        let errs = verify("module x\nimport std/zzznope\n", &composite);
+        assert_eq!(errs.len(), 1, "{errs:?}");
+        assert!(verify("module x\nimport std/zzznope\n", &project).is_empty());
+        // Every real module still imports cleanly.
+        for (path, _) in stdlib.iter() {
+            let errs = verify(&format!("module x\nimport {path}\n"), &stdlib);
+            assert!(errs.is_empty(), "{path}: {errs:?}");
+        }
     }
 
     #[test]

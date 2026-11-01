@@ -14895,3 +14895,20 @@ fn g254_a_dom_element_is_accepted_by_create_root() {
         TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }
+
+/// G256 under `glyph check --no-tsc`, the surface that used to exit 0: an
+/// import of a `std/` module that does not exist is E0104 before `tsc` runs.
+#[test]
+fn g256_an_import_of_a_missing_std_module_is_e0104_without_tsc() {
+    let root = unique_tmp("g256_no_tsc");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\nimport std/zzznope { thing }\n\nfn main(argv: Array<string>) -> number {\n  thing()\n  return 0\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_ne!(code, 0, "a missing std module must fail the Glyph stages:\n{stderr}");
+    assert!(stderr.contains("[E0104]"), "{stderr}");
+    assert!(stderr.contains("std/zzznope"), "{stderr}");
+    assert!(!stderr.contains("TS2307"), "the Glyph stage reports it, not tsc:\n{stderr}");
+}

@@ -18,6 +18,25 @@ want both spellings.
 > `glyph-compiler/runtime/std/*.ts` must appear here, so a new stdlib function
 > can't ship undocumented.
 
+## Which host each module runs on
+
+There is no build target in Glyph, so the stdlib states where each module can
+run. A module that imports a `node:` builtin at load time cannot go into a
+browser bundle at all; one that only touches a host global when called loads
+anywhere and fails at the call.
+
+| Host | Modules |
+|---|---|
+| Any host (a page, a worker, node) | `array`, `bytes`, `collections`, `console`, `decimal`, `intl`, `json`, `log`, `math`, `nullable`, `option`, `random`, `record`, `regex`, `result`, `schema`, `set`, `storage`, `store`, `stream`, `string`, `taint`, `task`, `test`, `time`, `timers`, `url` |
+| A browser page | `dom` |
+| Node only | `crypto`, `dns`, `fs`, `http`, `io`, `net`, `path`, `sqlite`, `tls`, `websocket` import `node:` modules when they load; `process` and `encoding` load anywhere but call node's `process` and `Buffer` |
+
+`storage` runs on any host because it degrades: with no `localStorage` a read is
+`None` and a write is an `Err`. `dom` loads anywhere too, so a module that
+imports it can still run under `glyph run` or an `@example`, but each of its
+calls throws where there is no document. For a line of output from browser code,
+use `std/console` or the prelude `print`; `std/io` is node's streams.
+
 ## Prelude (no import required)
 
 These names are global; you use them without an import.
@@ -1316,6 +1335,145 @@ act on instead of an exception on a callback stack you do not control.
 retrying from a rejection that will be rejected identically forever. A close
 with no code reports 1006, which is what a connection that failed before
 opening produces.
+
+## std/dom
+
+The page a browser program runs in: its title, an element to mount on, and its
+address.
+
+`document` and `window` are globals in JavaScript, and Glyph resolves imported
+names rather than ambient ones, so this module is how a Glyph program reaches
+the page. It is small on purpose. React owns the DOM it renders, and writing to
+that DOM underneath React is a bug, so there are no text or attribute setters,
+event listeners or focus calls here.
+
+```
+type Element                                    // opaque; hand it to a library
+
+dom.title() -> string                           // the tab's title
+dom.set_title(text: string) -> void
+dom.element_by_id(id: string) -> Option<Element>
+dom.location() -> url.Url                       // std/url's record
+```
+
+`Element` is the host's `HTMLElement` in the emitted TypeScript, so
+`createRoot(el)` from `react-dom/client` type-checks against React's own
+declarations. In Glyph it is opaque: reading any member of one is E0210, and an
+object literal is not one. Pass it to a library or back to this module.
+
+The title is set with a call, `dom.set_title(s)`, rather than an assignment, so
+`grep "dom\.set_"` finds every write a program makes to the page.
+
+A page either has a document or it does not, so the calls return plain values
+rather than `Result`s. Importing the module is safe anywhere; calling one of
+its functions where there is no document (under `glyph run`, an `@example`,
+server-side rendering) throws, and the message names the function:
+`std/dom.title: this runtime has no browser document`.
+
+```glyph
+module page
+
+import std/dom
+
+pub fn titled(count: number) -> string {
+  dom.set_title("${number.to_string(count)} todos")
+  return dom.title()
+}
+
+pub fn mount_point() -> Option<dom.Element> {
+  return dom.element_by_id("root")
+}
+
+pub fn on_https() -> bool {
+  return dom.location().scheme == "https"
+}
+```
+
+**An effect lambda says `-> void`.** A Glyph lambda returns its tail value, so
+`useEffect(fn() { dom.set_title(t) }, [t])` is fine but
+`useEffect(fn() { storage.set(k, v) }, [v])` hands React the `Result` that
+`storage.set` returns, React calls it as a cleanup function, and `tsc` refuses
+it against `void | Destructor`. Write every effect as `fn() -> void { ... }`.
+
+## std/storage
+
+Small string values the browser keeps across reloads, over `localStorage`.
+
+```
+type StorageError = { kind: "quota" | "unavailable", message: string }
+
+storage.get(key: string) -> Option<string>
+storage.set(key: string, value: string) -> Result<void, StorageError>
+storage.remove(key: string) -> void
+```
+
+Storage fails per call in an ordinary browser: the quota is full, or the user
+has blocked site data and touching `localStorage` at all throws. So nothing
+here throws. A read that cannot happen is `None`, the same as a key that was
+never written. A write that cannot happen is an `Err` whose `kind` says which
+reason it was, and because `kind` is a string-literal union a `match` over it is
+exhaustive with no `else`. A removal that cannot happen does nothing.
+
+A host with no `localStorage` (node, unless started with
+`--localstorage-file`) behaves like a browser with storage blocked: `get` is
+`None`, `set` is `Err` with `kind: "unavailable"`. Node prints its own warning
+the first time the global is read.
+
+```glyph
+module prefs
+
+import std/storage
+
+pub fn remember(theme: string) -> string {
+  return match storage.set("theme", theme) {
+    Ok(_) => "saved",
+    Err(e) => match e.kind {
+      "quota" => "storage is full: ${e.message}",
+      "unavailable" => "storage is off: ${e.message}",
+    },
+  }
+}
+
+pub fn theme() -> string {
+  return match storage.get("theme") {
+    Some(t) => t,
+    None => "light",
+  }
+}
+
+pub fn forget() -> void {
+  storage.remove("theme")
+}
+```
+
+## std/console
+
+A line to the host's console, on any host.
+
+```
+console.log(text: string) -> void       // the ordinary level; what `print` does
+console.warn(text: string) -> void
+console.error(text: string) -> void     // under node, stderr
+```
+
+`std/io` imports `node:fs` when it loads, so it cannot go into a page; this is
+the module browser code, a worker and a server can all write through. `warn`
+and `error` are the levels a browser's devtools filter on. Importing it binds
+`console` inside the importing file, which hides the host global there; Glyph
+code cannot name that global anyway.
+
+```glyph
+module report
+
+import std/console
+
+pub fn report(failures: number) -> void {
+  match failures {
+    0 => console.log("all passed"),
+    else => console.error("${number.to_string(failures)} failed"),
+  }
+}
+```
 
 ## std/test
 

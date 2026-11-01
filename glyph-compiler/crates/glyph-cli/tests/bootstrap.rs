@@ -249,6 +249,66 @@ fn the_resolver_seed_lists_every_runtime_export() {
     );
 }
 
+/// The three host modules a browser program imports load in a page (G254).
+///
+/// `std/dom`, `std/storage` and `std/console` exist because `std/io` imports
+/// `node:fs` at load time and so cannot go into a bundle. A `node:` import
+/// anywhere in their import closure would put them back in that position, and
+/// nothing else would notice: node runs them, `tsc` accepts them, and only a
+/// bundler building a page refuses. So this walks each one's sibling imports
+/// to a fixed point and reads every import specifier in the closure.
+#[test]
+fn the_browser_host_modules_import_nothing_from_node() {
+    use std::collections::BTreeSet;
+    fn specifiers(src: &str) -> Vec<String> {
+        // Every `from "x"` and side-effect `import "x"`, read from code lines
+        // only, so a comment that names `node:fs` is not an import of it.
+        let mut out = Vec::new();
+        for line in src.lines() {
+            let code = line.trim_start();
+            if code.starts_with("//") || code.starts_with('*') || code.starts_with("/*") {
+                continue;
+            }
+            for marker in ["from \"", "import \"", "import(\""] {
+                let mut rest = code;
+                while let Some(at) = rest.find(marker) {
+                    let after = &rest[at + marker.len()..];
+                    let end = after.find('"').unwrap_or(after.len());
+                    out.push(after[..end].to_string());
+                    rest = &after[end..];
+                }
+            }
+        }
+        out
+    }
+    let dir = repo_file("glyph-compiler/runtime/std");
+    for root in ["dom", "storage", "console"] {
+        let mut seen: BTreeSet<String> = BTreeSet::new();
+        let mut todo = vec![root.to_string()];
+        while let Some(m) = todo.pop() {
+            if !seen.insert(m.clone()) {
+                continue;
+            }
+            let src = fs::read_to_string(dir.join(format!("{m}.ts")))
+                .unwrap_or_else(|e| panic!("read std/{m}.ts: {e}"));
+            for spec in specifiers(&src) {
+                match spec.strip_prefix("./") {
+                    Some(sibling) => todo.push(sibling.to_string()),
+                    None => panic!(
+                        "std/{root} reaches std/{m}, which imports `{spec}`; a browser bundle \
+                         cannot load it. Its whole import closure must be host-free."
+                    ),
+                }
+            }
+            assert!(
+                !src.contains("\"node:"),
+                "std/{m} (in std/{root}'s closure) names a `node:` module in code"
+            );
+        }
+        assert!(seen.contains(root), "std/{root} was not read");
+    }
+}
+
 /// The type-only table the emitter reads must match the runtime it describes.
 ///
 /// `is_stdlib_type_only` decides whether an emitted import carries the inline

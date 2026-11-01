@@ -176,6 +176,18 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/websocket.ts"),
     ),
     (
+        ".glyph-runtime/std/dom.ts",
+        include_str!("../../../runtime/std/dom.ts"),
+    ),
+    (
+        ".glyph-runtime/std/storage.ts",
+        include_str!("../../../runtime/std/storage.ts"),
+    ),
+    (
+        ".glyph-runtime/std/console.ts",
+        include_str!("../../../runtime/std/console.ts"),
+    ),
+    (
         ".glyph-runtime/glyph-bootstrap.ts",
         include_str!("../../../runtime/glyph-bootstrap.ts"),
     ),

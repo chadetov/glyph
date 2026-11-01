@@ -14638,3 +14638,260 @@ fn a_destructuring_let_runs_end_to_end() {
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     assert_eq!(stdout.trim(), "42 3 2", "{stdout}\n{stderr}");
 }
+
+/// A page and a store for a `glyph run` that has no browser. `install` puts a
+/// `document` and a `localStorage` on `globalThis`; with `quota_full` set,
+/// every write throws the error a full browser store throws, which carries the
+/// standard `QuotaExceededError` name.
+const FAKE_HOST_TS: &str = r#"export function install(quota_full: boolean): void {
+  const items = new Map<string, string>();
+  const el = { id: "root" };
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {
+      title: "start",
+      getElementById: (id: string) => (id === "root" ? el : null),
+      location: { href: "https://example.test:8443/app/page?x=1#top" },
+    },
+  });
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (k: string) => (items.has(k) ? items.get(k)! : null),
+      setItem: (k: string, v: string) => {
+        if (quota_full) {
+          const e = new Error("the quota has been exceeded");
+          e.name = "QuotaExceededError";
+          throw e;
+        }
+        items.set(k, v);
+      },
+      removeItem: (k: string) => {
+        items.delete(k);
+      },
+    },
+  });
+}
+"#;
+
+/// G254 end to end under node. `std/dom` reads and writes the fake page,
+/// `std/storage` round-trips through the fake store, and a store that throws
+/// `QuotaExceededError` is an `Err` with `kind: "quota"` rather than a throw.
+#[test]
+fn g254_the_host_modules_run_against_a_page_and_a_store() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G254 run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("g254_fake_host");
+    let src = root.join("src");
+    write_file(&src, "extern/fakehost.ts", FAKE_HOST_TS);
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/dom
+import std/storage
+import std/console
+import extern/fakehost { install }
+
+fn main(argv: Array<string>) -> number {
+  install(false)
+  dom.set_title("hello")
+  console.log("title=${dom.title()}")
+  match dom.element_by_id("root") {
+    Some(_) => console.log("root=Some"),
+    None => console.log("root=None"),
+  }
+  match dom.element_by_id("nope") {
+    Some(_) => console.log("nope=Some"),
+    None => console.log("nope=None"),
+  }
+  let u = dom.location()
+  console.log("host=${u.host} path=${u.path}")
+  match storage.set("k", "v1") {
+    Ok(_) => console.log("set=Ok"),
+    Err(e) => console.log("set=Err(${e.kind})"),
+  }
+  match storage.get("k") {
+    Some(v) => console.log("get=${v}"),
+    None => console.log("get=None"),
+  }
+  storage.remove("k")
+  match storage.get("k") {
+    Some(v) => console.log("after=${v}"),
+    None => console.log("after=None"),
+  }
+  install(true)
+  match storage.set("k", "v2") {
+    Ok(_) => console.log("full=Ok"),
+    Err(e) => console.log("full=Err(${e.kind}): ${e.message}"),
+  }
+  console.error("to-stderr")
+  return 0
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run:\n{stdout}\n{stderr}");
+    for want in [
+        "title=hello",
+        "root=Some",
+        "nope=None",
+        "host=example.test path=/app/page",
+        "set=Ok",
+        "get=v1",
+        "after=None",
+        "full=Err(quota): std/storage.set: QuotaExceededError: the quota has been exceeded",
+    ] {
+        assert!(stdout.contains(want), "missing `{want}` in:\n{stdout}\n{stderr}");
+    }
+    assert!(stderr.contains("to-stderr"), "console.error goes to stderr:\n{stderr}");
+    assert!(!stdout.contains("to-stderr"), "console.error goes to stderr only:\n{stdout}");
+}
+
+/// Importing `std/dom` is safe anywhere: nothing in it touches the host at
+/// load time, so a module that imports it runs under node as long as it does
+/// not call it. Storage with no `localStorage` degrades instead of throwing.
+#[test]
+fn g254_importing_std_dom_under_node_is_safe_and_storage_degrades() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G254 run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("g254_no_page");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/dom
+import std/storage
+
+pub fn title_line() -> string {
+  return "title: ${dom.title()}"
+}
+
+fn main(argv: Array<string>) -> number {
+  match storage.set("k", "v") {
+    Ok(_) => print("set=Ok"),
+    Err(e) => print("set=Err(${e.kind})"),
+  }
+  match storage.get("k") {
+    Some(v) => print("get=${v}"),
+    None => print("get=None"),
+  }
+  storage.remove("k")
+  return 0
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "importing std/dom must not fail under node:\n{stdout}\n{stderr}");
+    assert!(stdout.contains("set=Err(unavailable)"), "{stdout}\n{stderr}");
+    assert!(stdout.contains("get=None"), "{stdout}\n{stderr}");
+}
+
+/// A call into `std/dom` where there is no document throws, and the message
+/// names the function and says why, rather than a `TypeError` about reading
+/// `title` of `undefined`.
+#[test]
+fn g254_a_dom_call_with_no_page_fails_naming_the_function() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G254 run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("g254_title_no_page");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nimport std/dom\n\nfn main(argv: Array<string>) -> number {\n  print(dom.title())\n  return 0\n}\n",
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_ne!(code, 0, "a dom call with no document must fail:\n{stdout}\n{stderr}");
+    assert!(
+        stderr.contains("std/dom.title: this runtime has no browser document"),
+        "the failure names the function and the reason:\n{stderr}"
+    );
+}
+
+/// The shape of `react-dom/client` 18.3's `createRoot`, copied from
+/// `@types/react-dom`: the container is the DOM's own `Element |
+/// DocumentFragment`. `render` takes `unknown` here where React's takes a
+/// `ReactNode`, which this test does not exercise. No test environment carries
+/// React's types, so this stands in for them the way `REACT_TYPES_SUBSET` does.
+const REACT_DOM_CLIENT_SUBSET: &str = r#"export interface RootOptions {
+  identifierPrefix?: string;
+}
+export interface Root {
+  render(children: unknown): void;
+  unmount(): void;
+}
+export function createRoot(container: Element | DocumentFragment, options?: RootOptions): Root;
+"#;
+
+/// G254 with `tsc` in the loop. `dom.Element` is the host's `HTMLElement` in
+/// the TypeScript, which is the reason it is not a branded opaque type: the
+/// element `dom.element_by_id` hands back is accepted by React's own
+/// `createRoot`. The second half proves the fixture is checking: a string in
+/// the same position is a `tsc` error.
+#[test]
+fn g254_a_dom_element_is_accepted_by_create_root() {
+    if !tsc_available() {
+        eprintln!("skipping G254 tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("g254_create_root");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &root,
+        "node_modules/@types/react-dom/package.json",
+        r#"{ "name": "@types/react-dom", "version": "18.3.0", "types": "index.d.ts" }"#,
+    );
+    write_file(&root, "node_modules/@types/react-dom/index.d.ts", "export {};\n");
+    write_file(&root, "node_modules/@types/react-dom/client.d.ts", REACT_DOM_CLIENT_SUBSET);
+    let program = |arg: &str| {
+        format!(
+            "module main\n\n\
+             import std/dom\n\
+             import react-dom/client {{ createRoot }}\n\n\
+             pub fn mount() -> void {{\n\
+             \x20 match dom.element_by_id(\"root\") {{\n\
+             \x20   Some(root) => createRoot({arg}).render(\"hi\"),\n\
+             \x20   None => print(\"no root\"),\n\
+             \x20 }}\n\
+             }}\n"
+        )
+    };
+    write_file(&src, "main.glyph", &program("root"));
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("createRoot(dom.Element) did not type-check:\n{msg}"),
+        TscOutcome::NotFound => {
+            eprintln!("skipping: tsc not found at check time");
+            return;
+        }
+    }
+
+    write_file(&src, "main.glyph", &program("\"root\""));
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Failed(msg) => assert!(
+            msg.contains("Element | DocumentFragment"),
+            "the refusal is about the container type:\n{msg}"
+        ),
+        TscOutcome::Passed => panic!("a string passed to createRoot should fail tsc"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}

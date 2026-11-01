@@ -236,6 +236,9 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if let Some(sig) = timers_fn_ty(module_key, field) {
         return Some(sig);
     }
+    if let Some(sig) = host_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
 
     // (arity, ok, err, is_async)
     let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
@@ -680,6 +683,46 @@ pub(crate) fn timers_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
         }),
         _ => None,
     }
+}
+
+/// The signature of a `std/dom`, `std/storage` or `std/console` export: the
+/// three host modules a browser program reaches its page through (G254).
+///
+/// Three modules because they are three host profiles with two failure models.
+/// A page either has a document or it does not, so `std/dom` returns plain
+/// values and throws, naming the function, where there is none. Storage fails
+/// per call in an ordinary browser (a full quota, site data blocked), so
+/// `storage.get` is an `Option` and `storage.set` a `Result` whose error kind
+/// is a string-literal union a `match` covers exhaustively. A console never
+/// fails.
+///
+/// `dom.Element` is opaque: modeled, with an empty field set, so a member read
+/// is E0210 and the value can only be handed to a library or back here.
+pub(crate) fn host_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    let string = || Ty::Prim(Primitive::String);
+    let void = || Ty::Prim(Primitive::Void);
+    let (params, ret): (Vec<FnParam>, Ty) = match (module_key, field) {
+        ("std/dom", "title") => (Vec::new(), string()),
+        ("std/dom", "set_title") => (vec![required(string())], void()),
+        ("std/dom", "element_by_id") => (
+            vec![required(string())],
+            option_ty(prelude, stdlib_named("dom", "Element"))?,
+        ),
+        ("std/dom", "location") => (Vec::new(), stdlib_named("url", "Url")),
+        ("std/storage", "get") => (vec![required(string())], option_ty(prelude, string())?),
+        ("std/storage", "set") => (
+            vec![required(string()), required(string())],
+            result_ty(prelude, void(), stdlib_named("storage", "StorageError"))?,
+        ),
+        ("std/storage", "remove") => (vec![required(string())], void()),
+        ("std/console", "log" | "warn" | "error") => (vec![required(string())], void()),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params,
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
 }
 
 /// The signature of a `std/io` function: the process's own streams.

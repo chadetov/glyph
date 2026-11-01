@@ -29,6 +29,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ("std/bytes", &["Bytes", "BytesError"]),
     ("std/collections", &["Deque"]),
     ("std/decimal", &["Decimal"]),
+    ("std/dom", &["Element"]),
     ("std/fs", &["FileInfo", "FsError", "LineReader"]),
     (
         "std/http",
@@ -51,6 +52,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ("std/result", &["Result"]),
     ("std/set", &["Set"]),
     ("std/sqlite", &["Db", "Row"]),
+    ("std/storage", &["StorageError"]),
     ("std/store", &["Store"]),
     ("std/stream", &["Stream"]),
     ("std/taint", &["Tainted", "Trusted"]),

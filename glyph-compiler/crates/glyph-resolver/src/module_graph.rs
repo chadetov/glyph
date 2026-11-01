@@ -276,6 +276,14 @@ impl StdlibStubs {
                 "is_open",
             ],
         );
+        // The page a browser program runs in. `document` is a global, so this
+        // module is the only way a Glyph program reaches it; deliberately small
+        // because React owns the DOM it renders.
+        s.add("std/dom", &["Element", "title", "set_title", "element_by_id", "location"]);
+        // The browser's `localStorage`, failing per call rather than throwing.
+        s.add("std/storage", &["StorageError", "get", "set", "remove"]);
+        // The host console, on any host: the browser-safe half of `std/io`.
+        s.add("std/console", &["log", "warn", "error"]);
         // TCP. The last raw host call in the examples tree: a chat daemon
         // imported node's `net` and held an opaque `Socket` that E0304 would
         // not validate. Events are individual functions, as in `std/websocket`.

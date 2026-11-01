@@ -1,0 +1,9 @@
+module neg
+
+// `dom.location()` is `std/url`'s `Url`, whose path field is `path`. The
+// browser's `pathname` is not one of its fields.
+import std/dom
+
+pub fn main() -> void {
+  print(dom.location().pathname)
+}

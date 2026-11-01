@@ -5909,6 +5909,20 @@ impl Assigner<'_> {
         // And TypeScript's weak-type rule (TS2559), mirrored exactly: a
         // record whose fields are all optional refuses a value that shares
         // none of them (`weak_record_disjoint`).
+        // G254. An opaque host handle (`dom.Element`) is modeled with an empty
+        // field set so a member read is E0210, and an empty field set would
+        // let the structural arm below take any record for it: `take({})`
+        // passed every Glyph stage and failed in `tsc`, where the type is the
+        // host's `HTMLElement`. Nothing a program writes is one, so only a
+        // value already of that type is accepted; an undecidable value stays
+        // permissive, as everywhere in this relation.
+        if self.is_opaque_stdlib_type(&expected)
+            && ty_is_decidable(&found)
+            && !matches!(found, Ty::Never)
+            && found != expected
+        {
+            return true;
+        }
         if matches!(found, Ty::Record { .. } | Ty::Fn { .. }) {
             if let Some(declared) = self.record_fields_of(&expected) {
                 if weak_record_disjoint(&found, &declared) {
@@ -5960,6 +5974,14 @@ impl Assigner<'_> {
             }
         }
         definitely_incompatible(&found, &expected)
+    }
+
+    /// Whether `ty` is a stdlib type the checker models as opaque: a name with
+    /// an empty field set in `stdlib_type_fields`, which is how a live host
+    /// handle is written there (G254).
+    fn is_opaque_stdlib_type(&self, ty: &Ty) -> bool {
+        stdlib_type_path(ty).is_some()
+            && stdlib_type_fields(self, ty).is_some_and(|f| f.is_empty())
     }
 
     /// A structural record's fields against a declared field set: a required
@@ -7026,6 +7048,8 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("url", "Param")
             | ("dns", "MailHost")
             | ("net", "ServerError")
+            | ("dom", "Element")
+            | ("storage", "StorageError")
     )
     .then(|| stdlib_named(module, name))
 }
@@ -7095,6 +7119,22 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
             ),
             ("message", Ty::Prim(Primitive::String)),
             ("code", Ty::Prim(Primitive::String)),
+        ],
+        // A live page element, the host's `HTMLElement` in the TypeScript.
+        // Opaque on purpose: an empty field set makes every member read E0210,
+        // so the only things a program does with one are hand it to a library
+        // (`createRoot`) or back to `std/dom`. React owns the DOM it renders,
+        // and a write underneath it is a bug.
+        ("dom", "Element") => Vec::new(),
+        // `kind` is a string-literal union for the reason `ServerError`'s is:
+        // a full store and a refused one lead to different decisions, and a
+        // `match` over the two is exhaustive with no catch-all.
+        ("storage", "StorageError") => vec![
+            (
+                "kind",
+                Ty::StringLiteralUnion(vec!["quota".to_string(), "unavailable".to_string()]),
+            ),
+            ("message", Ty::Prim(Primitive::String)),
         ],
         ("dns", "MailHost") => vec![
             ("priority", Ty::Prim(Primitive::Number)),

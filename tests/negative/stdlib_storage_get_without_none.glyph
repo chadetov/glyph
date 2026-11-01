@@ -1,0 +1,12 @@
+module neg
+
+// `storage.get` is an `Option`: a key never written, and a browser with storage
+// blocked, are both `None`, and a match has to say what happens then.
+import std/storage
+
+pub fn main() -> void {
+  let v = match storage.get("k") {
+    Some(v) => v,
+  }
+  print(v)
+}

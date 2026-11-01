@@ -1,0 +1,13 @@
+module neg
+
+// An empty field set makes `dom.Element` opaque to member reads; it must not
+// also make every record one. `{}` is not an `HTMLElement`, and `tsc` says so.
+import std/dom
+
+fn mount(root: dom.Element) -> void {
+  dom.set_title("mounted")
+}
+
+pub fn main() -> void {
+  mount({})
+}

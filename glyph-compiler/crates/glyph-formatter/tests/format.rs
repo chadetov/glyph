@@ -1508,3 +1508,41 @@ fn a_destructuring_let_round_trips() {
     assert_eq!(fmt(messy), src, "spacing inside the pattern is not normalised");
     assert_eq!(emit_ts(messy), emit_ts(src));
 }
+
+/// A space JSX keeps is a space the formatter keeps. `{n} left` renders
+/// "2 left", and the formatter used to trim every text child, so it reprinted
+/// the source as `{n}left` and the page read "2left". Each shape here is
+/// checked by the emitted TypeScript: formatting must not change it, and the
+/// formatted source must be a fixed point.
+#[test]
+fn a_space_jsx_renders_survives_formatting() {
+    let bodies = [
+        // Inline: text beside an expression, at both ends, and padded.
+        "<p class=\"left\">{n} left</p>",
+        "<p>left {n}</p>",
+        "<p> {n} </p>",
+        // Laid out one child per line: a space at a text child's edge.
+        "<p>{n} and <b>x</b></p>",
+        "<p><b>x</b> and {n}</p>",
+        // A lone space between two elements on one line.
+        "<p><b>x</b> <i>y</i></p>",
+        // A run spanning lines collapses to one space, and indentation is not text.
+        "<p>\n    one\n    two <b>x</b>\n  </p>",
+    ];
+    for body in bodies {
+        let src = format!(
+            "module x\n\npub component C(props: {{ n: number }}) {{\n  let n = props.n\n  return {body}\n}}\n"
+        );
+        // React renders adjacent text children as one run, so `" ", "and"`
+        // and `" and"` are the same page; join them before comparing. The
+        // formatter writes a significant edge space as its own `{" "}` child
+        // when the text goes on a line of its own.
+        let rendered = |ts: String| ts.replace("\", \"", "");
+        let before = rendered(emit_ts(&src).unwrap_or_else(|| panic!("emits: {src}")));
+        let out = fmt(&src);
+        let after =
+            rendered(emit_ts(&out).unwrap_or_else(|| panic!("formatted source emits:\n{out}")));
+        assert_eq!(before, after, "formatting changed what `{body}` renders:\n{out}");
+        assert_eq!(fmt(&out), out, "format of `{body}` is not stable");
+    }
+}

@@ -6017,7 +6017,7 @@ impl<'a> Emitter<'a> {
         while i < children.len() {
             match &children[i] {
                 JsxChild::Text { content, .. } => {
-                    let t = normalize_jsx_text(content);
+                    let t = glyph_ast::jsx_text_value(content);
                     if !t.is_empty() {
                         out.push(escape_double_quoted(&t));
                     }
@@ -6054,7 +6054,7 @@ impl<'a> Emitter<'a> {
         let mut j = start;
         while j < children.len() {
             match &children[j] {
-                JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {
+                JsxChild::Text { content, .. } if glyph_ast::jsx_text_value(content).is_empty() => {
                     j += 1
                 }
                 JsxChild::Element(el) if el.kind() == JsxKind::Else => {
@@ -6104,7 +6104,7 @@ impl<'a> Emitter<'a> {
         let mut cases = String::new();
         for child in &j.children {
             match child {
-                JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {}
+                JsxChild::Text { content, .. } if glyph_ast::jsx_text_value(content).is_empty() => {}
                 JsxChild::Element(el) if el.kind() == JsxKind::Case => {
                     let variant = first_positional(&el.attrs).ok_or(EmitError::Unsupported {
                         construct: "a `<case>` without a variant name",
@@ -7134,49 +7134,13 @@ fn first_positional(attrs: &[JsxAttr]) -> Option<&Ident> {
     })
 }
 
-/// Normalize JSX text following the JSX whitespace rules (Babel's
-/// `cleanJSXElementLiteralChild`): split into lines, strip leading whitespace
-/// on every line after the first and trailing whitespace on every line before
-/// the last, tabs become spaces, and non-empty lines join with a single space.
-/// A whitespace-only run that spans a newline (the indentation between tags)
-/// collapses to empty and is dropped by the caller. A single-line run keeps its
-/// significant leading/trailing space, so text abutting an interpolated `{expr}`
-/// child on the same line (`Hello {name} and welcome`) preserves the space
-/// separating them, matching Babel/tsc.
-fn normalize_jsx_text(content: &str) -> String {
-    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
-    let lines: Vec<&str> = normalized.split('\n').collect();
-    let last_non_empty = lines
-        .iter()
-        .rposition(|l| l.chars().any(|c| c != ' ' && c != '\t'))
-        .unwrap_or(0);
-    let line_count = lines.len();
-    let mut out = String::new();
-    for (i, line) in lines.iter().enumerate() {
-        let mut trimmed = line.replace('\t', " ");
-        if i != 0 {
-            trimmed = trimmed.trim_start_matches(' ').to_string();
-        }
-        if i != line_count - 1 {
-            trimmed = trimmed.trim_end_matches(' ').to_string();
-        }
-        if !trimmed.is_empty() {
-            if i != last_non_empty {
-                trimmed.push(' ');
-            }
-            out.push_str(&trimmed);
-        }
-    }
-    out
-}
-
 /// The single element child of a child list, ignoring whitespace-only text;
 /// None if there is not exactly one element child.
 fn single_element_child(children: &[JsxChild]) -> Option<&JsxElement> {
     let mut found = None;
     for c in children {
         match c {
-            JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {}
+            JsxChild::Text { content, .. } if glyph_ast::jsx_text_value(content).is_empty() => {}
             JsxChild::Element(el) if found.is_none() => found = Some(el),
             // A second element, or any non-whitespace text / expr child.
             _ => return None,
@@ -10350,6 +10314,20 @@ pub fn n() -> number {\n  return 1\n}
             ts.contains("React.createElement(\"p\", null, \"Hello \", props.name, \" and welcome\")"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn jsx_text_on_its_own_line_after_a_child_drops_its_indentation() {
+        // A text run on a line of its own is indented layout, not text, under
+        // JSX's rules, whichever child it follows. Below an element or an
+        // `{expr}` it used to keep its indentation, because the child's parser
+        // consumed the newline and the run looked like it continued the line.
+        for child in ["<b>x</b>", "{props.n}"] {
+            let ts = emit(&format!(
+                "module x\npub component W(props: {{ n: number }}) -> Component {{\n  return <p>\n    {child}\n    and\n  </p>\n}}\n"
+            ));
+            assert!(ts.contains(", \"and\")"), "after `{child}`: {ts}");
+        }
     }
 
     #[test]

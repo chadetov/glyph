@@ -158,6 +158,18 @@ jobs:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
         run: python3 scripts/check_react_example.py
 
+      # The todo app is what 0.1.128 is measured by, and type-checking it says
+      # nothing about what renders: the release review found the committed app
+      # showing "2left". This bundles it with Vite and drives it in headless
+      # Chromium, asserting the text a user sees. Playwright is pinned by the
+      # app's lockfile; the browser for that version is installed here.
+      - name: Render the todo app in headless Chromium
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: |
+          (cd examples/apps/todo && npx playwright install --with-deps chromium)
+          python3 scripts/check_todo_renders.py
+
       # The docs run against the compiler, not against a reader's memory. Both
       # of these need a built `glyph`, so they live here rather than in the
       # versions job.

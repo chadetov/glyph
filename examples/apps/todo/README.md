@@ -6,7 +6,8 @@ A counter and a todo list in the browser, against real React 18. Every hook is
 React's own (`useState`, `useEffect`), imported by name and destructured with
 `let [count, set_count] = useState(0)`. The page is reached through the
 standard library: `std/dom` finds the mount point and sets the title,
-`std/storage` keeps the list across a reload, and `std/console` reports a write
+`std/storage` keeps each item's text across a reload (whether it was done is
+not saved), and `std/console` reports a write
 the browser refused.
 
 ## Running it
@@ -19,13 +20,17 @@ npx vite preview --outDir dist/web
 ```
 
 `glyph check` from this directory type-checks it against React's own
-declarations with `tsc --strict`.
+declarations with `tsc --strict`. `python3 scripts/check_todo_renders.py` from
+the repository root builds and bundles it, then drives it in headless Chromium
+and checks the text on the page; CI runs it on every push.
 
 ## What it changed in Glyph
 
 Shipped **0.1.128**, and it is the app that release is measured by: it builds
 with Vite, renders in a headless browser, and the title, the list and the saved
-state behave as written.
+state behave as written. The first browser run was by hand; the release review
+found the committed source showing "2left", a space lost to the formatter bug
+G276, and the run became a gate that reads the page's text.
 
 The 0.1.126 round wrote the same program and stopped at
 `mut document.title = ...`, because browser globals are E0103 and nothing in the

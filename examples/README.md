@@ -8,7 +8,7 @@ The whole directory builds in one command:
 glyph build examples --out /tmp/out
 ```
 
-Each of the thirty-one directories under `apps/` is a program of its own whose
+Each of the thirty-two directories under `apps/` is a program of its own whose
 modules import each other by bare name, so each one carries a `package.json`
 with a `"glyph"` key. That marker makes the directory its own module-resolution
 root (D41), so `import catalog` inside `apps/csvql` finds
@@ -87,6 +87,7 @@ short version: what writing it changed in the compiler.
 | [`shortlink`](shortlink/README.md) | URL shortener you can point a browser at | The build cache served a stale program under a clean build (G56) |
 | [`sitegen`](sitegen/README.md) | Static site generator on `marked` and `gray-matter` | No default import, so a callable npm package was unreachable (G112) |
 | [`tasks`](tasks/README.md) | Persisted task API on SQLite | None. The demonstration half of 0.1.25's database work |
+| [`todo`](todo/README.md) | Counter and todo list on React 18, bundled with Vite | The 0.1.126 round stopped at `document`; it needed `std/dom`, `std/storage` and a destructuring `let` (G254, G255) |
 | [`watchrun`](watchrun/README.md) | Dev loop: watch, debounce, spawn, stream output | The bundled node shim was narrower than node, twice (G125, G126) |
 | [`webhook_ingress`](webhook_ingress/README.md) | Verifies inbound webhooks, serves an admin page | None. Found that taint is opt-in, not dataflow |
 | [`workflow`](workflow/README.md) | Statechart replay engine over a JSON definition | A namespaced `match` on an imported union was never checked (G73) |

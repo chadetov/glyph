@@ -1,0 +1,12 @@
+module neg
+
+// `dom.Element` is opaque (G254): a live page element is handed to a library
+// or back to `std/dom`, never read or written underneath React.
+import std/dom
+
+pub fn main() -> void {
+  match dom.element_by_id("root") {
+    Some(el) => print(el.innerHTML),
+    None => print("no root"),
+  }
+}

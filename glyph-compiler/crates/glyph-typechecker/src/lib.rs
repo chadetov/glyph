@@ -969,6 +969,13 @@ impl TypeError {
             TypeError::UnknownAnnotation { .. } => {
                 "Check the annotation name for a typo. The recognized annotations are `@example`, `@doc`, `@redact`, `@open`, `@pure`, and `@public`."
             }
+            // `dom.Element` has no fields by design (G254): the help that says
+            // "add the field to the type" would be advice to edit the stdlib.
+            TypeError::UnknownField { type_name, fields, .. }
+                if fields.is_empty() && type_name == "dom.Element" =>
+            {
+                "`dom.Element` is opaque: Glyph reads no member of a live page element. Hand it to a library (React's `createRoot(el)`) or back to `std/dom`; a page write underneath React is a bug."
+            }
             TypeError::UnknownField { .. } => {
                 "Check the field name for a typo, or add the field to the type."
             }

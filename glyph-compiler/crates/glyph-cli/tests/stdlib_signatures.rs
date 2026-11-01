@@ -37,6 +37,8 @@ fn the_modeled_stdlib_signatures_accept_the_calls_they_describe() {
     let source = r#"module ok
 
 import std/array
+import std/console
+import std/dom
 import std/fs
 import std/io
 import std/math
@@ -44,6 +46,7 @@ import std/path
 import std/process
 import std/record
 import std/regex
+import std/storage
 import std/string
 import std/time
 import std/timers
@@ -176,6 +179,30 @@ async fn waits() -> void {
   timers.cancel(e)
 }
 
+fn page() -> string {
+  dom.set_title(dom.title())
+  let mounted = match dom.element_by_id("root") {
+    Some(_) => "mounted",
+    None => "",
+  }
+  let saved = match storage.set("k", "v") {
+    Ok(_) => "saved",
+    Err(e) => match e.kind {
+      "quota" => e.message,
+      "unavailable" => e.message,
+    },
+  }
+  let kept = match storage.get("k") {
+    Some(v) => v,
+    None => "",
+  }
+  storage.remove("k")
+  console.log(mounted)
+  console.warn(saved)
+  console.error(kept)
+  return dom.location().host
+}
+
 fn environment() -> string {
   let home = match process.env("HOME") {
     Some(v) => v,
@@ -188,7 +215,7 @@ fn environment() -> string {
 
 pub fn main() -> void {
   io.println(string.from(arrays() + records() + numbers() + patterns() + clocks()))
-  io.eprintln(strings() + paths() + environment())
+  io.eprintln(strings() + paths() + environment() + page())
   io.print("")
   io.eprint("")
   io.inspect(1)
@@ -226,7 +253,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
     let (modeled, partial, unmodeled, total) = glyph_cli::llms::stdlib_coverage();
     assert_eq!(
         (modeled, partial, unmodeled),
-        (117, 46, 164),
+        (127, 46, 166),
         "stdlib coverage moved: {modeled} modeled, {partial} partial, {unmodeled} unmodeled \
          over {total} exports. If that is the change you made, update this pin."
     );
@@ -246,7 +273,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
 /// one grows, a signature was loosened and this is where it shows.
 #[test]
 fn the_modeled_modules_have_exactly_the_holes_they_document() {
-    let expected: [(&str, &[&str], &[&str]); 11] = [
+    let expected: [(&str, &[&str], &[&str]); 14] = [
         // The unifier takes the first candidate it binds for a type parameter
         // and never widens it, so a second `T` slot would reject a call `tsc`
         // accepts. These three take a `T` on the release that joins candidates.
@@ -273,6 +300,11 @@ fn the_modeled_modules_have_exactly_the_holes_they_document() {
         ("std/time", &[], &["debounce"]),
         // `Timer` is the opaque handle type.
         ("std/timers", &[], &["Timer"]),
+        // The three host modules (G254), modeled all the way down. What is
+        // left in each is a type, which has no call signature.
+        ("std/console", &[], &[]),
+        ("std/dom", &[], &["Element"]),
+        ("std/storage", &[], &["StorageError"]),
     ];
     let (partial, absent) = glyph_cli::llms::stdlib_signature_holes();
     for (module, want_partial, want_absent) in expected {

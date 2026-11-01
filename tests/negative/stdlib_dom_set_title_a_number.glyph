@@ -1,0 +1,9 @@
+module neg
+
+// `dom.set_title` takes the title as a string. A number reaches the page as
+// whatever `document.title` makes of it, so it is refused here, before `tsc`.
+import std/dom
+
+pub fn main() -> void {
+  dom.set_title(5)
+}

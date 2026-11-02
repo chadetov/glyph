@@ -271,20 +271,32 @@ fn constraints(d: &Diagnostic, symbols: &[Value]) -> Vec<String> {
                 .to_string(),
         ),
         "E0210" => {
-            let record = d
-                .cause
-                .clone()
-                .unwrap_or_else(|| "the record".to_string());
-            match d.alternatives.as_deref().filter(|a| !a.is_empty()) {
-                Some(fields) => out.push(format!(
+            let fields = d.alternatives.as_deref().filter(|a| !a.is_empty());
+            // A record declared in this project can take the field; a
+            // set with no declaration behind it cannot. That is an inline
+            // annotation, a stdlib type, or a built-in value such as an
+            // `Array<T>` or a `string` (G288), whose members TypeScript's
+            // library fixes, and telling an agent to add `lenght` to a
+            // declaration that does not exist sends it looking for one.
+            match (d.cause.as_deref(), fields) {
+                (Some(record), Some(fields)) => out.push(format!(
                     "the record's fields are closed: `{record}` declares {} and no others, so \
                      read one of them or add the field to the declaration.",
                     list(fields)
                 )),
-                None => out.push(format!(
+                (Some(record), None) => out.push(format!(
                     "the record's fields are closed: read a field `{record}` declares, or add \
                      the field to the declaration."
                 )),
+                (None, Some(fields)) => out.push(format!(
+                    "the type's members are closed: it has {} and no others, so read one of \
+                     them or change the type.",
+                    list(fields)
+                )),
+                (None, None) => out.push(
+                    "the type's members are closed: read one it has, or change the type."
+                        .to_string(),
+                ),
             }
         }
         _ => {}

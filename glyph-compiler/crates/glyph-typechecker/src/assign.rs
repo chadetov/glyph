@@ -32,7 +32,7 @@ use crate::ty::{
 };
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{
-    Accepted, AlternativesKind, CaseBindShape, DestructureRefusal, DiagnosticDecl, PropsRefusal,
+    Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, PropsRefusal,
     TypeError,
 };
 
@@ -1970,6 +1970,8 @@ impl Assigner<'_> {
                                     .map(|f| f.name.to_string())
                                     .collect(),
                                 record,
+                                builtin: None,
+                                suggestion: None,
                                 span: *span,
                             });
                             Ty::Unknown
@@ -2001,11 +2003,38 @@ impl Assigner<'_> {
                         });
                         Ty::Unknown
                     }
+                    // A built-in receiver (G288). An `Array<T>` or a `string` is
+                    // a JavaScript value whose member set the TypeScript library
+                    // fixes, so a name outside it is the same mistake as a field
+                    // a record does not declare, and gets the same code. A
+                    // member that is there stays `Unknown`, as every member read
+                    // on these did before: typing `xs.length` as `number` would
+                    // start refusing it where an `int` is wanted, which is a
+                    // separate decision from catching the typo.
                     None => {
                         self.unresolved_field_use(&obj_ty, field, *span, access);
-                        self.stdlib_member_ty(object, field)
-                            .or_else(|| self.descriptor_member_ty(object, field))
-                            .unwrap_or(Ty::Unknown)
+                        match self
+                            .builtin_receiver(&obj_ty)
+                            .filter(|r| !r.has(field.as_ref()))
+                        {
+                            Some(receiver) => {
+                                let members = receiver.members().iter().copied();
+                                self.errors.push(TypeError::UnknownField {
+                                    field: field.to_string(),
+                                    type_name: ty_display(&obj_ty),
+                                    fields: members.clone().map(str::to_string).collect(),
+                                    record: None,
+                                    builtin: Some(receiver),
+                                    suggestion: nearest_name(field.as_ref(), members),
+                                    span: *span,
+                                });
+                                Ty::Unknown
+                            }
+                            None => self
+                                .stdlib_member_ty(object, field)
+                                .or_else(|| self.descriptor_member_ty(object, field))
+                                .unwrap_or(Ty::Unknown),
+                        }
                     }
                 };
                 self.tm.insert(*span, member_ty);
@@ -2497,6 +2526,8 @@ impl Assigner<'_> {
                     type_name: field_owner_display(&props_ty),
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
+                    builtin: None,
+                    suggestion: None,
                     span: attr_span,
                 });
                 continue;
@@ -5100,6 +5131,67 @@ impl Assigner<'_> {
         is_map_ty(&self.lowerer.lower(&td.body))
     }
 
+    /// The built-in receiver `ty` is, when its member reads can be checked
+    /// against a fixed set (G288): an `Array<T>`, a `string`, or a
+    /// string-literal union, written directly or reached through aliases in
+    /// this module or a sibling, generic ones included (`type Rows =
+    /// Array<Row>`, `type Name = string where value.length > 0`, `type Box<T>
+    /// = Array<T>`).
+    ///
+    /// Anything else answers `None` and the read stays as permissive as it
+    /// was: a generic parameter, an interop value, a map, a type whose body
+    /// this cannot read. Only the prelude `Array` counts, so a user type that
+    /// happens to be called `Array` is not mistaken for it.
+    fn builtin_receiver(&self, ty: &Ty) -> Option<BuiltinReceiver> {
+        let mut current = ty.clone();
+        // Each step goes one alias further, and a chain can cross modules,
+        // where the per-module cycle guard cannot see it; the bound stops a
+        // cycle there.
+        for _ in 0..16 {
+            if self.prelude_app(&current, "Array").is_some() {
+                return Some(BuiltinReceiver::Array);
+            }
+            current = match &current {
+                Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => {
+                    return Some(BuiltinReceiver::String)
+                }
+                Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
+                Ty::App { base, args } => self.alias_body(base, args)?,
+                _ => return None,
+            };
+        }
+        None
+    }
+
+    /// The body of the alias `base` names, with its generic parameters
+    /// replaced by `args`: `type Box<T> = Array<T>` applied to `<string>` is
+    /// `Array<string>`. Follows this module's chain of second names first, so
+    /// `type Local = lib.Rows` answers the sibling's declaration. `None` for a
+    /// name with no readable declaration, or an application whose argument
+    /// count does not match the declaration's.
+    fn alias_body(&self, base: &Ty, args: &[Ty]) -> Option<Ty> {
+        let end = self.resolve_alias_chain(base);
+        let (generics, body): (Vec<Ident>, Ty) = match &end {
+            Ty::Named { .. } => {
+                let td = self.direct_type_decl(&end)?;
+                (
+                    td.generics.iter().map(|g| g.name.clone()).collect(),
+                    self.lowerer.lower(&td.body),
+                )
+            }
+            Ty::Imported { module, name } => {
+                let decl = self.imported_type_body(module.as_str(), name)?;
+                (decl.generics, decl.body)
+            }
+            _ => return Some(end),
+        };
+        if generics.len() != args.len() {
+            return None;
+        }
+        let subst: HashMap<Ident, Ty> = generics.into_iter().zip(args.iter().cloned()).collect();
+        Some(substitute_type_params(&body, &subst))
+    }
+
     fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
         self.record_shape_of(ty).map(|s| s.fields)
     }
@@ -6567,6 +6659,8 @@ impl Assigner<'_> {
                     type_name: field_owner_display(ty),
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
+                    builtin: None,
+                    suggestion: None,
                     span: key_span,
                 });
                 continue;
@@ -7987,13 +8081,20 @@ fn is_constructor_shaped(name: &Ident) -> bool {
 /// `UnknownVariantPattern` (E0220). Returns `None` when every variant is too
 /// far to be a likely misspelling, so the diagnostic never guesses wildly.
 fn nearest_variant(name: &str, variants: &[Ident]) -> Option<String> {
+    nearest_name(name, variants.iter().map(|v| v.as_ref()))
+}
+
+/// The nearest of `candidates` to `name` by Levenshtein distance, when one is
+/// close enough to be a plausible typo; the first of several equally near. The
+/// one threshold behind both `did you mean` hints, a variant head's (E0220)
+/// and a built-in member's (E0210), so the two guess equally far.
+fn nearest_name<'c>(name: &str, candidates: impl Iterator<Item = &'c str>) -> Option<String> {
     let name_len = name.chars().count();
     // A short name tolerates fewer edits than a long one; at least 2 so a
     // single transposition (`Loadign` vs `Loading`, distance 2) still matches.
     let threshold = (name_len / 3).max(2);
-    variants
-        .iter()
-        .map(|v| (levenshtein(name, v.as_ref()), v))
+    candidates
+        .map(|v| (levenshtein(name, v), v))
         .filter(|(d, _)| *d <= threshold)
         .min_by_key(|(d, _)| *d)
         .map(|(_, v)| v.to_string())
@@ -9103,6 +9204,152 @@ component View(props: { s: Load }) -> Component {
         }
     }
 
+    // ----- G288: a member read on a built-in receiver is checked -----
+
+    /// The one E0210 a test expects, with the fields a built-in receiver
+    /// fills in.
+    fn the_member_error(src: &str) -> (String, String, Vec<String>, Option<BuiltinReceiver>, Option<String>, TypeError) {
+        let errs = ty_errors_of(src);
+        match &errs[..] {
+            [e @ TypeError::UnknownField { field, type_name, fields, builtin, suggestion, record, .. }] => {
+                assert!(record.is_none(), "a built-in type has no declaration: {e:?}");
+                (
+                    field.clone(),
+                    type_name.clone(),
+                    fields.clone(),
+                    *builtin,
+                    suggestion.clone(),
+                    e.clone(),
+                )
+            }
+            other => panic!("expected one E0210, got {other:?}"),
+        }
+    }
+
+    /// The reproduction: `xs.lenght` on an `Array<string>` passed every Glyph
+    /// stage and was left to `tsc`. It is E0210 naming the array type, listing
+    /// the members, and pointing at the one that was meant.
+    #[test]
+    fn a_member_typo_on_an_array_is_e0210_naming_the_array_type() {
+        let src = "module m\npub fn f(xs: Array<string>) -> number {\n  return xs.lenght\n}\n";
+        let (field, type_name, fields, builtin, suggestion, e) = the_member_error(src);
+        assert_eq!(field, "lenght");
+        assert_eq!(type_name, "Array<string>");
+        assert_eq!(builtin, Some(BuiltinReceiver::Array));
+        assert_eq!(suggestion.as_deref(), Some("length"));
+        assert!(fields.iter().any(|f| f == "length") && fields.iter().any(|f| f == "push"), "{fields:?}");
+        assert_eq!(e.code(), "E0210");
+        assert_eq!(
+            e.to_string(),
+            "type `Array<string>` has no field `lenght`; did you mean `length`?"
+        );
+        assert_eq!(e.alternatives_kind(), Some(AlternativesKind::Fields));
+        let help = e.help().expect("help").into_owned();
+        assert!(help.contains("JavaScript array") && help.contains("std/array"), "{help}");
+        assert!(!help.contains("add the field"), "there is no declaration to add to: {help}");
+    }
+
+    /// A string is the same gap through the same arm: `s.lenght` on a
+    /// `string` is E0210 naming `string`.
+    #[test]
+    fn a_member_typo_on_a_string_is_e0210_naming_string() {
+        let src = "module m\npub fn f(s: string) -> number {\n  return s.lenght\n}\n";
+        let (field, type_name, _, builtin, suggestion, e) = the_member_error(src);
+        assert_eq!((field.as_str(), type_name.as_str()), ("lenght", "string"));
+        assert_eq!(builtin, Some(BuiltinReceiver::String));
+        assert_eq!(suggestion.as_deref(), Some("length"));
+        assert!(e.help().expect("help").contains("std/string"));
+    }
+
+    /// The callee of a method call and of a `mut` method statement goes
+    /// through the same member read, so a misspelled method is caught too.
+    #[test]
+    fn a_misspelled_array_method_is_e0210() {
+        let src = "module m\npub fn f(xs: Array<number>) -> number {\n  mut xs.pushh(1)\n  return 0\n}\n";
+        let (field, type_name, _, _, suggestion, _) = the_member_error(src);
+        assert_eq!((field.as_str(), type_name.as_str()), ("pushh", "Array<number>"));
+        assert_eq!(suggestion.as_deref(), Some("push"));
+        let src = "module m\npub fn f(s: string) -> string {\n  return s.toUppercase()\n}\n";
+        let (field, _, _, _, suggestion, _) = the_member_error(src);
+        assert_eq!(field, "toUppercase");
+        assert_eq!(suggestion.as_deref(), Some("toUpperCase"));
+    }
+
+    /// What Glyph accepted before still compiles: every member a JavaScript
+    /// array or string has, as a read, a method call or a `mut` statement,
+    /// on a string-literal union and in a refinement's predicate as well.
+    #[test]
+    fn real_members_of_arrays_and_strings_stay_legal() {
+        let src = r#"module m
+type Mode = "read" | "write"
+type Name = string where value.length > 0
+pub fn f(xs: Array<string>, s: string, m: Mode, n: Name) -> number {
+  mut xs.push("a")
+  let joined = xs.map(fn(x: string) -> string { return x.trim() }).join(",")
+  let up = s.toUpperCase()
+  let sorted = xs.toSorted()
+  let own = xs.hasOwnProperty("0")
+  return xs.length + s.length + m.length + n.length + joined.length
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    /// An alias reaches the array or string it names, generic or not, and so
+    /// does a refinement of `string`; the error names the type as written.
+    #[test]
+    fn a_member_typo_through_an_alias_is_e0210() {
+        for (decl, param, shown) in [
+            ("type Rows = Array<string>", "Rows", "Rows"),
+            ("type Rows = Array<string>\ntype Again = Rows", "Again", "Again"),
+            ("type Box<T> = Array<T>", "Box<number>", "Box<number>"),
+            ("type Name = string where value.length > 0", "Name", "Name"),
+            ("type Mode = \"read\" | \"write\"", "Mode", "Mode"),
+        ] {
+            let src = format!("module m\n{decl}\npub fn f(r: {param}) -> number {{\n  return r.lenght\n}}\n");
+            let (field, type_name, _, _, suggestion, _) = the_member_error(&src);
+            assert_eq!((field.as_str(), type_name.as_str()), ("lenght", shown), "{decl}");
+            assert_eq!(suggestion.as_deref(), Some("length"), "{decl}");
+        }
+    }
+
+    /// Where the receiver is not decidably an array or a string the read
+    /// stays as permissive as before: a generic parameter, a generic alias
+    /// whose body is its argument, a record that declares the name.
+    #[test]
+    fn an_undecidable_receiver_is_still_left_alone() {
+        let src = r#"module m
+type Id<T> = T
+type Shaped = { lenght: number }
+fn a<T>(x: T) -> number { return x.lenght }
+fn b(x: Id<Unknownish>) -> number { return x.lenght }
+fn c(x: Shaped) -> number { return x.lenght }
+type Unknownish = extern_ts("any")
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    /// A `<case Loaded(items)>` binding is the payload's `Array<string>`
+    /// (G275), so `{items.foo}` inside it is E0210 rather than a `tsc` error.
+    #[test]
+    fn a_member_typo_on_a_jsx_case_binding_is_e0210() {
+        let src = r#"module x
+type Load = | Loading | Loaded(Array<string>)
+component View(props: { s: Load }) -> Component {
+  return <match value={props.s}>
+    <case Loading><p>wait</p></case>
+    <case Loaded(items)><p>{items.foo}</p></case>
+  </match>
+}
+"#;
+        let (field, type_name, fields, builtin, _, _) = the_member_error(src);
+        assert_eq!((field.as_str(), type_name.as_str()), ("foo", "Array<string>"));
+        assert_eq!(builtin, Some(BuiltinReceiver::Array));
+        assert!(fields.iter().any(|f| f == "length"), "{fields:?}");
+        let fine = src.replace("{items.foo}", "{items.length}");
+        assert!(ty_errors_of(&fine).is_empty(), "{:?}", ty_errors_of(&fine));
+    }
+
     /// `bind={x}` on a `<case>` is E0231, and the help writes the pattern for
     /// the payload's shape: an object pattern reading the field `bind` read
     /// for a record, a name in parentheses for one value, the bare variant
@@ -9986,11 +10233,14 @@ fn f(n: number) -> Result<number, string> {
 
     #[test]
     fn question_on_unknown_operand_is_permissive() {
-        // `s.parse()?` types as Unknown (a member-access call), so the
-        // operand rule cannot prove it isn't a Result and stays silent.
+        // `r.parse()?` types as Unknown (a member-access call on an opaque
+        // receiver), so the operand rule cannot prove it isn't a Result and
+        // stays silent. The receiver used to be a `string`, which has no
+        // `parse` at all and is E0210 since G288.
         let src = r#"module x
-fn f(s: string) -> Result<number, string> {
-  let v = s.parse()?
+type Raw = extern_ts("any")
+fn f(r: Raw) -> Result<number, string> {
+  let v = r.parse()?
   return Ok(1)
 }
 "#;
@@ -11020,8 +11270,9 @@ fn f(x: Labeled) -> string {
 
     #[test]
     fn member_on_a_non_record_is_not_flagged() {
-        // `.length` on an `Array` and a member on an unknown-typed value must
-        // not false-positive: only a decidable record's fields are checked.
+        // `.length` on an `Array` must not false-positive: an array's member
+        // reads are checked since G288, against the members a JavaScript
+        // array has, and `length` is one of them.
         let src = r#"module x
 fn count(xs: Array<number>) -> number {
   return xs.length

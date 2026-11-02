@@ -74,7 +74,7 @@ forgets to handle it — and run again:
 
 ```
 [E0200] non-exhaustive match on `Status`: missing variants `Done`
-  Help: Add an arm for each missing variant, or an `else` arm to catch the rest.
+  Help: Add an arm for each missing variant.
 ```
 
 It doesn't run. The equivalent TypeScript `switch` compiles clean and returns

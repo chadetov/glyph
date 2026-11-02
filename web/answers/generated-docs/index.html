@@ -105,9 +105,8 @@
   "meaning": "Non-exhaustive `match` on a tagged union (yours, a prelude
     `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a
     string-literal union (`\"free\" | \"pro\"`, D30) missing a literal ...",
-  "fix": "Handle every variant, or add an `else`",
-  "help": "Add an arm for each missing variant, or an `else` arm to catch
-           the rest.",
+  "fix": "Add an arm for each missing variant",
+  "help": "Add an arm for each missing variant.",
   "note": "Tagged unions are sealed (D9): adding a variant forces every
            match to be updated. A `_`/`else` catch-all is allowed but
            forfeits that guarantee.",

@@ -88,7 +88,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             One consequence is worth knowing: a field that tests a value can \
             fail, so the arm no longer covers its variant. A match whose only \
             `Node` arm is `Node({ color: Red, .. })` is non-exhaustive (E0200) \
-            until another arm or an `else` takes the rest.",
+            until another `Node` arm takes the rest.",
         "E0010" => "E0010: a variant carries one payload\n\n\
             A tagged-union variant has one payload (D8), and a payload with \
             several fields is a record, not a positional tuple. The manifesto \
@@ -341,8 +341,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A `match` over a tagged union must handle every variant. Unions are \
             sealed (D9): adding a variant later forces every match to be updated, \
             so a missing variant cannot silently fall through at runtime.\n\n\
-            Add an arm for each missing variant, or an `else` arm to catch the \
-            rest (which forfeits the exhaustiveness guarantee):\n\n\
+            Add an arm for each missing variant, with the body that case \
+            needs:\n\n\
             match feed {\n  \
               Loading => ...,\n  \
               Loaded => ...,\n  \
@@ -1413,7 +1413,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0200",
         phase: "typechecker",
         meaning: "Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`\"free\" | \"pro\"`, D30) missing a literal. Either kind counts whether it is declared in this module or imported from a sibling. A union that takes type parameters counts the same as its bare form, whether the matching module declares it or imports it, and whether the argument is an open type parameter or a concrete instantiation (`tree.Tree<string>`). What the imported path still does not do is look inside a variant's payload, so `B(X)` over an imported union whose payload is itself a union is not counted (`docs/dogfooding-gaps.md` G143)",
-        fix: "Handle every variant, or add an `else`",
+        fix: "Add an arm for each missing variant",
     },
     CodeEntry {
         code: "E0201",

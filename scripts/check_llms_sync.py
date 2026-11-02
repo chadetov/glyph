@@ -43,6 +43,7 @@ SECTIONS = [
     ("resolver", "### Resolver — `E01xx`"),
     ("typechecker", "### Typechecker — `E02xx`"),
     ("emitter", "### Emitter — `E03xx`"),
+    ("examples", "### Examples — `E04xx`"),
 ]
 
 

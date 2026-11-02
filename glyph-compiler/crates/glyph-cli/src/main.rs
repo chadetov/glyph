@@ -22,7 +22,7 @@
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
 //! - `glyph query <tool> ...`       ask one MCP tool from the command line and
 //!   print its JSON (`glyph query symbol --entity orders::Order`)
-//! - `glyph --explain E0042`         long-form error documentation
+//! - `glyph --explain E0200`         long-form error documentation
 //! - `glyph llms [--json]`          the agent bootstrap, or the same knowledge
 //!   as data: every diagnostic code, the prelude and stdlib signatures, the
 //!   language decisions and the tool catalogue, out of the compiler's own tables
@@ -44,7 +44,7 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
 
-    /// Show long-form documentation for an error code (e.g. `glyph --explain E0042`).
+    /// Show long-form documentation for an error code (e.g. `glyph --explain E0200`).
     #[arg(long, value_name = "CODE")]
     explain: Option<String>,
 

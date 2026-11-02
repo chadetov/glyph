@@ -19,6 +19,7 @@ compiler phase:
 | `E01xx` | Resolver (collect / resolve / import) | `glyph-resolver` |
 | `E02xx` | Typechecker | `glyph-typechecker` |
 | `E03xx` | Emitter | `glyph-emit` |
+| `E04xx` | `@example` and `@doc @run` tests | `glyph-cli` |
 
 A code, once allocated, is never reused for a different meaning. When a new
 error path is added, allocate the next free code in its phase range, give the
@@ -189,6 +190,16 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0304` | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine |
 | `E0305` | Two arms of one `match` lower to the same `case` label, so the later arm can never run |
 | `E0310` | `glyph run` on a module with no `fn main` (it's a library — nothing to run) |
+
+### Examples — `E04xx`
+
+| Code | Meaning |
+|------|---------|
+| `E0400` | An `@example` compared unequal, or threw while it was evaluated |
+| `E0401` | A fenced block tagged `glyph @run` in a `@doc` comment threw |
+| `E0402` | The text after `@example` does not parse as a Glyph expression |
+| `E0403` | The copy of the project carrying the `@example` and `@doc @run` tests did not compile, so no test ran |
+| `E0404` | The tests could not all run: `tsx` is not on `PATH`, the harness could not start, or it exited without a result for every test (`N example(s) not run`) |
 
 ## The structured shape
 

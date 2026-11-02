@@ -1905,6 +1905,11 @@ machine-readably. The full catalogue:
 | E0304 | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine | Split the wire type from the domain type: parse the checkable fields, then build the record |
 | E0305 | Two arms of one `match` lower to the same `case` label, so the later arm can never run | Remove the later arm, or give the two arms patterns that test different values |
 | E0310 | `glyph run` on a module with no `fn main` (it's a library — nothing to run) | Add `fn main`, or `glyph build` it as a library |
+| E0400 | An `@example` compared unequal, or threw while it was evaluated | Fix the code if the example states what you meant, or the example if it does not |
+| E0401 | A fenced block tagged `glyph @run` in a `@doc` comment threw | Fix the function or the block; drop `@run` from a block that is only illustration |
+| E0402 | The text after `@example` does not parse as a Glyph expression | Write it as one expression, usually `call(args) == expected` |
+| E0403 | The copy of the project carrying the `@example` and `@doc @run` tests did not compile, so no test ran | Read the diagnostics that follow against the test text; the two sides of an example usually disagree on type |
+| E0404 | The tests could not all run: `tsx` is not on `PATH`, the harness could not start, or it exited without a result for every test (`N example(s) not run`) | Install `tsx`, or fix what stopped the harness (often a module it could not load); `--no-test` skips the tests |
 
 ### A diagnostic in the self-correction loop
 

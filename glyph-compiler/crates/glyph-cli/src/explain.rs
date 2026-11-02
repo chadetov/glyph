@@ -17,7 +17,7 @@ use serde::Serialize;
 include!(concat!(env!("OUT_DIR"), "/negative_cases.rs"));
 
 /// Return the long-form documentation for `code`, or `None` if unknown. The
-/// match is case-insensitive so `e0042` and `E0042` both work.
+/// match is case-insensitive so `e0200` and `E0200` both work.
 pub fn explain(code: &str) -> Option<&'static str> {
     let text = match code.to_ascii_uppercase().as_str() {
         // ----- parser (E000x) -----
@@ -849,6 +849,75 @@ pub fn explain(code: &str) -> Option<&'static str> {
             emits the TypeScript) and import it from a module that does have a \
             `main`.",
 
+        // ----- examples (E04xx) -----
+        "E0400" => "E0400: an `@example` failed\n\n\
+            An `@example` is a test that runs on every `glyph build`, `glyph \
+            check` and `glyph run`. `@example f(x) == y` passes when the two \
+            sides are structurally equal; an example with no `==` passes when \
+            the expression is `true`. This one compared unequal, or threw while \
+            it was evaluated, so the build fails rather than shipping code that \
+            contradicts its own test.\n\n\
+            Before:  @example next_id([]) == 0\n\
+             \x20        fn next_id(todos: Array<Todo>) -> number { return todos.length + 1 }\n\n\
+            After:   @example next_id([]) == 1\n\
+             \x20        fn next_id(todos: Array<Todo>) -> number { return todos.length + 1 }\n\n\
+            The failure names the declaration and which of its examples failed \
+            (`main::next_id`, example 1), and prints both sides. Fix the code \
+            if the example states what you meant, or the example if it does \
+            not. `--no-test` skips the tests for one invocation; it does not \
+            make a failing one pass.",
+        "E0401" => "E0401: a `@doc` `@run` block threw\n\n\
+            A fenced code block tagged `glyph @run` inside a `@doc` comment is \
+            executed as a test, the same way an `@example` is. It has no \
+            expected value: it passes when it runs to the end and fails when it \
+            throws. This one threw, so the documentation shows code that does \
+            not work.\n\n\
+            @doc \"\"\"\n\
+            Parses a port number.\n\n\
+            ```glyph @run\n\
+            let p = parse_port(\"8080\")\n\
+            ```\n\
+            \"\"\"\n\n\
+            Run the block's code yourself to see the exception, then fix the \
+            function or the block. A block meant only as illustration should \
+            drop the `@run` tag, so nothing claims it was checked.",
+        "E0402" => "E0402: an `@example` that is not an expression\n\n\
+            The text after `@example` must parse as one Glyph expression, \
+            usually `call(args) == expected`. This one did not parse, so there \
+            is no test to run. The gate reports it rather than skipping it, \
+            because a skipped example looks the same as a passing one.\n\n\
+            Before:  @example add(1, 2) => 3\n\
+            After:   @example add(1, 2) == 3\n\n\
+            The rules are the expression rules everywhere else: no object \
+            shorthand, a trailing comma on a multi-line list, and `==` for \
+            equality.",
+        "E0403" => "E0403: the tests did not compile\n\n\
+            To run your `@example` and `@doc @run` tests, Glyph builds a copy of \
+            the project with each test turned into a function and type-checks \
+            it. That copy failed to compile, so no test ran. The project itself \
+            compiled: the error is in a test, usually an `@example` whose two \
+            sides have different types, or a `@run` block that calls something \
+            the module does not import.\n\n\
+            Before:  @example count(\"abc\") == \"3\"   // number compared with string\n\
+            After:   @example count(\"abc\") == 3\n\n\
+            The diagnostics that follow this code are the ones the copy drew. \
+            Read them against the test text, not against the declaration.",
+        "E0404" => "E0404: the tests could not run\n\n\
+            The project has `@example` or `@doc @run` tests, and the gate could \
+            not run all of them. Not running a test is not passing it, so this \
+            fails the build the way a missing `tsc` does. The message says which \
+            of these happened:\n\n\
+            - `tsx` was not found on `PATH`. The tests run through `tsx`. \
+            Install it in the project (`npm i -D tsx typescript`) or globally.\n\
+            - `N example(s) not run`: the test harness started and exited \
+            without reporting a result for every test it was given. Usually a \
+            module the tests import failed to load, such as an npm package the \
+            harness could not resolve, so it died before running anything.\n\
+            - The harness process could not be started at all.\n\n\
+            Fix the cause the message names and build again. `--no-test` skips \
+            the tests for one invocation when you want the build without them; \
+            the result then says the tests were skipped, not that they passed.",
+
         _ => return None,
     };
     Some(text)
@@ -1244,9 +1313,10 @@ fn counter_example(case: &NegativeCase) -> CounterExample {
 /// the renderer's job, since the two tables put it in different columns.
 pub struct CodeEntry {
     pub code: &'static str,
-    /// The compiler phase that raises it: `parser`, `resolver`, `typechecker`
-    /// or `emitter`. The code's own range says the same thing, and this says it
-    /// without asking the reader to know the ranges.
+    /// The compiler phase that raises it: `parser`, `resolver`, `typechecker`,
+    /// `emitter`, or `examples` for the `@example` gate the CLI runs. The
+    /// code's own range says the same thing, and this says it without asking
+    /// the reader to know the ranges.
     pub phase: &'static str,
     /// What the code means, the catalogue's own sentence.
     pub meaning: &'static str,
@@ -1644,6 +1714,37 @@ pub static CODES: &[CodeEntry] = &[
         meaning: "`glyph run` on a module with no `fn main` (it's a library — nothing to run)",
         fix: "Add `fn main`, or `glyph build` it as a library",
     },
+    // ----- examples (E04xx) -----
+    CodeEntry {
+        code: "E0400",
+        phase: "examples",
+        meaning: "An `@example` compared unequal, or threw while it was evaluated",
+        fix: "Fix the code if the example states what you meant, or the example if it does not",
+    },
+    CodeEntry {
+        code: "E0401",
+        phase: "examples",
+        meaning: "A fenced block tagged `glyph @run` in a `@doc` comment threw",
+        fix: "Fix the function or the block; drop `@run` from a block that is only illustration",
+    },
+    CodeEntry {
+        code: "E0402",
+        phase: "examples",
+        meaning: "The text after `@example` does not parse as a Glyph expression",
+        fix: "Write it as one expression, usually `call(args) == expected`",
+    },
+    CodeEntry {
+        code: "E0403",
+        phase: "examples",
+        meaning: "The copy of the project carrying the `@example` and `@doc @run` tests did not compile, so no test ran",
+        fix: "Read the diagnostics that follow against the test text; the two sides of an example usually disagree on type",
+    },
+    CodeEntry {
+        code: "E0404",
+        phase: "examples",
+        meaning: "The tests could not all run: `tsx` is not on `PATH`, the harness could not start, or it exited without a result for every test (`N example(s) not run`)",
+        fix: "Install `tsx`, or fix what stopped the harness (often a module it could not load); `--no-test` skips the tests",
+    },
 ];
 
 /// The phases, in the order the catalogue lists them, each with the range it
@@ -1654,6 +1755,7 @@ pub const PHASES: &[(&str, &str, &str)] = &[
     ("resolver", "Resolver", "E01xx"),
     ("typechecker", "Typechecker", "E02xx"),
     ("emitter", "Emitter", "E03xx"),
+    ("examples", "Examples", "E04xx"),
 ];
 
 /// Every code that `explain` documents, for the catalogue test and tooling.
@@ -1715,6 +1817,110 @@ mod tests {
                 "{code} has --explain text but no row in docs/error-codes.md"
             );
         }
+    }
+
+    /// Codes that appear in the compiler's sources and are deliberately not
+    /// diagnostics anybody can look up. Each one says why; adding to this list
+    /// is the only way past the test below, so it is the place a reviewer
+    /// looks.
+    const NOT_CATALOGUED: &[(&str, &str)] = &[(
+        "E9999",
+        "the unknown-code sentinel the tests in this file ask `--explain` about, and \
+         `glyph-wasm`'s stand-in when its own output fails to serialize",
+    )];
+
+    /// Every `E` followed by exactly four digits, standing alone as a word, in
+    /// `text`. Comments are included on purpose: a code a comment or a help
+    /// string points a reader at must be one `--explain` answers.
+    fn code_tokens(text: &str) -> Vec<String> {
+        let b = text.as_bytes();
+        let word = |c: u8| c.is_ascii_alphanumeric() || c == b'_';
+        let mut out = Vec::new();
+        for i in 0..b.len() {
+            let bounded_before = i == 0 || !word(b[i - 1]);
+            let bounded_after = i + 5 >= b.len() || !word(b[i + 5]);
+            if b[i] == b'E'
+                && bounded_before
+                && i + 5 <= b.len()
+                && b[i + 1..i + 5].iter().all(u8::is_ascii_digit)
+                && bounded_after
+            {
+                out.push(text[i..i + 5].to_string());
+            }
+        }
+        out
+    }
+
+    /// Every `.rs` file under `dir`, recursively.
+    fn rust_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("read {}: {e}", dir.display())) {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                rust_files(&path, out);
+            } else if path.extension().is_some_and(|x| x == "rs") {
+                out.push(path);
+            }
+        }
+    }
+
+    /// Every code the compiler can emit is one `--explain` documents.
+    ///
+    /// The two tests above compare the catalogue with `all_codes()`, so a code
+    /// missing from both passed them: `E0400` to `E0404` were emitted by the
+    /// `@example` gate for a long time while `glyph --explain E0404` answered
+    /// "no documentation". Codes are written as string literals in many shapes
+    /// (`code()` match arms, `pub const E_...`, a `[E0310]` inside a format
+    /// string), so this does not try to recognise the shapes. It reads the
+    /// source of every crate in the workspace and requires every code-shaped
+    /// token in it to be catalogued, which a new spelling cannot slip past.
+    #[test]
+    fn every_code_in_the_compiler_sources_is_catalogued() {
+        let crates = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("crates dir")
+            .to_path_buf();
+        let mut files = Vec::new();
+        for krate in std::fs::read_dir(&crates).expect("read crates dir") {
+            let krate = krate.expect("crate entry").path();
+            let src = krate.join("src");
+            if src.is_dir() {
+                rust_files(&src, &mut files);
+            }
+            let build = krate.join("build.rs");
+            if build.is_file() {
+                files.push(build);
+            }
+        }
+        // A broken path would scan nothing and pass. The workspace has
+        // hundreds of source files, and this crate's own sources are among
+        // them.
+        assert!(files.len() > 50, "scanned only {} source files under {}", files.len(), crates.display());
+        assert!(files.iter().any(|f| f.ends_with("glyph-cli/src/examples.rs")));
+
+        let known = all_codes();
+        let mut missing: Vec<String> = Vec::new();
+        let mut seen = 0;
+        for file in &files {
+            let text = std::fs::read_to_string(file).unwrap_or_else(|e| panic!("read {}: {e}", file.display()));
+            for code in code_tokens(&text) {
+                seen += 1;
+                if known.contains(&code.as_str()) || NOT_CATALOGUED.iter().any(|(c, _)| *c == code) {
+                    continue;
+                }
+                let rel = file.strip_prefix(&crates).unwrap_or(file).display().to_string();
+                let entry = format!("{code} ({rel})");
+                if !missing.contains(&entry) {
+                    missing.push(entry);
+                }
+            }
+        }
+        assert!(seen > 100, "found only {seen} code tokens; the scanner stopped matching");
+        assert!(
+            missing.is_empty(),
+            "codes in the compiler sources with no entry in `CODES` (so no --explain text and no \
+             catalogue row): {missing:?}. Add a `CodeEntry` and an `explain` arm, then run \
+             `python3 scripts/check_llms_sync.py --write`"
+        );
     }
 
     /// G220. Every documented code answers `--explain --json`, and the answer

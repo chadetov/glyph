@@ -218,9 +218,12 @@ enum Command {
         #[arg(long, hide = true)]
         stdio: bool,
     },
-    /// Run the Model Context Protocol server over stdio, exposing Glyph's
-    /// analysis (diagnostics, hover, definition, references, symbols) to a coding
-    /// agent as tools. ROOT is the project to query (default: current directory).
+    /// Run the Model Context Protocol server over stdio, exposing the
+    /// compiler's analysis to a coding agent as eleven tools: diagnostics,
+    /// hover, definition, references, variants, impact, symbol, symbols,
+    /// assignable, dependencies, exports. `glyph query` asks the same tools
+    /// from the command line. ROOT is the project to query (default: current
+    /// directory).
     Mcp {
         #[arg(value_name = "ROOT")]
         root: Option<std::path::PathBuf>,

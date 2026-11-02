@@ -516,3 +516,52 @@ fn the_bootstrap_names_every_tool_the_server_serves_and_no_other() {
         served.len()
     );
 }
+
+/// `glyph mcp --help` names every tool the server serves, and counts them.
+///
+/// The help listed five tools (diagnostics, hover, definition, references,
+/// symbols) while the server served eleven. It is a doc comment on the clap
+/// command, so nothing generated it and nothing checked it; this reads
+/// `tool_specs()` and the help the binary prints and compares them.
+#[test]
+fn mcp_help_names_every_tool_the_server_serves() {
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .args(["mcp", "--help"])
+        .output()
+        .expect("run glyph mcp --help");
+    let help = String::from_utf8_lossy(&out.stdout).to_string();
+    let served: Vec<String> = glyph_lsp::tool_specs()
+        .as_array()
+        .expect("tool_specs answers an array")
+        .iter()
+        .filter_map(|t| t.get("name")?.as_str().map(str::to_string))
+        .collect();
+    assert!(!served.is_empty(), "the server serves no tools");
+    let words: Vec<&str> = help
+        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .collect();
+    for name in &served {
+        let short = name.strip_prefix("glyph_").unwrap_or(name);
+        assert!(
+            words.contains(&short),
+            "the server serves `{name}` and `glyph mcp --help` does not name `{short}`:\n{help}"
+        );
+    }
+    const NUMBERS: &[(&str, usize)] = &[
+        ("five", 5), ("six", 6), ("seven", 7), ("eight", 8), ("nine", 9), ("ten", 10),
+        ("eleven", 11), ("twelve", 12), ("thirteen", 13), ("fourteen", 14), ("fifteen", 15),
+        ("sixteen", 16), ("seventeen", 17), ("eighteen", 18), ("nineteen", 19), ("twenty", 20),
+    ];
+    let claim = help
+        .split(" as ")
+        .nth(1)
+        .and_then(|rest| rest.split(" tools").next())
+        .map(str::trim)
+        .unwrap_or_else(|| panic!("`glyph mcp --help` no longer says how many tools it serves:\n{help}"));
+    let claimed = NUMBERS
+        .iter()
+        .find(|(w, _)| *w == claim)
+        .map(|(_, n)| *n)
+        .unwrap_or_else(|| panic!("`as {claim} tools` is not a number this gate can read"));
+    assert_eq!(claimed, served.len(), "`glyph mcp --help` says {claimed} tools:\n{help}");
+}

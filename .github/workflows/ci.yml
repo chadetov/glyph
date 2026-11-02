@@ -90,6 +90,13 @@ jobs:
           echo "$GITHUB_WORKSPACE/.github/ci-tools/node_modules/.bin" >> "$GITHUB_PATH"
           echo "NODE_PATH=$GITHUB_WORKSPACE/.github/ci-tools/node_modules" >> "$GITHUB_ENV"
 
+      # The checker refuses a member read on an array or a string whose name is
+      # not in its own list of their members (G288). The list was read out of
+      # TypeScript, and this asks the pinned TypeScript again, so a release
+      # that adds a method fails here rather than in somebody's build.
+      - name: Check the array and string members follow TypeScript
+        run: python3 scripts/check_builtin_members.py
+
       # Lints before tests: a clippy finding is usually cheaper to read than a
       # test failure, and this is a compiler, so the lints that matter are the
       # ones about correctness rather than style. Turning this on found a test

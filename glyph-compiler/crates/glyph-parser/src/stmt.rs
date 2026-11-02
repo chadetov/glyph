@@ -7,7 +7,7 @@ use glyph_ast::{
 use glyph_lexer::{Span, Token};
 
 use crate::cursor::Cursor;
-use crate::error::{LetPatternRefusal, ParseError};
+use crate::error::{LetPatternRefusal, NameRole, ParseError};
 use crate::expr;
 use crate::pat;
 use crate::types;
@@ -234,6 +234,16 @@ fn parse_let(p: &mut Cursor) -> Result<LetStmt, ParseError> {
             let pattern = pat::parse_pattern(p)?;
             return Err(ParseError::ObjectDestructuringLet {
                 span: open.join(pattern.span()),
+            });
+        }
+        // `let owned = 1`: the modifier was taken, and what follows is the
+        // `=` or `:` of a binding with no name, so the author meant `owned` as
+        // the name. Say it is reserved, at the word they wrote (G286).
+        Token::Equals | Token::Colon if owned => {
+            return Err(ParseError::ReservedWordAsName {
+                word: Token::Owned.as_field_name().unwrap_or("owned"),
+                role: NameRole::Declares,
+                span: owned_span.unwrap_or(let_span),
             });
         }
         _ => {

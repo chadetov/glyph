@@ -48,6 +48,7 @@ pub struct Knowledge {
     /// table, so the version is what says which compiler they are tables of.
     pub version: &'static str,
     pub diagnostics: Diagnostics,
+    pub keywords: Keywords,
     pub prelude: Prelude,
     pub stdlib: Stdlib,
     pub decisions: Decisions,
@@ -62,10 +63,38 @@ pub fn knowledge() -> Knowledge {
     Knowledge {
         version: env!("CARGO_PKG_VERSION"),
         diagnostics: diagnostics(),
+        keywords: keywords(),
         prelude: prelude(),
         stdlib: stdlib(),
         decisions: decisions(),
         tools: tools(),
+    }
+}
+
+// ============================================================================
+// keywords
+// ============================================================================
+
+/// The reserved words, from the lexer's own table (G286). `AGENTS.md` prints
+/// the same list under "Reserved words", written from this answer by
+/// `scripts/check_llms_sync.py`, so the bootstrap cannot name a set the lexer
+/// does not reserve.
+#[derive(Debug, Serialize)]
+pub struct Keywords {
+    pub source: &'static str,
+    pub count: usize,
+    /// What a reserved word may and may not be, in one sentence.
+    pub rule: &'static str,
+    pub words: Vec<&'static str>,
+}
+
+fn keywords() -> Keywords {
+    let words: Vec<&'static str> = glyph_lexer::keywords().collect();
+    Keywords {
+        source: "the lexer's `KEYWORDS` table",
+        count: words.len(),
+        rule: "A reserved word cannot name a binding, parameter, function, type, generic, loop variable or pattern binding, and cannot follow `.`. It can be a record field name or an object-literal key.",
+        words,
     }
 }
 
@@ -705,6 +734,29 @@ pub fn run_negative(code: Option<&str>) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// G286. The keyword list is the lexer's table, every entry of it, and
+    /// each listed word really is refused as a `let` name.
+    #[test]
+    fn the_keyword_section_is_the_lexers_table() {
+        let k = keywords();
+        let table: Vec<&str> = glyph_lexer::keywords().collect();
+        assert_eq!(k.words, table);
+        assert_eq!(k.count, table.len());
+        for word in ["where", "match", "loop", "if", "type"] {
+            assert!(k.words.contains(&word), "missing `{word}`");
+        }
+        for word in &k.words {
+            let src = format!("module x\nfn f() -> number {{\n  let {word} = 1\n  return 0\n}}\n");
+            assert!(
+                matches!(
+                    glyph_parser::parse(&src),
+                    Err(glyph_parser::ParseError::ReservedWordAsName { .. })
+                ),
+                "`{word}` is listed as reserved and must be refused as a name"
+            );
+        }
+    }
 
     /// The prelude section answers for every name the resolver put in scope,
     /// in the order the table interned them, and says why each has no

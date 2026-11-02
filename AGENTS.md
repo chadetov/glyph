@@ -1765,6 +1765,19 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
   the end of a code line moves to the line above the next item.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).
 
+### Reserved words
+
+These cannot name a binding, parameter, function, type, generic, loop variable
+or pattern binding, and cannot follow `.`. A record field or an object-literal
+key may use one (`{ type: "post" }`). Using one as a name draws E0002 naming the
+word; `where_` or a more specific name is the usual fix.
+
+```text
+fn type record component const let mut owned resource pub interface defer
+module import as match else for loop break continue in async await new where
+return is true false void if
+```
+
 ### The five wrong forms, and the code each draws
 
 Each of these is a whole program that does not compile, and the diagnostic

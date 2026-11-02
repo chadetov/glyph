@@ -38,7 +38,7 @@ mod stmt;
 mod types;
 
 pub use cursor::MAX_NESTING_DEPTH;
-pub use error::{LetPatternRefusal, ParseError, RELATIVE_IMPORT_HELP};
+pub use error::{LetPatternRefusal, NameRole, ParseError, RELATIVE_IMPORT_HELP};
 
 use glyph_ast::Module;
 use glyph_lexer::{tokenize, Span};
@@ -2176,5 +2176,91 @@ component C() -> Component {
         let l = first_let(&in_fn("let owned conn = open()"));
         assert_eq!(l.binding.as_name().map(|n| n.as_ref()), Some("conn"));
         assert!(l.owned);
+    }
+
+    /// G286. A reserved word in a binding position names itself as one. It
+    /// used to be the generic "expected variable name after `let`, found
+    /// Where" with help about trailing commas, and nothing said `where` was a
+    /// keyword.
+    #[test]
+    fn a_reserved_word_as_a_binding_is_named_as_one() {
+        let cases = [
+            ("let where = 1", "where"),
+            ("let match = 1", "match"),
+            ("let if = 1", "if"),
+            ("let owned = 1", "owned"),
+            ("for loop in xs { log(loop) }", "loop"),
+            ("let f = fn(in) { in }", "in"),
+            ("match x { Some(where) => 1, else => 2 }", "where"),
+        ];
+        for (body, word) in cases {
+            let src = format!("module x\nfn f() -> number {{\n  {body}\n  return 0\n}}\n");
+            let err = parse(&src).expect_err(body);
+            assert_eq!(err.code(), "E0002", "{body}: {err:?}");
+            let ParseError::ReservedWordAsName { word: got, role, span } = &err else {
+                panic!("{body}: expected ReservedWordAsName, got {err:?}");
+            };
+            assert_eq!(*got, word, "{body}");
+            assert_eq!(*role, NameRole::Declares, "{body}");
+            // The caret is on the keyword, not on the token after it.
+            assert_eq!(&src[span.start as usize..span.end as usize], word, "{body}");
+            assert_eq!(
+                err.to_string(),
+                format!("`{word}` is a reserved word in Glyph and cannot be a name"),
+            );
+            let help = err.help().expect("help").into_owned();
+            assert!(help.contains(&format!("`{word}_`")), "{body}: {help}");
+            assert!(!help.contains("trailing commas"), "{body}: {help}");
+        }
+        // Declaration names take the same path.
+        for (src, word) in [
+            ("module x\nfn where() -> number { return 1 }\n", "where"),
+            ("module x\ntype loop = number\n", "loop"),
+            ("module x\nconst await: number = 1\n", "await"),
+            ("module x\nfn f(new: number) -> number { return new }\n", "new"),
+            ("module x\nfn f<in>(a: number) -> number { return a }\n", "in"),
+        ] {
+            let err = parse(src).expect_err(src);
+            assert!(
+                matches!(&err, ParseError::ReservedWordAsName { word: w, role: NameRole::Declares, .. } if *w == word),
+                "{src}: {err:?}"
+            );
+        }
+    }
+
+    /// The reference positions (after `.`, in a type path, an imported item)
+    /// name the keyword too, but do not tell the author to rename a thing whose
+    /// spelling another module or package chose.
+    #[test]
+    fn a_reserved_word_in_a_reference_position_does_not_suggest_renaming() {
+        for (src, word) in [
+            ("module x\nfn f(e: E) -> string { return e.type }\n", "type"),
+            ("module x\nfn f(e: E) -> string { return e?.match }\n", "match"),
+            ("module x\nfn f(e: lib.where) -> number { return 1 }\n", "where"),
+            ("module x\nimport helper { where }\n", "where"),
+        ] {
+            let err = parse(src).expect_err(src);
+            assert_eq!(err.code(), "E0002", "{src}");
+            let ParseError::ReservedWordAsName { word: got, role, .. } = &err else {
+                panic!("{src}: expected ReservedWordAsName, got {err:?}");
+            };
+            assert_eq!((*got, *role), (word, NameRole::Refers), "{src}");
+            let help = err.help().expect("help").into_owned();
+            assert!(!help.contains(&format!("`{word}_`")), "{src}: {help}");
+        }
+    }
+
+    /// Nothing that was a legal name stops being one: a plain identifier, a
+    /// keyword in field-name position, and the soft keywords in expression
+    /// position all parse as before.
+    #[test]
+    fn legal_names_are_unchanged_by_the_reserved_word_error() {
+        for src in [
+            "module x\nfn f() -> number {\n  let where_ = 1\n  return where_\n}\n",
+            "module x\ntype E = { type: string, match: number }\n",
+            "module x\nfn f() -> unknown {\n  return { type: \"a\", where: 1 }\n}\n",
+        ] {
+            parse_or_panic(src);
+        }
     }
 }

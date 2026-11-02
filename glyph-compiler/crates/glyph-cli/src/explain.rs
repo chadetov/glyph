@@ -31,6 +31,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             deliberately stricter than TypeScript, so this often means a rule you \
             would not hit in TS: trailing commas are required in multi-line lists, \
             there is no `if`/`else` (use `match`), and statements end at newlines.\n\n\
+            A reserved word where a name goes (`let where = 1`, `fn type()`, \
+            `e.match`) is reported under this code too, and the message names \
+            the word. Pick another name (`where_`); `glyph llms` lists every \
+            reserved word under \"Reserved words\".\n\n\
             Add the expected token shown in the message.",
         "E0003" => "E0003: unexpected token\n\n\
             This token cannot appear in this position. It is usually a typo, a \

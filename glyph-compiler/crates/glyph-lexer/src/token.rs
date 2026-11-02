@@ -148,6 +148,14 @@ impl Token {
     }
 }
 
+/// Every reserved word's source text, in table order. The one public view of
+/// `KEYWORDS`: a diagnostic that names the reserved words, or a reference that
+/// lists them, reads them here rather than keeping a copy that can fall behind
+/// the lexer.
+pub fn keywords() -> impl Iterator<Item = &'static str> {
+    KEYWORDS.iter().map(|(text, _)| *text)
+}
+
 /// Single source of truth for keyword text ↔ `Token` variant mapping.
 /// `as_field_name` walks this list in the variant→text direction;
 /// `keyword` walks it in the text→variant direction. Drift between the two

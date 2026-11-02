@@ -28,7 +28,7 @@ mod token;
 
 pub use error::LexError;
 pub use lexer::{comments, tokenize, Lexer};
-pub use token::{Spanned, Token};
+pub use token::{keywords, Spanned, Token};
 
 /// Internal escape marker in a lexed string's value, so a literal `${`
 /// (written `\${`) stays distinguishable from a `${...}` interpolation after

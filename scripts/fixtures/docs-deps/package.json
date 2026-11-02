@@ -1,0 +1,13 @@
+{
+  "name": "glyph-docs-deps",
+  "private": true,
+  "description": "The npm packages the docs' `needs-npm` fences import, pinned by a lockfile so check_docs_compile.py compiles them against each package's real published types. CI installs it with `npm ci`; the tree is not committed.",
+  "dependencies": {
+    "mongodb": "7.7.0",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

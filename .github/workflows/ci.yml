@@ -170,6 +170,13 @@ jobs:
           (cd examples/apps/todo && npx playwright install --with-deps chromium)
           python3 scripts/check_todo_renders.py
 
+      # The `needs-npm` fences in the docs import pg, mongodb and zod. This
+      # fixture exists only so they can be compiled against each package's
+      # published types, and its committed lockfile pins the exact tree.
+      - name: Install the packages the docs import
+        working-directory: scripts/fixtures/docs-deps
+        run: npm ci --no-audit --no-fund --loglevel=error
+
       # The docs run against the compiler, not against a reader's memory. Both
       # of these need a built `glyph`, so they live here rather than in the
       # versions job.
@@ -184,6 +191,9 @@ jobs:
       # A `needs-react` fence is compiled against React's own declarations from
       # the todo app's node_modules, which the examples type-check step above
       # installs, so this has to stay after it.
+      #
+      # A `needs-npm` fence is compiled the same way, against the packages the
+      # step above installs.
       #
       # Fences are not the only code in AGENTS.md: a recipe written inline told
       # readers to import a `serve` std/http had stopped exporting, and nothing

@@ -570,10 +570,13 @@ fn reachable_std_modules(
 /// just wrote (`BuildReport::emitted`), used together with the `<src>/extern/`
 /// shims staged below to compute which `std/*` modules this build actually
 /// reaches (G115) — everything outside `std/` (the bootstrap, the two `.d.ts`
-/// files) is written unconditionally.
+/// files) is written unconditionally. `resolve_from` is where the project's
+/// `node_modules` is looked up from: `src` for a real build, the original
+/// source root for the `@example` gate's staged copy.
 pub fn write_build_support(
     out: &Path,
     src: &Path,
+    resolve_from: &Path,
     nested_out_dirs: &[String],
     emitted: &[String],
 ) -> std::io::Result<()> {
@@ -595,7 +598,7 @@ pub fn write_build_support(
         }
         std::fs::write(path, contents)?;
     }
-    let node_modules = find_project_node_modules(src);
+    let node_modules = find_project_node_modules(resolve_from);
     let types_node = has_types_node(node_modules.as_deref());
 
     // The bundled Node shim covers the common builtins out of the box. When the

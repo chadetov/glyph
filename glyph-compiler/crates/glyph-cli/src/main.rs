@@ -396,6 +396,13 @@ fn run_examples_for(
         if let Some(d) = r.build_failed {
             merged.build_failed.get_or_insert_with(Vec::new).extend(d);
         }
+        if let Some(why) = r.incomplete {
+            let joined = match merged.incomplete.take() {
+                Some(prev) => format!("{prev}\n{why}"),
+                None => why,
+            };
+            merged.incomplete = Some(joined);
+        }
     }
     Ok(merged)
 }
@@ -428,6 +435,13 @@ fn report_examples_for(srcs: &[std::path::PathBuf], command: &str) -> bool {
             eprintln!("{d}");
         }
         eprintln!("glyph {command}: examples did not compile");
+        return true;
+    }
+    if let Some(why) = &report.incomplete {
+        eprintln!(
+            "glyph {command}: {} example(s) not run: {why}",
+            report.total
+        );
         return true;
     }
     if !report.ran && report.total > 0 {
@@ -1321,6 +1335,13 @@ fn run_build_once(
                         eprintln!("glyph build: examples did not compile");
                         return 1;
                     }
+                    if let Some(why) = &ex.incomplete {
+                        // Never a pass: a test the harness did not report on
+                        // was not run, whatever the absence of a failure
+                        // line suggests (G280).
+                        eprintln!("glyph build: {} example(s) not run: {why}", ex.total);
+                        return 1;
+                    }
                     if !ex.ran && ex.total > 0 {
                         // Same stance as the missing-`tsc` gate above:
                         // don't emit a build that looks verified when
@@ -1654,6 +1675,12 @@ fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
                         .map(|d| ExampleFailure::gate(E_EXAMPLES_NOT_COMPILED, d.clone())),
                 );
             }
+            if let Some(why) = &ex.incomplete {
+                failures.push(ExampleFailure::gate(
+                    E_EXAMPLES_NOT_RUN,
+                    format!("{} example(s) not run: {why}", ex.total),
+                ));
+            }
             if !ex.ran && ex.total > 0 {
                 failures.push(ExampleFailure::gate(
                     E_EXAMPLES_NOT_RUN,
@@ -1668,7 +1695,10 @@ fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
             (
                 serde_json::json!({
                     "total": ex.total,
-                    "ran": ex.ran,
+                    // A harness that stopped early did not run the tests,
+                    // and saying `ran: true` beside them would be the same
+                    // false pass in another field.
+                    "ran": ex.ran && ex.incomplete.is_none(),
                     "skipped": false,
                     "failures": failures,
                 }),

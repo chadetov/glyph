@@ -102,8 +102,10 @@
         <p>
           You rarely get to production with a type error, because <code>glyph build</code> runs
           <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your
-          <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved),
-          pointing at the line you wrote, not the generated <code>.ts</code>. And
+          <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved).
+          The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a
+          wrong argument underlines that argument, a misspelt field inside a JSX event handler
+          underlines that member access, not the whole <code>return</code> around it. And
           <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity,
           file, 1-based line/col, help) for your CI or tooling to act on.
         </p>

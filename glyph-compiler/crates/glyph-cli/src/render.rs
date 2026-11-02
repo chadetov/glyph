@@ -123,14 +123,26 @@ pub fn render_emit_error(
     )
 }
 
+/// The help on a `tsc` error whose position landed inside one of the author's
+/// expressions: the caret is already on the piece `tsc` rejected (G285).
+pub const TSC_HELP_EXACT: &str = "TypeScript's checker rejected the code this expression compiles to. The caret is on the Glyph expression that produced it.";
+
+/// The help on a `tsc` error whose position fell in code the compiler wrote
+/// around the author's expressions (a hoisted temporary, the `switch` a
+/// `match` lowers to), so the caret covers the statement that code came from.
+pub const TSC_HELP_STATEMENT: &str = "TypeScript's checker rejected code the compiler generated for this statement, so the caret covers the whole statement. The position inside it is in the generated `.ts` in the build output.";
+
 /// Render an external (`tsc`) diagnostic remapped onto Glyph source: `span` is
-/// the originating Glyph span, `code` the `tsc` code (`TS2339`), `message` the
-/// text after it. Shown under a `tsc` stage tag so the reader knows it came from
-/// the TypeScript back-end.
+/// the originating Glyph span, `exact` whether it is the expression `tsc`
+/// pointed into (otherwise the enclosing statement), `code` the `tsc` code
+/// (`TS2339`), `message` the text after it. Shown under a `tsc` stage tag so
+/// the reader knows it came from the TypeScript back-end.
+#[allow(clippy::too_many_arguments)]
 pub fn render_tsc_error(
     path: &str,
     source: &str,
     span: Span,
+    exact: bool,
     code: &str,
     message: &str,
     note: Option<&str>,
@@ -143,7 +155,7 @@ pub fn render_tsc_error(
         "tsc",
         message,
         code,
-        Some("This is a TypeScript back-end error mapped to your Glyph source. The generated `.ts` is in the build output if you need the exact position."),
+        Some(if exact { TSC_HELP_EXACT } else { TSC_HELP_STATEMENT }),
         note,
         with_color,
         Severity::Error,

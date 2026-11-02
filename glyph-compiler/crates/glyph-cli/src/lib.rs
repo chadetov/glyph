@@ -29,6 +29,8 @@ pub mod render;
 pub mod run;
 pub mod runtime;
 pub mod sourcemap;
+#[doc(hidden)]
+pub mod test_support;
 pub mod tscmap;
 pub mod upgrade;
 

@@ -12,6 +12,7 @@
 //! that cleanly and the test is skipped, the same contract the unit tests in
 //! `gen.rs` hold.
 
+use glyph_cli::test_support::{tool_missing, tsc_available};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -76,6 +77,7 @@ fn gen_dts(root: &Path) -> Gen {
             || stderr.contains("`typescript` package is not resolvable")
             || stderr.contains("compiler API could not be loaded")
         {
+            tool_missing("node + typescript");
             return Gen::ToolchainMissing;
         }
         panic!("glyph gen dts failed:\n{stderr}");
@@ -106,7 +108,6 @@ fn gen_dts_notes_each_method_signature_it_drops() {
         "export interface Client { url: string; fetch(path: string): Promise<string>; close(): void; }\n",
     );
     let Gen::Ok { notes, summary } = gen_dts(&root) else {
-        eprintln!("skipping: node/typescript not available");
         return;
     };
     let text = std::fs::read_to_string(root.join("src/types/marky.glyph")).expect("generated file");
@@ -162,7 +163,6 @@ fn gen_dts_anchors_a_class_and_a_host_type_and_notes_omit_by_name() {
          export interface Doc { lexer: Lexer; opts: Trimmed; pattern: RegExp; title: string; }\n",
     );
     let Gen::Ok { notes, .. } = gen_dts(&root) else {
-        eprintln!("skipping: node/typescript not available");
         return;
     };
     let text = std::fs::read_to_string(root.join("src/types/marky.glyph")).expect("generated file");
@@ -180,14 +180,6 @@ fn gen_dts_anchors_a_class_and_a_host_type_and_notes_omit_by_name() {
         diags[0].contains("[E0103]") && diags[0].contains("`Omit`"),
         "got: {diags:?}"
     );
-}
-
-fn tsc_available() -> bool {
-    Command::new("tsc")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
 }
 
 /// `glyph build <dir> --out <out>` at `root`: the diagnostic lines it prints
@@ -223,7 +215,6 @@ fn gen_dts_module_imports_and_the_class_field_typechecks_through_new() {
          export interface Doc { lexer: Lexer; pattern: RegExp; title: string; }\n",
     );
     let Gen::Ok { .. } = gen_dts(&root) else {
-        eprintln!("skipping: node/typescript not available");
         return;
     };
     let text = std::fs::read_to_string(root.join("src/types/marky.glyph")).expect("generated file");

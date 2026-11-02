@@ -1922,6 +1922,16 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
             .cloned()
     }
 
+    fn module_exports_name(&self, module_path: &str, name: &str) -> Option<bool> {
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        Some(module_exports(self.db, file).exports().contains(name))
+    }
+
     fn imported_fn_decl(&self, module_path: &str, fn_name: &str) -> Option<Ty> {
         // Same lookup shape as `imported_type_decl` just above — find the
         // project sibling — but the callable counterpart (G133): the answer is

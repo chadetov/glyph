@@ -748,6 +748,34 @@ pub fn explain(code: &str) -> Option<&'static str> {
             payload was. Over a positional payload that field does not exist, so \
             the name held `undefined` under no type at all, and nothing reported \
             it.",
+        "E0232" => "E0232: match over a type whose declaration is not visible\n\n\
+            A `match` with literal arms and no catch-all, over a named type \
+            declared in a module this compile cannot read. The module is not in \
+            the project being built, it is an npm package whose types were never \
+            materialized, or the file is compiled alone (the playground compiles \
+            one file, so every sibling import is unseen there).\n\n\
+            import catalog { ColType }\n\n\
+            match t {\n  \
+              \"text\" => 10,\n  \
+              \"int\" => 4,\n  \
+              \"real\" => 8,\n\
+            }\n\n\
+            If `ColType` is `\"text\" | \"int\" | \"real\"`, these arms cover it and \
+            the match is exhaustive (E0200 holds it to that if a literal is \
+            added). If it is `string`, they never can (E0218). The checker cannot \
+            tell the two apart without the declaration, so it refuses the match \
+            rather than guess either way.\n\n\
+            The fix is to let the checker see the type. For a project module, \
+            build from the project root so the module's file is read. For an npm \
+            package, materialize its types and import from the generated module:\n\n\
+            glyph gen dts catalog --out src/types\n\n\
+            An `else` arm also compiles. It turns the match into an open one, so a \
+            value added to the type later goes to the `else` without a word from \
+            the compiler. Use it only when that is what you want.\n\n\
+            A literal union from the standard library that the checker does not \
+            model yet (`std/http`'s `RedirectPolicy`, `std/log`'s `Level`) draws \
+            the same error. There is no file to bring into the build for those, \
+            so an `else` arm is the way through until the checker reads them.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1598,7 +1626,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0218",
         phase: "typechecker",
-        meaning: "Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module)",
+        meaning: "Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module, and a type whose declaration this compile cannot see is E0232)",
         fix: "Add an `else` arm",
     },
     CodeEntry {
@@ -1678,6 +1706,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "`bind={x}` on a JSX `<case>`. A `<case>` takes the pattern a `match` arm takes (D6), so the payload is bound by the pattern: `<case Loaded(items)>` for one value, `<case Loaded({ users })>` for a record payload's fields. The help writes the rewrite for the variant's payload",
         fix: "Record payload: write `<case Loaded({ users })>`; one value: write `<case Loaded(items)>`; no payload: write `<case Loading>`",
+    },
+    CodeEntry {
+        code: "E0232",
+        phase: "typechecker",
+        meaning: "A `match` with literal arms and no catch-all over a named type whose declaration this compile cannot see (a module outside the build, an npm package whose types were not materialized, any sibling import in the one-file playground). It could be a literal union the arms cover or a `string` they cannot, so coverage is undecided and the match is refused. A visible type is checked as usual (E0200, E0218)",
+        fix: "Make the type visible: build from the project root, or `glyph gen dts <package>` and import from the generated module. An `else` arm opts the match out of exhaustiveness checking",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

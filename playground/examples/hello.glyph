@@ -1,0 +1,8 @@
+module main
+
+import std/io
+
+fn main(argv: Array<string>) -> number {
+  io.println("hello from glyph")
+  return 0
+}

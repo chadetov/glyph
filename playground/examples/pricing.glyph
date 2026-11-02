@@ -1,0 +1,19 @@
+module pricing
+
+import std/result { Result, Ok, Err }
+
+type Plan =
+  | Free
+  | Pro({ seats: number })
+  | Enterprise({ seats: number, discount: number })
+
+fn monthly_cost(plan: Plan) -> Result<number, string> {
+  return match plan {
+    Free => Ok(0),
+    Pro({ seats }) => Ok(seats * 12),
+    Enterprise({ seats, discount }) => match discount >= 0 {
+      true => Ok(seats * 12 - discount),
+      false => Err("discount cannot be negative"),
+    },
+  }
+}

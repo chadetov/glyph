@@ -149,13 +149,13 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |
-| `E0204` | Type mismatch |
+| `E0204` | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`) in a `match` arm |
 | `E0205` | `owned` used on a non-`resource` type (D25) |
 | `E0206` | `owned` resource not consumed on every path (D25) |
 | `E0207` | `owned` resource used after it was consumed (D25) |
 | `E0208` | Non-exhaustive `match` on an array (length not covered) |
 | `E0209` | Non-exhaustive `match` on a `bool` |
-| `E0210` | A field a record type does not declare: a field access (`x.rowz`), or a JSX attribute naming a field of a component's props record. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type |
+| `E0210` | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type |
 | `E0211` | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name |
 | `E0212` | `mut` reassigns a `const` binding (D20) |
 | `E0213` | Wrong number of call arguments |

@@ -27,7 +27,7 @@ use glyph_resolver::{
 
 use crate::lower::Lowerer;
 use crate::ty::{
-    builtin_union, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
+    builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
@@ -1962,7 +1962,7 @@ impl Assigner<'_> {
                             let record = self.field_owner_decl(&shape.owner);
                             self.errors.push(TypeError::UnknownField {
                                 field: field.to_string(),
-                                type_name: ty_display(&obj_ty),
+                                type_name: field_owner_display(&obj_ty),
                                 fields: shape
                                     .fields
                                     .iter()
@@ -2398,7 +2398,7 @@ impl Assigner<'_> {
             let Some(field) = shape.fields.iter().find(|f| f.name == *name) else {
                 self.errors.push(TypeError::UnknownField {
                     field: name.to_string(),
-                    type_name: ty_display(&props_ty),
+                    type_name: field_owner_display(&props_ty),
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     span: attr_span,
@@ -6447,11 +6447,26 @@ impl Assigner<'_> {
     /// v, ... }` binds `v` to the success type. Without that binding the arm
     /// body types as `Unknown` and the match's arm join has nothing to join.
     ///
-    /// Deferred: nested constructor payloads and array payloads.
+    /// The same walk checks the pattern against the type it destructures, for
+    /// a match arm and a JSX `<case>` alike, because both reach it: an object
+    /// pattern naming a field the record does not declare is `E0210`, and an
+    /// object pattern over a payload that is not a record at all is `E0204`
+    /// (G279). Before this, `Loaded({ totl })` over `Loaded({ total: number })`
+    /// bound `totl` to `undefined` and only `tsc` objected.
+    ///
+    /// Deferred: array payloads.
     fn bind_arm_payloads(&mut self, scrutinee_ty: &Ty, pattern: &Pattern) {
         self.record_pattern_tys(Some(scrutinee_ty), pattern);
-        let Pattern::Constructor { path, args, .. } = pattern else {
-            return;
+        let (path, args) = match pattern {
+            Pattern::Constructor { path, args, .. } => (path, args),
+            // A top-level object pattern destructures the scrutinee itself
+            // (`match p { { x: 0, y: y } => .. }`), and is held to the same
+            // field check a payload's object pattern is.
+            Pattern::Object { fields, span } => {
+                self.bind_object_pattern(fields, *span, scrutinee_ty);
+                return;
+            }
+            _ => return,
         };
         let Some(variant_name) = path.last() else {
             return;
@@ -6465,41 +6480,73 @@ impl Assigner<'_> {
                 self.local_tys.insert(span.start, payload_ty);
             }
             // `NetworkError({ url, status })` — destructure a record payload.
-            [Pattern::Object { fields, .. }] => {
-                self.bind_object_pattern_fields(fields, &payload_ty);
+            [Pattern::Object { fields, span }] => {
+                self.bind_object_pattern(fields, *span, &payload_ty);
             }
+            // `Ok(Some(x))`, `Ok(Some({ total }))` — the payload is itself
+            // matched by a constructor, which binds and checks against the
+            // payload's own type one level down.
+            [sub @ Pattern::Constructor { .. }] => self.bind_arm_payloads(&payload_ty, sub),
             _ => {}
         }
     }
 
-    /// Bind each field of an object pattern to its type from the payload
-    /// record. The resolver binds `{ name }` and `{ name: alias }` at the
-    /// field's span, so the type is keyed by `field.span.start`. A field
-    /// the record doesn't declare is left untyped (a separate
-    /// unknown-field diagnostic is the bidirectional checker's job).
+    /// Check an object pattern against the type it destructures and bind each
+    /// field to its type from that record. The resolver binds `{ name }` and
+    /// `{ name: alias }` at the field's span, so the type is keyed by
+    /// `field.span.start`.
+    ///
+    /// The type is read through `record_shape_of`, the same field set a member
+    /// access is checked against, so `{ totl }` and `r.totl` over one record
+    /// draw one `E0210` with one field list. A type this checker decides is not
+    /// a record (a primitive, an `Array`, a tagged or string-literal union, a
+    /// function, `unknown`; the set `props_param` proves) cannot be
+    /// destructured by field, and the pattern is `E0204` naming the type
+    /// (`PatternNotRecord`). A type
+    /// it cannot see into is left alone: a refusal has to be proved.
     ///
     /// A field carrying a structured sub-pattern binds through that pattern
     /// instead, at the sub-pattern's own spans: a nested object destructure
-    /// recurses on the field's record type, and a nested constructor
+    /// recurses on the field's type, and a nested constructor
     /// (`{ left: Node({ value: v }) }`) goes back through `bind_arm_payloads`,
     /// which resolves the variant's payload before descending again.
-    fn bind_object_pattern_fields(&mut self, fields: &[ObjectPatternField], payload_ty: &Ty) {
-        let Ty::Record { fields: rec_fields } = payload_ty else {
+    fn bind_object_pattern(&mut self, fields: &[ObjectPatternField], span: Span, ty: &Ty) {
+        let shape = self
+            .record_shape_of(ty)
+            .or_else(|| self.record_shape_of(&self.canonicalize_aliases(ty)));
+        let Some(shape) = shape else {
+            if let PropsParam::NotRecord(_) = self.props_param(ty, 0) {
+                self.errors.push(TypeError::PatternNotRecord {
+                    ty: ty_display(ty),
+                    span,
+                });
+            }
             return;
         };
         for pf in fields {
-            let Some(rf) = rec_fields.iter().find(|rf| rf.name == pf.key) else {
+            let Some(rf) = shape.fields.iter().find(|rf| rf.name == pf.key) else {
+                // The key is the first thing a field holds, so its span is the
+                // field's start plus the key's length, whatever follows it.
+                let key_span = Span::new(pf.span.start, pf.span.start + pf.key.len() as u32);
+                self.errors.push(TypeError::UnknownField {
+                    field: pf.key.to_string(),
+                    type_name: field_owner_display(ty),
+                    fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
+                    record: self.field_owner_decl(&shape.owner),
+                    span: key_span,
+                });
                 continue;
             };
+            let field_ty = rf.ty.clone();
             if pf.bound_name().is_some() {
-                self.local_tys.insert(pf.span.start, rf.ty.clone());
+                self.local_tys.insert(pf.span.start, field_ty);
                 continue;
             }
             match &pf.pattern {
-                Some(Pattern::Object { fields: inner, .. }) => {
-                    self.bind_object_pattern_fields(inner, &rf.ty)
+                Some(Pattern::Object { fields: inner, span: inner_span }) => {
+                    self.bind_object_pattern(inner, *inner_span, &field_ty)
                 }
-                Some(sub @ Pattern::Constructor { .. }) => self.bind_arm_payloads(&rf.ty, sub),
+                Some(sub @ Pattern::Constructor { .. }) => self.bind_arm_payloads(&field_ty, sub),
                 _ => {}
             }
         }

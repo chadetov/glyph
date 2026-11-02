@@ -371,6 +371,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `return { name: \"a\" }` under `-> User` ends with \"missing field \
             `age`\", and `--json` carries the names as `missing_fields`. A field \
             declared with `?` is never required.\n\n\
+            A pattern has a type too. An object pattern destructures a record, so \
+            one matched against a value that is not a record is this error: \
+            `Loaded({ users })` where `Loaded` carries an `Array<string>`, in a \
+            `match` arm. Bind the value to one name instead, \
+            `Loaded(users)`.\n\n\
             Change the value, or the declared type, so the two agree.",
         "E0205" => "E0205: `owned` requires a resource type\n\n\
             The `owned` modifier is the narrow D25 carve-out for resource handles \
@@ -407,7 +412,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             type) that has no field by that name — usually a typo or a renamed \
             field. A JSX attribute draws it too: `<Button labl=\"go\" />` names a \
             field of the component's props record, and one the record does not \
-            declare is the same mistake in a different spelling.\n\n\
+            declare is the same mistake in a different spelling. So does a record \
+            pattern: `Loaded({ totl })` over `Loaded({ users: Array<string>, total: \
+            number })` names a field the payload does not have, in a `match` arm.\n\n\
             Check the field name, or add the field to the type. Only a value whose \
             type resolves to a concrete record is checked; access on an \
             unknown-typed or non-record value is left alone. A record declared in \
@@ -1408,8 +1415,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0204",
         phase: "typechecker",
-        meaning: "Type mismatch",
-        fix: "Make the value and the expected type agree",
+        meaning: "Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`) in a `match` arm",
+        fix: "Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)`",
     },
     CodeEntry {
         code: "E0205",
@@ -1444,7 +1451,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), or a JSX attribute naming a field of a component's props record. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {

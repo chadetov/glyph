@@ -11,9 +11,17 @@ distrusting the tool.
 Compiling the snippet cannot catch this, because the wrong snippet compiled
 fine. The only check that works is running `glyph init` and comparing.
 
+The same goes for what the scaffold prints. The pages show `glyph run` printing
+a line, so this runs `glyph run` in the fresh project and compares the real
+stdout with the page; reading the string out of `main.glyph` would only prove
+the source contains it. `glyph run` executes through `tsx` from `PATH`, and the
+check fails when `tsx` is missing rather than skipping, because a skipped run
+reads like a passing one in a CI log.
+
 Hard-fails (exit 1) when a page that walks through the scaffold does not quote
-the generated `main.glyph` verbatim, or does not name every file `glyph init`
-created.
+the generated `main.glyph` verbatim, does not name every file `glyph init`
+created, or does not show what `glyph run` printed; or when the scaffold does
+not run.
 """
 
 from __future__ import annotations
@@ -67,15 +75,34 @@ def scaffold(glyph: pathlib.Path) -> tuple[str, list[str], str]:
             str(p.relative_to(proj)) for p in proj.rglob("*") if p.is_file()
         )
         source = (proj / "src" / "main.glyph").read_text()
-        # What the scaffold prints, taken from the scaffold rather than from a
-        # string this script also hardcodes.
-        printed = ""
-        for line in source.splitlines():
-            m = re.search(r'io\.e?print(?:ln)?\("([^"]*)"\)', line)
-            if m:
-                printed = m.group(1)
-                break
-        return source, files, printed
+        return source, files, run_scaffold(glyph, proj)
+
+
+def run_scaffold(glyph: pathlib.Path, proj: pathlib.Path) -> str:
+    """Run the scaffold the way the walkthroughs do (`glyph run` with no path,
+    in the project directory) and return what it printed."""
+    if shutil.which("tsx") is None:
+        print("tsx not found on PATH; `glyph run` executes through it, so the")
+        print("scaffold cannot be run. Install tsx (CI puts .github/ci-tools on")
+        print("PATH). This is a failure, not a skip.")
+        sys.exit(1)
+    try:
+        r = subprocess.run(
+            [str(glyph), "run"], capture_output=True, text=True, cwd=proj, timeout=300
+        )
+    except subprocess.TimeoutExpired:
+        print("`glyph run` on the fresh scaffold did not finish in 300s")
+        sys.exit(1)
+    if r.returncode != 0:
+        print(f"`glyph run` on the fresh scaffold exited {r.returncode}:")
+        print(r.stdout + r.stderr)
+        sys.exit(1)
+    printed = r.stdout.strip()
+    if not printed:
+        print("`glyph run` on the fresh scaffold printed nothing on stdout:")
+        print(r.stderr)
+        sys.exit(1)
+    return printed
 
 
 def page_text(path: pathlib.Path) -> str:
@@ -115,9 +142,10 @@ def main() -> int:
                     + "\n".join(f"      {f}" for f in unnamed)
                 )
 
-        if "output" in claims and printed and printed not in text:
+        if "output" in claims and printed not in text:
             problems.append(
-                f"{page} — the scaffold prints {printed!r}; the page never shows it"
+                f"{page} — `glyph run` on the scaffold prints {printed!r}; "
+                f"the page never shows it"
             )
 
     for p in problems:
@@ -130,8 +158,8 @@ def main() -> int:
 
     print(
         f"scaffold docs OK: {len(WALKTHROUGHS)} walkthrough(s) match "
-        f"`glyph init` ({len(files)} files, {len(body)} source lines, "
-        f"prints {printed!r})."
+        f"`glyph init` ({len(files)} files, {len(body)} source lines) and "
+        f"`glyph run` on it, which printed {printed!r}."
     )
     return 0
 

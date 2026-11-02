@@ -203,7 +203,16 @@ export function emailOf(body: string): string {
 without checking anything. Most boundary code in a TypeScript service looks like
 this, and no flag changes it. The same line in Glyph:
 
-```glyph
+```glyph expect-error TS2322
+module m
+
+import std/json
+
+pub type User = {
+  id: number,
+  email: string,
+}
+
 pub fn email_of(body: string) -> string {
   let user: User = json.parse(body)
   return user.email
@@ -285,7 +294,9 @@ the emitted TypeScript and maps the error back to your line. But the editor, the
 MCP tools and `glyph check --no-tsc` do not see it. For example, this passes
 `--no-tsc` and fails the full check with TS2322:
 
-```glyph
+```glyph expect-error TS2322
+module m
+
 import path { join }
 
 pub fn f() -> number {

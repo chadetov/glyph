@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-290 entries, 251 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-20 are open. G144, the D28 boundary cast that never reached the returns a
+301 entries, 257 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+25 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -8473,7 +8473,7 @@ and is the owner's to confirm.
   `glyph-cli/tests/gen_dts.rs`, which fails when the record's `pub` is
   dropped.
 
-- **G210. `E0304` is module-local: `Doc.parse(v)` called from a sibling that
+- **G210. [FIXED] `E0304` is module-local: `Doc.parse(v)` called from a sibling that
   imports `Doc` reports nothing.** In the module that declares a record with
   an unverifiable field, `Doc.parse` is refused, as it should be. The same call
   one import away is `no diagnostics`, so the refusal a boundary relies on
@@ -8525,6 +8525,15 @@ and is the owner's to confirm.
   the two modules above.*
 
   *Reproduced against 0.1.122 (the tree at 1d0d55c4): the two-module pair above is `glyph check: 2 module(s) checked, no diagnostics.`, exit 0; the same two functions appended to `w` draw `[E0304] cannot validate `Doc`: field `lexer` has type `Lexer`, which has no runtime check`, exit 1. Unchanged.*
+
+  Fixed in 0.1.130: E0304 is judged by the declaring module's verdict. The
+  project tables take a second pass over every module with its checker
+  results and record which records cannot be validated, and an importer's
+  `Doc.parse` reads that verdict, following the descriptors a field check
+  delegates to across modules. With the `Bag` control in two modules,
+  `glyph check --no-tsc` is `[E0304] cannot validate `Bag`: field `items` has
+  type `Array<unknown>`, which has no runtime check` at `u:6:16`, exit 1;
+  0.1.129 is `no diagnostics`, exit 0, with and without `tsc`. Breaking.
 
   *Reproduced against 0.1.128 (the `dev-0.1.128` build, `glyph 0.1.128`): the two-module pair is `glyph check: 2 module(s) checked, no diagnostics.`, exit 0; the functions appended to `w` draw `[E0304] cannot validate `Doc`: field `lexer` has type `Lexer`, which has no runtime check`, exit 1. Unchanged.*
 
@@ -10772,7 +10781,7 @@ and is the owner's to confirm.
   its own types or an `@types` package needs nothing, and `.types/` is for one
   that ships no types; AGENTS.md's external-imports section says the same, with
   a package that ships no types as its example. `tests/init.rs` asserts it.
-- **G285. A `tsc` error is mapped to the whole enclosing statement.** A wrong
+- **G285. [FIXED] A `tsc` error is mapped to the whole enclosing statement.** A wrong
   member in one `on_change` handler (`e.target.valu`) underlines the entire
   `return <div>...</div>`, eight lines; a wrong argument underlines the whole
   `let`. The help then says the exact position is in the generated `.ts`,
@@ -10780,12 +10789,27 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128 by the cold-start React run: TS2551 on `e.target.valu` spans lines 16 to 23 of `app.glyph`.*
 
-- **G286. A reserved word used as a name gets a generic parse error.** `let
+  Fixed in 0.1.130: the emitter records a range for every expression it
+  writes, so a `tsc` error lands on the smallest Glyph expression containing
+  it, and the `.ts.map` is expression-level too. The emitted TypeScript is
+  byte-identical to 0.1.129's across the 616 files the 32 apps emit.
+  `let full = join(dir, "logs", 7)` draws TS2345 at `m:6:32`, under the `7`;
+  0.1.129 put it at `m:6:3` and underlined the whole `let`. An error `tsc`
+  reports on a binding name (TS2322 on `let n: number = ...`) still points at
+  the statement, because the name is not an expression.
+
+- **G286. [FIXED] A reserved word used as a name gets a generic parse error.** `let
   where = ...` is `[E0002] parse: expected variable name after `let`, found
   Where`, with help about trailing commas. Nothing says `where` is a Glyph
   keyword, and `glyph llms` has no list of them.
 
   *Reproduced against 0.1.128 by the cold-start Node run.*
+
+  Fixed in 0.1.130: `let where = 1` is ``[E0002] parse: `where` is a reserved
+  word in Glyph and cannot be a name``, still E0002, and the help points at
+  the list. `glyph llms --json` carries a `keywords` section built from the
+  lexer's table, and AGENTS.md and both mirrors list the 32 reserved words,
+  which `check_llms_sync.py` keeps in step with the compiler.
 
 - **G287. [FIXED] `glyph bench` reports a crashed harness as zero benchmarks.**
   `bench.rs` reads the harness's output and ignores the exit status of `tsx`,
@@ -10801,7 +10825,7 @@ and is the owner's to confirm.
   with the cause, and a benchmark that throws fails by name. Breaking: a module
   that throws on load was `0 benchmark(s)`, exit 0, under 0.1.128 and is exit 1
   now.
-- **G288. A member read on an array is checked by nothing but `tsc`.**
+- **G288. [FIXED] A member read on an array is checked by nothing but `tsc`.**
   `xs.lenght` on `xs: Array<string>` passes `glyph check --no-tsc`, and the
   editor shows nothing; a record has E0210 with its fields listed. A
   `<case Loaded(items)>` binding is typed as `Array<string>` since G275, so
@@ -10809,7 +10833,16 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: `pub fn f(xs: Array<string>) -> number { return xs.lenght }` is `glyph check: 1 module(s) checked, no diagnostics.`*
 
-- **G289. A `let` annotation that disagrees with `json.parse`'s result is
+  Fixed in 0.1.130: a member read on an `Array<T>` or a `string` is checked
+  against TypeScript's own member lists (44 and 56 names, esnext with
+  `Object`'s, in `builtin_members.rs`), and `check_builtin_members.py` asks the
+  pinned TypeScript for them again on every CI run. The program above is
+  ``[E0210] type `Array<string>` has no field `lenght`; did you mean
+  `length`?``, exit 1. 0.1.129 exits 0 under `--no-tsc` and 1 with `tsc`
+  (TS2551), so a build that ran `tsc` was already red; what changes is that
+  `--no-tsc`, the editor and the MCP tools now see it.
+
+- **G289. [FIXED] A `let` annotation that disagrees with `json.parse`'s result is
   left to `tsc`.** `let user: User = json.parse(body)` passes `glyph check
   --no-tsc`; `json.parse` returns a `Result`, and only `tsc` objects
   (`TS2322: Type 'Result<unknown, Issue[]>' is not assignable to type
@@ -10819,6 +10852,15 @@ and is the owner's to confirm.
   TypeScript developer writes.
 
   *Reproduced against 0.1.128 (the dev-0.1.129 build): the program above is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 with `tsc`.*
+
+  Fixed in 0.1.130: E0204 now fires when a prelude container (`Result`,
+  `Option`, `Array`, `Record`, `Nullable`) meets a declared record or union,
+  and `json.parse` is in the checker's stdlib table. The program above is
+  ``[E0204] type mismatch: expected `User`, found `Result<unknown,
+  Array<Issue>>` ``, exit 1, and `catches/unvalidated-boundary-read` is an
+  E0204 case. Breaking: `let s: Sized = xs` with `Sized = { length: number }`
+  and `xs: Array<string>` passes 0.1.129 with and without `tsc`, exit 0, and is
+  E0204 now.
 - **G290. [FIXED] `glyph gen dts` threw away the caller's `NODE_PATH`.**
   The helper that reads a `.d.ts` ran node with `NODE_PATH` set to
   `npm root -g`, replacing whatever the caller had set, so a TypeScript
@@ -10834,3 +10876,100 @@ and is the owner's to confirm.
   Fixed in 0.1.129: the global root is appended after the caller's entries,
   never in their place. The same command writes `out/user.glyph`, and the ten
   tests pass in that environment and fail with the old line restored.
+- **G291. [FIXED] A literal match over a type the checker cannot see said
+  "add an `else`".** A `match` on string literals over a type declared where
+  the checker does not look (a package with no catalog, a stdlib union the
+  checker does not model) was E0218, ``non-exhaustive match on `string`: no
+  catch-all for the other values``, and its help offered an `else` arm first.
+  An `else` turns exhaustiveness off for the match, so the advice for "the
+  checker cannot tell" was the one that removes the check.
+
+  *Reproduced against 0.1.129: a match on `http.RedirectPolicy` with two of
+  its three values is E0218 at `m:6:10`.*
+
+  Fixed in 0.1.130: the same match is E0232, ``cannot check this match for
+  exhaustiveness: `RedirectPolicy` is declared in `std/http`, and that
+  declaration is not visible to the checker``, and the help says what would
+  make it visible before it mentions `else`. Both versions exit 1, so it is
+  not breaking.
+- **G292. Explicit type arguments on a user generic are ignored.**
+  `id<number>("x")` with `fn id<T>(x: T) -> T`, returned from a function
+  declared `-> string`, passes `glyph check --no-tsc`: the checker infers `T`
+  from the argument and never reads the `<number>`. `tsc` refuses it twice
+  (TS2345 on the argument, TS2322 on the return). Found while fixing G289,
+  which added explicit type arguments for stdlib calls only.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `glyph check: 1 module(s) checked, no diagnostics.`
+  under `--no-tsc`.*
+- **G293. A record where a `Result` is expected is left to `tsc`.** The
+  reverse of G289: `let r: Result<User, string> = u` with `u: User` passes
+  `glyph check --no-tsc`, and `tsc` refuses it (TS2322: ``Type 'User' is not
+  assignable to type 'Result<User, string>'``). G289's check fires when the
+  container is the value, not when it is the annotation.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+- **G294. The stdlib's string-literal unions are not modeled.** A match on
+  `http.RedirectPolicy` (`"follow" | "manual" | "error"`) cannot be checked for
+  exhaustiveness: it is E0232 since G291, and the only way to compile it is an
+  `else`, which turns the check off. The union is declared in Glyph's own
+  standard library, so the checker cannot say the user forgot `"manual"`. The
+  logging `Level` union is the same.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): the two-arm match is ``[E0232] ... `RedirectPolicy` is
+  declared in `std/http`, and that declaration is not visible to the
+  checker``.*
+- **G295. The editor does not show the emitter's errors.** E0302 to E0305
+  (an unverifiable `parse`, a `?` the emitter cannot hoist, two arms lowering
+  to one `case`) are errors of `glyph check` and of the MCP `diagnostics`
+  tool, which runs the emitter through `project_file_diagnostics`. The
+  language server publishes `analyze_in`, which stops after the checker, so
+  the editor shows a file as clean that `glyph check` refuses.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`), by reading `glyph-lsp`: `Backend::refresh` publishes
+  `Workspace::diagnostics`, which calls `analyze_in`, and nothing on that path
+  calls `emit_module_mapped`.*
+- **G296. A second name for an imported record has no value.**
+  `pub type Page = Doc`, where `Doc` is imported, then `Page.parse(v)`, passes
+  `glyph check --no-tsc` and fails `tsc` with TS2693 (``'Page' only refers to
+  a type, but is being used as a value here``): the emitter writes a type alias
+  and no descriptor for it. Found while fixing G210.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): two modules, `no diagnostics` under `--no-tsc`, TS2693
+  with `tsc`.*
+- **G297. `json.parse<T>` is never refused for a `T` it cannot validate.**
+  `json.parse<Doc>(body)` where `Doc` has an `extern_ts` field passes `glyph
+  check` with `tsc`, while `Doc.parse(v)` on the same record is E0304. The
+  namespace form is documented as validating against `T.schema`, so it returns
+  `Ok` on a body nothing checked, which is what E0304 exists to refuse.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` and `tsc --strict passed.`*
+- **G298. `json.parse_with` is not in the checker's stdlib table.**
+  `let u: User = json.parse_with(body, s)` with `s: Schema<User>` passes
+  `glyph check --no-tsc`; `tsc` refuses it (TS2322: ``Type 'Result<User,
+  Issue[]>' is not assignable to type 'User'``). G289 added `json.parse` and
+  not its sibling, and other stdlib exports are unmodeled the same way, so a
+  call to one has no type the checker can compare.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+- **G299. A `tsc` diagnostic in `--json` has `help: null`.** The terminal
+  render of a mapped `tsc` error carries a help line (``TypeScript's checker
+  rejected the code this expression compiles to...``); the same diagnostic
+  under `glyph check --json` has `"help": null`, so an agent reading the JSON
+  gets less than a person reading the terminal.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): TS2345 from `join(dir, "logs", 7)` has `help` `None` in
+  the JSON.*
+- **G300. A field named with a keyword can be declared and not read.**
+  `type Event = { type: string }` is accepted, and `e.type` is ``[E0002]
+  `type` is a reserved word in Glyph and cannot be written as a name here``.
+  A record that mirrors a wire format with a `type` discriminator, the most
+  common one there is, can be declared and never used. Found while fixing
+  G286.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): the declaration passes, the read at `m:8:12` is E0002.*
+- **G301. A keyword in type position gets a generic parse error.**
+  `fn f(x: match)` is ``[E0002] parse: expected type expression, found
+  Match``, with help about trailing commas; the G286 message that names the
+  reserved word is not used in type position. Found while fixing G286.
+
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): E0002 at `m:3:13` with the generic help.*

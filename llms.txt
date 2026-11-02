@@ -2039,7 +2039,7 @@ run `glyph fix`, then fill in the bodies it marked.
 - **read a file:** `import std/fs` then `match fs.read_text(path) { Ok(t) => ..., Err(e) => ... }`
 - **parse untrusted JSON to a type:** `let v = json.parse(body)?` then `T.parse(v)` (validates structure and leaf values)
 - **HTTP GET + decode:** `let r = await http.get(url).map_err(fn(e) { e.message })?` then `T.parse(r.body)`
-- **serve HTTP:** `import std/http { serve, text, Request, Response }`; handler returns `Result<Response, string>` via `Ok(text(200, "..."))`
+- **serve HTTP:** `import std/http { listen, text, Request, Response }` and `import std/net`; `await listen("127.0.0.1", 8080, handler)` is `Ok(server)` once the port is bound (`net.port(server)`, `net.stop(server)`), and the handler returns `Result<Response, string>` via `Ok(text(200, "..."))`. `glyph init --template web` writes this program
 - **branch:** `match x { A => ..., B => ..., }` (no `if`; every case, trailing comma)
 - **fail:** return `Result<T, E>`; propagate with `?`, recover with `match`
 - **share state:** module-level `const s = store.create(init)`; `mut s.update(fn(v) { ... })`

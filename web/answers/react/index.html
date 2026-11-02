@@ -169,15 +169,45 @@ pub component App() {
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Is a &lt;match&gt; in JSX checked like a match?</p>
+        <p>
+          It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code>
+          arm takes, and the compiler runs it through the code it uses for the arm. The names a
+          case binds have the payload's types, a field the payload record
+          doesn't have is E0210, and a missing variant is E0200. A case that tests a value only
+          covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code>
+          to take the rest:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">results.glyph</span>
+<pre>type Page =
+  | Loading
+  | Loaded({ users: Array&lt;User&gt;, total: number })
+  | Failed(string)
+
+component Results(props: { page: Page }) {
+  return &lt;match value={props.page}&gt;
+    &lt;case Loading&gt;&lt;p&gt;Loading...&lt;/p&gt;&lt;/case&gt;
+    &lt;case Loaded({ users, totl })&gt;&lt;p&gt;{users.length} of {totl}&lt;/p&gt;&lt;/case&gt;
+    &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
+  &lt;/match&gt;
+}
+
+<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`</span></pre>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. <code>examples/apps/todo</code> is a whole app on React 18 that bundles with Vite and renders in a browser.</p>
+          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. <code>examples/apps/todo</code> is a whole app on React 18 that bundles with Vite and renders in a browser.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. A <code>&lt;case&gt;</code>'s <code>bind</code> reads a field of a record payload and is not checked by Glyph yet. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in a Vite app works as <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a> describes.</p>
+          <p>Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. Glyph does not check a member read on an array, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> payload is left to <code>tsc</code>. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in a Vite app works as <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a> describes.</p>
         </div>
       </div>
 

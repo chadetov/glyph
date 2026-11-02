@@ -1,13 +1,13 @@
 # Launch materials
 
-Drafts for the preview announcement, rewritten against 0.1.129. Posting and
+Drafts for the preview announcement, rewritten against 0.1.130. Posting and
 outreach are done by hand; nothing here is published by a workflow.
 
 | File | What |
 |---|---|
 | [`announcement.md`](announcement.md) | The announcement post |
 | [`show-hn.md`](show-hn.md) | Show HN title and body |
-| [`release-notes-preview.md`](release-notes-preview.md) | Where the compiler stands at 0.1.129, for a first-time reader |
+| [`release-notes-preview.md`](release-notes-preview.md) | Where the compiler stands at 0.1.130, for a first-time reader |
 | [`onboarding-first-100.md`](onboarding-first-100.md) | How to find the first users and what to collect from them |
 
 The rules these drafts follow:

@@ -820,6 +820,24 @@ enum HelperOutcome {
 /// install of the helper's dependency is resolvable.
 /// A unique path for one helper invocation.
 ///
+/// The NODE_PATH a helper runs with: the caller's own entries first, then the
+/// global npm root. `None` when there is neither, so the variable stays unset.
+fn helper_node_path(
+    inherited: Option<std::ffi::OsString>,
+    global_root: Option<String>,
+) -> Option<std::ffi::OsString> {
+    let mut dirs: Vec<std::path::PathBuf> =
+        inherited.iter().flat_map(std::env::split_paths).collect();
+    if let Some(root) = global_root {
+        dirs.push(root.into());
+    }
+    dirs.retain(|d| !d.as_os_str().is_empty());
+    if dirs.is_empty() {
+        return None;
+    }
+    std::env::join_paths(dirs).ok()
+}
+
 /// Keyed on the process id *and* a counter. The process id alone is not enough:
 /// Rust runs tests as threads in one process, so concurrent calls shared a file
 /// and the first to finish deleted it out from under the next.
@@ -847,10 +865,13 @@ fn run_helper(script: &str, name: &str, runner: &str, arg: &Path) -> HelperOutco
         .filter(|o| o.status.success())
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
 
+    // The global root is added after any NODE_PATH the caller already set,
+    // never in place of it. Replacing it hid a TypeScript the caller had
+    // pointed node at, and the helper reported none installed (G290).
     let mut cmd = std::process::Command::new(runner);
     cmd.arg(&helper).arg(arg);
-    if let Some(root) = &global_root {
-        cmd.env("NODE_PATH", root);
+    if let Some(node_path) = helper_node_path(std::env::var_os("NODE_PATH"), global_root) {
+        cmd.env("NODE_PATH", node_path);
     }
     let output = cmd.output();
     let _ = std::fs::remove_file(&helper);
@@ -2090,6 +2111,29 @@ fn sanitize_module(raw: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_helper_keeps_a_node_path_the_caller_set() {
+        let joined = helper_node_path(
+            Some(std::env::join_paths(["/ci/tools/node_modules", "/b"]).unwrap()),
+            Some("/global/lib/node_modules".to_string()),
+        )
+        .unwrap();
+        let dirs: Vec<_> = std::env::split_paths(&joined).collect();
+        assert_eq!(
+            dirs,
+            [
+                PathBuf::from("/ci/tools/node_modules"),
+                PathBuf::from("/b"),
+                PathBuf::from("/global/lib/node_modules"),
+            ]
+        );
+        assert_eq!(
+            helper_node_path(None, Some("/g".to_string())),
+            Some(std::ffi::OsString::from("/g"))
+        );
+        assert_eq!(helper_node_path(Some("".into()), None), None);
+    }
 
     #[test]
     fn package_module_name_takes_the_last_segment() {

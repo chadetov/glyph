@@ -29,10 +29,17 @@ checked, so none of them becomes a blanket way out:
                        `node_modules` is the todo app's (React 18 and
                        `@types/react`, from that app's lockfile) and has to
                        pass `tsc --strict` there. A missing `node_modules` is
-                       a failure, never a skip.
+                       a failure, never a skip. It may also import a sibling
+                       module that an earlier `needs-react` fence in the same
+                       document declares (`module app`, then a fence with
+                       `import app { App }`): that fence is written into the
+                       same project, so a page's `app` and `main` modules are
+                       compiled together, as the page builds them. A sibling
+                       no earlier fence declares is still `needs-deps`.
   needs-deps           the snippet needs something no gate project supplies: an
-                       npm package other than React, a sibling module, or an
-                       ambient `.d.ts`. It is skipped, so it has to actually
+                       npm package other than React, a sibling module no
+                       earlier `needs-react` fence declares, or an ambient
+                       `.d.ts`. It is skipped, so it has to actually
                        need one: a snippet whose only outside need is React is
                        told to use `needs-react` instead.
   example=NAME         a complete program, compiled like any other, and named so
@@ -156,13 +163,29 @@ REACT_PACKAGES = re.compile(r"^(react|react-dom)(/[\w/.-]+)?$")
 REACT_MODULES = ROOT / "examples" / "apps" / "todo" / "node_modules"
 
 
-def needs_only_react(body: str) -> bool:
-    """Whether React is the one thing outside `std/` this snippet needs, which
+def needs_only_react(body: str, siblings: dict[str, str] | None = None) -> bool:
+    """Whether React, plus sibling modules earlier `needs-react` fences in the
+    same document declare, is all this snippet needs from outside `std/`. That
     is what the `needs-react` project supplies."""
+    siblings = siblings or {}
     outside = [m for m in IMPORT_PATH.findall(body) if not m.startswith("std/")]
     if not outside and not COMPONENT.search(body):
         return False
-    return all(REACT_PACKAGES.match(m) for m in outside)
+    return all(REACT_PACKAGES.match(m) or m in siblings for m in outside)
+
+
+def sibling_closure(body: str, siblings: dict[str, str]) -> dict[str, str]:
+    """The sibling modules a fence imports, and the ones those import in turn,
+    from the `needs-react` fences declared earlier in its document."""
+    out: dict[str, str] = {}
+    todo = [m for m in IMPORT_PATH.findall(body) if m in siblings]
+    while todo:
+        name = todo.pop()
+        if name in out:
+            continue
+        out[name] = siblings[name]
+        todo += [m for m in IMPORT_PATH.findall(siblings[name]) if m in siblings]
+    return out
 
 MODULE_HEAD = re.compile(r"\s*module\s+\w")
 IMPORT_OR_NOISE = re.compile(r"\s*(import\b|//|$)")
@@ -272,10 +295,12 @@ def check(glyph: pathlib.Path, body: str) -> tuple[bool, str]:
         return r.returncode == 0, (r.stdout + r.stderr).strip()
 
 
-def check_react(glyph: pathlib.Path, body: str) -> tuple[bool, str]:
+def check_react(
+    glyph: pathlib.Path, body: str, siblings: dict[str, str] | None = None
+) -> tuple[bool, str]:
     """Compile a whole module in a project with React and its types installed,
-    with `tsc` in the loop. Passing means `tsc --strict passed`, not only a
-    zero exit."""
+    with `tsc` in the loop, next to the sibling modules it imports. Passing
+    means `tsc --strict passed`, not only a zero exit."""
     module = MODULE_NAME.match(body)
     name = module.group(1) if module else "snippet"
     with tempfile.TemporaryDirectory(prefix="glyph-docs-react-") as tmp:
@@ -284,6 +309,10 @@ def check_react(glyph: pathlib.Path, body: str) -> tuple[bool, str]:
             '{ "name": "docsnippet-react", "private": true, "type": "module", "glyph": {} }\n'
         )
         (d / "node_modules").symlink_to(REACT_MODULES, target_is_directory=True)
+        for sib_name, sib_body in (siblings or {}).items():
+            (d / f"{sib_name}.glyph").write_text(
+                sib_body if sib_body.endswith("\n") else sib_body + "\n"
+            )
         (d / f"{name}.glyph").write_text(body if body.endswith("\n") else body + "\n")
         r = subprocess.run([str(glyph), "check", "."], capture_output=True, text=True, cwd=d)
         out = (r.stdout + r.stderr).strip()
@@ -310,6 +339,9 @@ def main() -> int:
         blocks, unmarked = snippets(path)
         fragments += len(unmarked)
         examples = {arg: body for _, body, kind, arg in blocks if kind == "example"}
+        # Modules declared by this document's `needs-react` fences so far, which
+        # a later `needs-react` fence may import as siblings.
+        react_siblings: dict[str, str] = {}
 
         for line, _ in unmarked:
             if not strict:
@@ -332,16 +364,21 @@ def main() -> int:
                         f"{where} — marked `needs-deps`, but it imports nothing outside `std/`\n"
                         f"    and declares no `component`. Drop the marker: this snippet compiles here."
                     )
-                elif needs_only_react(body):
+                elif needs_only_react(body, react_siblings):
                     failed += 1
                     problems.append(
-                        f"{where} — marked `needs-deps`, but React is all it needs from outside\n"
+                        f"{where} — marked `needs-deps`, but React, and siblings earlier\n"
+                        f"    `needs-react` fences in this file declare, are all it needs from outside\n"
                         f"    `std/`, and the gate has React installed. Make it a whole module and\n"
                         f"    mark it `needs-react`, so it is compiled rather than skipped."
                     )
                 continue
 
             if mark == "needs-react":
+                own = MODULE_NAME.match(body)
+                siblings = sibling_closure(body, react_siblings)
+                if own:
+                    react_siblings[own.group(1)] = body
                 if not self_contained(body):
                     failed += 1
                     problems.append(
@@ -349,15 +386,16 @@ def main() -> int:
                         f"    is nothing to compile. Give it a `module` line."
                     )
                     continue
-                if not needs_only_react(body):
+                if not needs_only_react(body, siblings):
                     failed += 1
                     problems.append(
                         f"{where} — marked `needs-react`, but "
                         + (
                             "it needs nothing outside `std/`. Drop the marker."
                             if not needs_outside_deps(body)
-                            else "it needs more than React from outside `std/`.\n"
-                            "    Mark it `needs-deps`."
+                            else "it needs more than React from outside `std/`, and\n"
+                            "    no earlier `needs-react` fence in this file declares the rest.\n"
+                            "    Declare the sibling in a fence above it, or mark it `needs-deps`."
                         )
                     )
                     continue
@@ -371,7 +409,7 @@ def main() -> int:
                     continue
                 checked += 1
                 reacted += 1
-                ok, output = check_react(glyph, body)
+                ok, output = check_react(glyph, body, siblings)
                 if not ok:
                     failed += 1
                     problems.append(
@@ -448,8 +486,9 @@ def main() -> int:
     if failed:
         print()
         print("mark a deliberately broken snippet `expect-error <CODE>`, a whole module that")
-        print("needs only React `needs-react`, one that imports another npm package or a")
-        print("sibling module `needs-deps`, and an excerpt of a whole program `fragment-of=NAME`.")
+        print("needs only React (and siblings declared by `needs-react` fences above it)")
+        print("`needs-react`, one that imports another npm package or an undeclared sibling")
+        print("`needs-deps`, and an excerpt of a whole program `fragment-of=NAME`.")
         print("Every claim is checked.")
         return 1
     return 0

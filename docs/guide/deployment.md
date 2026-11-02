@@ -88,8 +88,10 @@ TypeScript that touches Node.
 An app can also be Glyph from the entry down, with no TypeScript of its own.
 `examples/apps/todo` is one: React 18 and its hooks imported by name,
 `std/dom` for the mount point and the title, `std/storage` for saved state.
-Glyph has no top-level statements, so the entry module declares `main` and the
-page calls it:
+Glyph has no top-level statements, so the entry module declares
+`pub fn main() -> void` and the page calls it. That is not the
+`main(argv) -> number` `glyph init` writes: `glyph run` calls that one under
+node, and a page calls whatever its module script imports, with no arguments:
 
 ```html
 <div id="root"></div>
@@ -103,7 +105,10 @@ page calls it:
 glyph build . --out dist/gen && vite build --outDir dist/web
 ```
 
-Vite compiles the emitted TypeScript and bundles it with React. Only the
+Vite compiles the emitted TypeScript and bundles it with React. The whole
+page, with the two modules, the `package.json` and the install line, is
+"Running Glyph in a browser page" in [`AGENTS.md`](../../AGENTS.md#running-glyph-in-a-browser-page),
+the reference `glyph llms` prints. Only the
 modules the host table in the [stdlib reference](../reference/stdlib.md) lists
 for a page can go into the bundle; the node-only ones import `node:` builtins
 when they load.

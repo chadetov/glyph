@@ -199,15 +199,86 @@ component Results(props: { page: Page }) {
 <span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`</span></pre>
       </div>
 
+      <div class="detail">
+        <p class="block-label">How does a page start it?</p>
+        <p>
+          Glyph has no top-level statements, so the page calls an exported <code>main</code>
+          itself. The app is two modules: one holding the components, and one that mounts them
+          on <code>#root</code> through <code>std/dom</code> and react-dom's
+          <code>createRoot</code>. Event attributes are snake case (<code>on_change</code>
+          emits React's <code>onChange</code>), a handler is a lambda, and an input's text is
+          <code>e.currentTarget.value</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react">module app
+
+import react { useState }
+
+pub component App() {
+  let [name, set_name] = useState("")
+  return &lt;main&gt;
+    &lt;input value={name} on_change={fn(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;p&gt;Hello, {name}&lt;/p&gt;
+  &lt;/main&gt;
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-react">module main
+
+import react-dom/client { createRoot }
+import std/dom
+import std/console
+import std/option { Some, None }
+import app { App }
+
+pub fn main() -&gt; void {
+  match dom.element_by_id("root") {
+    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
+    None =&gt; console.error("the page has no #root element"),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">index.html, next to the two modules</span>
+<pre>&lt;div id="root"&gt;&lt;/div&gt;
+&lt;script type="module"&gt;
+  import { main } from "./dist/gen/main.ts";
+  main();
+&lt;/script&gt;</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>npx glyph build . --out dist/gen</code> checks the modules, runs
+          <code>tsc --strict</code> against React's declarations and writes TypeScript to
+          <code>dist/gen</code>. <code>npx vite build --outDir dist/web</code> then reads
+          <code>index.html</code>, follows the import and bundles it with React. This
+          <code>main</code> takes nothing and returns nothing, because the script calls it with
+          no arguments; the <code>main(argv) -&gt; number</code> that <code>glyph init</code>
+          writes is the one <code>glyph run</code> calls under node. The full walkthrough,
+          with the <code>package.json</code> and the install line, is
+          <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">running Glyph in a browser page</a>
+          in the reference <code>glyph llms</code> prints. CI builds
+          <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>
+          the same way and renders it in headless Chromium.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. <code>examples/apps/todo</code> is a whole app on React 18 that bundles with Vite and renders in a browser.</p>
+          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. Glyph does not check a member read on an array, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> payload is left to <code>tsc</code>. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in a Vite app works as <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a> describes.</p>
+          <p>Glyph's checker does not type a hook's result, so <code>set_count("x")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. Glyph does not check a member read on an array, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> payload is left to <code>tsc</code>. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">the deployment guide</a>.</p>
         </div>
       </div>
 

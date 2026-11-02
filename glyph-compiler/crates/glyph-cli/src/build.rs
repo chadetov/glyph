@@ -571,13 +571,34 @@ fn build_project_inner_with(
     // lives in `glyph-emit` beside `EmitContext`, so this is the same builder
     // every other surface that emits TypeScript uses rather than a copy that
     // can drift out of step with it.
+    //
+    // The checker's results for every module go in as well: whether a
+    // record's descriptor checks what its type claims (E0304) is decided by
+    // the emitter of the module that declares it, with that module's own
+    // resolution, and every module that imports the record reads that
+    // verdict (G210). The queries are memoized, so the per-module pass below
+    // reads the same results back.
     let parsed_all: Vec<glyph_db::ParsedModule> =
         entries.iter().map(|(_, sf)| parse_module(&db, *sf)).collect();
+    let resolved_all: Vec<glyph_db::Resolved> =
+        entries.iter().map(|(_, sf)| resolve(&db, *sf)).collect();
+    let types_all: Vec<glyph_db::Types> =
+        entries.iter().map(|(_, sf)| type_map(&db, *sf)).collect();
+    let decls_all: Vec<glyph_db::SalsaDeclTy> = entries
+        .iter()
+        .map(|(_, sf)| glyph_db::SalsaDeclTy::new(&db, *sf))
+        .collect();
     let tables = glyph_emit::ProjectTables::from_modules(
-        entries
-            .iter()
-            .zip(parsed_all.iter())
-            .map(|((module_path, _), parsed)| (module_path.as_str(), parsed.module())),
+        entries.iter().enumerate().map(|(i, (module_path, _))| glyph_emit::ProjectModule {
+            module_path: module_path.as_str(),
+            ast: parsed_all[i].module(),
+            checked: resolved_all[i].resolved().map(|resolved| glyph_emit::CheckedModule {
+                resolved,
+                types: types_all[i].type_map(),
+                decls: &decls_all[i],
+            }),
+        }),
+        db.prelude(),
     );
     let project_modules = tables.project_modules().clone();
 

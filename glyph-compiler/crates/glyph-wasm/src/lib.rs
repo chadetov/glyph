@@ -25,7 +25,7 @@
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use glyph_emit::{emit_module, NoDecls, ProjectTables};
+use glyph_emit::{emit_module, CheckedModule, NoDecls, ProjectModule, ProjectTables};
 use glyph_lexer::Span;
 use glyph_resolver::{
     build_prelude, collect_module_symbols, module_lints, path_key, resolve_module, verify_imports,
@@ -177,7 +177,18 @@ fn compile_inner(source: &str) -> CompileOutput {
     // emitter grows from reaching one surface and not the other; it does not
     // conjure the sibling sources this surface does not hold, which is what
     // `assumed_external_imports` above exists to say out loud.
-    let tables = ProjectTables::from_modules([(PLAYGROUND_MODULE_PATH, Some(&module))]);
+    let tables = ProjectTables::from_modules(
+        [ProjectModule {
+            module_path: PLAYGROUND_MODULE_PATH,
+            ast: Some(&module),
+            checked: Some(CheckedModule {
+                resolved: &resolved,
+                types: &types,
+                decls: &NoDecls,
+            }),
+        }],
+        &prelude,
+    );
 
     // Emit best-effort: the playground shows the TypeScript even when later-phase
     // diagnostics exist (it is what the writer is iterating toward). A genuine

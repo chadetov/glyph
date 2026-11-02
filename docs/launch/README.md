@@ -13,8 +13,15 @@ outreach are done by hand; nothing here is published by a workflow.
 The rules these drafts follow:
 
 - What Glyph catches is shown with the programs in [`catches/`](../../catches/),
-  which `scripts/check_catches.py` runs both ways in CI. If a case is removed
-  there, it comes out of these drafts too.
+  which `scripts/check_catches.py` runs both ways in CI. There are five, and
+  the announcement shows all five with the diagnostic each one draws. If a case
+  is removed there, it comes out of these drafts too.
+- Where TypeScript can get a check through a flag or a lint rule
+  (`noUncheckedIndexedAccess`, typescript-eslint's `switch-exhaustiveness-check`,
+  `assertNever`), the drafts say so. The claim is that Glyph's checks cannot be
+  turned off, not that TypeScript has no way to get them.
+- The playground (https://glyphlang.io/playground/) is linked as a one-file
+  demo. It does not run `tsc`, and the drafts say that wherever they link it.
 - The productivity hypothesis is described as unmeasured. No speedup figure
   appears anywhere.
 - Every number comes from a file or a command. Before posting, re-read the

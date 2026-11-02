@@ -18,9 +18,14 @@ program written twice: TypeScript that `tsc --strict` accepts, and the same
 program in Glyph, which the compiler refuses. A script,
 `scripts/check_catches.py`, runs both halves on every CI build. If the
 TypeScript ever stops compiling, or the Glyph ever stops failing with the code
-the case names, the build goes red. There are nine cases. Here are four of them.
+the case names, the build goes red. There are five cases, and they are all
+below.
 
-### A misspelled key on a map
+None of this means TypeScript has no way to get these checks. Some of them are
+a compiler flag or a lint rule away, and I say which. The difference is that in
+Glyph they are not something a project opts into, and they cannot be turned off.
+
+### A key that may not be there
 
 ```ts
 // tsc --strict: no errors
@@ -45,6 +50,11 @@ pub fn name_of(row: Record<string, string>) -> string {
    Help: Use `record.get(map, "key")`, which returns `Option<V>` so the absent
          case has somewhere to go. `record.has` tests for the key alone.
 ```
+
+The typo makes the example easy to read, but it is not what Glyph objects to.
+The correctly spelled `row.name` gets the same E0224, because a map says nothing
+about which keys it holds. TypeScript's `noUncheckedIndexedAccess` catches this
+too. It is not part of `--strict`, so a project has to know to turn it on.
 
 ### Splitting a string into two names
 
@@ -77,7 +87,107 @@ pub fn describe(s: string) -> string {
          arm: `match xs { [a, b] => ..., else => ... }`.
 ```
 
-### A field read off a value nobody checked
+This one survives `noUncheckedIndexedAccess`: with the flag on, `host` becomes
+`string | undefined` and the template literal still accepts it.
+
+### A case added to a union
+
+```ts
+// tsc --strict: no errors
+export type Status = "todo" | "doing" | "done" | "archived";
+
+export function announce(s: Status): void {
+  switch (s) {
+    case "todo":
+      console.log("not started");
+      break;
+    case "doing":
+      console.log("in progress");
+      break;
+    case "done":
+      console.log("finished");
+      break;
+  }
+}
+```
+
+`"archived"` was added to `Status` and this handler was not updated. For that
+value it does nothing, and nothing says so. A `switch` that returns a value from
+each case would be caught, because falling off the end of a function declared
+to return `string` is TS2366. A handler that logs, or updates a map, or
+dispatches, has no return value to miss, and that is the shape event handlers
+and reducers take. In Glyph, `match` is the only conditional, and it has to
+cover every case wherever it appears:
+
+```glyph expect-error E0200
+module m
+
+pub type Status = "todo" | "doing" | "done" | "archived"
+
+pub fn announce(s: Status) {
+  match s {
+    "todo" => print("not started"),
+    "doing" => print("in progress"),
+    "done" => print("finished"),
+  }
+}
+```
+
+```text
+[E0200] Error: typecheck: non-exhaustive match on `"todo" | "doing" | "done" | "archived"`: missing variants "archived"
+```
+
+typescript-eslint's `switch-exhaustiveness-check` rule catches the TypeScript
+version, and so does an `assertNever(s)` in a `default` branch, in a project
+that uses them.
+
+### A validator that never checked the socket
+
+```ts
+// tsc --strict: no errors
+import type { Socket } from "net";
+
+export type Conn = { id: number; sock: Socket };
+
+export function isConn(value: unknown): value is Conn {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Record<string, unknown>).id === "number" &&
+    (value as Record<string, unknown>).sock !== undefined
+  );
+}
+```
+
+A type guard is a promise the compiler takes on trust. This one checks that
+`sock` exists and says the value is a `Conn`, so a caller gets a `Socket` that
+may be a string. In Glyph every record gets a generated `parse`, and the
+compiler refuses to generate one it cannot honour:
+
+```glyph expect-error E0304
+module m
+
+import net { Socket }
+
+pub type Conn = {
+  id: number,
+  sock: Socket,
+}
+
+pub fn take(v: unknown) -> Result<Conn, Array<Issue>> {
+  return Conn.parse(v)
+}
+```
+
+```text
+[E0304] Error: emit: cannot validate `Conn`: field `sock` has type `Socket`, which has no runtime check
+   Help: Split the wire type from the domain type: parse a record whose fields
+         are all checkable, then build this one from it.
+```
+
+Holding a socket in a record is fine. Claiming to have validated one is not.
+
+### A parsed body nobody checked
 
 ```ts
 // tsc --strict: no errors
@@ -91,87 +201,46 @@ export function emailOf(body: string): string {
 
 `JSON.parse` returns `any`, and the annotation on `user` turns it into a `User`
 without checking anything. Most boundary code in a TypeScript service looks like
-this. Glyph has no `any` and no cast, so an untrusted value stays `unknown` until
-it is validated, and there is no way to write the read above:
+this, and no flag changes it. The same line in Glyph:
 
 ```glyph
-pub fn email_of(body: unknown) -> string {
-  return body.email
+pub fn email_of(body: string) -> string {
+  let user: User = json.parse(body)
+  return user.email
 }
 ```
 
-This one is refused by `tsc` running over the emitted TypeScript
-(`TS18046: 'body' is of type 'unknown'`), with the error mapped back to the
-Glyph line. A type declared in Glyph gets a runtime validator, so the way
-through is `User.parse(body)`, which returns a `Result` you have to match on:
+```text
+[TS2322] Error: tsc: Type 'Result<unknown, Issue[]>' is not assignable to type 'User'.
+```
+
+Glyph's `json.parse` returns a `Result`, so there is no way to get a `User` out
+of it without matching on it, and with a type argument it validates the body
+first. This one is refused by `tsc`, not by Glyph. `glyph build` type-checks the
+TypeScript it emits and maps the error back to the Glyph line, and that check is
+what catches it today. Glyph's own checker misses it, so `glyph check --no-tsc`
+and the editor say nothing; that is gap G289. The way through looks like this:
 
 ```glyph
 module m
+
+import std/json
 
 pub type User = {
   id: number,
   email: string,
 }
 
-pub fn email_of(body: unknown) -> string {
-  return match User.parse(body) {
+pub fn email_of(body: string) -> string {
+  return match json.parse<User>(body) {
     Ok(user) => user.email,
     Err(_) => "",
   }
 }
 ```
 
-### A case added to a union
-
-Glyph's `match` has to cover every case of the union it matches on:
-
-```glyph expect-error E0200
-module m
-
-pub type Status = "todo" | "doing" | "done" | "archived"
-
-pub fn label(s: Status) -> string {
-  return match s {
-    "todo" => "not started",
-    "doing" => "in progress",
-    "done" => "finished",
-  }
-}
-```
-
-```text
-[E0200] Error: typecheck: non-exhaustive match on `"todo" | "doing" | "done" | "archived"`: missing variants "archived"
-```
-
-TypeScript does catch the simplest version of this. A `switch` that falls off
-the end of a function declared to return `string` is TS2366, and the TypeScript
-half of this case in `catches/` needs a cast on its last line to get past that,
-which is something I should fix in the case. The form `tsc` does not catch is a
-switch that assigns or calls instead of returning, which is how a lot of code is
-written:
-
-```ts
-// tsc --strict: no errors
-export function label(s: Status): string {
-  let out = "unknown";
-  switch (s) {
-    case "todo": out = "not started"; break;
-    case "doing": out = "in progress"; break;
-    case "done": out = "finished"; break;
-  }
-  return out;
-}
-```
-
-In Glyph, `match` is the only conditional, and it is exhaustive wherever it
-appears, so adding `"archived"` to `Status` stops the build at every site that
-does not handle it.
-
-The other five cases are a union imported from another module (E0200), a
-misspelled field on a record imported from another module (E0210), a validator
-that reports success for a field it never checked (E0304), a `Nullable<int>`
-passed where an `int` is declared (E0211), and a local type named `Array`
-(E0110). Run them yourself with `python3 scripts/check_catches.py`.
+Run all five with `python3 scripts/check_catches.py`. The TypeScript halves are
+checked with `@types/node` installed, since one of them imports from `net`.
 
 ## What an agent gets from the compiler
 
@@ -198,7 +267,7 @@ TypeScript agent against Glyph, same agent and prompt on both sides) is written
 down in the roadmap with every result cell still a question mark, and the
 losing run gets published along with the winning one.
 
-What exists is narrower. The nine `catches/` programs above. A token count over
+What exists is narrower. The five `catches/` programs above. A token count over
 three small functions in `benchmarks/`, where Glyph comes out slightly shorter
 than TypeScript in total and longer on one of the three; three functions are not
 a corpus and I do not lean on it. And 32 applications under `examples/apps/`,
@@ -258,7 +327,9 @@ cd hello && npm install && npx glyph run
 
 That prints `hello from glyph`. From there, `docs/guide/tour.md` covers the
 language in five minutes and `docs/guide/for-typescript-developers.md` maps what
-you know onto it. There is also a playground at glyphlang.io/playground.
+you know onto it. There is also a playground at
+https://glyphlang.io/playground/, which compiles one file in the browser. It
+does not run `tsc`, so the last case above does not reproduce there.
 
 The source is at github.com/chadetov/glyph, under MIT or Apache-2.0. If a
 restriction gets in your way, or the compiler accepts something it should not,

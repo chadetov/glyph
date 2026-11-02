@@ -146,11 +146,14 @@ impl<'a> Lexer<'a> {
                         b'r' => content.push('\r'),
                         b'"' => content.push('"'),
                         b'\\' => content.push('\\'),
-                        // `\$` is a literal dollar (D22): substitute the internal
-                        // marker so a literal `${` stays distinct from a `${...}`
-                        // interpolation. The parser resolves the marker back to
+                        // `\$` is a literal dollar (D22): the internal marker
+                        // before it keeps a literal `${` distinct from a `${...}`
+                        // interpolation. The parser resolves the pair back to
                         // `$` when building the AST.
-                        b'$' => content.push(crate::ESCAPED_DOLLAR),
+                        b'$' => {
+                            content.push(crate::ESCAPED_DOLLAR);
+                            content.push('$');
+                        }
                         b'u' => {
                             // \u{HEX}
                             if self.peek() != Some(b'{') {
@@ -183,15 +186,7 @@ impl<'a> Lexer<'a> {
                                 ch: 'u',
                                 offset: escape_offset,
                             })?;
-                            // Reserve the internal escaped-`$` marker so it can't
-                            // be produced by hand and collide with the mechanism.
-                            if c == crate::ESCAPED_DOLLAR {
-                                return Err(LexError::InvalidEscape {
-                                    ch: 'u',
-                                    offset: escape_offset,
-                                });
-                            }
-                            content.push(c);
+                            crate::push_literal(&mut content, c);
                         }
                         other => {
                             return Err(LexError::InvalidEscape {
@@ -210,7 +205,9 @@ impl<'a> Lexer<'a> {
                         }
                         self.advance();
                     }
-                    content.push_str(&self.source[bytes_start..self.pos]);
+                    for c in self.source[bytes_start..self.pos].chars() {
+                        crate::push_literal(&mut content, c);
+                    }
                 }
             }
         }
@@ -460,7 +457,10 @@ impl<'a> Lexer<'a> {
                 return Err(LexError::UnterminatedString { offset: start as u32 });
             };
             if ch == b'"' && self.peek_at(1) == Some(b'"') && self.peek_at(2) == Some(b'"') {
-                let content = self.source[content_start..self.pos].to_string();
+                let mut content = String::new();
+                for c in self.source[content_start..self.pos].chars() {
+                    crate::push_literal(&mut content, c);
+                }
                 self.advance();
                 self.advance();
                 self.advance(); // closing """

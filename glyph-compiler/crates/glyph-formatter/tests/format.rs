@@ -840,6 +840,29 @@ fn formatting_never_rewrites_a_comment_marker_inside_a_string_literal() {
 }
 
 #[test]
+fn a_string_in_a_type_keeps_the_escapes_it_was_written_with() {
+    // The type printer reprinted the decoded value, so `\$b` came back as `$b`
+    // and `\u{41}` as `A`. Expression strings were already copied verbatim.
+    let src = "module a\n\npub type T = \"a\\$b\" | \"e\\u{41}\" | \"q\\\"\"\n\n\
+               pub type U = extern_ts(\"import('m').\\u{41}\")\n";
+    let once = fmt(src);
+    assert!(once.contains("\"a\\$b\" | \"e\\u{41}\" | \"q\\\"\""), "{once}");
+    assert!(once.contains("extern_ts(\"import('m').\\u{41}\")"), "{once}");
+    assert_eq!(fmt(&once), once);
+}
+
+#[test]
+fn the_escape_marker_codepoint_in_a_type_survives_formatting() {
+    // Found by the format_idempotent fuzz target: a raw U+E000 in a
+    // string-literal type came back from `glyph fmt` as `$`, because the lexer
+    // used that codepoint alone to mean an escaped `\$`.
+    let src = "module a\n\npub type T = \"t\u{E000}ext\" | \"b\"\n";
+    let once = fmt(src);
+    assert!(once.contains("\"t\u{E000}ext\""), "{once}");
+    assert!(!once.contains("t$ext"), "{once}");
+}
+
+#[test]
 fn formatting_never_rewrites_a_url_inside_a_string_literal() {
     let src = "module a\n\n\
                @example f(\"see http://e.com\") // http://e.com\n\
@@ -967,22 +990,28 @@ fn literal_and_comment_stream(src: &str) -> Vec<StreamItem> {
 /// the property and a template still cannot vanish, duplicate, or reorder.
 ///
 /// A `\$` the author escaped is not an interpolation: the lexer has already
-/// rewritten it to the private-use `ESCAPED_DOLLAR` marker, so it does not match
-/// here and stays part of the compared text.
+/// put the private-use `ESCAPED_DOLLAR` marker before it, so the pair is
+/// skipped here and stays part of the compared text.
 fn blank_interpolations(value: &str) -> String {
+    let marker = glyph_lexer::ESCAPED_DOLLAR;
     let mut out = String::new();
-    let mut rest = value;
-    while let Some(open) = rest.find("${") {
-        out.push_str(&rest[..open]);
-        out.push_str("${}");
-        let after = &rest[open + 2..];
-        match after.find('}') {
-            Some(close) => rest = &after[close + 1..],
-            // Unterminated: there is nothing left that could be re-rendered.
-            None => return out,
+    let mut chars = value.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == marker {
+            // A marker pair is one escaped character, compared as written.
+            out.push(c);
+            out.extend(chars.next());
+        } else if c == '$' && chars.peek() == Some(&'{') {
+            out.push_str("${}");
+            // Skip to the closing brace; unterminated means nothing is left
+            // that could be re-rendered.
+            if !chars.by_ref().any(|c| c == '}') {
+                return out;
+            }
+        } else {
+            out.push(c);
         }
     }
-    out.push_str(rest);
     out
 }
 

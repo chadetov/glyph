@@ -794,11 +794,14 @@ fn split_template_parts(
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
-        // An escaped `\$` (written `\${`) is a literal `$`, never the start of an
-        // interpolation.
+        // The marker escapes the character after it: an escaped `\$` (written
+        // `\${`) is a literal `$`, never the start of an interpolation, and a
+        // doubled marker is the codepoint itself.
         if c == ESCAPED_DOLLAR {
-            text_buf.push('$');
-            i += 1;
+            if let Some(&escaped) = chars.get(i + 1) {
+                text_buf.push(escaped);
+            }
+            i += 2;
             continue;
         }
         if c == '$' && i + 1 < chars.len() && chars[i + 1] == '{' {

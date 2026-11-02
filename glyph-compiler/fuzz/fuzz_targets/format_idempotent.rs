@@ -55,18 +55,25 @@ fn stream(src: &str) -> Option<Vec<StreamItem>> {
 /// legitimately comes back as `"sum ${a + b}"`. Interpolated spans compare as a
 /// bare `${}`; the literal text around them is compared byte for byte.
 fn blank_interpolations(value: &str) -> String {
+    let marker = glyph_lexer::ESCAPED_DOLLAR;
     let mut out = String::new();
-    let mut rest = value;
-    while let Some(open) = rest.find("${") {
-        out.push_str(&rest[..open]);
-        out.push_str("${}");
-        let after = &rest[open + 2..];
-        match after.find('}') {
-            Some(close) => rest = &after[close + 1..],
-            None => return out,
+    let mut chars = value.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == marker {
+            // A marker pair is one escaped character, compared as written.
+            out.push(c);
+            out.extend(chars.next());
+        } else if c == '$' && chars.peek() == Some(&'{') {
+            out.push_str("${}");
+            // Skip to the closing brace; unterminated means nothing is left
+            // that could be re-rendered.
+            if !chars.by_ref().any(|c| c == '}') {
+                return out;
+            }
+        } else {
+            out.push(c);
         }
     }
-    out.push_str(rest);
     out
 }
 

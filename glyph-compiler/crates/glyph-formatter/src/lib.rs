@@ -1305,6 +1305,22 @@ impl Printer {
             .map(str::to_string)
     }
 
+    /// The source text of each string literal inside `span`, quotes included,
+    /// when there are exactly `count` of them. A string in a type keeps the
+    /// escapes it was written with, the same as one in an expression
+    /// (`string_literal`): reprinting the decoded value turned `"a\$b"` into
+    /// `"a$b"` and `"\u{41}"` into `"A"`.
+    fn string_literals_verbatim(&self, span: Span, count: usize) -> Option<Vec<String>> {
+        let text = self.verbatim(span)?;
+        let tokens = glyph_lexer::tokenize(&text).ok()?;
+        let literals: Vec<String> = tokens
+            .iter()
+            .filter(|t| matches!(t.token, glyph_lexer::Token::String(_)))
+            .map(|t| text[t.span.start as usize..t.span.end as usize].to_string())
+            .collect();
+        (literals.len() == count).then_some(literals)
+    }
+
     /// An annotation's own source text, when the parser had to splice a `//`
     /// note out of its `raw_args`; `None` otherwise.
     ///
@@ -1542,19 +1558,32 @@ impl Printer {
                     self.union_variant(v);
                 }
             }
-            TypeExpr::Extern { raw, .. } => {
-                self.push("extern_ts(\"");
-                self.push(&escape_string(raw));
-                self.push("\")");
+            TypeExpr::Extern { raw, span } => {
+                self.push("extern_ts(");
+                match self.string_literals_verbatim(*span, 1) {
+                    Some(literals) => self.push(&literals[0]),
+                    None => {
+                        self.push("\"");
+                        self.push(&escape_string(raw));
+                        self.push("\"");
+                    }
+                }
+                self.push(")");
             }
-            TypeExpr::StringLiteralUnion { values, .. } => {
+            TypeExpr::StringLiteralUnion { values, span } => {
+                let literals = self.string_literals_verbatim(*span, values.len());
                 for (i, v) in values.iter().enumerate() {
                     if i > 0 {
                         self.push(" | ");
                     }
-                    self.push("\"");
-                    self.push(&escape_string(v));
-                    self.push("\"");
+                    match &literals {
+                        Some(literals) => self.push(&literals[i]),
+                        None => {
+                            self.push("\"");
+                            self.push(&escape_string(v));
+                            self.push("\"");
+                        }
+                    }
                 }
             }
             TypeExpr::TypeOf { path, .. } => {

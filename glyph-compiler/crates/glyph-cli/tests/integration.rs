@@ -4146,6 +4146,77 @@ fn an_example_harness_that_stops_early_is_never_a_pass() {
     assert!(report.incomplete.is_some(), "{report:?}");
 }
 
+/// `npm_example_project`'s package and manifest, with a module that carries
+/// one benchmark calling through `tinypad` instead of examples.
+fn npm_bench_project(prefix: &str, index_js: &str) -> PathBuf {
+    let root = npm_example_project(prefix, "42", index_js);
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\
+         \n\
+         import tinypad { pad }\n\
+         \n\
+         pub fn bench_pad() -> string {\n\
+         \x20 return pad(\"a\", 4)\n\
+         }\n",
+    );
+    root
+}
+
+#[test]
+fn a_bench_whose_module_throws_on_load_fails() {
+    // G287: `glyph bench` read only the harness's `BENCH` lines and never its
+    // exit status, so a module that threw while loading printed
+    // `0 benchmark(s)` and exited 0. A harness that does not account for every
+    // benchmark it was given is a failed run.
+    if !js_toolchain_available() {
+        return;
+    }
+    let root = npm_bench_project(
+        "g287_crash",
+        "throw new Error(\"tinypad refuses to load\");\n",
+    );
+    let (code, stdout, stderr) = glyph_in(&root, &["bench", "{src}"]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    assert!(stderr.contains("benchmarks not run"), "{stderr}");
+    assert!(
+        stderr.contains("none of the 1 benchmark(s) ran to a verdict"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("tinypad refuses to load"), "the cause is shown:\n{stderr}");
+    assert!(!stderr.contains("0 benchmark(s)."), "never a count of zero:\n{stderr}");
+}
+
+#[test]
+fn a_bench_that_throws_when_called_fails_by_name() {
+    if !js_toolchain_available() {
+        return;
+    }
+    let root = npm_bench_project(
+        "g287_throw",
+        "exports.pad = function () { throw new Error(\"pad is broken\"); };\n",
+    );
+    let (code, stdout, stderr) = glyph_in(&root, &["bench", "{src}"]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    assert!(stderr.contains("main.bench_pad threw"), "{stderr}");
+    assert!(stderr.contains("pad is broken"), "{stderr}");
+    assert!(stderr.contains("1 of 1 benchmark(s) threw."), "{stderr}");
+}
+
+#[test]
+fn a_bench_that_runs_reports_its_benchmarks() {
+    if !js_toolchain_available() {
+        return;
+    }
+    let root = npm_bench_project("g287_ok", TINYPAD_JS);
+    let (code, stdout, stderr) = glyph_in(&root, &["bench", "{src}"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stdout.contains("main.bench_pad:"), "{stdout}");
+    assert!(stdout.contains("ns/op"), "{stdout}");
+    assert!(stderr.contains("glyph bench: 1 benchmark(s)."), "{stderr}");
+}
+
 #[test]
 fn doc_run_blocks_execute_and_assert() {
     // A ```glyph @run``` block in a @doc executes; a failing `assert` is a

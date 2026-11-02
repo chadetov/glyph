@@ -833,6 +833,23 @@ fn main() {
                         let per_sec = if *nsop > 0.0 { 1e9 / nsop } else { 0.0 };
                         println!("{name}: {nsop:.1} ns/op  ({per_sec:.0} ops/sec, {iters} iters)");
                     }
+                    for (name, detail) in &report.failures {
+                        eprintln!("glyph bench: {name} threw: {detail}");
+                    }
+                    // A harness that did not account for every benchmark is a
+                    // failed run, never a count of zero (G287).
+                    if let Some(why) = &report.incomplete {
+                        eprintln!("glyph bench: benchmarks not run: {why}");
+                        std::process::exit(1);
+                    }
+                    if !report.failures.is_empty() {
+                        eprintln!(
+                            "glyph bench: {} of {} benchmark(s) threw.",
+                            report.failures.len(),
+                            report.failures.len() + report.results.len()
+                        );
+                        std::process::exit(1);
+                    }
                     eprintln!("glyph bench: {} benchmark(s).", report.results.len());
                     std::process::exit(0);
                 }

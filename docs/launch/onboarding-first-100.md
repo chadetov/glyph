@@ -1,71 +1,119 @@
-# Onboarding the First 100 Users
+# Onboarding the first 100 users
 
-*Internal plan. Glyph is v0.1 and early. Everything here is a plan, not a result.*
+*Internal plan for after the preview announcement. Nothing here has happened
+yet.*
 
-## Why these 100 matter
+## What the first users are for
 
-The first 100 users are not a market. They are co-designers. The point of this cohort is not adoption numbers but signal: which restrictions earn their keep, which pillars actually land in practice, and where the friction is bad enough that a real user walks away. Glyph's central productivity claim — that agents write correct code faster in Glyph — is currently a hypothesis supported by structural metrics, not a measured study. This cohort is how we start to learn whether it holds, and what we got wrong.
+The first hundred people to write Glyph are a source of findings, not an
+adoption number. Most of what changed the compiler in the 0.1.x line came from
+building programs and stopping where Glyph could not express something or
+accepted something it should not have; the apps under `examples/apps/` and outside
+projects that re-test releases found more than internal review did. New users run into the same kind of gap, with programs nobody on the
+project would have thought to write. A user who sends one reproduction of
+something Glyph lets through has done more for the language than ten who install
+it and leave.
 
-Treat every one of these users as someone whose friction log changes the language. Recruit accordingly: fewer, more invested users beat a spike of curious tire-kickers who never write a second file.
+They are also the first chance to learn anything about the productivity
+hypothesis outside our own heads. That learning is anecdotal and should be
+written down as observation. It does not turn into a number.
 
-## Who we are looking for
+## Who to look for
 
-The wedge is verifiability and greppability — the two pillars that fix problems TypeScript developers feel today. So the target is not "people who like new languages." It is people who already feel the specific pain Glyph addresses:
+People who already feel the problems the `catches/` programs show:
 
-1. **TypeScript developers frustrated with agent-generated code.** The person who has watched an agent write `input as User`, ship it, and crash in production. The person who has seen an agent add a union variant and forget a `switch` case, with `tsc --strict` saying nothing. This is the sharpest match for the two demos we can show today (exhaustiveness and the missing cast escape hatch).
-2. **People building with coding agents.** Anyone wiring up agent loops, codegen pipelines, or autonomous PR bots — they have a direct stake in code that is safe for a machine to modify.
-3. **Static-typing and FP-leaning TS developers.** People who already reach for `Result`-style error handling, exhaustive matching, and "make illegal states unrepresentable." Glyph gives them as language primitives what they hand-roll.
+1. TypeScript developers reviewing agent-written code who have seen an
+   unvalidated `JSON.parse` or a `switch` with a missing case get through
+   `tsc --strict` and into production.
+2. People building with coding agents (agent loops, codegen, bots that open
+   pull requests), who care whether a machine can edit the code safely and who
+   can point an agent at `AGENTS.md` and the MCP server on day one.
+3. TypeScript developers who already hand-roll `Result` types and exhaustive
+   matching and would rather have them in the language.
 
-We are explicitly *not* chasing: people who want a general-purpose language to replace TypeScript wholesale, or people allergic to transpile-to-TS. Glyph compiles to readable TypeScript, runs anywhere TS runs, and uses any npm package — lead with that to defuse the "another language to learn" objection.
+People looking for a general replacement for TypeScript are not the target, and
+neither are people who cannot add a compile step. Glyph emits TypeScript and
+imports npm packages, so it can be adopted one module at a time, and that is the
+answer to "another language to learn".
 
 ## Where to find them
 
-Concrete channels, roughly in order of fit. Each one needs a tailored framing, not a copy-paste.
+- Show HN, using `show-hn.md`. Lead with the `catches/` pairs and the
+  playground, because a reader can check both in a minute without installing
+  anything. Say in the post that the productivity claim is unmeasured.
+- r/typescript and r/ProgrammingLanguages. The first wants the bugs Glyph
+  catches and the TypeScript delta sheet; the second wants the design
+  reasoning (no cast, errors as values, exhaustive `match`, one formatter
+  layout).
+- TypeScript and agent-tooling Discords and Slacks, as a participant answering
+  questions where the topic comes up.
+- Direct messages to people who have written publicly about agent-generated
+  bugs, each with the one `catches/` case closest to what they described.
 
-- **Show HN.** The single highest-leverage launch. Frame it honestly: a typed language that transpiles to TypeScript, built so agents can edit code safely. Lead with the two verifiability demos (a bug `tsc --strict` accepts that Glyph rejects at compile time) and the in-browser playground, because both are things a reader can verify in 60 seconds without installing anything. Be upfront that it is v0.1, that the productivity claim is a hypothesis, and that the token numbers are an approximate proxy. HN punishes overclaiming; honesty is also the better strategy here.
-- **Relevant subreddits.** r/typescript, r/programming, r/ProgrammingLanguages, and AI-coding-adjacent subs. Different subs want different angles: r/ProgrammingLanguages wants the design rationale (the four pillars, the no-cast decision, errors as values); r/typescript wants the delta sheet and the concrete bug Glyph catches.
-- **Discord/Slack communities.** TypeScript and AI-tooling Discords, agent-framework communities, and the servers around popular coding-agent projects. These are where the "agents write bad code" frustration is voiced daily; show up as a participant, not a billboard.
-- **Conference and meetup CFPs.** Submit talks on "writing code that is safe for an agent to modify" to TS, web, and AI-engineering conferences and local meetups. A CFP-driven talk forces a tight narrative and produces a recording we can reuse.
-- **Direct outreach.** Hand-pick people already posting about agent-generated-code pain and reach out individually with a link to the playground and one specific demo relevant to what they complained about. Ten thoughtful DMs beat one broadcast.
-- **Existing example programs and the playground as bait.** Every public artifact (playground link, a demo gist showing the rejected `as` cast) should be shareable on its own and link back to getting-started.
+## The path a new user takes
 
-## The onboarding path
+1. The playground at glyphlang.io/playground, no install. The first link anyone
+   gets should open a program that shows a refusal.
+2. `docs/guide/for-typescript-developers.md` for anyone who knows TypeScript,
+   then `docs/guide/tour.md`.
+3. `npx @glyphlang/glyph init hello`, `npm install`, `npx glyph run`. This
+   needs Node; `glyph doctor` reports a missing or old `tsx` or `tsc`.
+4. `docs/guide/tutorial.md` (a todo CLI) as a guided first program, then
+   something from their own work. A good first task touches the parts that
+   differ from TypeScript: a union matched exhaustively, input parsed with
+   `T.parse` instead of cast, failures returned as `Result`.
+5. For agent users: point the agent at the `AGENTS.md` that `glyph init` wrote
+   and let it use the MCP server in `.mcp.json`, then record what the agent got
+   wrong.
 
-A staircase, lowest commitment first. The goal is to get a user to "I saw Glyph reject a bug TypeScript accepted" as fast as possible, ideally before they install anything.
+The bar worth counting is a user who wrote a program of their own and got
+`glyph check` to pass.
 
-1. **Playground first (zero install).** The in-browser WebAssembly playground runs with no backend: write Glyph, see the emitted TypeScript and diagnostics instantly. First touch should almost always be a playground link, pre-loaded if possible with one of the verifiability demos so the payoff is immediate.
-2. **The TypeScript-developer delta sheet.** For anyone who writes TS, the "Glyph for TypeScript developers" guide is the bridge. It frames Glyph as the deltas from a language they already know: errors as values (`Result` + `match` + `?`), exhaustive `match`, no `any`, no cast escape hatch, one declaration form per symbol. Lead with this, not with a from-scratch language intro.
-3. **The five-minute tour and getting-started.** For users ready to read top-to-bottom.
-4. **Install via npm.** `npm install -g @glyphlang/glyph` or `npx @glyphlang/glyph`. The distribution is esbuild-style: a launcher plus per-platform prebuilt binaries, so there is no Rust toolchain to set up. The VS Code extension (with the language server: diagnostics, hover types, go-to-definition, completion, format-on-save) is the recommended editor setup.
-5. **A starter task.** Point new users at the 30-minute todo-CLI tutorial (every snippet compiles) as the guided path, then a real starter task in their own domain. The best starter task is one that exercises the wedge: define a tagged union, write an exhaustive `match`, parse untrusted input into a validated type (no `as`), and handle errors with `Result`. That is where the pillars are supposed to land, so that is where we want eyes.
+Before announcing, the outside-user run in the readiness pass walks this path cold
+and reports where it breaks. Fix what it finds first.
 
-A user who reaches "I wrote my own small program and `glyph build --check` passed" has cleared the bar that matters. Track how many get there.
+## What to collect
 
-## What feedback to collect
+A friction log from each user: short raw notes, written as they go, of every
+point where they were stuck, surprised or annoyed. Specifically:
 
-The deliverable from each user is a **friction log**: a running, low-ceremony record of every moment they got stuck, annoyed, or surprised. We provide a one-page template and ask for raw notes, not polished bug reports. Specifically, we want:
+- Programs Glyph accepted that it should have refused. These go straight into
+  the gap ledger with a reproduction, the same as an internal finding.
+- Things they could not express. The same rule applies as for the dogfood apps:
+  record the gap with the smallest program that shows it, and do not let the
+  user's workaround stand in for a fix.
+- Restrictions that got in the way (no `if`/`else`, required trailing commas,
+  no cast, one formatter layout), and whether they still objected after reading
+  why the restriction exists. The default answer to an annoying restriction is
+  better documentation, and the log is how we find out when that answer is
+  wrong.
+- Install and toolchain failures: platform, Node version, the exact output.
+- For agent users: whether the agent's code built, how many repair rounds it
+  took, which diagnostics it misread, and whether it used the MCP tools without
+  being told. Recorded as observation. Do not aggregate it into a speedup.
 
-- **Which restrictions annoy, and whether they recanted.** Glyph is deliberately stricter than TypeScript: no `if`/`else` (`match` is the only conditional), required trailing commas, one declaration form per symbol, no cast escape hatch, one fixed formatting layout. For each restriction a user hits, log: did it block them, did it merely surprise them, and after the explanation did they accept it or still want it gone? A restriction that everyone fights and no one comes to value is a candidate for re-examination. (The default response to "this is annoying" is documentation, not loosening — but the friction log is exactly how we learn when that default is wrong.)
-- **Which pillars land.** When a user says "oh, that's the point" — log which pillar triggered it. We expect the wedge (verifiability, greppability) to land hardest and the polish (abstraction, diff stability) to land later or not at all on first contact. If verifiability does *not* land — if the exhaustiveness or no-cast demos read as pedantic rather than valuable — that is the most important possible signal and we want it surfaced loudly.
-- **Where install, playground, or the toolchain broke.** Platform-specific install failures (the per-platform binary packaging is new), playground confusion, missing tsx/tsc on PATH for `glyph run`/`--check`/`--test`, the `glyph build --out` stale-file caveat. Concrete repro steps.
-- **The agent question.** For users running coding agents against Glyph: did the agent produce code that built clean? Did the typecheck-gated structured-edit RPC (`glyph/applyEdit`, which only applies an edit if the result type-checks) behave as hoped? This is the closest we get to evidence for the productivity hypothesis, but it is anecdotal — record it as observation, not proof, and never let it harden into a speedup number.
-- **What they expected Glyph to have and it did not.** Deferred typechecker features (a fuller unifier is planned for v1.1) will surface here. We do not claim Glyph catches every type error TypeScript misses — only the demonstrated ones. Mismatches between expectation and reality belong in the log.
+## Cadence
 
-Where we publish numbers, keep the caveats attached: the token counts are an approximate dependency-free proxy (not tiktoken-exact), only three functions are measured so far, and a real tokenizer would change the absolute numbers but not the ranking.
+- On first contact: a personal reply, a link chosen for what they care about,
+  and the friction-log template. One request: write something and send the raw
+  notes.
+- Weekly: triage the logs. Every accepted-but-wrong program and every
+  inexpressible thing becomes a ledger entry and gets scheduled in
+  `docs/roadmap/releases.md`, because a finding that is recorded but not
+  scheduled gets rediscovered.
+- Every ten or so users: a short internal summary of what landed and what did
+  not.
+- Anyone who got far (their own program, or an agent run against Glyph) gets a
+  conversation.
 
-## A lightweight cadence
+## Rules for anyone doing outreach
 
-The cadence is deliberately small. The bottleneck is our attention, not user volume.
-
-- **On signup / first contact:** a short personal welcome (not automated where avoidable), a playground link tailored to what they care about, the delta sheet, and the friction-log template. One ask: try the starter task and send raw notes.
-- **Weekly:** a short internal triage of every friction log received that week. Tag each item by pillar and by restriction. Watch for the same friction appearing across multiple users — that is the signal that promotes an item from "document it" to "reconsider it."
-- **Per cohort milestone (e.g. every ~10 onboarded):** a written internal summary of what landed, what annoyed, and what broke. No external numbers published unless they are honest and caveated.
-- **Direct follow-up:** for any user who got far (wrote their own program, ran an agent against it), a real conversation. These are the co-designers; treat their time as the most valuable input we have.
-
-## Guardrails for everyone doing outreach
-
-- Frame Glyph as v0.1 and early in every public touch.
-- Never state a productivity speedup. "Agents write correct code faster in Glyph" is a hypothesis these structural metrics support; it has not been measured with a real agent study. Do not invent a multiplier.
-- Token numbers are an approximate proxy, always caveated.
-- Claim only the verifiability we can demonstrate (exhaustiveness, no unsafe cast). Do not claim Glyph catches every type error TypeScript misses.
-- The repo is github.com/chadetov/glyph, licensed MIT OR Apache-2.0. Lead with the playground and the two demos, because they let a skeptic verify the claim themselves in under a minute. That self-verification is the most persuasive thing we have, and it is also the most honest.
+- Say it is a preview at 0.1.x and that releases still break programs.
+- Never state or imply a productivity speedup. The hypothesis has not been
+  tested.
+- Claim only what `catches/` demonstrates and `check_catches.py` keeps true.
+  Glyph does not catch every error TypeScript misses, and in some places it
+  catches less than `tsc` does on its own (G273), with `tsc` running in the
+  build to cover it.
+- Say plainly that values from npm are typed by `tsc`, not by Glyph's checker
+  (G257). People will find it in their first hour with React.

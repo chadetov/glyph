@@ -1,11 +1,37 @@
-# Show HN: Glyph - a statically typed language that transpiles to TypeScript, built for AI agents
+# Show HN: Glyph, a TypeScript-shaped language that rejects bugs tsc --strict accepts
 
-Glyph is a statically typed language that compiles to readable TypeScript. The bet is that the code agents (and people) struggle with most is code that type-checks but is still wrong, and code that is hard to grep and edit predictably. Glyph leans on two ideas first: verifiability (the compiler rejects whole classes of bugs `tsc --strict` lets through) and greppability (one declaration form per symbol, one canonical layout). Abstraction and stable diffs come after those. It runs anywhere TypeScript runs and can use any npm package.
+Glyph compiles to TypeScript, reads like it, and imports npm packages directly.
+I built it for codebases where agents do a lot of the editing: the compiler
+refuses a set of programs that `tsc --strict` accepts, and it answers questions
+about a program (where a union is matched, what breaks if a declaration changes)
+so an agent can ask instead of grepping.
 
-Two concrete things it catches that `tsc --strict` does not. First, exhaustive `match`: if you add a variant to a union and forget to handle it somewhere, Glyph fails the build (`E0200: non-exhaustive match on Shape: missing variants Triangle`); the equivalent TypeScript switch compiles clean and silently falls through. Second, there is no cast expression at all. `input as User` simply does not parse; to turn an `unknown` into a `User` you validate it (an is-match, or parsing against a schema) and get back a `Result` you have to handle. Errors are values (`Result` + `match` + `?`), there is no `any`, and the formatter enforces one layout so a one-line source change lands as a one-line TypeScript diff.
+A few things it refuses that `tsc --strict` accepts. `row.naem` on a
+`Record<string, string>` is typed `string` in TypeScript and returns undefined;
+in Glyph it is E0224 and you read the map with `record.get`, which returns an
+`Option`. `const [user, host] = s.split("@")` types `host` as a string that is
+undefined when there is no `@`; Glyph's destructuring `let` has to prove the
+length and refuses it (E0230). `const user: User = JSON.parse(body)` launders
+`any` into a `User`; Glyph has no `any` and no cast, so untrusted input stays
+`unknown` until `User.parse(body)` validates it. Each of these is a pair of
+programs in `catches/` in the repo, and CI runs both halves so the claim fails
+loudly if it stops being true. There are nine pairs.
 
-What works today is a full toolchain, not just a parser. The compiler is a salsa-backed Rust pipeline (lex, parse, resolve, typecheck, emit) and the emitted TypeScript is checked with `tsc --strict`; 380+ workspace tests pass. The CLI does `glyph build [--check] [--test]`, `glyph run`, `glyph fmt`, `glyph canonical`, `glyph publish`, and `glyph --explain <code>`. There is a language server (diagnostics with stable codes, hover types, go-to-definition across modules, completion, format-on-save, document and workspace symbols) including a typecheck-gated structured-edit RPC that only applies an edit if the result type-checks clean, plus a VS Code extension. It is on npm (`npm install -g @glyphlang/glyph` / `npx @glyphlang/glyph`, esbuild-style per-platform prebuilt binaries) and there is a zero-backend WebAssembly playground where you write Glyph and see the emitted TypeScript and diagnostics instantly. Docs include a five-minute tour, a "Glyph for TypeScript developers" delta sheet, and a 30-minute todo-CLI tutorial whose snippets all compile.
+What I have not done is measure whether agents produce correct code more often
+in Glyph. That is the reason the project exists and it is still a hypothesis.
+There is no speedup number anywhere because I do not have one.
 
-Honest caveats, because this is v0.1 and early. The headline thesis (agents write correct code faster in Glyph) is a hypothesis the structural properties support; it has not been measured with a real agent study, so there is no speedup number to quote. There is a rough density proxy in `benchmarks/measure.sh` over three functions where Glyph comes out around 26% fewer tokens than equivalent TypeScript while staying fully typed, but it is an approximate count, not a real tokenizer, and a real tokenizer would move the absolute numbers (not the ranking). Some typechecker work is deferred (a fuller unifier is planned for v1.1), so Glyph does not claim to catch every type error TypeScript misses, only the ones demonstrated above. A cross-language diff-size benchmark is still future work.
+Things that are not there yet. Values from npm packages are typed by `tsc` over
+the emitted TypeScript, not by Glyph's own checker, so the build catches a wrong
+argument to a library function but the editor and the MCP tools do not see it.
+The VS Code extension is not on the Marketplace. Releases are frequent and
+most recent ones are breaking in the direction of rejecting more programs, so
+pin the version. The gap ledger in `docs/dogfooding-gaps.md` lists every defect
+found so far with a reproduction; 18 of 277 are open.
 
-Repo: https://github.com/chadetov/glyph (MIT OR Apache-2.0). Playground is in `playground/` in the repo. Feedback on the language design and the agent-safety framing especially welcome.
+Try it with `npx @glyphlang/glyph init hello && cd hello && npm install && npx glyph run`,
+or in the browser at https://glyphlang.io/playground/. The current release is
+0.1.128.
+
+Repo: https://github.com/chadetov/glyph (MIT or Apache-2.0). I would like to
+hear about anything Glyph accepts that it should not.

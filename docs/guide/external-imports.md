@@ -213,7 +213,7 @@ declare module "leftpad" {
 
 `src/main.glyph`:
 
-```glyph needs-deps
+```glyph needs-npm
 module main
 
 import std/io
@@ -261,7 +261,7 @@ npm install zod
 
 `src/main.glyph`:
 
-```glyph needs-deps
+```glyph needs-npm
 module main
 
 import zod { z }
@@ -293,8 +293,16 @@ There is no `.types/zod.d.ts` and no adapter file. `glyph build` type-checks
 resolves the package for both `tsc` and the runtime). A call zod does not define
 is a real error, mapped back onto your Glyph source:
 
-```glyph
-let n = z.string().nonexistent_method()
+```glyph needs-npm expect-error TS2339
+module main
+
+import zod { z }
+
+fn main(argv: Array<string>) -> number {
+  // ZodString has no such method:
+  let n = z.string().nonexistent_method()
+  return 0
+}
 ```
 
 ```

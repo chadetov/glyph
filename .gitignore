@@ -70,6 +70,8 @@ examples/apps/*/node_modules/
 # The CI toolchain is installed from its committed lockfile; the tree it
 # produces is not committed.
 .github/ci-tools/node_modules/
+# Same for the packages the docs' `needs-npm` fences are compiled against.
+scripts/fixtures/docs-deps/node_modules/
 examples/apps/*/dist/
 
 # Output an example app writes when it is run. The sitegen app renders a site;

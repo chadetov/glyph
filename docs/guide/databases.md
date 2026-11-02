@@ -47,7 +47,7 @@ npm install pg
 npm install --save-dev @types/pg
 ```
 
-```glyph needs-deps
+```glyph needs-npm
 module main
 
 import pg { Pool }
@@ -98,7 +98,7 @@ a nullable column you want non-null downstream).
 npm install mongodb
 ```
 
-```glyph needs-deps
+```glyph needs-npm
 module main
 
 import mongodb { MongoClient }

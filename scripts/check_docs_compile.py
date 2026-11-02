@@ -44,12 +44,31 @@ checked, so none of them becomes a blanket way out:
                        same project, so a page's `app` and `main` modules are
                        compiled together, as the page builds them. A sibling
                        no earlier fence declares is still `needs-deps`.
+  needs-npm            the snippet is a whole module that needs npm packages
+                       other than React: `pg`, `mongodb`, `zod`. It is
+                       compiled in a project whose `node_modules` is the one
+                       scripts/fixtures/docs-deps installs from its lockfile,
+                       so the calls are checked against each package's real
+                       published types, and it has to pass `tsc --strict`
+                       there. A missing `node_modules` is a failure, never a
+                       skip. Node builtins the compiler's shim declares are
+                       allowed too, and so is a package an earlier ```ts fence
+                       in the same document declares with `declare module
+                       "X"`: that fence is written into the project's
+                       `.types/`, so a page that shows a hand-written
+                       declaration and then the module using it is checked as
+                       the page tells the reader to build it. It combines with
+                       `expect-error`: `needs-npm expect-error TS2339` is a
+                       module that has to draw that code against the real
+                       package.
   needs-deps           the snippet needs something no gate project supplies: an
-                       npm package other than React, a sibling module no
-                       earlier `needs-react` fence declares, or an ambient
-                       `.d.ts`. It is skipped, so it has to actually
-                       need one: a snippet whose only outside need is React is
-                       told to use `needs-react` instead.
+                       npm package the docs-deps fixture does not install, a
+                       sibling module no earlier `needs-react` fence declares,
+                       or an ambient `.d.ts` the page does not show. It is
+                       skipped, so it has to actually need one: a snippet
+                       whose only outside need is React is told to use
+                       `needs-react`, and a whole module whose outside needs
+                       the npm fixture covers is told to use `needs-npm`.
   example=NAME         a complete program, compiled like any other, and named so
                        fragments can point at it.
   fragment-of=NAME     an excerpt of the `example=NAME` in the same document.
@@ -59,6 +78,9 @@ checked, so none of them becomes a blanket way out:
 
   markdown   ```glyph expect-error E0228
   html       <pre data-check="expect-error E0228">
+
+To add a package for `needs-npm`, pin it in scripts/fixtures/docs-deps/package.json
+and regenerate the lockfile there (`npm install --package-lock-only`).
 
 Four documents are held to a stricter rule: `AGENTS.md`, its two mirrors, and
 `docs/reference/stdlib.md`. These are what `glyph llms` prints and what an agent
@@ -75,6 +97,7 @@ from.
 from __future__ import annotations
 
 import html
+import json
 import os
 import pathlib
 import re
@@ -100,6 +123,10 @@ EXPECT_ERROR = re.compile(r"\bexpect-error(?:[=\s]+(E\d{4}|TS\d{4,5}))?")
 LOCATION = re.compile(r"─\[\s*([\w/.-]+):(\d+):\d+\s*\]")
 NEEDS_DEPS = re.compile(r"\bneeds-deps\b")
 NEEDS_REACT = re.compile(r"\bneeds-react\b")
+NEEDS_NPM = re.compile(r"\bneeds-npm\b")
+# A hand-written declaration a page shows, which a later `needs-npm` fence may use.
+TS_BLOCK = re.compile(r"```ts\n(.*?)```", re.S)
+AMBIENT_MODULE = re.compile(r'declare\s+module\s+"([^"]+)"')
 EXAMPLE = re.compile(r"\bexample=([\w-]+)")
 FRAGMENT_OF = re.compile(r"\bfragment-of=([\w-]+)")
 IMPORT_PATH = re.compile(r"^\s*import\s+([\w/.@-]+)", re.M)
@@ -111,8 +138,11 @@ STRICT = ("AGENTS.md", "llms.txt", "web/llms.txt", "docs/reference/stdlib.md")
 
 def marker(info: str) -> tuple[str, str]:
     """-> (kind, argument). The argument is the code for `expect-error` and the
-    example name for `example=` / `fragment-of=`."""
+    example name for `example=` / `fragment-of=`. `needs-npm` may carry an
+    `expect-error` as well, and its argument is then that code."""
     m = EXPECT_ERROR.search(info)
+    if NEEDS_NPM.search(info):
+        return "needs-npm", (m.group(1) or "") if m else ""
     if m:
         return "expect-error", m.group(1) or ""
     if NEEDS_REACT.search(info):
@@ -197,6 +227,64 @@ def sibling_closure(body: str, siblings: dict[str, str]) -> dict[str, str]:
         out[name] = siblings[name]
         todo += [m for m in IMPORT_PATH.findall(siblings[name]) if m in siblings]
     return out
+
+# The `needs-npm` project: a committed manifest and lockfile, installed by
+# `npm ci` (CI does it next to the docs check), never committed itself.
+NPM_FIXTURE = ROOT / "scripts" / "fixtures" / "docs-deps"
+NPM_MODULES = NPM_FIXTURE / "node_modules"
+NODE_SHIM = ROOT / "glyph-compiler" / "runtime" / "glyph-node-shims.d.ts"
+
+
+def npm_packages() -> set[str]:
+    """The packages a `needs-npm` fence may import: the fixture's runtime
+    dependencies. A `@types/...` dev dependency types one of them and is not
+    itself importable."""
+    manifest = json.loads((NPM_FIXTURE / "package.json").read_text())
+    return set(manifest.get("dependencies", {}))
+
+
+def node_builtins() -> set[str]:
+    """The node builtins the compiler types out of the box, as Glyph spells
+    them. `node:fs` is not a legal Glyph path, so only the bare names count."""
+    if not NODE_SHIM.exists():
+        return set()
+    return {m for m in AMBIENT_MODULE.findall(NODE_SHIM.read_text()) if ":" not in m}
+
+
+def package_of(path: str) -> str:
+    """`zod/v4` -> `zod`, `@scope/pkg/sub` -> `@scope/pkg`."""
+    parts = path.split("/")
+    return "/".join(parts[:2]) if path.startswith("@") else parts[0]
+
+
+def npm_needs(body: str, ambient: set[str], packages: set[str], builtins: set[str]) -> tuple[list[str], list[str]]:
+    """-> (imports the `needs-npm` project supplies from npm or a shown
+    declaration, imports it does not supply). Node builtins are neither: an
+    empty project has them too."""
+    supplied, missing = [], []
+    for m in IMPORT_PATH.findall(body):
+        if m.startswith("std/") or package_of(m) in builtins:
+            continue
+        if package_of(m) in packages or m in ambient:
+            supplied.append(m)
+        else:
+            missing.append(m)
+    return supplied, missing
+
+
+def ambient_blocks(path: pathlib.Path) -> list[tuple[int, str, set[str]]]:
+    """-> [(line, body, modules declared)] for each ```ts fence in a markdown
+    document that declares an ambient module."""
+    if path.suffix not in (".md", ".txt"):
+        return []
+    text = path.read_text()
+    out = []
+    for m in TS_BLOCK.finditer(text):
+        names = set(AMBIENT_MODULE.findall(m.group(1)))
+        if names:
+            out.append((line_of(text, m.start()), m.group(1), names))
+    return out
+
 
 MODULE_HEAD = re.compile(r"\s*module\s+\w")
 IMPORT_OR_NOISE = re.compile(r"\s*(import\b|//|$)")
@@ -330,6 +418,29 @@ def check_react(
         return r.returncode == 0 and "tsc --strict passed" in out, out
 
 
+def check_npm(glyph: pathlib.Path, body: str, declarations: list[str]) -> tuple[bool, str, str]:
+    """Compile a whole module against the docs-deps fixture's `node_modules`,
+    with the page's own ambient declarations under `.types/`. -> (passed,
+    output, the file stem diagnostics name). Passing means `tsc --strict
+    passed`, not only a zero exit."""
+    module = MODULE_NAME.match(body)
+    name = module.group(1).replace("/", "_") if module else "snippet"
+    with tempfile.TemporaryDirectory(prefix="glyph-docs-npm-") as tmp:
+        d = pathlib.Path(tmp)
+        (d / "package.json").write_text(
+            '{ "name": "docsnippet-npm", "private": true, "type": "module", "glyph": {} }\n'
+        )
+        (d / "node_modules").symlink_to(NPM_MODULES, target_is_directory=True)
+        if declarations:
+            (d / ".types").mkdir()
+            for i, decl in enumerate(declarations):
+                (d / ".types" / f"page-{i}.d.ts").write_text(decl)
+        (d / f"{name}.glyph").write_text(body if body.endswith("\n") else body + "\n")
+        r = subprocess.run([str(glyph), "check", "."], capture_output=True, text=True, cwd=d)
+        out = (r.stdout + r.stderr).strip()
+        return r.returncode == 0 and "tsc --strict passed" in out, out, name
+
+
 MODULE_NAME = re.compile(r"\s*module\s+([\w/]+)")
 TSC = shutil.which("tsc") is not None
 
@@ -376,6 +487,10 @@ def main() -> int:
         REACT_MODULES / "react"
     ).is_dir()
     reacted = 0
+    npm_ready = NPM_MODULES.is_dir()
+    packages = npm_packages()
+    builtins = node_builtins()
+    npmed = 0
 
     checked = failed = fragments = opted = 0
     problems: list[str] = []
@@ -390,6 +505,8 @@ def main() -> int:
         # Modules declared by this document's `needs-react` fences so far, which
         # a later `needs-react` fence may import as siblings.
         react_siblings: dict[str, str] = {}
+        # Hand-written declarations this document shows in ```ts fences.
+        declared = ambient_blocks(path)
 
         for line, _ in unmarked:
             if not strict:
@@ -404,8 +521,13 @@ def main() -> int:
         for line, body, mark, arg in blocks:
             where = f"{rel}:{line}"
 
+            # The declarations shown above this fence, for `needs-npm`.
+            shown = [(b, names) for at, b, names in declared if at < line]
+            ambient = set().union(*(names for _, names in shown)) if shown else set()
+
             if mark == "needs-deps":
                 opted += 1
+                supplied, missing = npm_needs(body, ambient, packages, builtins)
                 if not needs_outside_deps(body):
                     failed += 1
                     problems.append(
@@ -419,6 +541,69 @@ def main() -> int:
                         f"    `needs-react` fences in this file declare, are all it needs from outside\n"
                         f"    `std/`, and the gate has React installed. Make it a whole module and\n"
                         f"    mark it `needs-react`, so it is compiled rather than skipped."
+                    )
+                elif (
+                    self_contained(body)
+                    and supplied
+                    and not missing
+                    and not COMPONENT.search(body)
+                ):
+                    failed += 1
+                    problems.append(
+                        f"{where} — marked `needs-deps`, but every package it imports is installed\n"
+                        f"    by scripts/fixtures/docs-deps or declared by a ```ts fence above it.\n"
+                        f"    Mark it `needs-npm`, so it is compiled rather than skipped."
+                    )
+                continue
+
+            if mark == "needs-npm":
+                supplied, missing = npm_needs(body, ambient, packages, builtins)
+                why = ""
+                if not self_contained(body):
+                    why = "it is not a whole module, so there is nothing to compile. Give it a `module` line."
+                elif COMPONENT.search(body) or any(REACT_PACKAGES.match(m) for m in missing):
+                    why = "it needs React, which the npm fixture does not install. Mark it `needs-react`."
+                elif missing:
+                    why = (
+                        "it imports " + ", ".join(f"`{m}`" for m in missing) + ", which\n"
+                        "    scripts/fixtures/docs-deps does not install and no ```ts fence above it\n"
+                        "    declares. Pin the package in that fixture, or mark it `needs-deps`."
+                    )
+                elif not supplied:
+                    why = "it imports no npm package. Drop the marker."
+                if why:
+                    failed += 1
+                    problems.append(f"{where} — marked `needs-npm`, but {why}")
+                    continue
+                if not npm_ready:
+                    failed += 1
+                    problems.append(
+                        f"{where} — marked `needs-npm`, and {NPM_MODULES.relative_to(ROOT)}\n"
+                        f"    is not installed. Run `npm ci` in {NPM_FIXTURE.relative_to(ROOT)} first;\n"
+                        f"    this is a failure, not a skip."
+                    )
+                    continue
+                if arg.startswith("TS") and not TSC:
+                    failed += 1
+                    problems.append(
+                        f"{where} — marked `expect-error {arg}`, a `tsc` error, and there is no\n"
+                        f"    `tsc` on PATH to raise it. Install TypeScript (CI runs `npm ci` in\n"
+                        f"    .github/ci-tools); this is a failure, not a skip."
+                    )
+                    continue
+                checked += 1
+                npmed += 1
+                used = [b for b, names in shown if names & set(supplied)]
+                ok, output, stem = check_npm(glyph, body, used)
+                if arg:
+                    problem = judge_expected(arg, body, ok, output, stem)
+                    if problem:
+                        failed += 1
+                        problems.append(f"{where} — {problem}")
+                elif not ok:
+                    failed += 1
+                    problems.append(
+                        f"{where} — snippet does not pass `tsc --strict` against the npm fixture\n{indent(output)}"
                     )
                 continue
 
@@ -521,7 +706,8 @@ def main() -> int:
 
     total = checked + fragments + opted
     print(
-        f"docs snippets: {checked} checked ({reacted} against React), {failed} failed, "
+        f"docs snippets: {checked} checked ({reacted} against React, {npmed} against npm "
+        f"packages), {failed} failed, "
         f"{fragments} fragments skipped, {opted} need deps or are excerpts "
         f"({total} blocks seen)."
     )
@@ -529,8 +715,9 @@ def main() -> int:
         print()
         print("mark a deliberately broken snippet `expect-error <CODE>`, a whole module that")
         print("needs only React (and siblings declared by `needs-react` fences above it)")
-        print("`needs-react`, one that imports another npm package or an undeclared sibling")
-        print("`needs-deps`, and an excerpt of a whole program `fragment-of=NAME`.")
+        print("`needs-react`, one that imports packages scripts/fixtures/docs-deps installs")
+        print("`needs-npm`, one that needs anything else `needs-deps`, and an excerpt of a")
+        print("whole program `fragment-of=NAME`.")
         print("Every claim is checked.")
         return 1
     return 0

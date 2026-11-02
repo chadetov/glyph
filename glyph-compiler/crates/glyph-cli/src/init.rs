@@ -129,11 +129,16 @@ pub fn greet(name: string) -> string {\n\
 \x20 return \"hello, ${name}\"\n\
 }\n";
 
-const TYPES_README: &str = "# Type declarations for modules you import\n\
+const TYPES_README: &str = "# Type declarations for packages that ship none\n\
 \n\
-Put `*.d.ts` files here to give the type-checker types for the npm packages and\n\
-Node builtins you import. Anything matching `.types/**/*.d.ts` is auto-discovered\n\
-when you build. For a worked example, see\n\
+Most imports need nothing here. An npm package that ships its own types (`zod`,\n\
+`date-fns`) or has an `@types/...` package installed (`@types/react`) is typed\n\
+from your `node_modules`: the build points `tsc` at it, and the package's own\n\
+declarations check your calls. The common Node builtins are typed out of the box.\n\
+\n\
+This directory is for a package that ships no types and has no `@types/...`.\n\
+Write a `declare module \"name\" { ... }` file for it here; anything matching\n\
+`.types/**/*.d.ts` is auto-discovered when you build. For a worked example, see\n\
 <https://github.com/chadetov/glyph/blob/main/docs/guide/external-imports.md>.\n\
 \n\
 Module declarations only. A `declare var`, `declare function` or `declare class`\n\

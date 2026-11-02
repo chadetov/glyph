@@ -2688,8 +2688,9 @@ mod tests {
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
             | Err(GenError::TypescriptUnsupported) => {
-                // Toolchain absent or incompatible (e.g. CI installs the
-                // TypeScript 7 native port); the clean-skip contract holds.
+                // Toolchain absent or incompatible: the command's clean
+                // Missing error holds, and the test skips (fails under CI).
+                crate::test_support::tool_missing("node + a supported typescript");
             }
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
@@ -2744,7 +2745,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
 
@@ -2836,7 +2837,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
 
@@ -2878,7 +2879,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
 
@@ -2923,7 +2924,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             other => panic!("expected a name collision, got {other:?}"),
         }
         let _ = std::fs::remove_dir_all(&dir);
@@ -2959,7 +2960,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
         let _ = std::fs::remove_dir_all(&dir);
@@ -2997,7 +2998,7 @@ mod tests {
                 }
                 Err(GenError::NodeMissing)
                 | Err(GenError::TypescriptMissing)
-                | Err(GenError::TypescriptUnsupported) => {}
+                | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
                 Err(e) => panic!("unexpected gen dts error for `{spec}`: {e}"),
             }
         }
@@ -3042,7 +3043,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
 
@@ -3077,7 +3078,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
 
@@ -3127,7 +3128,7 @@ mod tests {
             }
             Err(GenError::NodeMissing)
             | Err(GenError::TypescriptMissing)
-            | Err(GenError::TypescriptUnsupported) => {}
+            | Err(GenError::TypescriptUnsupported) => crate::test_support::tool_missing("node + a supported typescript"),
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }
 

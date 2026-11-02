@@ -16,6 +16,7 @@
 //! diagnostic from `glyph check --no-tsc`, and, where `tsc` is on the PATH,
 //! must still pass the full check.
 
+use glyph_cli::test_support::tsc_available;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -294,14 +295,6 @@ fn run_check(root: &Path, extra: &[&str]) -> (bool, String) {
         String::from_utf8_lossy(&out.stderr)
     );
     (out.status.success(), text)
-}
-
-fn tsc_available() -> bool {
-    Command::new("tsc")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
 }
 
 /// Not one of these draws a Glyph diagnostic. The assertion is the exit code

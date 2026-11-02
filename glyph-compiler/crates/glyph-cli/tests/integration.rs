@@ -8,6 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use glyph_cli::test_support::{js_toolchain_available, tool_missing, tsc_available};
 use glyph_cli::{build::build_project_inner, build_project};
 
 /// Build a uniquely-named temp directory rooted at the OS temp dir.
@@ -1523,7 +1524,7 @@ fn main() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("a shim reaching std failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -1602,7 +1603,7 @@ async fn main(argv: Array<string>) -> number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("server program failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -1656,7 +1657,7 @@ async fn main(argv: Array<string>) -> number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("raw-body program failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2053,7 +2054,7 @@ async fn main(argv: Array<string>) -> number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("value-position match program failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2195,7 +2196,7 @@ async fn main(argv: Array<string>) -> number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("union-typed binding program failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2258,10 +2259,10 @@ fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: `tsc` not found on PATH");
+            tool_missing("tsc");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("two-module program should build: {:?}", r.diagnostics);
@@ -2325,10 +2326,10 @@ fn work_pending_when_main_returns_still_runs() {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: `tsc` not found on PATH");
+            tool_missing("tsc");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("fixture should build: {:?}", r.diagnostics);
@@ -2441,8 +2442,8 @@ fn imported_generic_descriptor_is_rejects_bad_element_at_runtime() {
                  element (2 = good wrongly rejected, 3 = bad wrongly accepted)"
             );
         }
-        glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
-        glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
+        glyph_cli::run::RunOutcome::TsxNotFound => tool_missing("tsx"),
+        glyph_cli::run::RunOutcome::TscMissing => tool_missing("tsc"),
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("two-module `is` program should build: {:?}", r.diagnostics)
         }
@@ -2661,7 +2662,7 @@ fn rng_bool_can_be_called_with_no_argument() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("r.bool() with no argument should type-check:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2706,7 +2707,7 @@ fn main() -> void {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("new-interop program failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2763,7 +2764,7 @@ fn types_companion_package_resolves_over_the_typeless_js() {
         TscOutcome::Failed(msg) => {
             panic!("@types companion did not resolve over the typeless js:\n{msg}")
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2816,7 +2817,7 @@ fn main() -> void {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("sanitized path should pass tsc:\n{msg}"),
         TscOutcome::NotFound => {
-            eprintln!("skipping: tsc not found at check time");
+            tool_missing("tsc");
             return;
         }
     }
@@ -2849,7 +2850,7 @@ fn main() -> void {
     match check_with_tsc(&out2).expect("run tsc") {
         TscOutcome::Failed(_) => {}
         TscOutcome::Passed => panic!("a tainted value reached a Trusted sink without sanitize"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -2908,7 +2909,7 @@ fn main() -> number {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: toolchain not found at run time");
+            tool_missing("tsx or tsc");
         }
         other => panic!("refinement program did not run: {other:?}"),
     }
@@ -2997,7 +2998,7 @@ fn main() -> number {
             assert_eq!(code, 0, "boundary parse gave {code} wrong answer(s)");
         }
         glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: toolchain not found at run time");
+            tool_missing("tsx or tsc");
         }
         other => panic!("boundary-issue program did not run: {other:?}"),
     }
@@ -3045,7 +3046,7 @@ fn main() -> number {
             assert_eq!(code, 0, "bigint produced {code} wrong result(s)");
         }
         glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: toolchain not found at run time");
+            tool_missing("tsx or tsc");
         }
         other => panic!("bigint program did not run: {other:?}"),
     }
@@ -3127,7 +3128,7 @@ fn main() -> number {
             assert_eq!(code, 0, "parse_iso had {code} wrong outcome(s)");
         }
         glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: toolchain not found at run time");
+            tool_missing("tsx or tsc");
         }
         other => panic!("parse_iso program did not run: {other:?}"),
     }
@@ -3190,7 +3191,7 @@ fn main() -> number {
             assert_eq!(code, 0, "std/decimal produced {code} wrong result(s)");
         }
         glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping: toolchain not found at run time");
+            tool_missing("tsx or tsc");
         }
         other => panic!("std/decimal program did not run: {other:?}"),
     }
@@ -3268,7 +3269,7 @@ const bad: Schema<Point> = object_schema({ x: number_schema() })
                 "expected a shape/type mismatch, got:\n{msg}"
             );
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -3359,7 +3360,7 @@ const point_schema: Schema<Point> = object_schema({ x: number_schema(), y: numbe
         TscOutcome::Failed(msg) => {
             panic!("the D28 boundary cast did not reach the returns a `match` lowers to:\n{msg}")
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -3432,7 +3433,7 @@ const good: Codec<Point> = object_codec({ x: number_codec() })
         TscOutcome::Failed(msg) => {
             panic!("infer_output failed to unwrap a validator NOT named `Schema` (`Codec`):\n{msg}")
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -3581,7 +3582,7 @@ fn main(argv: Array<string>) -> number {
         TscOutcome::Failed(msg) => {
             panic!("bare node builtins did not type-check with the bundled shim:\n{msg}")
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
     // The bundled shim is written when there is no @types/node.
     assert!(
@@ -3642,7 +3643,7 @@ fn main(argv: Array<string>) -> number {
         TscOutcome::Failed(msg) => {
             panic!("Buffer byte boundary did not type-check with the bundled shim:\n{msg}")
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -3694,7 +3695,7 @@ pub async fn main(argv: Array<string>) -> number {
         TscOutcome::Failed(msg) => {
             panic!("streaming child_process.spawn did not type-check with the bundled shim:\n{msg}")
         }
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -3758,7 +3759,7 @@ export function tally(): number {
             panic!("the named ChildProcess surface did not type-check:\n{msg}")
         }
         TscOutcome::NotFound => {
-            eprintln!("skipping: tsc not found at check time");
+            tool_missing("tsc");
             return;
         }
     }
@@ -3814,7 +3815,7 @@ export function tally(): number {
         match check_with_tsc(&out).expect("run tsc") {
             TscOutcome::Passed => panic!("{label} was accepted by tsc"),
             TscOutcome::Failed(_) => {}
-            TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+            TscOutcome::NotFound => tool_missing("tsc"),
         }
     }
 }
@@ -3865,7 +3866,7 @@ pub fn main(argv: Array<string>) -> number {
             msg.contains("Signals"),
             "expected the rejection to name `Signals`, got:\n{msg}"
         ),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 
     // The names it *does* export have to keep working, or the check above would
@@ -3899,30 +3900,8 @@ export function stop(): number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("`NodeJS.Signals` did not type-check:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
-}
-
-/// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
-/// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
-/// run fail for environmental reasons, not a real defect.
-fn js_toolchain_available() -> bool {
-    fn ok(cmd: &str) -> bool {
-        std::process::Command::new(cmd)
-            .arg("--version")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
-    }
-    ok("node") && ok("tsx")
-}
-
-fn tsc_available() -> bool {
-    std::process::Command::new("tsc")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
 }
 
 #[test]
@@ -4233,7 +4212,7 @@ fn run_executes_main_and_propagates_exit_code() {
             assert_eq!(code, 7, "main's return value should be the exit code");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping run assertion: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -4282,7 +4261,7 @@ fn a_code_set_from_inside_main_survives_a_void_return() {
             assert_eq!(code, 4, "the code recorded inside `main` is the exit code");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping run assertion: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         other => panic!("expected the program to run: {other:?}"),
     }
@@ -4317,7 +4296,7 @@ fn a_main_returning_a_number_still_wins_over_an_earlier_recorded_code() {
             assert_eq!(code, 5, "the return value is the later verdict");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping run assertion: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         other => panic!("expected the program to run: {other:?}"),
     }
@@ -4350,7 +4329,7 @@ fn a_void_main_that_records_nothing_still_exits_zero() {
             assert_eq!(code, 0, "a program that records nothing exits 0");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping run assertion: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         other => panic!("expected the program to run: {other:?}"),
     }
@@ -4405,7 +4384,7 @@ export function serve(port: number): Promise<void> {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("extern http server failed tsc against the shim:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -4446,7 +4425,7 @@ fn extern_ts_module_is_imported_typed_and_preserved() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("extern program failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 
     // A rebuild must preserve the staged extern (F16: the prune pass used to
@@ -4464,7 +4443,7 @@ fn extern_ts_module_is_imported_typed_and_preserved() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Failed(_) => {}
         TscOutcome::Passed => panic!("a string passed to triple(n: number) should fail tsc"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -4541,7 +4520,7 @@ async fn main(argv: Array<string>) -> number {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping task.pool run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("task.pool program failed to build: {:?}", r.diagnostics);
@@ -4611,7 +4590,7 @@ async fn main(argv: Array<string>) -> number {
             assert_eq!(code, 0, "async thunks + task.all produced a wrong result");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping async-closure run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("async-closure program failed to build: {:?}", r.diagnostics);
@@ -4670,7 +4649,7 @@ fn main(argv: Array<string>) -> number {
             assert_eq!(code, 0, "inline-union program produced a wrong value");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping inline-union run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("inline-union program failed to build: {:?}", r.diagnostics);
@@ -4743,7 +4722,7 @@ fn main(argv: Array<string>) -> number {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping value-position-match run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!(
@@ -4816,7 +4795,7 @@ fn main(argv: Array<string>) -> number {
             assert_eq!(code, 0, "nested-literal match dispatched a case wrong");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping nested-literal run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!(
@@ -4873,7 +4852,7 @@ fn main(argv: Array<string>) -> number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("record .parse Err-as-Issue[] failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -4947,7 +4926,7 @@ fn main(argv: Array<string>) -> number {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("descriptor .parse as Result failed tsc:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -5004,7 +4983,7 @@ fn fs_make_dir_and_append_text_round_trip() {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping fs append/mkdir run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5099,10 +5078,10 @@ fn main(argv: Array<string>) -> number {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping fs read_dir run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping fs read_dir run: `tsc` not found on PATH");
+            tool_missing("tsc");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5189,10 +5168,10 @@ fn main(argv: Array<string>) -> number {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping fs error kind run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
-            eprintln!("skipping fs error kind run: `tsc` not found on PATH");
+            tool_missing("tsc");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5258,7 +5237,7 @@ fn main(argv: Array<string>) -> number {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping regex captures_all run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5335,7 +5314,7 @@ async fn main(argv: Array<string>) -> number {
             assert_eq!(code, 0, "1 = a sibling of the failing task was abandoned, 2 = the failure was reported as ok, 3 = the surviving values are wrong");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping task.pool_settled run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5407,7 +5386,7 @@ fn string_breadth_helpers_round_trip() {
             assert_eq!(code, 0, "a non-zero code names the failing assertion group");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping string breadth run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5475,7 +5454,7 @@ fn array_fold_index_of_and_flat_map() {
             assert_eq!(code, 0, "a non-zero code names the failing assertion group");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping array fold run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5586,7 +5565,7 @@ fn array_reductions_return_option_on_empty_and_first_on_ties() {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping array reductions run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5670,7 +5649,7 @@ fn a_two_binding_for_over_a_match_result_binds_a_numeric_index() {
             );
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping for-index run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -5755,7 +5734,7 @@ fn array_range_and_range_from_drive_counted_loops() {
             assert_eq!(code, 0, "a non-zero code names the failing assertion group");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping array range run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
@@ -6083,7 +6062,7 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
     {
         glyph_cli::run::RunOutcome::Ran(0) => {}
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping --no-check run assertion: tsx not found");
+            tool_missing("tsx");
         }
         other => panic!(
             "--no-check should run the program; got {}",
@@ -7908,8 +7887,8 @@ fn imported_descriptor_field_rejects_bad_data_at_runtime() {
                  not validated, 4 = the imported `where` predicate was dropped"
             );
         }
-        glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
-        glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
+        glyph_cli::run::RunOutcome::TsxNotFound => tool_missing("tsx"),
+        glyph_cli::run::RunOutcome::TscMissing => tool_missing("tsc"),
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!(
                 "two-module descriptor program should build: {:?}",
@@ -9682,7 +9661,7 @@ async fn main(argv: Array<string>) -> number {
             assert_eq!(code, 0, "async handler map dispatched the wrong answer");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
-            eprintln!("skipping async-fn-type run: `tsx` not found on PATH");
+            tool_missing("tsx");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("async handler map failed to build: {:?}", r.diagnostics);
@@ -10399,8 +10378,8 @@ fn run_accepts_a_directory_and_runs_its_main_glyph() {
         .outcome
     {
         glyph_cli::run::RunOutcome::Ran(code) => assert_eq!(code, 7),
-        glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
-        glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
+        glyph_cli::run::RunOutcome::TsxNotFound => tool_missing("tsx"),
+        glyph_cli::run::RunOutcome::TscMissing => tool_missing("tsc"),
         other => panic!("expected the directory's main.glyph to run; got {other:?}"),
     }
 }
@@ -10555,7 +10534,7 @@ fn a_nested_projects_ambient_types_survive_a_tree_build() {
     match glyph_cli::runtime::check_tree_with_tsc(&tree, &out).expect("run tsc") {
         glyph_cli::runtime::TscOutcome::Passed => {}
         glyph_cli::runtime::TscOutcome::NotFound => {
-            eprintln!("skipping: `tsc` not found on PATH");
+            tool_missing("tsc");
         }
         glyph_cli::runtime::TscOutcome::Failed(msg) => {
             panic!("the nested project's ambient types must reach its own tsc run:\n{msg}");
@@ -10683,7 +10662,7 @@ fn a_nested_projects_tsc_only_error_still_fails_the_tree_build() {
             );
         }
         glyph_cli::runtime::TscOutcome::NotFound => {
-            eprintln!("skipping: `tsc` not found on PATH");
+            tool_missing("tsc");
         }
         glyph_cli::runtime::TscOutcome::Passed => {
             panic!(
@@ -14629,7 +14608,7 @@ fn g247_the_prelude_component_type_checks_against_react_types() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("the prelude `Component` did not type-check:\n{msg}"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 
@@ -14804,7 +14783,7 @@ fn a_destructured_tuple_keeps_its_element_types_under_tsc() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("a correct destructuring failed tsc:\n{msg}"),
-        TscOutcome::NotFound => return,
+        TscOutcome::NotFound => return tool_missing("tsc"),
     }
 
     let (src, out) = destructure_project(
@@ -15104,7 +15083,7 @@ fn g254_a_dom_element_is_accepted_by_create_root() {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("createRoot(dom.Element) did not type-check:\n{msg}"),
         TscOutcome::NotFound => {
-            eprintln!("skipping: tsc not found at check time");
+            tool_missing("tsc");
             return;
         }
     }
@@ -15118,7 +15097,7 @@ fn g254_a_dom_element_is_accepted_by_create_root() {
             "the refusal is about the container type:\n{msg}"
         ),
         TscOutcome::Passed => panic!("a string passed to createRoot should fail tsc"),
-        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        TscOutcome::NotFound => tool_missing("tsc"),
     }
 }
 

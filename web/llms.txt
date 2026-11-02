@@ -1498,10 +1498,15 @@ bare name** (`http`, `fs`, `path`) — **not** `node:http` (the `:` is not a leg
 path character in a Glyph import; Node resolves the bare name to the builtin
 anyway).
 
-To give the type-checker types for an external module, drop an ambient
-declaration file under `<src>/.types/`. Anything matching
-`<src>/.types/**/*.d.ts` is auto-discovered and type-checked with your build.
-(Full guide with a worked example: `docs/guide/external-imports.md`.)
+An installed package that ships its own types (`zod`, `date-fns`) or has an
+`@types/...` package installed (`@types/react`) needs nothing else: `glyph
+build` points `tsc` at the project's `node_modules`, and the package's own
+declarations check your calls. The common Node builtins are typed out of the
+box. Only a package that ships no types and has no `@types/...` needs a
+declaration you write, as an ambient `declare module` file under
+`<src>/.types/`. Anything matching `<src>/.types/**/*.d.ts` is auto-discovered
+and type-checked with your build. (Full guide with a worked example:
+`docs/guide/external-imports.md`.)
 
 To write **whole hand-written TypeScript** a Glyph module calls (an idiom Glyph
 can't spell, a node-stream loop, a `new Promise`), put the `.ts` under
@@ -1526,19 +1531,19 @@ comes from an npm package, a `.types` ambient declaration, or `extern_ts`. A
 factory-style client (`createClient()`, `createConnection()`) needs no `new` at
 all: call it directly.
 
-Worked example:
+Worked example, for a package with no types of its own:
 
 ```
 src/
   main.glyph
   .types/
-    http.d.ts        // declare module "http" { export function createServer(...): ... }
+    leftpad.d.ts     // declare module "leftpad" { export function leftpad(s: string, width: number): string; }
 ```
 
 ```glyph needs-deps
 module main
-import http { createServer }
-// ... createServer is now typed from .types/http.d.ts
+import leftpad { leftpad }
+// ... leftpad is now typed from .types/leftpad.d.ts
 ```
 
 ## The execution model

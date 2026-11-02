@@ -29,6 +29,15 @@ fn scaffold_writes_a_runnable_starter() {
         assert!(dir.join(rel).exists(), "missing scaffolded file: {rel}");
     }
 
+    // G284: the first thing a new user read about npm imports told them to
+    // hand-write `.d.ts` files for every package. A typed package needs none.
+    let types_readme = std::fs::read_to_string(dir.join("src/.types/README.md")).unwrap();
+    assert!(
+        types_readme.contains("Most imports need nothing here")
+            && types_readme.contains("ships no types and has no `@types/...`"),
+        "the .types README must say typed packages need nothing: {types_readme}"
+    );
+
     let pkg = std::fs::read_to_string(dir.join("package.json")).unwrap();
     assert!(
         pkg.contains("\"glyph\""),

@@ -425,6 +425,84 @@ mod tests {
         );
     }
 
+    fn repo_root() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
+    }
+
+    fn glyph_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+        let mut files: Vec<_> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.extension().is_some_and(|x| x == "glyph"))
+            .collect();
+        files.sort();
+        files
+    }
+
+    #[test]
+    fn every_catch_the_playground_picker_shows_is_refused_here_with_its_code() {
+        // `scripts/gen_playground_examples.py` puts a `catches/` case in the
+        // playground's picker when its code is an `E` code and it is one
+        // module. This applies the same rule and compiles each such case
+        // through the `compile` the page calls, so a case the picker offers as
+        // a refusal is one this surface refuses, with the code the case names.
+        let catches = repo_root().join("catches");
+        let mut dirs: Vec<_> = std::fs::read_dir(&catches)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.is_dir())
+            .collect();
+        dirs.sort();
+        let mut shown = 0;
+        for d in dirs {
+            let meta = std::fs::read_to_string(d.join("case.toml")).unwrap();
+            let code = meta
+                .lines()
+                .find_map(|l| {
+                    let (k, v) = l.split_once('=')?;
+                    (k.trim() == "code").then(|| v.trim().trim_matches('"').to_string())
+                })
+                .unwrap_or_default();
+            if !code.starts_with('E') || glyph_files(&d).len() != 1 {
+                continue;
+            }
+            shown += 1;
+            let src = std::fs::read_to_string(d.join("glyph.glyph")).unwrap();
+            let v: serde_json::Value = serde_json::from_str(&compile(&src)).unwrap();
+            let refused = v["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x["code"] == code.as_str() && x["severity"] == "error");
+            assert!(
+                refused,
+                "{} should be {code} in the playground: {v}",
+                d.display()
+            );
+        }
+        assert!(shown > 0, "the picker would show no catches");
+    }
+
+    #[test]
+    fn the_playground_example_programs_compile_clean() {
+        // The plain programs in the picker are there to show what compiles, so
+        // each one must compile here without an error.
+        let files = glyph_files(&repo_root().join("playground/examples"));
+        assert!(!files.is_empty());
+        for f in files {
+            let src = std::fs::read_to_string(&f).unwrap();
+            let v: serde_json::Value = serde_json::from_str(&compile(&src)).unwrap();
+            assert!(v["ts"].is_string(), "{} emits no TS: {v}", f.display());
+            let errors: Vec<_> = v["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|x| x["severity"] == "error")
+                .collect();
+            assert!(errors.is_empty(), "{} has errors: {errors:?}", f.display());
+        }
+    }
+
     #[test]
     fn version_is_reported() {
         assert!(!version().is_empty());

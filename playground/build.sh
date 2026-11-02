@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build the playground's WebAssembly module from the Rust compiler.
 #
-# Produces playground/pkg/ (the wasm-bindgen --target web output the page loads).
+# Produces playground/pkg/ (the wasm-bindgen --target web output the page loads)
+# and playground/examples.js (the example picker, generated from catches/).
 # Requires the wasm32-unknown-unknown target and a wasm-bindgen-cli whose version
 # is exactly the `wasm-bindgen` crate pinned in crates/glyph-wasm/Cargo.toml.
 # That manifest is the only place the version is written; this script reads it
@@ -30,6 +31,10 @@ if [[ "${1:-}" == "--pin" ]]; then
   echo "$pin"
   exit 0
 fi
+
+# The example picker is read from catches/ and playground/examples/ on every
+# build, so the page cannot carry a stale copy of a case.
+python3 "$repo/scripts/gen_playground_examples.py"
 
 if ! command -v wasm-bindgen >/dev/null 2>&1; then
   echo "error: wasm-bindgen-cli is not installed. The crate pins $pin, so install that:" >&2

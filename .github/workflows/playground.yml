@@ -10,6 +10,8 @@ on:
     paths:
       - "web/**"
       - "playground/**"
+      - "catches/**"
+      - "scripts/gen_playground_examples.py"
       - "glyph-compiler/crates/glyph-wasm/**"
       - "glyph-compiler/crates/glyph-emit/**"
       - "glyph-compiler/crates/glyph-typechecker/**"
@@ -55,6 +57,7 @@ jobs:
           cp -R web/. _site/
           cp -R playground/. _site/playground/
           rm -f _site/playground/build.sh _site/playground/README.md
+          rm -rf _site/playground/examples
           echo "glyphlang.io" > _site/CNAME
           ls -R _site | head -40
 

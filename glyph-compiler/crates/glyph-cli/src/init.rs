@@ -232,10 +232,14 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
         Template::Web => ("main.glyph", WEB_GLYPH, true),
         Template::Lib => ("lib.glyph", LIB_GLYPH, false),
     };
+    // `glyph run --`, not `glyph run`: npm appends `npm start -- in.json` as
+    // `glyph run in.json`, which names `in.json` as the program to run. With
+    // the separator in the script, npm's arguments land after it and reach
+    // the program's `main(argv)` (G282).
     let start_script = if runnable {
         {
             let _ = entry_name;
-            "glyph run".to_string()
+            "glyph run --".to_string()
         }
     } else {
         "glyph build src --out dist".to_string()

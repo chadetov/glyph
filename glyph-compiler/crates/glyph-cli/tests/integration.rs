@@ -4217,6 +4217,103 @@ fn a_bench_that_runs_reports_its_benchmarks() {
     assert!(stderr.contains("glyph bench: 1 benchmark(s)."), "{stderr}");
 }
 
+/// A scaffold-shaped project (`package.json` with a `"glyph"` key, the entry
+/// at `src/main.glyph`) whose `main` prints its argv joined with `|`, plus a
+/// `good.json` beside the manifest. Returns the project root.
+fn argv_echo_project(prefix: &str) -> PathBuf {
+    let root = unique_tmp(prefix);
+    write_file(
+        &root,
+        "package.json",
+        "{ \"name\": \"g282\", \"version\": \"0.1.0\", \"private\": true, \
+         \"scripts\": { \"start\": \"glyph run --\" }, \
+         \"glyph\": { \"src\": \"src\" } }\n",
+    );
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\
+         import std/io\n\
+         import std/string\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 io.println(\"argv=\" + string.join(argv, \"|\"))\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    write_file(&root, "good.json", "{}\n");
+    root
+}
+
+/// Run the real binary with `root` as its working directory.
+fn glyph_at(root: &Path, args: &[&str]) -> (i32, String, String) {
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .args(args)
+        .current_dir(root)
+        .output()
+        .expect("spawn glyph");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+#[test]
+fn run_with_a_separator_runs_the_current_project_with_those_args() {
+    // G282: clap filled `PATH` from the first value after `--`, so
+    // `glyph run -- good.json` tried to run `good.json` and stopped at "not a
+    // `.glyph` file". Everything after `--` is the program's.
+    if !(js_toolchain_available() && tsc_available()) {
+        return;
+    }
+    let root = argv_echo_project("g282_sep");
+    let (code, stdout, stderr) = glyph_at(&root, &["run", "--", "good.json", "--verbose"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stdout.contains("argv=good.json|--verbose"), "{stdout}\n{stderr}");
+
+    // A glyph flag before the separator still binds to glyph, and one after it
+    // is the program's.
+    let (code, stdout, stderr) =
+        glyph_at(&root, &["run", "--no-tsc", "--", "good.json", "--no-tsc"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stdout.contains("argv=good.json|--no-tsc"), "{stdout}\n{stderr}");
+
+    // A path before the separator is still the path.
+    let (code, stdout, stderr) = glyph_at(&root, &["run", "--no-tsc", "src", "--", "good.json"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stdout.contains("argv=good.json"), "{stdout}\n{stderr}");
+
+    // Nothing after the separator is an empty argv.
+    let (code, stdout, stderr) = glyph_at(&root, &["run", "--no-tsc", "--"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stdout.contains("argv=\n") || stdout.trim_end().ends_with("argv="), "{stdout}");
+}
+
+#[test]
+fn run_on_a_non_glyph_path_without_a_separator_stays_an_error() {
+    // The other side of G282: without `--`, a value in `PATH` position is a
+    // path. Reading `good.json` as an argument would turn a mistyped file name
+    // into a run of something else, so it is refused, and the refusal says how
+    // to pass it to the program instead. No toolchain is needed: the refusal
+    // comes before anything is built.
+    let root = argv_echo_project("g282_nosep");
+    let (code, stdout, stderr) = glyph_at(&root, &["run", "--no-test", "good.json"]);
+    assert_eq!(code, 2, "{stdout}\n{stderr}");
+    assert!(stderr.contains("not a `.glyph` file: good.json"), "{stderr}");
+    assert!(stderr.contains("`glyph run -- good.json`"), "the refusal names the fix:\n{stderr}");
+    assert!(!stdout.contains("argv="), "nothing ran:\n{stdout}");
+
+    let (code, _stdout, stderr) = glyph_at(&root, &["run", "--no-test", "missing.json"]);
+    assert_eq!(code, 2, "{stderr}");
+    assert!(stderr.contains("does not exist: missing.json"), "{stderr}");
+    assert!(stderr.contains("`glyph run -- missing.json`"), "{stderr}");
+
+    // A missing `.glyph` file is a typo'd program, and gets no such hint.
+    let (code, _stdout, stderr) = glyph_at(&root, &["run", "--no-test", "mian.glyph"]);
+    assert_eq!(code, 2, "{stderr}");
+    assert!(!stderr.contains("glyph run --"), "{stderr}");
+}
+
 #[test]
 fn doc_run_blocks_execute_and_assert() {
     // A ```glyph @run``` block in a @doc executes; a failing `assert` is a

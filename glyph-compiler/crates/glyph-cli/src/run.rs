@@ -55,6 +55,45 @@ pub(crate) fn remove_dir_all_retry(path: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// True when the command line put `--` after `run` before any path, so what
+/// follows is the program's argument list and no path was named.
+///
+/// clap fills the optional `PATH` positional from the first value after `--`,
+/// so `glyph run -- good.json` used to read `good.json` as the program to run
+/// and refuse it as not a `.glyph` file (G282). `--` is where glyph stops
+/// reading its own arguments, the same as `cargo run -- args`; a path written
+/// after it is an argument like any other. The caller moves the value clap put
+/// in `PATH` to the front of the program's arguments and runs the current
+/// project.
+///
+/// `argv` is the whole command line, binary first. Only the tokens between the
+/// `run` subcommand and the first value decide: every flag `run` takes is a
+/// switch, so the first token that is `--` or does not start with `-` is either
+/// the separator or the path. The global `--explain` takes a value, which is
+/// skipped so a code spelled `run` is not mistaken for the subcommand.
+pub fn args_follow_separator(argv: &[std::ffi::OsString]) -> bool {
+    let mut tokens = argv.iter().skip(1).map(|t| t.to_string_lossy());
+    loop {
+        match tokens.next().as_deref() {
+            None => return false,
+            Some("run") => break,
+            Some("--explain") => {
+                tokens.next();
+            }
+            Some(_) => {}
+        }
+    }
+    for t in tokens {
+        if t == "--" {
+            return true;
+        }
+        if t == "-" || !t.starts_with('-') {
+            return false;
+        }
+    }
+    false
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum RunError {
     #[error("run target does not exist: {0}")]
@@ -503,5 +542,31 @@ mod entrypoint_tests {
             !src.contains("console.error(e);\n   process.exit(1);"),
             "process.exit must not immediately follow the write, got:\n{src}"
         );
+    }
+}
+
+#[cfg(test)]
+mod separator_tests {
+    use super::args_follow_separator;
+
+    fn argv(line: &str) -> Vec<std::ffi::OsString> {
+        line.split_whitespace().map(std::ffi::OsString::from).collect()
+    }
+
+    #[test]
+    fn a_separator_before_any_path_means_the_rest_is_the_programs() {
+        assert!(args_follow_separator(&argv("glyph run -- good.json")));
+        assert!(args_follow_separator(&argv("glyph run --no-tsc -- good.json")));
+        assert!(args_follow_separator(&argv("glyph run -- src good.json")));
+    }
+
+    #[test]
+    fn a_path_before_the_separator_is_still_the_path() {
+        assert!(!args_follow_separator(&argv("glyph run src -- --no-tsc")));
+        assert!(!args_follow_separator(&argv("glyph run app.glyph x")));
+        assert!(!args_follow_separator(&argv("glyph run good.json")));
+        assert!(!args_follow_separator(&argv("glyph run")));
+        assert!(!args_follow_separator(&argv("glyph check -- x")));
+        assert!(!args_follow_separator(&argv("glyph --explain run")));
     }
 }

@@ -44,6 +44,10 @@ fn scaffold_writes_a_runnable_starter() {
     let dev = &parsed["devDependencies"];
     assert!(dev["typescript"].is_string(), "pins typescript: {pkg}");
     assert!(dev["tsx"].is_string(), "pins tsx: {pkg}");
+    // G282: npm appends `npm start -- in.json` to the script, so the script
+    // ends in `--` for the argument to reach `main(argv)` rather than be read
+    // as the program to run.
+    assert_eq!(parsed["scripts"]["start"], "glyph run --", "{pkg}");
 
     // The generated program must compile through the real pipeline (no tsc needed
     // here; build_project_inner emits TypeScript and reports diagnostics).

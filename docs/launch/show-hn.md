@@ -30,11 +30,11 @@ argument to a library function but the editor and the MCP tools do not see it.
 The VS Code extension is not on the Marketplace. Releases are frequent and
 most recent ones are breaking in the direction of rejecting more programs, so
 pin the version. The gap ledger in `docs/dogfooding-gaps.md` lists every defect
-found so far with a reproduction; 20 of 290 are open and 8 partly fixed.
+found so far with a reproduction; 25 of 301 are open and 8 partly fixed.
 
 Try it with `npx @glyphlang/glyph init hello && cd hello && npm install && npx glyph run`,
 or in the browser at https://glyphlang.io/playground/, which compiles one file
-and does not run `tsc`. The current release is 0.1.129.
+and does not run `tsc`. The current release is 0.1.130.
 
 Repo: https://github.com/chadetov/glyph (MIT or Apache-2.0). I would like to
 hear about anything Glyph accepts that it should not.

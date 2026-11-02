@@ -4,7 +4,7 @@ Glyph is a statically typed language that compiles to TypeScript. It reads like
 TypeScript, runs wherever TypeScript runs and imports npm packages directly. The
 differences from TypeScript are few, and each one exists so that a program stays
 correct when something other than its author edits it, which these days is
-often a coding agent. The current release is 0.1.129. It is a preview: the
+often a coding agent. The current release is 0.1.130. It is a preview: the
 language is usable, there are applications written in it, and 0.1.x releases
 still reject code that compiled before.
 
@@ -303,8 +303,8 @@ pub fn f() -> number {
 ```
 
 React is the case people hit first: a state setter called with the wrong type is
-a `tsc` error underlined across the whole line, not a Glyph error at the
-argument. That is G257 in the gap ledger.
+a `tsc` error, mapped back to the argument, that the editor does not show. That
+is G257 in the gap ledger.
 
 Some other edges that are open today:
 
@@ -318,13 +318,13 @@ Some other edges that are open today:
   `--no-tsc`.
 - The VS Code extension is not on the Marketplace. You build it from
   `editors/vscode/`. Any editor with an LSP client can run `glyph lsp`.
-- Releases are frequent, and every release from 0.1.120 to 0.1.129 is marked
+- Releases are frequent, and every release from 0.1.120 to 0.1.130 is marked
   breaking, because each started rejecting programs the one before accepted. Pin the version
   (`glyph init` does) and read the release notes before upgrading.
 
 The gap ledger, `docs/dogfooding-gaps.md`, lists every defect found by building
-real programs, with a reproduction for each. At 0.1.129 it holds 290 entries, of
-which 20 are open and 8 partly fixed.
+real programs, with a reproduction for each. At 0.1.130 it holds 301 entries, of
+which 25 are open and 8 partly fixed.
 
 ## Trying it
 

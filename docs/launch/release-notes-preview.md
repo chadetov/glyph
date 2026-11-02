@@ -1,13 +1,13 @@
-# Glyph preview release notes (0.1.129)
+# Glyph preview release notes (0.1.130)
 
 Glyph is a statically typed language that compiles to TypeScript. These notes
-describe the compiler as of 0.1.129, published to npm as `@glyphlang/glyph` on
+describe the compiler as of 0.1.130, published to npm as `@glyphlang/glyph` on
 2026-11-02, for someone seeing the project for the first time. The per-release
 history is at [glyphlang.io/versions](https://glyphlang.io/versions/) and in
 [`docs/roadmap/releases.md`](../roadmap/releases.md).
 
 It is a preview. The 0.1.x line can still reject programs an earlier 0.1.x
-accepted, and every release from 0.1.120 to 0.1.129 did. Each release note says
+accepted, and every release from 0.1.120 to 0.1.130 did. Each release note says
 whether the release is breaking, established by running the previous published
 version and the new one on the same programs. `glyph init` pins the version in
 `devDependencies`.
@@ -121,7 +121,7 @@ compiler. The newest, `examples/apps/todo`, is a counter and a todo list on
 React 18 using React's own hooks; CI bundles it with Vite, renders it in
 headless Chromium and checks the text on the page.
 
-The compiler's test suite is 1926 tests at 0.1.129.
+The compiler's test suite is 1978 tests at 0.1.130.
 
 ## What has not been measured
 
@@ -142,9 +142,9 @@ Three functions are a small sample.
 - Values that come from npm packages, React included, are typed by `tsc` over
   the emitted TypeScript and not by Glyph's checker (G257). The build still
   fails on a wrong argument to a library function, with the error mapped to the
-  Glyph line, but the editor, the MCP tools and `glyph check --no-tsc` do not
-  report it, and a React state setter called with the wrong type is underlined
-  across the whole line.
+  argument in the Glyph source, but the editor, the MCP tools and `glyph check
+  --no-tsc` do not report it. A React state setter called with the wrong type
+  is the common case.
 - An object literal with a field its declared type does not have is accepted;
   `tsc` refuses it (G273).
 - A function value's parameter types are not compared, only its return type.
@@ -155,8 +155,8 @@ Three functions are a small sample.
   renders.
 - The VS Code extension is built from source in `editors/vscode/`; it is not on
   the Marketplace.
-- The gap ledger, [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md), had 290
-  entries at 0.1.129, of which 20 were open and 8 partly fixed. Each open entry has a reproduction
+- The gap ledger, [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md), had 301
+  entries at 0.1.130, of which 25 were open and 8 partly fixed. Each open entry has a reproduction
   and is scheduled in the release roadmap.
 
 ## Licence and source

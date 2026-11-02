@@ -212,7 +212,7 @@ fn type_diag(e: &glyph_typechecker::TypeError, module: &Module) -> GlyphDiagnost
     GlyphDiagnostic {
         start: e.span().start,
         end: e.span().end,
-        message: with_help(format!("{e}"), e.help()),
+        message: with_help(format!("{e}"), e.help().as_deref()),
         code: e.code().to_string(),
         // An error the checker raised while holding a declaration names it
         // itself; an annotation's span sits before the keyword the
@@ -1858,7 +1858,7 @@ fn jsx_callees(el: &JsxElement, out: &mut Callees) {
     for attr in &el.attrs {
         match attr {
             JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => expr_callees(value, out),
-            JsxAttr::String { .. } | JsxAttr::Positional { .. } => {}
+            JsxAttr::String { .. } | JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
         }
     }
     for child in &el.children {
@@ -1950,7 +1950,7 @@ fn element_jsx(el: &JsxElement, f: &mut dyn FnMut(&JsxElement)) {
     for attr in &el.attrs {
         match attr {
             JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => expr_jsx(value, f),
-            JsxAttr::String { .. } | JsxAttr::Positional { .. } => {}
+            JsxAttr::String { .. } | JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
         }
     }
     for child in &el.children {

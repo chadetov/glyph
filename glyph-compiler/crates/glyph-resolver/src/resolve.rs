@@ -675,8 +675,8 @@ impl Resolver<'_> {
         // - `<for X in={iter} ...>` — first positional attr `X` is the loop
         //   variable. `in={...}` evaluates in the *outer* scope so the
         //   iterable can't accidentally see the binding.
-        // - `<case Variant bind={X}>` — `bind={X}` introduces `X` as a binding
-        //   visible to the element's children.
+        // - `<case Pattern>` — the pattern is a `match` arm's pattern (D6), and
+        //   binds what the arm's would, visible to the element's children.
         if kind == JsxKind::For {
             if let Some(iter_expr) = find_expr_attr(&j.attrs, "in") {
                 self.walk_expr(iter_expr);
@@ -690,13 +690,13 @@ impl Resolver<'_> {
                 self.bind_local(name.clone(), span);
             }
         }
+        // `bind={x}` on a `<case>` is refused by the checker (E0231) with the
+        // pattern that replaces it. The name is still bound here, as recovery
+        // only, so the case body's uses of `x` do not each add an unbound-name
+        // error under the one that says what to write.
         if kind == JsxKind::Case {
-            if let Some(Expr::Ident {
-                name: bind_name,
-                span: bind_span,
-            }) = find_expr_attr(&j.attrs, "bind")
-            {
-                self.bind_local(bind_name.clone(), *bind_span);
+            if let Some(Expr::Ident { name, span }) = find_expr_attr(&j.attrs, "bind") {
+                self.bind_local(name.clone(), *span);
             }
         }
 
@@ -704,13 +704,16 @@ impl Resolver<'_> {
             match attr {
                 JsxAttr::String { .. } => {}
                 JsxAttr::Expr { name, value, .. } => {
-                    // Skip the directive-binding attrs already handled.
+                    // `in` is walked above, outside the loop's scope. A
+                    // `<case>`'s `bind={x}` is bound above for recovery and
+                    // refused by the checker (E0231).
                     let consumed = (kind == JsxKind::For && name.as_ref() == "in")
                         || (kind == JsxKind::Case && name.as_ref() == "bind");
                     if !consumed {
                         self.walk_expr(value);
                     }
                 }
+                JsxAttr::Pattern { pattern, .. } => self.walk_pattern(pattern),
                 JsxAttr::Positional { name, span } => {
                     if kind == JsxKind::For {
                         // Already consumed as the loop binding.

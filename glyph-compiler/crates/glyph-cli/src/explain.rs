@@ -374,7 +374,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A pattern has a type too. An object pattern destructures a record, so \
             one matched against a value that is not a record is this error: \
             `Loaded({ users })` where `Loaded` carries an `Array<string>`, in a \
-            `match` arm. Bind the value to one name instead, \
+            `match` arm or a JSX `<case>`. Bind the value to one name instead, \
             `Loaded(users)`.\n\n\
             Change the value, or the declared type, so the two agree.",
         "E0205" => "E0205: `owned` requires a resource type\n\n\
@@ -414,7 +414,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
             field of the component's props record, and one the record does not \
             declare is the same mistake in a different spelling. So does a record \
             pattern: `Loaded({ totl })` over `Loaded({ users: Array<string>, total: \
-            number })` names a field the payload does not have, in a `match` arm.\n\n\
+            number })` names a field the payload does not have, in a `match` arm \
+            or a JSX `<case>` alike.\n\n\
             Check the field name, or add the field to the type. Only a value whose \
             type resolves to a concrete record is checked; access on an \
             unknown-typed or non-record value is left alone. A record declared in \
@@ -719,6 +720,26 @@ pub fn explain(code: &str) -> Option<&'static str> {
             is proved by `tsc`: the emitted `satisfies readonly [unknown, \
             unknown]` is refused (TS1360) for an array, or for a tuple of \
             another length. That needs TypeScript 4.9 or later.",
+        "E0231" => "E0231: `bind` on a `<case>`\n\n\
+            A JSX `<case>` takes the pattern a `match` arm takes (D6), so the \
+            payload is bound by the pattern and `bind` is not an attribute of \
+            it. The rewrite depends on what the variant carries, and the error's \
+            help writes it out.\n\n\
+            A record payload: name the fields you read.\n\n\
+            Before:  <case Loaded bind={users}>\n\
+            After:   <case Loaded({ users })>\n\n\
+            One value of any other type: bind it to a name.\n\n\
+            Before:  <case Loaded bind={items}>\n\
+            After:   <case Loaded(items)>\n\n\
+            `{ users: u }` renames a field, `<case Loaded(r)>` binds a whole \
+            record payload, and a nested pattern works as it does in an arm. The \
+            bound names are typed from the payload, so a misspelled field is \
+            E0210. A case whose pattern tests a value (`<case Done({ status: 404 \
+            })>`) can fail, and does not cover its variant on its own (E0200).\n\n\
+            `bind={x}` read a field called `x` off the matched value whatever the \
+            payload was. Over a positional payload that field does not exist, so \
+            the name held `undefined` under no type at all, and nothing reported \
+            it.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1415,7 +1436,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0204",
         phase: "typechecker",
-        meaning: "Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`) in a `match` arm",
+        meaning: "Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
         fix: "Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)`",
     },
     CodeEntry {
@@ -1451,7 +1472,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {
@@ -1573,6 +1594,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A destructuring `let` that might not match (D48). Raised at parse for a pattern that tests the value (a literal, a variant, a constructor, an `is` guard), for `let owned [..]`, an annotated pattern and `const [..]`; raised at check when the length cannot be proved: a written literal of another length, an `Array<T>`, or a value that is not an array. A tuple from an npm library is proved by `tsc` through the emitted `satisfies`",
         fix: "Match an `Array<T>` with a fallback arm, `match xs { [a, b] => ..., else => ... }`; write one name or `_` per element of a literal, or end the pattern with `...rest`",
+    },
+    CodeEntry {
+        code: "E0231",
+        phase: "typechecker",
+        meaning: "`bind={x}` on a JSX `<case>`. A `<case>` takes the pattern a `match` arm takes (D6), so the payload is bound by the pattern: `<case Loaded(items)>` for one value, `<case Loaded({ users })>` for a record payload's fields. The help writes the rewrite for the variant's payload",
+        fix: "Record payload: write `<case Loaded({ users })>`; one value: write `<case Loaded(items)>`; no payload: write `<case Loading>`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

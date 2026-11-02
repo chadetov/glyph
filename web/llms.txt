@@ -484,9 +484,12 @@ component Greeting(props: { name: string }) {
 ```
 
 `<for>` names its loop variable before `in`, and takes the list and the React
-key as attributes. `<match>` takes the value, and each `<case>` names a variant.
-`bind={name}` binds the field called `name` of a variant whose payload is a
-record, so give a variant a record payload when a `<case>` reads it:
+key as attributes. `<match>` takes the value, and each `<case>` takes the
+pattern a `match` arm takes: `<case Loading>`, `<case Loaded(items)>` for one
+value, `<case Loaded({ todos })>` for the fields of a record payload. There is
+no `bind` attribute (E0231). The names are typed from the payload, so a
+misspelled field is E0210, and a case whose pattern tests a value
+(`<case Done({ status: 404 })>`) does not cover its variant by itself:
 
 ```glyph needs-deps
 type Todo = { id: number, text: string, }
@@ -498,14 +501,14 @@ component TodoList(props: { load: Load }) {
     <case Loading>
       <p>Loading...</p>
     </case>
-    <case Loaded bind={todos}>
+    <case Loaded({ todos })>
       <ul>
         <for todo in={todos} key={todo.id}>
           <li>{todo.text}</li>
         </for>
       </ul>
     </case>
-    <case Failed bind={message}>
+    <case Failed({ message })>
       <p>{message}</p>
     </case>
   </match>
@@ -1745,13 +1748,13 @@ machine-readably. The full catalogue:
 | E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
 | E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |
 | E0203 | `?` error type does not match the function's `E` (no `From` in v1) | `.map_err(...)` to line the error types up |
-| E0204 | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`) in a `match` arm | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
+| E0204 | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
 | E0205 | `owned` used on a non-`resource` type (D25) | Mark the type `resource`, or drop `owned` |
 | E0206 | `owned` resource not consumed on every path (D25) | Consume it (move to an `owned` param) on all paths |
 | E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |
 | E0208 | Non-exhaustive `match` on an array (length not covered) | Cover the length, or add a catch-all |
 | E0209 | Non-exhaustive `match` on a `bool` | Cover `true` and `false`, or add `else` |
-| E0210 | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
+| E0210 | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
 | E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name | Pass a value of the expected type |
 | E0212 | `mut` reassigns a `const` binding (D20) | Use a function-level `let` |
 | E0213 | Wrong number of call arguments | One argument per parameter |
@@ -1772,6 +1775,7 @@ machine-readably. The full catalogue:
 | E0228 | A type's name where a value is expected (`return Order { id: "a" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error | Write the value on its own (`return { id: "a" }`) and let the annotation carry the type. `Order.parse(raw)` and `Order.is(v)`, the descriptor forms, are not this error |
 | E0229 | A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable`, a function type, `unknown` (which gives the component nothing it can read) and a type parameter with no bound; a bounded type parameter and `Record<K, V>` draw nothing | Take one props record: `component Greeting(props: { name: string })`, then read `props.name`; give a type parameter a record or interface bound (`<T: HasLabel>`); a function called directly rather than rendered is an `fn` |
 | E0230 | A destructuring `let` that might not match (D48). Raised at parse for a pattern that tests the value (a literal, a variant, a constructor, an `is` guard), for `let owned [..]`, an annotated pattern and `const [..]`; raised at check when the length cannot be proved: a written literal of another length, an `Array<T>`, or a value that is not an array. A tuple from an npm library is proved by `tsc` through the emitted `satisfies` | Match an `Array<T>` with a fallback arm, `match xs { [a, b] => ..., else => ... }`; write one name or `_` per element of a literal, or end the pattern with `...rest` |
+| E0231 | `bind={x}` on a JSX `<case>`. A `<case>` takes the pattern a `match` arm takes (D6), so the payload is bound by the pattern: `<case Loaded(items)>` for one value, `<case Loaded({ users })>` for a record payload's fields. The help writes the rewrite for the variant's payload | Record payload: write `<case Loaded({ users })>`; one value: write `<case Loaded(items)>`; no payload: write `<case Loading>` |
 | E0300 | Construct not supported by the v1 TypeScript emitter | Use a supported form |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |

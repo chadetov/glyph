@@ -628,6 +628,87 @@ impl JsxElement {
     pub fn binding_span(&self) -> Option<Span> {
         self.name_segments.first().copied()
     }
+
+    /// The pattern a `<case>` matches (`Loaded(items)` in
+    /// `<case Loaded(items)>`), or `None` for an element that writes none.
+    pub fn case_pattern(&self) -> Option<&Pattern> {
+        self.attrs.iter().find_map(|a| match a {
+            JsxAttr::Pattern { pattern, .. } => Some(pattern),
+            _ => None,
+        })
+    }
+
+    /// A `<match value={v}>` element as the value-level `match` it is (D6):
+    /// one arm per `<case>` child, holding that case's pattern and, as the
+    /// arm's body, what the case renders. `None` for an element with no
+    /// `value={..}`.
+    ///
+    /// The checker and the emitter both read a JSX `match` through this, and
+    /// through nothing else, so a `<case>` is checked, bound, counted for
+    /// exhaustiveness and lowered by the code that does it for an arm. A
+    /// second path is how the two drifted before: the JSX one counted each
+    /// case as covering its variant wholesale, typed no binding, and lowered
+    /// `bind={x}` to a read of a field called `x` (G275).
+    ///
+    /// The arms reuse the case elements' spans, and the patterns are clones
+    /// that keep theirs, so every table keyed by a span (the resolver's
+    /// bindings, the checker's pattern classification) answers for them as
+    /// it does for the source. A child that is not a `<case>`, or a `<case>`
+    /// with no pattern, is not an arm; the callers report those.
+    pub fn as_value_match(&self) -> Option<Expr> {
+        let value = self.attrs.iter().find_map(|a| match a {
+            JsxAttr::Expr { name, value, .. } if name.as_ref() == "value" => Some(value),
+            _ => None,
+        })?;
+        let arms = self
+            .children
+            .iter()
+            .filter_map(|child| match child {
+                JsxChild::Element(el) if el.kind() == JsxKind::Case => {
+                    let pattern = el.case_pattern()?.clone();
+                    Some(MatchArm {
+                        pattern,
+                        body: MatchArmBody::Expr(el.case_body()),
+                        span: el.span,
+                    })
+                }
+                _ => None,
+            })
+            .collect();
+        Some(Expr::Match {
+            scrutinee: Box::new(value.clone()),
+            arms,
+            span: self.span,
+        })
+    }
+
+    /// What a `<case>` renders, as one expression: its only child when that
+    /// is an element or an `{expr}`, and otherwise a fragment holding the
+    /// children (text, several nodes, or none). Whitespace between tags is
+    /// not a child, by the JSX text rules.
+    fn case_body(&self) -> Expr {
+        let mut meaningful = self.children.iter().filter(|c| match c {
+            JsxChild::Text { content, .. } => !jsx_text_value(content).is_empty(),
+            _ => true,
+        });
+        if let (Some(only), None) = (meaningful.next(), meaningful.next()) {
+            match only {
+                JsxChild::Element(el) => return Expr::Jsx(el.clone()),
+                JsxChild::Expr(e) => return e.clone(),
+                JsxChild::Text { .. } => {}
+            }
+        }
+        Expr::Jsx(JsxElement {
+            name: Ident::from(""),
+            attrs: Vec::new(),
+            children: self.children.clone(),
+            self_closing: false,
+            name_span: self.span,
+            name_segments: Vec::new(),
+            close_name_segments: Vec::new(),
+            span: self.span,
+        })
+    }
 }
 
 /// What kind of element a JSX tag is.
@@ -699,9 +780,15 @@ pub enum JsxAttr {
         value: Expr,
         span: Span,
     },
-    /// `<case Loaded>` — `Loaded` is a positional attribute (no name, no
+    /// `<for user in={users}>` — `user` is a positional attribute (no name, no
     /// value). Allowed before any named attributes (D6).
     Positional { name: Ident, span: Span },
+    /// The pattern of a `<case>`: `Loading`, `Loaded(items)`,
+    /// `Loaded({ users, total })`. `<case>` is the one directive whose
+    /// positional attribute is a pattern, the same pattern a `match` arm
+    /// takes, `else` included (D6). Only ever the first attribute of a
+    /// `<case>`.
+    Pattern { pattern: Pattern, span: Span },
     /// `{...expr}` — spread the object `expr` into the element's props (the
     /// react-hook-form `{...register("name")}` idiom). Lowers to an object
     /// spread inside the `createElement` props.

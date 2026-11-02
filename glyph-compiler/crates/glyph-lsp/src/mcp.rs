@@ -7355,6 +7355,7 @@ fn component_elements(module: &glyph_ast::Module) -> BTreeMap<(u32, u32), Elemen
                 JsxAttr::String { span, .. }
                 | JsxAttr::Expr { span, .. }
                 | JsxAttr::Positional { span, .. }
+                | JsxAttr::Pattern { span, .. }
                 | JsxAttr::Spread { span, .. } => *span,
             };
             written = Some(match written {
@@ -7375,7 +7376,7 @@ fn component_elements(module: &glyph_ast::Module) -> BTreeMap<(u32, u32), Elemen
                     span: *span,
                 }),
                 JsxAttr::Spread { .. } => spread = true,
-                JsxAttr::Positional { .. } => {}
+                JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
             }
         }
         let children = el.children.iter().any(|c| match c {

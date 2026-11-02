@@ -14452,7 +14452,7 @@ fn g247_the_prelude_component_type_checks_against_react_types() {
          pub component Pick(props: { s: S }) -> Component {\n\
          \x20 return <match value={props.s}>\n\
          \x20   <case Idle><p>idle</p></case>\n\
-         \x20   <case Loaded bind={n}><p>{n}</p></case>\n\
+         \x20   <case Loaded({ n })><p>{n}</p></case>\n\
          \x20 </match>\n\
          }\n\
          pub component Each(props: { xs: Array<string> }) -> Component {\n\
@@ -14471,6 +14471,74 @@ fn g247_the_prelude_component_type_checks_against_react_types() {
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {}
         TscOutcome::Failed(msg) => panic!("the prelude `Component` did not type-check:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+/// D6 with `tsc` in the loop: a `<case>` takes a `match` arm's pattern and is
+/// lowered as one. A positional payload is read off `value`, a record payload's
+/// fields off the flat tag object, a whole record payload is the tag object,
+/// and a refutable case joins the arm if-chain. Each lowering has to compile
+/// under `tsc --strict`, which is where `bind` failed: it read `__v.items` off
+/// a tag object whose payload was under `value`, and tsc rejected the
+/// property (G275).
+#[test]
+fn a_jsx_case_pattern_builds_and_type_checks_against_react_types() {
+    if !tsc_available() {
+        eprintln!("skipping the case-pattern tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("case_pattern");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &root,
+        "node_modules/@types/react/package.json",
+        r#"{ "name": "@types/react", "version": "18.3.0", "types": "index.d.ts" }"#,
+    );
+    write_file(&root, "node_modules/@types/react/index.d.ts", REACT_TYPES_SUBSET);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         pub type Load =\n\
+         \x20 | Loading\n\
+         \x20 | Items(Array<string>)\n\
+         \x20 | Page({ users: Array<string>, total: number })\n\
+         \x20 | Whole({ total: number })\n\
+         pub type Resp =\n\
+         \x20 | Pending\n\
+         \x20 | Done({ status: number, body: string })\n\
+         pub component Positional(props: { s: Load }) -> Component {\n\
+         \x20 return <match value={props.s}>\n\
+         \x20   <case Loading><p>loading</p></case>\n\
+         \x20   <case Items(items)><p>{items.length}</p></case>\n\
+         \x20   <case Page({ users, total })><p>{users.length} of {total}</p></case>\n\
+         \x20   <case Whole(r)><p>{r.total}</p></case>\n\
+         \x20 </match>\n\
+         }\n\
+         pub component Refutable(props: { r: Resp }) -> Component {\n\
+         \x20 return <match value={props.r}>\n\
+         \x20   <case Pending><p>wait</p></case>\n\
+         \x20   <case Done({ status: 404 })><p>missing</p></case>\n\
+         \x20   <case Done({ body: b })><p>{b}</p></case>\n\
+         \x20 </match>\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts written");
+    assert!(ts.contains("const items = __m0.value;"), "{ts}");
+    assert!(ts.contains("React.createElement(\"p\", null, items.length)"), "{ts}");
+    assert!(ts.contains("const users = __m0.users;"), "{ts}");
+    assert!(ts.contains("const total = __m0.total;"), "{ts}");
+    assert!(ts.contains("const r = __m0;"), "{ts}");
+    assert!(ts.contains("__m0.tag === \"Done\" && __m0.status === 404"), "{ts}");
+    assert!(ts.contains("const b = __m0.body;"), "{ts}");
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("a case pattern's lowering did not type-check:\n{msg}"),
         TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }

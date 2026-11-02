@@ -79,8 +79,8 @@
 //! A `component` (D19) emits as a React function component; JSX (D6) lowers to
 //! `React.createElement(tag, props, ...children)`. The directives lower
 //! structurally: `<if>`/`<else>` → a ternary, `<for x in={xs}>` → `xs.map`,
-//! `<match value={v}>` with `<case V bind={x}>` arms → a switch-returning IIFE
-//! binding `x` to the same-named payload field.
+//! `<match value={v}>` with `<case P>` children → the expression-position
+//! `match` lowering, one arm per case with the case's pattern.
 //!
 //! Deferred, surfaced as `EmitError::Unsupported` rather than emitting invalid
 //! TS: value-position block arms, object match patterns and nested
@@ -5987,7 +5987,7 @@ impl<'a> Emitter<'a> {
                     jsx_prop_key(&react_dom_prop(name, is_intrinsic)),
                     self.expr(value)?
                 )),
-                JsxAttr::Positional { span, .. } => {
+                JsxAttr::Positional { span, .. } | JsxAttr::Pattern { span, .. } => {
                     return Err(EmitError::Unsupported {
                         construct: "a positional attribute on a non-directive JSX element",
                         span: *span,
@@ -6094,28 +6094,23 @@ impl<'a> Emitter<'a> {
         })
     }
 
-    /// Lower `<match value={v}> <case V bind={x}>..</case> .. </match>` to a
-    /// switch-returning IIFE: `((__v) => { switch (__v.tag) { case "V": {
-    /// const x = __v.x; return ..; } .. } })(v)`. A `<case Variant>` with no
-    /// `bind` returns its node directly; `bind={x}` binds `x` to the same-named
-    /// payload field (variant payloads are spread flat onto the value).
+    /// Lower `<match value={v}> <case P>..</case> .. </match>` as the
+    /// value-level `match` it is (D6): `as_value_match` makes each `<case>` an
+    /// arm holding its pattern and what it renders, and the arm lowers through
+    /// the expression-position `match` path, so a case's pattern binds and
+    /// tests exactly what the same arm would. `<case Loaded(items)>` reads the
+    /// payload, `<case Loaded({ users })>` a record payload's field, and a
+    /// refutable case joins the if-chain a refutable arm does.
     fn emit_jsx_match(&self, j: &JsxElement) -> Result<String, EmitError> {
-        let value = self.jsx_attr_expr(j, "value")?;
-        let mut cases = String::new();
         for child in &j.children {
             match child {
                 JsxChild::Text { content, .. } if glyph_ast::jsx_text_value(content).is_empty() => {}
                 JsxChild::Element(el) if el.kind() == JsxKind::Case => {
-                    let variant = first_positional(&el.attrs).ok_or(EmitError::Unsupported {
-                        construct: "a `<case>` without a variant name",
-                        span: el.span,
-                    })?;
-                    let node = self.jsx_branch_node(&el.children)?;
-                    match find_expr_attr(&el.attrs, "bind") {
-                        Some(Expr::Ident { name, .. }) => cases.push_str(&format!(
-                            "case \"{variant}\": {{ const {name} = __v.{name}; return {node}; }} "
-                        )),
-                        _ => cases.push_str(&format!("case \"{variant}\": return {node}; ")),
+                    if el.case_pattern().is_none() {
+                        return Err(EmitError::Unsupported {
+                            construct: "a `<case>` without a pattern",
+                            span: el.span,
+                        });
                     }
                 }
                 _ => {
@@ -6126,9 +6121,11 @@ impl<'a> Emitter<'a> {
                 }
             }
         }
-        Ok(format!(
-            "((__v) => {{ switch (__v.tag) {{ {cases}default: throw new Error(\"non-exhaustive match\"); }} }})({value})"
-        ))
+        let m = j.as_value_match().ok_or(EmitError::Unsupported {
+            construct: "a directive missing its required attribute",
+            span: j.span,
+        })?;
+        self.expr(&m)
     }
 
     /// Lower `<for x in={xs} key={k}>BODY</for>` to `xs.map((x) => BODY)`. When
@@ -7125,8 +7122,8 @@ fn find_expr_attr<'a>(attrs: &'a [JsxAttr], name: &str) -> Option<&'a Expr> {
     })
 }
 
-/// The name of the first positional attribute (`<case Loaded>` → `Loaded`,
-/// `<for user ...>` → `user`), if any.
+/// The name of the first positional attribute (`<for user ...>` → `user`), if
+/// any.
 fn first_positional(attrs: &[JsxAttr]) -> Option<&Ident> {
     attrs.iter().find_map(|a| match a {
         JsxAttr::Positional { name, .. } => Some(name),
@@ -10392,21 +10389,36 @@ pub fn n() -> number {\n  return 1\n}
         assert!(!ts.contains("onSelect"), "component prop remapped: {ts}");
     }
 
+    /// A `<match>` lowers through the expression-position `match` path, one
+    /// arm per `<case>`, so a case binds what the same arm binds: a record
+    /// payload's field off the flat tag object, a positional payload off
+    /// `value`, a whole record payload as the tag object itself.
     #[test]
-    fn jsx_match_lowers_to_a_switch_returning_iife() {
+    fn jsx_match_lowers_each_case_as_a_match_arm() {
         let ts = emit(
-            "module x\npub type S =\n  | Idle\n  | Loaded({ items: number })\npub component V(props: { s: S }) -> Component {\n  return <match value={props.s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded bind={items}><p>{items}</p></case>\n  </match>\n}\n",
+            "module x\npub type S =\n  | Idle\n  | Loaded({ items: number })\n  | Named(string)\n  | Whole({ a: number })\npub component V(props: { s: S }) -> Component {\n  return <match value={props.s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded({ items })><p>{items}</p></case>\n    <case Named(n)><p>{n}</p></case>\n    <case Whole(w)><p>{w.a}</p></case>\n  </match>\n}\n",
         );
-        assert!(ts.contains("((__v) => { switch (__v.tag) {"), "{ts}");
-        assert!(
-            ts.contains("case \"Idle\": return React.createElement(\"p\", null, \"idle\");"),
-            "{ts}"
+        assert!(ts.contains("const __m0 = props.s;"), "{ts}");
+        assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("case \"Idle\": {\n"), "{ts}");
+        assert!(ts.contains("return React.createElement(\"p\", null, \"idle\");"), "{ts}");
+        assert!(ts.contains("const items = __m0.items;"), "{ts}");
+        assert!(ts.contains("const n = __m0.value;"), "{ts}");
+        assert!(ts.contains("const w = __m0;"), "{ts}");
+        assert!(ts.contains("default: throw new Error(\"non-exhaustive match\");"), "{ts}");
+    }
+
+    /// A refutable case (D44) turns the lowering into the exclusive if-chain a
+    /// refutable arm does, so the second `Done` case runs when the first's
+    /// field test fails.
+    #[test]
+    fn a_refutable_jsx_case_lowers_to_the_arm_if_chain() {
+        let ts = emit(
+            "module x\npub type R =\n  | Pending\n  | Done({ status: number, body: string })\npub component V(props: { r: R }) -> Component {\n  return <match value={props.r}>\n    <case Pending><p>wait</p></case>\n    <case Done({ status: 404 })><p>missing</p></case>\n    <case Done({ body })><p>{body}</p></case>\n  </match>\n}\n",
         );
-        assert!(
-            ts.contains("case \"Loaded\": { const items = __v.items; return"),
-            "{ts}"
-        );
-        assert!(ts.contains("})(props.s)"), "{ts}");
+        assert!(ts.contains("} else if (__m0.tag === \"Done\" && __m0.status === 404) {"), "{ts}");
+        assert!(ts.contains("} else if (__m0.tag === \"Done\") {"), "{ts}");
+        assert!(ts.contains("const body = __m0.body;"), "{ts}");
     }
 
     #[test]

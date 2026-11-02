@@ -1,0 +1,16 @@
+module neg
+
+// D6. A `<case>` takes the pattern a `match` arm takes, so `bind` is not an
+// attribute of it. `bind={items}` read a field called `items` off the matched
+// value, which a positional payload does not have: the name held `undefined`.
+// Write `<case Loaded(items)>`.
+pub type Load =
+  | Loading
+  | Loaded(Array<string>)
+
+pub component List(props: { load: Load }) -> Component {
+  return <match value={props.load}>
+    <case Loading><p>loading</p></case>
+    <case Loaded bind={items}><p>{items.length}</p></case>
+  </match>
+}

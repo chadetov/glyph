@@ -6,7 +6,9 @@
 //!   directive names (`if`, `else`, `for`, `match`, `case`)
 //! - Self-closing `<name attrs />`
 //! - Closing tag `</name>`
-//! - Attributes: `name="literal"`, `name={expr}`, positional `<case Loaded>`
+//! - Attributes: `name="literal"`, `name={expr}`, positional `<for x in={xs}>`,
+//!   and the pattern a `<case>` opens with (`<case Loaded(items)>`), which is
+//!   parsed as a `match` arm's pattern
 //! - Children: nested elements, `{expr}` blocks, raw text runs reconstructed
 //!   by slicing the source string between tag boundaries
 //!
@@ -22,6 +24,7 @@ use glyph_lexer::{Span, Token};
 use crate::cursor::Cursor;
 use crate::error::ParseError;
 use crate::expr;
+use crate::pat;
 
 /// Parse a JSX element starting at `<`. Caller has verified that the next
 /// token is `LAngle` and the lookahead disambiguates JSX from comparison.
@@ -50,8 +53,16 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
 
     let (name, name_span, name_segments) = jsx_element_name(p)?;
 
-    // Parse attributes until `>` or `/>`.
+    // Parse attributes until `>` or `/>`. A `<case>` opens with the pattern
+    // it matches, the same pattern a `match` arm takes (D6).
     let mut attrs = Vec::new();
+    if name.as_ref() == "case" && starts_case_pattern(p) {
+        let pattern = pat::parse_arm_pattern(p)?;
+        attrs.push(JsxAttr::Pattern {
+            span: pattern.span(),
+            pattern,
+        });
+    }
     while !matches!(p.peek(), Token::RAngle | Token::Slash) {
         attrs.push(parse_jsx_attr(p)?);
     }
@@ -245,6 +256,20 @@ fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {
             name,
             span: name_span,
         }),
+    }
+}
+
+/// Whether a `<case>`'s first attribute is its pattern. It is unless the tag
+/// ends there or the next thing is a named attribute (`bind={x}`, `key="k"`,
+/// `data-x="1"`) or a prop spread (`{...p}`). A pattern never continues with
+/// `=` or `-` after a leading name, and an object pattern opens `{` with a
+/// field name where a spread opens it with `...`, so neither test can take
+/// a pattern for an attribute.
+fn starts_case_pattern(p: &Cursor) -> bool {
+    match p.peek() {
+        Token::RAngle | Token::Slash => false,
+        Token::LBrace => !matches!(p.peek_at(1), Some(Token::DotDotDot)),
+        _ => !matches!(p.peek_at(1), Some(Token::Equals | Token::Minus)),
     }
 }
 

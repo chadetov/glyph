@@ -1757,19 +1757,8 @@ component C() -> Component {
         }
     }
 
-    #[test]
-    fn jsx_directive_case_with_positional_attr_d6() {
-        // From 03_react_component.glyph: <case Loaded bind={users}>
-        // `Loaded` is a positional attribute, `bind={users}` is named.
-        let src = r#"module x
-component C() -> Component {
-  return <match value={state}>
-    <case Loaded bind={users}>
-      <p>ok</p>
-    </case>
-  </match>
-}
-"#;
+    /// The `<case>` elements of the one `<match>` a component returns.
+    fn case_elements(src: &str) -> Vec<glyph_ast::JsxElement> {
         let m = parse_or_panic(src);
         let c = match &m.items[0] {
             glyph_ast::Decl::Component(c) => c,
@@ -1784,14 +1773,82 @@ component C() -> Component {
             _ => panic!(),
         };
         assert_eq!(outer.name.as_ref(), "match");
-        let case_elem = match &outer.children[0] {
-            glyph_ast::JsxChild::Element(j) => j,
-            other => panic!("expected Element, got {other:?}"),
-        };
-        assert_eq!(case_elem.name.as_ref(), "case");
-        assert_eq!(case_elem.attrs.len(), 2);
-        assert!(matches!(case_elem.attrs[0], glyph_ast::JsxAttr::Positional { .. }));
-        assert!(matches!(case_elem.attrs[1], glyph_ast::JsxAttr::Expr { .. }));
+        outer
+            .children
+            .iter()
+            .filter_map(|ch| match ch {
+                glyph_ast::JsxChild::Element(j) => Some(j.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// D6: a `<case>` opens with the pattern a `match` arm takes, parsed by
+    /// the arm's own pattern parser, so every arm shape is a case shape.
+    #[test]
+    fn jsx_case_takes_a_match_arm_pattern_d6() {
+        let src = r#"module x
+component C() -> Component {
+  return <match value={state}>
+    <case Loading><p>a</p></case>
+    <case Loaded(items)><p>b</p></case>
+    <case Page({ users, total: t, pos: { x, y } })><p>c</p></case>
+    <case Done({ status: 404 })><p>d</p></case>
+    <case feed.Idle><p>e</p></case>
+    <case else><p>f</p></case>
+  </match>
+}
+"#;
+        let cases = case_elements(src);
+        assert_eq!(cases.len(), 6);
+        for case in &cases {
+            assert_eq!(case.name.as_ref(), "case");
+            assert_eq!(case.attrs.len(), 1, "{case:?}");
+            assert!(matches!(case.attrs[0], glyph_ast::JsxAttr::Pattern { .. }));
+        }
+        let p = |i: usize| cases[i].case_pattern().expect("a pattern");
+        assert!(matches!(p(0), glyph_ast::Pattern::Ident { name, .. } if name.as_ref() == "Loading"));
+        match p(1) {
+            glyph_ast::Pattern::Constructor { path, args, .. } => {
+                assert_eq!(path[0].as_ref(), "Loaded");
+                assert!(matches!(&args[..], [glyph_ast::Pattern::Ident { name, .. }] if name.as_ref() == "items"));
+            }
+            other => panic!("expected a constructor pattern, got {other:?}"),
+        }
+        match p(2) {
+            glyph_ast::Pattern::Constructor { args, .. } => match &args[..] {
+                [glyph_ast::Pattern::Object { fields, .. }] => {
+                    let keys: Vec<&str> = fields.iter().map(|f| f.key.as_ref()).collect();
+                    assert_eq!(keys, ["users", "total", "pos"]);
+                }
+                other => panic!("expected an object pattern, got {other:?}"),
+            },
+            other => panic!("expected a constructor pattern, got {other:?}"),
+        }
+        assert!(p(3).is_refutable());
+        assert!(matches!(p(4), glyph_ast::Pattern::Constructor { path, args, .. } if path.len() == 2 && args.is_empty()));
+        assert!(matches!(p(5), glyph_ast::Pattern::Else { .. }));
+    }
+
+    /// The pattern is the first attribute only. A named attribute after it,
+    /// and a `<case>` that writes no pattern, still parse as attributes, so
+    /// `bind={x}` reaches the checker, which refuses it with the pattern to
+    /// write (E0231).
+    #[test]
+    fn jsx_case_attributes_after_the_pattern_stay_attributes_d6() {
+        let src = r#"module x
+component C() -> Component {
+  return <match value={state}>
+    <case Loaded bind={users}><p>a</p></case>
+    <case bind={x}><p>b</p></case>
+  </match>
+}
+"#;
+        let cases = case_elements(src);
+        assert!(matches!(cases[0].attrs[0], glyph_ast::JsxAttr::Pattern { .. }));
+        assert!(matches!(&cases[0].attrs[1], glyph_ast::JsxAttr::Expr { name, .. } if name.as_ref() == "bind"));
+        assert_eq!(cases[1].attrs.len(), 1);
+        assert!(cases[1].case_pattern().is_none());
     }
 
     #[test]

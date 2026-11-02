@@ -712,7 +712,7 @@ impl ProjectTables {
                 continue;
             };
             let ctx = t.emit_context(m.module_path, checked.decls);
-            let e = Emitter::new(ast, checked.resolved, checked.types, prelude, ctx);
+            let e = Emitter::new(ast, checked.resolved, checked.types, prelude, ctx, false);
             walks.extend(e.descriptor_walks_of_module());
         }
         t.descriptor_walks.walks.extend(walks);
@@ -793,7 +793,7 @@ pub fn emit_module(
     prelude: &Prelude,
     ctx: EmitContext,
 ) -> Result<String, EmitError> {
-    emit_module_mapped(module, resolved, types, prelude, ctx).map(|o| o.ts)
+    emit_module_with(module, resolved, types, prelude, ctx, false).map(|o| o.ts)
 }
 
 /// Which `EMITTER_GLOBALS` this module shadows with a top-level declaration.
@@ -827,15 +827,45 @@ fn shadowed_globals_of(module: &Module) -> BTreeSet<String> {
     out
 }
 
-/// The emitted TypeScript plus a coarse source map back to Glyph spans, for
-/// remapping `tsc` diagnostics onto the original `.glyph` source.
+/// What a source-map range was emitted from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MappedKind {
+    /// A whole top-level declaration.
+    Decl,
+    /// One statement, at any depth, including inside a lambda or a
+    /// value-position `match`.
+    Stmt,
+    /// One expression, at any depth.
+    Expr,
+}
+
+/// One entry of the source map: the byte range `start..end` of the emitted
+/// TypeScript came from the Glyph `span`.
+///
+/// Ranges nest the way the syntax does (an argument's range sits inside its
+/// call's, a call's inside its statement's), so a `.ts` position is attributed
+/// to the innermost range that contains it, which is the smallest piece of
+/// Glyph that produced the code `tsc` is complaining about (G285).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MappedRange {
+    pub start: usize,
+    pub end: usize,
+    pub span: Span,
+    pub kind: MappedKind,
+}
+
+/// The emitted TypeScript plus a source map back to Glyph spans, for
+/// remapping `tsc` diagnostics onto the original `.glyph` source and for the
+/// v3 `.ts.map` sidecar.
 pub struct EmitOutput {
     pub ts: String,
-    /// `(byte offset into `ts`, originating Glyph span)`, strictly increasing.
-    pub source_map: Vec<(usize, Span)>,
+    /// Every declaration, statement and expression the emitter rendered,
+    /// sorted by `start`, and for an equal `start` the enclosing range first.
+    pub source_map: Vec<MappedRange>,
 }
 
 /// Like [`emit_module`], but also returns the source map (see [`EmitOutput`]).
+/// The TypeScript is byte-for-byte what [`emit_module`] returns.
 pub fn emit_module_mapped(
     module: &Module,
     resolved: &ResolvedModule,
@@ -843,22 +873,41 @@ pub fn emit_module_mapped(
     prelude: &Prelude,
     ctx: EmitContext,
 ) -> Result<EmitOutput, EmitError> {
-    let mut e = Emitter::new(module, resolved, types, prelude, ctx);
+    emit_module_with(module, resolved, types, prelude, ctx, true)
+}
+
+fn emit_module_with(
+    module: &Module,
+    resolved: &ResolvedModule,
+    types: &TypeMap,
+    prelude: &Prelude,
+    ctx: EmitContext,
+    mapped: bool,
+) -> Result<EmitOutput, EmitError> {
+    let mut e = Emitter::new(module, resolved, types, prelude, ctx, mapped);
     e.emit_module()?;
-    Ok(EmitOutput {
-        ts: e.out,
-        source_map: e.source_map,
+    Ok(match &e.marks {
+        Some(marks) => {
+            let (ts, source_map) = strip_marks(&e.out, &marks.borrow());
+            EmitOutput { ts, source_map }
+        }
+        None => EmitOutput {
+            ts: e.out,
+            source_map: Vec::new(),
+        },
     })
 }
 
 impl<'a> Emitter<'a> {
-    /// A top-level emitter for `module`, with nothing written yet.
+    /// A top-level emitter for `module`, with nothing written yet. `mapped`
+    /// asks for source-map markers; without it none are written.
     fn new(
         module: &'a Module,
         resolved: &'a ResolvedModule,
         types: &'a TypeMap,
         prelude: &'a Prelude,
         ctx: EmitContext<'a>,
+        mapped: bool,
     ) -> Self {
         let shadowed = Rc::new(shadowed_globals_of(module));
         let lowerer = Lowerer::new(resolved, prelude);
@@ -884,11 +933,125 @@ impl<'a> Emitter<'a> {
             types,
             synth_types: Rc::new(RefCell::new(HashMap::new())),
             synth_bindings: Rc::new(RefCell::new(HashSet::new())),
-            source_map: Vec::new(),
             delegations: RefCell::new(None),
+            marks: mapped.then(|| Rc::new(RefCell::new(Vec::new()))),
             ctx,
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Source-map markers (G285)
+// ---------------------------------------------------------------------------
+//
+// The emitter builds most of its output by composing strings: `expr` returns
+// a `String`, and a lambda body or a value-position `match` is rendered by a
+// sub-emitter into its own buffer and spliced in. A byte offset taken while a
+// piece is being built means nothing in the final file, which is why the map
+// used to stop at top-level statements and a `tsc` error in one argument was
+// reported against the whole `let`.
+//
+// So the offsets are not taken while building. Each mapped piece is wrapped in
+// an open and a close marker carrying an index into a table of spans, the
+// markers travel with the text through every `format!` and splice, and one
+// pass over the finished module removes them and records where each piece
+// landed. The markers are code points from Supplementary Private Use Area-B,
+// which no emitted construct produces: the string and template escapers write
+// any such character from a user's literal as a `\u{...}` escape, and raw
+// `extern_ts` text gets the same treatment, so the only plane-16 characters in
+// the buffer are the emitter's own.
+
+/// The span and kind of each marker id, shared by an emitter and its
+/// sub-emitters.
+type MarkTable = Rc<RefCell<Vec<(Span, MappedKind)>>>;
+
+/// Opens a mapped range; followed by two id digits.
+const MARK_OPEN: char = '\u{10FFFA}';
+/// Closes a mapped range; followed by the same two id digits.
+const MARK_CLOSE: char = '\u{10FFFB}';
+/// The first id digit code point. Digits are `MARK_DIGIT0 ..
+/// MARK_DIGIT0 + MARK_RADIX`.
+const MARK_DIGIT0: u32 = 0x10_0000;
+const MARK_RADIX: u32 = 4096;
+/// Two digits address this many ranges per module. A module past it keeps
+/// the ranges it has and maps the rest to their enclosing range.
+const MARK_CAPACITY: usize = (MARK_RADIX * MARK_RADIX) as usize;
+
+/// Whether `c` is in the plane the markers are drawn from. Every such
+/// character from user text is escaped before it reaches the buffer, so the
+/// strip pass never mistakes one for a marker.
+fn is_marker_plane(c: char) -> bool {
+    (c as u32) >= MARK_DIGIT0
+}
+
+fn push_marker(out: &mut String, delim: char, id: u32) {
+    out.push(delim);
+    for d in [id / MARK_RADIX, id % MARK_RADIX] {
+        out.push(char::from_u32(MARK_DIGIT0 + d).expect("plane-16 code point"));
+    }
+}
+
+fn marker_digit(c: char) -> Option<u32> {
+    let v = (c as u32).checked_sub(MARK_DIGIT0)?;
+    (v < MARK_RADIX).then_some(v)
+}
+
+/// Text with every marker removed. For the places that put emitted code into
+/// a message string rather than into the program (a refinement's rejection
+/// text quotes its predicate), where the markers would otherwise be escaped
+/// into the message as `\u{...}` noise.
+fn unmarked(s: &str) -> String {
+    strip_marks(s, &[]).0
+}
+
+/// Remove the markers from `marked` and return the clean text with the range
+/// each marked piece occupies in it. `marks[id]` is the span and kind the
+/// emitter recorded for marker `id`; a marker whose id is not in the table is
+/// removed without recording anything, which is how [`unmarked`] works.
+fn strip_marks(marked: &str, marks: &[(Span, MappedKind)]) -> (String, Vec<MappedRange>) {
+    let mut out = String::with_capacity(marked.len());
+    let mut ranges: Vec<MappedRange> = Vec::new();
+    // Open markers waiting for their close: (id, offset in `out`).
+    let mut open: Vec<(u32, usize)> = Vec::new();
+    let mut it = marked.chars();
+    while let Some(c) = it.next() {
+        if c != MARK_OPEN && c != MARK_CLOSE {
+            out.push(c);
+            continue;
+        }
+        let rest = it.clone();
+        let id = match (it.next().and_then(marker_digit), it.next().and_then(marker_digit)) {
+            (Some(hi), Some(lo)) => hi * MARK_RADIX + lo,
+            _ => {
+                // Not a marker the emitter wrote. Unreachable while the
+                // escapers hold, and kept as text rather than dropped if not.
+                it = rest;
+                out.push(c);
+                continue;
+            }
+        };
+        if c == MARK_OPEN {
+            open.push((id, out.len()));
+            continue;
+        }
+        // A close pairs with the innermost open of the same id. Markers are
+        // written in pairs around a finished piece, so that is the top of the
+        // stack; searching down is only defensive.
+        if let Some(at) = open.iter().rposition(|(o, _)| *o == id) {
+            let (_, start) = open[at];
+            open.truncate(at);
+            if let Some(&(span, kind)) = marks.get(id as usize) {
+                ranges.push(MappedRange {
+                    start,
+                    end: out.len(),
+                    span,
+                    kind,
+                });
+            }
+        }
+    }
+    ranges.sort_by(|a, b| a.start.cmp(&b.start).then(b.end.cmp(&a.end)));
+    (out, ranges)
 }
 
 /// What a type expression stands for, as far as a runtime check is decided:
@@ -1031,21 +1194,17 @@ struct Emitter<'a> {
     /// pattern the author wrote can have. Shared with sub-emitters as
     /// `synth_types` is.
     synth_bindings: Rc<RefCell<HashSet<(String, Span)>>>,
-    /// A coarse source map for remapping `tsc` errors back to Glyph source:
-    /// `(byte offset into `out`, originating Glyph span)` checkpoints, recorded
-    /// as each declaration and top-level statement begins. Offsets are strictly
-    /// increasing (emission is append-only), so a `.ts` position maps to the
-    /// last checkpoint at or before it. Only the top-level emitter records here;
-    /// a sub-emitter (lambda/IIFE body) renders into a spliced string whose
-    /// internal offsets don't correspond to the final file, so its statements
-    /// map to the enclosing top-level statement — coarser but still correct.
-    source_map: Vec<(usize, Span)>,
     /// While `field_check_delegations` runs, the `(module path, type name)` of
     /// every record descriptor the field check being built calls. `None`
     /// otherwise. Recorded by `field_check_in` at the point it writes the
     /// `T.is(..)` call, so the records E0304 follows are exactly the ones the
     /// emitted check trusts, never a second reading of the type.
     delegations: RefCell<Option<Vec<(String, String)>>>,
+    /// The span table the source-map markers index (see "Source-map markers"
+    /// above `strip_marks`). Shared with every sub-emitter, so a statement in
+    /// a lambda body gets a marker that survives the splice into the parent.
+    /// `None` when the caller wants no map, which emits no markers at all.
+    marks: Option<MarkTable>,
     /// Project context for resolving cross-module import specifiers.
     ctx: EmitContext<'a>,
 }
@@ -1118,11 +1277,11 @@ impl<'a> Emitter<'a> {
             types: self.types,
             synth_types: Rc::clone(&self.synth_types),
             synth_bindings: Rc::clone(&self.synth_bindings),
-            // A sub-emitter's output is spliced into the parent as a string, so
-            // its byte offsets don't map to the final file; give it a throwaway
-            // map. Its statements map to the enclosing top-level statement.
-            source_map: Vec::new(),
             delegations: RefCell::new(None),
+            // The same table: a sub-emitter's markers travel inside its
+            // output when it is spliced into the parent, and the final strip
+            // pass places them in the finished file.
+            marks: self.marks.clone(),
             ctx: self.ctx,
         }
     }
@@ -1269,12 +1428,10 @@ impl<'a> Emitter<'a> {
         // first, ahead of every other import.
         let bootstrap = bootstrap_specifier(self.ctx.module_path);
         self.out.insert_str(0, &format!("import \"{bootstrap}\";\n\n"));
-        // Shift every recorded checkpoint past the prepended import header so
-        // offsets are correct against the final output.
-        let prepended = self.out.len() - body_len;
-        for (offset, _) in self.source_map.iter_mut() {
-            *offset += prepended;
-        }
+        // No offset bookkeeping is needed for the prepended header: the
+        // source map is read off the markers after emission, against the
+        // finished text.
+        let _ = body_len;
         Ok(())
     }
 
@@ -1342,23 +1499,58 @@ impl<'a> Emitter<'a> {
         out
     }
 
-    /// Record that whatever is emitted next comes from `span`. A checkpoint is
-    /// recorded once per declaration and once per statement, and the tail
-    /// statement of a block records its own: the tail is emitted by
-    /// `emit_tail_stmt` rather than `emit_stmt`, and while it recorded nothing
-    /// a `tsc` error in the last statement of a body was mapped onto the
-    /// statement before it (G211). A tail that delegates back to `emit_stmt`
-    /// would record the same pair twice; the duplicate is dropped so the map
-    /// stays strictly increasing.
-    fn checkpoint(&mut self, span: Span) {
-        let at = (self.out.len(), span);
-        if self.source_map.last() != Some(&at) {
-            self.source_map.push(at);
+    /// Allocate a marker id for `span`, or `None` when no map is wanted or
+    /// the module has used every id.
+    fn mark_id(&self, span: Span, kind: MappedKind) -> Option<u32> {
+        let marks = self.marks.as_ref()?;
+        let mut marks = marks.borrow_mut();
+        if marks.len() >= MARK_CAPACITY {
+            return None;
         }
+        marks.push((span, kind));
+        Some((marks.len() - 1) as u32)
+    }
+
+    /// Wrap a rendered piece in the markers for `span`.
+    fn wrap_mark(&self, s: String, span: Span, kind: MappedKind) -> String {
+        let Some(id) = self.mark_id(span, kind) else {
+            return s;
+        };
+        let mut out = String::with_capacity(s.len() + 24);
+        push_marker(&mut out, MARK_OPEN, id);
+        out.push_str(&s);
+        push_marker(&mut out, MARK_CLOSE, id);
+        out
+    }
+
+    /// Run `f`, which appends to `self.out`, with everything it appends
+    /// marked as coming from `span`. Each declaration and each statement,
+    /// including the tail statement of a block (G211), is emitted through
+    /// here; a tail that delegates back to `emit_stmt` nests one statement
+    /// range inside an identical one, which the innermost-range lookup
+    /// treats as the same answer.
+    fn marked(
+        &mut self,
+        span: Span,
+        kind: MappedKind,
+        f: impl FnOnce(&mut Self) -> Result<(), EmitError>,
+    ) -> Result<(), EmitError> {
+        let id = self.mark_id(span, kind);
+        if let Some(id) = id {
+            push_marker(&mut self.out, MARK_OPEN, id);
+        }
+        let result = f(self);
+        if let Some(id) = id {
+            push_marker(&mut self.out, MARK_CLOSE, id);
+        }
+        result
     }
 
     fn emit_decl(&mut self, decl: &Decl) -> Result<(), EmitError> {
-        self.checkpoint(decl.span());
+        self.marked(decl.span(), MappedKind::Decl, |e| e.emit_decl_unmarked(decl))
+    }
+
+    fn emit_decl_unmarked(&mut self, decl: &Decl) -> Result<(), EmitError> {
         // 0.1.16: module-private by default. A decl is `export`ed only when `pub`
         // (or it is `fn main`, the entrypoint the runner imports). The prefix is
         // read by every sub-emit for this decl (descriptor, constructors).
@@ -1538,7 +1730,13 @@ impl<'a> Emitter<'a> {
     ) -> Result<(), EmitError> {
         let base_check = self.field_value_check(base, "value");
         let pred = self.expr(predicate)?;
-        let constraint = format!("{} where {}", type_label(base), strip_outer_parens(&pred));
+        // The predicate is quoted inside a message string, so it is quoted
+        // without its source-map markers.
+        let constraint = format!(
+            "{} where {}",
+            type_label(base),
+            strip_outer_parens(&unmarked(&pred))
+        );
         self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
         self.line(&format!("is(value: unknown): value is {name} {{"));
@@ -2330,7 +2528,10 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_stmt(&mut self, stmt: &Stmt) -> Result<(), EmitError> {
-        self.checkpoint(stmt.span());
+        self.marked(stmt.span(), MappedKind::Stmt, |e| e.emit_stmt_unmarked(stmt))
+    }
+
+    fn emit_stmt_unmarked(&mut self, stmt: &Stmt) -> Result<(), EmitError> {
         match stmt {
             Stmt::Let(l) => {
                 let name = match &l.binding {
@@ -5182,7 +5383,17 @@ impl<'a> Emitter<'a> {
         term: ArmTerm,
         break_on_fall: bool,
     ) -> Result<(), EmitError> {
-        self.checkpoint(stmt.span());
+        self.marked(stmt.span(), MappedKind::Stmt, |e| {
+            e.emit_tail_stmt_unmarked(stmt, term, break_on_fall)
+        })
+    }
+
+    fn emit_tail_stmt_unmarked(
+        &mut self,
+        stmt: &Stmt,
+        term: ArmTerm,
+        break_on_fall: bool,
+    ) -> Result<(), EmitError> {
         match stmt {
             // A tail `match` inherits the position: its arms `return` the value
             // in return position or run for effect in statement position. It
@@ -5842,7 +6053,15 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// Render an expression, marked for the source map as coming from its
+    /// own span (G285). Every sub-expression goes through here too, so a
+    /// `tsc` error inside one argument lands on that argument.
     fn expr(&self, e: &Expr) -> Result<String, EmitError> {
+        let s = self.expr_unmarked(e)?;
+        Ok(self.wrap_mark(s, e.span(), MappedKind::Expr))
+    }
+
+    fn expr_unmarked(&self, e: &Expr) -> Result<String, EmitError> {
         Ok(match e {
             Expr::Number { raw, .. } => raw.clone(),
             Expr::String { value, .. } => escape_double_quoted(value),
@@ -6082,7 +6301,7 @@ impl<'a> Emitter<'a> {
             Expr::Jsx(j) => self.emit_jsx(j)?,
             // The escape hatch emits its raw TypeScript verbatim, parenthesized
             // so it composes safely in any expression position; `tsc` checks it.
-            Expr::Extern { raw, .. } => format!("({raw})"),
+            Expr::Extern { raw, .. } => format!("({})", escape_marker_plane(raw)),
         })
     }
 
@@ -6267,13 +6486,20 @@ impl<'a> Emitter<'a> {
                         // A following `<else>` sibling (past whitespace) is the
                         // alternative; otherwise the alternative is `null`.
                         let (alt, else_idx) = self.find_else(children, i + 1)?;
-                        out.push(format!("({cond} ? {then} : {alt})"));
+                        out.push(self.wrap_mark(
+                            format!("({cond} ? {then} : {alt})"),
+                            el.span,
+                            MappedKind::Expr,
+                        ));
                         if let Some(e) = else_idx {
                             i = e;
                         }
                     }
                     JsxKind::Else => return Err(EmitError::MisplacedElse { span: el.span }),
-                    _ => out.push(self.emit_jsx(el)?),
+                    // A child element is not an `Expr`, so `expr` never marks
+                    // it; it is marked here, so a position in its props maps to
+                    // the element rather than to the outermost one (G285).
+                    _ => out.push(self.wrap_mark(self.emit_jsx(el)?, el.span, MappedKind::Expr)),
                 },
             }
             i += 1;
@@ -6525,7 +6751,7 @@ impl<'a> Emitter<'a> {
                     .join(" | ")
             }
             // The escape hatch emits its raw TypeScript verbatim; `tsc` checks it.
-            TypeExpr::Extern { raw, .. } => raw.clone(),
+            TypeExpr::Extern { raw, .. } => escape_marker_plane(raw),
             // A string-literal union emits as the TS literal union, so `tsc`
             // enforces the narrowed type at every use.
             TypeExpr::StringLiteralUnion { values, .. } => values
@@ -6722,11 +6948,34 @@ fn escape_double_quoted(s: &str) -> String {
             '\u{2028}' => out.push_str("\\u2028"),
             '\u{2029}' => out.push_str("\\u2029"),
             c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            // The source-map markers' plane. Escaped, so the strip pass never
+            // reads a user's character as a marker; `\u{...}` is the same
+            // string value.
+            c if is_marker_plane(c) => out.push_str(&format!("\\u{{{:x}}}", c as u32)),
             _ => out.push(c),
         }
     }
     out.push('"');
     out
+}
+
+/// Raw TypeScript from `extern_ts` with any character from the source-map
+/// markers' plane written as a `\u{...}` escape. Such a character can only
+/// sit in a string, template or comment in valid TypeScript, where the escape
+/// means the same thing.
+fn escape_marker_plane(raw: &str) -> String {
+    if !raw.chars().any(is_marker_plane) {
+        return raw.to_string();
+    }
+    raw.chars()
+        .map(|c| {
+            if is_marker_plane(c) {
+                format!("\\u{{{:x}}}", c as u32)
+            } else {
+                c.to_string()
+            }
+        })
+        .collect()
 }
 
 /// Render a type the way the declaration spells it, for a boundary rejection
@@ -6759,7 +7008,7 @@ fn type_label(te: &TypeExpr) -> String {
             .map(|v| escape_double_quoted(v))
             .collect::<Vec<_>>()
             .join(" | "),
-        TypeExpr::Extern { raw, .. } => raw.clone(),
+        TypeExpr::Extern { raw, .. } => escape_marker_plane(raw),
         TypeExpr::TypeOf { path, .. } => format!(
             "typeof {}",
             path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
@@ -7456,6 +7705,7 @@ fn escape_template_text(s: &str) -> String {
             '\\' => out.push_str("\\\\"),
             '`' => out.push_str("\\`"),
             '$' if chars.peek() == Some(&'{') => out.push_str("\\$"),
+            c if is_marker_plane(c) => out.push_str(&format!("\\u{{{:x}}}", c as u32)),
             _ => out.push(c),
         }
     }
@@ -7486,9 +7736,133 @@ mod tests {
         (module, resolved, types, prelude)
     }
 
+    /// Emit `src`, and check on the way that the mapped emit `glyph build`
+    /// uses produces the same bytes. Every test that goes through here is a
+    /// test that the source-map markers leave the program untouched (G285).
     fn emit(src: &str) -> String {
         let (module, resolved, types, prelude) = pipeline(src);
-        emit_module(&module, &resolved, &types, &prelude, EmitContext::single()).expect("emit failed")
+        let plain = emit_module(&module, &resolved, &types, &prelude, EmitContext::single())
+            .expect("emit failed");
+        let mapped = emit_module_mapped(&module, &resolved, &types, &prelude, EmitContext::single())
+            .expect("the mapped emit fails where the plain one succeeds");
+        assert_mapped_matches(&plain, &mapped);
+        plain
+    }
+
+    /// The mapped emit is byte-identical to the plain one, holds no marker
+    /// character, and every range lies on character boundaries inside it.
+    fn assert_mapped_matches(plain: &str, mapped: &EmitOutput) {
+        assert_eq!(mapped.ts, plain, "the source map changed the emitted TypeScript");
+        assert!(
+            !mapped.ts.chars().any(is_marker_plane),
+            "a marker survived the strip pass:\n{}",
+            mapped.ts
+        );
+        for r in &mapped.source_map {
+            assert!(r.start <= r.end && r.end <= mapped.ts.len(), "{r:?}");
+            assert!(mapped.ts.is_char_boundary(r.start) && mapped.ts.is_char_boundary(r.end), "{r:?}");
+        }
+    }
+
+    /// The text of the innermost mapped range of `kind` that covers the first
+    /// occurrence of `needle` in the emitted TypeScript, read back from the
+    /// Glyph source.
+    fn mapped_source_at<'s>(src: &'s str, needle: &str) -> (&'s str, MappedKind) {
+        let (module, resolved, types, prelude) = pipeline(src);
+        let out = emit_module_mapped(&module, &resolved, &types, &prelude, EmitContext::single())
+            .expect("emit failed");
+        let at = out.ts.find(needle).unwrap_or_else(|| panic!("`{needle}` not in:\n{}", out.ts));
+        let r = out
+            .source_map
+            .iter()
+            .filter(|r| r.start <= at && at < r.end)
+            .min_by_key(|r| r.end - r.start)
+            .unwrap_or_else(|| panic!("no range covers `{needle}`"));
+        (&src[r.span.start as usize..r.span.end as usize], r.kind)
+    }
+
+    /// G285. Every expression is mapped, inside a lambda the same as at the
+    /// top of a body, so a position maps to the smallest Glyph expression
+    /// whose code contains it.
+    #[test]
+    fn the_source_map_reaches_each_expression() {
+        let src = "module x\n\
+                   fn g(a: string, b: number) -> string { return a }\n\
+                   pub fn f(xs: Array<string>) -> Array<string> {\n\
+                   \x20 let y = g(\n\
+                   \x20   \"lit\",\n\
+                   \x20   41 + 1,\n\
+                   \x20 )\n\
+                   \x20 return xs.map(fn(s) { s.trimmz() })\n\
+                   }\n";
+        assert_eq!(mapped_source_at(src, "41"), ("41", MappedKind::Expr));
+        assert_eq!(mapped_source_at(src, "\"lit\""), ("\"lit\"", MappedKind::Expr));
+        // Inside the lambda the sub-emitter renders: the member access.
+        assert_eq!(mapped_source_at(src, "trimmz"), ("s.trimmz", MappedKind::Expr));
+        // The `let` keyword the emitter writes belongs to the statement.
+        let (text, kind) = mapped_source_at(src, "let y");
+        assert!(text.starts_with("let y = g("), "{text}");
+        assert_eq!(kind, MappedKind::Stmt);
+    }
+
+    /// A string or template literal holding a character from the markers'
+    /// plane is escaped, so it reaches TypeScript as the same value and the
+    /// strip pass cannot read it as a marker.
+    #[test]
+    fn a_literal_in_the_marker_plane_is_escaped_not_stripped() {
+        let open = MARK_OPEN;
+        let (d0, d1) = ('\u{100000}', '\u{100001}');
+        let src = format!(
+            "module x\npub fn f() -> string {{\n  let a = \"{open}{d0}{d1}z\"\n  return \"t{open}${{a}}\"\n}}\n"
+        );
+        let ts = emit(&src);
+        assert!(ts.contains("\"\\u{10fffa}\\u{100000}\\u{100001}z\""), "{ts}");
+        assert!(ts.contains("`t\\u{10fffa}${a}`"), "{ts}");
+    }
+
+    /// The whole conformance corpus and every example program emit the same
+    /// bytes with and without the source map.
+    #[test]
+    fn the_mapped_emit_is_byte_identical_across_the_corpora() {
+        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut files = Vec::new();
+        let mut stack = vec![
+            manifest.join("tests/conformance"),
+            manifest.join("../../../examples"),
+        ];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = std::fs::read_dir(&dir) else { continue };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    if path.file_name().is_some_and(|n| n != "node_modules") {
+                        stack.push(path);
+                    }
+                } else if path.extension().is_some_and(|e| e == "glyph") {
+                    files.push(path);
+                }
+            }
+        }
+        files.sort();
+        let mut compared = 0;
+        for path in &files {
+            let src = std::fs::read_to_string(path).unwrap();
+            let Ok(module) = glyph_parser::parse(&src) else { continue };
+            let Ok(syms) = glyph_resolver::collect_module_symbols(&module) else { continue };
+            let prelude = glyph_resolver::build_prelude();
+            let (resolved, _) = glyph_resolver::resolve_module(&module, syms, &prelude);
+            let (types, _) = glyph_typechecker::assign_types(&module, &resolved, &prelude);
+            let Ok(plain) = emit_module(&module, &resolved, &types, &prelude, EmitContext::single())
+            else {
+                continue;
+            };
+            let mapped =
+                emit_module_mapped(&module, &resolved, &types, &prelude, EmitContext::single())
+                    .unwrap_or_else(|e| panic!("{}: mapped emit failed: {e}", path.display()));
+            assert_mapped_matches(&plain, &mapped);
+            compared += 1;
+        }
+        assert!(compared >= 50, "compared only {compared} of {} programs", files.len());
     }
 
     fn emit_err(src: &str) -> EmitError {

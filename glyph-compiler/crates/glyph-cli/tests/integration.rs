@@ -9717,8 +9717,11 @@ fn remapped_position_of(program: &str, prefix: &str) -> String {
 #[test]
 fn a_tsc_error_in_the_last_statement_maps_onto_that_statement() {
     let out = remapped_position_of(G211_TAIL_CALL, "g211_map_tail");
+    // Column 14 is `t.toUpperCasee` inside the `io.println(...)` call: since
+    // G285 the map goes to the expression `tsc` pointed into, not to the
+    // start of the statement.
     assert!(
-        out.contains("main:8:3"),
+        out.contains("main:8:14"),
         "the call is on line 8, not the `let` on line 7: {out}"
     );
     assert!(!out.contains("main:7:"), "one statement early: {out}");
@@ -9755,10 +9758,142 @@ fn build_reports_a_tsc_error_at_the_statement_that_failed() {
     assert_eq!(code, 1, "tsc rejects the call: {stderr}");
     assert!(stderr.contains("TS2551"), "remapped tsc error: {stderr}");
     assert!(
-        stderr.contains("main:8:3"),
-        "reported at the call on line 8: {stderr}"
+        stderr.contains("main:8:14"),
+        "reported at the member access on line 8: {stderr}"
     );
     assert!(!stderr.contains("main:7:"), "not at the `let` before it: {stderr}");
+}
+
+/// Build `program`, find `needle` in the emitted `main.ts`, and remap a `tsc`
+/// diagnostic at `skip` characters into it the way `glyph build` would. G285's
+/// harness: it needs no `tsc`, so it runs wherever the suite runs.
+fn remap_tsc_at(program: &str, prefix: &str, needle: &str, skip: usize, tail: &str) -> String {
+    let root = unique_tmp(prefix);
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", program);
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "the program is Glyph-clean; tsc is what rejects it: {:?}",
+        report.diagnostics
+    );
+    let m = report
+        .module_maps
+        .iter()
+        .find(|m| m.ts_rel == "main.ts")
+        .expect("a map for main.ts");
+    let (line_no, line) = m
+        .ts_source
+        .lines()
+        .enumerate()
+        .find(|(_, l)| l.contains(needle))
+        .unwrap_or_else(|| panic!("`{needle}` is in the emitted TypeScript:\n{}", m.ts_source));
+    let col = line[..line.find(needle).unwrap()].chars().count() + 1 + skip;
+    let raw = format!("dist/main.ts({},{col}): error {tail}\n", line_no + 1);
+    glyph_cli::tscmap::remap_tsc_output(&raw, &report.module_maps, false)
+}
+
+/// The caret line ariadne draws under a one-line span: the run of `─` it
+/// renders, which is as wide as the span.
+fn underline_width(rendered: &str) -> usize {
+    rendered
+        .lines()
+        .find(|l| l.contains('┬'))
+        .map(|l| l.chars().filter(|c| *c == '─' || *c == '┬').count())
+        .unwrap_or(0)
+}
+
+/// G285. A wrong member inside one `on_change` handler underlined the whole
+/// eight-line `return <div>...</div>`: the source map stopped at top-level
+/// statements, and the handler is a lambda rendered by a sub-emitter. The map
+/// now carries every expression, inside lambdas too, so the error lands on
+/// `e.target.valu` and on nothing else.
+#[test]
+fn a_tsc_error_in_a_jsx_handler_maps_onto_the_member_access() {
+    let program = "module main\n\
+         \n\
+         pub component Form(props: { name: string }) {\n\
+         \x20 return <div>\n\
+         \x20   <p>{props.name}</p>\n\
+         \x20   <input\n\
+         \x20     value={props.name}\n\
+         \x20     on_change={fn(e) { e.target.valu }}\n\
+         \x20   />\n\
+         \x20   <span>done</span>\n\
+         \x20 </div>\n\
+         }\n";
+    let out = remap_tsc_at(
+        program,
+        "g285_jsx",
+        ".valu",
+        1,
+        "TS2339: Property 'valu' does not exist on type 'EventTarget'.",
+    );
+    // `tsc` reports a missing property at the property name, `valu`. The
+    // innermost expression around it is `e.target.valu`, which starts at line
+    // 8, column 26.
+    assert!(out.contains("main:8:26"), "on the member access: {out}");
+    assert!(!out.contains("main:4:"), "not the whole `return`: {out}");
+    assert_eq!(underline_width(&out), "e.target.valu".len(), "{out}");
+    assert!(out.contains(glyph_cli::render::TSC_HELP_EXACT), "{out}");
+    assert!(!out.contains("generated `.ts`"), "{out}");
+}
+
+/// G285, the argument shape: a wrong argument inside a multi-line call in a
+/// `let` underlined the whole `let`. It lands on the argument now.
+const G285_ARGUMENT: &str = "module main\n\
+     \n\
+     import path { join }\n\
+     import std/io\n\
+     \n\
+     pub fn main(argv: Array<string>) -> number {\n\
+     \x20 let full = join(\n\
+     \x20   \"a\",\n\
+     \x20   42,\n\
+     \x20   \"c\",\n\
+     \x20 )\n\
+     \x20 io.println(full)\n\
+     \x20 return 0\n\
+     }\n";
+
+#[test]
+fn a_wrong_argument_maps_onto_the_argument() {
+    let out = remap_tsc_at(
+        G285_ARGUMENT,
+        "g285_arg",
+        "42",
+        0,
+        "TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.",
+    );
+    assert!(out.contains("main:9:5"), "on `42`: {out}");
+    assert!(!out.contains("main:7:"), "not the whole `let`: {out}");
+    assert_eq!(underline_width(&out), 2, "{out}");
+}
+
+/// The same program through the real `tsc`, so the column `tsc` reports is
+/// the one the map is tested against rather than one the test chose.
+#[test]
+fn build_reports_a_wrong_argument_at_the_argument() {
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let root = unique_tmp("g285_tsc_arg");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", G285_ARGUMENT);
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-test"),
+    ]);
+    assert_eq!(code, 1, "tsc rejects the argument: {stderr}");
+    assert!(stderr.contains("TS2345"), "remapped tsc error: {stderr}");
+    assert!(stderr.contains("main:9:5"), "reported at `42`: {stderr}");
+    assert!(!stderr.contains("main:7:"), "not at the `let`: {stderr}");
 }
 
 /// G211, the second shape under `tsc`: the tail expression of a block arm

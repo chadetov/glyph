@@ -1,12 +1,13 @@
 //! Remap `tsc` diagnostics back onto Glyph source.
 //!
 //! `glyph build --check` type-checks the emitted TypeScript with `tsc`, which
-//! reports errors at positions in the generated `.ts`. That loses source
-//! locality — the biggest gap against the "Elm-quality errors" bar. The emitter
-//! produces a coarse source map (`(byte offset in .ts, Glyph span)` checkpoints
-//! at each declaration and top-level statement); here we parse `tsc`'s output,
-//! find the checkpoint at or before each error's position, and re-render the
-//! message against the original `.glyph` file with an ariadne caret.
+//! reports errors at positions in the generated `.ts`. The emitter's source
+//! map records the `.ts` byte range of every declaration, statement and
+//! expression it rendered; here we parse `tsc`'s output, find the innermost
+//! range containing each error's position, and re-render the message against
+//! that Glyph span with an ariadne caret. A wrong argument lands on the
+//! argument and a misspelt member on the member access, not on the whole
+//! enclosing statement (G285).
 //!
 //! Errors we can't attribute to a generated module (a stdlib `.ts`, an
 //! unparseable line, a trailing "Found N errors." summary) pass through
@@ -15,6 +16,7 @@
 use std::collections::HashMap;
 
 use glyph_ast::Span;
+use glyph_emit::{MappedKind, MappedRange};
 
 use crate::diagnostic::{Diagnostic, Pos, Range};
 use crate::render::render_tsc_error;
@@ -32,20 +34,56 @@ pub struct ModuleMap {
     pub glyph_source: String,
     /// The emitted TypeScript text.
     pub ts_source: String,
-    /// `(byte offset in `ts_source`, Glyph span)`, strictly increasing.
-    pub source_map: Vec<(usize, Span)>,
+    /// The emitter's ranges into `ts_source`, sorted by start (see
+    /// `glyph_emit::EmitOutput::source_map`).
+    pub source_map: Vec<MappedRange>,
+}
+
+/// Where a `tsc` position lands in the Glyph source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Mapped {
+    /// The innermost Glyph construct whose emitted code contains the position.
+    span: Span,
+    /// Whether `span` is an expression. When it is not, the position fell in
+    /// code the emitter wrote around the author's expressions (a hoisted
+    /// temporary, a `switch` the `match` lowered to), and the span is the
+    /// statement or declaration that code belongs to.
+    exact: bool,
+    /// The innermost statement or declaration containing the position, for
+    /// a note that reads the construct around the error rather than the one
+    /// piece of it `tsc` pointed at.
+    statement: Span,
 }
 
 impl ModuleMap {
-    /// The Glyph span for a 1-based `(line, col)` in the emitted `.ts`: the last
-    /// source-map checkpoint at or before that byte offset.
-    fn span_for(&self, line: usize, col: usize) -> Option<Span> {
+    /// Map a 1-based `(line, col)` in the emitted `.ts` onto Glyph source: the
+    /// innermost source-map range containing that byte offset. `None` when no
+    /// range contains it (an import header the emitter added).
+    fn span_for(&self, line: usize, col: usize) -> Option<Mapped> {
         let offset = line_col_to_byte(&self.ts_source, line, col);
-        self.source_map
-            .iter()
-            .rev()
-            .find(|(o, _)| *o <= offset)
-            .map(|(_, span)| *span)
+        let innermost = |want: &dyn Fn(MappedKind) -> bool| {
+            // Ranges nest, so among those containing the offset the shortest is
+            // the innermost; on a tie the later one in start order is nested
+            // inside the earlier.
+            let mut best: Option<MappedRange> = None;
+            for r in &self.source_map {
+                if r.start <= offset && offset < r.end && want(r.kind) {
+                    // `<=`, so a later range of equal length replaces an
+                    // earlier one: it starts no earlier and is nested in it.
+                    if best.is_none_or(|b| r.end - r.start <= b.end - b.start) {
+                        best = Some(*r);
+                    }
+                }
+            }
+            best
+        };
+        let finest = innermost(&|_| true)?;
+        let statement = innermost(&|k| k != MappedKind::Expr).map_or(finest.span, |r| r.span);
+        Some(Mapped {
+            span: finest.span,
+            exact: finest.kind == MappedKind::Expr,
+            statement,
+        })
     }
 }
 
@@ -91,16 +129,17 @@ pub fn remap_tsc_output(raw: &str, maps: &[ModuleMap], with_color: bool) -> Stri
     for line in raw.lines() {
         match parse_tsc_line(line) {
             Some(err) => match find_module(maps, err.path)
-                .and_then(|m| m.span_for(err.line, err.col).map(|span| (m, span)))
+                .and_then(|m| m.span_for(err.line, err.col).map(|at| (m, at)))
             {
-                Some((m, span)) => {
+                Some((m, at)) => {
                     out.push_str(&render_tsc_error(
                         &m.glyph_path,
                         &m.glyph_source,
-                        span,
+                        at.span,
+                        at.exact,
                         err.code,
                         err.message,
-                        is_narrowing_note(err.code, &m.glyph_source, span),
+                        is_narrowing_note(err.code, &m.glyph_source, at.statement),
                         with_color,
                     ));
                     if !out.ends_with('\n') {
@@ -138,7 +177,8 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
         match find_module_index(maps, err.path)
             .and_then(|i| maps[i].span_for(err.line, err.col).map(|s| (i, s)))
         {
-            Some((i, span)) => {
+            Some((i, at)) => {
+                let span = at.span;
                 let m = &maps[i];
                 let entity = parsed
                     .entry(i)
@@ -156,7 +196,7 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                     "tsc",
                     err.message.to_string(),
                     None,
-                    is_narrowing_note(err.code, &m.glyph_source, span),
+                    is_narrowing_note(err.code, &m.glyph_source, at.statement),
                     entity,
                 ))
             }
@@ -295,6 +335,66 @@ mod tests {
         Span::new(start, end)
     }
 
+    fn range(start: usize, end: usize, span: Span, kind: MappedKind) -> MappedRange {
+        MappedRange {
+            start,
+            end,
+            span,
+            kind,
+        }
+    }
+
+    fn stmt(start: usize, end: usize, span: Span) -> MappedRange {
+        range(start, end, span, MappedKind::Stmt)
+    }
+
+    /// G285. A position inside an argument maps to the argument, not to the
+    /// statement holding the call, and says so in its help. A position in code
+    /// the emitter wrote around the expressions maps to the statement, and the
+    /// help says that instead.
+    #[test]
+    fn a_position_maps_to_the_innermost_range_containing_it() {
+        let ts = "let full = join(\"a\", 42);\n";
+        let glyph = "  let full = join(\n    \"a\",\n    42,\n  )\n";
+        let stmt_span = span(2, glyph.len() as u32 - 1);
+        let call_span = span(13, glyph.len() as u32 - 1);
+        let arg_start = glyph.find("42").unwrap() as u32;
+        let arg_span = span(arg_start, arg_start + 2);
+        let a_start = glyph.find("\"a\"").unwrap() as u32;
+        let a_span = span(a_start, a_start + 3);
+        let m = ModuleMap {
+            ts_rel: "main.ts".to_string(),
+            glyph_path: "main".to_string(),
+            glyph_source: glyph.to_string(),
+            ts_source: ts.to_string(),
+            source_map: vec![
+                stmt(0, ts.len(), stmt_span),
+                range(11, 24, call_span, MappedKind::Expr),
+                range(16, 19, a_span, MappedKind::Expr),
+                range(21, 23, arg_span, MappedKind::Expr),
+            ],
+        };
+        // `42` is at ts column 22 (1-based).
+        let at = m.span_for(1, 22).expect("mapped");
+        assert_eq!(at.span, arg_span, "the argument, not the `let`");
+        assert!(at.exact);
+        assert_eq!(at.statement, stmt_span);
+        // The `;` after the call is the statement's own code.
+        let at = m.span_for(1, 25).expect("mapped");
+        assert_eq!(at.span, stmt_span);
+        assert!(!at.exact);
+
+        let raw = "out/main.ts(1,22): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.\n";
+        let out = remap_tsc_output(raw, std::slice::from_ref(&m), false);
+        assert!(out.contains("main:3:5"), "the caret is on `42`: {out}");
+        assert!(out.contains(crate::render::TSC_HELP_EXACT), "{out}");
+        assert!(!out.contains("generated `.ts`"), "no pointer at the .ts: {out}");
+        let raw = "out/main.ts(1,25): error TS1005: ';' expected.\n";
+        let out = remap_tsc_output(raw, std::slice::from_ref(&m), false);
+        assert!(out.contains("main:1:3"), "the statement: {out}");
+        assert!(out.contains(crate::render::TSC_HELP_STATEMENT), "{out}");
+    }
+
     #[test]
     fn is_narrowing_note_fires_only_where_it_explains_something() {
         // G98. The note attaches to a TS2322 whose Glyph span holds a `match`
@@ -344,7 +444,7 @@ mod tests {
             glyph_path: "main.glyph".to_string(),
             glyph_source: glyph.to_string(),
             ts_source: ts.to_string(),
-            source_map: vec![(0, a_span), (12, bad_span)],
+            source_map: vec![stmt(0, 12, a_span), stmt(12, ts.len(), bad_span)],
         };
         // The error is on ts line 3 (offset 12..), so it maps to `bad_span`.
         let raw =
@@ -370,7 +470,7 @@ mod tests {
             glyph_path: glyph_path.to_string(),
             glyph_source: "module main\n".to_string(),
             ts_source: "x\n".to_string(),
-            source_map: vec![(0, span(0, 11))],
+            source_map: vec![stmt(0, 2, span(0, 11))],
         };
         let maps = vec![
             module("main.ts", "root/main"),
@@ -405,7 +505,7 @@ mod tests {
             glyph_path: "main.glyph".to_string(),
             glyph_source: "module main\n".to_string(),
             ts_source: "x\n".to_string(),
-            source_map: vec![(0, span(0, 11))],
+            source_map: vec![stmt(0, 2, span(0, 11))],
         };
         let raw = "std/http.ts(4,2): error TS1005: ';' expected.\nFound 1 error.\n";
         let out = remap_tsc_output(raw, std::slice::from_ref(&m), false);
@@ -440,8 +540,8 @@ mod tests {
             glyph_source: glyph.to_string(),
             ts_source: ts.to_string(),
             source_map: vec![
-                (0, span(a_start, bad_start - 1)),
-                (12, span(bad_start, glyph.len() as u32)),
+                stmt(0, 12, span(a_start, bad_start - 1)),
+                stmt(12, ts.len(), span(bad_start, glyph.len() as u32)),
             ],
         };
         // ts line 3 starts at offset 12, so the error maps to `bad`.

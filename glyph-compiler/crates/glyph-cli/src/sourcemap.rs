@@ -2,13 +2,14 @@
 //! debugger, a bundler chaining maps, or `node --enable-source-maps` can trace
 //! a position in the emitted `.ts` back to the original `.glyph`.
 //!
-//! The emitter records `(byte offset in the .ts, Glyph span)` checkpoints at
-//! each declaration and top-level statement. Each becomes one mapping segment
-//! from a generated (line, col) to a source (line, col). Granularity is
-//! statement-level — coarser than per-token, but it points the debugger at the
-//! right Glyph line, which is the whole point.
+//! The emitter records the `.ts` byte range of every declaration, statement
+//! and expression it rendered. The start of each range becomes a mapping
+//! segment from the generated (line, col) to the start of its Glyph span, and
+//! the end of a range nested in another becomes a segment back to the
+//! enclosing span, so code after an inner expression is not attributed to it.
+//! Granularity is the expression, not the token.
 
-use glyph_ast::Span;
+use glyph_emit::MappedRange;
 
 const BASE64: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -60,20 +61,46 @@ pub fn build_v3_map(
     glyph_source: &str,
     glyph_rel: &str,
     ts_basename: &str,
-    checkpoints: &[(usize, Span)],
+    ranges: &[MappedRange],
 ) -> String {
-    // (gen_line, gen_col, src_line, src_col), all 0-based, sorted by generated
-    // position and deduped.
-    let mut segs: Vec<(i64, i64, i64, i64)> = checkpoints
-        .iter()
-        .map(|(gen_off, span)| {
-            let (gl, gc) = line_col0(ts, *gen_off);
-            let (sl, sc) = line_col0(glyph_source, span.start as usize);
-            (gl, gc, sl, sc)
-        })
-        .collect();
-    segs.sort_unstable();
-    segs.dedup();
+    // (generated offset, source offset) points, in the order they take effect.
+    // A later point at the same generated offset overrides an earlier one, so
+    // an inner range starting where its parent starts wins.
+    let mut points: Vec<(usize, usize)> = Vec::new();
+    let mut sorted: Vec<&MappedRange> = ranges.iter().collect();
+    sorted.sort_by(|a, b| a.start.cmp(&b.start).then(b.end.cmp(&a.end)));
+    // Ranges whose end has not been reached yet, outermost first.
+    let mut open: Vec<&MappedRange> = Vec::new();
+    let close_until = |open: &mut Vec<&MappedRange>, points: &mut Vec<(usize, usize)>, at: usize| {
+        while let Some(top) = open.last() {
+            if top.end > at {
+                break;
+            }
+            let end = top.end;
+            open.pop();
+            if let Some(parent) = open.last() {
+                points.push((end, parent.span.start as usize));
+            }
+        }
+    };
+    for r in sorted {
+        close_until(&mut open, &mut points, r.start);
+        points.push((r.start, r.span.start as usize));
+        open.push(r);
+    }
+    close_until(&mut open, &mut points, usize::MAX);
+
+    // (gen_line, gen_col, src_line, src_col), all 0-based. Points are already in
+    // generated order; collapse each run at one generated position to its last.
+    let mut segs: Vec<(i64, i64, i64, i64)> = Vec::new();
+    for (gen_off, src_off) in points {
+        let (gl, gc) = line_col0(ts, gen_off);
+        let (sl, sc) = line_col0(glyph_source, src_off);
+        match segs.last_mut() {
+            Some(last) if (last.0, last.1) == (gl, gc) => *last = (gl, gc, sl, sc),
+            _ => segs.push((gl, gc, sl, sc)),
+        }
+    }
 
     let mut mappings = String::new();
     let mut cur_line = 0i64;
@@ -117,6 +144,7 @@ pub fn build_v3_map(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use glyph_ast::Span;
 
     #[test]
     fn vlq_encodes_known_values() {
@@ -134,14 +162,42 @@ mod tests {
         assert_eq!(s, "gB");
     }
 
+    /// An inner range gets its own segment at its start, and the code after it
+    /// in the enclosing range maps back to the enclosing span, not to it.
+    #[test]
+    fn a_nested_range_maps_back_to_its_parent_after_it_ends() {
+        let ts = "f(a, b);\n";
+        let glyph = "f(\n  a,\n  b,\n)\n";
+        let range = |start, end, span, kind| MappedRange {
+            start,
+            end,
+            span,
+            kind,
+        };
+        let ranges = vec![
+            range(0, 8, Span::new(0, 12), glyph_emit::MappedKind::Stmt),
+            range(2, 3, Span::new(5, 6), glyph_emit::MappedKind::Expr),
+        ];
+        let map = build_v3_map(ts, glyph, "x.glyph", "x.ts", &ranges);
+        let v: serde_json::Value = serde_json::from_str(&map).expect("valid JSON");
+        // col 0 -> (0,0); col 2 -> (1,2) i.e. delta +1 line +2 col; col 3 ->
+        // back to (0,0) i.e. -1 line -2 col.
+        assert_eq!(v["mappings"], "AAAA,EACE,CADF");
+    }
+
     #[test]
     fn builds_a_valid_v3_map() {
-        // Two checkpoints: ts offset 0 -> glyph 0; ts offset (line 2) -> glyph line 2.
+        // Two ranges: ts 0..4 -> glyph 0; ts line 3 (offset 8) -> glyph line 2.
         let ts = "aaa\nbbb\nccc\n";
         let glyph = "module x\nfn f() {}\n";
-        // checkpoint at ts line 3 start (offset 8) -> glyph line 2 start (offset 9)
-        let checkpoints = vec![(0usize, Span::new(0, 3)), (8usize, Span::new(9, 12))];
-        let map = build_v3_map(ts, glyph, "x.glyph", "x.ts", &checkpoints);
+        let range = |start, end, span| MappedRange {
+            start,
+            end,
+            span,
+            kind: glyph_emit::MappedKind::Stmt,
+        };
+        let ranges = vec![range(0, 4, Span::new(0, 3)), range(8, 12, Span::new(9, 12))];
+        let map = build_v3_map(ts, glyph, "x.glyph", "x.ts", &ranges);
         let v: serde_json::Value = serde_json::from_str(&map).expect("valid JSON");
         assert_eq!(v["version"], 3);
         assert_eq!(v["sources"][0], "x.glyph");

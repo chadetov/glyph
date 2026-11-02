@@ -24,7 +24,7 @@ The scaffold writes six files:
 - `package.json`, which pins `@glyphlang/glyph` exactly (no `^`) along with the
   `typescript` and `tsx` Glyph uses to type-check and run the TypeScript it
   emits. Its `"glyph"` key marks the project root, and its `start` and `build`
-  scripts call `glyph run` and `glyph build src --out dist`.
+  scripts call `glyph run --` and `glyph build src --out dist`.
 - `src/.types/README.md`. An npm package that ships its own types, or has an
   `@types/...` package installed, needs nothing in `.types/`; the directory is
   for a package that ships no types.
@@ -49,11 +49,13 @@ fn main(argv: Array<string>) -> number {
 
 `glyph run` with no path runs the current project. It type-checks the program,
 compiles it to TypeScript, and runs `main(argv)` via `tsx`. To pass arguments,
-name the source directory first, and everything after it becomes `argv`:
+put them after `--`, which is where `glyph` stops reading its own flags:
 
 ```sh
-npx glyph run src one two three
+npx glyph run -- one two three
 ```
+
+or `npm start -- one two three`.
 
 This page shows `glyph` from here on; inside a project that is `npx glyph`.
 For a page in a browser rather than a program under node, the layout differs:
@@ -137,7 +139,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 | `glyph check [path]` | Type-check a file or a tree without running it or writing output |
 | `glyph check --json [path]` | The same diagnostics as a JSON object on stdout, for tools and agents |
 | `glyph check --agent [path]` | The `--json` object plus, per diagnostic, the repair constraints an edit must keep and the `glyph_symbol` description of every symbol the diagnostic names |
-| `glyph run <path> [args]` | Type-check, compile, and run a program. `<path>` is a `.glyph` file, or a directory whose `main.glyph` is the program, the same spelling `glyph build` takes |
+| `glyph run [path] [-- args]` | Type-check, compile, and run a program. With no path it runs the current project; a path is a `.glyph` file, or a directory whose `main.glyph` is the program, the same spelling `glyph build` takes. Arguments go after `--` |
 | `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict`, running every `@example` and `@doc @run` test |
 | `glyph build <src> --out <dir> --no-test` | Skip the `@example` and `@doc @run` tests |
 | `glyph fix [path]` | Apply the repairs the compiler fully determines: drop unused imports, take a did-you-mean the checker computed for an arm head or a field name. It says what it applied and what it declined, with the reason. A non-exhaustive `match` is reported, not repaired |

@@ -1,6 +1,6 @@
 module m
 
-type Socket = extern_ts("{ handle: number }")
+import net { Socket }
 
 pub type Conn = {
   id: number,

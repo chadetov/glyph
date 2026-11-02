@@ -1,16 +1,18 @@
-// tsc --strict accepts this. `label` is declared to return a string and
-// returns undefined for "archived", because a switch with no default is not
-// required to cover its input.
+// tsc --strict accepts this. `announce` returns nothing, so there is no return
+// type for the missing case to violate, and a `switch` is not required to
+// cover its input. "archived" falls out of the bottom and nothing is logged.
 export type Status = "todo" | "doing" | "done" | "archived";
 
-export function label(s: Status): string {
+export function announce(s: Status): void {
   switch (s) {
     case "todo":
-      return "not started";
+      console.log("not started");
+      break;
     case "doing":
-      return "in progress";
+      console.log("in progress");
+      break;
     case "done":
-      return "finished";
+      console.log("finished");
+      break;
   }
-  return undefined as unknown as string;
 }

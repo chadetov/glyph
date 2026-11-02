@@ -1,10 +1,13 @@
 module m
 
+import std/json
+
 pub type User = {
   id: number,
   email: string,
 }
 
-pub fn email_of(body: unknown) -> string {
-  return body.email
+pub fn email_of(body: string) -> string {
+  let user: User = json.parse(body)
+  return user.email
 }

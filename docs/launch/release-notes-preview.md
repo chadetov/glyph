@@ -1,13 +1,13 @@
-# Glyph preview release notes (0.1.128)
+# Glyph preview release notes (0.1.129)
 
 Glyph is a statically typed language that compiles to TypeScript. These notes
-describe the compiler as of 0.1.128, published to npm as `@glyphlang/glyph` on
-2026-11-01, for someone seeing the project for the first time. The per-release
+describe the compiler as of 0.1.129, published to npm as `@glyphlang/glyph` on
+2026-11-02, for someone seeing the project for the first time. The per-release
 history is at [glyphlang.io/versions](https://glyphlang.io/versions/) and in
 [`docs/roadmap/releases.md`](../roadmap/releases.md).
 
 It is a preview. The 0.1.x line can still reject programs an earlier 0.1.x
-accepted, and every release from 0.1.120 to 0.1.128 did. Each release note says
+accepted, and every release from 0.1.120 to 0.1.129 did. Each release note says
 whether the release is breaking, established by running the previous published
 version and the new one on the same programs. `glyph init` pins the version in
 `devDependencies`.
@@ -100,7 +100,9 @@ browser and does not run `tsc`, so four of the five reproduce there.
 - `glyph build` and `glyph run` compile to TypeScript, type-check it, and run
   every `@example` test on the way.
 - `glyph fmt` formats in place, `glyph fix` applies repairs the compiler can
-  determine (removing unused imports, adding missing `match` arms), and
+  determine (removing unused imports, correcting an arm head or a field a
+  character from the right name) and reports a non-exhaustive match without
+  writing arms, and
   `glyph --explain <code>` prints the long form of any diagnostic.
 - `glyph lsp` is a language server: diagnostics, hover, go-to-definition,
   completion, find-references and rename.
@@ -122,7 +124,7 @@ compiler. The newest, `examples/apps/todo`, is a counter and a todo list on
 React 18 using React's own hooks; CI bundles it with Vite, renders it in
 headless Chromium and checks the text on the page.
 
-The compiler's test suite is 1906 tests at 0.1.128.
+The compiler's test suite is 1925 tests at 0.1.129.
 
 ## What has not been measured
 
@@ -156,8 +158,8 @@ Three functions are a small sample.
   renders.
 - The VS Code extension is built from source in `editors/vscode/`; it is not on
   the Marketplace.
-- The gap ledger, [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md), had 277
-  entries at 0.1.128, of which 18 were open. Each open entry has a reproduction
+- The gap ledger, [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md), had 289
+  entries at 0.1.129, of which 20 were open and 8 partly fixed. Each open entry has a reproduction
   and is scheduled in the release roadmap.
 
 ## Licence and source

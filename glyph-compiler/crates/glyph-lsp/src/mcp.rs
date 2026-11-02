@@ -732,11 +732,31 @@ fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String>
         .iter()
         .map(|(_, f)| glyph_db::parse_module(db, f.file))
         .collect();
+    // The checker's results go in too: E0304 on an imported record is that
+    // record's own module's verdict (G210), read the way `glyph build` reads it.
+    let resolved_all: Vec<glyph_db::Resolved> = searched
+        .iter()
+        .map(|(_, f)| glyph_db::resolve(db, f.file))
+        .collect();
+    let types_all: Vec<glyph_db::Types> = searched
+        .iter()
+        .map(|(_, f)| glyph_db::type_map(db, f.file))
+        .collect();
+    let decls_all: Vec<glyph_db::SalsaDeclTy> = searched
+        .iter()
+        .map(|(_, f)| glyph_db::SalsaDeclTy::new(db, f.file))
+        .collect();
     let tables = glyph_emit::ProjectTables::from_modules(
-        searched
-            .iter()
-            .zip(parsed_all.iter())
-            .map(|((_, f), parsed)| (f.module_path.as_str(), parsed.module())),
+        searched.iter().enumerate().map(|(i, (_, f))| glyph_emit::ProjectModule {
+            module_path: f.module_path.as_str(),
+            ast: parsed_all[i].module(),
+            checked: resolved_all[i].resolved().map(|resolved| glyph_emit::CheckedModule {
+                resolved,
+                types: types_all[i].type_map(),
+                decls: &decls_all[i],
+            }),
+        }),
+        db.prelude(),
     );
 
     let diagnostics = crate::diagnostic::project_file_diagnostics(db, file, &module_path, &tables);

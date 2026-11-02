@@ -528,6 +528,47 @@ pub struct EmitContext<'a> {
     /// the trait's defaults: no sibling declares anything, which is exactly
     /// the single-module case.
     pub decls: &'a dyn DeclTyResolver,
+    /// What each project record's descriptor can be trusted to check, decided
+    /// by the emitter of the module that declares it (see
+    /// [`DescriptorWalks`]). This is what lets `Doc.parse` in one module be
+    /// refused (E0304) when `Doc`'s descriptor, emitted in another, cannot
+    /// check one of its fields.
+    pub descriptor_walks: &'a DescriptorWalks,
+}
+
+/// One step of the walk E0304 makes over a record's fields, recorded by the
+/// emitter of the module that declares the record.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum WalkStep {
+    /// The field `field` has a type no runtime check exists for, spelled
+    /// `field_ty` as the declaring module wrote it. The walk stops here: the
+    /// descriptor already cannot be trusted.
+    Unverifiable { field: String, field_ty: String },
+    /// The field `field` is checked by calling the descriptor of the record
+    /// `name` declared in the project module `module` (the record's own module
+    /// included). The field's check is only as good as that descriptor, so
+    /// its verdict is this record's verdict for the field.
+    Delegates { field: String, module: String, name: String },
+}
+
+/// The E0304 facts of every record in a project: for each
+/// `(module path, type name)`, the walk its own module's emitter made over
+/// its fields.
+///
+/// Whether a descriptor checks what its type claims is decided where the
+/// descriptor is emitted, by the same `field_check` that writes the check, and
+/// with that module's own resolution. A module that imports the record cannot
+/// decide it: the field types are names in the declaring module's scope. So
+/// the declaring module's verdict is recorded here and read by every importer,
+/// and a `Doc.parse` is judged the same whether `Doc` was declared in this
+/// module, imported by name, or reached through a namespace (G210).
+///
+/// A walk records a delegation to another record rather than that record's
+/// verdict, so it needs no module order: the chain is followed when a use is
+/// judged, across as many modules as it crosses.
+#[derive(Debug, Default, Clone)]
+pub struct DescriptorWalks {
+    walks: std::collections::BTreeMap<(String, String), Vec<WalkStep>>,
 }
 
 /// The `DeclTyResolver` of a program with no siblings: every cross-module
@@ -562,9 +603,13 @@ impl<'a> EmitContext<'a> {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
+            descriptor_walks: &EMPTY_WALKS,
         }
     }
 }
+
+static EMPTY_WALKS: std::sync::LazyLock<DescriptorWalks> =
+    std::sync::LazyLock::new(DescriptorWalks::default);
 
 static EMPTY_DESCRIPTORS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
@@ -601,11 +646,46 @@ pub struct ProjectTables {
     plain_descriptors: std::collections::BTreeSet<(String, String)>,
     descriptorless_aliases: std::collections::BTreeMap<(String, String), TypeExpr>,
     imported_module_paths: std::collections::BTreeSet<String>,
+    descriptor_walks: DescriptorWalks,
+}
+
+/// One module of a project, as [`ProjectTables::from_modules`] reads it.
+pub struct ProjectModule<'m> {
+    /// The module path (`sub/a`).
+    pub module_path: &'m str,
+    /// The parsed module, or `None` when the file did not parse.
+    pub ast: Option<&'m Module>,
+    /// The checker's results for the module, or `None` when it did not
+    /// resolve. Required for the E0304 facts of the module's records, which
+    /// are decided with the module's own resolution.
+    pub checked: Option<CheckedModule<'m>>,
+}
+
+/// The checker's results for one module: what its emitter is built from.
+#[derive(Clone, Copy)]
+pub struct CheckedModule<'m> {
+    pub resolved: &'m ResolvedModule,
+    pub types: &'m TypeMap,
+    /// The resolver the checker ran this module with.
+    pub decls: &'m dyn DeclTyResolver,
 }
 
 impl ProjectTables {
-    /// Scan every module of a project, keyed by its module path (`sub/a`), and
-    /// collect the tables. One pass over each AST.
+    /// Scan every module of a project and collect the tables.
+    ///
+    /// Two passes. The first reads each AST: the module set, which sibling
+    /// types emit a descriptor and which do not, and what is imported. The
+    /// second builds each checked module's emitter over the first pass's
+    /// tables and records the E0304 walk of every record it declares
+    /// ([`DescriptorWalks`]). The second pass needs the first:
+    /// whether a field typed by an imported record delegates to a descriptor
+    /// is read off the descriptor table.
+    ///
+    /// The checker's results are part of the input, not an optional extra,
+    /// because a surface that leaves them out silently loses E0304 on every
+    /// imported record, which is the hole G210 was. A module that did not
+    /// resolve passes `checked: None`: it has its own errors, and its records
+    /// carry no walk.
     ///
     /// A module whose AST is `None` did not parse. It still counts toward the
     /// project's module set, because whether a path names a module of this
@@ -614,17 +694,28 @@ impl ProjectTables {
     /// emitting a bare specifier and reporting an unresolved module, because
     /// `b.glyph` has a syntax error. It contributes to nothing else, since
     /// there are no declarations to read.
-    pub fn from_modules<'m, I>(modules: I) -> Self
+    pub fn from_modules<'m, I>(modules: I, prelude: &Prelude) -> Self
     where
-        I: IntoIterator<Item = (&'m str, Option<&'m Module>)>,
+        I: IntoIterator<Item = ProjectModule<'m>>,
     {
+        let modules: Vec<ProjectModule<'m>> = modules.into_iter().collect();
         let mut t = ProjectTables::default();
-        for (module_path, ast) in modules {
-            t.project_modules.insert(module_path.to_string());
-            if let Some(ast) = ast {
-                t.scan(module_path, ast);
+        for m in &modules {
+            t.project_modules.insert(m.module_path.to_string());
+            if let Some(ast) = m.ast {
+                t.scan(m.module_path, ast);
             }
         }
+        let mut walks = Vec::new();
+        for m in &modules {
+            let (Some(ast), Some(checked)) = (m.ast, m.checked) else {
+                continue;
+            };
+            let ctx = t.emit_context(m.module_path, checked.decls);
+            let e = Emitter::new(ast, checked.resolved, checked.types, prelude, ctx);
+            walks.extend(e.descriptor_walks_of_module());
+        }
+        t.descriptor_walks.walks.extend(walks);
         t
     }
 
@@ -673,6 +764,7 @@ impl ProjectTables {
             plain_descriptors: &self.plain_descriptors,
             descriptorless_aliases: &self.descriptorless_aliases,
             decls,
+            descriptor_walks: &self.descriptor_walks,
         }
     }
 
@@ -751,38 +843,52 @@ pub fn emit_module_mapped(
     prelude: &Prelude,
     ctx: EmitContext,
 ) -> Result<EmitOutput, EmitError> {
-    let shadowed = Rc::new(shadowed_globals_of(module));
-    let lowerer = Lowerer::new(resolved, prelude);
-    let mut e = Emitter {
-        out: String::new(),
-        indent: 0,
-        tmp_counter: 0,
-        used_try: Rc::new(Cell::new(false)),
-        used_schema: Rc::new(Cell::new(false)),
-        used_result: Rc::new(Cell::new(false)),
-        used_infer_output: Rc::new(Cell::new(false)),
-        used_react: Rc::new(Cell::new(false)),
-        shadowed_globals: shadowed,
-        desc_param_guards: RefCell::new(Vec::new()),
-            assign_target: RefCell::new(None),
-        return_cast: None,
-        emit_export: "export ",
-        loop_labels: Vec::new(),
-        module,
-        resolved,
-        prelude,
-        lowerer,
-        types,
-        synth_types: Rc::new(RefCell::new(HashMap::new())),
-        synth_bindings: Rc::new(RefCell::new(HashSet::new())),
-        source_map: Vec::new(),
-        ctx,
-    };
+    let mut e = Emitter::new(module, resolved, types, prelude, ctx);
     e.emit_module()?;
     Ok(EmitOutput {
         ts: e.out,
         source_map: e.source_map,
     })
+}
+
+impl<'a> Emitter<'a> {
+    /// A top-level emitter for `module`, with nothing written yet.
+    fn new(
+        module: &'a Module,
+        resolved: &'a ResolvedModule,
+        types: &'a TypeMap,
+        prelude: &'a Prelude,
+        ctx: EmitContext<'a>,
+    ) -> Self {
+        let shadowed = Rc::new(shadowed_globals_of(module));
+        let lowerer = Lowerer::new(resolved, prelude);
+        Emitter {
+            out: String::new(),
+            indent: 0,
+            tmp_counter: 0,
+            used_try: Rc::new(Cell::new(false)),
+            used_schema: Rc::new(Cell::new(false)),
+            used_result: Rc::new(Cell::new(false)),
+            used_infer_output: Rc::new(Cell::new(false)),
+            used_react: Rc::new(Cell::new(false)),
+            shadowed_globals: shadowed,
+            desc_param_guards: RefCell::new(Vec::new()),
+            assign_target: RefCell::new(None),
+            return_cast: None,
+            emit_export: "export ",
+            loop_labels: Vec::new(),
+            module,
+            resolved,
+            prelude,
+            lowerer,
+            types,
+            synth_types: Rc::new(RefCell::new(HashMap::new())),
+            synth_bindings: Rc::new(RefCell::new(HashSet::new())),
+            source_map: Vec::new(),
+            delegations: RefCell::new(None),
+            ctx,
+        }
+    }
 }
 
 /// What a type expression stands for, as far as a runtime check is decided:
@@ -934,6 +1040,12 @@ struct Emitter<'a> {
     /// internal offsets don't correspond to the final file, so its statements
     /// map to the enclosing top-level statement — coarser but still correct.
     source_map: Vec<(usize, Span)>,
+    /// While `field_check_delegations` runs, the `(module path, type name)` of
+    /// every record descriptor the field check being built calls. `None`
+    /// otherwise. Recorded by `field_check_in` at the point it writes the
+    /// `T.is(..)` call, so the records E0304 follows are exactly the ones the
+    /// emitted check trusts, never a second reading of the type.
+    delegations: RefCell<Option<Vec<(String, String)>>>,
     /// Project context for resolving cross-module import specifiers.
     ctx: EmitContext<'a>,
 }
@@ -1010,6 +1122,7 @@ impl<'a> Emitter<'a> {
             // its byte offsets don't map to the final file; give it a throwaway
             // map. Its statements map to the enclosing top-level statement.
             source_map: Vec::new(),
+            delegations: RefCell::new(None),
             ctx: self.ctx,
         }
     }
@@ -4811,6 +4924,7 @@ impl<'a> Emitter<'a> {
                     // call site, not a presence check.
                     FieldCheck::Deep(format!("{guard}({access})"))
                 } else if self.has_descriptor(name) {
+                    self.note_delegation(self.descriptor_target(name));
                     FieldCheck::Deep(format!("{name}.is({access})"))
                 } else if let Some(leaf) = self.alias_leaf(name) {
                     // A non-record type alias (`type Tier = "free" | "pro"`,
@@ -4840,6 +4954,9 @@ impl<'a> Emitter<'a> {
                 let ns = segments[0].as_ref();
                 let name = segments[1].as_ref();
                 if self.has_namespaced_descriptor(ns, name) {
+                    self.note_delegation(
+                        self.namespace_module_path(ns).map(|m| (m, name.to_string())),
+                    );
                     FieldCheck::Deep(format!("{ns}.{name}.is({access})"))
                 } else if let Some(leaf) = self
                     .namespace_module_path(ns)
@@ -5244,45 +5361,146 @@ impl<'a> Emitter<'a> {
         Ok(format!("{targs}({})", a.join(", ")))
     }
 
-    /// The first field of record type `name` that has no runtime check, if any.
-    ///
-    /// Drives E0304. A record whose field is itself such a record is
-    /// unverifiable too, which `field_value_check_opt` already gives for free:
-    /// a field typed by a descriptor-bearing record resolves to `T.is(...)`,
-    /// and that call is only as good as `T`'s own descriptor, so the walk
-    /// recurses into it here. `seen` stops a recursive type from spinning.
-    fn first_unverifiable_field(
-        &self,
-        name: &str,
-        seen: &mut std::collections::HashSet<String>,
-    ) -> Option<(String, String)> {
-        if !seen.insert(name.to_string()) {
-            return None; // recursive type: its own fields are checked once
+    /// Record that the field check being built calls the descriptor of
+    /// `target`, when a walk is collecting (see `delegations`).
+    fn note_delegation(&self, target: Option<(String, String)>) {
+        if let (Some(list), Some(target)) = (self.delegations.borrow_mut().as_mut(), target) {
+            if !list.contains(&target) {
+                list.push(target);
+            }
         }
-        // The claim `B.is` makes is the claim of the record `B` names (D46), so
-        // the fields judged are the fields of the declaration the chain ends at.
-        let decl = self.chain_end_decl(name)?;
-        if !decl.generics.is_empty() {
-            return None;
+    }
+
+    /// The `(module path, type name)` of the record a bare type name written
+    /// in this module stands for: a declaration of this module, or the
+    /// declaration a named import binds, under the name its own module gave
+    /// it. `None` for any other name.
+    fn descriptor_target(&self, name: &str) -> Option<(String, String)> {
+        if self.module.items.iter().any(|d| matches!(d, Decl::Type(t) if t.name.as_ref() == name)) {
+            return Some((self.ctx.module_path.to_string(), name.to_string()));
         }
-        let TypeExpr::Record { fields, .. } = &decl.body else {
+        let &sym_id = self.resolved.symbols.by_name.get(name)?;
+        let sym = self.resolved.symbols.table.get(sym_id)?;
+        let SymbolKind::ImportNamed { path, original } = &sym.kind else {
             return None;
         };
+        Some((glyph_resolver::path_key(path), original.to_string()))
+    }
+
+    /// The check for a field of type `ty`, with every record descriptor that
+    /// check calls. The descriptors are the ones `field_check_in` itself wrote
+    /// a call to, so the walk follows exactly what the emitted check trusts.
+    fn field_check_delegations(&self, ty: &TypeExpr) -> (FieldCheck, Vec<(String, String)>) {
+        let outer = self.delegations.replace(Some(Vec::new()));
+        let check = self.field_check(ty, "__x");
+        let called = self.delegations.replace(outer).unwrap_or_default();
+        (check, called)
+    }
+
+    /// The E0304 walk of the record this module declares under `name`.
+    ///
+    /// The claim `B.is` makes is the claim of the record `B` names (D46), so
+    /// the fields walked are the fields of the declaration the chain ends at.
+    /// Each field is either one no check exists for, which ends the walk, or
+    /// one whose check calls other records' descriptors, recorded as
+    /// delegations to follow. A generic record, a union, and a refined
+    /// primitive have no fields to walk here, and answer an empty walk.
+    fn descriptor_walk(&self, name: &str) -> Vec<WalkStep> {
+        let mut steps = Vec::new();
+        let Some(decl) = self.chain_end_decl(name) else {
+            return steps;
+        };
+        if !decl.generics.is_empty() {
+            return steps;
+        }
+        let TypeExpr::Record { fields, .. } = &decl.body else {
+            return steps;
+        };
         for f in fields {
+            let (check, called) = self.field_check_delegations(&f.ty);
             // `PresenceOnly` is not an error: an `unknown` field claims
             // nothing, so being there is the whole of what the descriptor said.
-            if self.field_check(&f.ty, "__x") == FieldCheck::Unverifiable {
-                return Some((f.name.to_string(), type_label(&f.ty)));
+            if check == FieldCheck::Unverifiable {
+                steps.push(WalkStep::Unverifiable {
+                    field: f.name.to_string(),
+                    field_ty: type_label(&f.ty),
+                });
+                break;
             }
-            // A field typed by another local record is checked by that record's
-            // `is`, so the claim is only as strong as its descriptor.
-            if let TypeExpr::Path { segments, .. } = &f.ty {
-                if segments.len() == 1 {
-                    let inner = segments[0].as_ref();
-                    if self.has_descriptor(inner) {
-                        if let Some((sub, ty)) = self.first_unverifiable_field(inner, seen) {
-                            return Some((format!("{}.{sub}", f.name), ty));
-                        }
+            for (module, name) in called {
+                steps.push(WalkStep::Delegates {
+                    field: f.name.to_string(),
+                    module,
+                    name,
+                });
+            }
+        }
+        steps
+    }
+
+    /// The walk of every record this module declares with a plain
+    /// descriptor, keyed by `(module path, type name)`: this module's
+    /// contribution to [`DescriptorWalks`]. A private record is included: an
+    /// exported record's field may be typed by it, and the walk that
+    /// delegates to it has to find its verdict. A second name for a record
+    /// (`pub type B = A`, D46) is included, since `B.parse` is a use of the
+    /// descriptor too.
+    fn descriptor_walks_of_module(&self) -> Vec<((String, String), Vec<WalkStep>)> {
+        self.module
+            .items
+            .iter()
+            .filter_map(|d| match d {
+                Decl::Type(td)
+                    if td.generics.is_empty() && self.has_descriptor(td.name.as_ref()) =>
+                {
+                    Some((
+                        (self.ctx.module_path.to_string(), td.name.to_string()),
+                        self.descriptor_walk(td.name.as_ref()),
+                    ))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The first field of the record `name` declared in `module` that has no
+    /// runtime check, as a dotted path through the records its check calls,
+    /// with that field's type. Drives E0304.
+    ///
+    /// A record of this module is walked here; a record of another module is
+    /// read from the walk its own module recorded ([`DescriptorWalks`]), since
+    /// its field types are names in that module's scope. A delegation is
+    /// followed into whichever module it names, so a record holding a record
+    /// that holds an unverifiable field is refused across any number of
+    /// module boundaries. `seen` stops a recursive type from spinning: its
+    /// own fields are judged once.
+    fn first_unverifiable_in(
+        &self,
+        module: &str,
+        name: &str,
+        seen: &mut HashSet<(String, String)>,
+    ) -> Option<(String, String)> {
+        if !seen.insert((module.to_string(), name.to_string())) {
+            return None;
+        }
+        let local;
+        let steps: &[WalkStep] = if module == self.ctx.module_path {
+            local = self.descriptor_walk(name);
+            &local
+        } else {
+            self.ctx
+                .descriptor_walks
+                .walks
+                .get(&(module.to_string(), name.to_string()))?
+        };
+        for step in steps {
+            match step {
+                WalkStep::Unverifiable { field, field_ty } => {
+                    return Some((field.clone(), field_ty.clone()));
+                }
+                WalkStep::Delegates { field, module, name } => {
+                    if let Some((sub, ty)) = self.first_unverifiable_in(module, name, seen) {
+                        return Some((format!("{field}.{sub}"), ty));
                     }
                 }
             }
@@ -5292,6 +5510,15 @@ impl<'a> Emitter<'a> {
 
     /// Refuse `T.parse`/`T.is` when `T` cannot be validated (E0304). Returns the
     /// error to raise, or `None` when the call is fine or is not one of these.
+    ///
+    /// The receiver is the record however this module spells it: declared
+    /// here (`Doc.parse`), bound by a named import (`import w { Doc }`), or
+    /// reached through a namespace (`import w` then `w.Doc.parse`). Each
+    /// resolves to the record's `(module, name)`, the verdict is that
+    /// record's, and the error names it by the name its declaration gave it,
+    /// so the three spellings are refused with one diagnostic. A record of
+    /// this module keeps the name the call wrote, which for a second name
+    /// (`B.parse` on `type B = A`) is `B`.
     fn unverifiable_descriptor_use(&self, callee: &Expr) -> Option<EmitError> {
         let Expr::Member { object, field, optional: false, span } = callee else {
             return None;
@@ -5299,16 +5526,26 @@ impl<'a> Emitter<'a> {
         if field.as_ref() != "parse" && field.as_ref() != "is" {
             return None;
         }
-        let Expr::Ident { name, .. } = object.as_ref() else {
-            return None;
+        let (module, name) = match object.as_ref() {
+            Expr::Ident { name, .. } => {
+                let target = self.descriptor_target(name.as_ref())?;
+                if target.0 == self.ctx.module_path && !self.has_descriptor(name.as_ref()) {
+                    return None;
+                }
+                target
+            }
+            Expr::Member { object: inner, field: type_name, optional: false, .. } => {
+                let Expr::Ident { name: ns, .. } = inner.as_ref() else {
+                    return None;
+                };
+                (self.namespace_module_path(ns.as_ref())?, type_name.to_string())
+            }
+            _ => return None,
         };
-        if !self.has_descriptor(name.as_ref()) {
-            return None;
-        }
-        let mut seen = std::collections::HashSet::new();
-        let (field_name, field_ty) = self.first_unverifiable_field(name.as_ref(), &mut seen)?;
+        let mut seen = HashSet::new();
+        let (field_name, field_ty) = self.first_unverifiable_in(&module, &name, &mut seen)?;
         Some(EmitError::UnverifiableDescriptorUse {
-            type_name: name.to_string(),
+            type_name: name,
             field: field_name,
             field_ty,
             span: *span,
@@ -7369,6 +7606,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
+            descriptor_walks: &EMPTY_WALKS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7397,6 +7635,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
+            descriptor_walks: &EMPTY_WALKS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7896,6 +8135,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &siblings,
+            descriptor_walks: &EMPTY_WALKS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -8015,6 +8255,7 @@ mod tests {
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
+            descriptor_walks: &EMPTY_WALKS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -8033,8 +8274,21 @@ mod tests {
         let (module, resolved, types, prelude) = pipeline(
             "module main\nimport palette { Colour }\n\npub type Row = {\n  kind: Colour,\n  label: string,\n}\n",
         );
-        let tables =
-            ProjectTables::from_modules([("palette", Some(&palette)), ("main", Some(&module))]);
+        let tables = ProjectTables::from_modules(
+            [
+                ProjectModule { module_path: "palette", ast: Some(&palette), checked: None },
+                ProjectModule {
+                    module_path: "main",
+                    ast: Some(&module),
+                    checked: Some(CheckedModule {
+                        resolved: &resolved,
+                        types: &types,
+                        decls: &NoDecls,
+                    }),
+                },
+            ],
+            &prelude,
+        );
         let ts = emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main", &NoDecls))
             .expect("emit failed");
         assert!(
@@ -8068,7 +8322,21 @@ mod tests {
         // resolves against node_modules.
         let (module, resolved, types, prelude) =
             pipeline("module a\nimport b { T }\npub type Row = {\n  t: T,\n}\n");
-        let tables = ProjectTables::from_modules([("a", Some(&module)), ("b", None)]);
+        let tables = ProjectTables::from_modules(
+            [
+                ProjectModule {
+                    module_path: "a",
+                    ast: Some(&module),
+                    checked: Some(CheckedModule {
+                        resolved: &resolved,
+                        types: &types,
+                        decls: &NoDecls,
+                    }),
+                },
+                ProjectModule { module_path: "b", ast: None, checked: None },
+            ],
+            &prelude,
+        );
         assert!(
             tables.project_modules().contains("b"),
             "a module that failed to parse is still in the project: {:?}",
@@ -8745,7 +9013,7 @@ mod tests {
     /// emitter a sibling through this is handing it the checker's reading of
     /// that sibling, not a table it typed out by hand.
     struct Siblings {
-        modules: Vec<(String, Module, ResolvedModule)>,
+        modules: Vec<(String, Module, ResolvedModule, TypeMap)>,
         prelude: Prelude,
     }
 
@@ -8760,18 +9028,26 @@ mod tests {
                         .expect("sibling collect failed");
                     let (resolved, _errs) =
                         glyph_resolver::resolve_module(&module, syms, &prelude);
-                    (path.to_string(), module, resolved)
+                    let (types, _ty_errs) =
+                        glyph_typechecker::assign_types(&module, &resolved, &prelude);
+                    (path.to_string(), module, resolved, types)
                 })
                 .collect();
             Siblings { modules, prelude }
         }
 
-        /// The parsed siblings, in the shape `ProjectTables::from_modules`
-        /// takes, so the emission-owned tables see the same modules.
-        fn asts(&self) -> Vec<(&str, Option<&Module>)> {
+        /// The siblings, parsed and checked, in the shape
+        /// `ProjectTables::from_modules` takes, so the emission-owned tables
+        /// (E0304's walks included) see the same modules. Each sibling's
+        /// cross-module questions are answered by these same siblings.
+        fn project_modules(&self) -> Vec<ProjectModule<'_>> {
             self.modules
                 .iter()
-                .map(|(path, module, _)| (path.as_str(), Some(module)))
+                .map(|(path, module, resolved, types)| ProjectModule {
+                    module_path: path.as_str(),
+                    ast: Some(module),
+                    checked: Some(CheckedModule { resolved, types, decls: self }),
+                })
                 .collect()
         }
     }
@@ -8786,7 +9062,7 @@ mod tests {
             module_path: &str,
             variant_name: &str,
         ) -> Option<(String, Vec<Ident>)> {
-            let (_, module, _) = self.modules.iter().find(|(p, _, _)| p == module_path)?;
+            let (_, module, _, _) = self.modules.iter().find(|(p, _, _, _)| p == module_path)?;
             module.items.iter().find_map(|item| {
                 let Decl::Type(td) = item else { return None };
                 let TypeExpr::Union { variants, .. } = &td.body else {
@@ -8805,8 +9081,8 @@ mod tests {
         }
 
         fn imported_type_decl(&self, module_path: &str, type_name: &str) -> Option<ImportedTypeDecl> {
-            let (path, module, resolved) =
-                self.modules.iter().find(|(p, _, _)| p == module_path)?;
+            let (path, module, resolved, _) =
+                self.modules.iter().find(|(p, _, _, _)| p == module_path)?;
             let td = module.items.iter().find_map(|item| match item {
                 Decl::Type(td) if td.name.as_ref() == type_name => Some(td),
                 _ => None,
@@ -8876,9 +9152,13 @@ mod tests {
         let (types, _ty_errs) = glyph_typechecker::assign_types_with_resolver(
             &module, &resolved, &prelude, &resolver,
         );
-        let mut asts = siblings.asts();
-        asts.push(("main", Some(&module)));
-        let tables = ProjectTables::from_modules(asts);
+        let mut modules = siblings.project_modules();
+        modules.push(ProjectModule {
+            module_path: "main",
+            ast: Some(&module),
+            checked: Some(CheckedModule { resolved: &resolved, types: &types, decls: &resolver }),
+        });
+        let tables = ProjectTables::from_modules(modules, &prelude);
         emit_module(&module, &resolved, &types, &prelude, tables.emit_context("main", &siblings))
     }
 
@@ -10850,6 +11130,158 @@ pub fn n() -> number {\n  return 1\n}
         );
     }
 
+    /// The record G210 was reported against: an `extern_ts` field, and an
+    /// `Array<unknown>` field, each declared in the module `w`.
+    const G210_W: &str = "module w\n\
+         pub type Lexer = extern_ts(\"import('marky').Lexer\")\n\
+         @open\n\
+         pub type Doc = { lexer: Lexer, title: string, }\n\
+         pub type Bag = { items: Array<unknown>, title: string, }\n\
+         pub type Fine = { title: string, n: int, tags: Array<string>, }\n\
+         pub type D2 = Doc\n\
+         type Inner = { lexer: Lexer, }\n\
+         pub type Holder = { inner: Inner, }\n";
+
+    /// `match <call> { Ok(_) => true, Err(_) => false, }` in a function of
+    /// `main`, below the given imports.
+    fn g210_main(imports: &str, call: &str) -> String {
+        format!(
+            "module main\n{imports}\n\
+             pub fn go(v: unknown) -> bool {{\n\
+             \x20 return match {call} {{ Ok(_) => true, Err(_) => false, }}\n\
+             }}\n"
+        )
+    }
+
+    fn assert_g210_refused(result: Result<String, EmitError>, type_name: &str, field: &str, field_ty: &str) {
+        match result {
+            Err(EmitError::UnverifiableDescriptorUse { type_name: t, field: f, field_ty: ty, .. }) => {
+                assert_eq!((t.as_str(), f.as_str(), ty.as_str()), (type_name, field, field_ty));
+            }
+            other => panic!("expected E0304 on `{type_name}.{field}`, got {other:?}"),
+        }
+    }
+
+    /// G210: E0304 fired only in the module that declared the record. The
+    /// walk looked the record up in the module being emitted, found nothing
+    /// for an import, and `Doc.parse` emitted a descriptor call that returns
+    /// `Ok` on a value whose `lexer` it never checked.
+    #[test]
+    fn e0304_refuses_a_named_import_of_an_unverifiable_record() {
+        assert_g210_refused(
+            emit_beside(("w", G210_W), &g210_main("import w { Doc }", "Doc.parse(v)")),
+            "Doc",
+            "lexer",
+            "Lexer",
+        );
+        assert_g210_refused(
+            emit_beside(("w", G210_W), &g210_main("import w { Bag }", "Bag.parse(v)")),
+            "Bag",
+            "items",
+            "Array<unknown>",
+        );
+    }
+
+    /// The same record through a namespace import is the same record, refused
+    /// with the same diagnostic: the guarantee does not move with the import
+    /// spelling.
+    #[test]
+    fn e0304_refuses_a_namespace_import_of_an_unverifiable_record() {
+        assert_g210_refused(
+            emit_beside(("w", G210_W), &g210_main("import w", "w.Doc.parse(v)")),
+            "Doc",
+            "lexer",
+            "Lexer",
+        );
+        assert_g210_refused(
+            emit_beside(("w", G210_W), &g210_main("import w as ww", "ww.Bag.parse(v)")),
+            "Bag",
+            "items",
+            "Array<unknown>",
+        );
+    }
+
+    /// Glyph has no re-exports (D15); the nearest form is a second name the
+    /// declaring module exports (`pub type D2 = Doc`, D46). Its descriptor is
+    /// `Doc`'s, so its parse is refused for `Doc`'s field.
+    #[test]
+    fn e0304_refuses_an_imported_second_name_for_an_unverifiable_record() {
+        assert_g210_refused(
+            emit_beside(("w", G210_W), &g210_main("import w { D2 }", "D2.parse(v)")),
+            "D2",
+            "lexer",
+            "Lexer",
+        );
+    }
+
+    /// The walk crosses module boundaries in both directions: an imported
+    /// record whose field is a private record of its own module, and a local
+    /// record whose field is an array of an imported one.
+    #[test]
+    fn e0304_follows_delegations_across_modules() {
+        assert_g210_refused(
+            emit_beside(("w", G210_W), &g210_main("import w { Holder }", "Holder.parse(v)")),
+            "Holder",
+            "inner.lexer",
+            "Lexer",
+        );
+        let main = "module main\nimport w { Doc }\n\
+             type Outer = { docs: Array<Doc>, }\n\
+             pub fn go(v: unknown) -> bool {\n\
+             \x20 return match Outer.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n";
+        assert_g210_refused(emit_beside(("w", G210_W), main), "Outer", "docs.lexer", "Lexer");
+        // The same composition through a namespace-qualified field type.
+        let main = "module main\nimport w\n\
+             type Outer = { doc: Option<w.Doc>, }\n\
+             pub fn go(v: unknown) -> bool {\n\
+             \x20 return match Outer.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n";
+        assert_g210_refused(emit_beside(("w", G210_W), main), "Outer", "doc.lexer", "Lexer");
+    }
+
+    /// The local twin of the cross-module delegation: an array of a record
+    /// with an unverifiable field was let through, because only a field typed
+    /// by the bare record name was followed. The walk now follows every
+    /// descriptor the field's check calls.
+    #[test]
+    fn e0304_follows_a_local_record_inside_a_container() {
+        let err = emit_err(
+            "module x\n\
+             type Opaque = extern_ts(\"{ handle: number }\")\n\
+             type A = { cb: Opaque, }\n\
+             type Many = { all: Array<A>, }\n\
+             pub fn go(v: unknown) -> bool {\n\
+             \x20 return match Many.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n",
+        );
+        assert!(
+            matches!(&err, EmitError::UnverifiableDescriptorUse { type_name, field, .. } if type_name == "Many" && field == "all.cb"),
+            "{err:?}"
+        );
+    }
+
+    /// Positive control: a verifiable imported record parses through every
+    /// spelling, and a local record composed of it does too.
+    #[test]
+    fn e0304_accepts_a_verifiable_imported_record() {
+        for (imports, call) in [
+            ("import w { Fine }", "Fine.parse(v)"),
+            ("import w", "w.Fine.parse(v)"),
+            ("import w as ww", "ww.Fine.parse(v)"),
+        ] {
+            let ts = emit_beside(("w", G210_W), &g210_main(imports, call))
+                .unwrap_or_else(|e| panic!("`{call}` must be accepted: {e:?}"));
+            assert!(ts.contains(".parse(v)"), "{ts}");
+        }
+        let main = "module main\nimport w { Fine }\n\
+             type Outer = { all: Array<Fine>, }\n\
+             pub fn go(v: unknown) -> bool {\n\
+             \x20 return match Outer.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n";
+        emit_beside(("w", G210_W), main).expect("a record of verifiable imported records parses");
+    }
+
     #[test]
     fn refined_alias_in_field_position_calls_its_descriptor() {
         // The D39 promise has to hold wherever the type is used, not only at a
@@ -10917,6 +11349,7 @@ pub fn n() -> number {\n  return 1\n}
             plain_descriptors: &descriptors,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
+            descriptor_walks: &EMPTY_WALKS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

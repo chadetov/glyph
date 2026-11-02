@@ -409,6 +409,7 @@ pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeRep
             with_color,
             &others,
             &nested_out_dirs,
+            &project.src,
         )?;
         tree.projects.push(ProjectReport {
             project: project.clone(),
@@ -468,7 +469,27 @@ pub fn build_project_inner(
     out: &Path,
     with_color: bool,
 ) -> Result<BuildReport, BuildError> {
-    build_project_inner_with(src, out, with_color, &[], &[])
+    build_project_inner_with(src, out, with_color, &[], &[], src)
+}
+
+/// Build a staged copy of a project, resolving its external dependencies from
+/// the project the copy was made of.
+///
+/// The `@example` gate builds a throwaway copy of the source tree in the temp
+/// directory. Nothing above that copy holds the project's `node_modules` or
+/// `package.json`, so a build anchored on the copy itself sees no installed
+/// packages: its generated tsconfig carries no `paths` entry for them, and the
+/// harness `tsx` then runs cannot load a single npm import (G280). Every fact
+/// about what the project depends on is read from `resolve_from` instead, the
+/// same way `glyph run` builds into a cache directory outside the project and
+/// still resolves the project's packages through that tsconfig entry.
+pub fn build_project_copy(
+    src: &Path,
+    out: &Path,
+    with_color: bool,
+    resolve_from: &Path,
+) -> Result<BuildReport, BuildError> {
+    build_project_inner_with(src, out, with_color, &[], &[], resolve_from)
 }
 
 /// Another project in the same tree, as an unresolved-import diagnostic needs to
@@ -486,12 +507,17 @@ struct OtherProject<'a> {
 /// sharpen an unresolved-import diagnostic into "that module belongs to another
 /// project" (D41). Resolution itself is unaffected: a project's imports resolve
 /// within its own root only.
+///
+/// `resolve_from` is where installed packages and dependency manifests are
+/// looked up from. It is `src` for every real build; it differs only for a
+/// staged copy (see `build_project_copy`).
 fn build_project_inner_with(
     src: &Path,
     out: &Path,
     with_color: bool,
     other_projects: &[OtherProject<'_>],
     nested_out_dirs: &[String],
+    resolve_from: &Path,
 ) -> Result<BuildReport, BuildError> {
     if !src.exists() {
         return Err(BuildError::SrcMissing(src.to_path_buf()));
@@ -558,7 +584,7 @@ fn build_project_inner_with(
     // Module names that resolve without a `.glyph` file: ambient `declare
     // module` blocks and installed packages. Read once per build, and only used
     // by the local-import check below.
-    let external_modules = external_module_names(src);
+    let external_modules = external_module_names(src, resolve_from);
 
     // Run the pipeline for each file. Collect diagnostics in the same
     // order as the file walk so the report is reproducible. Each
@@ -846,7 +872,14 @@ fn build_project_inner_with(
         // emitted module files are pruned — the bundled `.glyph-runtime/` tree,
         // any `.d.ts`, and the `glyph run` entrypoint are left untouched.
         prune_stale_outputs(out, &report.emitted)?;
-        crate::runtime::write_build_support(out, src, nested_out_dirs, &report.emitted).map_err(
+        crate::runtime::write_build_support(
+            out,
+            src,
+            resolve_from,
+            nested_out_dirs,
+            &report.emitted,
+        )
+        .map_err(
             |e| BuildError::Io {
                 path: out.to_path_buf(),
                 source: e,
@@ -1345,7 +1378,10 @@ fn module_resolution(
     ModuleResolution::Unknown
 }
 
-fn external_module_names(src: &Path) -> ExternalModules {
+/// `src` supplies the project's own `.types/`; `resolve_from` is where the walk
+/// for installed packages and manifests starts (the two differ only for the
+/// `@example` gate's staged copy).
+fn external_module_names(src: &Path, resolve_from: &Path) -> ExternalModules {
     let mut names = std::collections::BTreeSet::new();
 
     // The bundled Node builtin shim. `write_build_support` skips writing it when
@@ -1378,7 +1414,9 @@ fn external_module_names(src: &Path) -> ExternalModules {
     let mut saw_installed_packages = false;
     let mut declared = std::collections::BTreeSet::new();
     let mut saw_manifest = false;
-    let mut dir = src.canonicalize().unwrap_or_else(|_| src.to_path_buf());
+    let mut dir = resolve_from
+        .canonicalize()
+        .unwrap_or_else(|_| resolve_from.to_path_buf());
     loop {
         let candidate = dir.join("node_modules");
         if candidate.is_dir() {

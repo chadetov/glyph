@@ -4009,6 +4009,164 @@ fn property_tests_run_through_examples() {
     );
 }
 
+/// A project with a `package.json` "glyph" key and one installed npm package,
+/// `tinypad`, built by hand in `node_modules` so no network is needed. `main`
+/// imports it and carries `@example double(21) == <rhs>`; `index_js` is the
+/// package's runtime body. Returns the project root.
+fn npm_example_project(prefix: &str, rhs: &str, index_js: &str) -> PathBuf {
+    let root = unique_tmp(prefix);
+    write_file(
+        &root,
+        "package.json",
+        "{ \"name\": \"g280\", \"version\": \"0.1.0\", \"private\": true, \
+         \"glyph\": { \"src\": \"src\" }, \"dependencies\": { \"tinypad\": \"1.0.0\" } }\n",
+    );
+    write_file(
+        &root,
+        "node_modules/tinypad/package.json",
+        "{ \"name\": \"tinypad\", \"version\": \"1.0.0\", \"main\": \"index.js\", \
+         \"types\": \"index.d.ts\" }\n",
+    );
+    write_file(&root, "node_modules/tinypad/index.js", index_js);
+    write_file(
+        &root,
+        "node_modules/tinypad/index.d.ts",
+        "export declare function pad(s: string, n: number): string;\n",
+    );
+    write_file(
+        &root,
+        "src/main.glyph",
+        &format!(
+            "module main\n\
+             \n\
+             import tinypad {{ pad }}\n\
+             \n\
+             @example double(21) == {rhs}\n\
+             pub fn double(n: number) -> number {{\n\
+             \x20 return n * 2\n\
+             }}\n\
+             \n\
+             @example padded(\"a\") == \"   a\"\n\
+             pub fn padded(s: string) -> string {{\n\
+             \x20 return pad(s, 4)\n\
+             }}\n"
+        ),
+    );
+    root
+}
+
+const TINYPAD_JS: &str = "exports.pad = function (s, n) { return s.padStart(n, \" \"); };\n";
+
+/// Run the real binary on the project at `root` and return (exit code, stdout,
+/// stderr). `{src}` and `{out}` in `args` become `root/src` and `root/out`.
+/// Bounded by the suite's deadline through `spawn_glyph`.
+fn glyph_in(root: &Path, args: &[&str]) -> (i32, String, String) {
+    let src = root.join("src");
+    let out = root.join("out");
+    let owned: Vec<std::ffi::OsString> = args
+        .iter()
+        .map(|a| match *a {
+            "{src}" => src.clone().into_os_string(),
+            "{out}" => out.clone().into_os_string(),
+            other => other.into(),
+        })
+        .collect();
+    let refs: Vec<&std::ffi::OsStr> = owned.iter().map(|a| a.as_os_str()).collect();
+    let (code, stdout, stderr, _) = spawn_glyph(&refs);
+    (code, stdout, stderr)
+}
+
+#[test]
+fn a_failing_example_fails_in_a_module_that_imports_an_npm_package() {
+    // G280: the gate builds a copy of the project in the temp directory, where
+    // no `node_modules` is reachable. The harness died loading `tinypad`,
+    // printed no `FAIL` line, and the runner read the silence as "1 example(s)
+    // passed", exit 0, on an example that is plainly false.
+    if !js_toolchain_available() {
+        eprintln!("skipping npm-import example gate: node/tsx not available");
+        return;
+    }
+    let root = npm_example_project("g280_fail", "43", TINYPAD_JS);
+
+    let (code, _, stderr) = glyph_in(&root, &["build", "{src}", "--out", "{out}", "--no-tsc"]);
+    assert_eq!(code, 1, "a false example fails the build:\n{stderr}");
+    assert!(
+        stderr.contains("example failed: main::double example #1: (double(21)) != (43)"),
+        "the failure names the example:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("1 of 2 example(s) failed"),
+        "the example that calls into the package ran and passed:\n{stderr}"
+    );
+
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "--json exits 1 on the same source:\n{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    assert_eq!(v["ok"], false, "{stdout}");
+    let ex = &v["examples"];
+    assert_eq!(ex["ran"], true, "{stdout}");
+    assert_eq!(ex["total"], 2, "{stdout}");
+    let failures = ex["failures"].as_array().expect("failures array");
+    assert_eq!(failures.len(), 1, "{stdout}");
+    assert_eq!(failures[0]["code"], "E0400", "{stdout}");
+    assert_eq!(failures[0]["entity"], "main::double", "{stdout}");
+}
+
+#[test]
+fn a_passing_example_passes_in_a_module_that_imports_an_npm_package() {
+    // The other half of G280: the copy resolves the project's packages, so an
+    // example that calls through `tinypad` runs and is checked, rather than
+    // only being reported loudly as not run.
+    if !js_toolchain_available() {
+        eprintln!("skipping npm-import example gate: node/tsx not available");
+        return;
+    }
+    let root = npm_example_project("g280_pass", "42", TINYPAD_JS);
+    let (code, _, stderr) = glyph_in(&root, &["build", "{src}", "--out", "{out}", "--no-tsc"]);
+    assert_eq!(code, 0, "{stderr}");
+    assert!(stderr.contains("2 example(s) passed"), "{stderr}");
+}
+
+#[test]
+fn an_example_harness_that_stops_early_is_never_a_pass() {
+    // Whatever stops the harness before its tally (here, a package that
+    // throws on load), the examples it never reached are reported as not run
+    // and fail the gate. Silence from the harness is not a verdict.
+    if !js_toolchain_available() {
+        eprintln!("skipping example-harness crash gate: node/tsx not available");
+        return;
+    }
+    let root = npm_example_project(
+        "g280_crash",
+        "42",
+        "throw new Error(\"tinypad refuses to load\");\n",
+    );
+
+    let (code, _, stderr) = glyph_in(&root, &["build", "{src}", "--out", "{out}", "--no-tsc"]);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("2 example(s) not run"), "{stderr}");
+    assert!(stderr.contains("tinypad refuses to load"), "the cause is shown:\n{stderr}");
+    assert!(!stderr.contains("passed"), "nothing is reported as passed:\n{stderr}");
+
+    let (code, _, stderr) = glyph_in(&root, &["check", "--no-tsc", "{src}"]);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("2 example(s) not run"), "{stderr}");
+
+    let (code, stdout, _) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "{stdout}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    assert_eq!(v["ok"], false, "{stdout}");
+    assert_eq!(v["examples"]["ran"], false, "{stdout}");
+    let failures = v["examples"]["failures"].as_array().expect("failures array");
+    assert_eq!(failures.len(), 1, "{stdout}");
+    assert_eq!(failures[0]["code"], "E0404", "{stdout}");
+    assert_eq!(failures[0]["kind"], "gate", "{stdout}");
+
+    let report = glyph_cli::examples::run_examples(&root.join("src")).expect("run_examples ok");
+    assert!(!report.ok(), "the library report is not ok either");
+    assert!(report.incomplete.is_some(), "{report:?}");
+}
+
 #[test]
 fn doc_run_blocks_execute_and_assert() {
     // A ```glyph @run``` block in a @doc executes; a failing `assert` is a

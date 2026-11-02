@@ -15,7 +15,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use glyph_ast::{Decl, Expr};
 use glyph_formatter::format_expr;
 
-use crate::build::{build_project_inner, BuildError};
+use crate::build::{build_project_copy, BuildError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExampleError {
@@ -37,7 +37,8 @@ pub const E_DOC_RUN_FAILED: &str = "E0401";
 pub const E_EXAMPLE_MALFORMED: &str = "E0402";
 /// The augmented project carrying the tests did not compile.
 pub const E_EXAMPLES_NOT_COMPILED: &str = "E0403";
-/// The gate could not run at all (`tsx` is absent from `PATH`).
+/// The gate could not run its tests: `tsx` is absent from `PATH`, or the
+/// harness exited without reporting a result for every test it was given.
 pub const E_EXAMPLES_NOT_RUN: &str = "E0404";
 
 /// One failed test, with the declaration it belongs to kept as structure.
@@ -124,11 +125,21 @@ pub struct ExampleReport {
     /// Set when the augmented project failed to compile; carries its
     /// diagnostics. Usually means an `@example` references something invalid.
     pub build_failed: Option<Vec<String>>,
+    /// Set when the harness ran but did not report on every test: it crashed
+    /// while loading a module, exited early, or printed a tally that does not
+    /// match what it was given. Carries what the harness said on the way out.
+    ///
+    /// A test is counted as passed only when the harness reached its tally line
+    /// and accounted for it. Before this, a harness that died before running
+    /// anything printed no `FAIL` line, and no `FAIL` line read as success: a
+    /// module importing an npm package the copy could not resolve reported its
+    /// failing `@example` as passed (G280).
+    pub incomplete: Option<String>,
 }
 
 impl ExampleReport {
     pub fn ok(&self) -> bool {
-        self.failures.is_empty() && self.build_failed.is_none()
+        self.failures.is_empty() && self.build_failed.is_none() && self.incomplete.is_none()
     }
 }
 
@@ -279,6 +290,7 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
                 .push(ExampleFailure::malformed(&fe.module_path, &m.decl, &m.args));
         }
     }
+    let malformed_count = report.failures.len();
     if total == 0 {
         // Only malformed examples (or none at all); nothing to execute.
         report.ran = malformed_total == 0;
@@ -328,7 +340,9 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
         write(&path, &text)?;
     }
 
-    let build = build_project_inner(&tsrc, &tout, false)?;
+    // The copy lives in the temp directory, so it is built resolving packages
+    // from the real project: otherwise none of its npm imports load (G280).
+    let build = build_project_copy(&tsrc, &tout, false, src)?;
     if build.has_errors() {
         report.build_failed = Some(build.diagnostics);
         return Ok(report);
@@ -369,6 +383,13 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
                         .unwrap_or_else(|| ExampleFailure::unattributed(rest.to_string())),
                 );
             }
+            report.incomplete = harness_incomplete(
+                &stdout,
+                &String::from_utf8_lossy(&out.stderr),
+                out.status,
+                ids.len(),
+                report.failures.len() - malformed_count,
+            );
             Ok(report)
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -379,6 +400,74 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
             path: entry,
             source: e,
         }),
+    }
+}
+
+/// The prefix of the harness's closing tally line, `__GLYPH_EXAMPLES__ <total>
+/// <failed>`.
+const TALLY: &str = "__GLYPH_EXAMPLES__ ";
+
+/// Why a finished harness run cannot be trusted, or `None` when it reported on
+/// every test it was given.
+///
+/// The harness is trusted only when it printed its tally, the tally counts
+/// exactly the `expected` tests generated for it, its failure count matches the
+/// `FAIL` lines it printed, and its exit status agrees. Anything else means
+/// some test was never run or never reported, and an unreported test must not
+/// be read as a passing one.
+fn harness_incomplete(
+    stdout: &str,
+    stderr: &str,
+    status: std::process::ExitStatus,
+    expected: usize,
+    fail_lines: usize,
+) -> Option<String> {
+    let tally = stdout
+        .lines()
+        .rev()
+        .find_map(|l| l.strip_prefix(TALLY))
+        .and_then(|rest| {
+            let mut parts = rest.split_whitespace();
+            let total = parts.next()?.parse::<usize>().ok()?;
+            let failed = parts.next()?.parse::<usize>().ok()?;
+            Some((total, failed))
+        });
+    let exit = match status.code() {
+        Some(c) => format!("exit code {c}"),
+        None => "a signal".to_string(),
+    };
+    let problem = match tally {
+        None => format!(
+            "the test harness stopped before reporting any result ({exit}), \
+             so none of the {expected} test(s) ran to a verdict"
+        ),
+        Some((total, _)) if total != expected => format!(
+            "the test harness reported {total} test(s) but was given {expected} ({exit})"
+        ),
+        Some((_, failed)) if failed != fail_lines => format!(
+            "the test harness counted {failed} failure(s) but reported {fail_lines} ({exit})"
+        ),
+        Some((_, failed)) if (failed == 0) != status.success() => {
+            format!("the test harness reported {failed} failure(s) but ended with {exit}")
+        }
+        Some(_) => return None,
+    };
+    let said = stderr.trim();
+    if said.is_empty() {
+        Some(problem)
+    } else {
+        // Node opens an uncaught error with the source line it was thrown
+        // from and closes it with a stack trace; the cause (`Error: Cannot find
+        // module 'x'`) sits between. Start there when there is one, and keep a
+        // few lines of what follows.
+        let lines: Vec<&str> = said.lines().collect();
+        let names_error = |l: &&str| {
+            l.split_once(':')
+                .is_some_and(|(head, _)| head.trim().ends_with("Error"))
+        };
+        let from = lines.iter().position(names_error).unwrap_or(0);
+        let head: Vec<&str> = lines[from..].iter().take(8).copied().collect();
+        Some(format!("{problem}:\n{}", head.join("\n")))
     }
 }
 
@@ -809,5 +898,44 @@ fn triple(n: number) -> number { return n * 3 }
             "an @example added to `double` renumbered `triple`'s label"
         );
         assert_eq!(before, "main::triple example #1");
+    }
+
+    /// An exit status with code `c`. Unix-only: the standard library builds one
+    /// from a raw wait status there and nowhere portable.
+    #[cfg(unix)]
+    fn exited(c: i32) -> std::process::ExitStatus {
+        use std::os::unix::process::ExitStatusExt;
+        std::process::ExitStatus::from_raw(c << 8)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_harness_that_reports_every_test_is_trusted() {
+        assert_eq!(harness_incomplete("__GLYPH_EXAMPLES__ 2 0\n", "", exited(0), 2, 0), None);
+        let out = "FAIL 1\tx\n__GLYPH_EXAMPLES__ 2 1\n";
+        assert_eq!(harness_incomplete(out, "", exited(1), 2, 1), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_harness_with_no_tally_ran_nothing_to_a_verdict() {
+        let why = harness_incomplete("", "Error: Cannot find module 'tinypad'\n", exited(1), 3, 0)
+            .expect("no tally is never a pass");
+        assert!(why.contains("none of the 3 test(s)"), "{why}");
+        assert!(why.contains("Cannot find module 'tinypad'"), "{why}");
+        // A clean exit without the tally (a module calling `process.exit(0)`
+        // at load) is the same: nothing was reported.
+        assert!(harness_incomplete("", "", exited(0), 1, 0).is_some());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_tally_that_disagrees_with_the_run_is_not_trusted() {
+        // Fewer tests than were generated.
+        assert!(harness_incomplete("__GLYPH_EXAMPLES__ 1 0\n", "", exited(0), 2, 0).is_some());
+        // A failure counted but not reported as a `FAIL` line.
+        assert!(harness_incomplete("__GLYPH_EXAMPLES__ 2 1\n", "", exited(1), 2, 0).is_some());
+        // No failures, but the process says otherwise.
+        assert!(harness_incomplete("__GLYPH_EXAMPLES__ 2 0\n", "", exited(3), 2, 0).is_some());
     }
 }

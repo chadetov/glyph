@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-288 entries, 245 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-24 are open. G144, the D28 boundary cast that never reached the returns a
+289 entries, 245 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+25 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10771,3 +10771,14 @@ and is the owner's to confirm.
   `{items.foo}` inside it is also left to `tsc`. Found while fixing G275.
 
   *Reproduced against 0.1.128: `pub fn f(xs: Array<string>) -> number { return xs.lenght }` is `glyph check: 1 module(s) checked, no diagnostics.`*
+
+- **G289. A `let` annotation that disagrees with `json.parse`'s result is
+  left to `tsc`.** `let user: User = json.parse(body)` passes `glyph check
+  --no-tsc`; `json.parse` returns a `Result`, and only `tsc` objects
+  (`TS2322: Type 'Result<unknown, Issue[]>' is not assignable to type
+  'User'`). A boundary read with the wrong shape is the case Glyph exists to
+  catch, and its own checker does not. Found by the release review of the
+  `catches/` programs, rewriting `unvalidated-boundary-read` to the form a
+  TypeScript developer writes.
+
+  *Reproduced against 0.1.128 (the dev-0.1.129 build): the program above is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 with `tsc`.*

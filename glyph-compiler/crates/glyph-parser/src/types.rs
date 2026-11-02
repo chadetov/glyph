@@ -179,14 +179,14 @@ fn parse_path_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
         p.advance();
         segments.push(std::sync::Arc::from("void"));
     } else {
-        let (name, span) = p.expect_ident("type name")?;
+        let (name, span) = p.expect_ident_ref("type name")?;
         segments.push(name);
         end = span.end;
     }
 
     while matches!(p.peek(), Token::Dot) {
         p.advance();
-        let (next, span) = p.expect_ident("type path segment")?;
+        let (next, span) = p.expect_ident_ref("type path segment")?;
         segments.push(next);
         end = span.end;
     }
@@ -233,12 +233,12 @@ fn parse_extern_ts_type(p: &mut Cursor, start: u32) -> Result<TypeExpr, ParseErr
 fn parse_typeof_type(p: &mut Cursor, start: u32) -> Result<TypeExpr, ParseError> {
     p.advance(); // `typeof`
     let mut path = Vec::new();
-    let (first, first_span) = p.expect_ident("a value reference after `typeof`")?;
+    let (first, first_span) = p.expect_ident_ref("a value reference after `typeof`")?;
     path.push(first);
     let mut end = first_span.end;
     while matches!(p.peek(), Token::Dot) {
         p.advance();
-        let (seg, seg_span) = p.expect_ident("a member name after `.` in `typeof`")?;
+        let (seg, seg_span) = p.expect_ident_ref("a member name after `.` in `typeof`")?;
         path.push(seg);
         end = seg_span.end;
     }

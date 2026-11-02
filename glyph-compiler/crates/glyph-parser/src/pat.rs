@@ -16,7 +16,7 @@ use glyph_ast::{LiteralPattern, ObjectPatternField, Pattern};
 use glyph_lexer::{Span, Token};
 
 use crate::cursor::Cursor;
-use crate::error::ParseError;
+use crate::error::{NameRole, ParseError};
 use crate::types;
 
 /// Parse a match-arm pattern. `else` is legal here (D9 catch-all). Falls
@@ -169,9 +169,20 @@ fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
                 span: start_span,
             })
         }
-        other => Err(ParseError::Unexpected {
-            found: format!("{other:?}"),
-            span: start_span,
+        // A reserved word where a binding goes (`Some(where)`) names the
+        // keyword (G286) rather than reporting an unexpected token. The
+        // keywords that are patterns in their own right (`true`, `false`,
+        // `void`, `is`, and `else` at arm level) were matched above.
+        other => Err(match other.as_field_name() {
+            Some(word) => ParseError::ReservedWordAsName {
+                word,
+                role: NameRole::Declares,
+                span: start_span,
+            },
+            None => ParseError::Unexpected {
+                found: format!("{other:?}"),
+                span: start_span,
+            },
         }),
     }
 }

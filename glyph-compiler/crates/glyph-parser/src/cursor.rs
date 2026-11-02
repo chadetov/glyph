@@ -2,7 +2,7 @@
 
 use glyph_lexer::{Span, Spanned, Token};
 
-use crate::error::ParseError;
+use crate::error::{NameRole, ParseError};
 
 /// How many levels of nested construct the parser will descend through before
 /// it stops and reports `E0011`.
@@ -152,18 +152,45 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    /// Consume an identifier and return its name + span.
+    /// Consume an identifier that introduces a name (a `let`, a parameter, a
+    /// `fn` or `type`, a generic, a loop binding) and return it with its span.
+    ///
+    /// A reserved word here is reported as one (G286), not as a missing
+    /// token: `let where = 1` used to say "expected variable name after `let`,
+    /// found Where" with a help line about trailing commas, and nothing named
+    /// `where` as a keyword. Whether a token is a keyword is read from the
+    /// lexer's `KEYWORDS` table through `Token::as_field_name`, so the set this
+    /// reports on cannot drift from the set the lexer reserves.
     pub fn expect_ident(&mut self, expected: &'static str) -> Result<(std::sync::Arc<str>, Span), ParseError> {
+        self.expect_ident_as(expected, NameRole::Declares)
+    }
+
+    /// Consume an identifier that refers to a name declared somewhere else: a
+    /// member after `.` or `?.`, a segment of a type path, a `typeof` path, an
+    /// item named in an import list. A reserved word is reported with help
+    /// that does not tell the author to rename something they may not own.
+    pub fn expect_ident_ref(&mut self, expected: &'static str) -> Result<(std::sync::Arc<str>, Span), ParseError> {
+        self.expect_ident_as(expected, NameRole::Refers)
+    }
+
+    fn expect_ident_as(
+        &mut self,
+        expected: &'static str,
+        role: NameRole,
+    ) -> Result<(std::sync::Arc<str>, Span), ParseError> {
         let span = self.peek_span();
         match self.peek().clone() {
             Token::Identifier(name) => {
                 self.advance();
                 Ok((name, span))
             }
-            other => Err(ParseError::Expected {
-                expected,
-                found: format!("{other:?}"),
-                span,
+            other => Err(match other.as_field_name() {
+                Some(word) => ParseError::ReservedWordAsName { word, role, span },
+                None => ParseError::Expected {
+                    expected,
+                    found: format!("{other:?}"),
+                    span,
+                },
             }),
         }
     }

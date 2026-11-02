@@ -9,7 +9,8 @@ rows differed between the two documents for no reason anybody chose.
 
 The catalogue is one table in the compiler now (`CODES` in `glyph-cli`), and
 `glyph llms --json` publishes it. This script renders the two markdown tables
-from that JSON:
+from that JSON, and the reserved-word list under "Reserved words" in `AGENTS.md`
+from the same answer's `keywords`, which is the lexer's own table:
 
     scripts/check_llms_sync.py           # fail on any drift, printing it
     scripts/check_llms_sync.py --write   # write the tables, then re-mirror
@@ -53,12 +54,12 @@ def cell(text: str) -> str:
     return text.replace("|", r"\|")
 
 
-def codes() -> list[dict]:
+def knowledge() -> dict:
     glyph = glyph_bin.resolve()
     r = subprocess.run([str(glyph), "llms", "--json"], capture_output=True, text=True)
     if r.returncode != 0:
         sys.exit(f"`glyph llms --json` failed:\n{r.stderr.strip()}")
-    return json.loads(r.stdout)["diagnostics"]["codes"]
+    return json.loads(r.stdout)
 
 
 def catalogue_table(rows: list[dict]) -> str:
@@ -74,6 +75,32 @@ def bootstrap_table(rows: list[dict]) -> str:
 
 
 TABLE = re.compile(r"^\|.*\|$\n(?:^\|.*\|$\n)*", re.M)
+TEXT_FENCE = re.compile(r"^```text\n.*?^```\n", re.M | re.S)
+
+
+def keyword_block(words: list[str]) -> str:
+    """The reserved words, in the lexer's order, wrapped to under 80 columns."""
+    lines, line = [], ""
+    for w in words:
+        if line and len(line) + 1 + len(w) > 78:
+            lines.append(line)
+            line = w
+        else:
+            line = f"{line} {w}" if line else w
+    if line:
+        lines.append(line)
+    return "```text\n" + "\n".join(lines) + "\n```\n"
+
+
+def replace_fence_after(text: str, heading: str, block: str) -> str:
+    """Replace the first ```text fence that follows `heading`."""
+    at = text.find(heading)
+    if at == -1:
+        sys.exit(f"{heading!r} is no longer in the document; the renderer needs updating")
+    m = TEXT_FENCE.search(text, at + len(heading))
+    if m is None:
+        sys.exit(f"no ```text block follows {heading!r}")
+    return text[: m.start()] + block + text[m.end() :]
 
 
 def replace_table_after(text: str, heading: str, table: str) -> str:
@@ -87,7 +114,7 @@ def replace_table_after(text: str, heading: str, table: str) -> str:
     return text[: m.start()] + table + "\n" + text[m.end() :]
 
 
-def rendered(rows: list[dict]) -> dict[pathlib.Path, str]:
+def rendered(rows: list[dict], words: list[str]) -> dict[pathlib.Path, str]:
     error_codes = ERROR_CODES.read_text()
     for phase, heading in SECTIONS:
         table = catalogue_table([c for c in rows if c["phase"] == phase])
@@ -95,13 +122,16 @@ def rendered(rows: list[dict]) -> dict[pathlib.Path, str]:
     agents = replace_table_after(
         AGENTS.read_text(), "## Diagnostic codes", bootstrap_table(rows)
     )
+    agents = replace_fence_after(agents, "### Reserved words", keyword_block(words))
     return {ERROR_CODES: error_codes, AGENTS: agents}
 
 
 def main() -> int:
     write = "--write" in sys.argv[1:]
-    rows = codes()
-    want = rendered(rows)
+    k = knowledge()
+    rows = k["diagnostics"]["codes"]
+    words = k["keywords"]["words"]
+    want = rendered(rows, words)
 
     if write:
         for path, text in want.items():
@@ -135,7 +165,10 @@ def main() -> int:
         print("`glyph-compiler/crates/glyph-cli/src/explain.rs`, rebuild, and run it again.")
         return 1
 
-    print(f"llms sync: {len(rows)} codes, both tables and both mirrors match the compiler.")
+    print(
+        f"llms sync: {len(rows)} codes and {len(words)} reserved words; "
+        "the tables, the keyword list and both mirrors match the compiler."
+    )
     return 0
 
 

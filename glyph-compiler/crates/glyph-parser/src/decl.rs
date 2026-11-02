@@ -532,7 +532,7 @@ fn parse_import(p: &mut Cursor) -> Result<ImportDecl, ParseError> {
         } else {
             // `import path { Name1, Name2 }`
             let names = p.parse_comma_separated(&Token::RBrace, true, |p| {
-                Ok(p.expect_ident("imported name")?.0)
+                Ok(p.expect_ident_ref("imported name")?.0)
             })?;
             p.expect(&Token::RBrace, "`}`")?;
             ImportKind::Named(names)

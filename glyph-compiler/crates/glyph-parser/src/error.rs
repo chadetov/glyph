@@ -143,6 +143,38 @@ pub enum ParseError {
     /// built, and names the two spellings that work today.
     #[error("object destructuring in `let` is not supported yet")]
     ObjectDestructuringLet { span: Span },
+
+    /// A reserved word where a name goes: `let where = 1`, `fn type()`,
+    /// `x.match` (G286). The generic `Expected` path printed the token's debug
+    /// name (`found Where`) and a help line about trailing commas, so nothing
+    /// told the author that `where` is a Glyph keyword. `word` is the keyword's
+    /// source text from the lexer's `KEYWORDS` table, so the message quotes the
+    /// spelling the author typed. Kept under E0002, the code the same position
+    /// has always reported: it is still "this token cannot go here", now with
+    /// the reason.
+    #[error("{}", match role {
+        NameRole::Declares => format!("`{word}` is a reserved word in Glyph and cannot be a name"),
+        NameRole::Refers => format!("`{word}` is a reserved word in Glyph and cannot be written as a name here"),
+    })]
+    ReservedWordAsName {
+        word: &'static str,
+        role: NameRole,
+        span: Span,
+    },
+}
+
+/// Whether a name position introduces a name or refers to one declared
+/// elsewhere. It decides the help a reserved word gets: renaming is the fix
+/// for a binding the author is writing, and not for a member or an imported
+/// item whose spelling someone else chose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NameRole {
+    /// `let`, a parameter, a `fn`/`type`/`const`/`component` name, a generic,
+    /// a loop binding, a pattern binding, an import alias.
+    Declares,
+    /// A member after `.`/`?.`, a type or `typeof` path segment, an imported
+    /// item.
+    Refers,
 }
 
 /// Why a destructuring `let` was refused at parse (D48, E0230).
@@ -211,6 +243,7 @@ impl ParseError {
             ParseError::DestructuringLet { span, .. } | ParseError::ObjectDestructuringLet { span } => {
                 *span
             }
+            ParseError::ReservedWordAsName { span, .. } => *span,
         }
     }
 
@@ -241,6 +274,7 @@ impl ParseError {
             // always match (D48), whichever stage sees the shape that breaks it.
             ParseError::DestructuringLet { .. } => "E0230",
             ParseError::ObjectDestructuringLet { .. } => "E0005",
+            ParseError::ReservedWordAsName { .. } => "E0002",
         }
     }
 
@@ -308,6 +342,12 @@ impl ParseError {
             ParseError::ObjectDestructuringLet { .. } => Cow::Borrowed(
                 "Bind the record to one name and read its fields (`let user = load()`, then `user.name`), or destructure it in a `match` arm. A `let` destructures an array only (D48).",
             ),
+            ParseError::ReservedWordAsName { word, role: NameRole::Declares, .. } => Cow::Owned(format!(
+                "Pick another name: `{word}_`, or one that says what the value is. `glyph llms` lists every reserved word under \"Reserved words\"."
+            )),
+            ParseError::ReservedWordAsName { word, role: NameRole::Refers, .. } => Cow::Owned(format!(
+                "`{word}` is a keyword in every position where a name is read, so it cannot follow `.` or name an imported item or a type segment, even when the thing it refers to is spelled `{word}`. `glyph llms` lists every reserved word under \"Reserved words\"."
+            )),
         })
     }
 }

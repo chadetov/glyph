@@ -22,6 +22,14 @@ checked, so none of them becomes a blanket way out:
                        code; one that compiles, or draws another code, is
                        reported. The code is required: "this is wrong somehow"
                        is not a fact a reader can act on.
+  expect-error TS2322  the same claim about an error `tsc` raises on the
+                       emitted TypeScript rather than one Glyph raises itself.
+                       The snippet is compiled with `tsc` in the loop, has to
+                       pass every Glyph stage, and has to draw that TS code
+                       mapped back onto a line of the snippet: a `tsc` error
+                       left pointing into the emitted `.ts` is not the claim a
+                       reader is being shown. With no `tsc` on PATH this is a
+                       failure, never a skip; CI has it from .github/ci-tools.
   needs-react          the snippet is a whole module that needs React and
                        nothing else outside `std/`: a `component`, which emits
                        a React import of its own, or an import of `react` or
@@ -86,7 +94,10 @@ TAG = re.compile(r"<[^>]+>")
 # The site renders one source line per `<span class="ln">` with no newline in the
 # markup, so stripping tags naively collapses a whole module onto line 1.
 LINE_SPAN = re.compile(r'<span class="ln">|<br\s*/?>')
-EXPECT_ERROR = re.compile(r"\bexpect-error(?:[=\s]+(E\d{4}))?")
+EXPECT_ERROR = re.compile(r"\bexpect-error(?:[=\s]+(E\d{4}|TS\d{4,5}))?")
+# Where a diagnostic points, as `glyph check` prints it: `╭─[ file:line:col ]`,
+# the file named by its stem.
+LOCATION = re.compile(r"─\[\s*([\w/.-]+):(\d+):\d+\s*\]")
 NEEDS_DEPS = re.compile(r"\bneeds-deps\b")
 NEEDS_REACT = re.compile(r"\bneeds-react\b")
 EXAMPLE = re.compile(r"\bexample=([\w-]+)")
@@ -320,6 +331,43 @@ def check_react(
 
 
 MODULE_NAME = re.compile(r"\s*module\s+([\w/]+)")
+TSC = shutil.which("tsc") is not None
+
+
+def judge_expected(code: str, body: str, ok: bool, output: str, stem: str = "snippet") -> str:
+    """What is wrong with an `expect-error CODE` claim, or `""` when it holds.
+
+    A Glyph code only has to appear. A `tsc` code also has to be mapped onto a
+    line of the snippet: that is what `glyph build` promises a reader, and an
+    error left pointing into the emitted `.ts` would satisfy a bare substring
+    match while showing the reader nothing the page describes. `stem` is the
+    name of the file the snippet was written to, which is what a mapped
+    diagnostic names.
+    """
+    if not code:
+        return (
+            "marked `expect-error` with no code.\n"
+            "    Name the code it draws (```glyph expect-error E0228, or TS2322 for a\n"
+            "    `tsc` error)."
+        )
+    if ok:
+        return (
+            f"marked `expect-error {code}`, but it compiles.\n"
+            f"    Drop the marker, or make the snippet show the error it claims."
+        )
+    tag = f"[{code}]"
+    if (tag if code.startswith("TS") else code) not in output:
+        return f"marked `expect-error {code}`, and it draws something else:\n{indent(output)}"
+    if not code.startswith("TS"):
+        return ""
+    last = len(body.splitlines())
+    where = LOCATION.search(output[output.index(tag) :])
+    if not where or where.group(1) != stem or not 1 <= int(where.group(2)) <= last:
+        return (
+            f"marked `expect-error {code}`, and `tsc` raises it, but not on a line of\n"
+            f"    this snippet ({stem}.glyph, lines 1-{last}):\n{indent(output)}"
+        )
+    return ""
 
 
 def main() -> int:
@@ -435,28 +483,22 @@ def main() -> int:
                     )
                 continue
 
+            if mark == "expect-error" and arg.startswith("TS") and not TSC:
+                failed += 1
+                problems.append(
+                    f"{where} — marked `expect-error {arg}`, a `tsc` error, and there is no\n"
+                    f"    `tsc` on PATH to raise it. Install TypeScript (CI runs `npm ci` in\n"
+                    f"    .github/ci-tools); this is a failure, not a skip."
+                )
+                continue
             checked += 1
             ok, output = check(glyph, body)
 
             if mark == "expect-error":
-                if not arg:
+                problem = judge_expected(arg, body, ok, output)
+                if problem:
                     failed += 1
-                    problems.append(
-                        f"{where} — marked `expect-error` with no code.\n"
-                        f"    Name the code it draws (```glyph expect-error E0228)."
-                    )
-                elif ok:
-                    failed += 1
-                    problems.append(
-                        f"{where} — marked `expect-error {arg}`, but it compiles.\n"
-                        f"    Drop the marker, or make the snippet show the error it claims."
-                    )
-                elif arg not in output:
-                    failed += 1
-                    problems.append(
-                        f"{where} — marked `expect-error {arg}`, and it draws something else:\n"
-                        f"{indent(output)}"
-                    )
+                    problems.append(f"{where} — {problem}")
                 continue
 
             if not ok:

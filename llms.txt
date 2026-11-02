@@ -35,8 +35,8 @@ otherwise install them globally or run in a sandbox that already has them.
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
 glyph check [path]                  # type-check a file or tree, writing nothing; runs the @example/@doc @run gate by default (--no-test to skip)
 glyph check --agent [path]          # the --json object plus, per diagnostic, the repair constraints an edit must keep and the glyph_symbol description of every symbol it names
-glyph fix [path]                    # apply the repairs the compiler fully determines (unused imports, the missing arms of a match, a did-you-mean); it says what it declined and why
-glyph run [path] [args...]          # type-check, compile, and run main(argv); no path means the current project; hyphenated args reach the program, `--` before ones that collide with glyph's own flags
+glyph fix [path]                    # apply the repairs the compiler fully determines (unused imports, an arm head or field a character from the right name); it says what it declined and why, and reports a non-exhaustive match without writing arms
+glyph run [path] [args...]          # type-check, compile, and run main(argv); no path means the current project; everything after `--` is the program's, so `glyph run -- in.json` (and a scaffold's `npm start -- in.json`) runs the current project with `in.json`
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file path, module, range, entity, cause, expected/actual, alternatives, help) for tools/agents
 glyph build src/ --out dist/ --no-test # skip the @example / @doc @run / property tests
@@ -1924,7 +1924,7 @@ $ glyph check --json --no-tsc
       "severity": "error",
       "stage": "typecheck",
       "message": "non-exhaustive match on `OrderStatus`: missing variants `Paid`, `Cancelled`",
-      "help": "Add an arm for each missing variant, or an `else` arm to catch the rest.",
+      "help": "Add an arm for each missing variant.",
       "note": "Tagged unions are sealed (D9): adding a variant forces every match to be updated. A `_`/`else` catch-all is allowed but forfeits that guarantee.",
       "file": "main.glyph",
       "module": "main",
@@ -2025,9 +2025,6 @@ the tool refuses is listed in `symbols_absent` with the tool's own reason, so
 `glyph fix [path]` writes only what the compiler settles on its own:
 
 - unused imports are dropped, whole or name by name (`E0106`);
-- a non-exhaustive match gains one arm per missing case (`E0200`), with the
-  pattern the union's declaration implies and a body marked `TODO(glyph fix)`
-  that prints the case and exits;
 - an arm head that is not a variant takes the checker's suggestion (`E0220`),
   and only when that variant is one the match is actually missing;
 - a field the record does not declare takes the one declared field a character
@@ -2036,8 +2033,10 @@ the tool refuses is listed in `symbols_absent` with the tool's own reason, so
 Nothing here guesses. A rule that cannot settle the answer says so and why, on
 the same output as what it applied: a union no project declares has no payload
 shapes to write patterns from, two fields a character away from the typo are
-two, not one. The `E0200` arms compile, and they are written to be replaced:
-run `glyph fix`, then fill in the bodies it marked.
+two, not one. A non-exhaustive match (`E0200`) is reported and never
+repaired: the compiler knows the missing cases and their patterns, not what the
+program should do in them. Write the arms from `missing_variants` and the
+variants' `construct` in `glyph check --agent`.
 
 ## Recipes by task (copy, adapt)
 

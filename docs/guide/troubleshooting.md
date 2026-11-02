@@ -54,7 +54,7 @@ matches the field's value, which is what that spelling always looked like it
 meant. One thing to know about it: a field that tests a value can fail, so the
 arm no longer covers its variant. `match t { Leaf => .., Node({ color: Red, ..
 }) => .. }` is non-exhaustive (E0200) until a `Node({ color: Black, ... })` arm
-or an `else` takes the rest.
+takes the rest.
 
 **E0010: a variant carries one payload.** `Node(Color, Tree, int)` writes three
 positional fields where a variant takes one. A multi-field payload is a record:

@@ -179,7 +179,7 @@ a click on the left edge, and `Node({ color: Black, left: Node({ color: Red,
 value: v }) })` is one arm of a red-black rebalance. A field that tests a value
 can fail, which means the arm no longer counts as covering its variant: if your
 only `Click` arm tests `x`, the match is non-exhaustive until another `Click` arm
-or an `else` takes the rest. The same holds when there are no variants at all:
+takes the rest. The same holds when there are no variants at all:
 `match p { { x: 0, y: y, } => .. }` over a plain record is E0226 until you add an
 `else`.
 

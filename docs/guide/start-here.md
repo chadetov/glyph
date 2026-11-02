@@ -82,7 +82,7 @@ It doesn't run. The equivalent TypeScript `switch` compiles clean and returns
 `undefined`; here the missing case is a compile error with a stable code, the
 exact location, and a fix. `glyph --explain E0200` prints the long form.
 
-Put the arm back (or add an `else`) and it runs again. That's the loop: the
+Put the arm back and it runs again. That's the loop: the
 compiler tells you what's wrong and how, before the code ships.
 
 ## Next

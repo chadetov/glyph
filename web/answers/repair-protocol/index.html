@@ -106,8 +106,7 @@
   "stage": "typecheck",
   "message": "non-exhaustive match on `OrderStatus`: missing variants
               `Paid`, `Cancelled`",
-  "help": "Add an arm for each missing variant, or an `else` arm to
-           catch the rest.",
+  "help": "Add an arm for each missing variant.",
   "file":   "main.glyph",
   "module": "main",
   "entity": "main::describe",
@@ -153,9 +152,9 @@
         <p>
           <code>constraints</code> are not the repair. Each one is something the compiler
           already enforces, written out so the edit that satisfies the diagnostic does not
-          break the guarantee behind it. The second constraint there is the whole point of
-          the key: <code>help</code> offers the <code>else</code> arm because it is legal, and
-          the constraint says what taking it costs.
+          break the guarantee behind it. The second constraint is why the key exists: an
+          <code>else</code> arm is legal, it would turn the build green, and the constraint
+          says what taking it costs.
         </p>
         <p>
           <code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the
@@ -172,100 +171,46 @@
         <p class="block-label">Where the answer is determined, the compiler writes it</p>
         <p>
           <code>glyph fix</code> applies only the repairs the compiler settles on its own:
-          unused imports, the missing arms of a non-exhaustive <code>match</code>, an arm head
-          that is not a variant when the checker computed exactly one suggestion, and a field
-          the record does not declare when exactly one declared field is a character away.
+          unused imports, an arm head that is not a variant when the checker computed exactly
+          one suggestion, and a field the record does not declare when exactly one declared
+          field is a character away. The <code>match</code> above is not one of them.
         </p>
       </div>
 
       <div class="code">
         <span class="cap">glyph fix src, on the match above</span>
-<pre>fixed src/main.glyph
-glyph fix: removed 0 unused import(s) across 1 file(s).
-glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
-           on `OrderStatus`: `Paid`, `Cancelled`, and wrote
-           `import std/process` for the arm bodies and `Paid`,
-           `Cancelled` into `import orders`
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
 
-<span class="add">import orders { OrderStatus, Pending, Paid, Cancelled }
-  ...
-  return match s {
-    Pending =&gt; "waiting",
-    // TODO(glyph fix): `OrderStatus` variant `Paid` is unhandled; write this arm
-    Paid({ transaction_id }) =&gt; {
-      print("unhandled OrderStatus variant Paid (arm written by glyph fix)")
-      process.exit(1)
-    },
-    // TODO(glyph fix): `OrderStatus` variant `Cancelled` is unhandled; write this arm
-    Cancelled =&gt; {
-      print("unhandled OrderStatus variant Cancelled (arm written by glyph fix)")
-      process.exit(1)
-    },
-  }</span>
-
-<span class="cm">// glyph check --no-tsc: 2 module(s) checked, no diagnostics.</span></pre>
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
       </div>
 
       <div class="detail">
         <p>
-          <code>OrderStatus</code> is declared in <code>orders</code> and matched in
-          <code>main</code>, so the arms name variants this file did not have in scope. The
-          rule writes them into the import list, and where the module is imported as a
-          namespace it writes the patterns through the binding instead
-          (<code>orders.Paid({ transaction_id })</code>). Every byte it writes is named in
-          the report, the imports included.
+          The compiler knows which cases are missing and the pattern each one takes. It does
+          not know what the program should do when an order is <code>Paid</code>, and any
+          body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code>
+          wrote that guess: one arm per case whose body printed the case and called
+          <code>process.exit(1)</code>. The program then passed <code>check</code>,
+          <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code>
+          reported the match as exhaustive, so the missing case had moved from a compile error
+          to a crash at run time with nothing left to flag it.
         </p>
         <p>
-          The pattern comes from the declaration, so a record payload is destructured by
-          field name and the parts are in front of whoever writes the body. The body leaves
-          through <code>process.exit</code> for a reason that is not arbitrary: it returns
-          <code>never</code>, which contributes nothing to the arm join, so the same text is
-          legal whether the <code>match</code> owes a value or not and the rule needs no guess
-          about what the arm should produce. The alternative anyone would reach for first was
-          measured instead of argued about: <code>assert(false, "unhandled")</code> in a
-          value-position arm returning <code>string</code> fails <code>tsc</code> with
-          <code>TS2322: Type 'void' is not assignable to type 'string'</code>. A repair that
-          swaps one error for another is not a repair.
+          So the rule declines, and names the cases. Everything needed to write the arms is
+          already in the <code>--agent</code> answer above: <code>missing_variants</code>, and
+          the <code>construct</code> spelling of each variant under <code>symbols</code>. The
+          arms are yours or your agent's to write, the same as any other code whose behaviour
+          the compiler cannot infer.
         </p>
         <p>
-          A <code>match</code> over the prelude <code>Result</code> or <code>Option</code> used to
-          be the one shape this rule declined, and it is the shape a real program writes most
-          often. Those declarations have an address now, <code>std/result::Result</code>, which is
-          the module the resolver registers them under and the module the emitter writes the
-          import from, so the rule can read the payload shapes it writes patterns from.
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph fix src, on `match r { Ok(v) =&gt; v, }`</span>
-<pre>glyph fix: applied E0200 in src/main.glyph: added 1 arm(s) to the match
-           on `Result`: `Err`, and wrote `import std/process` for the
-           arm bodies
-
-<span class="add">  return match r {
-    Ok(v) =&gt; v,
-    // TODO(glyph fix): `Result` variant `Err` is unhandled; write this arm
-    Err(payload) =&gt; {
-      print("unhandled Result variant Err (arm written by glyph fix)")
-      process.exit(1)
-    },
-  }</span>
-
-<span class="cm">// glyph check, with tsc: 1 module(s) checked, no diagnostics.</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          No import is written for the variants, because the prelude already binds <code>Ok</code>
-          and <code>Err</code>. The <code>std/process</code> import is the one every
-          <code>E0200</code> repair adds for the <code>TODO</code> body.
-        </p>
-        <p>
-          These arms compile, and they are written to be replaced. Run <code>glyph fix</code>,
-          then fill in the bodies it marked. What it will not do is guess, so every rule that
-          cannot settle an answer prints the decline and the reason on the same output as what
-          it applied. Two fields a character away from a typo are two, not one, and it says so
-          rather than picking.
+          What <code>glyph fix</code> does write, it writes without guessing, and every rule
+          that cannot settle an answer prints the decline and the reason on the same output as
+          what it applied. Two fields a character away from a typo are two, not one, and it
+          says so rather than picking.
         </p>
 
         <p class="block-label">The code's own explanation, as data</p>
@@ -286,7 +231,7 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
   "explanation": "A `match` over a tagged union must handle every variant.
     Unions are sealed (D9): adding a variant later forces every match to be
     updated, so a missing variant cannot silently fall through at runtime ...",
-  "help": "Add an arm for each missing variant, or an `else` arm to catch the rest.",
+  "help": "Add an arm for each missing variant.",
   "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
   "counter_example": {
     "name": "alias_of_local_union_not_exhaustive",
@@ -328,11 +273,11 @@ glyph fix: applied E0200 in src/main.glyph: added 2 arm(s) to the match
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies four rules and states every decline with its reason. A <code>match</code> over the prelude <code>Result</code> or <code>Option</code> is one of them now: those declarations key to the stdlib module that declares them, <code>std/result::Result</code>, so the rule can read the payload shapes it writes patterns from, and it writes no import for the variants, because the prelude already binds <code>Ok</code> and <code>Err</code>. The arm bodies still bring in <code>std/process</code>, the way every <code>E0200</code> repair does. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.</p>
+          <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.</p>
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 19 of the 64 codes have no case at all. <code>glyph fix</code> still writes four rules and nothing else; everything it declines, it declines out loud.</p>
+          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 19 of the 64 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.</p>
         </div>
       </div>
 

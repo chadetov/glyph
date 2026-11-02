@@ -235,17 +235,19 @@ ones the tool refused and its reason for each.
 
 ## What `glyph fix` repairs
 
-Four of these codes have a repair the compiler settles on its own, and
+Three of these codes have a repair the compiler settles on its own, and
 `glyph fix [path]` writes it:
 
 | Code | What it writes | When it declines |
 |------|----------------|------------------|
 | `E0106` | Drops the unused import, or the dead names out of a named import list | never; an unused name is unused |
-| `E0200` | One arm per missing case, with the pattern the union's declaration implies and a body marked `TODO(glyph fix)` that prints the case and exits. The prelude `Result` and `Option` included: they key to the stdlib module that declares them (`std/result::Result`), and no import is written, because the prelude already binds their variants | the module has taken the name `process`, which the arm bodies need; the same match has an `E0220` arm head, so its coverage is not yet settled |
 | `E0210` | The one declared field within edit distance one of the wrong name | no field is that close, or more than one is |
 | `E0220` | The suggestion in `alternatives`, when there is exactly one | the suggested variant is not one the match is missing, so writing it would produce `E0305` |
 
-The arms an `E0200` repair writes compile and are meant to be replaced: the
-pattern and the payload shape are what the compiler determined, the body is a
-placeholder that says so in a comment and again at runtime. Every decline is
-printed with its reason beside what was applied.
+`E0200` is not on the list. The compiler knows which cases a match is missing
+and the pattern each one takes, but not what the program should do in any of
+them, and an arm with a made-up body passes the check and turns the missing
+case into a failure at run time. `glyph fix` declines every `E0200` and names
+the cases; `glyph check --agent` carries `missing_variants` and each variant's
+construction syntax for whoever writes the arms. Every decline is printed with
+its reason beside what was applied.

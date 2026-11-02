@@ -4,7 +4,7 @@ Glyph is a statically typed language that compiles to TypeScript. It reads like
 TypeScript, runs wherever TypeScript runs and imports npm packages directly. The
 differences from TypeScript are few, and each one exists so that a program stays
 correct when something other than its author edits it, which these days is
-often a coding agent. The current release is 0.1.128. It is a preview: the
+often a coding agent. The current release is 0.1.129. It is a preview: the
 language is usable, there are applications written in it, and 0.1.x releases
 still reject code that compiled before.
 
@@ -310,13 +310,13 @@ Some other edges that are open today:
   `--no-tsc`.
 - The VS Code extension is not on the Marketplace. You build it from
   `editors/vscode/`. Any editor with an LSP client can run `glyph lsp`.
-- Releases are frequent, and every release from 0.1.120 to 0.1.128 is marked
+- Releases are frequent, and every release from 0.1.120 to 0.1.129 is marked
   breaking, because each started rejecting programs the one before accepted. Pin the version
   (`glyph init` does) and read the release notes before upgrading.
 
 The gap ledger, `docs/dogfooding-gaps.md`, lists every defect found by building
-real programs, with a reproduction for each. At 0.1.128 it holds 277 entries, of
-which 18 are open.
+real programs, with a reproduction for each. At 0.1.129 it holds 289 entries, of
+which 20 are open and 8 partly fixed.
 
 ## Trying it
 

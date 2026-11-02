@@ -157,6 +157,8 @@ enum Command {
         /// values reach the program intact (`--amount -12.50`); a flag glyph
         /// itself knows (`--no-tsc`) still binds to glyph wherever it
         /// appears, so pass `--` before an argument list that collides.
+        /// Everything after `--` is the program's, so `glyph run -- in.json`
+        /// runs the current project with `in.json` as its argument.
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
@@ -622,6 +624,23 @@ fn main() {
             }
         }
         Some(Command::Run { file, no_test, no_tsc, no_check, args }) => {
+            // `--` ends glyph's own arguments. clap still fills `PATH` from the
+            // first value after it, so `glyph run -- good.json` ran `good.json`
+            // and refused it as not a `.glyph` file (G282). A value written
+            // after `--` belongs to the program; with no path before it, the
+            // program is the current project.
+            let (file, args) = match file {
+                Some(path)
+                    if glyph_cli::run::args_follow_separator(
+                        &std::env::args_os().collect::<Vec<_>>(),
+                    ) =>
+                {
+                    let mut all = vec![path.to_string_lossy().into_owned()];
+                    all.extend(args);
+                    (None, all)
+                }
+                other => (other, args),
+            };
             // No path means the current directory, matching `glyph check`.
             // `glyph init my-app && cd my-app && glyph run` is the flow the
             // scaffolder's own closing line and the README both put in front of
@@ -716,6 +735,21 @@ fn main() {
                 }
                 Err(e) => {
                     eprintln!("glyph run: {e}");
+                    // A path that is neither a `.glyph` file nor a directory is
+                    // most often an argument meant for the program. The path
+                    // stays a path, because reading it as an argument would
+                    // turn a mistyped file name into a run of something else,
+                    // but the refusal says how to pass it on.
+                    if let glyph_cli::RunError::NotGlyph(p) | glyph_cli::RunError::FileMissing(p) = &e {
+                        if p.extension().and_then(|x| x.to_str()) != Some("glyph") {
+                            eprintln!(
+                                "  To pass `{}` to the current project's `main(argv)`, put `--` \
+                                 before it: `glyph run -- {}`.",
+                                p.display(),
+                                p.display()
+                            );
+                        }
+                    }
                     std::process::exit(2);
                 }
             }

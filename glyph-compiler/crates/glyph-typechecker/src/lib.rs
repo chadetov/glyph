@@ -968,7 +968,7 @@ impl TypeError {
         }
         Some(Cow::Borrowed(match self {
             TypeError::NonExhaustiveMatch { .. } => {
-                "Add an arm for each missing variant, or an `else` arm to catch the rest."
+                "Add an arm for each missing variant."
             }
             TypeError::QuestionOutsideResultFn { .. } => {
                 "Use `?` only inside a function that returns `Result<_, _>`, or handle the error with `match`."

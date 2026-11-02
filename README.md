@@ -60,7 +60,7 @@ type PaymentStatus =
 
 ```text
 [E0200] non-exhaustive match on `PaymentStatus`: missing variants `Refunded`
-   Help: Add an arm for each missing variant, or an `else` arm to catch the rest.
+   Help: Add an arm for each missing variant.
    Note: Tagged unions are sealed (D9): adding a variant forces every match to
          be updated. A `_`/`else` catch-all is allowed but forfeits that
          guarantee.

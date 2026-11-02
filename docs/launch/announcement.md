@@ -8,7 +8,7 @@ often a coding agent. The current release is 0.1.128. It is a preview: the
 language is usable, there are applications written in it, and 0.1.x releases
 still reject code that compiled before.
 
-This post shows what the compiler catches today, says what we have not
+This post shows what the compiler catches today, says what I have not
 measured, and lists where it falls short.
 
 ## What it catches today
@@ -146,7 +146,7 @@ pub fn label(s: Status) -> string {
 TypeScript does catch the simplest version of this. A `switch` that falls off
 the end of a function declared to return `string` is TS2366, and the TypeScript
 half of this case in `catches/` needs a cast on its last line to get past that,
-which is something we should fix in the case. The form `tsc` does not catch is a
+which is something I should fix in the case. The form `tsc` does not catch is a
 switch that assigns or calls instead of returning, which is how a lot of code is
 written:
 
@@ -187,12 +187,12 @@ breaks if you change a declaration, whether one type is assignable to another.
 `glyph check --agent` returns diagnostics as JSON with, for each one, the
 constraints a repair has to keep and a description of every symbol it names.
 
-## What we have not measured
+## What I have not measured
 
 The reason Glyph exists is a hypothesis: that an agent given the same task
 produces correct code more reliably in Glyph than in TypeScript, and that a
-reviewer spends less time confirming it. We have not run that study. There is no
-speedup figure in this post because we do not have one. The task we intend to
+reviewer spends less time confirming it. I have not run that study. There is no
+speedup figure in this post because I do not have one. The task I intend to
 measure (an agent adding a `Cancelled` state to an order type, ordinary
 TypeScript agent against Glyph, same agent and prompt on both sides) is written
 down in the roadmap with every result cell still a question mark, and the
@@ -201,7 +201,7 @@ losing run gets published along with the winning one.
 What exists is narrower. The nine `catches/` programs above. A token count over
 three small functions in `benchmarks/`, where Glyph comes out slightly shorter
 than TypeScript in total and longer on one of the three; three functions are not
-a corpus and we do not lean on it. And 32 applications under `examples/apps/`,
+a corpus and I do not lean on it. And 32 applications under `examples/apps/`,
 written in Glyph with no TypeScript in them (a CI check enforces that), each with
 a README saying what writing it found wrong in the compiler. The most recent is
 a todo list on React 18 that CI renders in headless Chromium and checks by
@@ -263,4 +263,4 @@ you know onto it. There is also a playground at glyphlang.io/playground.
 The source is at github.com/chadetov/glyph, under MIT or Apache-2.0. If a
 restriction gets in your way, or the compiler accepts something it should not,
 open an issue with the program. A reproduction of something Glyph lets through
-is the most useful report we can get.
+is the most useful report I can get.

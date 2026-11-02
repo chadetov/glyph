@@ -15,7 +15,7 @@ something Glyph lets through has done more for the language than ten who install
 it and leave.
 
 They are also the first chance to learn anything about the productivity
-hypothesis outside our own heads. That learning is anecdotal and should be
+hypothesis outside my own head. That learning is anecdotal and should be
 written down as observation. It does not turn into a number.
 
 ## Who to look for
@@ -85,7 +85,7 @@ point where they were stuck, surprised or annoyed. Specifically:
 - Restrictions that got in the way (no `if`/`else`, required trailing commas,
   no cast, one formatter layout), and whether they still objected after reading
   why the restriction exists. The default answer to an annoying restriction is
-  better documentation, and the log is how we find out when that answer is
+  better documentation, and the log is how I find out when that answer is
   wrong.
 - Install and toolchain failures: platform, Node version, the exact output.
 - For agent users: whether the agent's code built, how many repair rounds it

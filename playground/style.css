@@ -124,6 +124,67 @@ body {
   color: #6e7681;
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.toolbar select,
+.toolbar button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+}
+
+.toolbar select {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.toolbar button {
+  cursor: pointer;
+}
+
+.toolbar button:hover,
+.toolbar button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.share-status {
+  color: var(--green);
+}
+
+.example-caption {
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.example-caption code {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+.example-caption a {
+  color: var(--accent);
+}
+
+.example-caption .muted {
+  color: var(--muted);
+}
+
 .editor {
   flex: 1;
   display: flex;

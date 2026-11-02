@@ -74,7 +74,7 @@ installed for the TypeScript.
 | A read from a `Record<string, string>` typed as if the key were there | E0224 |
 | `const [user, host] = s.split("@")` | E0230 |
 | A validator claiming success for a `net.Socket` field it never checked | E0304 |
-| `JSON.parse(body)` assigned to a `User` with nothing checked | TS2322 |
+| `JSON.parse(body)` assigned to a `User` with nothing checked | E0204 |
 
 All five are verifiability cases. None is evidence for greppability,
 abstraction or diff stability.
@@ -84,12 +84,9 @@ catches the map read (and not the split). typescript-eslint's
 `switch-exhaustiveness-check`, or an `assertNever` default, catches the missing
 union case. In Glyph those checks are always on.
 
-The TS2322 case is reported by `tsc` running over the emitted TypeScript, not by
-Glyph's own checker, which misses it (G289). `glyph check --no-tsc` and the
-editor do not report it until that is fixed.
-
 The playground at https://glyphlang.io/playground/ compiles one file in the
-browser and does not run `tsc`, so four of the five reproduce there.
+browser and does not run `tsc`. All five are refused by Glyph's own checker, so
+all five reproduce there.
 
 ## The toolchain
 

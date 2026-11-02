@@ -203,7 +203,7 @@ export function emailOf(body: string): string {
 without checking anything. Most boundary code in a TypeScript service looks like
 this, and no flag changes it. The same line in Glyph:
 
-```glyph expect-error TS2322
+```glyph expect-error E0204
 module m
 
 import std/json
@@ -220,15 +220,12 @@ pub fn email_of(body: string) -> string {
 ```
 
 ```text
-[TS2322] Error: tsc: Type 'Result<unknown, Issue[]>' is not assignable to type 'User'.
+[E0204] Error: typecheck: type mismatch: expected `User`, found `Result<unknown, Array<Issue>>`
 ```
 
 Glyph's `json.parse` returns a `Result`, so there is no way to get a `User` out
 of it without matching on it, and with a type argument it validates the body
-first. This one is refused by `tsc`, not by Glyph. `glyph build` type-checks the
-TypeScript it emits and maps the error back to the Glyph line, and that check is
-what catches it today. Glyph's own checker misses it, so `glyph check --no-tsc`
-and the editor say nothing; that is gap G289. The way through looks like this:
+first. The way through looks like this:
 
 ```glyph
 module m

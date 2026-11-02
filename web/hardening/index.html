@@ -68,7 +68,7 @@ TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
             <tr><td><code>E0224</code></td><td>A read from a map, typed as if the key were always there</td><td><code>catches/absent-map-key/</code></td></tr>
             <tr><td><code>E0230</code></td><td>A string split into two names, when it may have no separator</td><td><code>catches/split-into-a-pair/</code></td></tr>
             <tr><td><code>E0304</code></td><td>A validator that reports success for a socket it never checked</td><td><code>catches/unverifiable-parse/</code></td></tr>
-            <tr><td><code>TS2322</code></td><td>A parsed body assigned to a typed name without being checked</td><td><code>catches/unvalidated-boundary-read/</code></td></tr>
+            <tr><td><code>E0204</code></td><td>A parsed body assigned to a typed name without being checked</td><td><code>catches/unvalidated-boundary-read/</code></td></tr>
           </tbody>
         </table>
         <p class="group-sub" style="margin-top:24px">
@@ -88,10 +88,9 @@ TypeScript checked with tsc --strict and @types/node 26.6.6.</pre>
           default, if the project adopts them. In Glyph neither check is optional.
         </p>
         <p class="group-sub">
-          The last one is refused by <code>tsc</code>, not by Glyph's own checker,
-          which misses it today (G289). <code>glyph build</code> type-checks the
-          TypeScript it emits, and there <code>json.parse</code> returns a
-          <code>Result</code>, not a <code>User</code>. TypeScript's
+          In the last one, Glyph's <code>json.parse</code> returns a
+          <code>Result</code>, not a <code>User</code>, so the assignment is a
+          type mismatch until the body is checked. TypeScript's
           <code>JSON.parse</code> returns <code>any</code>, and the annotation on
           <code>user</code> launders it.
         </p>

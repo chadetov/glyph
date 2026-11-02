@@ -1488,9 +1488,18 @@ compile error.
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:
 
-```glyph needs-deps
-import react { useState }        // emits: import { useState } from "react";
+```glyph needs-npm
+module main
+
+import zod { z }                 // emits: import { z } from "zod";
 import http { createServer }     // emits: import { createServer } from "http";
+
+pub fn main() -> void {
+  let name = z.string().min(1)
+  let server = createServer()
+  server.listen(8080)
+  print(name.parse("glyph"))
+}
 ```
 
 So you import an npm package by its package name, and a **Node builtin by its
@@ -1537,13 +1546,24 @@ Worked example, for a package with no types of its own:
 src/
   main.glyph
   .types/
-    leftpad.d.ts     // declare module "leftpad" { export function leftpad(s: string, width: number): string; }
+    leftpad.d.ts
 ```
 
-```glyph needs-deps
+```ts
+// src/.types/leftpad.d.ts
+declare module "leftpad" {
+  export function leftpad(s: string, width: number): string;
+}
+```
+
+```glyph needs-npm
 module main
-import leftpad { leftpad }
-// ... leftpad is now typed from .types/leftpad.d.ts
+
+import leftpad { leftpad }       // typed from .types/leftpad.d.ts
+
+pub fn main() -> void {
+  print(leftpad("7", 3))
+}
 ```
 
 ## The execution model

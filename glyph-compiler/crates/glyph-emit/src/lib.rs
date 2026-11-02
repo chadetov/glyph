@@ -7483,6 +7483,26 @@ mod tests {
     }
 
     #[test]
+    fn the_escape_marker_codepoint_in_a_string_is_kept() {
+        // U+E000 is also the lexer's escape marker. Written raw, as `\u{E000}`,
+        // in a template, in a D12 string or in a string-literal type, it is the
+        // user's character and must reach the TypeScript as itself, never as
+        // the `$` the marker stands for after a backslash.
+        let ts = emit(
+            "module x\n\
+             pub type T = \"t\u{E000}\"\n\
+             pub const A: string = \"a\u{E000}b\"\n\
+             pub const B: string = \"a\\u{E000}b\"\n\
+             pub const C: string = \"\"\"a\u{E000}b\"\"\"\n\
+             pub fn f(x: string) -> string { return \"\u{E000}${x}\\$\" }\n",
+        );
+        assert!(!ts.contains("\"t$\""), "{ts}");
+        assert!(!ts.contains("a$b"), "{ts}");
+        assert_eq!(ts.matches("a\u{E000}b").count(), 3, "{ts}");
+        assert!(ts.contains("`\u{E000}${x}$`"), "{ts}");
+    }
+
+    #[test]
     fn const_and_type_alias() {
         let ts = emit("module x\npub const MAX: number = 10\npub type Sku = string\n");
         assert!(ts.contains("export const MAX: number = 10;"), "{ts}");

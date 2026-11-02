@@ -30,23 +30,46 @@ pub use error::LexError;
 pub use lexer::{comments, tokenize, Lexer};
 pub use token::{Spanned, Token};
 
-/// Internal marker the lexer substitutes for an escaped `\$` in a string, so a
-/// literal `${` (written `\${`) stays distinguishable from a `${...}`
-/// interpolation after escape processing (D22). A private-use codepoint chosen
-/// because it never appears in real source; the lexer rejects it as a `\u{...}`
-/// escape so it cannot be produced by hand, and the parser resolves it back to a
-/// plain `$` when building the AST, so it never leaks past parsing.
+/// Internal escape marker in a lexed string's value, so a literal `${`
+/// (written `\${`) stays distinguishable from a `${...}` interpolation after
+/// escape processing (D22). The marker always comes with the character it
+/// escapes: an escaped `\$` is the marker followed by `$`, and the codepoint
+/// itself, written raw or as `\u{E000}`, is the marker twice. The parser
+/// resolves every pair back to the one character when building the AST, so
+/// the marker never leaks past parsing.
+///
+/// The pairing is what makes the encoding exact. A lone marker standing for
+/// `$` once turned a user's own U+E000 into a `$` in the emitted TypeScript.
 pub const ESCAPED_DOLLAR: char = '\u{E000}';
 
-/// Replace the internal [`ESCAPED_DOLLAR`] marker with a literal `$`. Called by
-/// the parser wherever a string's decoded value becomes an AST literal, so the
-/// marker never escapes the parse phase.
-pub fn resolve_escaped_dollars(s: &str) -> std::borrow::Cow<'_, str> {
-    if s.contains(ESCAPED_DOLLAR) {
-        std::borrow::Cow::Owned(s.replace(ESCAPED_DOLLAR, "$"))
-    } else {
-        std::borrow::Cow::Borrowed(s)
+/// Push a character from a string's source text onto its lexed value, pairing
+/// the marker codepoint with itself (see [`ESCAPED_DOLLAR`]).
+pub(crate) fn push_literal(content: &mut String, c: char) {
+    if c == ESCAPED_DOLLAR {
+        content.push(ESCAPED_DOLLAR);
     }
+    content.push(c);
+}
+
+/// Replace each [`ESCAPED_DOLLAR`] pair with the character it escapes. Called
+/// by the parser wherever a string's lexed value becomes an AST literal, so
+/// the marker never escapes the parse phase.
+pub fn resolve_escaped_dollars(s: &str) -> std::borrow::Cow<'_, str> {
+    if !s.contains(ESCAPED_DOLLAR) {
+        return std::borrow::Cow::Borrowed(s);
+    }
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == ESCAPED_DOLLAR {
+            if let Some(escaped) = chars.next() {
+                out.push(escaped);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    std::borrow::Cow::Owned(out)
 }
 
 /// A `//` line comment recovered from the source. The lexer skips comments for
@@ -117,6 +140,35 @@ mod tests {
             })
             .collect();
         assert_eq!(strings, vec!["line one\nline two"]);
+    }
+
+    #[test]
+    fn the_escape_marker_always_comes_in_a_pair() {
+        // An escaped `\$` is the marker and `$`; the codepoint itself, raw or
+        // escaped, is the marker twice. A lone marker would make the two
+        // indistinguishable.
+        let m = ESCAPED_DOLLAR;
+        let toks = tokenize("\"a\\$b\" \"a\u{E000}b\" \"a\\u{E000}b\" \"\"\"\u{E000}\"\"\"\n").unwrap();
+        let strings: Vec<&str> = toks
+            .iter()
+            .filter_map(|t| match &t.token {
+                Token::String(s) => Some(s.as_str()),
+                _ => None,
+            })
+            .collect();
+        let pair = format!("{m}{m}");
+        assert_eq!(
+            strings,
+            vec![
+                format!("a{m}$b").as_str(),
+                format!("a{pair}b").as_str(),
+                format!("a{pair}b").as_str(),
+                pair.as_str(),
+            ]
+        );
+        assert_eq!(resolve_escaped_dollars(strings[0]), "a$b");
+        assert_eq!(resolve_escaped_dollars(strings[1]), "a\u{E000}b");
+        assert_eq!(resolve_escaped_dollars(strings[3]), "\u{E000}");
     }
 
     #[test]

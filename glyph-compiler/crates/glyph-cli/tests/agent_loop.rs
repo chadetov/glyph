@@ -1350,6 +1350,8 @@ fn one_diagnostic_has_one_shape_on_both_surfaces() {
     const ORDERS_UNION: &str =
         "module orders\npub type OrderStatus =\n  | Pending\n  | Paid\n  | Cancelled\n";
     const ORDERS_RECORD: &str = "module orders\npub type Order = {\n  id: string,\n  total: number,\n}\n";
+    const ORDERS_OPAQUE: &str = "module orders\npub type Handle = extern_ts(\"{ fd: number }\")\n\
+                                 pub type Order = {\n  id: string,\n  handle: Handle,\n}\n";
 
     let cases = [
         // typecheck, across a module boundary, with `union` and
@@ -1393,6 +1395,23 @@ fn one_diagnostic_has_one_shape_on_both_surfaces() {
             main: "module main\npub type U =\n  | A\n  | B\n\n\
                    pub fn f(u: U) -> number {\n  return match u {\n    A => 1,\n    A => 2,\n    B => 3,\n  }\n}\n",
             orders: None,
+        },
+        // emit, across a module boundary: the record's verdict is its own
+        // module's, so the refusal reaches the importer on both surfaces
+        // (G210), through a named import and through a namespace alike.
+        Case {
+            dir: "emit_imported",
+            code: "E0304",
+            main: "module main\nimport orders { Order }\n\n\
+                   pub fn take(v: unknown) -> bool {\n  return match Order.parse(v) {\n    Ok(_) => true,\n    Err(_) => false,\n  }\n}\n",
+            orders: Some(ORDERS_OPAQUE),
+        },
+        Case {
+            dir: "emit_namespace",
+            code: "E0304",
+            main: "module main\nimport orders\n\n\
+                   pub fn take(v: unknown) -> bool {\n  return match orders.Order.parse(v) {\n    Ok(_) => true,\n    Err(_) => false,\n  }\n}\n",
+            orders: Some(ORDERS_OPAQUE),
         },
         // parse: no AST, so no entity, and nothing after it runs.
         Case {

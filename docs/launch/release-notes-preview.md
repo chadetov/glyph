@@ -124,7 +124,7 @@ compiler. The newest, `examples/apps/todo`, is a counter and a todo list on
 React 18 using React's own hooks; CI bundles it with Vite, renders it in
 headless Chromium and checks the text on the page.
 
-The compiler's test suite is 1925 tests at 0.1.129.
+The compiler's test suite is 1926 tests at 0.1.129.
 
 ## What has not been measured
 
@@ -158,7 +158,7 @@ Three functions are a small sample.
   renders.
 - The VS Code extension is built from source in `editors/vscode/`; it is not on
   the Marketplace.
-- The gap ledger, [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md), had 289
+- The gap ledger, [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md), had 290
   entries at 0.1.129, of which 20 were open and 8 partly fixed. Each open entry has a reproduction
   and is scheduled in the release roadmap.
 

@@ -315,7 +315,7 @@ Some other edges that are open today:
   (`glyph init` does) and read the release notes before upgrading.
 
 The gap ledger, `docs/dogfooding-gaps.md`, lists every defect found by building
-real programs, with a reproduction for each. At 0.1.129 it holds 289 entries, of
+real programs, with a reproduction for each. At 0.1.129 it holds 290 entries, of
 which 20 are open and 8 partly fixed.
 
 ## Trying it

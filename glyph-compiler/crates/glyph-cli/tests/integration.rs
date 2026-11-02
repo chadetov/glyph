@@ -11906,6 +11906,98 @@ fn parse_is_refused_on_a_record_with_an_unverifiable_field() {
 }
 
 #[test]
+fn parse_is_refused_on_an_imported_record_with_an_unverifiable_field() {
+    // G210. E0304 fired only in the module that declared the record: the
+    // emitter looked the record up in the module it was emitting, an import
+    // was not there, and `Doc.parse` in any other module built clean and
+    // returned `Ok` on a value whose `lexer` it never checked. The verdict is
+    // now the declaring module's, read by every importer, so each spelling of
+    // the import draws the same diagnostic, naming the record by its own name.
+    const W: &str = "module w\n\
+         pub type Lexer = extern_ts(\"import('marky').Lexer\")\n\
+         @open\n\
+         pub type Doc = { lexer: Lexer, title: string, }\n\
+         pub type Bag = { items: Array<unknown>, title: string, }\n\
+         pub type Fine = { title: string, }\n";
+    let cases = [
+        ("named", "import w { Doc }", "Doc.parse(v)", "`Doc`: field `lexer` has type `Lexer`"),
+        ("namespace", "import w", "w.Doc.parse(v)", "`Doc`: field `lexer` has type `Lexer`"),
+        ("aliased", "import w as ww", "ww.Doc.parse(v)", "`Doc`: field `lexer` has type `Lexer`"),
+        ("bag", "import w { Bag }", "Bag.parse(v)", "`Bag`: field `items` has type `Array<unknown>`"),
+    ];
+    for (dir, import, call, expected) in cases {
+        let root = unique_tmp(&format!("g210_{dir}"));
+        let src = root.join("src");
+        write_file(&src, "w.glyph", W);
+        write_file(
+            &src,
+            "u.glyph",
+            &format!(
+                "module u\n{import}\n\
+                 pub fn check(v: unknown) -> bool {{\n\
+                 \x20 return match {call} {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            ),
+        );
+        let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
+        let refused: Vec<_> = report.structured.iter().filter(|d| d.code == "E0304").collect();
+        assert_eq!(refused.len(), 1, "`{call}` is refused once: {:?}", report.diagnostics);
+        assert_eq!(refused[0].file, "u.glyph", "the refusal is at the use: {:?}", report.diagnostics);
+        let all = report.diagnostics.join("\n");
+        assert!(all.contains(expected), "`{call}` names the record and its field: {all}");
+    }
+
+    // Positive control: a record every field of which has a check is still
+    // accepted through the import.
+    let root = unique_tmp("g210_fine");
+    let src = root.join("src");
+    write_file(&src, "w.glyph", W);
+    write_file(
+        &src,
+        "u.glyph",
+        "module u\nimport w { Fine }\nimport w as ww\n\
+         pub fn a(v: unknown) -> bool {\n\
+         \x20 return match Fine.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n\
+         pub fn b(v: unknown) -> bool {\n\
+         \x20 return match ww.Fine.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    assert!(!report.has_errors(), "a verifiable imported record parses: {:?}", report.diagnostics);
+}
+
+#[test]
+fn the_unverifiable_parse_catch_holds_with_the_record_in_its_own_module() {
+    // `catches/unverifiable-parse/` declares `Conn` beside the `Conn.parse` it
+    // refuses. Moving the record into its own module, the way a real project
+    // lays it out, must not move the refusal away.
+    let catch = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../catches/unverifiable-parse/glyph.glyph");
+    let original = std::fs::read_to_string(&catch).expect("read the catch");
+    assert!(original.contains("pub type Conn = {"), "the catch still declares Conn: {original}");
+    let root = unique_tmp("g210_catch");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "conn.glyph",
+        "module conn\n\nimport net { Socket }\n\npub type Conn = {\n  id: number,\n  sock: Socket,\n}\n",
+    );
+    write_file(
+        &src,
+        "m.glyph",
+        "module m\n\nimport conn { Conn }\n\n\
+         pub fn take(v: unknown) -> Result<Conn, Array<Issue>> {\n  return Conn.parse(v)\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    let all = report.diagnostics.join("\n");
+    assert!(
+        all.contains("E0304") && all.contains("`Conn`: field `sock` has type `Socket`"),
+        "the split catch is still refused: {all}"
+    );
+}
+
+#[test]
 fn an_unverifiable_field_is_only_refused_where_it_is_trusted() {
     // Holding a socket in a record is ordinary and stays legal; the error is at
     // the boundary, not the declaration. Without this the change would ban a

@@ -91,7 +91,7 @@
         <p>
           Six sections, each read off a table the compiler already has. A diagnostic entry carries
           the catalogue sentence, the one-line fix, the long explanation, and the help and note
-          taken from a diagnostic the compiler drew. 43 of the 64 codes also carry a wrong program
+          taken from a diagnostic the compiler drew. 43 of the 69 codes also carry a wrong program
           that draws the code, compiled at the moment you ask; the other 21 say the corpus has no
           case for it.
         </p>
@@ -126,7 +126,7 @@
 
       <div class="detail">
         <p>
-          64 codes come out of one table in the compiler, and <code>docs/error-codes.md</code>
+          69 codes come out of one table in the compiler, and <code>docs/error-codes.md</code>
           and the catalogue table in the agent bootstrap are written from it by a script that
           fails on drift. Merging the three copies that used to exist turned up a code with an
           explanation and no place in the list, and a row whose escaped pipe had quietly broken
@@ -226,7 +226,7 @@
 
       <div class="detail">
         <p>
-          With no code it lists 98 cases over 45 of the 64 codes, and names the 19 that have
+          With no code it lists 98 cases over 45 of the 69 codes, and names the 24 that have
           none rather than leaving you to infer coverage from what came back. A second corpus,
           <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph
           that refuses it, and those come back on the same answer where they exist. Both are
@@ -282,11 +282,11 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>glyph llms --json</code> emits six sections out of the compiler: 64 diagnostic codes, 43 of them with a compiled counter-example, the 24 prelude names, 40 stdlib modules with 340 exports, 48 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.</p>
+          <p><code>glyph llms --json</code> emits six sections out of the compiler: 69 diagnostic codes, 43 of them with a compiled counter-example, the 24 prelude names, 40 stdlib modules with 340 exports, 48 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.</p>
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p>Two counts of the wrong programs appear in this document and they count different things: 43 of the 64 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 98 cases over 45 codes because it reads <code>catches/</code> as well. Either way, 19 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 167 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 173 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
+          <p>Two counts of the wrong programs appear in this document and they count different things: 43 of the 69 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 98 cases over 45 codes because it reads <code>catches/</code> as well. Either way, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 167 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 173 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
         </div>
       </div>
 

@@ -158,7 +158,7 @@ pub fn render_tsc_error(
 pub use glyph_lsp::diagnostic::stage_label_for;
 
 /// Build and render an ariadne report for one diagnostic, including its stable
-/// code (`[E0042]` in the header), an actionable `help` line, and an optional
+/// code (`[E0200]` in the header), an actionable `help` line, and an optional
 /// background `note`.
 #[allow(clippy::too_many_arguments)]
 fn build_report(

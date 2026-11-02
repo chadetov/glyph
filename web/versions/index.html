@@ -61,8 +61,48 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.128</span>
+            <span class="rel-ver">0.1.129</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>Before announcing a preview I had two agents start from <code>npx @glyphlang/glyph init</code> with nothing but the shipped docs, one building a small React page and one a Node CLI. Both got to a clean <code>tsc</code> build. This release fixes what they ran into, and one bug the Node run found that matters more than any of it.</p>
+
+            <h3>Examples now run in a module that imports an npm package</h3>
+            <p>In a module that imported an npm package, a failing <code>@example</code> passed. The example gate builds a copy of the project in a temp directory, the package could not be found from there, and the test harness died before running anything. The runner took the absence of a failure as success. The copy now resolves packages from your project, and a harness that does not report a result for every example it was given fails the build as "not run". The same check now covers <code>glyph bench</code>, which reported zero benchmarks and exited 0 when its module threw.</p>
+
+            <h3><code>&lt;case&gt;</code> takes a match pattern</h3>
+            <p><code>&lt;case Loaded bind={items}&gt;</code> read a field called <code>items</code> whatever the payload was, so on a positional payload it bound <code>undefined</code>, and the checker never typed the name. A case now takes the pattern a <code>match</code> arm takes:</p>
+            <div class="code">
+              <span class="cap">view.glyph</span>
+<pre>&lt;match value={props.load}&gt;
+  &lt;case Loading&gt;&lt;p&gt;loading&lt;/p&gt;&lt;/case&gt;
+  &lt;case Loaded({ users, total })&gt;&lt;p&gt;{total} users&lt;/p&gt;&lt;/case&gt;
+  &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
+&lt;/match&gt;</pre>
+            </div>
+            <p>The bindings are typed, and a case that only matches some values of its variant does not count as covering it. <code>bind=</code> is now E0231, and its help writes the pattern for you. The same change closed a hole in ordinary <code>match</code> arms: <code>Loaded({ totl })</code> on a record with no <code>totl</code> field passed the checker and only <code>tsc</code> complained. It is E0210 now, listing the fields the record has.</p>
+
+            <h3><code>glyph fix</code> no longer writes match arms</h3>
+            <p>On a non-exhaustive match, <code>glyph fix</code> used to add one arm per missing case that printed the case and exited the process. The program then passed every check, and the match counted as exhaustive in <code>glyph query variants</code>. The compiler knows which cases are missing, not what your program should do in them, so <code>fix</code> now reports them and writes nothing. The E0200 help also stopped suggesting an <code>else</code> arm.</p>
+
+            <h3>The docs the agents needed</h3>
+            <p>The agent docs (what <code>glyph llms</code> prints and <code>glyph init</code> copies) now show a whole browser page: the app module, the entry that mounts it, the <code>index.html</code>, and building then bundling with Vite. Both modules are compiled against React's types in CI. An HTTP recipe that imported a <code>serve</code> <code>std/http</code> does not export is fixed, and every <code>std</code> import written in those docs is now compiled by a CI check. The scaffold's <code>.types</code> README no longer tells you to write <code>.d.ts</code> files for packages that ship their own types, and the getting-started guide begins with <code>glyph init</code>.</p>
+            <p><code>glyph run -- in.json</code> now runs the current project with <code>in.json</code> as an argument, and a new scaffold's <code>start</code> script is <code>glyph run --</code>, so <code>npm start -- in.json</code> works. In a project made before this release, change the <code>start</code> script to <code>glyph run --</code>.</p>
+
+            <h3>Smaller fixes</h3>
+            <p>A U+E000 character inside a string compiled to <code>$</code>, because the lexer used that codepoint as an internal marker; the scheduled fuzzer found it. The <code>catches/</code> folder is down to five programs, each one the same program in TypeScript and Glyph, after a review found four that compared two different programs or that <code>tsc</code> also catches. Tests that need <code>tsc</code> or <code>node</code> now fail in CI when the tool is missing instead of quietly passing.</p>
+
+            <p>This release is breaking. A <code>bind=</code> case, an arm naming a field the record does not have, a failing example in a module that imports an npm package, and a benchmark that throws all exit 0 under 0.1.128 and 1 here. One spelling changes meaning without an error: <code>glyph run -- tools/other.glyph</code> ran that file under 0.1.128, and now runs the current project with <code>tools/other.glyph</code> as an argument. Write the path before the <code>--</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.128</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

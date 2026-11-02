@@ -7750,6 +7750,133 @@ fn namespace_qualified_imported_string_literal_union_is_exhaustiveness_checked()
     );
 }
 
+/// The G291 program: a three-arm literal match over `catalog.ColType`.
+const UNSEEN_COLTYPE_MAIN: &str = "module main\n\
+     import catalog { ColType }\n\
+     pub fn width(t: ColType) -> int {\n\
+     \x20 return match t {\n\
+     \x20\x20\x20 \"text\" => 10,\n\
+     \x20\x20\x20 \"int\" => 4,\n\
+     \x20\x20\x20 \"real\" => 8,\n\
+     \x20 }\n\
+     }\n";
+
+#[test]
+fn match_over_a_type_whose_declaration_is_unseen_is_e0232_not_e0218() {
+    // G291. Through 0.1.129, with `catalog` absent from the build or an npm
+    // package whose types were never materialized, this match drew E0218 and
+    // the help "Add an `else` arm": a claim that the type is an open string,
+    // made about a declaration nobody had read, whose advice turns the check
+    // off. Both shapes are E0232 now, naming the type and its module.
+    let absent = unique_tmp("g291absent");
+    write_file(&absent, "main.glyph", UNSEEN_COLTYPE_MAIN);
+
+    let npm = unique_tmp("g291npm");
+    write_file(&npm, "package.json", "{\"name\":\"app\",\"glyph\":{}}\n");
+    write_file(
+        &npm,
+        "node_modules/catalog/package.json",
+        "{\"name\":\"catalog\",\"version\":\"1.0.0\",\"types\":\"index.d.ts\"}\n",
+    );
+    write_file(
+        &npm,
+        "node_modules/catalog/index.d.ts",
+        "export type ColType = \"text\" | \"int\" | \"real\";\n",
+    );
+    write_file(&npm, "main.glyph", UNSEEN_COLTYPE_MAIN);
+
+    for root in [&absent, &npm] {
+        let (code, stdout, stderr) = glyph_at(root, &["check", "--no-tsc", "main.glyph"]);
+        let out = format!("{stdout}\n{stderr}");
+        assert_eq!(code, 1, "an undecided match fails the build: {out}");
+        assert!(out.contains("[E0232]"), "{out}");
+        assert!(!out.contains("E0218"), "no false claim that the type is open: {out}");
+        assert!(
+            out.contains("`ColType` is declared in `catalog`"),
+            "the message names the type and the module: {out}"
+        );
+        assert!(out.contains("glyph gen dts catalog"), "the help names the remedy: {out}");
+    }
+}
+
+#[test]
+fn unseen_link_in_a_chain_of_second_names_is_the_one_named() {
+    // `catalog.glyph` is in the build and declares `ColType = Kind`, where
+    // `Kind` comes from an npm package whose types were never materialized.
+    // The declaration that cannot be read is `kinds`'s, so that is the one
+    // E0232 names, and the match is not E0218.
+    let root = unique_tmp("g291chain");
+    write_file(&root, "package.json", "{\"name\":\"app\",\"glyph\":{}}\n");
+    write_file(
+        &root,
+        "node_modules/kinds/package.json",
+        "{\"name\":\"kinds\",\"version\":\"1.0.0\",\"types\":\"index.d.ts\"}\n",
+    );
+    write_file(
+        &root,
+        "node_modules/kinds/index.d.ts",
+        "export type Kind = \"text\" | \"int\" | \"real\";\n",
+    );
+    write_file(&root, "catalog.glyph", "module catalog\nimport kinds { Kind }\npub type ColType = Kind\n");
+    write_file(&root, "main.glyph", UNSEEN_COLTYPE_MAIN);
+    let (code, stdout, stderr) = glyph_at(&root, &["check", "--no-tsc", "main.glyph"]);
+    let out = format!("{stdout}\n{stderr}");
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("[E0232]"), "{out}");
+    assert!(out.contains("`Kind` is declared in `kinds`"), "{out}");
+    assert!(!out.contains("E0218"), "{out}");
+}
+
+#[test]
+fn misspelled_import_of_a_visible_module_draws_one_error_not_two() {
+    // The module is in the build and has no `ColTyp`: E0105 at the import says
+    // so. Through 0.1.129 the match added an E0218 on top; it adds nothing now,
+    // and certainly not an E0232 claiming the declaration is out of sight.
+    let root = unique_tmp("g291typo");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", "module catalog\npub type ColType = \"text\" | \"int\" | \"real\"\n");
+    write_file(&src, "main.glyph", &UNSEEN_COLTYPE_MAIN.replace("ColType", "ColTyp"));
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let codes: Vec<&str> = report
+        .diagnostics
+        .iter()
+        .filter_map(|d| d.split(['[', ']']).nth(1))
+        .collect();
+    assert_eq!(codes, ["E0105"], "{:?}", report.diagnostics);
+}
+
+#[test]
+fn match_over_a_visible_imported_type_is_still_checked_against_it() {
+    // The other side of G291: with `catalog.glyph` in the build the same
+    // program is clean, and dropping a literal is E0200, never E0232.
+    let root = unique_tmp("g291visible");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", "module catalog\npub type ColType = \"text\" | \"int\" | \"real\"\n");
+    write_file(&src, "main.glyph", UNSEEN_COLTYPE_MAIN);
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "{:?}", report.diagnostics);
+
+    let root = unique_tmp("g291visiblemissing");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", "module catalog\npub type ColType = \"text\" | \"int\" | \"real\"\n");
+    write_file(
+        &src,
+        "main.glyph",
+        &UNSEEN_COLTYPE_MAIN.replace("    \"real\" => 8,\n", ""),
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "{:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0232") || d.contains("E0218")),
+        "{:?}",
+        report.diagnostics
+    );
+}
+
 #[test]
 fn aliased_namespace_imported_string_literal_union_is_exhaustiveness_checked() {
     // `import catalog as c` interns an `ImportAlias`; both namespace forms

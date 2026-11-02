@@ -1,0 +1,13 @@
+module main
+
+import catalog { ColType }
+
+// `catalog` is not part of this build, so the checker cannot tell whether
+// `ColType` is a literal union these arms cover or a `string` they cannot.
+pub fn width(t: ColType) -> int {
+  return match t {
+    "text" => 10,
+    "int" => 4,
+    "real" => 8,
+  }
+}

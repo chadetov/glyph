@@ -535,6 +535,22 @@ pub enum TypeError {
     #[error("non-exhaustive match on `{type_name}`: no catch-all for the other values")]
     NonExhaustiveValueMatch { type_name: String, span: Span },
 
+    /// A `match` with literal-value arms and no catch-all over a named type
+    /// declared in a module this compile cannot read: a sibling that is not
+    /// in the project being checked, an npm package whose types were never
+    /// materialized, or any import in the one-file playground. The type may be
+    /// a bounded literal union the arms cover or a plain `string` they cannot,
+    /// and the checker has no way to tell, so it neither claims the match is
+    /// open (E0218, whose advice is an `else`) nor accepts it unchecked.
+    #[error(
+        "cannot check this match for exhaustiveness: `{type_name}` is declared in `{module}`, and that declaration is not visible to the checker"
+    )]
+    UnseenMatchType {
+        type_name: String,
+        module: String,
+        span: Span,
+    },
+
     /// A `match` whose scrutinee carries no variant set to reason about — a
     /// record, an imported type, anything the tag-, array-, bool- and
     /// value-domain checks all declined — and whose arms can every one of them
@@ -906,6 +922,7 @@ impl TypeError {
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::NonExhaustiveValueMatch { span, .. } => *span,
+            TypeError::UnseenMatchType { span, .. } => *span,
             TypeError::NonExhaustiveFieldMatch { span } => *span,
             TypeError::NullableNested { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
@@ -946,6 +963,7 @@ impl TypeError {
             TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
             TypeError::NonExhaustiveValueMatch { .. } => "E0218",
+            TypeError::UnseenMatchType { .. } => "E0232",
             TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
             TypeError::NullableNested { .. } => "E0227",
             TypeError::TypeNameAsValue { .. } => "E0228",
@@ -991,6 +1009,26 @@ impl TypeError {
                 "Check the member name for a typo. `{type_name}` is {}, so its members are the ones TypeScript's library declares for it and no others; `{}` holds Glyph's own functions over it.",
                 receiver.runtime_name(),
                 receiver.std_module(),
+            )));
+        }
+        if let TypeError::UnseenMatchType {
+            type_name, module, ..
+        } = self
+        {
+            // A stdlib type the checker does not model yet: there is no file
+            // the reader can bring into the build, so the help says so rather
+            // than sending them to look for one.
+            if module.starts_with("std/") {
+                return Some(Cow::Owned(format!(
+                    "The checker does not read `{type_name}` from `{module}` yet, so there is nothing to make visible from this project. \
+                     Until it does, an `else` arm is the only way to compile this match, and it opts the match out of exhaustiveness checking."
+                )));
+            }
+            return Some(Cow::Owned(format!(
+                "Make `{module}` visible to this compile, so the arms are checked against `{type_name}` itself. \
+                 If `{module}` is a module of this project, build from the project root so its file is read. \
+                 If it is an npm package, materialize its types with `glyph gen dts {module}` and import `{type_name}` from the generated module. \
+                 An `else` arm also compiles, but it opts this match out of exhaustiveness checking for good."
             )));
         }
         Some(Cow::Borrowed(match self {
@@ -1119,6 +1157,7 @@ impl TypeError {
                 "Bind the value to one name and read from it, `Loaded(items)`. An object pattern names the fields of a record."
             }
             TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
+            TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
         }))
     }
 
@@ -1140,6 +1179,9 @@ impl TypeError {
             ),
             TypeError::NonExhaustiveValueMatch { .. } => Some(
                 "`number` and `string` are unbounded, so literal arms can never cover every value; the emitted `switch` `default` throws at runtime.",
+            ),
+            TypeError::UnseenMatchType { .. } => Some(
+                "The type could be a literal union these arms cover, or a plain `string` they never can. Without its declaration the checker cannot tell which, and a match it cannot prove covers every value is not accepted.",
             ),
             TypeError::NullableNested { .. } => Some(
                 "`Nullable<T>` is `T | null` at run time (D45): null is the whole of its absent state, so a nested `Nullable` or `Option` has no second thing to say.",

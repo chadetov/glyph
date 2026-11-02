@@ -186,6 +186,22 @@ pub trait DeclTyResolver {
     fn imported_const_decl(&self, _module_path: &str, _const_name: &str) -> Option<Ty> {
         None
     }
+
+    /// Whether the project module at `module_path` exports `name`. `None` when
+    /// no module at that path is part of this compile: an npm package, a
+    /// sibling outside the project being built, or any import at all for a
+    /// caller with no cross-module context (the one-file playground).
+    ///
+    /// It separates the two reasons `imported_type_decl` can answer `None`. A
+    /// module the compile cannot see leaves a `match` over its type undecided
+    /// (E0232). A module it can see that has no such export has already been
+    /// reported at the import (E0105), and a second error on the `match` about
+    /// a declaration being out of sight would send the reader the wrong way.
+    ///
+    /// Answered by `glyph_db::module_exports`.
+    fn module_exports_name(&self, _module_path: &str, _name: &str) -> Option<bool> {
+        None
+    }
 }
 
 /// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
@@ -3845,6 +3861,34 @@ impl Assigner<'_> {
             }),
         };
         if let Some(kind) = value_kind {
+            // The kind came from the arms, not from a type the checker knows,
+            // and the scrutinee names a type declared somewhere this compile
+            // cannot read (a sibling module that is not here, an npm package
+            // whose types were never materialized). It may well be a bounded
+            // literal union that these arms cover, so E0218's "a string match
+            // can never be exhaustive, add an `else`" would be a false claim
+            // whose advice switches the check off for good (G291). Coverage is
+            // undecidable here, and the error says that instead.
+            match self.imported_type_visibility(scrutinee_ty) {
+                ImportedTypeVisibility::Unseen { module, name } => {
+                    self.cover_unresolved_site(scrutinee_ty, scrutinee_span, match_span);
+                    let has_catch_all = arms
+                        .iter()
+                        .any(|a| is_catch_all_pattern(&a.pattern, Scrutinee::Opaque));
+                    if !has_catch_all {
+                        self.errors.push(TypeError::UnseenMatchType {
+                            type_name: name,
+                            module,
+                            span: match_span,
+                        });
+                    }
+                    return;
+                }
+                // The import named something the module does not export,
+                // which is E0105 at the import already. One error per mistake.
+                ImportedTypeVisibility::NotExported => return,
+                ImportedTypeVisibility::Visible => {}
+            }
             self.check_value_exhaustiveness(kind, arms, match_span);
             return;
         }
@@ -4247,6 +4291,51 @@ impl Assigner<'_> {
             inner_decl.name.to_string(),
             inner_variants.iter().map(|v| v.name.clone()).collect(),
         ))
+    }
+
+    /// Whether the checker can read the declaration behind a scrutinee that
+    /// names a type from another module. `Visible` for everything that is not
+    /// such a type, and for an imported type whose declaration it reads, so a
+    /// visible declaration keeps its own exhaustiveness rules.
+    fn imported_type_visibility(&self, ty: &Ty) -> ImportedTypeVisibility {
+        let Ty::Imported { module, name } = union_base(ty) else {
+            return ImportedTypeVisibility::Visible;
+        };
+        // The chain of second names is walked link by link rather than through
+        // `imported_decl_chain_end`, because the link that breaks is the one
+        // to name: `pub type ColType = Kind` in a visible sibling, over a
+        // `Kind` imported from a package nobody materialized, is undecided at
+        // the package, not at the sibling.
+        let mut seen: HashSet<(String, String)> = HashSet::new();
+        let (mut module, mut name) = (module.as_str().to_string(), name.to_string());
+        loop {
+            if !seen.insert((module.clone(), name.clone())) {
+                return ImportedTypeVisibility::Visible;
+            }
+            match self.decl_ty_resolver.imported_type_decl(&module, &name) {
+                Some(decl) => match &decl.body {
+                    Ty::Imported {
+                        module: next_module,
+                        name: next_name,
+                    } => {
+                        module = next_module.as_str().to_string();
+                        name = next_name.to_string();
+                    }
+                    _ => return ImportedTypeVisibility::Visible,
+                },
+                None => {
+                    return match self.decl_ty_resolver.module_exports_name(&module, &name) {
+                        None => ImportedTypeVisibility::Unseen { module, name },
+                        Some(false) => ImportedTypeVisibility::NotExported,
+                        // Exported, and not as a `type` this checker reads (an
+                        // interface, a function named in type position): the
+                        // declaration is in sight, so the value-domain rules
+                        // apply as they always did.
+                        Some(true) => ImportedTypeVisibility::Visible,
+                    };
+                }
+            }
+        }
     }
 
     /// A `match` over a `number`/`string` is exhaustive only if it has a
@@ -7658,6 +7747,17 @@ pub fn imported_string_literal_union_values(
         Ty::StringLiteralUnion(values) => Some(values),
         _ => None,
     }
+}
+
+/// What the checker can read of a scrutinee type named from another module
+/// (`imported_type_visibility`).
+enum ImportedTypeVisibility {
+    /// Not an imported type, or one whose declaration is in sight.
+    Visible,
+    /// Declared in a module this compile does not contain.
+    Unseen { module: String, name: String },
+    /// The module is in sight and exports no such name (E0105 at the import).
+    NotExported,
 }
 
 /// The base a union type applies, seeing through one `Ty::App`. `Tree<string>`
@@ -11202,6 +11302,148 @@ fn outer() -> string {
             "the string-exhaustiveness fallback should not fire once `t` \
              carries the element type, got {errs:?}"
         );
+    }
+
+    /// G291. A literal match over a type declared in a module this compile
+    /// cannot see. It could be a literal union the arms cover, so E0218 ("a
+    /// string match can never be exhaustive, add an `else`") was a claim about
+    /// a type nobody had read, and its advice switched the check off. It is
+    /// E0232 now, through the named and the namespace spelling alike, and the
+    /// help sends the reader to the declaration before it mentions `else`.
+    #[test]
+    fn a_match_over_an_unseen_imported_type_is_undecided_not_open() {
+        for src in [
+            "module app\nimport catalog { ColType }\n\
+             pub fn width(t: ColType) -> int {\n\
+             \x20 return match t {\n    \"text\" => 10,\n    \"int\" => 4,\n  }\n}\n",
+            "module app\nimport catalog\n\
+             pub fn width(t: catalog.ColType) -> int {\n\
+             \x20 return match t {\n    \"text\" => 10,\n    \"int\" => 4,\n  }\n}\n",
+            "module app\nimport catalog as c\n\
+             pub fn width(t: c.ColType) -> int {\n\
+             \x20 return match t {\n    1 => 10,\n    2 => 4,\n  }\n}\n",
+        ] {
+            let errs = errors_of(src);
+            match &errs[..] {
+                [e @ TypeError::UnseenMatchType {
+                    type_name, module, ..
+                }] => {
+                    assert_eq!((type_name.as_str(), module.as_str()), ("ColType", "catalog"));
+                    assert_eq!(e.code(), "E0232");
+                    let help = e.help().expect("E0232 has help");
+                    assert!(help.starts_with("Make `catalog` visible"), "{help}");
+                    assert!(help.contains("glyph gen dts catalog"), "{help}");
+                    let first_else = help.find("`else`").expect("names the opt-out");
+                    assert!(
+                        first_else > help.find("gen dts").unwrap(),
+                        "`else` is the last suggestion, not the first: {help}"
+                    );
+                }
+                other => panic!("expected one E0232, got {other:?}\n{src}"),
+            }
+        }
+    }
+
+    /// An `else` arm is the explicit opt-out, and still compiles.
+    #[test]
+    fn an_unseen_imported_type_match_with_a_catch_all_is_accepted() {
+        let errs = errors_of(
+            "module app\nimport catalog { ColType }\n\
+             pub fn width(t: ColType) -> int {\n\
+             \x20 return match t {\n    \"text\" => 10,\n    else => 0,\n  }\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// A local `string` is not unseen: E0218 is a true statement about it.
+    #[test]
+    fn a_local_string_match_keeps_e0218() {
+        let errs = errors_of(
+            "module app\ntype Name = string\n\
+             pub fn width(t: Name, s: string) -> int {\n\
+             \x20 let a = match t {\n    \"text\" => 10,\n  }\n\
+             \x20 return match s {\n    \"text\" => 10,\n  }\n}\n",
+        );
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert_eq!(codes, ["E0218", "E0218"], "{errs:?}");
+    }
+
+    /// The three cases a project with cross-module context separates: the
+    /// declaration is visible (checked against the real union), the module is
+    /// visible and has no such export (E0105 at the import, nothing more on
+    /// the match), and the module is not in the compile (E0232).
+    #[test]
+    fn visibility_of_the_declaration_decides_which_error_a_match_gets() {
+        struct Project;
+        impl DeclTyResolver for Project {
+            fn decl_ty(&self, _decl_idx: u32) -> Ty {
+                Ty::Unknown
+            }
+            fn imported_type_decl(
+                &self,
+                module_path: &str,
+                type_name: &str,
+            ) -> Option<ImportedTypeDecl> {
+                (module_path == "catalog" && type_name == "ColType").then(|| ImportedTypeDecl {
+                    name: Ident::from("ColType"),
+                    generics: Vec::new(),
+                    body: Ty::StringLiteralUnion(vec![
+                        "text".to_string(),
+                        "int".to_string(),
+                        "real".to_string(),
+                    ]),
+                })
+            }
+            fn module_exports_name(&self, module_path: &str, name: &str) -> Option<bool> {
+                (module_path == "catalog").then_some(name == "ColType")
+            }
+        }
+        let check = |import: &str, arms: &str| {
+            let src = format!(
+                "module app\nimport {import}\n\
+                 pub fn width(t: ColType) -> int {{\n  return match t {{\n{arms}  }}\n}}\n"
+            );
+            let m = glyph_parser::parse(&src).expect("parse failed");
+            let syms = collect_module_symbols(&m).unwrap();
+            let prelude = build_prelude();
+            let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+            let (_tm, errs) = assign_types_with_resolver(&m, &resolved, &prelude, &Project);
+            errs.iter().map(|e| e.code()).collect::<Vec<_>>()
+        };
+        let all = "    \"text\" => 10,\n    \"int\" => 4,\n    \"real\" => 8,\n";
+        let short = "    \"text\" => 10,\n";
+        assert_eq!(check("catalog { ColType }", all), Vec::<&str>::new());
+        assert_eq!(check("catalog { ColType }", short), ["E0200"]);
+        // A name the visible module does not export is E0105 in the resolver.
+        let src_missing = "module app\nimport catalog { ColTyp }\n\
+             pub fn width(t: ColTyp) -> int {\n  return match t {\n    \"text\" => 10,\n  }\n}\n";
+        let m = glyph_parser::parse(src_missing).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, errs) = assign_types_with_resolver(&m, &resolved, &prelude, &Project);
+        assert!(errs.is_empty(), "the import already failed; one error per mistake: {errs:?}");
+        assert_eq!(check("elsewhere { ColType }", short), ["E0232"]);
+    }
+
+    /// A stdlib literal union the checker does not model has no file to bring
+    /// into the build, so the help does not send the reader looking for one.
+    #[test]
+    fn an_unseen_stdlib_type_says_there_is_nothing_to_make_visible() {
+        let errs = errors_of(
+            "module app\nimport std/log { Level }\n\
+             pub fn rank(l: Level) -> int {\n\
+             \x20 return match l {\n    \"debug\" => 1,\n  }\n}\n",
+        );
+        match &errs[..] {
+            [e @ TypeError::UnseenMatchType { module, .. }] => {
+                assert_eq!(module, "std/log");
+                let help = e.help().unwrap();
+                assert!(!help.contains("gen dts"), "{help}");
+                assert!(help.contains("nothing to make visible"), "{help}");
+            }
+            other => panic!("expected one E0232, got {other:?}"),
+        }
     }
 
     /// Reading a key out of a map is a guess, so it is E0224.

@@ -356,7 +356,8 @@ by name (`import billing { Tier }`), by namespace (`import billing` with a
 `billing.Tier` annotation), or through an alias: a `match` covering every literal
 still needs no `else`, and one that misses a literal is still E0200. If a `match`
 you expect to be checked comes back E0218 instead, the scrutinee is typed
-`string`, not `Tier`.
+`string`, not `Tier`. If it comes back E0232, the checker could not see
+`billing` at all, usually because the build root is not the project root.
 
 ## Hash and random identifiers
 

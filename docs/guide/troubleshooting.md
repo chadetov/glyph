@@ -83,6 +83,15 @@ string-literal union, check what the scrutinee's type actually is: E0218 means
 the checker read it as a bare `string`. Importing the type from another module is
 no longer a reason for that, whichever spelling you used.
 
+**E0232: the match is over a type the checker cannot see.** The scrutinee's type
+is declared in a module that is not part of this compile: a sibling outside the
+directory you built, an npm package whose types were never materialized, or any
+sibling import in the playground, which compiles one file. The type might be a
+literal union your arms cover or a plain `string` they cannot, and without the
+declaration the checker cannot tell. Build from the project root, or run
+`glyph gen dts <package>` and import the type from the generated module. An
+`else` arm also compiles, but then the match is never checked again.
+
 **E0226: every arm can fail and none is a catch-all.** A `match` over something
 with no cases to count — a record, or a type the checker could not resolve —
 where every arm's pattern tests a value. `match p { { x: 0, y: y, } => .. }` over

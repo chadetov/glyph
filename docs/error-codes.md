@@ -164,7 +164,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0215` | Aliasing an `owned` handle (D25) |
 | `E0216` | Unreachable `match` arm after a total pattern (D9) |
 | `E0217` | Discarded `Result`. A warning rather than an error: its `Err` is silently ignored |
-| `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module) |
+| `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module, and a type whose declaration this compile cannot see is E0232) |
 | `E0219` | `@redact` names a field the type does not have (D24) |
 | `E0220` | A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9) |
 | `E0221` | Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
@@ -178,6 +178,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0229` | A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable`, a function type, `unknown` (which gives the component nothing it can read) and a type parameter with no bound; a bounded type parameter and `Record<K, V>` draw nothing |
 | `E0230` | A destructuring `let` that might not match (D48). Raised at parse for a pattern that tests the value (a literal, a variant, a constructor, an `is` guard), for `let owned [..]`, an annotated pattern and `const [..]`; raised at check when the length cannot be proved: a written literal of another length, an `Array<T>`, or a value that is not an array. A tuple from an npm library is proved by `tsc` through the emitted `satisfies` |
 | `E0231` | `bind={x}` on a JSX `<case>`. A `<case>` takes the pattern a `match` arm takes (D6), so the payload is bound by the pattern: `<case Loaded(items)>` for one value, `<case Loaded({ users })>` for a record payload's fields. The help writes the rewrite for the variant's payload |
+| `E0232` | A `match` with literal arms and no catch-all over a named type whose declaration this compile cannot see (a module outside the build, an npm package whose types were not materialized, any sibling import in the one-file playground). It could be a literal union the arms cover or a `string` they cannot, so coverage is undecided and the match is refused. A visible type is checked as usual (E0200, E0218) |
 
 ### Emitter — `E03xx`
 

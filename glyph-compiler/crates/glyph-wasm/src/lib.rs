@@ -504,6 +504,27 @@ mod tests {
     }
 
     #[test]
+    fn a_match_over_a_sibling_type_says_the_declaration_is_not_visible() {
+        // The playground compiles one file, so `catalog` is never in sight and
+        // `ColType` could be a literal union these arms cover. Through 0.1.129
+        // this was E0218, "a string match can never be exhaustive, add an
+        // `else`": a claim about a type nobody had read, whose advice switches
+        // the check off (G291). It is E0232 now, naming the type and module.
+        let json = compile(
+            "module main\nimport catalog { ColType }\n\npub fn width(t: ColType) -> int {\n  return match t {\n    \"text\" => 10,\n    \"int\" => 4,\n    \"real\" => 8,\n  }\n}\n",
+        );
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let diags = v["diagnostics"].as_array().unwrap();
+        let codes: Vec<&str> = diags.iter().map(|d| d["code"].as_str().unwrap()).collect();
+        assert_eq!(codes, ["E0232"], "one undecided-coverage error, no E0218: {v}");
+        let message = diags[0]["message"].as_str().unwrap();
+        assert!(
+            message.contains("`ColType`") && message.contains("`catalog`"),
+            "the message names the type and its module: {message}"
+        );
+    }
+
+    #[test]
     fn version_is_reported() {
         assert!(!version().is_empty());
     }

@@ -37,13 +37,14 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 #   files   it enumerates what was created, so every created file has to be named
 #   output  it shows what running the scaffold prints
 #
-# The two pages show different things: the site walks the file, the guide runs
-# it and moves on. Asserting `source` against the guide would be asserting
-# against a snippet it never shows. Dropping an assertion here is a visible diff
+# The pages show different things: the site and getting-started print the
+# file, start-here runs it and moves on. Asserting `source` against start-here
+# would be asserting against a snippet it never shows. Dropping an assertion here is a visible diff
 # on a reviewed file, which is the point.
 WALKTHROUGHS = {
     pathlib.Path("web/start/index.html"): {"source", "files", "output"},
     pathlib.Path("docs/guide/start-here.md"): {"files", "output"},
+    pathlib.Path("docs/guide/getting-started.md"): {"source", "files", "output"},
 }
 
 TAG = re.compile(r"<[^>]+>")

@@ -6,9 +6,11 @@ A counter and a todo list in the browser, against real React 18. Every hook is
 React's own (`useState`, `useEffect`), imported by name and destructured with
 `let [count, set_count] = useState(0)`. The page is reached through the
 standard library: `std/dom` finds the mount point and sets the title,
-`std/storage` keeps each item's text across a reload (whether it was done is
-not saved), and `std/console` reports a write
-the browser refused.
+`std/storage` keeps the list across a reload, and `std/console` reports a
+write the browser refused. The list is saved as one string, one item per line,
+each behind a marker: `[x] ` for an item that is done and `[ ] ` for one that
+is not. A line with no marker, which is how 0.1.128 saved it, loads as not
+done.
 
 ## Running it
 

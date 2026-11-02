@@ -180,6 +180,10 @@ jobs:
       # `glyph init` drifting from the page that walks through it is the third
       # case, and compiling cannot catch it: the wrong first-run snippet
       # compiled fine for months.
+      #
+      # A `needs-react` fence is compiled against React's own declarations from
+      # the todo app's node_modules, which the examples type-check step above
+      # installs, so this has to stay after it.
       - name: Check the docs against the compiler
         env:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph

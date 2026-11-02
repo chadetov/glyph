@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-289 entries, 245 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-25 are open. G144, the D28 boundary cast that never reached the returns a
+289 entries, 250 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+20 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10702,7 +10702,7 @@ and is the owner's to confirm.
   run` already did, and a harness whose closing tally does not account for
   every test it was given fails the gate as "N example(s) not run" (E0404 in
   `--json`). Breaking: the reproduction exits 0 under 0.1.128 and 1 now.
-- **G281. No shipped document shows how a browser page starts a Glyph app.**
+- **G281. [FIXED] No shipped document shows how a browser page starts a Glyph app.**
   A React developer starting cold reached a clean `glyph check` with `tsc` on
   the first attempt and stopped at bundling: nothing in the npm package,
   `glyph llms`, the scaffold or the getting-started guide shows the
@@ -10715,7 +10715,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: `glyph llms | grep -c index.html` is 0, and `glyph llms | grep -c on_change` is 0.*
 
-- **G282. `glyph run -- args` fails in a scaffolded project.** `glyph run --
+
+  Fixed in 0.1.129: AGENTS.md, which `glyph llms` prints and `glyph init`
+  copies, has "Running Glyph in a browser page", taken from
+  `examples/apps/todo`: an `app` module with an `on_change` reading
+  `e.currentTarget.value`, a `main` module mounting through `std/dom`, the
+  `index.html` whose module script calls `main()`, `glyph build . --out
+  dist/gen` then `vite build --outDir dist/web`, and which host calls which
+  `main`. Both fences are compiled together against React by
+  `check_docs_compile.py`, which lets a `needs-react` fence import a sibling an
+  earlier fence declares. Followed literally in an empty directory, it reaches
+  a `vite build`.
+- **G282. [FIXED] `glyph run -- args` fails in a scaffolded project.** `glyph run --
   good.json` and `npm start -- good.json` (the scaffold's `start` is `glyph
   run`) both stop at `run target is not a `.glyph` file: good.json`, though
   `glyph run --help` and `glyph llms` say no path means the current project
@@ -10724,7 +10735,16 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: in `glyph init orders`, `glyph run -- good.json` prints `glyph run: run target is not a `.glyph` file: good.json` and exits 2.*
 
-- **G283. AGENTS.md's recipe for an HTTP server does not compile.** "Recipes
+
+  Fixed in 0.1.129: everything after `--` is the program's, so `glyph run --
+  good.json` runs the current project with `good.json` in `argv`, and the
+  scaffold's `start` is `glyph run --`, so `npm start -- good.json` reaches
+  `main(argv)`. Without `--`, a path that is not a `.glyph` file is still
+  refused, and the refusal names the `--` form. A path written after `--` is
+  now an argument, which changes `glyph run --no-tsc -- src/other.glyph`; a
+  project scaffolded earlier needs its `start` script changed to `glyph run
+  --`.
+- **G283. [FIXED] AGENTS.md's recipe for an HTTP server does not compile.** "Recipes
   by task" says `import std/http { serve, text, Request, Response }`; `std/http`
   exports no `serve` (the `std/net` section of the same file says so), and the
   import is E0105. `check_docs_compile.py` compiles fenced blocks only, so an
@@ -10732,7 +10752,12 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: `AGENTS.md:1921` holds the recipe, and `glyph-compiler/runtime/std/http.ts` exports no `serve`.*
 
-- **G284. The scaffold tells a newcomer to hand-write `.d.ts` files for npm
+
+  Fixed in 0.1.129: the recipe names what `std/http` exports (`listen, text,
+  Request, Response`, with `std/net`), and `scripts/check_inline_imports.py`,
+  run in CI, compiles every inline `import std/...` in AGENTS.md and fails on
+  E0104 or E0105. With `serve` put back it fails.
+- **G284. [FIXED] The scaffold tells a newcomer to hand-write `.d.ts` files for npm
   packages.** `glyph init` writes `src/.types/README.md`, which says to put
   `*.d.ts` files there for npm packages you import. An installed package's own
   types (`date-fns`, `@types/react`) need nothing, and `external-imports.md`
@@ -10742,6 +10767,11 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: `glyph init` creates `src/.types/README.md` with that instruction.*
 
+
+  Fixed in 0.1.129: the scaffold's `src/.types/README.md` says a package with
+  its own types or an `@types` package needs nothing, and `.types/` is for one
+  that ships no types; AGENTS.md's external-imports section says the same, with
+  a package that ships no types as its example. `tests/init.rs` asserts it.
 - **G285. A `tsc` error is mapped to the whole enclosing statement.** A wrong
   member in one `on_change` handler (`e.target.valu`) underlines the entire
   `return <div>...</div>`, eight lines; a wrong argument underlines the whole
@@ -10757,13 +10787,20 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128 by the cold-start Node run.*
 
-- **G287. `glyph bench` reports a crashed harness as zero benchmarks.**
+- **G287. [FIXED] `glyph bench` reports a crashed harness as zero benchmarks.**
   `bench.rs` reads the harness's output and ignores the exit status of `tsx`,
   so a benchmark module that throws while loading prints `0 benchmark(s)` and
   exits 0: the shape G280 had in the example runner. Found while fixing G280.
 
   *Reproduced against 0.1.128 by reading `glyph-cli/src/bench.rs`: the harness's exit status is never checked.*
 
+
+  Fixed in 0.1.129: the bench harness runs each benchmark in its own `try`,
+  prints a closing tally, and goes through the check G280 added to the example
+  runner, so a harness that dies or does not account for every benchmark fails
+  with the cause, and a benchmark that throws fails by name. Breaking: a module
+  that throws on load was `0 benchmark(s)`, exit 0, under 0.1.128 and is exit 1
+  now.
 - **G288. A member read on an array is checked by nothing but `tsc`.**
   `xs.lenght` on `xs: Array<string>` passes `glyph check --no-tsc`, and the
   editor shows nothing; a record has E0210 with its fields listed. A

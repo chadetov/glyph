@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-288 entries, 242 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-28 are open. G144, the D28 boundary cast that never reached the returns a
+288 entries, 245 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+24 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10229,7 +10229,7 @@ and is the owner's to confirm.
   under `--no-tsc` and `[TS2740]` with `tsc`. Copying the example in alone
   draws `[E0104] unresolved import api/users`.*
 
-- **G248. A `needs-deps` fence is compiled by nothing.** `check_docs_compile.py`
+- **G248. [HALF] A `needs-deps` fence is compiled by nothing.** `check_docs_compile.py`
   skips a fence marked `needs-deps` (an npm import or a `component`), so the
   AGENTS.md bootstrap taught `component Greeting(name: string)`, a spelling
   that never rendered and that 0.1.125 refuses as E0229, and no gate noticed.
@@ -10243,6 +10243,14 @@ and is the owner's to confirm.
   gate compiles them. Found by the G243 work, which corrected the bootstrap
   fence.*
 
+
+  Partly fixed in 0.1.129: a `needs-react` fence, a whole module whose only
+  outside need is React, is compiled against the todo app's `react` and
+  `@types/react` and must pass `tsc --strict`; a missing `node_modules` fails
+  the gate, and a `needs-deps` fence that needs only React is refused. The
+  AGENTS.md component fences and the TypeScript guide's Card fence are
+  compiled. Left: the AGENTS.md mount fence, which imports a sibling module,
+  and the fences that need other packages (pg, mongodb, leftpad, zod).
 - **G249. [FIXED] Go-to-definition on a namespace member answers `null`, where the
   named import answers.** With `ui` declaring `pub component Button`,
   `glyph query definition` on `Button` in `let b = Button` under
@@ -10579,7 +10587,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.106 and 0.1.126: the four programs exit 0 under `--no-tsc` and 1 with TS2345, and the `Tree` program exits 1 with E0211.*
 
-- **G275. `<case V bind={x}>` reads a field called `x`, whatever the payload
+- **G275. [FIXED] `<case V bind={x}>` reads a field called `x`, whatever the payload
   is.** The emitter lowers `bind={x}` to `const x = __v.x`, which is right for a
   record payload (`Loaded({ users: ... })` with `bind={users}`) and wrong for a
   positional one: `Loaded(Array<string>)` is `{ tag, value }` at run time, so
@@ -10593,6 +10601,15 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.127: a component with `type Load = Loading | Loaded(Array<string>)` and `<case Loaded bind={items}><p>{items.length}</p></case>` exits 0 under `--no-tsc`; the emitted TypeScript is `const items = __v.items`.*
 
+
+  Fixed in 0.1.129, decided by the owner on 2026-11-02 after the release
+  review: `<case>` takes the pattern a `match` arm takes (D6 amended), and a
+  `<match>` is checked and lowered as the value-level `match` it is, so case
+  bindings are typed and a refutable case alone does not cover its variant
+  (E0200). `bind={x}` is E0231, whose help writes the pattern for the payload's
+  shape. Breaking: `<case Loaded bind={items}>` exits 0 under `check --no-tsc`
+  in 0.1.128 and 1 now; `<case Loaded(items)>` emits `const items = __m0.value`
+  and passes `tsc --strict`.
 - **G276. [FIXED] `glyph fmt` dropped a space JSX renders.** The formatter
   printed every JSX text child trimmed, so `<p>{n} left</p>` came back as
   `<p>{n}left</p>` and the page read "2left": a formatting pass changed what a
@@ -10646,7 +10663,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: `pub fn f() -> string { return "a<U+E000>b" }` emits `return "a$b";`, and `glyph fmt` on `pub type T = "a\$b" | "e\u{41}"` writes `"a$b" | "eA"`.*
 
-- **G279. A record pattern in a `match` arm names fields nobody checks.**
+- **G279. [FIXED] A record pattern in a `match` arm names fields nobody checks.**
   `Loaded({ totl }) => totl` on `Loaded({ users: Array<string>, total:
   number })` passes `glyph check --no-tsc` with no diagnostic, and only `tsc`
   objects (TS2551). An object pattern on a positional payload,
@@ -10657,7 +10674,13 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: the arm above, in a function returning `number`, is `glyph check: 1 module(s) checked, no diagnostics.`*
 
-- **G280. A failing `@example` passes in a module that imports an npm
+
+  Fixed in 0.1.129: the shared arm-payload walk checks an object pattern
+  against the payload, so a missing field is E0210 listing the record's fields
+  and a non-record payload is E0204, in match arms and `<case>` alike.
+  Breaking: `Loaded({ totl }) => totl` exits 0 under `check --no-tsc` in
+  0.1.128 and 1 now.
+- **G280. [FIXED] A failing `@example` passes in a module that imports an npm
   package.** `@example double(21) == 43` on `fn double(n) { return n * 2 }`
   fails the build as it should, until the module also has
   `import date-fns { format }`: then `glyph build` exits 0 and the example
@@ -10670,6 +10693,15 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.128: the module above, in a project with `date-fns` installed, `glyph build src --out out` exits 0; with `import path { basename }` it prints `example failed: main::double example #1: (double(21)) != (43)` and exits 1.*
 
+
+  Fixed in 0.1.129. The gate built a copy of the project in the temp directory,
+  where `node_modules` was unreachable, so the harness died loading the package
+  before running any test, and the runner read the missing `FAIL` line as a
+  pass on every channel: `build`, `check`, `check --json`, `run`'s pre-run pass
+  and `@doc @run`. The copy now resolves packages from the project, as `glyph
+  run` already did, and a harness whose closing tally does not account for
+  every test it was given fails the gate as "N example(s) not run" (E0404 in
+  `--json`). Breaking: the reproduction exits 0 under 0.1.128 and 1 now.
 - **G281. No shipped document shows how a browser page starts a Glyph app.**
   A React developer starting cold reached a clean `glyph check` with `tsc` on
   the first attempt and stopped at bundling: nothing in the npm package,

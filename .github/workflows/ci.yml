@@ -184,6 +184,10 @@ jobs:
       # A `needs-react` fence is compiled against React's own declarations from
       # the todo app's node_modules, which the examples type-check step above
       # installs, so this has to stay after it.
+      #
+      # Fences are not the only code in AGENTS.md: a recipe written inline told
+      # readers to import a `serve` std/http had stopped exporting, and nothing
+      # compiled it. check_inline_imports resolves every inline std import.
       - name: Check the docs against the compiler
         env:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
@@ -191,6 +195,7 @@ jobs:
           set -e
           python3 scripts/check_scaffold_docs.py
           python3 scripts/check_docs_compile.py
+          python3 scripts/check_inline_imports.py
 
       # The examples are the corpus the diff-stability pillar points at, and
       # for a long time 80 of them were not in the formatter's canonical form.

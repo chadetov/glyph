@@ -86,7 +86,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 | `glyph run <path> [args]` | Type-check, compile, and run a program. `<path>` is a `.glyph` file, or a directory whose `main.glyph` is the program, the same spelling `glyph build` takes |
 | `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict`, running every `@example` and `@doc @run` test |
 | `glyph build <src> --out <dir> --no-test` | Skip the `@example` and `@doc @run` tests |
-| `glyph fix [path]` | Apply the repairs the compiler fully determines: drop unused imports, add the missing arms of a non-exhaustive `match`, take a did-you-mean the checker computed. It says what it applied and what it declined, with the reason |
+| `glyph fix [path]` | Apply the repairs the compiler fully determines: drop unused imports, take a did-you-mean the checker computed for an arm head or a field name. It says what it applied and what it declined, with the reason. A non-exhaustive `match` is reported, not repaired |
 | `glyph fmt [path]` | Format files in place (the one canonical layout) |
 | `glyph fmt --check [path]` | Check formatting for CI: writes nothing, exits non-zero if any file is unformatted |
 | `glyph canonical <file>` | Print the agent canonical view (stable line numbers + per-declaration fingerprints) |

@@ -92,6 +92,32 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
         });
     }
 
+    // `json.parse<T>(text) -> Result<T, Array<Issue>>`, the runtime's own
+    // declaration. This is the call untrusted text enters a program through,
+    // and while it had no row its result was `Unknown`: `let user: User =
+    // json.parse(body)` passed every Glyph stage and only `tsc` refused it
+    // (G289), and a `match` over it had no scrutinee type to be exhaustive
+    // against.
+    //
+    // `T` is written at the call or nowhere: the one argument is a `string`,
+    // so there is nothing to infer it from. `explicit_type_params` names it,
+    // and the call site binds it to the written type argument or, with none
+    // written, to `unknown`, which is what TypeScript infers for the same call
+    // with no contextual type. `json.parse<User>(body)` is therefore a
+    // `Result<User, Array<Issue>>`, and the bare call a
+    // `Result<unknown, Array<Issue>>` that no record annotation accepts.
+    if (module_key, field) == ("std/json", "parse") {
+        let t = Ty::Param {
+            name: Ident::from("T"),
+            owner: ParamOwner::Unresolved,
+        };
+        return Some(Ty::Fn {
+            params: vec![required(Ty::Prim(Primitive::String))],
+            return_ty: Arc::new(result_ty(prelude, t, issues_ty(prelude)?)?),
+            is_async: false,
+        });
+    }
+
     // Option-returning accessors for untrusted request input. Modeling the
     // return as `Option<string>` gives the caller a `match` the
     // exhaustiveness checker understands, so a missing header or query
@@ -1345,6 +1371,37 @@ pub(crate) fn record_ty(prelude: &Prelude, key: Ty, value: Ty) -> Option<Ty> {
         }),
         args: vec![key, value],
     })
+}
+
+/// Build `Array<Issue>`, the error every boundary parser reports: a
+/// descriptor's `T.parse` and `json.parse` alike.
+pub(crate) fn issues_ty(prelude: &Prelude) -> Option<Ty> {
+    let issue_id = prelude.lookup("Issue")?;
+    array_ty(
+        prelude,
+        Ty::Named {
+            symbol: SymbolRef(issue_id.0),
+            path: vec![Ident::from("Issue")],
+        },
+    )
+}
+
+/// The type parameters of a modeled stdlib function that only an explicit
+/// type argument can fill, in declaration order, or an empty slice.
+///
+/// Every other generic row infers its parameters from the arguments
+/// (`array.find`'s `T` rides on the array). A parameter listed here appears
+/// in no argument position, so the call site binds it from the written type
+/// argument at the same index and, when none is written, to `unknown`: the
+/// value is untrusted and its type is not known, which is TypeScript's own
+/// answer for the call with no contextual type. Leaving it an open
+/// `Ty::Param` instead would carry a `T` the reader never wrote into the
+/// diagnostic.
+pub(crate) fn explicit_type_params(module_key: &str, field: &str) -> &'static [&'static str] {
+    match (module_key, field) {
+        ("std/json", "parse") => &["T"],
+        _ => &[],
+    }
 }
 
 /// A required parameter of the given type.

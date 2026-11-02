@@ -1,0 +1,15 @@
+module neg
+
+// `json.parse` returns a `Result<unknown, Array<Issue>>`. It had no signature,
+// so assigning it to a record passed the Glyph stages and only `tsc` refused
+// it (G289). The value has to be matched, and `json.parse<User>` validates it.
+import std/json
+
+type User = {
+  id: string,
+}
+
+pub fn main() -> void {
+  let user: User = json.parse("{}")
+  print(user.id)
+}

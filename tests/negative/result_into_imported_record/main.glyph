@@ -1,0 +1,16 @@
+module main
+
+// A `Result` is a different declaration from a record another module
+// declares, so the nominal rule refuses it where the record is expected
+// (G289). The pairing used to be decided by nothing.
+import lib { User }
+import std/result { Ok, Result }
+
+fn load() -> Result<User, string> {
+  return Ok({ id: "a" })
+}
+
+pub fn main() -> void {
+  let user: User = load()
+  print(user.id)
+}

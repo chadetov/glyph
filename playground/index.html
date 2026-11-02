@@ -30,11 +30,19 @@
     <main class="grid" id="app" aria-busy="true">
       <section class="pane" id="pane-glyph">
         <h2>Glyph</h2>
+        <div class="toolbar">
+          <label for="example">Example</label>
+          <select id="example"></select>
+          <button id="share" type="button" title="Copy a link to the program in the editor">Share</button>
+          <span id="share-status" class="share-status" aria-live="polite"></span>
+        </div>
+        <p id="example-caption" class="example-caption" hidden></p>
         <div class="editor">
           <div id="gutter" class="gutter" aria-hidden="true"></div>
           <textarea
             id="source"
             spellcheck="false"
+            wrap="off"
             autocomplete="off"
             autocapitalize="off"
             autocorrect="off"
@@ -71,7 +79,9 @@
         writes for it at your project root, with the <code>std/*</code> specifiers
         pointing into the runtime the build bundles beside its output. This page
         also shows the TypeScript for a module that still has errors, which
-        <code>glyph build</code> will not write.
+        <code>glyph build</code> will not write. Share puts the program in the
+        part of the link after <code>#</code>, which your browser does not send
+        to any server.
       </p>
     </footer>
 

@@ -1501,8 +1501,14 @@ Module {
                                                     JsxElement {
                                                         name: "case",
                                                         attrs: [
-                                                            Positional {
-                                                                name: "Idle",
+                                                            Pattern {
+                                                                pattern: Ident {
+                                                                    name: "Idle",
+                                                                    span: Span {
+                                                                        start: 2479,
+                                                                        end: 2483,
+                                                                    },
+                                                                },
                                                                 span: Span {
                                                                     start: 2479,
                                                                     end: 2483,
@@ -1583,8 +1589,14 @@ Module {
                                                     JsxElement {
                                                         name: "case",
                                                         attrs: [
-                                                            Positional {
-                                                                name: "Loading",
+                                                            Pattern {
+                                                                pattern: Ident {
+                                                                    name: "Loading",
+                                                                    span: Span {
+                                                                        start: 2557,
+                                                                        end: 2564,
+                                                                    },
+                                                                },
                                                                 span: Span {
                                                                     start: 2557,
                                                                     end: 2564,
@@ -1665,25 +1677,37 @@ Module {
                                                     JsxElement {
                                                         name: "case",
                                                         attrs: [
-                                                            Positional {
-                                                                name: "Loaded",
-                                                                span: Span {
-                                                                    start: 2627,
-                                                                    end: 2633,
-                                                                },
-                                                            },
-                                                            Expr {
-                                                                name: "bind",
-                                                                value: Ident {
-                                                                    name: "users",
+                                                            Pattern {
+                                                                pattern: Constructor {
+                                                                    path: [
+                                                                        "Loaded",
+                                                                    ],
+                                                                    args: [
+                                                                        Object {
+                                                                            fields: [
+                                                                                ObjectPatternField {
+                                                                                    key: "users",
+                                                                                    pattern: None,
+                                                                                    span: Span {
+                                                                                        start: 2636,
+                                                                                        end: 2642,
+                                                                                    },
+                                                                                },
+                                                                            ],
+                                                                            span: Span {
+                                                                                start: 2634,
+                                                                                end: 2643,
+                                                                            },
+                                                                        },
+                                                                    ],
                                                                     span: Span {
-                                                                        start: 2640,
-                                                                        end: 2645,
+                                                                        start: 2627,
+                                                                        end: 2644,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 2634,
-                                                                    end: 2646,
+                                                                    start: 2627,
+                                                                    end: 2644,
                                                                 },
                                                             },
                                                         ],
@@ -1700,32 +1724,32 @@ Module {
                                                                                     object: Ident {
                                                                                         name: "users",
                                                                                         span: Span {
-                                                                                            start: 2664,
-                                                                                            end: 2669,
+                                                                                            start: 2662,
+                                                                                            end: 2667,
                                                                                         },
                                                                                     },
                                                                                     field: "length",
                                                                                     optional: false,
                                                                                     span: Span {
-                                                                                        start: 2664,
-                                                                                        end: 2676,
+                                                                                        start: 2662,
+                                                                                        end: 2674,
                                                                                     },
                                                                                 },
                                                                                 right: Number {
                                                                                     raw: "0",
                                                                                     span: Span {
-                                                                                        start: 2680,
-                                                                                        end: 2681,
+                                                                                        start: 2678,
+                                                                                        end: 2679,
                                                                                     },
                                                                                 },
                                                                                 span: Span {
-                                                                                    start: 2664,
-                                                                                    end: 2681,
+                                                                                    start: 2662,
+                                                                                    end: 2679,
                                                                                 },
                                                                             },
                                                                             span: Span {
-                                                                                start: 2658,
-                                                                                end: 2682,
+                                                                                start: 2656,
+                                                                                end: 2680,
                                                                             },
                                                                         },
                                                                     ],
@@ -1738,8 +1762,8 @@ Module {
                                                                                         name: "class",
                                                                                         value: "hint",
                                                                                         span: Span {
-                                                                                            start: 2695,
-                                                                                            end: 2707,
+                                                                                            start: 2693,
+                                                                                            end: 2705,
                                                                                         },
                                                                                     },
                                                                                 ],
@@ -1747,55 +1771,55 @@ Module {
                                                                                     Text {
                                                                                         content: "No users found.",
                                                                                         span: Span {
-                                                                                            start: 2708,
-                                                                                            end: 2723,
+                                                                                            start: 2706,
+                                                                                            end: 2721,
                                                                                         },
                                                                                     },
                                                                                 ],
                                                                                 self_closing: false,
                                                                                 name_span: Span {
-                                                                                    start: 2693,
-                                                                                    end: 2694,
+                                                                                    start: 2691,
+                                                                                    end: 2692,
                                                                                 },
                                                                                 name_segments: [
                                                                                     Span {
-                                                                                        start: 2693,
-                                                                                        end: 2694,
+                                                                                        start: 2691,
+                                                                                        end: 2692,
                                                                                     },
                                                                                 ],
                                                                                 close_name_segments: [
                                                                                     Span {
-                                                                                        start: 2725,
-                                                                                        end: 2726,
+                                                                                        start: 2723,
+                                                                                        end: 2724,
                                                                                     },
                                                                                 ],
                                                                                 span: Span {
-                                                                                    start: 2692,
-                                                                                    end: 2727,
+                                                                                    start: 2690,
+                                                                                    end: 2725,
                                                                                 },
                                                                             },
                                                                         ),
                                                                     ],
                                                                     self_closing: false,
                                                                     name_span: Span {
-                                                                        start: 2655,
-                                                                        end: 2657,
+                                                                        start: 2653,
+                                                                        end: 2655,
                                                                     },
                                                                     name_segments: [
                                                                         Span {
-                                                                            start: 2655,
-                                                                            end: 2657,
+                                                                            start: 2653,
+                                                                            end: 2655,
                                                                         },
                                                                     ],
                                                                     close_name_segments: [
                                                                         Span {
-                                                                            start: 2736,
-                                                                            end: 2738,
+                                                                            start: 2734,
+                                                                            end: 2736,
                                                                         },
                                                                     ],
                                                                     span: Span {
-                                                                        start: 2654,
-                                                                        end: 2739,
+                                                                        start: 2652,
+                                                                        end: 2737,
                                                                     },
                                                                 },
                                                             ),
@@ -1812,8 +1836,8 @@ Module {
                                                                                         name: "class",
                                                                                         value: "results",
                                                                                         span: Span {
-                                                                                            start: 2765,
-                                                                                            end: 2780,
+                                                                                            start: 2763,
+                                                                                            end: 2778,
                                                                                         },
                                                                                     },
                                                                                 ],
@@ -1825,8 +1849,8 @@ Module {
                                                                                                 Positional {
                                                                                                     name: "user",
                                                                                                     span: Span {
-                                                                                                        start: 2797,
-                                                                                                        end: 2801,
+                                                                                                        start: 2795,
+                                                                                                        end: 2799,
                                                                                                     },
                                                                                                 },
                                                                                                 Expr {
@@ -1834,13 +1858,13 @@ Module {
                                                                                                     value: Ident {
                                                                                                         name: "users",
                                                                                                         span: Span {
-                                                                                                            start: 2806,
-                                                                                                            end: 2811,
+                                                                                                            start: 2804,
+                                                                                                            end: 2809,
                                                                                                         },
                                                                                                     },
                                                                                                     span: Span {
-                                                                                                        start: 2802,
-                                                                                                        end: 2812,
+                                                                                                        start: 2800,
+                                                                                                        end: 2810,
                                                                                                     },
                                                                                                 },
                                                                                                 Expr {
@@ -1849,20 +1873,20 @@ Module {
                                                                                                         object: Ident {
                                                                                                             name: "user",
                                                                                                             span: Span {
-                                                                                                                start: 2818,
-                                                                                                                end: 2822,
+                                                                                                                start: 2816,
+                                                                                                                end: 2820,
                                                                                                             },
                                                                                                         },
                                                                                                         field: "id",
                                                                                                         optional: false,
                                                                                                         span: Span {
-                                                                                                            start: 2818,
-                                                                                                            end: 2825,
+                                                                                                            start: 2816,
+                                                                                                            end: 2823,
                                                                                                         },
                                                                                                     },
                                                                                                     span: Span {
-                                                                                                        start: 2813,
-                                                                                                        end: 2826,
+                                                                                                        start: 2811,
+                                                                                                        end: 2824,
                                                                                                     },
                                                                                                 },
                                                                                             ],
@@ -1884,15 +1908,15 @@ Module {
                                                                                                                                         object: Ident {
                                                                                                                                             name: "props",
                                                                                                                                             span: Span {
-                                                                                                                                                start: 2861,
-                                                                                                                                                end: 2866,
+                                                                                                                                                start: 2859,
+                                                                                                                                                end: 2864,
                                                                                                                                             },
                                                                                                                                         },
                                                                                                                                         field: "on_select",
                                                                                                                                         optional: false,
                                                                                                                                         span: Span {
-                                                                                                                                            start: 2861,
-                                                                                                                                            end: 2876,
+                                                                                                                                            start: 2859,
+                                                                                                                                            end: 2874,
                                                                                                                                         },
                                                                                                                                     },
                                                                                                                                     type_args: [],
@@ -1900,32 +1924,32 @@ Module {
                                                                                                                                         Ident {
                                                                                                                                             name: "user",
                                                                                                                                             span: Span {
-                                                                                                                                                start: 2877,
-                                                                                                                                                end: 2881,
+                                                                                                                                                start: 2875,
+                                                                                                                                                end: 2879,
                                                                                                                                             },
                                                                                                                                         },
                                                                                                                                     ],
                                                                                                                                     span: Span {
-                                                                                                                                        start: 2861,
-                                                                                                                                        end: 2882,
+                                                                                                                                        start: 2859,
+                                                                                                                                        end: 2880,
                                                                                                                                     },
                                                                                                                                 },
                                                                                                                             ),
                                                                                                                         ],
                                                                                                                         span: Span {
-                                                                                                                            start: 2859,
-                                                                                                                            end: 2884,
+                                                                                                                            start: 2857,
+                                                                                                                            end: 2882,
                                                                                                                         },
                                                                                                                     },
                                                                                                                     is_async: false,
                                                                                                                     span: Span {
-                                                                                                                        start: 2854,
-                                                                                                                        end: 2884,
+                                                                                                                        start: 2852,
+                                                                                                                        end: 2882,
                                                                                                                     },
                                                                                                                 },
                                                                                                                 span: Span {
-                                                                                                                    start: 2844,
-                                                                                                                    end: 2885,
+                                                                                                                    start: 2842,
+                                                                                                                    end: 2883,
                                                                                                                 },
                                                                                                             },
                                                                                                         ],
@@ -1938,8 +1962,8 @@ Module {
                                                                                                                             name: "class",
                                                                                                                             value: "name",
                                                                                                                             span: Span {
-                                                                                                                                start: 2907,
-                                                                                                                                end: 2919,
+                                                                                                                                start: 2905,
+                                                                                                                                end: 2917,
                                                                                                                             },
                                                                                                                         },
                                                                                                                     ],
@@ -1949,39 +1973,39 @@ Module {
                                                                                                                                 object: Ident {
                                                                                                                                     name: "user",
                                                                                                                                     span: Span {
-                                                                                                                                        start: 2921,
-                                                                                                                                        end: 2925,
+                                                                                                                                        start: 2919,
+                                                                                                                                        end: 2923,
                                                                                                                                     },
                                                                                                                                 },
                                                                                                                                 field: "name",
                                                                                                                                 optional: false,
                                                                                                                                 span: Span {
-                                                                                                                                    start: 2921,
-                                                                                                                                    end: 2930,
+                                                                                                                                    start: 2919,
+                                                                                                                                    end: 2928,
                                                                                                                                 },
                                                                                                                             },
                                                                                                                         ),
                                                                                                                     ],
                                                                                                                     self_closing: false,
                                                                                                                     name_span: Span {
-                                                                                                                        start: 2902,
-                                                                                                                        end: 2906,
+                                                                                                                        start: 2900,
+                                                                                                                        end: 2904,
                                                                                                                     },
                                                                                                                     name_segments: [
                                                                                                                         Span {
-                                                                                                                            start: 2902,
-                                                                                                                            end: 2906,
+                                                                                                                            start: 2900,
+                                                                                                                            end: 2904,
                                                                                                                         },
                                                                                                                     ],
                                                                                                                     close_name_segments: [
                                                                                                                         Span {
-                                                                                                                            start: 2933,
-                                                                                                                            end: 2937,
+                                                                                                                            start: 2931,
+                                                                                                                            end: 2935,
                                                                                                                         },
                                                                                                                     ],
                                                                                                                     span: Span {
-                                                                                                                        start: 2901,
-                                                                                                                        end: 2938,
+                                                                                                                        start: 2899,
+                                                                                                                        end: 2936,
                                                                                                                     },
                                                                                                                 },
                                                                                                             ),
@@ -1993,8 +2017,8 @@ Module {
                                                                                                                             name: "class",
                                                                                                                             value: "email",
                                                                                                                             span: Span {
-                                                                                                                                start: 2959,
-                                                                                                                                end: 2972,
+                                                                                                                                start: 2957,
+                                                                                                                                end: 2970,
                                                                                                                             },
                                                                                                                         },
                                                                                                                     ],
@@ -2004,135 +2028,135 @@ Module {
                                                                                                                                 object: Ident {
                                                                                                                                     name: "user",
                                                                                                                                     span: Span {
-                                                                                                                                        start: 2974,
-                                                                                                                                        end: 2978,
+                                                                                                                                        start: 2972,
+                                                                                                                                        end: 2976,
                                                                                                                                     },
                                                                                                                                 },
                                                                                                                                 field: "email",
                                                                                                                                 optional: false,
                                                                                                                                 span: Span {
-                                                                                                                                    start: 2974,
-                                                                                                                                    end: 2984,
+                                                                                                                                    start: 2972,
+                                                                                                                                    end: 2982,
                                                                                                                                 },
                                                                                                                             },
                                                                                                                         ),
                                                                                                                     ],
                                                                                                                     self_closing: false,
                                                                                                                     name_span: Span {
-                                                                                                                        start: 2954,
-                                                                                                                        end: 2958,
+                                                                                                                        start: 2952,
+                                                                                                                        end: 2956,
                                                                                                                     },
                                                                                                                     name_segments: [
                                                                                                                         Span {
-                                                                                                                            start: 2954,
-                                                                                                                            end: 2958,
+                                                                                                                            start: 2952,
+                                                                                                                            end: 2956,
                                                                                                                         },
                                                                                                                     ],
                                                                                                                     close_name_segments: [
                                                                                                                         Span {
-                                                                                                                            start: 2987,
-                                                                                                                            end: 2991,
+                                                                                                                            start: 2985,
+                                                                                                                            end: 2989,
                                                                                                                         },
                                                                                                                     ],
                                                                                                                     span: Span {
-                                                                                                                        start: 2953,
-                                                                                                                        end: 2992,
+                                                                                                                        start: 2951,
+                                                                                                                        end: 2990,
                                                                                                                     },
                                                                                                                 },
                                                                                                             ),
                                                                                                         ],
                                                                                                         self_closing: false,
                                                                                                         name_span: Span {
-                                                                                                            start: 2841,
-                                                                                                            end: 2843,
+                                                                                                            start: 2839,
+                                                                                                            end: 2841,
                                                                                                         },
                                                                                                         name_segments: [
                                                                                                             Span {
-                                                                                                                start: 2841,
-                                                                                                                end: 2843,
+                                                                                                                start: 2839,
+                                                                                                                end: 2841,
                                                                                                             },
                                                                                                         ],
                                                                                                         close_name_segments: [
                                                                                                             Span {
-                                                                                                                start: 3007,
-                                                                                                                end: 3009,
+                                                                                                                start: 3005,
+                                                                                                                end: 3007,
                                                                                                             },
                                                                                                         ],
                                                                                                         span: Span {
-                                                                                                            start: 2840,
-                                                                                                            end: 3010,
+                                                                                                            start: 2838,
+                                                                                                            end: 3008,
                                                                                                         },
                                                                                                     },
                                                                                                 ),
                                                                                             ],
                                                                                             self_closing: false,
                                                                                             name_span: Span {
-                                                                                                start: 2793,
-                                                                                                end: 2796,
+                                                                                                start: 2791,
+                                                                                                end: 2794,
                                                                                             },
                                                                                             name_segments: [
                                                                                                 Span {
-                                                                                                    start: 2793,
-                                                                                                    end: 2796,
+                                                                                                    start: 2791,
+                                                                                                    end: 2794,
                                                                                                 },
                                                                                             ],
                                                                                             close_name_segments: [
                                                                                                 Span {
-                                                                                                    start: 3023,
-                                                                                                    end: 3026,
+                                                                                                    start: 3021,
+                                                                                                    end: 3024,
                                                                                                 },
                                                                                             ],
                                                                                             span: Span {
-                                                                                                start: 2792,
-                                                                                                end: 3027,
+                                                                                                start: 2790,
+                                                                                                end: 3025,
                                                                                             },
                                                                                         },
                                                                                     ),
                                                                                 ],
                                                                                 self_closing: false,
                                                                                 name_span: Span {
-                                                                                    start: 2762,
-                                                                                    end: 2764,
+                                                                                    start: 2760,
+                                                                                    end: 2762,
                                                                                 },
                                                                                 name_segments: [
                                                                                     Span {
-                                                                                        start: 2762,
-                                                                                        end: 2764,
+                                                                                        start: 2760,
+                                                                                        end: 2762,
                                                                                     },
                                                                                 ],
                                                                                 close_name_segments: [
                                                                                     Span {
-                                                                                        start: 3038,
-                                                                                        end: 3040,
+                                                                                        start: 3036,
+                                                                                        end: 3038,
                                                                                     },
                                                                                 ],
                                                                                 span: Span {
-                                                                                    start: 2761,
-                                                                                    end: 3041,
+                                                                                    start: 2759,
+                                                                                    end: 3039,
                                                                                 },
                                                                             },
                                                                         ),
                                                                     ],
                                                                     self_closing: false,
                                                                     name_span: Span {
-                                                                        start: 2747,
-                                                                        end: 2751,
+                                                                        start: 2745,
+                                                                        end: 2749,
                                                                     },
                                                                     name_segments: [
                                                                         Span {
-                                                                            start: 2747,
-                                                                            end: 2751,
+                                                                            start: 2745,
+                                                                            end: 2749,
                                                                         },
                                                                     ],
                                                                     close_name_segments: [
                                                                         Span {
-                                                                            start: 3050,
-                                                                            end: 3054,
+                                                                            start: 3048,
+                                                                            end: 3052,
                                                                         },
                                                                     ],
                                                                     span: Span {
-                                                                        start: 2746,
-                                                                        end: 3055,
+                                                                        start: 2744,
+                                                                        end: 3053,
                                                                     },
                                                                 },
                                                             ),
@@ -2150,13 +2174,13 @@ Module {
                                                         ],
                                                         close_name_segments: [
                                                             Span {
-                                                                start: 3062,
-                                                                end: 3066,
+                                                                start: 3060,
+                                                                end: 3064,
                                                             },
                                                         ],
                                                         span: Span {
                                                             start: 2621,
-                                                            end: 3067,
+                                                            end: 3065,
                                                         },
                                                     },
                                                 ),
@@ -2164,25 +2188,37 @@ Module {
                                                     JsxElement {
                                                         name: "case",
                                                         attrs: [
-                                                            Positional {
-                                                                name: "Failed",
-                                                                span: Span {
-                                                                    start: 3078,
-                                                                    end: 3084,
-                                                                },
-                                                            },
-                                                            Expr {
-                                                                name: "bind",
-                                                                value: Ident {
-                                                                    name: "message",
+                                                            Pattern {
+                                                                pattern: Constructor {
+                                                                    path: [
+                                                                        "Failed",
+                                                                    ],
+                                                                    args: [
+                                                                        Object {
+                                                                            fields: [
+                                                                                ObjectPatternField {
+                                                                                    key: "message",
+                                                                                    pattern: None,
+                                                                                    span: Span {
+                                                                                        start: 3085,
+                                                                                        end: 3093,
+                                                                                    },
+                                                                                },
+                                                                            ],
+                                                                            span: Span {
+                                                                                start: 3083,
+                                                                                end: 3094,
+                                                                            },
+                                                                        },
+                                                                    ],
                                                                     span: Span {
-                                                                        start: 3091,
-                                                                        end: 3098,
+                                                                        start: 3076,
+                                                                        end: 3095,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 3085,
-                                                                    end: 3099,
+                                                                    start: 3076,
+                                                                    end: 3095,
                                                                 },
                                                             },
                                                         ],
@@ -2195,8 +2231,8 @@ Module {
                                                                             name: "class",
                                                                             value: "error",
                                                                             span: Span {
-                                                                                start: 3110,
-                                                                                end: 3123,
+                                                                                start: 3106,
+                                                                                end: 3119,
                                                                             },
                                                                         },
                                                                     ],
@@ -2205,56 +2241,56 @@ Module {
                                                                             Ident {
                                                                                 name: "message",
                                                                                 span: Span {
-                                                                                    start: 3125,
-                                                                                    end: 3132,
+                                                                                    start: 3121,
+                                                                                    end: 3128,
                                                                                 },
                                                                             },
                                                                         ),
                                                                     ],
                                                                     self_closing: false,
                                                                     name_span: Span {
-                                                                        start: 3108,
-                                                                        end: 3109,
+                                                                        start: 3104,
+                                                                        end: 3105,
                                                                     },
                                                                     name_segments: [
                                                                         Span {
-                                                                            start: 3108,
-                                                                            end: 3109,
+                                                                            start: 3104,
+                                                                            end: 3105,
                                                                         },
                                                                     ],
                                                                     close_name_segments: [
                                                                         Span {
-                                                                            start: 3135,
-                                                                            end: 3136,
+                                                                            start: 3131,
+                                                                            end: 3132,
                                                                         },
                                                                     ],
                                                                     span: Span {
-                                                                        start: 3107,
-                                                                        end: 3137,
+                                                                        start: 3103,
+                                                                        end: 3133,
                                                                     },
                                                                 },
                                                             ),
                                                         ],
                                                         self_closing: false,
                                                         name_span: Span {
-                                                            start: 3073,
-                                                            end: 3077,
+                                                            start: 3071,
+                                                            end: 3075,
                                                         },
                                                         name_segments: [
                                                             Span {
-                                                                start: 3073,
-                                                                end: 3077,
+                                                                start: 3071,
+                                                                end: 3075,
                                                             },
                                                         ],
                                                         close_name_segments: [
                                                             Span {
-                                                                start: 3144,
-                                                                end: 3148,
+                                                                start: 3140,
+                                                                end: 3144,
                                                             },
                                                         ],
                                                         span: Span {
-                                                            start: 3072,
-                                                            end: 3149,
+                                                            start: 3070,
+                                                            end: 3145,
                                                         },
                                                     },
                                                 ),
@@ -2272,32 +2308,32 @@ Module {
                                             ],
                                             close_name_segments: [
                                                 Span {
-                                                    start: 3154,
-                                                    end: 3159,
+                                                    start: 3150,
+                                                    end: 3155,
                                                 },
                                             ],
                                             span: Span {
                                                 start: 2441,
-                                                end: 3160,
+                                                end: 3156,
                                             },
                                         },
                                     ),
                                 ),
                                 span: Span {
                                     start: 2434,
-                                    end: 3160,
+                                    end: 3156,
                                 },
                             },
                         ),
                     ],
                     span: Span {
                         start: 2430,
-                        end: 3162,
+                        end: 3158,
                     },
                 },
                 span: Span {
                     start: 2370,
-                    end: 3162,
+                    end: 3158,
                 },
             },
         ),
@@ -2318,8 +2354,8 @@ Module {
                                     "Result",
                                 ],
                                 span: Span {
-                                    start: 3352,
-                                    end: 3358,
+                                    start: 3348,
+                                    end: 3354,
                                 },
                             },
                             args: [
@@ -2329,8 +2365,8 @@ Module {
                                             "Array",
                                         ],
                                         span: Span {
-                                            start: 3359,
-                                            end: 3364,
+                                            start: 3355,
+                                            end: 3360,
                                         },
                                     },
                                     args: [
@@ -2339,14 +2375,14 @@ Module {
                                                 "User",
                                             ],
                                             span: Span {
-                                                start: 3365,
-                                                end: 3369,
+                                                start: 3361,
+                                                end: 3365,
                                             },
                                         },
                                     ],
                                     span: Span {
-                                        start: 3359,
-                                        end: 3370,
+                                        start: 3355,
+                                        end: 3366,
                                     },
                                 },
                                 Path {
@@ -2354,19 +2390,19 @@ Module {
                                         "string",
                                     ],
                                     span: Span {
-                                        start: 3372,
-                                        end: 3378,
+                                        start: 3368,
+                                        end: 3374,
                                     },
                                 },
                             ],
                             span: Span {
-                                start: 3352,
-                                end: 3379,
+                                start: 3348,
+                                end: 3375,
                             },
                         },
                         span: Span {
-                            start: 3345,
-                            end: 3379,
+                            start: 3341,
+                            end: 3375,
                         },
                     },
                 ],
@@ -2376,8 +2412,8 @@ Module {
                             "SearchState",
                         ],
                         span: Span {
-                            start: 3384,
-                            end: 3395,
+                            start: 3380,
+                            end: 3391,
                         },
                     },
                 ),
@@ -2390,8 +2426,8 @@ Module {
                                         scrutinee: Ident {
                                             name: "found",
                                             span: Span {
-                                                start: 3413,
-                                                end: 3418,
+                                                start: 3409,
+                                                end: 3414,
                                             },
                                         },
                                         arms: [
@@ -2404,14 +2440,14 @@ Module {
                                                         Ident {
                                                             name: "users",
                                                             span: Span {
-                                                                start: 3428,
-                                                                end: 3433,
+                                                                start: 3424,
+                                                                end: 3429,
                                                             },
                                                         },
                                                     ],
                                                     span: Span {
-                                                        start: 3425,
-                                                        end: 3434,
+                                                        start: 3421,
+                                                        end: 3430,
                                                     },
                                                 },
                                                 body: Expr(
@@ -2419,8 +2455,8 @@ Module {
                                                         callee: Ident {
                                                             name: "Loaded",
                                                             span: Span {
-                                                                start: 3438,
-                                                                end: 3444,
+                                                                start: 3434,
+                                                                end: 3440,
                                                             },
                                                         },
                                                         type_args: [],
@@ -2432,31 +2468,31 @@ Module {
                                                                         value: Ident {
                                                                             name: "users",
                                                                             span: Span {
-                                                                                start: 3454,
-                                                                                end: 3459,
+                                                                                start: 3450,
+                                                                                end: 3455,
                                                                             },
                                                                         },
                                                                         span: Span {
-                                                                            start: 3447,
-                                                                            end: 3459,
+                                                                            start: 3443,
+                                                                            end: 3455,
                                                                         },
                                                                     },
                                                                 ],
                                                                 span: Span {
-                                                                    start: 3445,
-                                                                    end: 3461,
+                                                                    start: 3441,
+                                                                    end: 3457,
                                                                 },
                                                             },
                                                         ],
                                                         span: Span {
-                                                            start: 3438,
-                                                            end: 3462,
+                                                            start: 3434,
+                                                            end: 3458,
                                                         },
                                                     },
                                                 ),
                                                 span: Span {
-                                                    start: 3425,
-                                                    end: 3462,
+                                                    start: 3421,
+                                                    end: 3458,
                                                 },
                                             },
                                             MatchArm {
@@ -2468,14 +2504,14 @@ Module {
                                                         Ident {
                                                             name: "message",
                                                             span: Span {
-                                                                start: 3472,
-                                                                end: 3479,
+                                                                start: 3468,
+                                                                end: 3475,
                                                             },
                                                         },
                                                     ],
                                                     span: Span {
-                                                        start: 3468,
-                                                        end: 3480,
+                                                        start: 3464,
+                                                        end: 3476,
                                                     },
                                                 },
                                                 body: Expr(
@@ -2483,8 +2519,8 @@ Module {
                                                         callee: Ident {
                                                             name: "Failed",
                                                             span: Span {
-                                                                start: 3484,
-                                                                end: 3490,
+                                                                start: 3480,
+                                                                end: 3486,
                                                             },
                                                         },
                                                         type_args: [],
@@ -2496,61 +2532,61 @@ Module {
                                                                         value: Ident {
                                                                             name: "message",
                                                                             span: Span {
-                                                                                start: 3502,
-                                                                                end: 3509,
+                                                                                start: 3498,
+                                                                                end: 3505,
                                                                             },
                                                                         },
                                                                         span: Span {
-                                                                            start: 3493,
-                                                                            end: 3509,
+                                                                            start: 3489,
+                                                                            end: 3505,
                                                                         },
                                                                     },
                                                                 ],
                                                                 span: Span {
-                                                                    start: 3491,
-                                                                    end: 3511,
+                                                                    start: 3487,
+                                                                    end: 3507,
                                                                 },
                                                             },
                                                         ],
                                                         span: Span {
-                                                            start: 3484,
-                                                            end: 3512,
+                                                            start: 3480,
+                                                            end: 3508,
                                                         },
                                                     },
                                                 ),
                                                 span: Span {
-                                                    start: 3468,
-                                                    end: 3512,
+                                                    start: 3464,
+                                                    end: 3508,
                                                 },
                                             },
                                         ],
                                         span: Span {
-                                            start: 3407,
-                                            end: 3517,
+                                            start: 3403,
+                                            end: 3513,
                                         },
                                     },
                                 ),
                                 span: Span {
-                                    start: 3400,
-                                    end: 3517,
+                                    start: 3396,
+                                    end: 3513,
                                 },
                             },
                         ),
                     ],
                     span: Span {
-                        start: 3396,
-                        end: 3519,
+                        start: 3392,
+                        end: 3515,
                     },
                 },
                 span: Span {
-                    start: 3334,
-                    end: 3519,
+                    start: 3330,
+                    end: 3515,
                 },
             },
         ),
     ],
     span: Span {
         start: 56,
-        end: 3520,
+        end: 3516,
     },
 }

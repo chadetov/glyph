@@ -1712,6 +1712,7 @@ impl Printer {
                 self.push("}");
             }
             JsxAttr::Positional { name, .. } => self.push(name),
+            JsxAttr::Pattern { pattern, .. } => self.pattern(pattern),
             JsxAttr::Spread { value, .. } => {
                 self.push("{...");
                 self.expr(value);

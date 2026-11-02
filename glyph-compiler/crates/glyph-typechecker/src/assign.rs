@@ -32,7 +32,8 @@ use crate::ty::{
 };
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{
-    Accepted, AlternativesKind, DestructureRefusal, DiagnosticDecl, PropsRefusal, TypeError,
+    Accepted, AlternativesKind, CaseBindShape, DestructureRefusal, DiagnosticDecl, PropsRefusal,
+    TypeError,
 };
 
 /// How the innermost enclosing callable's declared return type relates to
@@ -2292,30 +2293,125 @@ impl Assigner<'_> {
     }
 
     fn walk_jsx(&mut self, j: &JsxElement) {
+        if j.kind() == JsxKind::Match {
+            self.walk_jsx_match(j);
+            return;
+        }
         for attr in &j.attrs {
             match attr {
                 JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => self.walk_expr(value),
-                JsxAttr::String { .. } | JsxAttr::Positional { .. } => {}
+                // A `<case>` outside a `<match>` is the emitter's to refuse
+                // (E0300); its pattern has no scrutinee to be checked against.
+                JsxAttr::String { .. } | JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
             }
         }
-        // A JSX `<match value={s}>` directive is a conditional over a tagged
-        // union exactly like a value-level `match`: each `<case Variant>` covers
-        // one variant, and the emitter lowers the whole thing to a `switch` with
-        // a `default: throw new Error("non-exhaustive match")`. Run the same
-        // exhaustiveness check here so a missing `<case>` is a compile-time
-        // E0200 rather than a runtime throw. Walk the attrs above FIRST so the
-        // scrutinee's type is recorded before we look it up.
-        if j.name.as_ref() == "match" {
-            self.check_jsx_match_exhaustiveness(j);
-        }
         self.check_jsx_component_attrs(j);
-        for child in &j.children {
+        self.walk_jsx_children(&j.children);
+    }
+
+    fn walk_jsx_children(&mut self, children: &[JsxChild]) {
+        for child in children {
             match child {
                 JsxChild::Element(e) => self.walk_jsx(e),
                 JsxChild::Expr(e) => self.walk_expr(e),
                 JsxChild::Text { .. } => {}
             }
         }
+    }
+
+    /// A JSX `<match value={s}>` is a value-level `match` written in JSX (D6),
+    /// and is checked as one: `as_value_match` turns each `<case>` into an arm
+    /// holding the case's pattern and what it renders, and the arm goes
+    /// through `Expr::Match`'s own walk. So a case's bindings are typed by
+    /// `bind_arm_payloads`, its pattern is checked against the payload there
+    /// (G279), coverage and reachability go through `check_match_exhaustiveness`
+    /// (a refutable `<case Loaded({ status: 404 })>` alone does not cover
+    /// `Loaded`, E0200), and an untyped scrutinee is recovered from the case
+    /// patterns exactly as from arm patterns.
+    ///
+    /// What the arm walk does not see is walked here: a `<case>` with no
+    /// pattern, and a child that is not a `<case>` (the emitter refuses both,
+    /// E0300, but the names inside are still typed). `bind={x}` on a case is
+    /// E0231, raised after the walk so the help can read the payload's shape
+    /// off the scrutinee's type.
+    fn walk_jsx_match(&mut self, j: &JsxElement) {
+        for attr in &j.attrs {
+            match attr {
+                JsxAttr::Expr { name, .. } if name.as_ref() == "value" => {}
+                JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => self.walk_expr(value),
+                JsxAttr::String { .. } | JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
+            }
+        }
+        let value_span = match j.as_value_match() {
+            Some(m) => {
+                let Expr::Match { scrutinee, .. } = &m else {
+                    unreachable!("as_value_match builds a match")
+                };
+                let span = scrutinee.span();
+                self.walk_expr(&m);
+                Some(span)
+            }
+            None => None,
+        };
+        let scrutinee_ty = value_span.map(|s| self.tm.get(s).clone()).unwrap_or(Ty::Unknown);
+        for child in &j.children {
+            match child {
+                JsxChild::Element(el) if el.kind() == JsxKind::Case => {
+                    if value_span.is_none() || el.case_pattern().is_none() {
+                        self.walk_jsx_children(&el.children);
+                    }
+                    self.check_case_bind(el, &scrutinee_ty);
+                }
+                JsxChild::Element(e) => self.walk_jsx(e),
+                JsxChild::Expr(e) => self.walk_expr(e),
+                JsxChild::Text { .. } => {}
+            }
+        }
+    }
+
+    /// `bind={x}` on a `<case>` is E0231. The help writes the pattern that
+    /// replaces it, by what the variant carries: a record payload's field by
+    /// an object pattern (which reads the field `bind` read), one value by a
+    /// name in parentheses, a variant with no payload by its bare name.
+    fn check_case_bind(&mut self, case: &JsxElement, scrutinee_ty: &Ty) {
+        let Some((value, span)) = case.attrs.iter().find_map(|a| match a {
+            JsxAttr::Expr { name, value, span } if name.as_ref() == "bind" => Some((value, *span)),
+            _ => None,
+        }) else {
+            return;
+        };
+        let variant = match case.case_pattern() {
+            Some(Pattern::Ident { name, .. }) => Some(name.clone()),
+            Some(Pattern::Constructor { path, .. }) => path.last().cloned(),
+            _ => None,
+        };
+        let name = match value {
+            Expr::Ident { name, .. } => name.to_string(),
+            _ => "name".to_string(),
+        };
+        let shape = match &variant {
+            None => CaseBindShape::Unknown,
+            Some(v) => match self.variant_payload(scrutinee_ty, v) {
+                Some(payload) => {
+                    let is_record = self.record_shape_of(&payload).is_some()
+                        || self.record_shape_of(&self.canonicalize_aliases(&payload)).is_some();
+                    match is_record {
+                        true => CaseBindShape::Record,
+                        false => CaseBindShape::Positional,
+                    }
+                }
+                None => match self.required_variants(scrutinee_ty) {
+                    Some((_, vs)) if vs.contains(v) => CaseBindShape::Nullary,
+                    _ => CaseBindShape::Unknown,
+                },
+            },
+        };
+        self.errors.push(TypeError::CaseBind {
+            variant: variant.map(|v| v.to_string()).unwrap_or_else(|| "Variant".to_string()),
+            name,
+            shape,
+            span,
+        });
     }
 
     /// Every attribute of a component element, against the props record the
@@ -2390,7 +2486,7 @@ impl Assigner<'_> {
                     Some(value),
                     self.tm.get(value.span()).clone(),
                 ),
-                JsxAttr::Positional { .. } | JsxAttr::Spread { .. } => continue,
+                JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } | JsxAttr::Spread { .. } => continue,
             };
             if name.as_ref() == "key" {
                 continue;
@@ -2450,7 +2546,7 @@ impl Assigner<'_> {
             match attr {
                 JsxAttr::String { name, .. } | JsxAttr::Expr { name, .. } => written.push(name),
                 JsxAttr::Spread { .. } => return,
-                JsxAttr::Positional { .. } => {}
+                JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
             }
         }
         let missing_fields: Vec<String> = shape
@@ -2640,68 +2736,6 @@ impl Assigner<'_> {
             }
         }
         PropsParam::Undecided
-    }
-
-    /// Exhaustiveness for a `<match value={s}>` JSX directive. Mirrors the
-    /// value-level `Expr::Match` path: resolve the scrutinee (`value={..}`) to a
-    /// tagged union and require the `<case Variant>` children to cover every
-    /// variant. Each `<case>` names its variant as a positional attribute and
-    /// covers that variant wholesale (a `bind={x}` binds the whole payload), so
-    /// synthetic `Pattern::Ident` patterns feed the shared exhaustiveness core.
-    fn check_jsx_match_exhaustiveness(&mut self, j: &JsxElement) {
-        let Some(value) = j.attrs.iter().find_map(|a| match a {
-            JsxAttr::Expr { name, value, .. } if name.as_ref() == "value" => Some(value),
-            _ => None,
-        }) else {
-            return;
-        };
-        let mut scrutinee_ty = self.tm.get(value.span()).clone();
-
-        // The variant named by each `<case Variant ...>` child's first
-        // positional attribute.
-        let case_variants: Vec<Ident> = j
-            .children
-            .iter()
-            .filter_map(|child| match child {
-                JsxChild::Element(el) if el.name.as_ref() == "case" => {
-                    el.attrs.iter().find_map(|a| match a {
-                        JsxAttr::Positional { name, .. } => Some(name.clone()),
-                        _ => None,
-                    })
-                }
-                _ => None,
-            })
-            .collect();
-
-        // When the scrutinee's static type is undecidable (an ambient/external
-        // value whose Glyph type stays `Unknown`), recover a module-local union
-        // from a `<case>` variant name, matching `Expr::Match`'s arm recovery.
-        if matches!(scrutinee_ty, Ty::Unknown) {
-            for v in &case_variants {
-                if let Some(recovered) = self.union_ty_of_variant(v) {
-                    scrutinee_ty = recovered;
-                    break;
-                }
-            }
-        }
-
-        let patterns: Vec<Pattern> = case_variants
-            .into_iter()
-            .map(|name| Pattern::Ident { name, span: j.span })
-            .collect();
-        // A `<case>`'s position among the cases is its ordinal, the role an
-        // arm's position plays in a value-level `match`.
-        let pattern_refs: Vec<(u16, &Pattern)> = patterns
-            .iter()
-            .enumerate()
-            .map(|(i, p)| (arm_ordinal(i), p))
-            .collect();
-        self.check_patterns_exhaustive(
-            &scrutinee_ty,
-            &pattern_refs,
-            j.span,
-            Some(CoverageAt::Entry(value.span())),
-        );
     }
 
     // ----- ident reference typing -----
@@ -8951,7 +8985,7 @@ component View(props: { s: Status }) -> Component {
 
     #[test]
     fn jsx_match_all_variants_covered_passes() {
-        // The complement: every variant has a `<case>` (a `bind={x}` binds the
+        // The complement: every variant has a `<case>` (`Done(n)` binds the
         // whole payload and covers the variant), so no exhaustiveness error.
         let src = r#"module x
 type Status = | Idle | Loading | Done(number)
@@ -8959,11 +8993,155 @@ component View(props: { s: Status }) -> Component {
   return <match value={props.s}>
     <case Idle><span>idle</span></case>
     <case Loading><span>loading</span></case>
-    <case Done bind={n}><span>{n}</span></case>
+    <case Done(n)><span>{n}</span></case>
   </match>
 }
 "#;
         assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    /// D44 through a `<case>`: a case whose pattern tests a field can fail,
+    /// so on its own it does not cover the variant, exactly as the arm
+    /// `Done({ status: 404 })` does not. A sibling case taking the rest of
+    /// `Done` closes it.
+    #[test]
+    fn a_refutable_jsx_case_alone_does_not_cover_its_variant() {
+        let open = r#"module x
+type Resp = | Pending | Done({ status: number, body: string })
+component View(props: { r: Resp }) -> Component {
+  return <match value={props.r}>
+    <case Pending><p>wait</p></case>
+    <case Done({ status: 404 })><p>missing</p></case>
+  </match>
+}
+"#;
+        let errs = ty_errors_of(open);
+        assert!(
+            matches!(&errs[..], [TypeError::NonExhaustiveMatch { missing, .. }] if missing.contains("Done")),
+            "{errs:?}"
+        );
+        let closed = open.replace(
+            "    <case Done({ status: 404 })><p>missing</p></case>\n",
+            "    <case Done({ status: 404 })><p>missing</p></case>\n    <case Done({ body })><p>{body}</p></case>\n",
+        );
+        assert!(ty_errors_of(&closed).is_empty(), "{:?}", ty_errors_of(&closed));
+    }
+
+    /// A case's bindings are typed by the arm's payload binding, so a use of
+    /// one is checked: the positional payload is an `Array<string>`, and
+    /// passing it where a `number` is wanted is E0211 naming that type. Under
+    /// `bind` the name had no type and nothing was checked.
+    #[test]
+    fn a_jsx_case_binding_has_the_payload_type() {
+        let src = r#"module x
+type Load = | Loading | Loaded(Array<string>)
+fn takes_number(n: number) -> string {
+  return "x"
+}
+component View(props: { s: Load }) -> Component {
+  return <match value={props.s}>
+    <case Loading><p>wait</p></case>
+    <case Loaded(items)><p>{takes_number(items)}</p></case>
+  </match>
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(&errs[..], [TypeError::ArgumentTypeMismatch { found, .. }] if found == "Array<string>"),
+            "{errs:?}"
+        );
+    }
+
+    /// G279, for an arm and a case alike: a record pattern naming a field the
+    /// payload record does not declare is E0210 at the field, carrying the
+    /// record's fields; the whole-payload binding's member access draws the
+    /// same E0210.
+    #[test]
+    fn a_record_pattern_naming_a_missing_field_is_e0210_in_an_arm_and_a_case() {
+        let decl = "module x\ntype Load = | Loading | Loaded({ users: Array<string>, total: number })\n";
+        let arm = format!(
+            "{decl}fn f(l: Load) -> number {{\n  return match l {{\n    Loading => 0,\n    Loaded({{ totl }}) => 1,\n  }}\n}}\n"
+        );
+        let case = format!(
+            "{decl}component V(props: {{ s: Load }}) -> Component {{\n  return <match value={{props.s}}>\n    <case Loading><p>a</p></case>\n    <case Loaded({{ usres }})><p>b</p></case>\n  </match>\n}}\n"
+        );
+        let whole = format!(
+            "{decl}component V(props: {{ s: Load }}) -> Component {{\n  return <match value={{props.s}}>\n    <case Loading><p>a</p></case>\n    <case Loaded(r)><p>{{r.totl}}</p></case>\n  </match>\n}}\n"
+        );
+        for (src, field) in [(&arm, "totl"), (&case, "usres"), (&whole, "totl")] {
+            let errs = ty_errors_of(src);
+            match &errs[..] {
+                [TypeError::UnknownField { field: f, type_name, fields, .. }] => {
+                    assert_eq!(f, field);
+                    assert_eq!(type_name, "{ users: Array<string>, total: number }");
+                    assert_eq!(fields, &["users".to_string(), "total".to_string()]);
+                }
+                other => panic!("expected one E0210 for `{field}`, got {other:?}"),
+            }
+        }
+        let good = arm.replace("Loaded({ totl }) => 1", "Loaded({ total }) => total");
+        assert!(ty_errors_of(&good).is_empty(), "{:?}", ty_errors_of(&good));
+    }
+
+    /// G279's other half: an object pattern over a payload that is not a
+    /// record is refused in an arm and in a case, naming the payload's type.
+    #[test]
+    fn an_object_pattern_over_a_positional_payload_is_refused() {
+        let decl = "module x\ntype Load = | Loading | Loaded(Array<string>)\n";
+        let arm = format!(
+            "{decl}fn f(l: Load) -> number {{\n  return match l {{\n    Loading => 0,\n    Loaded({{ users }}) => 1,\n  }}\n}}\n"
+        );
+        let case = format!(
+            "{decl}component V(props: {{ s: Load }}) -> Component {{\n  return <match value={{props.s}}>\n    <case Loading><p>a</p></case>\n    <case Loaded({{ users }})><p>b</p></case>\n  </match>\n}}\n"
+        );
+        for src in [&arm, &case] {
+            let errs = ty_errors_of(src);
+            assert!(
+                matches!(&errs[..], [e @ TypeError::PatternNotRecord { ty, .. }] if ty == "Array<string>" && e.code() == "E0204"),
+                "{errs:?}"
+            );
+        }
+    }
+
+    /// `bind={x}` on a `<case>` is E0231, and the help writes the pattern for
+    /// the payload's shape: an object pattern reading the field `bind` read
+    /// for a record, a name in parentheses for one value, the bare variant
+    /// for none.
+    #[test]
+    fn bind_on_a_case_is_e0231_with_the_rewrite_for_the_payload_shape() {
+        let src = |payload: &str, case: &str| {
+            format!(
+                "module x\ntype Load = | Loading | Loaded{payload}\ncomponent V(props: {{ s: Load }}) -> Component {{\n  return <match value={{props.s}}>\n    <case Loading><p>a</p></case>\n    {case}\n  </match>\n}}\n"
+            )
+        };
+        let cases = [
+            (
+                src("({ users: Array<string> })", "<case Loaded bind={users}><p>{users}</p></case>"),
+                "write `<case Loaded({ users })>`",
+            ),
+            (
+                src("(Array<string>)", "<case Loaded bind={items}><p>{items}</p></case>"),
+                "write `<case Loaded(items)>`",
+            ),
+            (
+                src("(Array<string>)", "<case Loaded(items)><p>a</p></case>").replace(
+                    "<case Loading>",
+                    "<case Loading bind={x}>",
+                ),
+                "write `<case Loading>`",
+            ),
+        ];
+        for (program, rewrite) in cases {
+            let errs = ty_errors_of(&program);
+            match &errs[..] {
+                [e @ TypeError::CaseBind { .. }] => {
+                    assert_eq!(e.code(), "E0231");
+                    let help = e.help().expect("E0231 has help");
+                    assert!(help.contains(rewrite), "{help}");
+                }
+                other => panic!("expected one E0231, got {other:?}\n{program}"),
+            }
+        }
     }
 
     #[test]

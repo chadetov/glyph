@@ -92,7 +92,7 @@ pub fn render_type_error(
         "typecheck",
         &message,
         err.code(),
-        err.help(),
+        err.help().as_deref(),
         err.note(),
         with_color,
         err.severity(),

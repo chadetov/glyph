@@ -153,7 +153,7 @@ fn compile_inner(source: &str) -> CompileOutput {
             glyph_typechecker::Severity::Error => "error",
             _ => "warning",
         };
-        diagnostics.push(diag(&index, source, e.span(), e.code(), &format!("{e}"), e.help(), severity));
+        diagnostics.push(diag(&index, source, e.span(), e.code(), &format!("{e}"), e.help().as_deref(), severity));
     }
 
     // Advisory lints (unused import, unused binding, unreachable code), which

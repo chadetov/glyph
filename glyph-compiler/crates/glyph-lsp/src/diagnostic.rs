@@ -442,7 +442,7 @@ pub fn from_type_error(
         severity,
         "typecheck",
         format!("{err}"),
-        err.help(),
+        err.help().as_deref(),
         err.note(),
         // A checker that knew the declaration when it raised the error says
         // so on the error itself (`decl_name`), because some diagnostics are

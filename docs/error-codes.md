@@ -149,13 +149,13 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |
-| `E0204` | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`) in a `match` arm |
+| `E0204` | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` |
 | `E0205` | `owned` used on a non-`resource` type (D25) |
 | `E0206` | `owned` resource not consumed on every path (D25) |
 | `E0207` | `owned` resource used after it was consumed (D25) |
 | `E0208` | Non-exhaustive `match` on an array (length not covered) |
 | `E0209` | Non-exhaustive `match` on a `bool` |
-| `E0210` | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type |
+| `E0210` | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type |
 | `E0211` | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name |
 | `E0212` | `mut` reassigns a `const` binding (D20) |
 | `E0213` | Wrong number of call arguments |
@@ -176,6 +176,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0228` | A type's name where a value is expected (`return Order { id: "a" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error |
 | `E0229` | A component's one parameter is not a record (`component Greeting(name: string)`). React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: an element with attributes fails `tsc` and `<Greeting />` hands it `{}`. Raised for a primitive, a string-literal union, a tagged union, an `Array`, a `Nullable`, a function type, `unknown` (which gives the component nothing it can read) and a type parameter with no bound; a bounded type parameter and `Record<K, V>` draw nothing |
 | `E0230` | A destructuring `let` that might not match (D48). Raised at parse for a pattern that tests the value (a literal, a variant, a constructor, an `is` guard), for `let owned [..]`, an annotated pattern and `const [..]`; raised at check when the length cannot be proved: a written literal of another length, an `Array<T>`, or a value that is not an array. A tuple from an npm library is proved by `tsc` through the emitted `satisfies` |
+| `E0231` | `bind={x}` on a JSX `<case>`. A `<case>` takes the pattern a `match` arm takes (D6), so the payload is bound by the pattern: `<case Loaded(items)>` for one value, `<case Loaded({ users })>` for a record payload's fields. The help writes the rewrite for the variant's payload |
 
 ### Emitter — `E03xx`
 

@@ -86,7 +86,7 @@ component ResultsList(props: ResultsListProps) -> Component {
       <p class="hint">Searching...</p>
     </case>
 
-    <case Loaded bind={users}>
+    <case Loaded({ users })>
       <if cond={users.length == 0}>
         <p class="hint">No users found.</p>
       </if>
@@ -102,7 +102,7 @@ component ResultsList(props: ResultsListProps) -> Component {
       </else>
     </case>
 
-    <case Failed bind={message}>
+    <case Failed({ message })>
       <p class="error">{message}</p>
     </case>
   </match>

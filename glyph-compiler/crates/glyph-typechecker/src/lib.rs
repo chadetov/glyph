@@ -75,6 +75,7 @@ impl Accepted {
     }
 }
 
+use std::borrow::Cow;
 use glyph_ast::Span;
 
 /// Render a `Ty` for human display (LSP hover, diagnostics). Structural where
@@ -705,6 +706,36 @@ pub enum TypeError {
     /// pattern was matched against.
     #[error("`{ty}` is not a record, so an object pattern cannot destructure it")]
     PatternNotRecord { ty: String, span: Span },
+
+    /// `bind={x}` on a JSX `<case>` (D6). A `<case>` takes the pattern a
+    /// `match` arm takes, so `bind` is not an attribute of it: the payload is
+    /// bound by the pattern, `<case Loaded(items)>` for one value and
+    /// `<case Loaded({ users })>` for a record's fields. `bind` read a field
+    /// with its own name off the tag object whatever the payload was, which
+    /// bound `undefined` for a positional payload under no type at all (G275).
+    /// `shape` is what the variant carries, which decides the rewrite the help
+    /// spells out.
+    #[error("`bind` is not an attribute of `<case>`; a `<case>` takes a pattern, as a `match` arm does")]
+    CaseBind {
+        variant: String,
+        name: String,
+        shape: CaseBindShape,
+        span: Span,
+    },
+}
+
+/// What the variant a `<case ... bind={x}>` names carries, as far as the
+/// checker could tell (E0231). It decides which pattern the help writes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaseBindShape {
+    /// A record payload: the fields are bound by an object pattern.
+    Record,
+    /// One value of any other type: bound by a name in parentheses.
+    Positional,
+    /// No payload at all: there is nothing to bind.
+    Nullary,
+    /// The checker could not resolve the variant's payload.
+    Unknown,
 }
 
 /// Why a destructuring `let` was refused at check (D48, E0230).
@@ -880,6 +911,7 @@ impl TypeError {
             TypeError::MatchArmProducesNoValue { span } => *span,
             TypeError::DestructureUnproven { span, .. } => *span,
             TypeError::PatternNotRecord { span, .. } => *span,
+            TypeError::CaseBind { span, .. } => *span,
         }
     }
 
@@ -919,12 +951,22 @@ impl TypeError {
             TypeError::MatchArmProducesNoValue { .. } => "E0223",
             TypeError::DestructureUnproven { .. } => "E0230",
             TypeError::PatternNotRecord { .. } => "E0204",
+            TypeError::CaseBind { .. } => "E0231",
         }
     }
 
     /// A one-line, actionable fix (the Elm-quality bar): what to change.
-    pub fn help(&self) -> Option<&'static str> {
-        Some(match self {
+    pub fn help(&self) -> Option<Cow<'static, str>> {
+        if let TypeError::CaseBind {
+            variant,
+            name,
+            shape,
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(case_bind_help(variant, name, *shape)));
+        }
+        Some(Cow::Borrowed(match self {
             TypeError::NonExhaustiveMatch { .. } => {
                 "Add an arm for each missing variant, or an `else` arm to catch the rest."
             }
@@ -1049,7 +1091,8 @@ impl TypeError {
             TypeError::PatternNotRecord { .. } => {
                 "Bind the value to one name and read from it, `Loaded(items)`. An object pattern names the fields of a record."
             }
-        })
+            TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
+        }))
     }
 
     /// An optional background note (the "why").
@@ -1091,6 +1134,9 @@ impl TypeError {
             ),
             TypeError::DestructureUnproven { .. } => Some(
                 "A destructuring `let` always matches (D48): every name it binds holds an element, never the `undefined` a short array leaves behind. The length is proved, never assumed.",
+            ),
+            TypeError::CaseBind { .. } => Some(
+                "A `<case>` is a `match` arm written in JSX (D6): its positional attribute is the arm's pattern, checked, bound and counted for exhaustiveness the way the arm's is.",
             ),
             TypeError::ComponentParamNotRecord { .. } => Some(
                 "React calls a component with the one props object its element builds, so the parameter holds that object whatever it declares: `<Greeting />` hands it `{}`, and an element with attributes does not type-check (TS2769).",
@@ -1283,6 +1329,27 @@ impl TypeError {
             }
             _ => None,
         }
+    }
+}
+
+/// The rewrite E0231's help spells out, by what the variant carries. `name` is
+/// the one `bind={name}` gave, kept so the rewrite binds the name the body
+/// already reads. For a record payload that is also the field `bind` read, so
+/// `<case Loaded({ users })>` reads exactly what `bind={users}` did.
+fn case_bind_help(variant: &str, name: &str, shape: CaseBindShape) -> String {
+    match shape {
+        CaseBindShape::Record => format!(
+            "The payload of `{variant}` is a record, so name the fields you read: write `<case {variant}({{ {name} }})>`. `{{ {name}: other }}` binds the field under another name."
+        ),
+        CaseBindShape::Positional => format!(
+            "The payload of `{variant}` is one value, so bind it to a name: write `<case {variant}({name})>`."
+        ),
+        CaseBindShape::Nullary => format!(
+            "`{variant}` carries no payload, so there is nothing to bind: write `<case {variant}>`."
+        ),
+        CaseBindShape::Unknown => format!(
+            "Bind the payload with a pattern: `<case {variant}({name})>` for one value, `<case {variant}({{ {name} }})>` for a field of a record payload."
+        ),
     }
 }
 

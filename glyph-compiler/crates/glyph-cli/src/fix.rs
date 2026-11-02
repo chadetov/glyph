@@ -582,13 +582,15 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String, &'stati
                 site,
             ))
         }
+        // The receiver is a record or, since G288, an array or a string, whose
+        // members TypeScript's library declares; the wording names neither.
         0 => Err(format!(
-            "no declared field is one character away from `{wrong}`; the record declares {}",
+            "nothing the type declares is one character away from `{wrong}`; it declares {}",
             quoted_list(fields)
         )),
         n => Err(format!(
-            "{n} declared fields are one character away from `{wrong}` ({}), and only one \
-             determines the repair",
+            "{n} names the type declares are one character away from `{wrong}` ({}), and only \
+             one determines the repair",
             quoted_list(&near.iter().map(|s| (*s).clone()).collect::<Vec<_>>())
         )),
     }

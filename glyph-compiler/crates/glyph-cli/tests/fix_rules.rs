@@ -325,7 +325,30 @@ fn e0210_declines_when_no_declared_field_is_a_character_away() {
     let dir = project("e0210far", before);
     let out = fix(&dir);
     assert!(
-        out.contains("declined E0210") && out.contains("no declared field is one character away"),
+        out.contains("declined E0210")
+            && out.contains("nothing the type declares is one character away"),
+        "{out}"
+    );
+    assert_eq!(source_of(&dir), before);
+}
+
+#[test]
+fn e0210_on_an_array_member_declines_without_calling_it_a_record() {
+    // G288 made a misspelled array or string member an E0210 whose field list
+    // is TypeScript's member list. The decline is about that receiver, which
+    // is not a record.
+    let before = "module main\n\
+                  \n\
+                  pub fn count(xs: Array<int>) -> int {\n\
+                  \x20 return xs.sizee\n\
+                  }\n";
+    let dir = project("e0210arr", before);
+    let out = fix(&dir);
+    assert!(
+        out.contains("declined E0210")
+            && out.contains("nothing the type declares is one character away from `sizee`")
+            && out.contains("`length`")
+            && !out.contains("record"),
         "{out}"
     );
     assert_eq!(source_of(&dir), before);
@@ -343,7 +366,7 @@ fn e0210_declines_when_two_declared_fields_are_a_character_away() {
     let dir = project("e0210two", before);
     let out = fix(&dir);
     assert!(
-        out.contains("declined E0210") && out.contains("2 declared fields"),
+        out.contains("declined E0210") && out.contains("2 names the type declares"),
         "{out}"
     );
     assert_eq!(source_of(&dir), before);

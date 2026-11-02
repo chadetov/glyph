@@ -308,10 +308,12 @@ A React component is a `component`, and it takes no parameter or exactly one,
 the props record. There is no destructuring in the parameter list, so you read
 `props.title`:
 
-```glyph needs-deps
+```glyph needs-react
+module card
+
 type CardProps = { title: string, count: number, note?: string }
 
-component Card(props: CardProps) {
+pub component Card(props: CardProps) {
   return <p>{props.title}: {props.count}</p>
 }
 ```

@@ -470,8 +470,10 @@ There is **no object-literal shorthand** (`{ email }` is rejected; write
 parameter or one props record, which is the object its element's attributes
 build: `component Greeting(name: string)` is E0229.
 
-```glyph needs-deps
-component Greeting(props: { name: string }) {
+```glyph needs-react
+module greeting
+
+pub component Greeting(props: { name: string }) {
   return <div>
     <if cond={props.name != ""}>
       <span>Hello, {props.name}</span>
@@ -491,12 +493,14 @@ no `bind` attribute (E0231). The names are typed from the payload, so a
 misspelled field is E0210, and a case whose pattern tests a value
 (`<case Done({ status: 404 })>`) does not cover its variant by itself:
 
-```glyph needs-deps
+```glyph needs-react
+module todo_list
+
 type Todo = { id: number, text: string, }
 
-type Load = Loading | Loaded({ todos: Array<Todo> }) | Failed({ message: string })
+pub type Load = Loading | Loaded({ todos: Array<Todo> }) | Failed({ message: string })
 
-component TodoList(props: { load: Load }) {
+pub component TodoList(props: { load: Load }) {
   return <match value={props.load}>
     <case Loading>
       <p>Loading...</p>

@@ -404,6 +404,47 @@ fn a_field_typo_lists_the_records_fields_under_that_kind() {
     assert_eq!(d["alternatives_kind"], "fields", "{d}");
 }
 
+/// A member typo on an array reached through a sibling's alias (G288). The
+/// alias is lowered on the declaring module's export view, so this is the
+/// path a unit test with a hand-written resolver cannot stand in for. The
+/// diagnostic names the type as written, lists the array's members, points
+/// at the nearest one, and, having no declaration behind it, does not tell
+/// an agent to add the field to one.
+#[test]
+fn a_member_typo_on_an_imported_array_alias_is_e0210_with_the_members() {
+    let dir = unique_tmp("array_member");
+    std::fs::write(
+        dir.join("src/model.glyph"),
+        "module model\n\npub type Rows = Array<string>\n",
+    )
+    .expect("write model");
+    std::fs::write(
+        dir.join("src/main.glyph"),
+        "module main\n\nimport model { Rows }\n\n\
+         pub fn f(r: Rows) -> number { return r.lenght }\n",
+    )
+    .expect("write main");
+    let value = check_json(&dir, &["--agent"]);
+    let d = value["diagnostics"]
+        .as_array()
+        .expect("array")
+        .iter()
+        .find(|d| d["code"] == "E0210")
+        .unwrap_or_else(|| panic!("no E0210 in {value}"));
+    assert_eq!(
+        d["message"],
+        "type `Rows` has no field `lenght`; did you mean `length`?",
+        "{d}"
+    );
+    let members = d["alternatives"].as_array().expect("alternatives");
+    assert!(members.iter().any(|m| m == "length"), "{d}");
+    assert_eq!(d["alternatives_kind"], "fields", "{d}");
+    assert!(d["cause"].is_null(), "an array has no declaration: {d}");
+    let constraints = d["constraints"].to_string();
+    assert!(constraints.contains("members are closed"), "{d}");
+    assert!(!constraints.contains("add the field"), "{d}");
+}
+
 /// The same tree with a subdirectory, which is where the flat fixture above
 /// stopped covering it. An unmarked tree's resolution root is its `src/`, so
 /// `glyph check` counted `src/sub/deep.glyph` as `sub/deep` while every tool

@@ -9512,15 +9512,23 @@ fn check_reports_tsc_errors_on_a_glyph_clean_tree() {
 
 /// G211. The ledger program: a `let` on line 7 and the failing call on
 /// line 8, the last statement of the body.
+///
+/// The misspelled member has to be one only `tsc` sees, so the receiver is
+/// typed through `extern_ts`, which Glyph leaves opaque by design (D29). On a
+/// plain `string` the same typo is Glyph's own E0210 since G288, and the build
+/// would stop before `tsc` ran. The declaration sits after the function so the
+/// line numbers the tests assert are the ledger program's.
 const G211_TAIL_CALL: &str = "module main\n\
      \n\
      import std/io\n\
      import std/string\n\
      \n\
      pub fn main() -> void {\n\
-     \x20 let t = string.trim(\"  a  \")\n\
+     \x20 let t: Raw = string.trim(\"  a  \")\n\
      \x20 io.println(t.toUpperCasee())\n\
-     }\n";
+     }\n\
+     \n\
+     type Raw = extern_ts(\"string\")\n";
 
 /// G211, the second shape: the failing expression is the tail of a block
 /// arm inside a `match` that initialises a `let`, on line 11, after a `let`
@@ -9534,13 +9542,15 @@ const G211_ARM_TAIL: &str = "module main\n\
      \x20 let n = 2\n\
      \x20 let s = match n {\n\
      \x20   2 => {\n\
-     \x20     let t = string.trim(\"  a  \")\n\
+     \x20     let t: Raw = string.trim(\"  a  \")\n\
      \x20     t.toUpperCasee()\n\
      \x20   },\n\
      \x20   else => \"b\",\n\
      \x20 }\n\
      \x20 io.println(s)\n\
-     }\n";
+     }\n\
+     \n\
+     type Raw = extern_ts(\"string\")\n";
 
 /// The source-map half of G211, without `tsc`: build the program, find the
 /// emitted line that carries the bad call, and remap a `tsc` diagnostic at

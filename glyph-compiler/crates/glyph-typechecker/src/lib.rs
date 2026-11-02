@@ -28,6 +28,7 @@
 #![forbid(unsafe_code)]
 
 pub mod assign;
+pub mod builtin_members;
 pub mod concurrency;
 pub mod lower;
 pub mod owned;
@@ -76,6 +77,7 @@ impl Accepted {
 }
 
 use std::borrow::Cow;
+pub use builtin_members::BuiltinReceiver;
 use glyph_ast::Span;
 
 /// Render a `Ty` for human display (LSP hover, diagnostics). Structural where
@@ -405,9 +407,14 @@ pub enum TypeError {
     /// type) that has no field named `field`. Fires only when the object's type
     /// resolves to a concrete record whose field set is known — a typo'd or
     /// renamed field. An object whose type can't be judged (`Unknown`, a generic
-    /// parameter, a non-record like `Array`/a namespace) is left unchecked, so
-    /// the check never produces a false positive.
-    #[error("type `{type_name}` has no field `{field}`")]
+    /// parameter, a namespace, an interop value) is left unchecked, so the
+    /// check never produces a false positive.
+    ///
+    /// A built-in receiver is checked the same way (G288): an `Array<T>` or a
+    /// `string` has the fixed member set TypeScript's library gives it, and
+    /// `xs.lenght` is this error naming `Array<string>`, with every member in
+    /// `fields` and the nearest one in `suggestion`.
+    #[error("type `{type_name}` has no field `{field}`{}", .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
     UnknownField {
         field: String,
         type_name: String,
@@ -424,6 +431,14 @@ pub enum TypeError {
         /// annotation, a variant's record payload, a stdlib type whose table
         /// the runtime ships.
         record: Option<DiagnosticDecl>,
+        /// Set when the receiver is a built-in JavaScript value rather than a
+        /// record: there is no declaration to add a field to, and the help
+        /// says what the value is instead.
+        builtin: Option<BuiltinReceiver>,
+        /// The nearest declared name by edit distance, when one is close
+        /// enough to be a plausible typo. Filled for a built-in receiver,
+        /// whose forty-odd members are declared in no file a reader can open.
+        suggestion: Option<String>,
         span: Span,
     },
 
@@ -965,6 +980,18 @@ impl TypeError {
         } = self
         {
             return Some(Cow::Owned(case_bind_help(variant, name, *shape)));
+        }
+        if let TypeError::UnknownField {
+            builtin: Some(receiver),
+            type_name,
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(format!(
+                "Check the member name for a typo. `{type_name}` is {}, so its members are the ones TypeScript's library declares for it and no others; `{}` holds Glyph's own functions over it.",
+                receiver.runtime_name(),
+                receiver.std_module(),
+            )));
         }
         Some(Cow::Borrowed(match self {
             TypeError::NonExhaustiveMatch { .. } => {

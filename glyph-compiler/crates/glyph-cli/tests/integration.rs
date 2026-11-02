@@ -4146,6 +4146,132 @@ fn an_example_harness_that_stops_early_is_never_a_pass() {
     assert!(report.incomplete.is_some(), "{report:?}");
 }
 
+/// `npm_example_project`'s package and manifest, with an entry point that
+/// prints a value computed through `tinypad`, so a run that got past the gate
+/// shows on stdout. `tests` is placed above `padded`: an `@example` or a
+/// `@doc` carrying a `@run` block.
+fn npm_run_project(prefix: &str, tests: &str, index_js: &str) -> PathBuf {
+    let root = npm_example_project(prefix, "42", index_js);
+    write_file(
+        &root,
+        "src/main.glyph",
+        &format!(
+            "module main\n\
+             \n\
+             import std/io\n\
+             import tinypad {{ pad }}\n\
+             \n\
+             {tests}\n\
+             pub fn padded(s: string) -> string {{\n\
+             \x20 return pad(s, 4)\n\
+             }}\n\
+             \n\
+             fn main(argv: Array<string>) -> number {{\n\
+             \x20 io.println(\"ran:\" + padded(\"z\"))\n\
+             \x20 return 0\n\
+             }}\n"
+        ),
+    );
+    root
+}
+
+/// A `@doc` whose one ` ```glyph @run ``` ` block asserts `padded("a")` is
+/// `want`.
+fn doc_run_asserting(want: &str) -> String {
+    format!("@doc \"\"\"\n```glyph @run\nassert(padded(\"a\") == \"{want}\")\n```\n\"\"\"")
+}
+
+#[test]
+fn glyph_run_stops_on_a_failing_example_in_a_module_that_imports_an_npm_package() {
+    // G280 covered `build` and `check` with tests of their own; `run`'s
+    // pre-run gate rode the same fix with nothing pinning it. The example is
+    // false, so the program must not start and the run must fail.
+    if !js_toolchain_available() {
+        eprintln!("skipping npm-import run gate: node/tsx not available");
+        return;
+    }
+    let root = npm_run_project("g280_run_fail", "@example padded(\"a\") == \"a\"", TINYPAD_JS);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 1, "a false example stops `glyph run`:\n{stdout}\n{stderr}");
+    assert!(
+        stderr.contains("glyph run: example failed: main::padded example #1"),
+        "the failure names the example:\n{stderr}"
+    );
+    assert!(stderr.contains("1 of 1 example(s) failed"), "{stderr}");
+    assert!(!stdout.contains("ran:"), "the program never started:\n{stdout}");
+
+    // Control: the same project with a true example runs the program, so the
+    // failure above is the example's and not the project's.
+    let root = npm_run_project("g280_run_pass", "@example padded(\"a\") == \"   a\"", TINYPAD_JS);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stderr.contains("1 example(s) passed"), "{stderr}");
+    assert!(stdout.contains("ran:   z"), "the program ran after the gate:\n{stdout}");
+}
+
+#[test]
+fn glyph_run_stops_when_the_example_harness_cannot_load_an_npm_package() {
+    // The other G280 failure on `run`: a package that throws on load kills
+    // the harness before its tally. That is "not run", never a pass, and the
+    // program must not start on the strength of it.
+    if !js_toolchain_available() {
+        eprintln!("skipping npm-import run gate: node/tsx not available");
+        return;
+    }
+    let root = npm_run_project(
+        "g280_run_crash",
+        "@example padded(\"a\") == \"   a\"",
+        "throw new Error(\"tinypad refuses to load\");\n",
+    );
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    assert!(stderr.contains("glyph run: 1 example(s) not run"), "{stderr}");
+    assert!(stderr.contains("tinypad refuses to load"), "the cause is shown:\n{stderr}");
+    assert!(!stderr.contains("passed"), "nothing is reported as passed:\n{stderr}");
+    assert!(!stdout.contains("ran:"), "the program never started:\n{stdout}");
+}
+
+#[test]
+fn a_failing_doc_run_block_fails_in_a_module_that_imports_an_npm_package() {
+    // D26's `@doc @run` blocks go through the same harness as `@example`, so
+    // G280 hid a false one the same way. Driven through `run`, whose gate had
+    // no npm test, and `build`, so both channels are pinned for `@run`.
+    if !js_toolchain_available() {
+        eprintln!("skipping npm-import doc-run gate: node/tsx not available");
+        return;
+    }
+    let root = npm_run_project("g280_docrun_fail", &doc_run_asserting("a"), TINYPAD_JS);
+
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 1, "a false @doc @run stops `glyph run`:\n{stdout}\n{stderr}");
+    assert!(
+        stderr.contains("glyph run: example failed: main::padded doc-run #1"),
+        "the failing block is named:\n{stderr}"
+    );
+    assert!(!stdout.contains("ran:"), "the program never started:\n{stdout}");
+
+    let (code, _, stderr) = glyph_in(&root, &["build", "{src}", "--out", "{out}", "--no-tsc"]);
+    assert_eq!(code, 1, "a false @doc @run fails the build:\n{stderr}");
+    assert!(stderr.contains("main::padded doc-run #1"), "{stderr}");
+
+    let (code, stdout, _) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "{stdout}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let failures = v["examples"]["failures"].as_array().expect("failures array");
+    assert_eq!(failures.len(), 1, "{stdout}");
+    assert_eq!(failures[0]["code"], "E0401", "{stdout}");
+    assert_eq!(failures[0]["entity"], "main::padded", "{stdout}");
+
+    // Control: a true block passes on both, and `run` goes on to the program.
+    let root = npm_run_project("g280_docrun_pass", &doc_run_asserting("   a"), TINYPAD_JS);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stderr.contains("1 example(s) passed"), "{stderr}");
+    assert!(stdout.contains("ran:   z"), "{stdout}");
+    let (code, _, stderr) = glyph_in(&root, &["build", "{src}", "--out", "{out}", "--no-tsc"]);
+    assert_eq!(code, 0, "{stderr}");
+}
+
 /// `npm_example_project`'s package and manifest, with a module that carries
 /// one benchmark calling through `tinypad` instead of examples.
 fn npm_bench_project(prefix: &str, index_js: &str) -> PathBuf {

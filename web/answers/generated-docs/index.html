@@ -226,7 +226,7 @@
 
       <div class="detail">
         <p>
-          With no code it lists 102 cases over 45 of the 64 codes, and names the 19 that have
+          With no code it lists 98 cases over 45 of the 64 codes, and names the 19 that have
           none rather than leaving you to infer coverage from what came back. A second corpus,
           <code>catches/</code>, pairs a program <code>tsc --strict</code> accepts with the Glyph
           that refuses it, and those come back on the same answer where they exist. Both are
@@ -286,7 +286,7 @@
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>
-          <p>Two counts of the wrong programs appear in this document and they count different things: 43 of the 64 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 102 cases over 45 codes because it reads <code>catches/</code> as well. Either way, 19 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 167 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 173 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
+          <p>Two counts of the wrong programs appear in this document and they count different things: 43 of the 64 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 98 cases over 45 codes because it reads <code>catches/</code> as well. Either way, 19 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 167 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 173 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.</p>
         </div>
       </div>
 

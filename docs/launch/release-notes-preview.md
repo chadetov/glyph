@@ -63,33 +63,33 @@ is checked rather than cast.
 
 ## What the compiler refuses that `tsc --strict` accepts
 
-[`catches/`](../../catches/) holds nine pairs of programs. In each, `tsc --strict`
+[`catches/`](../../catches/) holds five pairs of programs. In each, `tsc --strict`
 accepts the TypeScript and Glyph refuses the equivalent Glyph with the code
-listed. `scripts/check_catches.py` runs both halves in CI.
+listed. `scripts/check_catches.py` runs both halves in CI, with `@types/node`
+installed for the TypeScript.
 
 | Case | Code |
 |---|---|
-| A `match` that misses a case of a union | E0200 |
-| The same, with the union imported from another module | E0200 |
-| A misspelled key read off a `Record<string, string>` | E0224 |
-| A validator claiming success for a field it never checked | E0304 |
-| A misspelled field on a record imported from another module | E0210 |
-| A field read off a value nobody validated (`JSON.parse` into an annotation) | TS18046 |
-| A local type named `Array` | E0110 |
-| A `Nullable<int>` passed where an `int` is declared | E0211 |
+| A `void` handler whose `match` misses a case of a union | E0200 |
+| A read from a `Record<string, string>` typed as if the key were there | E0224 |
 | `const [user, host] = s.split("@")` | E0230 |
+| A validator claiming success for a `net.Socket` field it never checked | E0304 |
+| `JSON.parse(body)` assigned to a `User` with nothing checked | TS2322 |
 
-The TS18046 case is reported by `tsc` running over the emitted TypeScript. It is
-on the list because Glyph has no spelling that gets an unvalidated value past
-the check, where TypeScript has several.
+All five are verifiability cases. None is evidence for greppability,
+abstraction or diff stability.
 
-Two of these cases need a caveat. In the two exhaustiveness cases, the TypeScript
-half ends with a cast so that `tsc` does not report TS2366 for a function that
-falls off the end; `tsc` does accept a non-exhaustive `switch` that assigns
-rather than returns, which is the form the case should show. The field-typo case
-compares a typed import in Glyph with a value typed `any` in TypeScript, which is
-what an untyped package boundary looks like, but a typed TypeScript import would
-catch the typo too.
+Two of them have a TypeScript answer outside `--strict`. `noUncheckedIndexedAccess`
+catches the map read (and not the split). typescript-eslint's
+`switch-exhaustiveness-check`, or an `assertNever` default, catches the missing
+union case. In Glyph those checks are always on.
+
+The TS2322 case is reported by `tsc` running over the emitted TypeScript, not by
+Glyph's own checker, which misses it (G289). `glyph check --no-tsc` and the
+editor do not report it until that is fixed.
+
+The playground at https://glyphlang.io/playground/ compiles one file in the
+browser and does not run `tsc`, so four of the five reproduce there.
 
 ## The toolchain
 

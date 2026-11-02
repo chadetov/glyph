@@ -170,8 +170,15 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
-    /// Apply safe autofixes in place (today: remove imports whose every name is
-    /// unused). Scans a directory or a single file (default: the current dir).
+    /// Apply the repairs the compiler fully determines, in place.
+    ///
+    /// Three rules: drop unused names from an import (E0106), rename a match
+    /// arm head to the one variant the checker suggests (E0220), and rename a
+    /// field to the one declared field a character away (E0210). Anything
+    /// else is left alone, and a rule that cannot decide says why. A
+    /// non-exhaustive match (E0200) is reported and never repaired: the
+    /// compiler does not know what a missing arm should do. Scans a directory
+    /// or a single file (default: the current dir).
     Fix {
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,

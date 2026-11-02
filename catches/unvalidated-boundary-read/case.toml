@@ -1,4 +1,4 @@
-code = "TS2322"
+code = "E0204"
 pillar = "verifiability"
 title = "A parsed body assigned to a typed name without being checked"
-note = "Glyph's own checker does not catch this yet (gap G289): `glyph check --no-tsc` passes it. The refusal comes from tsc running on the program Glyph emits, where `json.parse` returns a `Result<unknown, Issue[]>` that is not a `User`. In TypeScript `JSON.parse` returns `any`, and the annotation launders it. `json.parse<User>(body)` validates the body and hands back a `Result` to match on."
+note = "`json.parse` returns a `Result<unknown, Array<Issue>>`, and Glyph's own checker refuses it where a `User` is declared, so `glyph check --no-tsc` fails on it too. In TypeScript `JSON.parse` returns `any`, and the annotation launders it. `json.parse<User>(body)` validates the body and hands back a `Result` to match on."

@@ -2165,6 +2165,19 @@ impl Assigner<'_> {
                     for (p, a) in params.iter().zip(args.iter()) {
                         collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
                     }
+                    // A stdlib parameter no argument carries (`json.parse`'s
+                    // `T`) is the written type argument, or `unknown` when
+                    // none is written (G289).
+                    if let Some((key, field)) = self.stdlib_callee(callee) {
+                        let names = crate::stdlib::explicit_type_params(&key, &field);
+                        for (i, name) in names.iter().enumerate() {
+                            let bound = type_args
+                                .get(i)
+                                .map(|t| self.lowerer.lower(t))
+                                .unwrap_or(Ty::UnknownTop);
+                            subst.entry(Ident::from(*name)).or_insert(bound);
+                        }
+                    }
                     // Check each argument against its parameter type (with any
                     // inferred generics substituted in). Reports only a provable
                     // mismatch; an undecidable argument or parameter is silent.
@@ -3275,6 +3288,46 @@ impl Assigner<'_> {
     // The tables themselves are free functions of the prelude: nothing in them
     // reads a program. These five wrappers keep the receiver spelling the rest
     // of this file uses.
+
+    /// The `(module key, export name)` a call's callee names in the standard
+    /// library, under either import spelling: `json.parse` through `import
+    /// std/json` (or an alias of it) and `parse` through `import std/json {
+    /// parse }`. `None` for anything else, a project sibling's function
+    /// included, so a stdlib table is consulted only for a stdlib callee.
+    fn stdlib_callee(&self, callee: &Expr) -> Option<(String, String)> {
+        let (span, field) = match callee {
+            Expr::Member {
+                object,
+                field,
+                optional: false,
+                ..
+            } => match object.as_ref() {
+                Expr::Ident { span, .. } => (*span, Some(field.to_string())),
+                _ => return None,
+            },
+            Expr::Ident { span, .. } => (*span, None),
+            _ => return None,
+        };
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let (path, name) = match (&sym.kind, field) {
+            (
+                SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. },
+                Some(field),
+            ) => (path, field),
+            (SymbolKind::ImportNamed { path, original }, None) => (path, original.to_string()),
+            _ => return None,
+        };
+        let key = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        key.starts_with("std/").then_some((key, name))
+    }
 
     fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
         crate::stdlib::fn_ty(self.lowerer.prelude, module_key, field)
@@ -6379,6 +6432,49 @@ impl Assigner<'_> {
                 return args
                     .first()
                     .is_some_and(|inner| self.assign_incompatible(found, inner));
+            }
+        }
+        // G289. A prelude container where a declared tagged union or record is
+        // expected. `let user: User = json.parse(body)` hands a `Result` to a
+        // `User`, and so does `let u: User = load()` for any function
+        // returning one; `definitely_incompatible` has no arm for an
+        // application against a bare name, so the pairing was decided by
+        // nothing and reached only `tsc` (TS2322).
+        //
+        // Two declarations, so the nominal rule (Q15) is what decides it, the
+        // same rule that refuses a `Shape` where a `User` is declared. The
+        // container is a declaration of the prelude and the expected type one
+        // of this program, local or imported, so they are never the same type
+        // whatever the container's arguments are, and nothing here reads them.
+        //
+        // What stays undetermined: an expected record with no fields, which
+        // TypeScript lets any object satisfy and which the primitive arms
+        // exclude for the same reason; an expected name whose body is not a
+        // union or a record (a primitive alias, a string-literal union, an
+        // `extern_ts` or `typeof` body, a generic application such as `type
+        // Headers = Record<string, string>`, which D46 keeps its own type but
+        // decides nothing from); and an interface, matched by member shape
+        // before this runs.
+        //
+        // A stdlib type is the third kind of declaration, and `let u: url.Url
+        // = url.parse(s)` is the same mistake as the `User` one. Only a stdlib
+        // type whose shape the checker models counts here: a record with
+        // fields or a union. An opaque host handle is refused by its own arm
+        // (G254), and a stdlib name with no modeled shape is one this checker
+        // cannot see into, so it stays undetermined.
+        if self.prelude_container(found).is_some() {
+            if stdlib_union_variants(expected).is_some()
+                || stdlib_type_fields(self, expected).is_some_and(|f| !f.is_empty())
+            {
+                return true;
+            }
+            if let Some(body) = self.declared_union_or_record_body(expected) {
+                let empty_record =
+                    matches!(body, TypeExpr::Record { fields, .. } if fields.is_empty());
+                return !empty_record;
+            }
+            if let Some(decl) = self.imported_union_or_record(split_type_app(expected).0) {
+                return !decl.is_empty_record();
             }
         }
         false
@@ -16289,5 +16385,171 @@ fn f(a: Answer) -> number {
             matches!(e0230(&errs)[..], [DestructureRefusal::UnknownLength { .. }]),
             "{errs:?}"
         );
+    }
+
+    /// The `(expected, found)` pair of every E0204 in `errs`, in order.
+    fn g289_mismatches(errs: &[TypeError]) -> Vec<(String, String)> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, .. } => {
+                    Some((expected.clone(), found.clone()))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// G289. `json.parse` returns a `Result`, and a `let` annotated with a
+    /// record is refused at the `let`, naming both types the way `tsc` names
+    /// them in its TS2322. Before this the call had no signature, so the
+    /// pairing was decided by nothing and `glyph check --no-tsc` passed it.
+    #[test]
+    fn a_let_annotation_that_disagrees_with_json_parse_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             type User = { id: string, }\n\
+             pub fn f(body: string) -> string {\n\
+             \x20 let user: User = json.parse(body)\n\
+             \x20 return user.id\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("User".to_string(), "Result<unknown, Array<Issue>>".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// The named-import spelling reaches the same signature, and the written
+    /// type argument is the `Ok` type the diagnostic names.
+    #[test]
+    fn json_parse_is_typed_under_both_import_spellings_and_with_a_type_argument() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json { parse }\n\
+             type User = { id: string, }\n\
+             pub fn f(body: string) -> string {\n\
+             \x20 let user: User = parse<User>(body)\n\
+             \x20 return user.id\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("User".to_string(), "Result<User, Array<Issue>>".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// What `tsc` accepts stays accepted: the `Result` annotation (TypeScript
+    /// infers `T` from it), a `match` over the call, and an empty record, which
+    /// any object satisfies. With a type argument the `Ok` binding is the
+    /// written type, so a misspelled field on it is now a Glyph error.
+    #[test]
+    fn json_parse_against_a_result_or_an_empty_record_stays_silent() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/result { Ok, Err, Result }\n\
+             type User = { id: string, }\n\
+             type Empty = {}\n\
+             pub fn f(body: string) -> string {\n\
+             \x20 let a: Result<User, Array<Issue>> = json.parse(body)\n\
+             \x20 let b: Result<User, Array<Issue>> = json.parse<User>(body)\n\
+             \x20 let c: Empty = json.parse(body)\n\
+             \x20 return match json.parse<User>(body) {\n\
+             \x20\x20\x20 Ok(u) => u.idd,\n\
+             \x20\x20\x20 Err(_e) => \"\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, .. } if field == "idd"
+            )),
+            "the `Ok` binding of `json.parse<User>` is a `User`: {errs:?}"
+        );
+    }
+
+    /// The relation half of G289, which is not about `json.parse`: any prelude
+    /// container is a different declaration from a record or tagged union the
+    /// program declares, or a stdlib type the checker models, so the nominal
+    /// rule (Q15) refuses it at a `let`, a `return` and a call argument. A
+    /// user function returning `Result<User, string>` was as silent as the
+    /// stdlib call.
+    #[test]
+    fn a_prelude_container_where_a_declared_type_is_expected_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             import std/result { Err, Result }\n\
+             import std/option { Some, Option }\n\
+             import std/url\n\
+             type User = { id: string, }\n\
+             type Shape = | Circle(number) | Square(number)\n\
+             fn load() -> Result<User, string> { return Err(\"x\") }\n\
+             fn take(u: User) -> string { return u.id }\n\
+             fn back(r: Result<User, string>) -> User { return r }\n\
+             pub fn f(s: string, xs: Array<User>) -> string {\n\
+             \x20 let u: User = load()\n\
+             \x20 let o: Option<number> = Some(1)\n\
+             \x20 let sh: Shape = o\n\
+             \x20 let one: User = xs\n\
+             \x20 let link: url.Url = url.parse(s)\n\
+             \x20 return take(load())\n\
+             }\n",
+        );
+        let got = g289_mismatches(&errs);
+        for want in [
+            ("User", "Result<User, string>"),
+            ("Shape", "Option<number>"),
+            ("User", "Array<User>"),
+            ("url.Url", "Result<url.Url, string>"),
+        ] {
+            assert!(
+                got.iter().filter(|(e, f)| e == want.0 && f == want.1).count() >= 1,
+                "missing E0204 expected `{}` found `{}`: {errs:?}",
+                want.0,
+                want.1
+            );
+        }
+        // `back`'s `return r` and the `let u` are both `Result<User, string>`
+        // where `User` is declared.
+        assert_eq!(
+            got.iter()
+                .filter(|(e, f)| e == "User" && f == "Result<User, string>")
+                .count(),
+            2,
+            "{errs:?}"
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "User" && found == "Result<User, string>"
+            )),
+            "the call argument is E0211: {errs:?}"
+        );
+    }
+
+    /// An alias whose body is a container is its own type under D46 but
+    /// decides nothing, so the container it names still fits it.
+    #[test]
+    fn a_container_against_an_alias_of_a_container_stays_silent() {
+        let errs = errors_of(
+            "module m\n\
+             import std/result { Ok, Result }\n\
+             type User = { id: string, }\n\
+             type Loaded = Result<User, string>\n\
+             type Headers = Record<string, string>\n\
+             fn load() -> Result<User, string> { return Ok({ id: \"a\" }) }\n\
+             pub fn f(h: Record<string, string>) -> string {\n\
+             \x20 let l: Loaded = load()\n\
+             \x20 let k: Headers = h\n\
+             \x20 return \"\"\n\
+             }\n",
+        );
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
     }
 }

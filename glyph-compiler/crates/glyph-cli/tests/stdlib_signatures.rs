@@ -41,6 +41,7 @@ import std/console
 import std/dom
 import std/fs
 import std/io
+import std/json
 import std/math
 import std/path
 import std/process
@@ -61,6 +62,22 @@ fn shout(s: string) -> string {
 
 fn width(s: string) -> number {
   return string.len(s)
+}
+
+type Point = {
+  x: number,
+}
+
+fn decoded(body: string) -> number {
+  let raw: Result<Point, Array<Issue>> = json.parse(body)
+  let n = match raw {
+    Ok(p) => p.x,
+    Err(issues) => array.len(issues),
+  }
+  return match json.parse<Point>(body) {
+    Ok(p) => p.x + n,
+    Err(issues) => array.len(issues),
+  }
 }
 
 fn files(dir: string) -> Array<string> {
@@ -224,6 +241,7 @@ pub fn main() -> void {
   io.println(string.from(io.stdin_is_terminal()))
   io.println(string.from(width("ab")))
   io.println(string.from(array.len(files("."))))
+  io.println(string.from(decoded("{}")))
   io.println(read("/nonexistent"))
   io.println(string.from(lines("/nonexistent")))
 }
@@ -253,7 +271,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
     let (modeled, partial, unmodeled, total) = glyph_cli::llms::stdlib_coverage();
     assert_eq!(
         (modeled, partial, unmodeled),
-        (127, 46, 167),
+        (128, 46, 166),
         "stdlib coverage moved: {modeled} modeled, {partial} partial, {unmodeled} unmodeled \
          over {total} exports. If that is the change you made, update this pin."
     );

@@ -51,7 +51,7 @@ than skips without them.
 | `absent-map-key` | A read from a `Record<string, string>` typed as `string`, printing "undefined" when the key is not there | `E0224` | verifiability |
 | `split-into-a-pair` | `const [user, host] = s.split("@")`, typing `host` as a `string` that is `undefined` when there is no `@` | `E0230` | verifiability |
 | `unverifiable-parse` | A `value is Conn` guard that only checks a `net.Socket` field is present, so `parse` returns a typed value it never validated | `E0304` | verifiability |
-| `unvalidated-boundary-read` | `const user: User = JSON.parse(body)`, where the annotation launders `any` | `TS2322` | verifiability |
+| `unvalidated-boundary-read` | `const user: User = JSON.parse(body)`, where the annotation launders `any` | `E0204` | verifiability |
 
 `absent-map-key` uses a typo because it makes the hole obvious, but the typo is
 not the point. Glyph refuses the correctly spelled `row.name` too, with the same
@@ -66,12 +66,10 @@ typescript-eslint's `switch-exhaustiveness-check` and the `assertNever` pattern
 both catch the `void` version when a project adopts them. In Glyph the check is
 not something a project opts into, and it cannot be turned off.
 
-`unvalidated-boundary-read` is refused by `tsc`, not by Glyph's own checker.
-`glyph check --no-tsc` passes it today (gap G289). It fails the build because
-`glyph build` type-checks the program it emits, and there `json.parse` returns a
-`Result<unknown, Issue[]>`, which is not a `User`. In TypeScript `JSON.parse`
-returns `any`, and no setting changes that. The case stays in the list because
-the two programs are the same, and the Glyph one does not compile.
+In `unvalidated-boundary-read`, `json.parse` returns a
+`Result<unknown, Array<Issue>>`, and Glyph's checker refuses it where a `User`
+is declared, so `glyph check --no-tsc` fails on it as well as `glyph build`.
+In TypeScript `JSON.parse` returns `any`, and no setting changes that.
 
 ## Adding one
 

@@ -422,10 +422,40 @@ fn harness_incomplete(
     expected: usize,
     fail_lines: usize,
 ) -> Option<String> {
+    harness_untrusted(
+        &HarnessRun { tally: TALLY, noun: "test" },
+        stdout,
+        stderr,
+        status,
+        expected,
+        fail_lines,
+    )
+}
+
+/// What a generated harness is called in a verdict, and the prefix of the
+/// closing tally line it prints as `<prefix><total> <failed>`.
+pub(crate) struct HarnessRun<'a> {
+    pub tally: &'a str,
+    /// `test` for the example runner, `benchmark` for `glyph bench`.
+    pub noun: &'a str,
+}
+
+/// The rule [`harness_incomplete`] applies, shared with `glyph bench` (G287):
+/// a harness is trusted only when its tally accounts for every item it was
+/// given and its exit status agrees.
+pub(crate) fn harness_untrusted(
+    run: &HarnessRun<'_>,
+    stdout: &str,
+    stderr: &str,
+    status: std::process::ExitStatus,
+    expected: usize,
+    fail_lines: usize,
+) -> Option<String> {
+    let HarnessRun { tally: prefix, noun } = *run;
     let tally = stdout
         .lines()
         .rev()
-        .find_map(|l| l.strip_prefix(TALLY))
+        .find_map(|l| l.strip_prefix(prefix))
         .and_then(|rest| {
             let mut parts = rest.split_whitespace();
             let total = parts.next()?.parse::<usize>().ok()?;
@@ -438,17 +468,17 @@ fn harness_incomplete(
     };
     let problem = match tally {
         None => format!(
-            "the test harness stopped before reporting any result ({exit}), \
-             so none of the {expected} test(s) ran to a verdict"
+            "the {noun} harness stopped before reporting any result ({exit}), \
+             so none of the {expected} {noun}(s) ran to a verdict"
         ),
         Some((total, _)) if total != expected => format!(
-            "the test harness reported {total} test(s) but was given {expected} ({exit})"
+            "the {noun} harness reported {total} {noun}(s) but was given {expected} ({exit})"
         ),
         Some((_, failed)) if failed != fail_lines => format!(
-            "the test harness counted {failed} failure(s) but reported {fail_lines} ({exit})"
+            "the {noun} harness counted {failed} failure(s) but reported {fail_lines} ({exit})"
         ),
         Some((_, failed)) if (failed == 0) != status.success() => {
-            format!("the test harness reported {failed} failure(s) but ended with {exit}")
+            format!("the {noun} harness reported {failed} failure(s) but ended with {exit}")
         }
         Some(_) => return None,
     };

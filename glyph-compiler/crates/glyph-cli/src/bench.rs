@@ -19,7 +19,30 @@ pub struct BenchReport {
     pub build_failed: Option<Vec<String>>,
     /// True when no `bench_*` function was found.
     pub none_found: bool,
+    /// `(qualified name, what it threw)` for each benchmark that threw.
+    pub failures: Vec<(String, String)>,
+    /// Set when the harness did not account for every benchmark it was given:
+    /// it died while loading a module, exited early, or printed a tally that
+    /// does not match. Carries what it said on the way out.
+    ///
+    /// The harness's exit status used to be ignored and only its `BENCH` lines
+    /// read, so a module that threw while loading printed `0 benchmark(s)` and
+    /// exited 0 (G287). The rule is the example runner's (G280): a run is
+    /// trusted only when its tally accounts for every benchmark and the exit
+    /// status agrees.
+    pub incomplete: Option<String>,
 }
+
+impl BenchReport {
+    /// True when every benchmark found was run and measured.
+    pub fn ok(&self) -> bool {
+        self.build_failed.is_none() && self.failures.is_empty() && self.incomplete.is_none()
+    }
+}
+
+/// The prefix of the bench harness's closing tally line, `__GLYPH_BENCH__
+/// <total> <failed>`.
+const TALLY: &str = "__GLYPH_BENCH__ ";
 
 #[derive(Debug)]
 pub enum BenchError {
@@ -64,6 +87,8 @@ pub fn run_benchmarks(src: &Path) -> Result<BenchReport, BenchError> {
         ran: false,
         build_failed: None,
         none_found: per_module.is_empty(),
+        failures: Vec::new(),
+        incomplete: None,
     };
     if per_module.is_empty() {
         return Ok(report);
@@ -88,7 +113,12 @@ pub fn run_benchmarks(src: &Path) -> Result<BenchReport, BenchError> {
         Ok(cmd) => {
             let stdout = String::from_utf8_lossy(&cmd.stdout);
             for line in stdout.lines() {
-                if let Some(rest) = line.strip_prefix("BENCH ") {
+                if let Some(rest) = line.strip_prefix("FAIL ") {
+                    // "FAIL <name>\t<detail>"; the detail is a thrown error's
+                    // text and may itself hold a tab.
+                    let (name, detail) = rest.split_once('\t').unwrap_or((rest, ""));
+                    report.failures.push((name.to_string(), detail.to_string()));
+                } else if let Some(rest) = line.strip_prefix("BENCH ") {
                     // "BENCH <name> <iters> <nsop>"
                     let parts: Vec<&str> = rest.rsplitn(3, ' ').collect();
                     if let [nsop, iters, name] = parts.as_slice() {
@@ -99,6 +129,26 @@ pub fn run_benchmarks(src: &Path) -> Result<BenchReport, BenchError> {
                 }
             }
             report.ran = true;
+            let expected: usize = per_module.iter().map(|m| m.fns.len()).sum();
+            report.incomplete = crate::examples::harness_untrusted(
+                &crate::examples::HarnessRun { tally: TALLY, noun: "benchmark" },
+                &stdout,
+                &String::from_utf8_lossy(&cmd.stderr),
+                cmd.status,
+                expected,
+                report.failures.len(),
+            )
+            .or_else(|| {
+                // The tally agrees; every benchmark it counted must also have
+                // left a result or a failure behind, or one was never read.
+                let reported = report.results.len() + report.failures.len();
+                (reported != expected).then(|| {
+                    format!(
+                        "the benchmark harness reported results for {reported} of {expected} \
+                         benchmark(s)"
+                    )
+                })
+            });
             Ok(report)
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -145,16 +195,25 @@ fn generate_harness(per_module: &[ModuleBenches]) -> String {
          \x20 } while (elapsed < 250);\n\
          \x20 const nsop = (elapsed * 1e6) / iters;\n\
          \x20 console.log(\"BENCH \" + name + \" \" + iters + \" \" + nsop.toFixed(1));\n\
-         }\n",
+         }\n\
+         let total = 0;\n\
+         let failed = 0;\n",
     );
+    // Each benchmark runs in its own `try`, so one that throws is reported by
+    // name and the rest still run. A throw while importing a module happens
+    // before any of this, and leaves no tally behind.
     for (k, m) in per_module.iter().enumerate() {
         for fname in &m.fns {
             out.push_str(&format!(
-                "__bench(\"{}.{fname}\", m{k}.{fname});\n",
-                m.module_path
+                "total++;\ntry {{ __bench(\"{mp}.{fname}\", m{k}.{fname}); }} \
+                 catch (err) {{ console.log(\"FAIL {mp}.{fname}\\t\" + String(err)); failed++; }}\n",
+                mp = m.module_path
             ));
         }
     }
+    out.push_str(&format!(
+        "console.log(\"{TALLY}\" + total + \" \" + failed);\nprocess.exit(failed ? 1 : 0);\n"
+    ));
     out
 }
 

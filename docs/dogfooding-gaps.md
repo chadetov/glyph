@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-277 entries, 241 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-18 are open. G144, the D28 boundary cast that never reached the returns a
+288 entries, 242 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+28 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10622,3 +10622,120 @@ and is the owner's to confirm.
   same TSX does.
 
   *Reproduced against 0.1.127: `<p>\n    <b>x</b>\n    and\n  </p>` emits `createElement("p", null, createElement("b", null, "x"), "    and")`.*
+
+- **G278. [FIXED] A U+E000 in a string literal compiled to `$`.** The lexer
+  marked an escaped `\$` with the private-use codepoint U+E000 alone, and the
+  parser turned every U+E000 back into `$`. A U+E000 the user wrote raw, in any
+  string, a D12 string or a string-literal type, was the same codepoint, so
+  `"a<U+E000>b"` emitted `"a$b"`: the program's value changed with no
+  diagnostic. Writing it as `\u{E000}` was refused as an invalid escape, so
+  there was no way to spell the character at all. Found by the
+  `format_idempotent` fuzz target, which had failed on it every scheduled run
+  since 2026-10-28: `glyph fmt` reprinted a string-literal type from its
+  decoded value and wrote the `$`.
+
+  The same reprint lost escapes that did not change the value: `"a\$b"` came
+  back as `"a$b"` and `"\u{41}"` as `"A"` in a type, where a string in an
+  expression is copied as written.
+
+  Fixed in 0.1.129: the marker always comes in a pair with the character it
+  escapes (marker and `$` for `\$`, the marker twice for U+E000 itself), and
+  the parser resolves each pair to its one character. `\u{E000}` is accepted.
+  The formatter copies each string in a type from the source, as it already did
+  in an expression.
+
+  *Reproduced against 0.1.128: `pub fn f() -> string { return "a<U+E000>b" }` emits `return "a$b";`, and `glyph fmt` on `pub type T = "a\$b" | "e\u{41}"` writes `"a$b" | "eA"`.*
+
+- **G279. A record pattern in a `match` arm names fields nobody checks.**
+  `Loaded({ totl }) => totl` on `Loaded({ users: Array<string>, total:
+  number })` passes `glyph check --no-tsc` with no diagnostic, and only `tsc`
+  objects (TS2551). An object pattern on a positional payload,
+  `Loaded({ items })` on `Loaded(Array<string>)`, passes the same way. The
+  whole-payload arm `Loaded(r)` is typed, so `r.totl` is E0210: two spellings
+  of reading one field get different guarantees. This is the arm-side half of
+  G275, found by the release review of that entry.
+
+  *Reproduced against 0.1.128: the arm above, in a function returning `number`, is `glyph check: 1 module(s) checked, no diagnostics.`*
+
+- **G280. A failing `@example` passes in a module that imports an npm
+  package.** `@example double(21) == 43` on `fn double(n) { return n * 2 }`
+  fails the build as it should, until the module also has
+  `import date-fns { format }`: then `glyph build` exits 0 and the example
+  never fails, and `glyph check --json` reports the example as run with no
+  failures. With `import path { basename }` in its place the example fails
+  again. The example gate is the guarantee that a written claim about a
+  function holds, and it goes silently green in exactly the modules a backend
+  developer writes. Found by a cold-start agent playing a Node developer, who
+  broke the example on purpose to see it fail.
+
+  *Reproduced against 0.1.128: the module above, in a project with `date-fns` installed, `glyph build src --out out` exits 0; with `import path { basename }` it prints `example failed: main::double example #1: (double(21)) != (43)` and exits 1.*
+
+- **G281. No shipped document shows how a browser page starts a Glyph app.**
+  A React developer starting cold reached a clean `glyph check` with `tsc` on
+  the first attempt and stopped at bundling: nothing in the npm package,
+  `glyph llms`, the scaffold or the getting-started guide shows the
+  `index.html` whose module script calls `main()`, which directory Vite reads,
+  or how a JSX event handler is written (`on_change`, reading
+  `e.currentTarget.value`); the React answer page points at a deployment guide
+  and at `examples/apps/todo`, neither of which ships. The same run found two
+  `main` signatures (`main(argv) -> number` in the scaffold, `main() -> void`
+  in the `std/dom` example) with nothing saying which host calls which.
+
+  *Reproduced against 0.1.128: `glyph llms | grep -c index.html` is 0, and `glyph llms | grep -c on_change` is 0.*
+
+- **G282. `glyph run -- args` fails in a scaffolded project.** `glyph run --
+  good.json` and `npm start -- good.json` (the scaffold's `start` is `glyph
+  run`) both stop at `run target is not a `.glyph` file: good.json`, though
+  `glyph run --help` and `glyph llms` say no path means the current project
+  and describe `--`. `glyph run src good.json` works. A CLI written from the
+  scaffold cannot take an argument through its own `npm start`.
+
+  *Reproduced against 0.1.128: in `glyph init orders`, `glyph run -- good.json` prints `glyph run: run target is not a `.glyph` file: good.json` and exits 2.*
+
+- **G283. AGENTS.md's recipe for an HTTP server does not compile.** "Recipes
+  by task" says `import std/http { serve, text, Request, Response }`; `std/http`
+  exports no `serve` (the `std/net` section of the same file says so), and the
+  import is E0105. `check_docs_compile.py` compiles fenced blocks only, so an
+  inline recipe is never checked.
+
+  *Reproduced against 0.1.128: `AGENTS.md:1921` holds the recipe, and `glyph-compiler/runtime/std/http.ts` exports no `serve`.*
+
+- **G284. The scaffold tells a newcomer to hand-write `.d.ts` files for npm
+  packages.** `glyph init` writes `src/.types/README.md`, which says to put
+  `*.d.ts` files there for npm packages you import. An installed package's own
+  types (`date-fns`, `@types/react`) need nothing, and `external-imports.md`
+  says to reach for `.types/` only when there is nothing to resolve. It is the
+  first thing a new user reads about npm imports, and it points at writing
+  TypeScript.
+
+  *Reproduced against 0.1.128: `glyph init` creates `src/.types/README.md` with that instruction.*
+
+- **G285. A `tsc` error is mapped to the whole enclosing statement.** A wrong
+  member in one `on_change` handler (`e.target.valu`) underlines the entire
+  `return <div>...</div>`, eight lines; a wrong argument underlines the whole
+  `let`. The help then says the exact position is in the generated `.ts`,
+  which the scaffold's AGENTS.md says not to read.
+
+  *Reproduced against 0.1.128 by the cold-start React run: TS2551 on `e.target.valu` spans lines 16 to 23 of `app.glyph`.*
+
+- **G286. A reserved word used as a name gets a generic parse error.** `let
+  where = ...` is `[E0002] parse: expected variable name after `let`, found
+  Where`, with help about trailing commas. Nothing says `where` is a Glyph
+  keyword, and `glyph llms` has no list of them.
+
+  *Reproduced against 0.1.128 by the cold-start Node run.*
+
+- **G287. `glyph bench` reports a crashed harness as zero benchmarks.**
+  `bench.rs` reads the harness's output and ignores the exit status of `tsx`,
+  so a benchmark module that throws while loading prints `0 benchmark(s)` and
+  exits 0: the shape G280 had in the example runner. Found while fixing G280.
+
+  *Reproduced against 0.1.128 by reading `glyph-cli/src/bench.rs`: the harness's exit status is never checked.*
+
+- **G288. A member read on an array is checked by nothing but `tsc`.**
+  `xs.lenght` on `xs: Array<string>` passes `glyph check --no-tsc`, and the
+  editor shows nothing; a record has E0210 with its fields listed. A
+  `<case Loaded(items)>` binding is typed as `Array<string>` since G275, so
+  `{items.foo}` inside it is also left to `tsc`. Found while fixing G275.
+
+  *Reproduced against 0.1.128: `pub fn f(xs: Array<string>) -> number { return xs.lenght }` is `glyph check: 1 module(s) checked, no diagnostics.`*

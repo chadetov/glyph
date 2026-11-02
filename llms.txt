@@ -1256,31 +1256,15 @@ console.error(text: string) -> void
 
 Importing `std/dom` is safe anywhere, but its calls throw where there is no
 document (under `glyph run`, an `@example` or server rendering). Storage never
-throws: with no store a read is `None` and a write is an `Err`. Mount a React
-app by matching on the element:
-
-```glyph needs-deps
-module main
-
-import react-dom/client { createRoot }
-import std/dom
-import std/console
-import std/option { Some, None }
-import app { App }
-
-pub fn main() -> void {
-  match dom.element_by_id("root") {
-    Some(root) => createRoot(root).render(<App />),
-    None => console.error("the page has no #root element"),
-  }
-}
-```
+throws: with no store a read is `None` and a write is an `Err`. A React app
+mounts by matching on `dom.element_by_id("root")`; the whole page, from the
+`index.html` to the Vite build, is under
+[Running Glyph in a browser page](#running-glyph-in-a-browser-page).
 
 An effect is written `fn() -> void { ... }`. Without the annotation a lambda
 returns its last expression, and React calls whatever an effect returns as its
 cleanup, so `useEffect(fn() { storage.set(k, v) }, deps)` hands React a
-`Result` and `tsc` refuses it. `examples/apps/todo` is a whole app written
-this way.
+`Result` and `tsc` refuses it.
 
 ### std/websocket
 
@@ -1586,6 +1570,135 @@ Two consequences worth knowing:
   `main`'s return value is already spent. `process.set_exit_code(1)` records a
   failure without tearing down work still in flight; `process.exit(1)` stops
   immediately. A listener that cannot bind its port is the usual case.
+
+## Running Glyph in a browser page
+
+`glyph init` scaffolds a node program. A page is laid out differently, so start
+it from an empty directory. This is the shape of `examples/apps/todo` in the
+repository, which CI bundles with Vite and renders in headless Chromium.
+
+```
+package.json
+index.html     the page; its module script calls main()
+app.glyph      module app: the components
+main.glyph     module main: mounts App on #root
+```
+
+`package.json` carries the `"glyph"` key, which marks the project root. The
+`.glyph` files sit next to `index.html` rather than under `src/`, and the build
+below is pointed at `.`:
+
+```json
+{
+  "name": "hello-page",
+  "private": true,
+  "type": "module",
+  "glyph": {},
+  "scripts": {
+    "bundle": "glyph build . --out dist/gen && vite build --outDir dist/web"
+  }
+}
+```
+
+Then install React, its types, Vite and the compiler. The compiler is pinned
+exactly, like every Glyph project's:
+
+```sh
+npm install react@18 react-dom@18
+npm install -D typescript vite@5 @types/react@18 @types/react-dom@18
+npm install -D --save-exact @glyphlang/glyph
+```
+
+`app.glyph` holds the components. Event attributes are snake case (`on_change`,
+`on_click`, emitted as React's `onChange` and `onClick`), and a CSS class is
+`class`. A handler is a lambda that takes React's event, and an input's text is
+`e.currentTarget.value`, read off the element the handler is attached to. `tsc`
+checks `e` against React's own event types:
+
+```glyph needs-react
+module app
+
+import react { useState }
+
+pub component App() {
+  let [name, set_name] = useState("")
+  let [count, set_count] = useState(0)
+  return <main>
+    <input value={name} on_change={fn(e) { set_name(e.currentTarget.value) }} />
+    <p>Hello, {name}</p>
+    <button on_click={fn() { set_count(count + 1) }}>clicked {count}</button>
+  </main>
+}
+```
+
+`main.glyph` finds the mount point through `std/dom` and hands it to
+react-dom's `createRoot`. It imports `App` from the sibling module by its bare
+name:
+
+```glyph needs-react
+module main
+
+import react-dom/client { createRoot }
+import std/dom
+import std/console
+import std/option { Some, None }
+import app { App }
+
+pub fn main() -> void {
+  match dom.element_by_id("root") {
+    Some(root) => createRoot(root).render(<App />),
+    None => console.error("the page has no #root element"),
+  }
+}
+```
+
+Glyph has no top-level statements, so a module declares things and does not
+start anything. The page calls `main` itself, from a module script that imports
+the TypeScript `glyph build` wrote:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>hello</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { main } from "./dist/gen/main.ts";
+      main();
+    </script>
+  </body>
+</html>
+```
+
+Build it in two steps. `glyph build` type-checks the Glyph, runs `tsc --strict`
+against React's declarations, and writes TypeScript to `dist/gen`. Vite reads
+`index.html` from this directory, follows its import into `dist/gen`, compiles
+that TypeScript and bundles it with React into `dist/web`:
+
+```sh
+npx glyph build . --out dist/gen
+npx vite build --outDir dist/web
+npx vite preview --outDir dist/web     # serve the bundle locally
+```
+
+Run `glyph build` again after editing a `.glyph` file; Vite only sees its
+output.
+
+The two `main` signatures belong to two hosts. `glyph run` runs under node and
+calls `main(argv: Array<string>) -> number`, using the number as the exit code;
+that is the scaffold's `main`. A page has no arguments and no exit code, and
+`glyph run` never sees it: the module script calls whatever the entry module
+exports, with whatever arguments the script passes. Here that is
+`pub fn main() -> void`. It has to be `pub`, because a declaration without it
+is not exported and the script's import would find nothing.
+
+Only some of the standard library can go into a page. `std/dom` needs one;
+`std/fs`, `std/net`, `std/process` and the other node modules import `node:`
+builtins when they load, so a page that imports one breaks as it loads. The
+host table at the top of `docs/reference/stdlib.md` lists which is which.
 
 ## Testing
 

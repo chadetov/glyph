@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-289 entries, 250 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+290 entries, 251 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 20 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -10819,3 +10819,18 @@ and is the owner's to confirm.
   TypeScript developer writes.
 
   *Reproduced against 0.1.128 (the dev-0.1.129 build): the program above is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 with `tsc`.*
+- **G290. [FIXED] `glyph gen dts` threw away the caller's `NODE_PATH`.**
+  The helper that reads a `.d.ts` ran node with `NODE_PATH` set to
+  `npm root -g`, replacing whatever the caller had set, so a TypeScript
+  reachable only through `NODE_PATH` was reported as not installed. CI points
+  `NODE_PATH` at its pinned TypeScript, so ten `gen dts` tests had skipped
+  there on every run and been reported as passed. Found by the first CI run
+  of 0.1.129's rule that a test missing its tool fails under CI.
+
+  *Reproduced against 0.1.128: with `NODE_PATH` at a directory holding
+  `typescript` and an empty global npm root, `glyph gen dts user.d.ts` prints
+  ``the `typescript` package is not resolvable``.*
+
+  Fixed in 0.1.129: the global root is appended after the caller's entries,
+  never in their place. The same command writes `out/user.glyph`, and the ten
+  tests pass in that environment and fail with the old line restored.

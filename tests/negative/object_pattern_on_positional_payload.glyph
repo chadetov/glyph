@@ -1,0 +1,15 @@
+module neg
+
+// G279. An object pattern destructures a record. `Loaded` carries one
+// `Array<string>`, which sits under the tag object's `value`, so `{ users }`
+// would read a field of the tag object that is not there.
+pub type Load =
+  | Loading
+  | Loaded(Array<string>)
+
+pub fn first(l: Load) -> number {
+  return match l {
+    Loading => 0,
+    Loaded({ users }) => 1,
+  }
+}

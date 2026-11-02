@@ -694,6 +694,17 @@ pub enum TypeError {
     /// the initializer, or the element a nested pattern destructures.
     #[error("{}", why.message())]
     DestructureUnproven { why: DestructureRefusal, span: Span },
+
+    /// An object pattern over a value whose type is decidably not a record:
+    /// `Loaded({ users })` where `Loaded` carries an `Array<string>` (G279).
+    /// A non-record payload sits under `value` in the tag object rather than
+    /// spread into it, so the pattern would read fields of the tag object and
+    /// bind `undefined` under a type that says otherwise. The same code as a
+    /// value of the wrong type, because it is one: the pattern's shape is the
+    /// type it expects, and the payload is not that type. `ty` is the type the
+    /// pattern was matched against.
+    #[error("`{ty}` is not a record, so an object pattern cannot destructure it")]
+    PatternNotRecord { ty: String, span: Span },
 }
 
 /// Why a destructuring `let` was refused at check (D48, E0230).
@@ -868,6 +879,7 @@ impl TypeError {
             TypeError::AwaitOutsideAsyncFn { span } => *span,
             TypeError::MatchArmProducesNoValue { span } => *span,
             TypeError::DestructureUnproven { span, .. } => *span,
+            TypeError::PatternNotRecord { span, .. } => *span,
         }
     }
 
@@ -906,6 +918,7 @@ impl TypeError {
             TypeError::AwaitOutsideAsyncFn { .. } => "E0222",
             TypeError::MatchArmProducesNoValue { .. } => "E0223",
             TypeError::DestructureUnproven { .. } => "E0230",
+            TypeError::PatternNotRecord { .. } => "E0204",
         }
     }
 
@@ -1032,6 +1045,9 @@ impl TypeError {
             }
             TypeError::DestructureUnproven { why: DestructureRefusal::NotAnArray { .. }, .. } => {
                 "Bind the value to one name and read from that. A `let` pattern takes an array whose length is known: a written array literal, or a tuple an npm library returns."
+            }
+            TypeError::PatternNotRecord { .. } => {
+                "Bind the value to one name and read from it, `Loaded(items)`. An object pattern names the fields of a record."
             }
         })
     }
@@ -1185,6 +1201,8 @@ impl TypeError {
             TypeError::ComponentParamNotRecord { ty, .. } => Some(ty),
             // "an array of known length" is a rule too.
             TypeError::DestructureUnproven { why, .. } => why.type_shown(),
+            // "a record" is a rule too.
+            TypeError::PatternNotRecord { ty, .. } => Some(ty),
             _ => None,
         }
     }

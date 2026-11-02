@@ -1,0 +1,15 @@
+module neg
+
+// G279. A record pattern names fields of the payload record, so a field the
+// record does not declare is the same typo a field access would be: `totl`
+// would bind `undefined`, under a type that says `number`.
+pub type Page =
+  | Empty
+  | Loaded({ users: Array<string>, total: number })
+
+pub fn count(p: Page) -> number {
+  return match p {
+    Empty => 0,
+    Loaded({ totl }) => totl,
+  }
+}

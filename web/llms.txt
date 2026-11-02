@@ -1745,13 +1745,13 @@ machine-readably. The full catalogue:
 | E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
 | E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |
 | E0203 | `?` error type does not match the function's `E` (no `From` in v1) | `.map_err(...)` to line the error types up |
-| E0204 | Type mismatch | Make the value and the expected type agree |
+| E0204 | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`) in a `match` arm | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
 | E0205 | `owned` used on a non-`resource` type (D25) | Mark the type `resource`, or drop `owned` |
 | E0206 | `owned` resource not consumed on every path (D25) | Consume it (move to an `owned` param) on all paths |
 | E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |
 | E0208 | Non-exhaustive `match` on an array (length not covered) | Cover the length, or add a catch-all |
 | E0209 | Non-exhaustive `match` on a `bool` | Cover `true` and `false`, or add `else` |
-| E0210 | A field a record type does not declare: a field access (`x.rowz`), or a JSX attribute naming a field of a component's props record. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
+| E0210 | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type | Fix the field name / add it to the type |
 | E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name | Pass a value of the expected type |
 | E0212 | `mut` reassigns a `const` binding (D20) | Use a function-level `let` |
 | E0213 | Wrong number of call arguments | One argument per parameter |

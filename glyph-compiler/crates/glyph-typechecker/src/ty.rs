@@ -519,6 +519,29 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
     }
 }
 
+/// The type an `E0210` names: `ty_display`, except that a structural record
+/// prints its fields. A variant's record payload and an inline `{ a: string }`
+/// annotation have no name, and "type `record` has no field `totl`" named
+/// nothing a reader could check the typo against; the field list is the thing
+/// they are looking for.
+pub(crate) fn field_owner_display(ty: &Ty) -> String {
+    let Ty::Record { fields } = ty else {
+        return ty_display(ty);
+    };
+    if fields.is_empty() {
+        return "{}".to_string();
+    }
+    let rendered = fields
+        .iter()
+        .map(|f| {
+            let q = if f.optional { "?" } else { "" };
+            format!("{}{q}: {}", f.name, ty_display(&f.ty))
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{{ {rendered} }}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

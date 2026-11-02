@@ -1,23 +1,78 @@
 # Getting started
 
-## Install
+## Start a project
 
-Glyph is distributed on npm the way esbuild and swc are — a small launcher plus
-a prebuilt binary for your platform:
+Glyph is on npm, so the quickest start needs nothing installed beyond Node:
+
+```sh
+npx @glyphlang/glyph init hello
+cd hello
+npm install
+npx glyph run
+# hello from glyph
+```
+
+`npx @glyphlang/glyph init hello` fetches the compiler, a small launcher plus a
+prebuilt binary for your platform, and runs it once to scaffold the project.
+`npm install` then installs the versions the scaffold pinned into the project's
+own `node_modules`, so from here on `npx glyph` runs the project's compiler and
+not whatever is on your `PATH`.
+
+The scaffold writes six files:
+
+- `src/main.glyph`, the program.
+- `package.json`, which pins `@glyphlang/glyph` exactly (no `^`) along with the
+  `typescript` and `tsx` Glyph uses to type-check and run the TypeScript it
+  emits. Its `"glyph"` key marks the project root, and its `start` and `build`
+  scripts call `glyph run` and `glyph build src --out dist`.
+- `src/.types/README.md`. An npm package that ships its own types, or has an
+  `@types/...` package installed, needs nothing in `.types/`; the directory is
+  for a package that ships no types.
+- `.gitignore`, covering `dist/` and `node_modules/`.
+- `AGENTS.md` and `.mcp.json`, for coding agents. `AGENTS.md` points at
+  `glyph llms`, which prints the whole language reference offline, and
+  `.mcp.json` registers `glyph mcp` so an agent can ask the compiler for types
+  and references.
+
+`src/main.glyph` is:
+
+```glyph
+module main
+
+import std/io
+
+fn main(argv: Array<string>) -> number {
+  io.println("hello from glyph")
+  return 0
+}
+```
+
+`glyph run` with no path runs the current project. It type-checks the program,
+compiles it to TypeScript, and runs `main(argv)` via `tsx`. To pass arguments,
+name the source directory first, and everything after it becomes `argv`:
+
+```sh
+npx glyph run src one two three
+```
+
+This page shows `glyph` from here on; inside a project that is `npx glyph`.
+For a page in a browser rather than a program under node, the layout differs:
+see "Running Glyph in a browser page" in
+[`AGENTS.md`](../../AGENTS.md#running-glyph-in-a-browser-page), which `glyph
+llms` prints.
+
+## Installing globally
+
+To have `glyph` on your `PATH` everywhere, install it globally. Running a file
+outside a project also needs `tsx` and `typescript` where Glyph can find them,
+so install those too. TypeScript 5 or later is what `glyph doctor` checks for;
+the floor the emitted code itself needs is 4.9, for the `satisfies` a
+destructuring `let` writes.
 
 ```sh
 npm install -g @glyphlang/glyph
-# or run without installing:
-npx @glyphlang/glyph --help
-```
-
-You also need Node with `tsx` and `typescript` available, which Glyph uses to
-type-check and run the TypeScript it emits. TypeScript 5 or later is what
-`glyph doctor` checks for; the floor the emitted code itself needs is 4.9, for
-the `satisfies` a destructuring `let` writes.
-
-```sh
 npm install -g tsx typescript
+glyph doctor                    # confirm the toolchain is ready
 ```
 
 ### Building from source
@@ -33,9 +88,9 @@ cargo build --release
 
 Put `target/release` on your `PATH`, or invoke it directly.
 
-## Your first program
+## Running a single file
 
-Create `hello.glyph`:
+A program does not need a project. Create `hello.glyph`:
 
 ```glyph
 module hello
@@ -54,8 +109,7 @@ Run it:
 glyph run hello.glyph
 ```
 
-`glyph run` type-checks the program, compiles it to TypeScript, and runs
-`main(argv)` via `tsx`. Arguments after the file are passed through as `argv`:
+Arguments after the file are passed through as `argv`:
 
 ```sh
 glyph run hello.glyph one two three
@@ -79,7 +133,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 
 | Command | What it does |
 |---|---|
-| `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `.types/`, `package.json`, `.gitignore`) |
+| `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `src/.types/README.md`, `package.json`, `.gitignore`, `AGENTS.md`, `.mcp.json`). `--template web` starts an HTTP server, `--template lib` a library |
 | `glyph check [path]` | Type-check a file or a tree without running it or writing output |
 | `glyph check --json [path]` | The same diagnostics as a JSON object on stdout, for tools and agents |
 | `glyph check --agent [path]` | The `--json` object plus, per diagnostic, the repair constraints an edit must keep and the `glyph_symbol` description of every symbol the diagnostic names |

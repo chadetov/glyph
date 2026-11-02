@@ -50,13 +50,24 @@ await page.click("li >> text=buy milk");
 expect("toggled, items", await items(), ["buy milk:done", "write tests:open"]);
 expect("toggled, left line", await page.textContent(".left"), "1 left");
 expect("toggled, title", await page.title(), "1 left");
-expect("saved list", await page.evaluate(() => localStorage.getItem("todos")), "buy milk\nwrite tests");
+const saved = () => page.evaluate(() => localStorage.getItem("todos"));
+expect("saved list", await saved(), "[x] buy milk\n[ ] write tests");
 
-// The list keeps each item's text; whether it was done is not saved.
+// The list keeps each item's text and whether it was done.
 await page.reload();
 await page.waitForSelector(".counter span");
-expect("after reload, items", await items(), ["buy milk:open", "write tests:open"]);
-expect("after reload, left line", await page.textContent(".left"), "2 left");
+expect("after reload, items", await items(), ["buy milk:done", "write tests:open"]);
+expect("after reload, left line", await page.textContent(".left"), "1 left");
+expect("after reload, title", await page.title(), "1 left");
+
+// A list saved by 0.1.128 is text alone, one item per line, and loads with
+// nothing done.
+await page.evaluate(() => localStorage.setItem("todos", "buy milk\nwrite tests"));
+await page.reload();
+await page.waitForSelector(".counter span");
+expect("old format, items", await items(), ["buy milk:open", "write tests:open"]);
+expect("old format, left line", await page.textContent(".left"), "2 left");
+expect("old format, saved back with markers", await saved(), "[ ] buy milk\n[ ] write tests");
 
 expect("console errors and warnings", errors, []);
 await browser.close();

@@ -12,8 +12,9 @@ formatter bug that lost it). Nothing had looked at the text on the page.
 This gate builds the app from a clean `dist/` with the compiler under test,
 bundles it with Vite, serves it with `vite preview`, and drives it with
 Playwright (`scripts/todo_render.mjs`): the counter, adding and toggling items,
-the "N left" line and the title that follows it, the saved list, a reload, and
-no console error or warning.
+the "N left" line and the title that follows it, the saved list, a reload that
+keeps which items are done, a list saved in 0.1.128's text-only format, and no
+console error or warning.
 
 It needs `examples/apps/todo/node_modules` (`npm ci` there) and Chromium for
 that Playwright (`npx playwright install chromium` there). A missing piece is a

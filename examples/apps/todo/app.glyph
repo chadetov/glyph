@@ -14,23 +14,40 @@ import std/result { Ok, Err }
 
 pub type Todo = { id: number, text: string, done: bool }
 
-// The saved list is one text per line; a fresh page starts empty.
+// The saved list is one item per line, behind a marker: "[x] " for an item
+// that is done and "[ ] " for one that is not. A line with neither marker is
+// how 0.1.128 saved the list, text alone, and loads as not done. A fresh page
+// starts empty.
+fn parse_line(i: number, line: string) -> Todo {
+  return match string.starts_with(line, "[x] ") {
+    true => { id: i, text: string.slice(line, 4), done: true },
+    false => match string.starts_with(line, "[ ] ") {
+      true => { id: i, text: string.slice(line, 4), done: false },
+      false => { id: i, text: line, done: false },
+    },
+  }
+}
+
+fn format_line(t: Todo) -> string {
+  let mark = match t.done {
+    true => "[x] ",
+    false => "[ ] ",
+  }
+  return "${mark}${t.text}"
+}
+
 fn load_todos() -> Array<Todo> {
   let saved = match storage.get("todos") {
     Some(text) => text,
     None => "",
   }
   let lines = array.filter(string.split(saved, "\n"), fn(line: string) { return line != "" })
-  return array.zip(
-    array.range(lines.length),
-    lines,
-    fn(i: number, line: string) -> Todo { return { id: i, text: line, done: false } },
-  )
+  return array.zip(array.range(lines.length), lines, parse_line)
 }
 
 fn save_todos(todos: Array<Todo>) -> void {
-  let texts = array.map(todos, fn(t: Todo) { return t.text })
-  match storage.set("todos", string.join(texts, "\n")) {
+  let lines = array.map(todos, format_line)
+  match storage.set("todos", string.join(lines, "\n")) {
     Ok(_) => {},
     Err(e) => console.warn("could not save the list: ${e.message}"),
   }

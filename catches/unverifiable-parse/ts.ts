@@ -1,7 +1,8 @@
 // tsc --strict accepts this. The guard claims `value is Conn` while only
 // checking that `sock` is present, so `parse` returns a typed value whose
-// socket may be a string. A cast is all that stands behind the claim.
-export type Socket = { handle: number };
+// socket may be a string, a number, or a plain object with no methods.
+import type { Socket } from "net";
+
 export type Conn = { id: number; sock: Socket };
 
 export function isConn(value: unknown): value is Conn {

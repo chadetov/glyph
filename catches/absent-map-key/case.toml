@@ -1,3 +1,4 @@
 code = "E0224"
 pillar = "verifiability"
-title = "A typo'd key on a map, read as if it were there"
+title = "A read from a map, typed as if the key were always there"
+note = "Glyph refuses the correctly spelled `row.name` too. A `Record<string, string>` says nothing about which keys exist, so any read can come back empty. TypeScript's `noUncheckedIndexedAccess` catches this, but it is not part of `--strict`."

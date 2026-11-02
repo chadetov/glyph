@@ -2,10 +2,10 @@ module m
 
 pub type Status = "todo" | "doing" | "done" | "archived"
 
-pub fn label(s: Status) -> string {
-  return match s {
-    "todo" => "not started",
-    "doing" => "in progress",
-    "done" => "finished",
+pub fn announce(s: Status) {
+  match s {
+    "todo" => print("not started"),
+    "doing" => print("in progress"),
+    "done" => print("finished"),
   }
 }

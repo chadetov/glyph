@@ -5582,6 +5582,7 @@ impl Assigner<'_> {
             module,
             name,
             body: decl.body,
+            open: decl.open,
         })
     }
 
@@ -6148,6 +6149,16 @@ impl Assigner<'_> {
                 None => false,
             };
         }
+        // G293. A generic declaration applied (`Box<string>`) where a
+        // `Record<K, V>` map is declared is decided the way the bare name is,
+        // by `declared_type_against_map_incompatible`, and not by the base
+        // comparison below, which would read `Box` against `Record` as two
+        // declarations and refuse a value the map's validator accepts.
+        if let (Ty::App { .. }, Some(("Record", args))) = (found, self.prelude_container(expected)) {
+            if self.prelude_container(found).is_none() && self.is_declared_type_with_identity(found) {
+                return self.declared_type_against_map_incompatible(found, expected, args);
+            }
+        }
         if let (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) = (found, expected) {
             // The base is the constructor, not an argument, so it is asked
             // under `Ordinary`. So is every argument, with one exception: the
@@ -6669,13 +6680,10 @@ impl Assigner<'_> {
         // `let n: Nullable<User> = u` is the intended spelling and `let n:
         // Nullable<Shape> = u` is `User` against `Shape`.
         //
-        // `Record<K, V>` is left undetermined. D49's argument is that the
-        // checker answers as the declared type's validator does, and a map's
-        // validator accepts a closed record whose fields are all `V`s, as
-        // `tsc` does (`let m: Record<string, string> = u` compiles with `u:
-        // User` and `User = { name: string }`). Refusing it would be the one
-        // pairing here the runtime does not refuse, so it waits for a
-        // decision rather than being settled by this arm.
+        // `Record<K, V>` is decided by what the map's validator does, which
+        // is D49's rule: an object check and every value passing `V`, keys
+        // ignored. `declared_type_against_map_incompatible` states that
+        // statically, and says what it leaves to `tsc`.
         //
         // The value side counts what the expected side of G289 counts, with
         // the same exclusion: a record with no fields, an interface, an alias
@@ -6687,12 +6695,88 @@ impl Assigner<'_> {
                     "Nullable" => args
                         .first()
                         .is_some_and(|inner| self.assign_incompatible(found, inner)),
-                    "Record" => false,
+                    "Record" => self.declared_type_against_map_incompatible(found, expected, args),
                     _ => true,
                 };
             }
         }
         false
+    }
+
+    /// G293. A declared record or tagged union (`found`, one
+    /// `is_declared_type_with_identity` answers for) where the map `expected`,
+    /// a `Record<K, V>` with arguments `args`, is declared.
+    ///
+    /// The map's validator is an object check, a not-array check, and every
+    /// value passing `V`; it ignores the keys. So for a closed record, whose
+    /// own validator admits no key beyond its fields, the map's validator
+    /// accepts it exactly when every field holds a `V`, and that is the
+    /// comparison made here: a required field whose type is not a `V` is
+    /// refused, and a record whose fields are all required `V`s is accepted.
+    ///
+    /// - An `@open` record (D27) is refused unless `V` is `unknown`: the keys
+    ///   it admits beyond its fields hold values no validator checked.
+    /// - A tagged union is refused wherever any `Record<K, V>` is declared. A
+    ///   union has no fields in Glyph, and its runtime shape is the emitter's
+    ///   encoding rather than a contract, so comparing it to `V` would let a
+    ///   change to the encoding change type checking.
+    /// - An optional field, and a `K` other than `string`, are not decided:
+    ///   the map's validator and `tsc` disagree about them (the validator
+    ///   accepts an absent key and ignores the keys `K` names; `tsc` reads the
+    ///   `undefined` an optional field may hold and requires `K`'s keys), so
+    ///   `tsc` answers. An optional field is skipped and a required field
+    ///   beside it still decides the pairing.
+    fn declared_type_against_map_incompatible(&self, found: &Ty, expected: &Ty, args: &[Ty]) -> bool {
+        let [key, value] = args else {
+            return false;
+        };
+        let (base, type_args) = split_type_app(found);
+        // Union or record, and if a record, whether `@open` and its fields.
+        let shape: Option<(bool, Vec<RecordField>)> = if stdlib_union_variants(found).is_some() {
+            None
+        } else if let Some(fields) = stdlib_type_fields(self, found) {
+            Some((false, fields))
+        } else if let Some(td) = self.local_type_decl(found) {
+            match &td.body {
+                TypeExpr::Union { .. } => None,
+                _ => match self.record_decl_fields(td, type_args) {
+                    Some(fields) => Some((glyph_ast::is_open_record(&td.annotations), fields)),
+                    None => return false,
+                },
+            }
+        } else if let Some(decl) = self.imported_union_or_record(base) {
+            match &decl.body {
+                Ty::Union { .. } => None,
+                _ => match self.imported_record_fields(&decl.module, &decl.name, type_args) {
+                    Some(fields) => Some((decl.open, fields)),
+                    None => return false,
+                },
+            }
+        } else {
+            return false;
+        };
+        let Some((open, fields)) = shape else {
+            return true;
+        };
+        if !matches!(key, Ty::Prim(Primitive::String)) {
+            return false;
+        }
+        if open {
+            return !matches!(value, Ty::UnknownTop);
+        }
+        // A record can reach itself through a field held against `V`
+        // (`type Node = { kids: Record<string, Node> }`), so a pairing already
+        // being related is assumed to hold, as the interface branch assumes.
+        let pair = (found.clone(), expected.clone());
+        if self.relating.borrow().contains(&pair) {
+            return false;
+        }
+        self.relating.borrow_mut().push(pair);
+        let refused = fields
+            .iter()
+            .any(|f| !f.optional && self.assign_incompatible(&f.ty, value));
+        self.relating.borrow_mut().pop();
+        refused
     }
 
     /// Whether `ty` is a declaration D49 gives an identity to and the checker
@@ -7404,6 +7488,8 @@ struct ImportedUnionOrRecord {
     module: String,
     name: String,
     body: Ty,
+    /// The declaration carries `@open` (D27).
+    open: bool,
 }
 
 impl ImportedUnionOrRecord {
@@ -11653,6 +11739,7 @@ fn outer() -> string {
                         "int".to_string(),
                         "real".to_string(),
                     ]),
+                    open: false,
                 })
             }
             fn module_exports_name(&self, module_path: &str, name: &str) -> Option<bool> {
@@ -12552,6 +12639,7 @@ fn main(r: PaymentResult) -> string {
                 name: Ident::from(name),
                 generics: generics.into_iter().map(Ident::from).collect(),
                 body,
+                open: false,
             };
             let union = |names: &[&str]| Ty::Union {
                 variants: names
@@ -12590,6 +12678,17 @@ fn main(r: PaymentResult) -> string {
                     },
                 )),
                 ("lib", "Empty") => Some(decl("Empty", vec![], Ty::Record { fields: vec![] })),
+                // `@open pub type Meta = { id: string }` in the sibling.
+                ("lib", "Meta") => Some(ImportedTypeDecl {
+                    open: true,
+                    ..decl(
+                        "Meta",
+                        vec![],
+                        Ty::Record {
+                            fields: vec![field("id", Ty::Prim(Primitive::String))],
+                        },
+                    )
+                }),
                 ("lib", "Id") => Some(decl("Id", vec![], Ty::Prim(Primitive::String))),
                 ("lib", "Tier") => Some(decl(
                     "Tier",
@@ -14507,6 +14606,7 @@ component View(props: { s: Status }) -> Component {
                         },
                     ],
                 },
+                open: false,
             })
         }
     }
@@ -15304,6 +15404,7 @@ fn f(a: Answer) -> number {
                             optional: false,
                         }],
                     },
+                    open: false,
                 })
             }
         }
@@ -15826,6 +15927,7 @@ fn f(a: Answer) -> number {
                     name: Ident::from("Mode"),
                     generics: Vec::new(),
                     body: Ty::StringLiteralUnion(vec!["read".to_string(), "write".to_string()]),
+                    open: false,
                 })
             }
         }
@@ -17396,8 +17498,8 @@ fn f(a: Answer) -> number {
     /// G293, the reverse of G289. A declared record or tagged union where a
     /// prelude container is declared is another declaration (D49), refused at
     /// a `let`, a `return` and a call argument. `Nullable` is decided against
-    /// its argument instead, and `Record` is left undetermined (see the next
-    /// test).
+    /// its argument instead, and `Record` field by field (see the tests after
+    /// the next one).
     #[test]
     fn a_declared_type_where_a_prelude_container_is_expected_is_refused() {
         let errs = errors_of(
@@ -17442,12 +17544,10 @@ fn f(a: Answer) -> number {
 
     /// What stays accepted: a `Nullable` of the same declaration (D45), the
     /// value wrapped in its container, a record with no fields, an interface,
-    /// and an object literal, which has no declaration and is compared field
-    /// by field. A declared record where a `Record<K, V>` map is declared is
-    /// undetermined on purpose: the map's validator and `tsc` both accept a
-    /// closed record whose fields are all `V`s, so D49's argument does not
-    /// reach it, and how it is decided is an open question rather than
-    /// something this arm settles.
+    /// an object literal, which has no declaration and is compared field by
+    /// field, and a closed record whose fields are all required `V`s where a
+    /// `Record<string, V>` map is declared (the tests below decide the rest of
+    /// that pairing).
     #[test]
     fn a_declared_type_against_a_container_it_belongs_in_stays_silent() {
         let errs = errors_of(
@@ -17471,5 +17571,187 @@ fn f(a: Answer) -> number {
              }\n",
         );
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// G293, `Record<string, V>`. A closed declared record is compared field
+    /// by field against `V`, which is what the map's validator does with it:
+    /// a required field whose type is not a `V` is refused, and a record whose
+    /// fields are all required `V`s is accepted. The same for a record
+    /// declared here, a generic one applied, and a stdlib-modeled one.
+    #[test]
+    fn a_declared_record_where_a_string_keyed_map_is_declared_is_compared_by_field() {
+        let errs = errors_of(
+            "module m\n\
+             import std/url\n\
+             import std/fs\n\
+             type User = { name: string, age: number, }\n\
+             type Label = { name: string, title: string, }\n\
+             type Box<T> = { value: T, }\n\
+             fn take(m: Record<string, string>) -> number { return 0 }\n\
+             fn back(u: User) -> Record<string, string> { return u }\n\
+             pub fn f(u: User, l: Label, bs: Box<string>, bn: Box<number>, p: url.Param, info: fs.FileInfo) -> number {\n\
+             \x20 let a: Record<string, string> = u\n\
+             \x20 let b: Record<string, string> = l\n\
+             \x20 let c: Record<string, string> = bs\n\
+             \x20 let d: Record<string, string> = bn\n\
+             \x20 let e: Record<string, string> = p\n\
+             \x20 let g: Record<string, string> = info\n\
+             \x20 let h: Record<string, unknown> = u\n\
+             \x20 return take(u)\n\
+             }\n",
+        );
+        let got = g289_mismatches(&errs);
+        for want in [
+            ("Record<string, string>", "User"),
+            ("Record<string, string>", "Box<number>"),
+            ("Record<string, string>", "fs.FileInfo"),
+        ] {
+            assert!(
+                got.iter().any(|(e, f)| e == want.0 && f == want.1),
+                "missing E0204 expected `{}` found `{}`: {errs:?}",
+                want.0,
+                want.1
+            );
+        }
+        // The three above plus the `return u`; `Label`, `Box<string>`,
+        // `url.Param` and `Record<string, unknown>` are accepted.
+        assert_eq!(got.len(), 4, "{errs:?}");
+        assert_eq!(
+            argument_mismatches(&errs),
+            vec![("Record<string, string>".to_string(), "User".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// G293. An `@open` record's validator admits keys beyond its fields,
+    /// holding values no validator checked, so it is refused where any
+    /// `Record<string, V>` is declared unless `V` is `unknown`, even when
+    /// every declared field is a `V`.
+    #[test]
+    fn an_open_record_where_a_string_keyed_map_is_declared_is_refused_unless_unknown() {
+        let errs = errors_of(
+            "module m\n\
+             @open\n\
+             type Meta = { id: string, }\n\
+             type Alias = Meta\n\
+             pub fn f(meta: Meta, al: Alias) -> number {\n\
+             \x20 let a: Record<string, string> = meta\n\
+             \x20 let b: Record<string, string> = al\n\
+             \x20 let c: Record<string, unknown> = meta\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        let got = g289_mismatches(&errs);
+        assert!(
+            got.iter().any(|(e, f)| e == "Record<string, string>" && f == "Meta"),
+            "{errs:?}"
+        );
+        assert!(
+            got.iter().any(|(e, f)| e == "Record<string, string>" && f == "Alias"),
+            "{errs:?}"
+        );
+        assert_eq!(got.len(), 2, "{errs:?}");
+    }
+
+    /// G293. A tagged union has no fields in Glyph, and its runtime encoding
+    /// is not a contract, so it is refused wherever any `Record<K, V>` is
+    /// declared: a `V` of `unknown` and a `K` other than `string` included.
+    #[test]
+    fn a_tagged_union_where_a_map_is_declared_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             import std/fs\n\
+             type Mode = | A | B\n\
+             type Key = \"a\" | \"b\"\n\
+             pub fn f(mode: Mode, k: fs.ErrorKind) -> number {\n\
+             \x20 let a: Record<string, string> = mode\n\
+             \x20 let b: Record<string, unknown> = mode\n\
+             \x20 let c: Record<Key, string> = mode\n\
+             \x20 let d: Record<string, string> = k\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        let got = g289_mismatches(&errs);
+        for want in [
+            ("Record<string, string>", "Mode"),
+            ("Record<string, unknown>", "Mode"),
+            ("Record<Key, string>", "Mode"),
+            ("Record<string, string>", "fs.ErrorKind"),
+        ] {
+            assert!(
+                got.iter().any(|(e, f)| e == want.0 && f == want.1),
+                "missing E0204 expected `{}` found `{}`: {errs:?}",
+                want.0,
+                want.1
+            );
+        }
+        assert_eq!(got.len(), 4, "{errs:?}");
+    }
+
+    /// G293. What the map's validator and `tsc` disagree about is not decided
+    /// here, and `tsc` answers it. An optional field: the validator accepts
+    /// the absent key, while `tsc` accepts `nick?: string` and refuses `nick?:
+    /// number` (TS2322), both checked against `glyph check`. A `K` other than
+    /// `string`: `tsc` requires the keys and the validator ignores them. A
+    /// required field that is not a `V` still decides the pairing beside an
+    /// optional one.
+    #[test]
+    fn an_optional_field_and_a_non_string_key_are_left_to_tsc() {
+        let errs = errors_of(
+            "module m\n\
+             type Nick = { name: string, nick?: string, }\n\
+             type Loose = { name: string, nick?: number, }\n\
+             type Both = { age: number, nick?: number, }\n\
+             type User = { name: string, age: number, }\n\
+             type Key = \"name\" | \"age\"\n\
+             pub fn f(n: Nick, l: Loose, b: Both, u: User) -> number {\n\
+             \x20 let a: Record<string, string> = n\n\
+             \x20 let c: Record<string, string> = l\n\
+             \x20 let d: Record<Key, string> = u\n\
+             \x20 let e: Record<number, string> = u\n\
+             \x20 let g: Record<string, string> = b\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("Record<string, string>".to_string(), "Both".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// G293 across a module boundary. An imported record is compared field by
+    /// field where a `Record<string, V>` is declared, an imported `@open`
+    /// record is refused unless `V` is `unknown`, and an imported union is
+    /// refused wherever a map is declared.
+    #[test]
+    fn an_imported_declaration_where_a_string_keyed_map_is_declared() {
+        let src = r#"module x
+import lib { Point, Meta, Status }
+
+fn main(p: Point, m: Meta, s: Status) -> number {
+  let a: Record<string, number> = p
+  let b: Record<string, string> = p
+  let c: Record<string, string> = m
+  let d: Record<string, unknown> = m
+  let e: Record<string, string> = s
+  return 0
+}
+"#;
+        let errs = lib_errors_of(src);
+        let got = g289_mismatches(&errs);
+        for want in [
+            ("Record<string, string>", "Point"),
+            ("Record<string, string>", "Meta"),
+            ("Record<string, string>", "Status"),
+        ] {
+            assert!(
+                got.iter().any(|(e, f)| e == want.0 && f == want.1),
+                "missing E0204 expected `{}` found `{}`: {errs:?}",
+                want.0,
+                want.1
+            );
+        }
+        assert_eq!(got.len(), 3, "{errs:?}");
     }
 }

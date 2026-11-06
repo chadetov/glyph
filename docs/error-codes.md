@@ -150,7 +150,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |
-| `E0204` | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` |
+| `E0204` | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` |
 | `E0205` | `owned` used on a non-`resource` type (D25) |
 | `E0206` | `owned` resource not consumed on every path (D25) |
 | `E0207` | `owned` resource used after it was consumed (D25) |

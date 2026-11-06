@@ -10925,13 +10925,25 @@ and is the owner's to confirm.
   of type arguments that is not the declaration's binds nothing and is
   still left to `tsc` (TS2558). Not breaking: `tsc` refused every program
   this refuses.
-- **G293. A record where a `Result` is expected is left to `tsc`.** The
+- **G293. [FIXED] A record where a `Result` is expected is left to `tsc`.** The
   reverse of G289: `let r: Result<User, string> = u` with `u: User` passes
   `glyph check --no-tsc`, and `tsc` refuses it (TS2322: ``Type 'User' is not
   assignable to type 'Result<User, string>'``). G289's check fires when the
   container is the value, not when it is the annotation.
 
-  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+  *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.* *Re-run against 0.1.130: the same.*
+
+  Fixed in 0.1.131: a declared record or tagged union (local, imported, or
+  a stdlib type the checker models) where `Array`, `Option` or `Result` is
+  declared is E0204 at a `let`, a `const` or a `return` and E0211 at a call
+  argument. `let r: Result<User, string> = u` is ``[E0204] type mismatch:
+  expected `Result<User, string>`, found `User` ``, exit 1. Where a
+  `Nullable<T>` is declared the pairing is the one against `T`, so `let n:
+  Nullable<User> = u` stays correct and `let n: Nullable<Shape> = u` is
+  refused. A `Record<K, V>` is left undetermined: a map's validator and
+  `tsc` both accept a closed record whose fields are all `V`s, so D49's
+  argument does not reach it, and it waits for a decision. Not breaking:
+  `tsc` refused every program this refuses.
 - **G294. [FIXED] The stdlib's string-literal unions are not modeled.** A match on
   `http.RedirectPolicy` (`"follow" | "manual" | "error"`) cannot be checked for
   exhaustiveness: it is E0232 since G291, and the only way to compile it is an

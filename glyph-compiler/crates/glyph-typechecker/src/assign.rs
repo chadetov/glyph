@@ -6653,7 +6653,60 @@ impl Assigner<'_> {
                 return !decl.is_empty_record();
             }
         }
+        // G293, the reverse of G289: a declared record or tagged union where
+        // a prelude container is declared. `let r: Result<User, string> = u`
+        // with `u: User` is two declarations under D49 exactly as the forward
+        // pairing is, and nothing decided it, so it reached only `tsc`
+        // (TS2322).
+        //
+        // `Nullable<T>` is the one container that is decided against its
+        // argument instead, for the reason the scalar and record arms above
+        // descend: it admits a `T` or the null a boundary produced (D45), so
+        // `let n: Nullable<User> = u` is the intended spelling and `let n:
+        // Nullable<Shape> = u` is `User` against `Shape`.
+        //
+        // `Record<K, V>` is left undetermined. D49's argument is that the
+        // checker answers as the declared type's validator does, and a map's
+        // validator accepts a closed record whose fields are all `V`s, as
+        // `tsc` does (`let m: Record<string, string> = u` compiles with `u:
+        // User` and `User = { name: string }`). Refusing it would be the one
+        // pairing here the runtime does not refuse, so it waits for a
+        // decision rather than being settled by this arm.
+        //
+        // The value side counts what the expected side of G289 counts, with
+        // the same exclusion: a record with no fields, an interface, an alias
+        // whose body is not a union or a record, and a stdlib name with no
+        // modeled shape stay undetermined.
+        if let Some((container, args)) = self.prelude_container(expected) {
+            if self.is_declared_type_with_identity(found) {
+                return match container {
+                    "Nullable" => args
+                        .first()
+                        .is_some_and(|inner| self.assign_incompatible(found, inner)),
+                    "Record" => false,
+                    _ => true,
+                };
+            }
+        }
         false
+    }
+
+    /// Whether `ty` is a declaration D49 gives an identity to and the checker
+    /// can read: a record with at least one field or a tagged union, declared
+    /// in this module, in a project sibling, or in the stdlib with a modeled
+    /// shape. The side of G289 that names the declaration, asked of the value
+    /// for G293.
+    fn is_declared_type_with_identity(&self, ty: &Ty) -> bool {
+        if stdlib_union_variants(ty).is_some()
+            || stdlib_type_fields(self, ty).is_some_and(|f| !f.is_empty())
+        {
+            return true;
+        }
+        if let Some(body) = self.declared_union_or_record_body(ty) {
+            return !matches!(body, TypeExpr::Record { fields, .. } if fields.is_empty());
+        }
+        self.imported_union_or_record(split_type_app(ty).0)
+            .is_some_and(|decl| !decl.is_empty_record())
     }
 
     /// The pairings of an imported declaration the relation decides, on
@@ -8527,10 +8580,12 @@ mod tests {
             assignability_of("module m\n", "fn(string) -> bool", "fn(number) -> bool"),
             Assignability::NoRule
         ));
-        assert!(matches!(
+        // A declared union where a prelude container is declared was the
+        // second shape here until G293 applied D49 to it.
+        assert_eq!(
             assignability_of(UNION, "Order", "Array<string>"),
-            Assignability::NoRule
-        ));
+            Assignability::Incompatible
+        );
     }
 
     /// The `Compatible` half is claimed only from a total rule, and each of
@@ -12805,11 +12860,11 @@ fn main(s: o.Status) -> Status {
     }
 
     #[test]
-    fn an_imported_union_against_a_prelude_application_stays_undetermined() {
-        // Neither side is a declaration of this module, and `Option` is not a
-        // project declaration, so the pairing has no rule: the same silence a
-        // local union against `Option<number>` keeps. Pinned so the identity
-        // arm cannot widen into comparing against the prelude by accident.
+    fn an_imported_union_against_a_prelude_application_is_refused() {
+        // G293. An imported union is a declaration of the program and
+        // `Option` one of the prelude, so D49 refuses the pairing the way it
+        // refuses a local union against `Option<number>`. This pinned the
+        // silence until the reverse of G289 was applied.
         let src = r#"module x
 import lib { Status }
 
@@ -12822,7 +12877,8 @@ fn main(s: Status) -> Option<number> {
 }
 "#;
         let errs = lib_errors_of(src);
-        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert!(has_argument_mismatch(&errs, "Option<number>", "Status"), "errs: {errs:?}");
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
     }
 
     // ----- BUG-03: call arity -----
@@ -17264,6 +17320,86 @@ fn f(a: Answer) -> number {
              }\n",
         );
         assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// G293, the reverse of G289. A declared record or tagged union where a
+    /// prelude container is declared is another declaration (D49), refused at
+    /// a `let`, a `return` and a call argument. `Nullable` is decided against
+    /// its argument instead, and `Record` is left undetermined (see the next
+    /// test).
+    #[test]
+    fn a_declared_type_where_a_prelude_container_is_expected_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             import std/result { Result }\n\
+             import std/option { Option }\n\
+             import std/url\n\
+             type User = { name: string, }\n\
+             type Shape = | Circle(number) | Square(number)\n\
+             fn take(r: Result<User, string>) -> number { return 0 }\n\
+             fn back(u: User) -> Option<User> { return u }\n\
+             pub fn f(u: User, s: Shape, link: url.Url) -> number {\n\
+             \x20 let r: Result<User, string> = u\n\
+             \x20 let xs: Array<Shape> = s\n\
+             \x20 let o: Option<url.Url> = link\n\
+             \x20 let n: Nullable<Shape> = u\n\
+             \x20 return take(u)\n\
+             }\n",
+        );
+        let got = g289_mismatches(&errs);
+        for want in [
+            ("Result<User, string>", "User"),
+            ("Option<User>", "User"),
+            ("Array<Shape>", "Shape"),
+            ("Option<url.Url>", "url.Url"),
+            ("Nullable<Shape>", "User"),
+        ] {
+            assert!(
+                got.iter().any(|(e, f)| e == want.0 && f == want.1),
+                "missing E0204 expected `{}` found `{}`: {errs:?}",
+                want.0,
+                want.1
+            );
+        }
+        assert_eq!(got.len(), 5, "{errs:?}");
+        assert_eq!(
+            argument_mismatches(&errs),
+            vec![("Result<User, string>".to_string(), "User".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// What stays accepted: a `Nullable` of the same declaration (D45), the
+    /// value wrapped in its container, a record with no fields, an interface,
+    /// and an object literal, which has no declaration and is compared field
+    /// by field. A declared record where a `Record<K, V>` map is declared is
+    /// undetermined on purpose: the map's validator and `tsc` both accept a
+    /// closed record whose fields are all `V`s, so D49's argument does not
+    /// reach it, and how it is decided is an open question rather than
+    /// something this arm settles.
+    #[test]
+    fn a_declared_type_against_a_container_it_belongs_in_stays_silent() {
+        let errs = errors_of(
+            "module m\n\
+             import std/result { Ok, Result }\n\
+             import std/option { Some, Option }\n\
+             type User = { name: string, }\n\
+             type Empty = {}\n\
+             interface Named {\n\
+             \x20 name: string\n\
+             }\n\
+             pub fn f(u: User, e: Empty, i: Named) -> number {\n\
+             \x20 let n: Nullable<User> = u\n\
+             \x20 let r: Result<User, string> = Ok(u)\n\
+             \x20 let o: Option<User> = Some(u)\n\
+             \x20 let m: Record<string, string> = e\n\
+             \x20 let mu: Record<string, string> = u\n\
+             \x20 let k: Record<string, string> = { name: \"a\" }\n\
+             \x20 let j: Nullable<Named> = i\n\
+             \x20 return 0\n\
+             }\n",
+        );
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
     }
 }

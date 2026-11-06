@@ -5654,7 +5654,7 @@ impl Assigner<'_> {
     /// parameter or return type is satisfied by any value carrying its members,
     /// so it is matched by member shape rather than by the nominal
     /// `Named`-vs-`Named` name check `definitely_incompatible` applies to
-    /// `type` aliases (Q15); the recursion also reaches an interface nested one
+    /// `type` aliases (D49); the recursion also reaches an interface nested one
     /// level inside a generic application (`Array<Iface>`). And a declared
     /// union or record is never a `string`, a `number` or a `bool` (G201), nor
     /// is one of those three ever a declared union or record (the reverse
@@ -5718,7 +5718,7 @@ impl Assigner<'_> {
     /// and `tsc --strict` reports each as missing when it is left out).
     ///
     /// Empty for any other pairing, including a value whose type is a named
-    /// record: that pairing is refused by name (Q15), and a list of fields
+    /// record: that pairing is refused by name (D49), and a list of fields
     /// would describe a reason the relation did not use.
     fn missing_required_fields(&self, found: &Ty, expected: &Ty) -> Vec<String> {
         let Ty::Record { fields: have } = found else {
@@ -5983,7 +5983,7 @@ impl Assigner<'_> {
         match (f, e) {
             // Decisive in both directions, and it has to be: two literal sets
             // reach `definitely_incompatible` as two `Ty::Named`s, and the
-            // nominal rule (Q15) would refuse `let w: Wide = m` for the names
+            // nominal rule (D49) would refuse `let w: Wide = m` for the names
             // differing when the sets say it stands.
             (Some(f), Some(e)) => Some(f.iter().any(|v| !e.contains(v))),
             // A prelude container is already decided by
@@ -6153,7 +6153,7 @@ impl Assigner<'_> {
         // Structural, not nominal, and that is TypeScript's rule for the same
         // pairing: a value carrying `User`'s fields is a `User` there, so
         // refusing it by name would refuse a program `tsc --strict` compiles.
-        // The nominal rule (Q15) is untouched: it decides two *names*, and
+        // The nominal rule (D49) is untouched: it decides two *names*, and
         // this side has none.
         //
         // The field set comes from `record_fields_of`, so a local
@@ -6203,7 +6203,7 @@ impl Assigner<'_> {
         }
         // G274. A declared record where a structural one is declared, `m: Mine`
         // passed to `x: { b: string }`, is compared by field, which is
-        // TypeScript's rule. The nominal rule (Q15) decides two names and this
+        // TypeScript's rule. The nominal rule (D49) decides two names and this
         // pairing has a name on one side only, the mirror of the arm above.
         if let Ty::Record { fields: declared } = &expected {
             if !matches!(found, Ty::Record { .. }) {
@@ -6530,7 +6530,7 @@ impl Assigner<'_> {
         // application against a bare name, so the pairing was decided by
         // nothing and reached only `tsc` (TS2322).
         //
-        // Two declarations, so the nominal rule (Q15) is what decides it, the
+        // Two declarations, so the nominal rule (D49) is what decides it, the
         // same rule that refuses a `Shape` where a `User` is declared. The
         // container is a declaration of the prelude and the expected type one
         // of this program, local or imported, so they are never the same type
@@ -11690,7 +11690,7 @@ fn f() -> number {
 
     #[test]
     fn named_type_argument_mismatch_is_flagged() {
-        // Distinct named types are nominally incompatible (Q15).
+        // Distinct named types are nominally incompatible (D49).
         let src = r#"module x
 type A = { x: number }
 type B = { y: number }
@@ -14777,8 +14777,8 @@ fn f(a: Answer) -> number {
         assert!(errs.is_empty(), "{errs:?}");
     }
 
-    /// Nominal typing is untouched where no alias is involved: a second record
-    /// of the same shape is another type (Q15), and the E0211 stays.
+    /// D49. Nominal typing is untouched where no alias is involved: a second record
+    /// of the same shape is another type (D49), and the E0211 stays.
     #[test]
     fn a_separately_declared_record_of_the_same_shape_is_still_another_type() {
         let errs = errors_of(
@@ -16132,7 +16132,7 @@ fn f(a: Answer) -> number {
         assert_eq!(mismatch_found(&errs), vec!["record"], "errs: {errs:?}");
     }
 
-    /// The nominal rule (Q15) decides two *names* and a written literal has
+    /// The nominal rule (D49) decides two *names* and a written literal has
     /// none, so the comparison against a declared record is structural, which
     /// is what `tsc` does with the same pairing. A complete literal is
     /// accepted whatever the declaration is called.
@@ -16718,7 +16718,7 @@ fn f(a: Answer) -> number {
     /// The relation half of G289, which is not about `json.parse`: any prelude
     /// container is a different declaration from a record or tagged union the
     /// program declares, or a stdlib type the checker models, so the nominal
-    /// rule (Q15) refuses it at a `let`, a `return` and a call argument. A
+    /// rule (D49) refuses it at a `let`, a `return` and a call argument. A
     /// user function returning `Result<User, string>` was as silent as the
     /// stdlib call.
     #[test]
@@ -16790,6 +16790,54 @@ fn f(a: Answer) -> number {
              \x20 let l: Loaded = load()\n\
              \x20 let k: Headers = h\n\
              \x20 return \"\"\n\
+             }\n",
+        );
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// D49. A prelude container is another declaration, so a record whose
+    /// fields the container happens to carry still refuses it. `tsc` accepts
+    /// the `Sized` line, since an array has a `length`; `Sized.parse` refuses
+    /// an array, and the checker answers as the validator does.
+    #[test]
+    fn a_container_against_a_record_it_could_satisfy_by_shape_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             import std/option { Option }\n\
+             type Sized = { length: number, }\n\
+             type Flags = { verbose?: bool, }\n\
+             type Tagged = { tag: string, }\n\
+             pub fn f(xs: Array<string>, m: Record<string, bool>, o: Option<number>) -> number {\n\
+             \x20 let s: Sized = xs\n\
+             \x20 let g: Flags = m\n\
+             \x20 let t: Tagged = o\n\
+             \x20 return s.length\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![
+                ("Sized".to_string(), "Array<string>".to_string()),
+                ("Flags".to_string(), "Record<string, bool>".to_string()),
+                ("Tagged".to_string(), "Option<number>".to_string()),
+            ],
+            "{errs:?}"
+        );
+    }
+
+    /// D34 against D49: an interface has no descriptor and no identity, so
+    /// the array a `Sized` record refuses is left to member shape when
+    /// `Sized` is an interface.
+    #[test]
+    fn a_container_against_an_interface_of_its_members_stays_silent() {
+        let errs = errors_of(
+            "module m\n\
+             interface Sized {\n\
+             \x20 length: number\n\
+             }\n\
+             pub fn f(xs: Array<string>) -> number {\n\
+             \x20 let s: Sized = xs\n\
+             \x20 return s.length\n\
              }\n",
         );
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");

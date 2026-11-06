@@ -23,6 +23,7 @@ in the right-hand column.
 | `any` | (does not exist) | What the type claims is true at runtime |
 | `class` / data `interface` | `type` records + tagged unions | One shape syntax; behavior lives in functions |
 | `interface` as a constraint | `interface` (structural, for `<T: Bound>`) | A generic can require capability of its parameter |
+| structural `type` aliases | a declared record is its own type (D49); only an `interface` is structural (D34) | A value fits a record when the record's own `parse` would accept it, so an array never passes as `{ length: number }` |
 | `export` by default | private by default, `pub` to export | The public API is `grep '^pub'`; a helper stays internal |
 | `try`/`finally` cleanup | `defer expr` | Cleanup runs on every exit path, greppable |
 | backtick templates | `"${expr}"` in normal strings, newlines included | Two forms: `"..."` decodes escapes, `"""..."""` is raw; both interpolate |

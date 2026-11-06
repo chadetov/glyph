@@ -118,6 +118,31 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
         });
     }
 
+    // `json.parse_with<T>(text, schema: Schema<T>) -> Result<T, Array<Issue>>`,
+    // `json.parse`'s sibling and the form `json.parse<T>` lowers to. With no
+    // row its result was `Unknown`, so `let u: User = json.parse_with(body,
+    // s)` passed `glyph check --no-tsc` and only `tsc` refused it (G298).
+    //
+    // `T` rides on the schema, so `s: Schema<User>` binds it. A schema the
+    // checker holds no type for (`User.schema` is one) binds nothing, and
+    // then `T` is the written type argument or undecided: the call still
+    // returns a `Result`, which no record annotation accepts, but the `Ok`
+    // payload is not claimed to be `unknown` when it is a `User` at run time.
+    if (module_key, field) == ("std/json", "parse_with") {
+        let t = || Ty::Param {
+            name: Ident::from("T"),
+            owner: ParamOwner::Unresolved,
+        };
+        return Some(Ty::Fn {
+            params: vec![
+                required(Ty::Prim(Primitive::String)),
+                required(schema_ty(prelude, t())?),
+            ],
+            return_ty: Arc::new(result_ty(prelude, t(), issues_ty(prelude)?)?),
+            is_async: false,
+        });
+    }
+
     // Option-returning accessors for untrusted request input. Modeling the
     // return as `Option<string>` gives the caller a `match` the
     // exhaustiveness checker understands, so a missing header or query
@@ -1386,22 +1411,61 @@ pub(crate) fn issues_ty(prelude: &Prelude) -> Option<Ty> {
     )
 }
 
-/// The type parameters of a modeled stdlib function that only an explicit
-/// type argument can fill, in declaration order, or an empty slice.
+/// What a type parameter listed by [`explicit_type_params`] is when no type
+/// argument is written and no argument bound it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Unwritten {
+    /// `unknown`: the value is untrusted and nothing says what it is.
+    /// `json.parse`'s `T`, which appears in no argument position.
+    UnknownTop,
+    /// Undecided: an argument carries the parameter, but its type is one the
+    /// checker does not hold. `json.parse_with`'s `T` on `User.schema`.
+    Undecided,
+}
+
+impl Unwritten {
+    pub(crate) fn ty(self) -> Ty {
+        match self {
+            Unwritten::UnknownTop => Ty::UnknownTop,
+            Unwritten::Undecided => Ty::Unknown,
+        }
+    }
+}
+
+/// The type parameters of a modeled stdlib function that a written type
+/// argument fills, in declaration order, or an empty slice.
 ///
 /// Every other generic row infers its parameters from the arguments
-/// (`array.find`'s `T` rides on the array). A parameter listed here appears
-/// in no argument position, so the call site binds it from the written type
-/// argument at the same index and, when none is written, to `unknown`: the
-/// value is untrusted and its type is not known, which is TypeScript's own
-/// answer for the call with no contextual type. Leaving it an open
-/// `Ty::Param` instead would carry a `T` the reader never wrote into the
-/// diagnostic.
-pub(crate) fn explicit_type_params(module_key: &str, field: &str) -> &'static [&'static str] {
+/// (`array.find`'s `T` rides on the array). The call site binds a parameter
+/// listed here to the written type argument at the same index, which wins over
+/// an argument's binding the way it does in TypeScript; with none written, to
+/// what the arguments bound; and failing both, to its [`Unwritten`] type.
+/// Leaving it an open `Ty::Param` instead would carry a `T` the reader never
+/// wrote into the diagnostic.
+pub(crate) fn explicit_type_params(
+    module_key: &str,
+    field: &str,
+) -> &'static [(&'static str, Unwritten)] {
     match (module_key, field) {
-        ("std/json", "parse") => &["T"],
+        // The value is untrusted and its type is not known, which is
+        // TypeScript's own answer for the call with no contextual type.
+        ("std/json", "parse") => &[("T", Unwritten::UnknownTop)],
+        ("std/json", "parse_with") => &[("T", Unwritten::Undecided)],
         _ => &[],
     }
+}
+
+/// Build `Schema<inner>` as a prelude `App`, the type a written `Schema<User>`
+/// annotation lowers to, so `json.parse_with`'s `T` binds from it.
+fn schema_ty(prelude: &Prelude, inner: Ty) -> Option<Ty> {
+    let schema_id = prelude.lookup("Schema")?;
+    Some(Ty::App {
+        base: Arc::new(Ty::Named {
+            symbol: SymbolRef(schema_id.0),
+            path: vec![Ident::from("Schema")],
+        }),
+        args: vec![inner],
+    })
 }
 
 /// A required parameter of the given type.

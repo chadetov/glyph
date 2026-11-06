@@ -139,9 +139,9 @@
           stdlib is 40 modules and 340 exports, and each signature is read out of the checker's
           own tables and printed by the same type printer a diagnostic uses, so the signature in
           the document is the signature the checker will hold you to. The exports split three
-          ways and never two: 128 signatures are modeled in every position, 46 carry a
+          ways and never two: 129 signatures are modeled in every position, 46 carry a
           <code>?</code> where a parameter type belongs and are counted
-          <code>partially_modeled</code> with a line saying how many positions are left, and 166
+          <code>partially_modeled</code> with a line saying how many positions are left, and 165
           have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is
           never published as a complete signature.
         </p>
@@ -161,8 +161,8 @@
     "signature":
       "fn(Array&lt;T&gt;, U, fn(U, T) -&gt; U) -&gt; U" } ] }
 
-"modeled": 128, "partially_modeled": 46,
-"unmodeled": 166</pre>
+"modeled": 129, "partially_modeled": 46,
+"unmodeled": 165</pre>
         </div>
         <div class="code">
           <span class="cap">"prelude" and "decisions"</span>

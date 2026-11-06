@@ -2181,17 +2181,21 @@ impl Assigner<'_> {
                     for (p, a) in params.iter().zip(args.iter()) {
                         collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
                     }
-                    // A stdlib parameter no argument carries (`json.parse`'s
-                    // `T`) is the written type argument, or `unknown` when
-                    // none is written (G289).
+                    // A stdlib parameter a type argument can name
+                    // (`json.parse`'s `T`, G289; `json.parse_with`'s, G298) is
+                    // the written type argument, else what the arguments
+                    // bound, else the row's own answer for an unwritten one.
                     if let Some((key, field)) = self.stdlib_callee(callee) {
                         let names = crate::stdlib::explicit_type_params(&key, &field);
-                        for (i, name) in names.iter().enumerate() {
-                            let bound = type_args
-                                .get(i)
-                                .map(|t| self.lowerer.lower(t))
-                                .unwrap_or(Ty::UnknownTop);
-                            subst.entry(Ident::from(*name)).or_insert(bound);
+                        for (i, (name, unwritten)) in names.iter().enumerate() {
+                            match type_args.get(i) {
+                                Some(t) => {
+                                    subst.insert(Ident::from(*name), self.lowerer.lower(t));
+                                }
+                                None => {
+                                    subst.entry(Ident::from(*name)).or_insert(unwritten.ty());
+                                }
+                            }
                         }
                     }
                     // Check each argument against its parameter type (with any
@@ -16864,6 +16868,90 @@ fn f(a: Answer) -> number {
                 TypeError::UnknownField { field, .. } if field == "idd"
             )),
             "the `Ok` binding of `json.parse<User>` is a `User`: {errs:?}"
+        );
+    }
+
+    /// G298. `json.parse_with(text, schema)` is `json.parse`'s sibling and had
+    /// no row, so its result was `Unknown` and a record annotation over it
+    /// passed `glyph check --no-tsc` while `tsc` refused it. `T` rides on the
+    /// `Schema<T>` argument, and a written type argument names it.
+    #[test]
+    fn a_let_annotation_that_disagrees_with_json_parse_with_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             type User = { id: string, }\n\
+             pub fn f(body: string, s: Schema<User>) -> string {\n\
+             \x20 let user: User = json.parse_with(body, s)\n\
+             \x20 let other: User = json.parse_with<User>(body, User.schema)\n\
+             \x20 return user.id\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![
+                ("User".to_string(), "Result<User, Array<Issue>>".to_string()),
+                ("User".to_string(), "Result<User, Array<Issue>>".to_string()),
+            ],
+            "{errs:?}"
+        );
+    }
+
+    /// With no type argument and a schema whose type the checker does not
+    /// hold (`User.schema` is not typed here), `T` is undecided rather than
+    /// `unknown`: a `match` over the result reads `Ok(u).id` without a
+    /// refusal, and the container is still a container.
+    #[test]
+    fn json_parse_with_an_untyped_schema_leaves_the_ok_type_undecided() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/result { Ok, Err }\n\
+             type User = { id: string, }\n\
+             pub fn f(body: string) -> string {\n\
+             \x20 let r: Result<User, Array<Issue>> = json.parse_with(body, User.schema)\n\
+             \x20 let bad: User = json.parse_with(body, User.schema)\n\
+             \x20 return match json.parse_with(body, User.schema) {\n\
+             \x20\x20\x20 Ok(u) => u.id,\n\
+             \x20\x20\x20 Err(_e) => \"\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("User".to_string(), "Result<?, Array<Issue>>".to_string())],
+            "{errs:?}"
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "{errs:?}"
+        );
+    }
+
+    /// With a typed schema the `Ok` binding is the schema's type, so a
+    /// misspelled field on it is a Glyph error; the two-argument arity is held.
+    #[test]
+    fn json_parse_with_types_its_ok_binding_and_its_arity() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json { parse_with }\n\
+             import std/result { Ok, Err }\n\
+             type User = { id: string, }\n\
+             pub fn f(body: string, s: Schema<User>) -> string {\n\
+             \x20 let _x = parse_with(body)\n\
+             \x20 return match parse_with(body, s) {\n\
+             \x20\x20\x20 Ok(u) => u.idd,\n\
+             \x20\x20\x20 Err(_e) => \"\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, .. } if field == "idd")),
+            "{errs:?}"
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::ArgumentCountMismatch { expected: 2, found: 1, .. })),
+            "{errs:?}"
         );
     }
 

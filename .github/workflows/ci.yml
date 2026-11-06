@@ -255,6 +255,16 @@ jobs:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
         run: python3 scripts/check_runtime_against_types_node.py
 
+      # The checker types a stdlib call from its own table, and the function
+      # that runs is the TypeScript under runtime/std/. Nothing else compares
+      # them. For every row `glyph llms --json` calls complete, this binds the
+      # runtime export to the declared type and back under the pinned tsc, and
+      # fails on any mismatch the gap ledger does not already record.
+      - name: Check the stdlib signatures against the runtime
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: python3 scripts/check_stdlib_signatures.py
+
       # The evidence behind the four pillars, checked in both directions. The
       # TypeScript in each case has to keep passing `tsc --strict` or the case
       # proves nothing, and the Glyph has to keep failing with the code it names

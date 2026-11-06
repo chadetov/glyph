@@ -11284,3 +11284,54 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
   `no diagnostics` under `--no-tsc`, TS2678 with `tsc`.*
+- **G307. `array.concat`'s row accepts two arrays the runtime does not.** The
+  checker's row is `fn(Array<T>, Array<U>) -> Array<T>`: the second array may
+  hold any element type, and the result is typed as the first. The runtime is
+  `concat<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>): Array<T>`. So
+  `return array.concat([1, 2], ["a"])` from a function declared
+  `-> Array<number>` passes Glyph's checker, and `tsc` refuses it (``TS2322:
+  Type 'string' is not assignable to type 'number'``). The row's own comment
+  says the second `U` was chosen so that nothing `tsc` accepts is lost, which
+  holds; the cost is a published signature that is wider than the function
+  and a mistake the checker hands to `tsc`. Found by
+  `scripts/check_stdlib_signatures.py`.
+
+  *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
+  `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+- **G308. A trailing optional parameter is published as required.**
+  `string.pad_end`, `string.pad_start`, `string.slice`, `string.index_of` and
+  `array.slice` each take an optional last argument. The checker's rows say so
+  (`optional(...)`), and `string.pad_end(s, 4)` passes `glyph check`, but
+  `display_ty` drops the flag, so `glyph llms --json` publishes
+  `fn(string, number, string) -> string` for `pad_end`, a signature that
+  refuses the two-argument call AGENTS.md (`pad?`) and the runtime both allow.
+  A Glyph function type has no way to write an optional parameter
+  (`TypeExpr::Fn` lowers every parameter with `optional: false`), so this is
+  the case the 0.1.132 decision record names: these rows cannot move to a
+  Glyph-syntax signature source until the language can spell them. Found by
+  `scripts/check_stdlib_signatures.py`.
+
+  *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
+  `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc`, and
+  `glyph llms --json` gives `pad_end` the signature
+  `fn(string, number, string) -> string`.*
+- **G309. The array runtime takes `ReadonlyArray<T>` where the rows declare
+  `Array<T>`.** Nineteen `std/array` rows (`any`, `concat`, `filter`, `find`,
+  `flat_map`, `fold`, `fold_while`, `get`, `len`, `map`, `max`, `max_by`,
+  `min`, `min_by`, `reverse`, `sort`, `sum`, `try_fold`, `zip`) plus `slice`
+  declare an `Array<T>` parameter, and the runtime takes
+  `ReadonlyArray<T>`. Under `tsc` the declared type is therefore not
+  assignable to the runtime's (``The type 'readonly T[]' is 'readonly' and
+  cannot be assigned to the mutable type 'T[]'``). No Glyph program can see
+  it: Glyph has no readonly array (`ReadonlyArray<number>` in a signature is
+  E0103), and every array a program holds is assignable to both. Whether this
+  is a defect at all is the open question: the stdlib signature gate can
+  treat readonly as a distinction Glyph does not make, or the runtime can
+  take `Array<T>`. Until one of those is decided, each row's
+  declared-to-runtime direction is checked only as far as its first
+  parameter, because `tsc` reports the first incompatibility. Found by
+  `scripts/check_stdlib_signatures.py`.
+
+  *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
+  `python3 scripts/check_stdlib_signatures.py` reports the declared-to-runtime
+  mismatch for all twenty rows under TypeScript 6.0.3.*

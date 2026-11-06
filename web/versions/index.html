@@ -61,8 +61,47 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.130</span>
+            <span class="rel-ver">0.1.131</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>Most of this release is programs that only <code>tsc</code> refused and Glyph's own checker now refuses too, so <code>glyph check --no-tsc</code>, the editor and the playground see them. The rest is the editor catching up with <code>glyph check</code>.</p>
+
+            <h3>A field called <code>type</code></h3>
+            <div class="code">
+              <span class="cap">event.glyph</span>
+<pre>type Event = { type: string, id: number, }
+
+pub fn kind(e: Event) -&gt; string {
+  return e.type
+}</pre>
+            </div>
+            <p>The record was accepted and the read was not: <code>e.type</code> was E0002, because <code>type</code> is a reserved word. A JSON discriminator is usually called exactly that. Any keyword after <code>.</code> or <code>?.</code> is now a member name, so <code>e.type</code> reads and <code>Sized.is(v)</code> can be called. A keyword used as a type, like <code>fn f(x: match)</code>, says it is reserved instead of giving a generic parse error.</p>
+
+            <h3>The editor shows what <code>glyph check</code> shows</h3>
+            <p>The language server stopped after the type checker, so the emitter's errors (E0302 to E0305, including an unverifiable <code>parse</code>) appeared in <code>glyph check</code> and the MCP tools but not in the editor. The editor now shows them. The checker's errors still arrive on every keystroke; the emitter's follow once you stop typing for 300 ms, and straight away when a file is opened or saved. While you type they drop out and come back at the pause. The editor still does not run <code>tsc</code>, the <code>@example</code> gate or the missing-module check (E0104), so it shows what <code>glyph check --no-tsc --no-test</code> shows, not the full <code>glyph check</code>. Lint findings now appear as warnings, as <code>glyph check</code> reports them.</p>
+
+            <h3><code>json.parse</code> refuses what it cannot validate</h3>
+            <p><code>Doc.parse(v)</code> was already refused when a field of <code>Doc</code> has no runtime check. <code>json.parse&lt;Doc&gt;(body)</code> validates through the same check and was not refused, so it returned <code>Ok</code> for a field nothing had looked at. It is E0304 now, and so is <code>json.parse_with(body, Doc.schema)</code>. <code>json.parse&lt;w.Doc&gt;</code> through <code>import w</code> used to compile to a cast and now validates, which changes what a running program gets back (see below). Two forms still cast without validating: <code>parse&lt;Doc&gt;</code> through <code>import std/json { parse }</code>, and a type argument wrapped in <code>Option</code>, <code>Nullable</code> or <code>Record</code>.</p>
+
+            <h3>Types the checker used to skip</h3>
+            <p>Explicit type arguments on your own generic functions are used: <code>id&lt;number&gt;("x")</code> is an argument mismatch. A record where a <code>Result</code>, <code>Option</code> or <code>Array</code> is declared is a type mismatch, the reverse of 0.1.130's rule. A match over <code>http.RedirectPolicy</code> or <code>log.Level</code> compiles without an <code>else</code>, and a missing value is named. <code>n.toFixd(2)</code> on a number says "did you mean <code>toFixed</code>", and a misspelled record field suggests the nearest field. A second name for an imported record, <code>pub type Page = Doc</code>, has a working <code>Page.parse</code>; written through a namespace, <code>pub type Page = a.Doc</code>, it still does not (G302).</p>
+            <p>Some of this is partial. A wrong number of explicit type arguments is still left to <code>tsc</code>, and so are type arguments on a function stored in a variable. <code>Record&lt;K, V&gt;</code> where a declared record is the value is left undecided.</p>
+
+            <p>This release is breaking, at compile time and at run time.</p>
+            <p>At run time: <code>json.parse&lt;w.Fine&gt;(body)</code> through <code>import w</code> returned <code>Ok</code> in 0.1.130 for a body with a key <code>Fine</code> does not declare, and returns <code>Err</code> here, because it now validates and a record is closed. The exit code does not change, so nothing tells you. Put <code>@open</code> above the <code>type</code> if the API sends keys you do not declare.</p>
+            <p>Under <code>glyph check</code>, these exit 0 in 0.1.130 and 1 here: <code>json.parse&lt;Doc&gt;(body)</code>, <code>json.parse&lt;w.Doc&gt;(body)</code> and <code>json.parse_with(body, Doc.schema)</code> where <code>Doc</code> holds an <code>extern_ts</code> field; and <code>let o: Option&lt;number&gt; = m</code> where <code>m</code> is your own union <code>| None | Some(number)</code>, which <code>tsc</code> accepts because the two emit the same TypeScript, and which Glyph refuses because a declared union is its own type (D49).</p>
+            <p>Under <code>--no-tsc</code> only, six programs that <code>tsc</code> already refused exit 0 in 0.1.130 and 1 here: a misspelled <code>number</code> member, a wrong explicit type argument, a record where a <code>Result</code> is declared, a misspelled <code>RedirectPolicy</code> literal, an <code>HttpErrorKind</code> returned as a <code>ServerErrorKind</code>, and <code>RawPage.parse</code> where <code>type RawPage = Raw</code> aliases an imported record holding an <code>extern_ts</code> field. A full match over <code>RedirectPolicy</code> goes the other way, from 1 to 0.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.130</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

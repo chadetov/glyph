@@ -426,7 +426,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             access on an unknown-typed value, a generic parameter or an interop \
             value is left alone. A record declared in \
             a sibling module counts, under every import spelling, and the message \
-            names that record's own type.\n\n\
+            names that record's own type. When a declared field is close enough \
+            to be the one meant (`totl` for `total`), the message ends `did you \
+            mean `total`?`.\n\n\
             An `Array<T>`, a `string` and a `number` are checked the same way, \
             directly or through an alias: each is a JavaScript value whose \
             members TypeScript's library fixes (`length`, `push`, `map`, \
@@ -1583,7 +1585,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {

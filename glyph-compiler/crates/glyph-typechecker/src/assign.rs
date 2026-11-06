@@ -2000,7 +2000,10 @@ impl Assigner<'_> {
                                     .collect(),
                                 record,
                                 builtin: None,
-                                suggestion: None,
+                                suggestion: nearest_name(
+                                    field.as_ref(),
+                                    shape.fields.iter().map(|f| f.name.as_ref()),
+                                ),
                                 span: *span,
                             });
                             Ty::Unknown
@@ -2589,7 +2592,7 @@ impl Assigner<'_> {
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     builtin: None,
-                    suggestion: None,
+                    suggestion: nearest_name(name.as_ref(), shape.fields.iter().map(|f| f.name.as_ref())),
                     span: attr_span,
                 });
                 continue;
@@ -6986,7 +6989,7 @@ impl Assigner<'_> {
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     builtin: None,
-                    suggestion: None,
+                    suggestion: nearest_name(pf.key.as_ref(), shape.fields.iter().map(|f| f.name.as_ref())),
                     span: key_span,
                 });
                 continue;
@@ -8439,8 +8442,9 @@ fn nearest_variant(name: &str, variants: &[Ident]) -> Option<String> {
 
 /// The nearest of `candidates` to `name` by Levenshtein distance, when one is
 /// close enough to be a plausible typo; the first of several equally near. The
-/// one threshold behind both `did you mean` hints, a variant head's (E0220)
-/// and a built-in member's (E0210), so the two guess equally far.
+/// one threshold behind every `did you mean` hint, a variant head's (E0220)
+/// and a record field's or a built-in member's (E0210), so they guess equally
+/// far.
 fn nearest_name<'c>(name: &str, candidates: impl Iterator<Item = &'c str>) -> Option<String> {
     let name_len = name.chars().count();
     // A short name tolerates fewer edits than a long one; at least 2 so a
@@ -9715,6 +9719,37 @@ fn c(x: Shaped) -> number { return x.lenght }
 type Unknownish = extern_ts("any")
 "#;
         assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    /// A record's field typo gets the same "did you mean" an array member
+    /// does, on each of the three sites that raise E0210 for a record: a
+    /// field read, a JSX attribute against a props record, a record pattern.
+    /// A name nothing is near gets none, as on an array.
+    #[test]
+    fn a_record_field_typo_suggests_the_nearest_field() {
+        let decl = "module x\ntype Order = { total: number, items: Array<string> }\n";
+        let read = format!("{decl}pub fn f(o: Order) -> number {{\n  return o.totl\n}}\n");
+        let attr = format!(
+            "{decl}component Row(props: Order) -> Component {{\n  return <p>a</p>\n}}\ncomponent V() -> Component {{\n  return <Row totl={{1}} total={{1}} items={{[]}} />\n}}\n"
+        );
+        let pat = "module x\ntype Load = | Loading | Loaded({ users: Array<string>, total: number })\nfn f(l: Load) -> number {\n  return match l {\n    Loading => 0,\n    Loaded({ totl }) => 1,\n  }\n}\n".to_string();
+        for src in [&read, &attr, &pat] {
+            let errs = ty_errors_of(src);
+            let e = errs
+                .iter()
+                .find(|e| matches!(e, TypeError::UnknownField { .. }))
+                .unwrap_or_else(|| panic!("no E0210 in {errs:?}"));
+            let TypeError::UnknownField { suggestion, builtin, .. } = e else { unreachable!() };
+            assert_eq!(suggestion.as_deref(), Some("total"), "{src}");
+            assert_eq!(*builtin, None);
+            assert!(e.to_string().ends_with("; did you mean `total`?"), "{e}");
+        }
+        let far = format!("{decl}pub fn f(o: Order) -> number {{\n  return o.customer\n}}\n");
+        let errs = ty_errors_of(&far);
+        assert!(
+            matches!(&errs[..], [TypeError::UnknownField { suggestion: None, .. }]),
+            "{errs:?}"
+        );
     }
 
     /// A `number` is a JavaScript number, whose members TypeScript's library

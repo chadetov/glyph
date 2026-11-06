@@ -16058,3 +16058,67 @@ fn g256_an_import_of_a_missing_std_module_is_e0104_without_tsc() {
     assert!(stderr.contains("std/zzznope"), "{stderr}");
     assert!(!stderr.contains("TS2307"), "the Glyph stage reports it, not tsc:\n{stderr}");
 }
+
+#[test]
+fn json_parse_with_a_written_type_validates_in_both_spellings_at_run_time() {
+    // G297's open half. `import std/json { parse }` then `parse<Doc>(text)`
+    // was never rewritten, so it cast: `parse<Doc>("{}")` returned `Ok` on
+    // a document with no `title`. And in either spelling a `T` with no
+    // descriptor of its own (a primitive, `Option<User>`, an alias of
+    // `Array`) cast too. Each is now checked the way a record field of that
+    // type is, and the program is run so the arm taken is the evidence.
+    let root = unique_tmp("g297-named-run");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+import std/io { println }
+import std/json { parse }
+import std/json as j
+pub type Doc = { title: string, }
+pub type User = { name: string, }
+pub type Rows = Array<User>
+fn say(label: string, ok: bool) {
+  println(label + match ok { true => " Ok", false => " Err", })
+}
+fn main() {
+  say("named Doc {}", match parse<Doc>("{}") { Ok(_) => true, Err(_) => false, })
+  say("named Doc good", match parse<Doc>("{\"title\": \"t\"}") { Ok(_) => true, Err(_) => false, })
+  say("named number str", match parse<number>("\"x\"") { Ok(_) => true, Err(_) => false, })
+  say("named int 2.5", match parse<int>("2.5") { Ok(_) => true, Err(_) => false, })
+  say("named int 3", match parse<int>("3") { Ok(_) => true, Err(_) => false, })
+  say("named unknown", match parse<unknown>("\"x\"") { Ok(_) => true, Err(_) => false, })
+  say("ns number str", match j.parse<number>("\"x\"") { Ok(_) => true, Err(_) => false, })
+  say("ns option bad", match j.parse<Option<User>>("{\"tag\": \"Some\", \"value\": {}}") { Ok(_) => true, Err(_) => false, })
+  say("ns option good", match j.parse<Option<User>>("{\"tag\": \"Some\", \"value\": {\"name\": \"a\"}}") { Ok(_) => true, Err(_) => false, })
+  say("named nullable null", match parse<Nullable<User>>("null") { Ok(_) => true, Err(_) => false, })
+  say("named record bad", match parse<Record<string, int>>("{\"a\": \"x\"}") { Ok(_) => true, Err(_) => false, })
+  say("named rows bad", match parse<Rows>("[{\"name\": 1}]") { Ok(_) => true, Err(_) => false, })
+  say("ns rows good", match j.parse<Rows>("[{\"name\": \"a\"}]") { Ok(_) => true, Err(_) => false, })
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        vec![
+            "named Doc {} Err",
+            "named Doc good Ok",
+            "named number str Err",
+            "named int 2.5 Err",
+            "named int 3 Ok",
+            "named unknown Ok",
+            "ns number str Err",
+            "ns option bad Err",
+            "ns option good Ok",
+            "named nullable null Ok",
+            "named record bad Err",
+            "named rows bad Err",
+            "ns rows good Ok",
+        ],
+        "each document is checked against its written type: {stdout}"
+    );
+}

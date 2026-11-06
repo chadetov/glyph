@@ -725,14 +725,20 @@ first call gets all of stdin, a call after some `read_line`s gets the rest.
 ### std/json
 
 ```
-json.parse<T>(text) -> Result<T, Array<Issue>>            // validates a record/union T; see below
+json.parse<T>(text) -> Result<T, Array<Issue>>            // checks the value against T; see below
 json.parse_with<T>(text, schema) -> Result<T, Array<Issue>>
 json.stringify(value, options?) -> string                 // options: { indent: number }
 ```
 
-For a record/union type `T`, `json.parse<T>(text)` is auto-rewritten to validate
-against `T.schema`. Use the `json.parse<T>` namespace form (not the named-import
-form) to get validation.
+`json.parse<T>(text)` checks the decoded value against `T` before it returns
+`Ok`, whether you import the module (`import std/json`) or the function
+(`import std/json { parse }`). A record or union is checked by `T.schema`, so a
+failure names the field's path. Any other `T` (`int`, `Option<User>`,
+`Record<string, int>`, an alias of `Array<User>`) gets the check a record field
+of that type gets. If `T` is a record with a field that has no runtime check,
+the call is E0304. `json.parse(text)` with no type argument, or
+`json.parse<unknown>`, is the unchecked read. A type parameter, an `extern_ts`
+type or a package type as `T` is not checked yet: the value is cast.
 
 ### Runtime validators (`T.parse` / `T.is` / `T.schema`)
 

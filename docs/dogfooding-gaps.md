@@ -11170,7 +11170,7 @@ and is the owner's to confirm.
   other, `p.titel` on a `p: Page` passes the checker, and `Page.parse` is
   still TS2693. Whether D46 covers a qualified name is a decision, not part of
   this fix.
-- **G297. [HALF FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
+- **G297. [FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
   `json.parse<Doc>(body)` where `Doc` has an `extern_ts` field passes `glyph
   check` with `tsc`, while `Doc.parse(v)` on the same record is E0304. The
   namespace form is documented as validating against `T.schema`, so it returns
@@ -11196,6 +11196,31 @@ and is the owner's to confirm.
   Breaking: each refused program passes 0.1.130 under `--no-tsc`, exit 0. Still
   open: `import std/json { parse }` then `parse<Doc>(body)` is never rewritten,
   so it casts without validating any record, verifiable or not.
+
+  *Re-run against 0.1.131 (the dev-0.1.132 build before the fix, `glyph
+  0.1.131`): `import std/json { parse }` then `parse<Doc>("{}")` with `Doc = {
+  title: string }` prints `Ok` under `glyph run`, exit 0, and the same call
+  over a `Doc` with an `extern_ts` field is `no diagnostics` under `check
+  --no-tsc`, exit 0. `json.parse<number>("\"x\"")` and
+  `json.parse<Option<User>>` over a `Some` with no `name` are `Ok` in the
+  namespace form too.*
+
+  Fixed in 0.1.132: the named-import `parse<T>` is rewritten the way the
+  namespace form is, to `parse_with(text, <schema>)` through a hidden
+  `import { parse_with as __glyph_json_parse_with }`, so no binding of the
+  author's can capture it. In both spellings a `T` with no descriptor of its
+  own (a primitive, `Option`, `Nullable`, `Record`, a string-literal union)
+  is checked by the predicate a record field of that type gets, made into a
+  schema by `schema(name, is)`, and an alias of `Array<Row>` validates through
+  `Row.schema.array()`. A record with an unverifiable field is E0304 in the
+  named form, and inside `Option`, `Nullable` and `Record` in both. The
+  programs above print `Err`; the `extern_ts` one is E0304, exit 1.
+  `json_parse_with_a_written_type_validates_in_both_spellings_at_run_time`
+  runs thirteen such reads and checks each arm. `parse<unknown>` and
+  `parse(text)` stay the plain read. A `T` with no runtime check that is not
+  a record holding one (a type parameter, an `extern_ts` type, a package type)
+  still casts; refusing it is the 0.1.133 half of the same decision, and is
+  not this entry's case.
 - **G298. [HALF FIXED] `json.parse_with` is not in the checker's stdlib table.**
   `let u: User = json.parse_with(body, s)` with `s: Schema<User>` passes
   `glyph check --no-tsc`; `tsc` refuses it (TS2322: ``Type 'Result<User,

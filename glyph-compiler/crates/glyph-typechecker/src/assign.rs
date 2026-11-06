@@ -1088,9 +1088,15 @@ pub fn direct_type_decl<'m>(
 }
 
 /// The type `td` is a second name for, when it is one (D46): its body is a
-/// single bare name, it declares no generic parameters, and it carries no
-/// `where`. Lowering that body gives the next hop: the `Ty::Named` of a
-/// declaration in this module, or the `Ty::Imported` of one in a sibling.
+/// name, it declares no generic parameters, and it carries no `where`.
+/// Lowering that body gives the next hop: the `Ty::Named` of a declaration in
+/// this module, or the `Ty::Imported` of one in a sibling. The name is
+/// followed however it is spelled: bare (`Doc`, under `import a { Doc }`) or
+/// qualified by a namespace import (`a.Doc` under `import a`, `aa.Doc` under
+/// `import a as aa`, `http.RedirectPolicy` under `import std/http`). The
+/// qualified spelling lowers to the type the named one does, and following
+/// only the bare one made the guarantees on `Page` depend on how its import
+/// was written (G302).
 /// The rule does not stop at a file boundary, because D46 says the
 /// guarantees on a type do not depend on which file its name was declared
 /// in: `type Local = Shape` with `Shape` imported is a second name for the
@@ -1110,10 +1116,7 @@ pub fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> Option<T
     if !td.generics.is_empty() || td.refinement.is_some() {
         return None;
     }
-    let TypeExpr::Path { segments, .. } = &td.body else {
-        return None;
-    };
-    if segments.len() != 1 {
+    if !matches!(&td.body, TypeExpr::Path { .. }) {
         return None;
     }
     match lowerer.lower(&td.body) {
@@ -5387,6 +5390,13 @@ impl Assigner<'_> {
     /// any other type, so a `match` scrutinee that is not a literal union falls
     /// through to the ordinary (unbounded) string/value handling.
     fn string_literal_union_values(&self, ty: &Ty) -> Option<Vec<String>> {
+        // A second name is the declaration it names (D46), however its body
+        // is spelled: `type P = Mode`, `type P = a.Mode`, `type P =
+        // http.RedirectPolicy`. Reading only the name's own body answered
+        // `None` for every one of them, so a match over `P` was held to an
+        // unbounded `string` while a match over `Mode` was held to its values.
+        let end = self.resolve_alias_chain(ty);
+        let ty = &end;
         if let Ty::StringLiteralUnion(values) = ty {
             return Some(values.clone());
         }
@@ -5548,11 +5558,22 @@ impl Assigner<'_> {
             // The other two resolve to a declaration in *this* file, so the
             // owner is this file's own module key, which is the same rule a
             // locally declared union's coverage edge uses.
+            //
+            // A local second name whose chain leaves the module (`type Page =
+            // Doc` or `type Page = a.Doc`, `Doc` a sibling's record) has the
+            // sibling's field set, read exactly as the import itself is (D46).
+            // Answering only from this module's declarations left `p.titel`
+            // on a `p: Page` unchecked while `d.titel` on a `d: Doc` was E0210.
             Ty::Named { .. } => match stdlib_type_fields(self, ty) {
                 Some(fields) => Some(undeclared(fields)),
-                None => self
-                    .named_record_shape(ty, &[])
-                    .or_else(|| self.interface_member_shape(ty)),
+                None => match self.resolve_alias_chain(ty) {
+                    Ty::Imported { module, name } => {
+                        self.imported_record_shape(module.as_str(), &name, &[])
+                    }
+                    _ => self
+                        .named_record_shape(ty, &[])
+                        .or_else(|| self.interface_member_shape(ty)),
+                },
             },
             // A type declared in a sibling module. Resolving it here, rather
             // than at lowering, is what keeps the representation free of cycle
@@ -12095,6 +12116,72 @@ fn outer() -> string {
     /// A `kind` field read off a stdlib error record has its union's name, so a
     /// mismatch names both declarations, and its literals come from the same
     /// table the annotation reads.
+    /// G302 through the standard library. `type P = http.RedirectPolicy` is a
+    /// second name for the stdlib union (D46), by the namespace spelling and
+    /// the aliased one alike: a match over a `P` is held to the union's three
+    /// values, a misspelled literal is refused, and a `P` and an
+    /// `http.RedirectPolicy` pass for each other. The chain stopped at the
+    /// qualified body, so the match drew E0232 and `else` was the only way
+    /// to compile it, which switches the check off.
+    #[test]
+    fn a_qualified_alias_of_a_stdlib_union_is_a_second_name() {
+        for (import, q) in [("std/http", "http"), ("std/http as h", "h")] {
+            let head = format!("module app\nimport {import}\ntype P = {q}.RedirectPolicy\n");
+            let full = format!(
+                "{head}pub fn rank(p: P) -> int {{\n  return match p {{\n\
+                 \x20   \"follow\" => 1,\n    \"manual\" => 2,\n    \"error\" => 3,\n  }}\n}}\n"
+            );
+            assert_eq!(codes_of(&full), Vec::<&str>::new(), "{full}");
+            let partial = format!(
+                "{head}pub fn rank(p: P) -> int {{\n  return match p {{\n\
+                 \x20   \"follow\" => 1,\n    \"error\" => 3,\n  }}\n}}\n"
+            );
+            match &errors_of(&partial)[..] {
+                [e @ TypeError::NonExhaustiveMatch {
+                    missing_variants, ..
+                }] => {
+                    assert_eq!(e.code(), "E0200");
+                    assert_eq!(missing_variants, &["manual".to_string()]);
+                }
+                other => panic!("expected one E0200 naming \"manual\" for {q}: {other:?}"),
+            }
+            let typo = format!("{head}pub fn pick() -> P {{\n  return \"folow\"\n}}\n");
+            let direct = format!(
+                "module app\nimport {import}\npub fn pick() -> {q}.RedirectPolicy {{\n  return \"folow\"\n}}\n"
+            );
+            assert!(!codes_of(&direct).is_empty(), "the direct spelling refuses the typo");
+            assert_eq!(codes_of(&typo), codes_of(&direct), "{typo}");
+            let both_ways = format!(
+                "{head}fn take(p: P) -> P {{\n  return p\n}}\n\
+                 pub fn there(r: {q}.RedirectPolicy) -> {q}.RedirectPolicy {{\n  return take(r)\n}}\n"
+            );
+            assert_eq!(codes_of(&both_ways), Vec::<&str>::new(), "{both_ways}");
+        }
+    }
+
+    /// The same hop for a union declared in the program and reached by a bare
+    /// second name, through the named stdlib import too: a match over `P` is
+    /// held to the values of the union `P` names. It read `P`'s own body,
+    /// found a name rather than a literal set, and drew E0218 on `string`.
+    #[test]
+    fn a_match_over_a_second_name_of_a_literal_union_is_held_to_its_values() {
+        for head in [
+            "type M = \"follow\" | \"manual\" | \"error\"\ntype P = M\n",
+            "import std/http { RedirectPolicy }\ntype P = RedirectPolicy\n",
+        ] {
+            let partial = format!(
+                "module app\n{head}pub fn rank(p: P) -> int {{\n  return match p {{\n\
+                 \x20   \"follow\" => 1,\n    \"error\" => 3,\n  }}\n}}\n"
+            );
+            match &errors_of(&partial)[..] {
+                [TypeError::NonExhaustiveMatch {
+                    missing_variants, ..
+                }] => assert_eq!(missing_variants, &["manual".to_string()]),
+                other => panic!("expected one E0200 naming \"manual\": {other:?}\n{partial}"),
+            }
+        }
+    }
+
     #[test]
     fn a_stdlib_error_kind_field_is_named_by_its_union() {
         let src = "module app\nimport std/http\nimport std/net\n\
@@ -15020,6 +15107,45 @@ fn run(a: Local) -> string {
             }
         );
         assert_eq!(variants, vec![Ident::from("Yes"), Ident::from("No")]);
+    }
+
+    #[test]
+    fn a_qualified_alias_of_an_imported_union_is_a_second_name() {
+        // G302. D46 follows a name however it is spelled. `model.Answer` under
+        // `import model`, and `m.Answer` under `import model as m`, lower to
+        // the `Ty::Imported` the named spelling reaches, so the chain has to
+        // end there too. It stopped at the alias's own name, and a match over
+        // `Local` was held to no variant set at all.
+        for (import, body) in [
+            ("import model", "model.Answer"),
+            ("import model as m", "m.Answer"),
+        ] {
+            let src = format!(
+                "module app\n{import}\ntype Local = {body}\n\
+                 fn run(a: Local) -> string {{\n  return \"x\"\n}}\n"
+            );
+            let got = with_assigner(&src, &ImportedAnswerDecl, |a| {
+                let ty = first_param_ty(a);
+                assert_eq!(
+                    a.resolve_alias_chain(&ty),
+                    Ty::Imported {
+                        module: ModuleKey::from("model"),
+                        name: Ident::from("Answer"),
+                    },
+                    "`{body}` ends at the sibling's declaration"
+                );
+                a.required_variants(&ty)
+            });
+            let (union, variants) = got.unwrap_or_else(|| panic!("`{body}` resolves a union"));
+            assert_eq!(
+                union,
+                UnionRef::Imported {
+                    module: "model".to_string(),
+                    name: "Answer".to_string(),
+                }
+            );
+            assert_eq!(variants, vec![Ident::from("Yes"), Ident::from("No")]);
+        }
     }
 
     #[test]

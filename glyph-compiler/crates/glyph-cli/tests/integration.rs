@@ -12385,6 +12385,133 @@ fn a_second_name_for_an_imported_record_parses_through_tsc() {
     }
 }
 
+/// The sibling the G302 tests alias: a record and a union.
+const G302_A: &str = "module a\n\npub type Doc = {\n  title: string,\n}\n\n\
+     pub type Shape =\n  | Circle(number)\n  | Square(number)\n  | Point\n";
+
+/// A module that names `a`'s record and union under second names, by the
+/// import spelling `import`, with `q` the qualifier it writes (`a.`, `aa.`, or
+/// nothing for the named import), and uses each second name once correctly
+/// and once wrongly: a field typo and a match that misses a variant.
+fn g302_b(import: &str, q: &str) -> String {
+    format!(
+        "module b\n\n{import}\n\n\
+         pub type Page = {q}Doc\n\n\
+         pub type L = {q}Shape\n\n\
+         pub fn conv(d: {q}Doc) -> string {{\n  let p: Page = d\n  let back: {q}Doc = p\n  return back.title\n}}\n\n\
+         pub fn typo(p: Page) -> string {{\n  return p.titel\n}}\n\n\
+         pub fn area(s: L) -> number {{\n  return match s {{\n    {q}Circle(r) => r,\n    {q}Square(x) => x,\n  }}\n}}\n"
+    )
+}
+
+#[test]
+fn a_qualified_second_name_is_the_declaration_by_every_import_spelling() {
+    // G302. D46 follows a name however it is spelled. `pub type Page = a.Doc`
+    // under `import a` was not followed the way `pub type Page = Doc` under
+    // `import a { Doc }` is: `Page` and `a.Doc` were E0204 against each
+    // other, `p.titel` passed Glyph's checker, and a match over `a.Shape`
+    // through a second name was held to no variant set. All three spellings
+    // now give the named import's answers.
+    for (import, q) in [
+        ("import a { Doc, Shape, Circle, Square }", ""),
+        ("import a", "a."),
+        ("import a as aa", "aa."),
+    ] {
+        let root = unique_tmp("g302");
+        let src = root.join("src");
+        write_file(&src, "a.glyph", G302_A);
+        write_file(&src, "b.glyph", &g302_b(import, q));
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let codes = |code: &str| report.diagnostics.iter().filter(|d| d.contains(code)).count();
+        assert_eq!(codes("[E0204]"), 0, "`{import}`: a second name passes both ways: {:?}", report.diagnostics);
+        assert!(
+            report.diagnostics.iter().any(|d| d.contains("[E0210]") && d.contains("titel")),
+            "`{import}`: the field typo is E0210: {:?}",
+            report.diagnostics
+        );
+        assert!(
+            report.diagnostics.iter().any(|d| d.contains("[E0200]") && d.contains("Point")),
+            "`{import}`: the match is held to the union's variants: {:?}",
+            report.diagnostics
+        );
+        assert_eq!(report.diagnostics.len(), 2, "`{import}`: {:?}", report.diagnostics);
+    }
+}
+
+#[test]
+fn a_qualified_second_name_parses_through_tsc() {
+    // G302, the emitter's half. `pub type Page = a.Doc` binds
+    // `export const Page = a.Doc;`, so `Page.parse(v)` reaches the sibling's
+    // descriptor. It emitted a bare `type` alias and `Page.parse` was TS2693.
+    // Requires tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping G302 tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("g302tsc");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "a.glyph", G302_A);
+    for (module, import, q) in [("b", "import a", "a"), ("c", "import a as aa", "aa")] {
+        write_file(
+            &src,
+            &format!("{module}.glyph"),
+            &format!(
+                "module {module}\n\n{import}\n\npub type Page = {q}.Doc\n\n\
+                 pub type Holder = {{\n  page: Page,\n}}\n\n\
+                 pub fn read(v: unknown) -> string {{\n\
+                 \x20 return match Page.parse(v) {{\n\
+                 \x20\x20\x20 Ok(p) => p.title,\n\
+                 \x20\x20\x20 Err(_) => \"bad\",\n\
+                 \x20 }}\n\
+                 }}\n\n\
+                 pub fn held(v: unknown) -> bool {{\n\
+                 \x20 return match Holder.parse(v) {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            ),
+        );
+    }
+    let report = build_project_inner(&src, &out, false).expect("build runs");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    for (module, q) in [("b", "a"), ("c", "aa")] {
+        let ts = std::fs::read_to_string(out.join(format!("{module}.ts"))).expect("read ts");
+        assert!(ts.contains(&format!("export const Page = {q}.Doc;")), "bound: {ts}");
+    }
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("a qualified second name failed tsc:\n{msg}"),
+        TscOutcome::NotFound => tool_missing("tsc"),
+    }
+}
+
+#[test]
+fn where_over_an_imported_record_is_e0300_by_every_spelling() {
+    // D39 through a chain (G207) across a module boundary. A `where` over a
+    // record is E0300 when the record is declared beside it; declared in a
+    // sibling and reached by any import spelling, directly or through a
+    // second name, it built clean and emitted a descriptor that ran the
+    // predicate on a record.
+    for (import, q) in [("import a { Doc }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
+        for decls in [
+            format!("pub type Titled = {q}Doc where value.title != \"\"\n"),
+            format!("pub type Page = {q}Doc\n\npub type Titled = Page where value.title != \"\"\n"),
+        ] {
+            let root = unique_tmp("g302where");
+            let src = root.join("src");
+            write_file(&src, "a.glyph", G302_A);
+            write_file(&src, "b.glyph", &format!("module b\n\n{import}\n\n{decls}"));
+            let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+            assert!(
+                report.diagnostics.iter().any(|d| d.contains("[E0300]") && d.contains("record type")),
+                "`{decls}` under `{import}` is E0300: {:?}",
+                report.diagnostics
+            );
+        }
+    }
+}
+
 #[test]
 fn the_unverifiable_parse_catch_holds_with_the_record_in_its_own_module() {
     // `catches/unverifiable-parse/` declares `Conn` beside the `Conn.parse` it

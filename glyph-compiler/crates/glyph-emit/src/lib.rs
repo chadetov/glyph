@@ -546,7 +546,8 @@ pub struct EmitContext<'a> {
 
 /// Where a module-local chain of second names (D46) ends when it leaves the
 /// module: the sibling record `name` of the project module `module`, held in
-/// this module by the import binding `value`.
+/// this module by `value`: the import binding, or the namespace-qualified
+/// path (`a.Doc`) the last local hop names it by.
 struct ImportedSecondName {
     module: String,
     name: String,
@@ -4899,11 +4900,11 @@ impl<'a> Emitter<'a> {
     /// names (D46) starting at this module's `name` ends at, when the chain
     /// leaves the module (G296). The chain is the checker's
     /// (`resolve_alias_chain`), so what counts as a hop is decided once; the
-    /// descriptor is the project table's. `value` is the import binding the
-    /// last local hop names, which is the value the emitted TypeScript holds
-    /// for the sibling's descriptor in this module. `None` for a name this
-    /// module does not declare, for a chain that stays in the module, and for
-    /// a sibling type with no descriptor.
+    /// descriptor is the project table's. `value` is the path the last local
+    /// hop names the import by (`Doc`, `a.Doc`, `aa.Doc`), which is the value
+    /// the emitted TypeScript holds for the sibling's descriptor in this
+    /// module. `None` for a name this module does not declare, for a chain
+    /// that stays in the module, and for a sibling type with no descriptor.
     fn imported_second_name(&self, name: &str) -> Option<ImportedSecondName> {
         let mut current = self.local_type_named(name)?;
         let Ty::Imported { module, name: declared } =
@@ -4924,10 +4925,15 @@ impl<'a> Emitter<'a> {
                     let TypeExpr::Path { segments, .. } = &td.body else {
                         return None;
                     };
+                    // The whole path, so `type Page = a.Doc` binds `a.Doc`:
+                    // the expression holding the sibling's descriptor here
+                    // is the name as written, by whichever import spelling
+                    // brought it into scope (G302).
+                    let value = segments.iter().map(|s| s.as_ref()).collect::<Vec<&str>>().join(".");
                     return Some(ImportedSecondName {
                         module: key.0,
                         name: key.1,
-                        value: segments.first()?.to_string(),
+                        value,
                     });
                 }
                 next => current = next,
@@ -4977,24 +4983,38 @@ impl<'a> Emitter<'a> {
     /// by the shape it resolves to: written inline, or reached through a chain
     /// of second names (D46), it is the same record, and D39 refuses it either
     /// way (G207). The chain is the checker's, so the shape refused here is
-    /// the shape the checker reads for the same name. A base the chain does
-    /// not end at in this module (a prelude name, an import, a cycle) is left
-    /// to the refinement path, which is the existing D39 case.
+    /// the shape the checker reads for the same name. A chain that leaves the
+    /// module ends at a sibling's declaration, read through the checker's
+    /// `imported_type_decl`: `Doc where ..` with `Doc` imported, `a.Doc where
+    /// ..`, and a `where` over a local second name of either refine the same
+    /// record the local spelling does, and are refused the same way. A base
+    /// that is neither (a primitive, a prelude name, a cycle) is left to the
+    /// refinement path, which is the existing D39 case.
     fn refused_refinement_base(&self, t: &glyph_ast::TypeDecl) -> Option<&'static str> {
+        const UNION: &str =
+            "a `where` refinement on a union type (v1 supports refinements on primitive base types)";
+        const RECORD: &str =
+            "a `where` refinement on a record type (v1 supports refinements on primitive base types)";
         t.refinement.as_ref()?;
-        let base = match &t.body {
-            TypeExpr::Path { segments, .. } if segments.len() == 1 => {
-                &self.chain_end_decl(segments[0].as_ref())?.body
-            }
-            other => other,
+        let start = match &t.body {
+            TypeExpr::Union { .. } => return Some(UNION),
+            TypeExpr::Record { .. } => return Some(RECORD),
+            TypeExpr::Path { .. } => self.lowerer.lower(&t.body),
+            _ => return None,
         };
-        match base {
-            TypeExpr::Union { .. } => Some(
-                "a `where` refinement on a union type (v1 supports refinements on primitive base types)",
-            ),
-            TypeExpr::Record { .. } => Some(
-                "a `where` refinement on a record type (v1 supports refinements on primitive base types)",
-            ),
+        match resolve_alias_chain(self.module, self.resolved, &self.lowerer, &start) {
+            end @ Ty::Named { .. } => match &direct_type_decl(self.module, self.resolved, &end)?.body {
+                TypeExpr::Union { .. } => Some(UNION),
+                TypeExpr::Record { .. } => Some(RECORD),
+                _ => None,
+            },
+            Ty::Imported { module, name } => {
+                match self.imported_type_decl(module.as_str(), name.as_ref())?.body {
+                    Ty::Union { .. } => Some(UNION),
+                    Ty::Record { .. } => Some(RECORD),
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }
@@ -12015,6 +12035,75 @@ pub fn n() -> number {\n  return 1\n}
         )
         .expect("emit");
         assert!(!ts.contains("const C2"), "no descriptor to alias: {ts}");
+    }
+
+    /// G302. D46 follows a name however it is spelled, so `type Page = a.Doc`
+    /// under `import a` (or `aa.Doc` under `import a as aa`) is the second name
+    /// `type Page = Doc` is under `import a { Doc }`. The value it binds is the
+    /// whole qualified path, the expression that holds the sibling's
+    /// descriptor in this module. Before this the qualified spelling emitted a
+    /// bare `type` alias and `Page.parse` was TS2693 from `tsc`.
+    #[test]
+    fn a_qualified_second_name_is_bound_to_the_qualified_descriptor() {
+        for (import, q) in [("import a", "a"), ("import a as aa", "aa")] {
+            let ts = emit_beside(
+                ("a", G296_A),
+                &format!(
+                    "module main\n{import}\n\
+                     pub type Page = {q}.Doc\n\
+                     type P2 = Page\n\
+                     type Holder = {{ page: P2, }}\n\
+                     pub fn go(v: unknown) -> bool {{\n\
+                     \x20 return match Page.parse(v) {{ Ok(_) => true, Err(_) => false, }}\n\
+                     }}\n\
+                     pub fn hold(v: unknown) -> bool {{\n\
+                     \x20 return match Holder.parse(v) {{ Ok(_) => true, Err(_) => false, }}\n\
+                     }}\n"
+                ),
+            )
+            .unwrap_or_else(|e| panic!("`{q}.Doc` is a verifiable record: {e:?}"));
+            assert!(ts.contains(&format!("export const Page = {q}.Doc;")), "value alias: {ts}");
+            assert!(ts.contains(&format!("\nconst P2 = {q}.Doc;")), "two hops: {ts}");
+            assert!(ts.contains("P2.is("), "a field typed by the second name checks through it: {ts}");
+            // An unverifiable record is refused through the qualified name too.
+            assert_g210_refused(
+                emit_beside(
+                    ("a", G296_A),
+                    &g210_main(&format!("{import}\ntype RawPage = {q}.Raw"), "RawPage.parse(v)"),
+                ),
+                "RawPage",
+                "h",
+                "Opaque",
+            );
+        }
+    }
+
+    /// D39 refuses a `where` on a record or a union whatever the base is
+    /// spelled as (G207), and an imported record is a record. The refusal read
+    /// only a chain that ended in this module, so `Doc where ..` with `Doc`
+    /// imported, `a.Doc where ..`, and a `where` over a local second name of
+    /// either all emitted a working descriptor where the same program with
+    /// `Doc` declared locally was E0300.
+    #[test]
+    fn where_over_an_imported_record_or_union_is_refused_by_every_spelling() {
+        let a = "module a\npub type Doc = { title: string, }\npub type Shape = | Circle | Square\n";
+        for (import, q) in [("import a { Doc, Shape }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
+            for (decls, what) in [
+                (format!("type T = {q}Doc where value.title != \"\"\n"), "record type"),
+                (
+                    format!("type Page = {q}Doc\ntype T = Page where value.title != \"\"\n"),
+                    "record type",
+                ),
+                (format!("type T = {q}Shape where value.tag == \"Circle\"\n"), "union type"),
+            ] {
+                let err = emit_beside(("a", a), &format!("module main\n{import}\n{decls}"))
+                    .expect_err(&format!("`{decls}` under `{import}` must be refused"));
+                assert!(
+                    matches!(&err, EmitError::Unsupported { construct, .. } if construct.contains(what)),
+                    "`{decls}` under `{import}`: {err:?}"
+                );
+            }
+        }
     }
 
     /// A second name exported from the module that declares it, or from a

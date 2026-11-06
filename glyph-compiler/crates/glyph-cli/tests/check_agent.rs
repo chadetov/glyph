@@ -438,7 +438,7 @@ fn a_member_typo_on_an_imported_array_alias_is_e0210_with_the_members() {
     );
     let members = d["alternatives"].as_array().expect("alternatives");
     assert!(members.iter().any(|m| m == "length"), "{d}");
-    assert_eq!(d["alternatives_kind"], "fields", "{d}");
+    assert_eq!(d["alternatives_kind"], "members", "{d}");
     assert!(d["cause"].is_null(), "an array has no declaration: {d}");
     let constraints = d["constraints"].to_string();
     assert!(constraints.contains("members are closed"), "{d}");

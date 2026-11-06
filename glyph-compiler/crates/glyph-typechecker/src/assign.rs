@@ -9635,7 +9635,7 @@ component View(props: { s: Load }) -> Component {
             e.to_string(),
             "type `Array<string>` has no field `lenght`; did you mean `length`?"
         );
-        assert_eq!(e.alternatives_kind(), Some(AlternativesKind::Fields));
+        assert_eq!(e.alternatives_kind(), Some(AlternativesKind::Members));
         let help = e.help().expect("help").into_owned();
         assert!(help.contains("JavaScript array") && help.contains("std/array"), "{help}");
         assert!(!help.contains("add the field"), "there is no declaration to add to: {help}");

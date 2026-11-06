@@ -666,6 +666,10 @@ pub enum AlternativesKind {
     Literals,
     /// The fields a record declares (D7).
     Fields,
+    /// The members TypeScript's library gives a built-in value: an
+    /// `Array<T>`, a `string` or a `number` (G288). Kept apart from `Fields`
+    /// because no declaration holds them, so there is nothing to add one to.
+    Members,
     /// The names a module exports.
     Exports,
 }
@@ -677,6 +681,7 @@ impl AlternativesKind {
             AlternativesKind::Variants => "variants",
             AlternativesKind::Literals => "literals",
             AlternativesKind::Fields => "fields",
+            AlternativesKind::Members => "members",
             AlternativesKind::Exports => "exports",
         }
     }

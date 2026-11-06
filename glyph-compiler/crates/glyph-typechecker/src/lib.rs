@@ -1366,7 +1366,8 @@ impl TypeError {
     }
 
     /// What kind of thing `alternatives` holds here: variant names, the
-    /// contents of string literals, a record's fields.
+    /// contents of string literals, a record's fields, a built-in value's
+    /// members.
     ///
     /// Answers wherever `alternatives` answers and nowhere else, so a consumer
     /// reads the two keys as one fact. Read off the error variant rather than
@@ -1374,6 +1375,11 @@ impl TypeError {
     /// both bare identifiers on the wire.
     pub fn alternatives_kind(&self) -> Option<AlternativesKind> {
         match self {
+            // A built-in receiver's list is its members, which no declaration
+            // holds; a record's is its fields, which one does.
+            TypeError::UnknownField { fields, builtin: Some(_), .. } if !fields.is_empty() => {
+                Some(AlternativesKind::Members)
+            }
             TypeError::UnknownField { fields, .. } if !fields.is_empty() => {
                 Some(AlternativesKind::Fields)
             }

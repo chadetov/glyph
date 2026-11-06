@@ -2010,14 +2010,17 @@ second call:
   every code that compares two (E0203, E0204, E0211).
 - `alternatives` is what may legally stand where the wrong thing stands, when
   the compiler holds a finite list: a record's own fields against a field typo,
-  a union's variants against a mismatch, a module's exports against an unknown
+  an array's, a string's or a number's members against a member typo, a
+  union's variants against a mismatch, a module's exports against an unknown
   import, the did-you-mean a mistyped pattern head gets.
-- `alternatives_kind` says which of those four it is: `fields`, `variants`,
-  `literals` or `exports`. The names alone do not say, because `Paid` and
-  `read` are both bare identifiers on the wire and writing the first means
-  constructing a variant while writing the second means `"read"`. The compiler
-  sets it where it builds the list, so it is right for a union written inline
-  as well as for one with a name. It is null exactly when `alternatives` is.
+- `alternatives_kind` says which of those five it is: `fields`, `members`,
+  `variants`, `literals` or `exports`. The names alone do not say, because
+  `Paid` and `read` are both bare identifiers on the wire and writing the first
+  means constructing a variant while writing the second means `"read"`. A
+  record's `fields` have a declaration you can add one to; an array's
+  `members` do not. The compiler sets the kind where it builds the list, so it
+  is right for a union written inline as well as for one with a name. It is
+  null exactly when `alternatives` is.
 - `related` is the union's whole variant list on a non-exhaustive match;
   `missing_variants` is the gap inside it.
 - `missing_fields` lists the required fields a record literal or a component

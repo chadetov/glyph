@@ -536,13 +536,14 @@ jobs:
     # and then stalls. The install-and-run below takes about 20 seconds on Linux
     # and macOS and has reached two minutes on windows-latest.
     #
-    # The bound is 20 rather than 10 because the propagation retry below sleeps
-    # 13m45s across its ten attempts, before counting ten `npm install`s. A
-    # ten-minute bound cancelled that loop around attempt seven, so a genuinely
-    # slow registry would show an operator a bare timeout instead of the error
-    # the loop exists to print. A retry budget that cannot reach its last
-    # attempt is not a retry budget, and the honest choice is to bound above it
-    # rather than to leave a designed number unreachable.
+    # The bound is 20 rather than 10 because the propagation retry below polls
+    # for up to 825 s (13m45s) of wall clock, and its last `npm install` can
+    # start just before that deadline. A ten-minute bound cancelled the older
+    # attempt-counted loop around attempt seven, so a genuinely slow registry
+    # would show an operator a bare timeout instead of the error the loop
+    # exists to print. A retry budget that cannot reach its last attempt is not
+    # a retry budget, and the honest choice is to bound above it rather than to
+    # leave a designed number unreachable.
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -600,9 +601,26 @@ jobs:
           # all ten attempts in 150 seconds while the version was live: two
           # runners never re-asked. Registry CDNs also serve regionally, so
           # ubuntu saw the publish while macOS and Windows did not.
+          #
+          # The loop is bounded by wall clock, not by an attempt count. It
+          # used to make ten attempts with a growing back-off (15 s, 30 s, ...
+          # 150 s), which kept the same 825 s budget but spent most of it
+          # asleep: a version that propagated a few seconds after attempt
+          # seven was not seen for another two minutes. Polling every 10 s
+          # finds it within one interval. An attempt count could not express
+          # that budget at a 10 s interval, because 80-odd `npm install`s would
+          # outrun the job's timeout; the deadline can, since it counts the
+          # installs as well as the sleeps. 825 s is the sum of the old
+          # back-off, so the total patience is unchanged.
+          interval=10
+          budget=825
+          deadline=$((SECONDS + budget))
           installed=""
           pkg=""
-          for attempt in $(seq 1 10); do
+          attempt=0
+          while :; do
+            attempt=$((attempt + 1))
+            echo "attempt $attempt at $(date -u +%H:%M:%SZ), ${SECONDS}s into the step"
             # Deliberately not pinned by hash, and it cannot be. This step
             # exists to fetch the artifact that was just published and prove it
             # installs and runs; resolving it from a hash recorded beforehand
@@ -616,16 +634,20 @@ jobs:
                 installed=yes
                 break
               fi
-              echo "launcher installed but $pkg is missing (attempt $attempt/10); the registry may not be serving it yet"
+              echo "launcher installed but $pkg is missing (attempt $attempt); the registry may not be serving it yet"
             else
-              echo "install incomplete (attempt $attempt/10)"
+              echo "install incomplete (attempt $attempt)"
             fi
-            # Back off rather than hammering: propagation is measured in minutes,
-            # and ten attempts 15s apart only ever covered two and a half.
-            sleep $((attempt * 15))
+            # Stop without sleeping when the next attempt could not start
+            # inside the budget. Sleeping after the final failure only delays
+            # the error.
+            if [ $((SECONDS + interval)) -ge "$deadline" ]; then
+              break
+            fi
+            sleep "$interval"
           done
           if [ -z "$installed" ]; then
-            echo "::error::@glyphlang/glyph@$VERSION did not install completely after 10 attempts."
+            echo "::error::@glyphlang/glyph@$VERSION did not install completely within ${budget}s ($attempt attempts)."
             echo "The launcher resolves its binary from an optional dependency, and npm"
             echo "skips one it cannot fetch without failing the install."
             exit 1

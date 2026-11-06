@@ -1,0 +1,102 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "./.glyph-runtime/std/result";
+
+import { schema as __glyph_schema } from "./.glyph-runtime/std/schema";
+
+export type Event = { type: "open" | "close"; is: boolean; id: number };
+export const Event = {
+  is(value: unknown): value is Event {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+      && ((value as Record<string, unknown>).type === "open" || (value as Record<string, unknown>).type === "close")
+      && typeof (value as Record<string, unknown>).is === "boolean"
+      && typeof (value as Record<string, unknown>).id === "number"
+      && Object.keys(value as object).every((__k: string) => __k === "type" || __k === "is" || __k === "id");
+  },
+  parse(value: unknown): __GlyphResult<Event, Issue[]> {
+    if (Array.isArray(value)) {
+      return __glyph_err([{ path: [], message: "expected Event (an object), got an array", code: "type" }]);
+    }
+    if (typeof value !== "object" || value === null) {
+      return __glyph_err([{ path: [], message: "expected Event (an object)", code: "type" }]);
+    }
+    const __issues: Issue[] = [];
+    if ((value as Record<string, unknown>).type === undefined) {
+      __issues.push({ path: ["type"], message: "field `type` is required", code: "missing" });
+    } else if (!(((value as Record<string, unknown>).type === "open" || (value as Record<string, unknown>).type === "close"))) {
+      __issues.push({ path: ["type"], message: "field `type` must be \"open\" | \"close\"", code: "type" });
+    }
+    if ((value as Record<string, unknown>).is === undefined) {
+      __issues.push({ path: ["is"], message: "field `is` is required", code: "missing" });
+    } else if (!(typeof (value as Record<string, unknown>).is === "boolean")) {
+      __issues.push({ path: ["is"], message: "field `is` must be bool", code: "type" });
+    }
+    if ((value as Record<string, unknown>).id === undefined) {
+      __issues.push({ path: ["id"], message: "field `id` is required", code: "missing" });
+    } else if (!(typeof (value as Record<string, unknown>).id === "number")) {
+      __issues.push({ path: ["id"], message: "field `id` must be number", code: "type" });
+    }
+    for (const __k of Object.keys(value as object)) {
+      if (!(__k === "type" || __k === "is" || __k === "id")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`", code: "unexpected" });
+    }
+    return __issues.length === 0 ? __glyph_ok(value as Event) : __glyph_err(__issues);
+  },
+  schema: __glyph_schema<Event>("Event", (v): v is Event => Event.is(v), (v: unknown): __GlyphResult<Event, Issue[]> => Event.parse(v)),
+};
+
+export type Note = { match: string };
+export const Note = {
+  is(value: unknown): value is Note {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+      && typeof (value as Record<string, unknown>).match === "string"
+      && Object.keys(value as object).every((__k: string) => __k === "match");
+  },
+  parse(value: unknown): __GlyphResult<Note, Issue[]> {
+    if (Array.isArray(value)) {
+      return __glyph_err([{ path: [], message: "expected Note (an object), got an array", code: "type" }]);
+    }
+    if (typeof value !== "object" || value === null) {
+      return __glyph_err([{ path: [], message: "expected Note (an object)", code: "type" }]);
+    }
+    const __issues: Issue[] = [];
+    if ((value as Record<string, unknown>).match === undefined) {
+      __issues.push({ path: ["match"], message: "field `match` is required", code: "missing" });
+    } else if (!(typeof (value as Record<string, unknown>).match === "string")) {
+      __issues.push({ path: ["match"], message: "field `match` must be string", code: "type" });
+    }
+    for (const __k of Object.keys(value as object)) {
+      if (!(__k === "match")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`", code: "unexpected" });
+    }
+    return __issues.length === 0 ? __glyph_ok(value as Note) : __glyph_err(__issues);
+  },
+  schema: __glyph_schema<Note>("Note", (v): v is Note => Note.is(v), (v: unknown): __GlyphResult<Note, Issue[]> => Note.parse(v)),
+};
+
+export function label(e: Event): string {
+  const __m0 = (e.type as "open" | "close");
+  switch (__m0) {
+    case "open": {
+      return "opened";
+    }
+    case "close": {
+      return "closed";
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+}
+
+export function flag(e: Event): boolean {
+  return e.is;
+}
+
+export function is_any(n: Note | null): boolean {
+  return (__glyph_eq(n?.match, "any"));
+}
+
+export function known(v: unknown): boolean {
+  return Event.is(v);
+}

@@ -9416,6 +9416,39 @@ component View(props: { s: Load }) -> Component {
         }
     }
 
+    // ----- G300: a field named with a keyword is read like any other -----
+
+    /// `type Event = { type: string }` declares a field the parser now lets
+    /// the program read (`e.type`). The read is typed by the declaration, a
+    /// misuse of it is the ordinary mismatch, and a misspelling, keyword or
+    /// not, is the ordinary E0210 listing the keyword field.
+    #[test]
+    fn a_keyword_named_field_is_read_and_checked() {
+        let decl = "module m\ntype Event = { type: string, id: number }\n";
+        let ok = format!("{decl}pub fn f(e: Event) -> string {{\n  return e.type\n}}\n");
+        assert!(ty_errors_of(&ok).is_empty(), "{:?}", ty_errors_of(&ok));
+
+        let mismatch = format!("{decl}pub fn f(e: Event) -> number {{\n  let n: number = e.type\n  return n\n}}\n");
+        let errs = ty_errors_of(&mismatch);
+        assert!(
+            matches!(&errs[..], [e @ TypeError::TypeMismatch { .. }] if e.code() == "E0204"),
+            "{errs:?}"
+        );
+
+        for wrong in ["typ", "match"] {
+            let src = format!("{decl}pub fn f(e: Event) -> string {{\n  return e.{wrong}\n}}\n");
+            let errs = ty_errors_of(&src);
+            match &errs[..] {
+                [e @ TypeError::UnknownField { field, type_name, fields, .. }] => {
+                    assert_eq!(e.code(), "E0210");
+                    assert_eq!((field.as_str(), type_name.as_str()), (wrong, "Event"));
+                    assert!(fields.iter().any(|f| f == "type"), "{fields:?}");
+                }
+                other => panic!("e.{wrong}: expected one E0210, got {other:?}"),
+            }
+        }
+    }
+
     // ----- G288: a member read on a built-in receiver is checked -----
 
     /// The one E0210 a test expects, with the fields a built-in receiver

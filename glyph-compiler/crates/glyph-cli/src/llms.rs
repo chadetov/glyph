@@ -93,7 +93,7 @@ fn keywords() -> Keywords {
     Keywords {
         source: "the lexer's `KEYWORDS` table",
         count: words.len(),
-        rule: "A reserved word cannot name a binding, parameter, function, type, generic, loop variable or pattern binding, and cannot follow `.`. It can be a record field name or an object-literal key.",
+        rule: "A reserved word cannot name a binding, parameter, function, type, generic, loop variable or pattern binding. It can be a record field name or an object-literal key, and such a field is read after `.` like any other (`e.type`).",
         words,
     }
 }

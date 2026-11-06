@@ -265,7 +265,7 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             // Level 1: member access
             Token::Dot => {
                 p.advance();
-                let (name, name_span) = p.expect_ident_ref("identifier after `.`")?;
+                let (name, name_span) = p.expect_member_name("identifier after `.`")?;
                 let start = expr.span().start;
                 expr = Expr::Member {
                     object: Box::new(expr),
@@ -277,7 +277,7 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             // Level 1: optional chaining (D18)
             Token::QDot => {
                 p.advance();
-                let (name, name_span) = p.expect_ident_ref("identifier after `?.`")?;
+                let (name, name_span) = p.expect_member_name("identifier after `?.`")?;
                 let start = expr.span().start;
                 expr = Expr::Member {
                     object: Box::new(expr),
@@ -366,7 +366,7 @@ fn parse_new_callee(p: &mut Cursor) -> Result<Expr, ParseError> {
         match p.peek() {
             Token::Dot => {
                 p.advance();
-                let (name, name_span) = p.expect_ident_ref("identifier after `.`")?;
+                let (name, name_span) = p.expect_member_name("identifier after `.`")?;
                 let start = expr.span().start;
                 expr = Expr::Member {
                     object: Box::new(expr),

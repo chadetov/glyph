@@ -9,7 +9,7 @@ use glyph_ast::{FnTypeParam, RecordTypeField, TypeExpr, UnionVariant};
 use glyph_lexer::{Span, Token};
 
 use crate::cursor::Cursor;
-use crate::error::ParseError;
+use crate::error::{NameRole, ParseError};
 
 /// Public entry. Parses a type expression and, if a `|` follows, treats the
 /// result as the first variant of a tagged union (D8 single-line form).
@@ -141,10 +141,20 @@ fn parse_atom_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
                 span,
             })
         }
-        other => Err(ParseError::Expected {
-            expected: "type expression",
-            found: format!("{other:?}"),
-            span: p.peek_span(),
+        // G301: a keyword where a type goes says it is reserved, the way it
+        // does where a name goes (G286). A type is a name read, so the help
+        // is the reference form's, which does not suggest renaming.
+        other => Err(match other.as_field_name() {
+            Some(word) => ParseError::ReservedWordAsName {
+                word,
+                role: NameRole::Refers,
+                span: p.peek_span(),
+            },
+            None => ParseError::Expected {
+                expected: "type expression",
+                found: format!("{other:?}"),
+                span: p.peek_span(),
+            },
         }),
     }
 }
@@ -238,7 +248,7 @@ fn parse_typeof_type(p: &mut Cursor, start: u32) -> Result<TypeExpr, ParseError>
     let mut end = first_span.end;
     while matches!(p.peek(), Token::Dot) {
         p.advance();
-        let (seg, seg_span) = p.expect_ident_ref("a member name after `.` in `typeof`")?;
+        let (seg, seg_span) = p.expect_member_name("a member name after `.` in `typeof`")?;
         path.push(seg);
         end = seg_span.end;
     }

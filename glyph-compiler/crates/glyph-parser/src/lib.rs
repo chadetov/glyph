@@ -2228,16 +2228,22 @@ component C() -> Component {
         }
     }
 
-    /// The reference positions (after `.`, in a type path, an imported item)
-    /// name the keyword too, but do not tell the author to rename a thing whose
-    /// spelling another module or package chose.
+    /// The reference positions (a type path segment, an imported item, a
+    /// type name) name the keyword too, but do not tell the author to rename
+    /// a thing whose spelling another module or package chose. A member read
+    /// after `.` is not one of them any more (G300).
     #[test]
     fn a_reserved_word_in_a_reference_position_does_not_suggest_renaming() {
         for (src, word) in [
-            ("module x\nfn f(e: E) -> string { return e.type }\n", "type"),
-            ("module x\nfn f(e: E) -> string { return e?.match }\n", "match"),
             ("module x\nfn f(e: lib.where) -> number { return 1 }\n", "where"),
             ("module x\nimport helper { where }\n", "where"),
+            // G301: a keyword where a type goes is named as one, where it was
+            // "expected type expression, found Match" with help about
+            // trailing commas.
+            ("module x\nfn f(x: match) -> number { return 1 }\n", "match"),
+            ("module x\nfn f() -> where { return 1 }\n", "where"),
+            ("module x\ntype A = { a: loop }\n", "loop"),
+            ("module x\nfn f(x: Array<is>) -> number { return 1 }\n", "is"),
         ] {
             let err = parse(src).expect_err(src);
             assert_eq!(err.code(), "E0002", "{src}");
@@ -2248,6 +2254,56 @@ component C() -> Component {
             let help = err.help().expect("help").into_owned();
             assert!(!help.contains(&format!("`{word}_`")), "{src}: {help}");
         }
+    }
+
+    /// G300. A field may be named with a keyword (`{ type: string }`, the
+    /// common wire discriminator), so it can be read back: after `.` and `?.`
+    /// any keyword is a member name, as it is in TypeScript. Nothing else can
+    /// follow a dot, so this takes no syntax from anything. The same holds for
+    /// a member after `.` in a `new` callee and in a `typeof` path, and for a
+    /// descriptor's `is` (`T.is(v)`), which is a keyword.
+    #[test]
+    fn a_keyword_after_a_dot_is_a_member_name() {
+        use glyph_ast::{Decl, Expr, Stmt};
+        fn member_fields(e: &Expr, out: &mut Vec<String>) {
+            if let Expr::Member { object, field, .. } = e {
+                out.push(field.to_string());
+                member_fields(object, out);
+            }
+            if let Expr::Call { callee, .. } = e {
+                member_fields(callee, out);
+            }
+        }
+        for (expr, fields) in [
+            ("e.type", vec!["type"]),
+            ("e?.match", vec!["match"]),
+            ("e.type.where", vec!["where", "type"]),
+            ("Sized.is(v)", vec!["is"]),
+            ("e.new", vec!["new"]),
+            ("e.if", vec!["if"]),
+        ] {
+            let src = format!("module x\nfn f(e: E) -> unknown {{\n  return {expr}\n}}\n");
+            let m = parse(&src).unwrap_or_else(|err| panic!("{expr}: {err:?}"));
+            let Decl::Fn(f) = &m.items[0] else { panic!("{expr}: not a fn") };
+            let Some(Stmt::Return(ret)) = f.body.stmts.first() else {
+                panic!("{expr}: no return");
+            };
+            let value = ret.value.as_ref().expect("a value");
+            let mut got = Vec::new();
+            member_fields(value, &mut got);
+            assert_eq!(got, fields, "{expr}");
+        }
+        for word in glyph_lexer::keywords() {
+            let src = format!("module x\nfn f(e: E) -> unknown {{\n  return e.{word}\n}}\n");
+            assert!(parse(&src).is_ok(), "`e.{word}` must parse: {:?}", parse(&src));
+            let src = format!("module x\nfn f(e: E) -> unknown {{\n  return e?.{word}\n}}\n");
+            assert!(parse(&src).is_ok(), "`e?.{word}` must parse: {:?}", parse(&src));
+        }
+        parse_or_panic("module x\nfn f() -> unknown {\n  return new lib.new.Thing()\n}\n");
+        parse_or_panic("module x\nconst cfg: { type: string } = { type: \"a\" }\ntype K = typeof cfg.type\n");
+        // The head of a path is not after a dot, and a keyword there is
+        // still not a name.
+        assert!(parse("module x\nfn f() -> unknown {\n  return where.x\n}\n").is_err());
     }
 
     /// Nothing that was a legal name stops being one: a plain identifier, a

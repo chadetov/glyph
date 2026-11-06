@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-301 entries, 258 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-25 are open. G144, the D28 boundary cast that never reached the returns a
+301 entries, 259 are fixed, 7 are partly fixed, 11 are decided or resolved, and
+24 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10940,7 +10940,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`), by reading `glyph-lsp`: `Backend::refresh` publishes
   `Workspace::diagnostics`, which calls `analyze_in`, and nothing on that path
   calls `emit_module_mapped`.*
-- **G296. A second name for an imported record has no value.**
+- **G296. [FIXED] A second name for an imported record has no value.**
   `pub type Page = Doc`, where `Doc` is imported, then `Page.parse(v)`, passes
   `glyph check --no-tsc` and fails `tsc` with TS2693 (``'Page' only refers to
   a type, but is being used as a value here``): the emitter writes a type alias
@@ -10948,6 +10948,38 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): two modules, `no diagnostics` under `--no-tsc`, TS2693
   with `tsc`.*
+
+  *Re-run against 0.1.130: `glyph build` on modules `a` (`Doc`), `b`
+  (`pub type Page = Doc`, `Page.parse(v)`) and `main` prints ``[TS2693]
+  Error: tsc: 'Page' only refers to a type, but is being used as a value
+  here.`` at `b:8:16`. A third module was worse: `c` importing `Page` and
+  declaring `type Holder = { page: Page }` is ``[E0304] Error: emit: cannot
+  validate `Holder`: field `page` has type `Page`, which has no runtime
+  check``, on a record every field of which has one, and the same refusal hit
+  a field typed by `pub type D2 = Doc` imported from the module declaring
+  `Doc`.*
+
+  Fixed in 0.1.131: a chain of second names that leaves the module is bound to
+  the import, `export const Page = Doc;` at the alias's own position, and the
+  project's descriptor table lists every exported second name whose chain ends
+  at a descriptor, so a third module checks a field typed `Page` with
+  `Page.is` through `import b { Page }`, `import b` and `import b as bb`
+  alike. The same three modules print `glyph build: tsc --strict passed.`,
+  and `glyph run` prints `hi` then `bad` for a valid and an invalid value.
+  E0304 follows the second name into the sibling: with `type RawPage = Raw`
+  over an imported `Raw` holding an `extern_ts` field, `RawPage.parse` is
+  ``cannot validate `RawPage`: field `h` has type `Opaque`, which has no
+  runtime check`` where it used to be TS2693, so binding the value did not
+  turn a `tsc` failure into a parse that returns `Ok` unchecked. Under
+  `check --no-tsc` that program went from exit 0 to exit 1; under
+  `glyph build` it exits 1 on both versions.
+
+  The namespace spelling of the alias itself, `pub type Page = a.Doc`, is
+  untouched: the checker does not read a qualified body as a second name (D46
+  follows a bare name only), so `Page` and `a.Doc` are E0204 against each
+  other, `p.titel` on a `p: Page` passes the checker, and `Page.parse` is
+  still TS2693. Whether D46 covers a qualified name is a decision, not part of
+  this fix.
 - **G297. `json.parse<T>` is never refused for a `T` it cannot validate.**
   `json.parse<Doc>(body)` where `Doc` has an `extern_ts` field passes `glyph
   check` with `tsc`, while `Doc.parse(v)` on the same record is E0304. The

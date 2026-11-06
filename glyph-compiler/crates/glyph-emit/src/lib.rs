@@ -536,6 +536,15 @@ pub struct EmitContext<'a> {
     pub descriptor_walks: &'a DescriptorWalks,
 }
 
+/// Where a module-local chain of second names (D46) ends when it leaves the
+/// module: the sibling record `name` of the project module `module`, held in
+/// this module by the import binding `value`.
+struct ImportedSecondName {
+    module: String,
+    name: String,
+    value: String,
+}
+
 /// One step of the walk E0304 makes over a record's fields, recorded by the
 /// emitter of the module that declares the record.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -549,6 +558,11 @@ enum WalkStep {
     /// included). The field's check is only as good as that descriptor, so
     /// its verdict is this record's verdict for the field.
     Delegates { field: String, module: String, name: String },
+    /// The type is a second name (D46) for the record `name` declared in the
+    /// project module `module`, which is another module than its own: its
+    /// descriptor is that record's, so its verdict is that record's walk,
+    /// with no field of its own in between.
+    SecondNameFor { module: String, name: String },
 }
 
 /// The E0304 facts of every record in a project: for each
@@ -706,6 +720,7 @@ impl ProjectTables {
                 t.scan(m.module_path, ast);
             }
         }
+        t.add_second_name_descriptors(&modules, prelude);
         let mut walks = Vec::new();
         for m in &modules {
             let (Some(ast), Some(checked)) = (m.ast, m.checked) else {
@@ -717,6 +732,42 @@ impl ProjectTables {
         }
         t.descriptor_walks.walks.extend(walks);
         t
+    }
+
+    /// Move every exported second name (D46) whose chain ends at a declaration
+    /// with a descriptor from the descriptorless table to the descriptor
+    /// table: its module binds the value (`const B = A;`), so an importer
+    /// checks a field typed `B` with `B.is` rather than reading the body `A`,
+    /// which names a declaration in the declaring module's scope and resolves
+    /// to nothing in the importer's (G296). Whether a chain ends at a
+    /// descriptor is the emitter's own answer, with the checker's chain under
+    /// it. A chain can cross several modules (`c` names `b`'s `Page`, which
+    /// names `a`'s `Doc`), and a hop is a descriptor only once the module it
+    /// points into has been answered, so the pass repeats until nothing is
+    /// added. Each round adds at least one entry or stops, so it terminates.
+    fn add_second_name_descriptors(&mut self, modules: &[ProjectModule<'_>], prelude: &Prelude) {
+        loop {
+            let mut found = Vec::new();
+            for m in modules {
+                let (Some(ast), Some(checked)) = (m.ast, m.checked) else {
+                    continue;
+                };
+                let ctx = self.emit_context(m.module_path, checked.decls);
+                let e = Emitter::new(ast, checked.resolved, checked.types, prelude, ctx, false);
+                found.extend(
+                    e.exported_second_names_with_descriptor()
+                        .into_iter()
+                        .filter(|k| !self.plain_descriptors.contains(k)),
+                );
+            }
+            if found.is_empty() {
+                return;
+            }
+            for key in found {
+                self.descriptorless_aliases.remove(&key);
+                self.plain_descriptors.insert(key);
+            }
+        }
     }
 
     /// Fold one module's declarations into the tables.
@@ -1629,6 +1680,7 @@ impl<'a> Emitter<'a> {
                     self.emit_refinement_descriptor(&t.name, &t.body, pred)?;
                 }
                 self.emit_alias_values(t);
+                self.emit_imported_alias_value(t);
                 Ok(())
             }
             Decl::Component(c) => self.emit_component(c),
@@ -4664,12 +4716,14 @@ impl<'a> Emitter<'a> {
         if self.module.items.iter().any(|d| matches!(d, Decl::Type(t) if t.name.as_ref() == name)) {
             // A second name has the descriptor of the declaration it names
             // (D46): `type B = A` answers for `A`, and `emit_alias_values`
-            // binds the `B` value the emitted `B.is` then reads. A cycle, a
-            // chain ending at a type with no descriptor, and a chain that
-            // leaves the module answer false.
+            // binds the `B` value the emitted `B.is` then reads. A chain that
+            // leaves the module answers for the sibling's declaration, which
+            // `emit_imported_alias_value` binds the same way (G296). A cycle
+            // and a chain ending at a type with no descriptor answer false.
             return self
                 .chain_end_decl(name)
-                .is_some_and(emits_plain_descriptor);
+                .is_some_and(emits_plain_descriptor)
+                || self.imported_second_name(name).is_some();
         }
         let Some(&sym_id) = self.resolved.symbols.by_name.get(name) else {
             return false;
@@ -4818,6 +4872,83 @@ impl<'a> Emitter<'a> {
             let ex = if is_public { "export " } else { "" };
             self.line(&format!("{ex}const {name} = {};", t.name));
         }
+    }
+
+    /// The sibling declaration with a descriptor that the chain of second
+    /// names (D46) starting at this module's `name` ends at, when the chain
+    /// leaves the module (G296). The chain is the checker's
+    /// (`resolve_alias_chain`), so what counts as a hop is decided once; the
+    /// descriptor is the project table's. `value` is the import binding the
+    /// last local hop names, which is the value the emitted TypeScript holds
+    /// for the sibling's descriptor in this module. `None` for a name this
+    /// module does not declare, for a chain that stays in the module, and for
+    /// a sibling type with no descriptor.
+    fn imported_second_name(&self, name: &str) -> Option<ImportedSecondName> {
+        let mut current = self.local_type_named(name)?;
+        let Ty::Imported { module, name: declared } =
+            resolve_alias_chain(self.module, self.resolved, &self.lowerer, &current)
+        else {
+            return None;
+        };
+        let key = (module.as_str().to_string(), declared.to_string());
+        if !self.ctx.plain_descriptors.contains(&key) {
+            return None;
+        }
+        // The chain ended outside the module, so it has no cycle: walk its
+        // local hops to the one whose body names the import.
+        loop {
+            let td = direct_type_decl(self.module, self.resolved, &current)?;
+            match alias_target(&self.lowerer, td)? {
+                Ty::Imported { .. } => {
+                    let TypeExpr::Path { segments, .. } = &td.body else {
+                        return None;
+                    };
+                    return Some(ImportedSecondName {
+                        module: key.0,
+                        name: key.1,
+                        value: segments.first()?.to_string(),
+                    });
+                }
+                next => current = next,
+            }
+        }
+    }
+
+    /// D46 at run time across a module boundary (G296). `type Page = Doc`
+    /// with `Doc` imported emits `const Page = Doc;`, the import binding of
+    /// the sibling's descriptor, so `Page.parse` and `Page.is` reach it
+    /// exactly as the local spelling does. Emitted at the alias's own
+    /// position: an import is initialised before any of the module's code
+    /// runs, so no declaration order can read it early. Exported on the
+    /// alias's own `pub`.
+    fn emit_imported_alias_value(&mut self, t: &glyph_ast::TypeDecl) {
+        let Some(end) = self.imported_second_name(t.name.as_ref()) else {
+            return;
+        };
+        let ex = if t.is_public { "export " } else { "" };
+        self.line(&format!("{ex}const {} = {};", t.name, end.value));
+    }
+
+    /// Every exported second name (D46) of this module whose descriptor the
+    /// emitted TypeScript binds, whether the record it names is declared here
+    /// or in a sibling: what [`ProjectTables`] adds to its descriptor table so
+    /// an importer checks a field typed by one through it.
+    fn exported_second_names_with_descriptor(&self) -> Vec<(String, String)> {
+        self.module
+            .items
+            .iter()
+            .filter_map(|d| match d {
+                Decl::Type(td)
+                    if td.is_public
+                        && td.generics.is_empty()
+                        && alias_target(&self.lowerer, td).is_some()
+                        && self.has_descriptor(td.name.as_ref()) =>
+                {
+                    Some((self.ctx.module_path.to_string(), td.name.to_string()))
+                }
+                _ => None,
+            })
+            .collect()
     }
 
     /// The E0300 construct for a `where` whose base is a record or a union, or
@@ -5619,6 +5750,11 @@ impl<'a> Emitter<'a> {
     fn descriptor_walk(&self, name: &str) -> Vec<WalkStep> {
         let mut steps = Vec::new();
         let Some(decl) = self.chain_end_decl(name) else {
+            // A chain that leaves the module ends at a sibling's record, whose
+            // own module records its walk (G296).
+            if let Some(end) = self.imported_second_name(name) {
+                steps.push(WalkStep::SecondNameFor { module: end.module, name: end.name });
+            }
             return steps;
         };
         if !decl.generics.is_empty() {
@@ -5712,6 +5848,11 @@ impl<'a> Emitter<'a> {
                 WalkStep::Delegates { field, module, name } => {
                     if let Some((sub, ty)) = self.first_unverifiable_in(module, name, seen) {
                         return Some((format!("{field}.{sub}"), ty));
+                    }
+                }
+                WalkStep::SecondNameFor { module, name } => {
+                    if let Some(found) = self.first_unverifiable_in(module, name, seen) {
+                        return Some(found);
                     }
                 }
             }
@@ -11654,6 +11795,128 @@ pub fn n() -> number {\n  return 1\n}
              \x20 return match Outer.parse(v) { Ok(_) => true, Err(_) => false, }\n\
              }\n";
         emit_beside(("w", G210_W), main).expect("a record of verifiable imported records parses");
+    }
+
+    /// The sibling G296 was reported against: a record with a check for every
+    /// field, and one with a field no check exists for.
+    const G296_A: &str = "module a\n\
+         pub type Opaque = extern_ts(\"{ handle: number }\")\n\
+         pub type Doc = { title: string, }\n\
+         pub type Raw = { title: string, h: Opaque, }\n\
+         pub type D2 = Doc\n";
+
+    /// A module that names `a`'s records under second names of its own.
+    const G296_B: &str = "module b\n\
+         import a { Doc, Raw }\n\
+         pub type Page = Doc\n\
+         pub type RawPage = Raw\n";
+
+    /// G296. D46 across a module boundary: `pub type Page = Doc` with `Doc`
+    /// imported is a second name for `a`'s declaration, so `Page.parse` is
+    /// `Doc.parse`. The emitter bound the value only when the record was
+    /// declared in the same module, so the imported spelling emitted a bare
+    /// `type` alias and `Page.parse` was TS2693 from `tsc`. A chain of local
+    /// hops binds every hop to the imported descriptor, at its own position,
+    /// since an import is initialised before any of the module's code runs.
+    #[test]
+    fn a_second_name_for_an_imported_record_is_bound_to_its_descriptor() {
+        let ts = emit_beside(
+            ("a", G296_A),
+            "module main\nimport a { Doc }\n\
+             pub type Page = Doc\n\
+             type P2 = Page\n\
+             type Holder = { page: P2, }\n\
+             pub fn go(v: unknown) -> bool {\n\
+             \x20 return match Page.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n\
+             pub fn hold(v: unknown) -> bool {\n\
+             \x20 return match Holder.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n",
+        )
+        .expect("a second name for a verifiable imported record parses");
+        assert!(ts.contains("export type Page = Doc;"), "type alias: {ts}");
+        assert!(ts.contains("export const Page = Doc;"), "value alias: {ts}");
+        assert!(ts.contains("\nconst P2 = Doc;"), "two hops reach the import: {ts}");
+        assert!(ts.contains("P2.is("), "a field typed by the second name checks through it: {ts}");
+        // An alias of an imported type that has no descriptor gets no value.
+        let ts = emit_beside(
+            ("a", "module a\npub type Cents = int\n"),
+            "module main\nimport a { Cents }\npub type C2 = Cents\n",
+        )
+        .expect("emit");
+        assert!(!ts.contains("const C2"), "no descriptor to alias: {ts}");
+    }
+
+    /// A second name exported from the module that declares it, or from a
+    /// module that imported the record, is a descriptor for a third module,
+    /// through a named import and through a namespace alike. Before this, a
+    /// field typed by one was E0304 on a record every field of which has a
+    /// check, because the project table listed the second name as a
+    /// descriptorless alias whose body the importer could not resolve.
+    #[test]
+    fn an_imported_second_name_is_a_descriptor_in_a_third_module() {
+        for (imports, page, d2) in [
+            ("import b { Page }\nimport a { D2 }", "Page", "D2"),
+            ("import b\nimport a", "b.Page", "a.D2"),
+            ("import b as bb\nimport a as aa", "bb.Page", "aa.D2"),
+        ] {
+            let main = format!(
+                "module main\n{imports}\n\
+                 type Holder = {{ page: {page}, d: {d2}, }}\n\
+                 pub fn go(v: unknown) -> bool {{\n\
+                 \x20 return match {page}.parse(v) {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n\
+                 pub fn hold(v: unknown) -> bool {{\n\
+                 \x20 return match Holder.parse(v) {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            );
+            let ts = emit_beside_all(&[("a", G296_A), ("b", G296_B)], &main)
+                .unwrap_or_else(|e| panic!("`{imports}` must be accepted: {e:?}"));
+            assert!(ts.contains(&format!("{page}.is(")), "`{page}` field checks through it: {ts}");
+            assert!(ts.contains(&format!("{d2}.is(")), "`{d2}` field checks through it: {ts}");
+        }
+    }
+
+    /// E0304 reaches through a second name that crosses a module boundary:
+    /// `RawPage.parse` is `Raw.parse`, and `Raw` has a field nothing checks.
+    /// Binding the value without this would have turned a `tsc` failure into
+    /// a parse that returns `Ok` on a value whose `h` nobody looked at.
+    #[test]
+    fn e0304_refuses_a_second_name_for_an_imported_unverifiable_record() {
+        // In the module that names it.
+        assert_g210_refused(
+            emit_beside(
+                ("a", G296_A),
+                &g210_main("import a { Raw }\ntype RawPage = Raw", "RawPage.parse(v)"),
+            ),
+            "RawPage",
+            "h",
+            "Opaque",
+        );
+        // In a third module, by each import spelling, and as a field.
+        for (imports, call) in [
+            ("import b { RawPage }", "RawPage.parse(v)"),
+            ("import b", "b.RawPage.parse(v)"),
+            ("import b as bb", "bb.RawPage.parse(v)"),
+        ] {
+            assert_g210_refused(
+                emit_beside_all(&[("a", G296_A), ("b", G296_B)], &g210_main(imports, call)),
+                "RawPage",
+                "h",
+                "Opaque",
+            );
+        }
+        let main = "module main\nimport b { RawPage }\n\
+             type Outer = { p: RawPage, }\n\
+             pub fn go(v: unknown) -> bool {\n\
+             \x20 return match Outer.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+             }\n";
+        assert_g210_refused(
+            emit_beside_all(&[("a", G296_A), ("b", G296_B)], main),
+            "Outer",
+            "p.h",
+            "Opaque",
+        );
     }
 
     #[test]

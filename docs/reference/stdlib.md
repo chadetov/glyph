@@ -1070,6 +1070,10 @@ log.error(message: string) -> void
 log.with_fields(level: Level, message: string, fields: Record<string, unknown>) -> void
 ```
 
+`Level` is a string-literal union the checker reads, so a `match` over one
+covering all four levels needs no `else`, and one that misses a level is E0200
+naming it, the same as for a union you declare yourself.
+
 ## std/collections
 
 Ordered collections beyond `Array`/`Record`. A `Deque<T>` is a double-ended
@@ -1531,6 +1535,12 @@ one both arrived as `status: 0`. The checker models the field, so `match e.kind`
 is held to D30 exhaustiveness: drop an arm and you get `E0200` naming the kind
 you missed. `argument` arrived in 0.1.118, so a `match` written against the
 three earlier kinds without an `else` arm is E0200 on upgrade until it names it.
+
+The same holds wherever these types are written as annotations. A parameter
+typed `http.RedirectPolicy` or `http.HttpErrorKind` (or `net.ServerErrorKind`,
+`log.Level`) is matched without an `else`, a missing value is E0200, and a
+literal outside the set, such as `"folow"` returned as a `RedirectPolicy`, is
+E0204.
 
 `Response.url` is where the response actually came from. After a followed
 redirect that is where you landed rather than where you asked, which is the only

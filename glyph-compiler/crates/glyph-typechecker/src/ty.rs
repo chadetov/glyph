@@ -377,6 +377,49 @@ pub fn builtin_union_of_variant(module: &str, variant: &str) -> Option<BuiltinUn
         .find(|u| u.module == module && u.variants.iter().any(|v| v.name == variant))
 }
 
+/// Every string-literal union (D30) the standard library exports, as
+/// `(module, name, literals)`, with the literals in the order the runtime
+/// declares them.
+///
+/// The standard library is hand-written TypeScript, so no project module
+/// declares these and `imported_type_decl` has nothing to answer for them.
+/// Without this table a `match` over `http.RedirectPolicy` was E0232 (the
+/// declaration is out of sight), and the only way to compile it was an
+/// `else`, which switches the check off for a union of three values (G294).
+///
+/// `stdlib_string_literal_unions_match_the_runtime` in
+/// `glyph-cli/tests/bootstrap.rs` reads `runtime/std/*.ts` and fails when the
+/// two disagree, so a literal added to the runtime cannot silently make a
+/// checked match lie about being exhaustive.
+pub const BUILTIN_STRING_LITERAL_UNIONS: &[(&str, &str, &[&str])] = &[
+    (
+        "std/http",
+        "HttpErrorKind",
+        &["timeout", "network", "status", "argument"],
+    ),
+    ("std/http", "RedirectPolicy", &["follow", "manual", "error"]),
+    ("std/log", "Level", &["debug", "info", "warn", "error"]),
+    (
+        "std/net",
+        "ServerErrorKind",
+        &["in_use", "denied", "unavailable", "other"],
+    ),
+];
+
+/// The declaration of a standard-library string-literal union, in the shape a
+/// project module's declaration is read in, so every consumer of an imported
+/// D30 union treats the two alike. `None` for anything the table does not list.
+pub fn builtin_string_literal_union_decl(module: &str, name: &str) -> Option<ImportedTypeDecl> {
+    let (_, decl_name, values) = BUILTIN_STRING_LITERAL_UNIONS
+        .iter()
+        .find(|(m, n, _)| *m == module && *n == name)?;
+    Some(ImportedTypeDecl {
+        name: Ident::from(*decl_name),
+        generics: Vec::new(),
+        body: Ty::StringLiteralUnion(values.iter().map(|v| v.to_string()).collect()),
+    })
+}
+
 /// Stable handle for a named type or value. Mirrors `glyph_resolver::SymbolId`
 /// but kept here as an opaque newtype so the typechecker doesn't depend on the
 /// resolver's storage choices. The two are converted at the boundary.

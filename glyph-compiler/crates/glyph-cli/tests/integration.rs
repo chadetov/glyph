@@ -7846,6 +7846,38 @@ fn misspelled_import_of_a_visible_module_draws_one_error_not_two() {
 }
 
 #[test]
+fn match_over_a_stdlib_literal_union_is_checked_without_an_else() {
+    // G294. `http.RedirectPolicy` is declared in Glyph's own standard library,
+    // and through 0.1.130 a match over it was E0232 with every value covered
+    // or not: the checker could not read the declaration, so an `else` was
+    // the only way to compile it. Covering all three is clean now, and
+    // dropping one is E0200 naming it.
+    const MAIN: &str = "module main\nimport std/http\n\n\
+         pub fn describe(p: http.RedirectPolicy) -> string {\n\
+         \x20 return match p {\n\
+         \x20\x20\x20 \"follow\" => \"f\",\n\
+         \x20\x20\x20 \"manual\" => \"m\",\n\
+         \x20\x20\x20 \"error\" => \"e\",\n\
+         \x20 }\n\
+         }\n";
+    let full = unique_tmp("g294full");
+    write_file(&full, "main.glyph", MAIN);
+    let (code, stdout, stderr) = glyph_at(&full, &["check", "--no-tsc", "main.glyph"]);
+    let out = format!("{stdout}\n{stderr}");
+    assert_eq!(code, 0, "{out}");
+    assert!(out.contains("no diagnostics"), "{out}");
+
+    let partial = unique_tmp("g294partial");
+    write_file(&partial, "main.glyph", &MAIN.replace("    \"manual\" => \"m\",\n", ""));
+    let (code, stdout, stderr) = glyph_at(&partial, &["check", "--no-tsc", "main.glyph"]);
+    let out = format!("{stdout}\n{stderr}");
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("[E0200]"), "{out}");
+    assert!(out.contains("missing variants \"manual\""), "{out}");
+    assert!(!out.contains("E0232"), "the declaration is in sight now: {out}");
+}
+
+#[test]
 fn match_over_a_visible_imported_type_is_still_checked_against_it() {
     // The other side of G291: with `catalog.glyph` in the build the same
     // program is clean, and dropping a literal is E0200, never E0232.

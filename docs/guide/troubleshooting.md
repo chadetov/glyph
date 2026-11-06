@@ -90,7 +90,9 @@ sibling import in the playground, which compiles one file. The type might be a
 literal union your arms cover or a plain `string` they cannot, and without the
 declaration the checker cannot tell. Build from the project root, or run
 `glyph gen dts <package>` and import the type from the generated module. An
-`else` arm also compiles, but then the match is never checked again.
+`else` arm also compiles, but then the match is never checked again. The
+standard library's own literal unions (`http.RedirectPolicy`, `log.Level`) are
+always in sight, so a match over one of them never draws this.
 
 **E0226: every arm can fail and none is a catch-all.** A `match` over something
 with no cases to count — a record, or a type the checker could not resolve —

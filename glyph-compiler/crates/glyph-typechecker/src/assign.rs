@@ -27,7 +27,7 @@ use glyph_resolver::{
 
 use crate::lower::Lowerer;
 use crate::ty::{
-    builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
+    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::{IdentPattern, TypeMap};
@@ -4312,7 +4312,7 @@ impl Assigner<'_> {
             if !seen.insert((module.clone(), name.clone())) {
                 return ImportedTypeVisibility::Visible;
             }
-            match self.decl_ty_resolver.imported_type_decl(&module, &name) {
+            match declared_type_across_modules(self.decl_ty_resolver, &module, &name) {
                 Some(decl) => match &decl.body {
                     Ty::Imported {
                         module: next_module,
@@ -7636,6 +7636,23 @@ pub fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
 /// a pairing the way `imported_incompatible` decides it (the impact tool's
 /// `change_signature_type` cells) reads the declaration through this walk and
 /// the resolver the checker ran with, rather than through a walk of its own.
+/// The declaration of `name` in `module`, wherever it is declared: a project
+/// module answers through the resolver, and the standard library's own
+/// string-literal unions (`http.RedirectPolicy`, `log.Level`) answer from the
+/// table in `ty.rs`, since no Glyph source declares them (G294).
+///
+/// The two walks over a chain of second names go through here, so a stdlib
+/// union is in sight for exhaustiveness, assignability and the emitter alike.
+fn declared_type_across_modules(
+    resolver: &dyn DeclTyResolver,
+    module: &str,
+    name: &str,
+) -> Option<ImportedTypeDecl> {
+    resolver
+        .imported_type_decl(module, name)
+        .or_else(|| builtin_string_literal_union_decl(module, name))
+}
+
 pub fn imported_decl_chain_end(
     resolver: &dyn DeclTyResolver,
     module: &str,
@@ -7647,7 +7664,7 @@ pub fn imported_decl_chain_end(
         if !seen.insert((module.clone(), name.clone())) {
             return None;
         }
-        let decl = resolver.imported_type_decl(&module, &name)?;
+        let decl = declared_type_across_modules(resolver, &module, &name)?;
         match &decl.body {
             Ty::Imported {
                 module: next_module,
@@ -11426,24 +11443,111 @@ fn outer() -> string {
         assert_eq!(check("elsewhere { ColType }", short), ["E0232"]);
     }
 
-    /// A stdlib literal union the checker does not model has no file to bring
-    /// into the build, so the help does not send the reader looking for one.
+    /// A stdlib type the checker does not model has no file to bring into the
+    /// build, so the help does not send the reader looking for one. (The
+    /// stdlib's string-literal unions are modeled since G294; `Response` is a
+    /// record nobody models, which keeps this path reachable.)
     #[test]
     fn an_unseen_stdlib_type_says_there_is_nothing_to_make_visible() {
         let errs = errors_of(
-            "module app\nimport std/log { Level }\n\
-             pub fn rank(l: Level) -> int {\n\
+            "module app\nimport std/http { Response }\n\
+             pub fn rank(l: Response) -> int {\n\
              \x20 return match l {\n    \"debug\" => 1,\n  }\n}\n",
         );
         match &errs[..] {
             [e @ TypeError::UnseenMatchType { module, .. }] => {
-                assert_eq!(module, "std/log");
+                assert_eq!(module, "std/http");
                 let help = e.help().unwrap();
                 assert!(!help.contains("gen dts"), "{help}");
                 assert!(help.contains("nothing to make visible"), "{help}");
             }
             other => panic!("expected one E0232, got {other:?}"),
         }
+    }
+
+    /// The codes a program draws, for comparing a stdlib union against the
+    /// same union declared in the program.
+    fn codes_of(src: &str) -> Vec<&'static str> {
+        errors_of(src).iter().map(|e| e.code()).collect()
+    }
+
+    /// G294. Every string-literal union the standard library exports, matched
+    /// through each import spelling with every literal covered and no `else`.
+    /// Through 0.1.130 each of these was E0232: the declaration lives in the
+    /// hand-written runtime, so the checker could not read it, and an `else`
+    /// was the only way to compile a match over three values.
+    #[test]
+    fn a_full_match_over_a_stdlib_literal_union_needs_no_else() {
+        for (module, name, values) in crate::ty::BUILTIN_STRING_LITERAL_UNIONS {
+            let ns = module.strip_prefix("std/").unwrap();
+            let arms: String = values
+                .iter()
+                .enumerate()
+                .map(|(i, v)| format!("    \"{v}\" => {i},\n"))
+                .collect();
+            for (import, ty) in [
+                (module.to_string(), format!("{ns}.{name}")),
+                (format!("{module} as m"), format!("m.{name}")),
+                (format!("{module} {{ {name} }}"), name.to_string()),
+            ] {
+                let src = format!(
+                    "module app\nimport {import}\n\
+                     pub fn rank(v: {ty}) -> int {{\n  return match v {{\n{arms}  }}\n}}\n"
+                );
+                assert_eq!(codes_of(&src), Vec::<&str>::new(), "{src}");
+            }
+        }
+    }
+
+    /// A stdlib literal union left partly unmatched is E0200 naming what is
+    /// missing, exactly as the same union declared in the program is.
+    #[test]
+    fn a_partial_match_over_a_stdlib_literal_union_names_the_missing_value() {
+        let src = "module app\nimport std/http\n\
+                   pub fn f(p: http.RedirectPolicy) -> int {\n\
+                   \x20 return match p {\n    \"follow\" => 1,\n    \"error\" => 3,\n  }\n}\n";
+        match &errors_of(src)[..] {
+            [e @ TypeError::NonExhaustiveMatch {
+                missing_variants, ..
+            }] => {
+                assert_eq!(e.code(), "E0200");
+                assert_eq!(missing_variants, &["manual".to_string()]);
+            }
+            other => panic!("expected one E0200 naming \"manual\", got {other:?}"),
+        }
+        let level = "module app\nimport std/log { Level }\n\
+                     pub fn rank(l: Level) -> int {\n\
+                     \x20 return match l {\n    \"debug\" => 1,\n  }\n}\n";
+        match &errors_of(level)[..] {
+            [TypeError::NonExhaustiveMatch {
+                missing_variants, ..
+            }] => assert_eq!(missing_variants, &["info", "warn", "error"]),
+            other => panic!("expected one E0200, got {other:?}"),
+        }
+    }
+
+    /// A literal the stdlib union does not have is refused with the codes the
+    /// program-declared union draws, in an arm and in a returned value alike.
+    #[test]
+    fn a_misspelled_stdlib_literal_is_refused_as_a_user_union_is() {
+        let arm = |head: &str, ty: &str| {
+            format!(
+                "module app\n{head}\
+                 pub fn f(p: {ty}) -> int {{\n\
+                 \x20 return match p {{\n    \"follow\" => 1,\n    \"manuel\" => 2,\n    \"error\" => 3,\n  }}\n}}\n"
+            )
+        };
+        let local_head = "type RedirectPolicy = \"follow\" | \"manual\" | \"error\"\n";
+        let local = codes_of(&arm(local_head, "RedirectPolicy"));
+        assert!(!local.is_empty(), "the program-declared union refuses the typo");
+        assert_eq!(codes_of(&arm("import std/http\n", "http.RedirectPolicy")), local);
+
+        let ret = |head: &str, ty: &str| {
+            format!("module app\n{head}pub fn pick() -> {ty} {{\n  return \"folow\"\n}}\n")
+        };
+        let local = codes_of(&ret(local_head, "RedirectPolicy"));
+        assert!(!local.is_empty(), "the program-declared union refuses the typo");
+        assert_eq!(codes_of(&ret("import std/http\n", "http.RedirectPolicy")), local);
     }
 
     /// Reading a key out of a map is a guess, so it is E0224.

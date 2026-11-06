@@ -3437,6 +3437,94 @@ const good: Codec<Point> = object_codec({ x: number_codec() })
     }
 }
 
+/// A keyword may be a type path segment after a dot, as it may be a member
+/// after a dot: `kinds.type` is a type as `kinds.make()` is a value. The
+/// emitted TypeScript keeps the qualified name, and tsc accepts a reserved word
+/// on the right of a dot in one (a qualified name's right side is an
+/// IdentifierName). This pins that against a real `.d.ts` whose export is named
+/// `type`, the spelling a Glyph import item cannot take. A wrong value is
+/// rejected through the same name, so the type was loaded and not `any`.
+#[test]
+fn a_keyword_type_path_segment_type_checks_through_tsc() {
+    if !tsc_available() {
+        eprintln!("skipping keyword type path segment check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("kw_type_segment");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "node_modules/kinds/package.json",
+        r#"{ "name": "kinds", "version": "1.0.0", "types": "index.d.ts" }"#,
+    );
+    write_file(
+        &src,
+        "node_modules/kinds/index.d.ts",
+        "export type type = \"a\" | \"b\";\nexport declare function make(): type;\nexport declare function take(k: type): string;\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import kinds
+
+fn pick() -> kinds.type {
+  return kinds.make()
+}
+
+fn main(argv: Array<string>) -> number {
+  print(kinds.take(pick()))
+  return 0
+}
+"#,
+    );
+
+    let out = root.join("dist-good");
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "`kinds.type` is a type: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("emitted main.ts");
+    assert!(ts.contains("kinds.type"), "the qualified name is emitted as written:\n{ts}");
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("tsc refused `kinds.type` in type position:\n{msg}"),
+        TscOutcome::NotFound => panic!("tsc vanished mid-test"),
+    }
+
+    // A value outside the union, returned as `kinds.type`: tsc rejects it
+    // naming the declared type, so the qualified name reached the `.d.ts`'s
+    // `type` and did not fall back to `any`.
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import kinds
+
+fn pick() -> kinds.type {
+  return "c"
+}
+
+fn main(argv: Array<string>) -> number {
+  print(kinds.take(pick()))
+  return 0
+}
+"#,
+    );
+    let out = root.join("dist-bad");
+    let report = build_project_inner(&src, &out, false).expect("build runs");
+    assert!(!report.has_errors(), "the checker leaves the npm type to tsc: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Failed(msg) => assert!(
+            msg.contains("is not assignable to type 'type'"),
+            "tsc names the declared type:\n{msg}"
+        ),
+        other => panic!("`\"c\"` as `kinds.type` must be refused by tsc, got {other:?}"),
+    }
+}
+
 /// Phase 1 of the interop work (Q43): an installed npm package that ships its own
 /// types resolves and type-checks with no hand-written `.types/` stub. The build
 /// emits into an out directory outside the project, so this only works because

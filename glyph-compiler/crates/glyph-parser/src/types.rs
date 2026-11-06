@@ -194,9 +194,13 @@ fn parse_path_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
         end = span.end;
     }
 
+    // A segment after a dot is a member name, as it is in an expression
+    // (G300): any keyword may follow, so `pkg.type` is a type as it is a
+    // value. TypeScript's qualified names take a reserved word on the right
+    // of a dot too. The head above is not after a dot and stays a name.
     while matches!(p.peek(), Token::Dot) {
         p.advance();
-        let (next, span) = p.expect_ident_ref("type path segment")?;
+        let (next, span) = p.expect_member_name("type path segment")?;
         segments.push(next);
         end = span.end;
     }

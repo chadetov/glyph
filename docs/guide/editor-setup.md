@@ -16,7 +16,10 @@ What the server provides:
   once you pause for about 300 ms; until then its last refusals stay up,
   moved along with the text you type above or beside them, and one whose
   own text you edit is dropped. Opening or saving a file shows the whole
-  list at once.
+  list at once. Since an import can make one file's errors depend on
+  another, a change to one file also refreshes every other open file: after
+  the same pause when you type, at once when you save or something changes
+  the file on disk.
 - **Hover types**
 - **Go-to-definition**
 - **Completion** — keywords, in-scope declarations, prelude names

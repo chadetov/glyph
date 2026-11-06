@@ -582,7 +582,7 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String, &'stati
                 site,
             ))
         }
-        // The receiver is a record or, since G288, an array or a string, whose
+        // The receiver is a record or, since G288, an array, a string or a number, whose
         // members TypeScript's library declares; the wording names neither.
         0 => Err(format!(
             "nothing the type declares is one character away from `{wrong}`; it declares {}",

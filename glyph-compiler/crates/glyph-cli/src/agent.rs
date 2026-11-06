@@ -275,7 +275,7 @@ fn constraints(d: &Diagnostic, symbols: &[Value]) -> Vec<String> {
             // A record declared in this project can take the field; a
             // set with no declaration behind it cannot. That is an inline
             // annotation, a stdlib type, or a built-in value such as an
-            // `Array<T>` or a `string` (G288), whose members TypeScript's
+            // `Array<T>`, a `string` or a `number` (G288), whose members TypeScript's
             // library fixes, and telling an agent to add `lenght` to a
             // declaration that does not exist sends it looking for one.
             match (d.cause.as_deref(), fields) {

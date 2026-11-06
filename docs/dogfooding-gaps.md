@@ -10920,7 +10920,7 @@ and is the owner's to confirm.
   container is the value, not when it is the annotation.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
-- **G294. The stdlib's string-literal unions are not modeled.** A match on
+- **G294. [FIXED] The stdlib's string-literal unions are not modeled.** A match on
   `http.RedirectPolicy` (`"follow" | "manual" | "error"`) cannot be checked for
   exhaustiveness: it is E0232 since G291, and the only way to compile it is an
   `else`, which turns the check off. The union is declared in Glyph's own
@@ -10930,6 +10930,26 @@ and is the owner's to confirm.
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): the two-arm match is ``[E0232] ... `RedirectPolicy` is
   declared in `std/http`, and that declaration is not visible to the
   checker``.*
+
+  *Re-run against 0.1.130 before the fix: a three-arm match covering every
+  value of `http.RedirectPolicy` was E0232 too, so no match over it compiled
+  without an `else`. `http.HttpErrorKind` and `net.ServerErrorKind`, written as
+  annotations, were the same, and `return "folow"` from a function declared
+  `-> http.RedirectPolicy` passed `glyph check --no-tsc`.*
+
+  Fixed in 0.1.131. The checker reads the four string-literal unions the
+  standard library exports (`http.HttpErrorKind`, `http.RedirectPolicy`,
+  `log.Level`, `net.ServerErrorKind`) from a table in `glyph-typechecker`,
+  through the same lookup a project module's union goes through, so the type
+  keeps its name and every import spelling sees it. The full match is ``glyph
+  check: 1 module(s) checked, no diagnostics.``; dropping `"manual"` is
+  ``[E0200] ... non-exhaustive match on `"follow" | "manual" | "error"`: missing
+  variants "manual"``; the misspelled return is ``[E0204] ... type mismatch:
+  expected `RedirectPolicy`, found `"folow"` ``. A bootstrap test reads
+  `runtime/std/*.ts` and fails when the table and the runtime disagree on a
+  union or a literal. With `tsc` the full match goes from exit 1 to 0 and
+  nothing tried goes from 0 to 1, so it is not breaking under `glyph check`;
+  under `--no-tsc` the misspelled return goes from 0 to 1.
 - **G295. The editor does not show the emitter's errors.** E0302 to E0305
   (an unverifiable `parse`, a `?` the emitter cannot hoist, two arms lowering
   to one `case`) are errors of `glyph check` and of the MCP `diagnostics`

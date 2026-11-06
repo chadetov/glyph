@@ -776,10 +776,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             An `else` arm also compiles. It turns the match into an open one, so a \
             value added to the type later goes to the `else` without a word from \
             the compiler. Use it only when that is what you want.\n\n\
-            A literal union from the standard library that the checker does not \
-            model yet (`std/http`'s `RedirectPolicy`, `std/log`'s `Level`) draws \
-            the same error. There is no file to bring into the build for those, \
-            so an `else` arm is the way through until the checker reads them.",
+            The standard library's literal unions (`std/http`'s `RedirectPolicy`, \
+            `std/log`'s `Level`) are always in sight, so a match over one of them \
+            is checked against its values and never draws this error.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \

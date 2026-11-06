@@ -404,6 +404,61 @@ fn stdlib_type_only_exports_match_the_runtime() {
     );
 }
 
+/// The checker's table of the stdlib's string-literal unions is the runtime's
+/// declarations, union for union and literal for literal (G294). A literal the
+/// runtime adds and the table lacks would let a `match` the checker calls
+/// exhaustive throw at run time; one the table keeps after the runtime drops
+/// it would demand an arm for a value that never arrives.
+#[test]
+fn stdlib_string_literal_unions_match_the_runtime() {
+    use std::collections::BTreeMap;
+    let runtime = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../runtime/std"));
+    let declared: BTreeMap<(String, String), Vec<String>> =
+        glyph_typechecker::ty::BUILTIN_STRING_LITERAL_UNIONS
+            .iter()
+            .map(|(m, n, vs)| {
+                ((m.to_string(), n.to_string()), vs.iter().map(|v| v.to_string()).collect())
+            })
+            .collect();
+
+    let mut actual: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
+    for entry in fs::read_dir(runtime).expect("read runtime/std") {
+        let path = entry.expect("dir entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("ts") {
+            continue;
+        }
+        let module = format!("std/{}", path.file_stem().unwrap().to_str().unwrap());
+        let src = fs::read_to_string(&path).expect("read std module");
+        // `export type Name = "a" | "b";`, on one line or spread over several.
+        let mut rest = src.as_str();
+        while let Some(at) = rest.find("export type ") {
+            rest = &rest[at + "export type ".len()..];
+            let Some(eq) = rest.find('=') else { break };
+            let name = rest[..eq].trim();
+            let Some(end) = rest[eq..].find(';') else { break };
+            let body = &rest[eq + 1..eq + end];
+            let members: Vec<&str> =
+                body.split('|').map(str::trim).filter(|m| !m.is_empty()).collect();
+            let literal = |m: &&str| m.len() >= 2 && m.starts_with('"') && m.ends_with('"');
+            if !members.is_empty()
+                && members.iter().all(literal)
+                && name.chars().all(|c| c.is_alphanumeric() || c == '_')
+            {
+                actual.insert(
+                    (module.clone(), name.to_string()),
+                    members.iter().map(|m| m[1..m.len() - 1].to_string()).collect(),
+                );
+            }
+        }
+    }
+    assert!(!actual.is_empty(), "the scan found no union at all, so it is not reading the runtime");
+    assert_eq!(
+        declared, actual,
+        "BUILTIN_STRING_LITERAL_UNIONS in `glyph-typechecker/src/ty.rs` disagrees with the \
+         runtime's `export type X = \"a\" | \"b\"` declarations (left: the table, right: the runtime)"
+    );
+}
+
 /// Every HTTP verb takes its deadline from `fetch_of`, so the 30 000 ms default
 /// is written in one place (G128).
 ///

@@ -162,9 +162,44 @@ impl Backend {
     }
 }
 
-/// Convert byte-coordinate diagnostics to the protocol type, mapping spans to
-/// UTF-16 line/character ranges via a one-shot line index over `text`.
-fn to_lsp_diagnostics(text: &str, glyphs: Vec<analysis::GlyphDiagnostic>) -> Vec<Diagnostic> {
+/// Convert the compiler's diagnostics to the protocol type, mapping each span's
+/// byte offsets to UTF-16 line/character ranges via a one-shot line index over
+/// `text`.
+///
+/// The message carries the help on a second line, because the protocol has no
+/// field for it and an editor shows the message whole. A warning (the lint
+/// tier) is published as a warning, which is what `glyph check` calls it.
+fn to_lsp_diagnostics(text: &str, diagnostics: Vec<diagnostic::Diagnostic>) -> Vec<Diagnostic> {
+    let index = LineIndex::new(text);
+    let pos = |offset: u32| {
+        let (line, character) = index.position(text, offset as usize);
+        Position::new(line, character)
+    };
+    diagnostics
+        .into_iter()
+        .map(|d| Diagnostic {
+            range: Range::new(pos(d.range.start.offset), pos(d.range.end.offset)),
+            severity: Some(if d.severity == "warning" {
+                DiagnosticSeverity::WARNING
+            } else {
+                DiagnosticSeverity::ERROR
+            }),
+            code: Some(NumberOrString::String(d.code)),
+            source: Some("glyph".to_string()),
+            message: match d.help {
+                Some(help) => format!("{}\n{help}", d.message),
+                None => d.message,
+            },
+            ..Default::default()
+        })
+        .collect()
+}
+
+/// [`to_lsp_diagnostics`] for the text path's diagnostics, which only
+/// `glyph/applyEdit` still reads: it checks a candidate text that is in no
+/// database. Every diagnostic is an error there, because the gate refuses an
+/// edit on any of them.
+fn text_path_to_lsp(text: &str, glyphs: Vec<analysis::GlyphDiagnostic>) -> Vec<Diagnostic> {
     let index = LineIndex::new(text);
     let pos = |offset: u32| {
         let (line, character) = index.position(text, offset as usize);
@@ -440,10 +475,11 @@ impl LanguageServer for Backend {
             if d.code != "E0106" {
                 continue;
             }
-            if (d.start as usize) > req_end || (d.end as usize) < req_start {
+            let (start, end) = (d.range.start.offset as usize, d.range.end.offset as usize);
+            if start > req_end || end < req_start {
                 continue;
             }
-            let (ls, le) = line_span(text, d.start as usize);
+            let (ls, le) = line_span(text, start);
             let (sl, sc) = index.position(text, ls);
             let (el, ec) = index.position(text, le);
             let range = Range {
@@ -1062,7 +1098,7 @@ impl Backend {
                 diagnostics: Vec::new(),
             })
         } else {
-            let lsp = to_lsp_diagnostics(&candidate, diags);
+            let lsp = text_path_to_lsp(&candidate, diags);
             Ok(reject("verification_failed", lsp))
         }
     }

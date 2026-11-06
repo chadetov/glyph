@@ -2,14 +2,16 @@
 //! one document and collect diagnostics, plus a byte-offset → line/character
 //! index for mapping spans to LSP positions.
 //!
-//! There are two ways in and one way through. `analyze`/`analyze_full` run the
-//! front end over a bare `&str`, for a caller that has no database (the MCP
-//! server, and the `applyEdit` gate, which asks about text no buffer holds
-//! yet). `analyze_in`/`analysis_in` read the same stages out of the
-//! incremental model, which is what the language server does. Both end in
-//! `diagnostics_of`, so the list an editor sees and the list an agent sees are
-//! assembled by one function rather than two that drift; a test holds them to
-//! it.
+//! There are two ways in. `analyze`/`analyze_full` run the front end over a
+//! bare `&str`, for a caller that has no database (the `applyEdit` gate, which
+//! asks about text no buffer holds yet). `analysis_in` reads the same stages
+//! out of the incremental model, which is what the language server's position
+//! queries do.
+//!
+//! The diagnostics the server publishes do not come from here. They are
+//! `glyph check`'s list for the file, assembled by
+//! `diagnostic::project_file_diagnostics`, the function the `glyph_diagnostics`
+//! tool calls, so the editor also shows the emitter's refusals (G295).
 //!
 //! This module holds no `tower-lsp` types, so it is unit-testable without an LSP
 //! runtime. The server (`lib.rs`) converts `GlyphDiagnostic` to the protocol
@@ -53,8 +55,9 @@ pub struct GlyphDiagnostic {
     ///
     /// Unread since 0.1.121, when `glyph_diagnostics` moved onto the project
     /// database and the `crate::diagnostic::Diagnostic` the CLI serializes.
-    /// This type is now the editor's alone, and the language server puts a
-    /// code, a range and a message on the wire. Kept because it is the same
+    /// Since 0.1.131 the published diagnostics are that type too, and this one
+    /// is read only by the `glyph/applyEdit` gate, which puts a code, a range
+    /// and a message on the wire. Kept because it is the same
     /// fact `entity` carries on the other surface and the protocol has a
     /// `data` field to put it in; the attribute is what says nothing reads it
     /// yet.
@@ -91,10 +94,9 @@ pub struct GlyphDiagnostic {
 /// circuits — downstream phases cannot run without an AST.
 ///
 /// This is the text path: it runs the whole front end on every call, which is
-/// what a caller holding a bare `&str` and no database has to do. The language
-/// server holds both, and calls [`analyze_in`] instead; the two assemble the
-/// same list through [`diagnostics_of`], so they cannot disagree about what an
-/// editor and an agent see.
+/// what a caller holding a bare `&str` and no database has to do. It stops
+/// after the checker, so it does not see the emitter's refusals (E0302 to
+/// E0305); the language server publishes `project_file_diagnostics` instead.
 pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     let module = match glyph_parser::parse(text) {
         Ok(m) => m,
@@ -123,46 +125,11 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     )
 }
 
-/// The same diagnostics as [`analyze`], read out of the incremental model
-/// instead of recomputed: `file`'s text is whatever the overlay last put in the
-/// database, and each stage is a salsa query, so a stage whose inputs did not
-/// change is a memo read rather than a pass over the file.
-///
-/// `stdlib` is passed in because the stub graph is built once per server, not
-/// once per keystroke.
-pub fn analyze_in(db: &dyn Db, file: SourceFile, stdlib: &StdlibStubs) -> Vec<GlyphDiagnostic> {
-    let parsed = glyph_db::parse_module(db, file);
-    let Some(module) = parsed.module() else {
-        // No `decl_name`: a file that failed to parse has no AST to look an
-        // enclosing declaration up in.
-        return parsed.error().map(parse_diag).into_iter().collect();
-    };
-    let resolved = glyph_db::resolve(db, file);
-    let Some(resolution) = resolved.resolved() else {
-        // Symbol collection failed; `resolve` carries its errors and stopped,
-        // which is the same short-circuit `analyze` takes.
-        return resolved
-            .errors()
-            .iter()
-            .map(|e| resolve_diag(e, module))
-            .collect();
-    };
-    let types = glyph_db::type_map(db, file);
-    diagnostics_of(
-        module,
-        resolution,
-        resolved.errors(),
-        types.errors(),
-        stdlib,
-    )
-}
-
 /// Assemble the diagnostic list for a file whose front end has already run.
 ///
 /// The order is the order the editor shows: import verification, then
 /// resolution, then types, and the warning-tier lints only when nothing else
-/// fired. This is the single copy of that rule; both `analyze` and
-/// `analyze_in` end here.
+/// fired.
 fn diagnostics_of(
     module: &Module,
     resolved: &ResolvedModule,

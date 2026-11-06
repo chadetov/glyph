@@ -115,6 +115,28 @@ impl Lsp {
     }
 }
 
+impl Lsp {
+    /// The next `publishDiagnostics` for `file`, skipping everything else the
+    /// server sends.
+    fn diagnostics_for(&mut self, file: &Path) -> Vec<Value> {
+        let want = uri(file);
+        loop {
+            let message = self
+                .inbox
+                .recv_timeout(Duration::from_secs(180))
+                .unwrap_or_else(|_| panic!("no diagnostics published for {want}"));
+            if message.get("method") == Some(&json!("textDocument/publishDiagnostics"))
+                && message["params"]["uri"] == json!(want)
+            {
+                return message["params"]["diagnostics"]
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default();
+            }
+        }
+    }
+}
+
 impl Drop for Lsp {
     fn drop(&mut self) {
         let _ = self.child.kill();
@@ -243,5 +265,121 @@ fn definition_and_hover_on_a_member_are_the_named_imports_answer() {
         for ((what, ..), (got, want)) in SITES.iter().zip(row.iter().zip(&answers[0])) {
             assert_eq!(got, want, "{what} under `{import}`");
         }
+    }
+}
+
+/// `glyph check --json --no-tsc` over `dir`: each diagnostic in `main.glyph`
+/// as its code, severity and zero-based start, which is what an editor shows.
+fn check_codes(dir: &Path) -> Vec<(String, String, u64, u64)> {
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .arg("check")
+        .arg(dir)
+        .arg("--no-tsc")
+        .arg("--no-test")
+        .arg("--json")
+        .output()
+        .expect("spawn `glyph check`");
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    let report: Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("`glyph check --json` wrote non-JSON ({e}): {stdout}"));
+    report["diagnostics"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no diagnostics: {report}"))
+        .iter()
+        .filter(|d| d["file"] == json!("main.glyph"))
+        .map(|d| {
+            (
+                d["code"].as_str().unwrap_or_default().to_string(),
+                d["severity"].as_str().unwrap_or_default().to_string(),
+                d["range"]["start"]["line"].as_u64().unwrap_or(0) - 1,
+                d["range"]["start"]["col"].as_u64().unwrap_or(0) - 1,
+            )
+        })
+        .collect()
+}
+
+/// G295. The emitter's refusals reach the editor. E0302 to E0305 are errors
+/// of `glyph check` that the checker does not make; the server used to stop
+/// after the checker and publish nothing for them, so the editor showed a
+/// file as clean that `glyph check` refused. Each fixture is opened over the
+/// protocol, and what the server publishes for it is what `glyph check`
+/// reports for it: code, severity and position. The imported-record case is
+/// the one that needs the project's tables, because E0304 there is the
+/// declaring module's verdict (G210).
+#[test]
+fn the_editor_publishes_the_emitters_errors() {
+    const ORDERS_OPAQUE: &str = "module orders\npub type Handle = extern_ts(\"{ fd: number }\")\n\
+        pub type Order = {\n  id: string,\n  handle: Handle,\n}\n";
+    let cases: [(&str, &str, Option<&str>); 4] = [
+        (
+            "E0302",
+            "module main\npub type Id =\n  | None\n  | Some(number)\n\n\
+             fn f(b: string) -> Result<string, string> {\n  return Ok(b)\n}\n\n\
+             fn shout(s: string) -> string {\n  return s\n}\n\n\
+             pub fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+             return Ok(shout(match id {\n    None => f(b)?,\n    Some(n) => b,\n  }))\n}\n",
+            None,
+        ),
+        (
+            "E0303",
+            "module main\npub type Id =\n  | None\n  | Some(number)\n\n\
+             fn load(p: string) -> Result<Id, string> {\n  return Ok(None)\n}\n\n\
+             pub fn pick(p: string) -> Result<string, string> {\n  \
+             let x = match load(p)? {\n    None => \"n\",\n    Some(n) => \"s\",\n  }\n  \
+             return Ok(x)\n}\n",
+            None,
+        ),
+        (
+            "E0305",
+            "module main\npub type U =\n  | A\n  | B\n\n\
+             pub fn f(u: U) -> number {\n  return match u {\n    A => 1,\n    A => 2,\n    B => 3,\n  }\n}\n",
+            None,
+        ),
+        (
+            "E0304",
+            "module main\nimport orders { Order }\n\n\
+             pub fn take(v: unknown) -> bool {\n  return match Order.parse(v) {\n    \
+             Ok(_) => true,\n    Err(_) => false,\n  }\n}\n",
+            Some(ORDERS_OPAQUE),
+        ),
+    ];
+    for (code, main, orders) in cases {
+        let dir = tmp_dir(&code.to_lowercase());
+        let main_path = dir.join("main.glyph");
+        std::fs::write(&main_path, main).expect("write main");
+        if let Some(orders) = orders {
+            std::fs::write(dir.join("orders.glyph"), orders).expect("write orders");
+        }
+        let from_cli = check_codes(&dir);
+        assert!(
+            from_cli.iter().any(|(c, ..)| c == code),
+            "the fixture no longer draws {code} from `glyph check`: {from_cli:?}"
+        );
+
+        let mut lsp = Lsp::start(&dir);
+        lsp.open(&main_path);
+        let published = lsp.diagnostics_for(&main_path);
+        let from_editor: Vec<(String, String, u64, u64)> = published
+            .iter()
+            .map(|d| {
+                let severity = match d["severity"].as_u64() {
+                    Some(1) => "error",
+                    Some(2) => "warning",
+                    _ => "other",
+                };
+                (
+                    d["code"].as_str().unwrap_or_default().to_string(),
+                    severity.to_string(),
+                    d["range"]["start"]["line"].as_u64().unwrap_or(0),
+                    d["range"]["start"]["character"].as_u64().unwrap_or(0),
+                )
+            })
+            .collect();
+        assert_eq!(
+            from_editor, from_cli,
+            "{code}: the editor and `glyph check` disagree about main.glyph: {published:?}"
+        );
+        drop(lsp);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

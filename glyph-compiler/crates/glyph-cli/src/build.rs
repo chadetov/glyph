@@ -578,28 +578,9 @@ fn build_project_inner_with(
     // resolution, and every module that imports the record reads that
     // verdict (G210). The queries are memoized, so the per-module pass below
     // reads the same results back.
-    let parsed_all: Vec<glyph_db::ParsedModule> =
-        entries.iter().map(|(_, sf)| parse_module(&db, *sf)).collect();
-    let resolved_all: Vec<glyph_db::Resolved> =
-        entries.iter().map(|(_, sf)| resolve(&db, *sf)).collect();
-    let types_all: Vec<glyph_db::Types> =
-        entries.iter().map(|(_, sf)| type_map(&db, *sf)).collect();
-    let decls_all: Vec<glyph_db::SalsaDeclTy> = entries
-        .iter()
-        .map(|(_, sf)| glyph_db::SalsaDeclTy::new(&db, *sf))
-        .collect();
-    let tables = glyph_emit::ProjectTables::from_modules(
-        entries.iter().enumerate().map(|(i, (module_path, _))| glyph_emit::ProjectModule {
-            module_path: module_path.as_str(),
-            ast: parsed_all[i].module(),
-            checked: resolved_all[i].resolved().map(|resolved| glyph_emit::CheckedModule {
-                resolved,
-                types: types_all[i].type_map(),
-                decls: &decls_all[i],
-            }),
-        }),
-        db.prelude(),
-    );
+    let table_entries: Vec<(&str, SourceFile)> =
+        entries.iter().map(|(m, sf)| (m.as_str(), *sf)).collect();
+    let tables = glyph_lsp::diagnostic::project_tables(&db, &table_entries);
     let project_modules = tables.project_modules().clone();
 
     // Module names that resolve without a `.glyph` file: ambient `declare

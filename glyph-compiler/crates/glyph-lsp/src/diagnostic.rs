@@ -547,6 +547,49 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
     }
 }
 
+/// The project scan every emitted module needs, over `entries` (module path and
+/// file), read out of the database the project is loaded into.
+///
+/// The checker's results go in beside the ASTs: E0304 on an imported record is
+/// that record's own module's verdict (G210), decided with that module's own
+/// resolution. The queries are memoized, so a module nothing changed in is a
+/// memo read here and again in the per-module pass after it.
+///
+/// One builder for every surface that runs the emitter over a project
+/// database: `glyph check`, the `glyph_diagnostics` tool and the language
+/// server. Three hand-built copies of this is how one of them would come to
+/// miss the checker's results and lose E0304 on imports again.
+pub fn project_tables(db: &dyn Db, entries: &[(&str, SourceFile)]) -> ProjectTables {
+    let parsed: Vec<glyph_db::ParsedModule> = entries
+        .iter()
+        .map(|(_, f)| glyph_db::parse_module(db, *f))
+        .collect();
+    let resolved: Vec<glyph_db::Resolved> = entries
+        .iter()
+        .map(|(_, f)| glyph_db::resolve(db, *f))
+        .collect();
+    let types: Vec<glyph_db::Types> = entries
+        .iter()
+        .map(|(_, f)| glyph_db::type_map(db, *f))
+        .collect();
+    let decls: Vec<glyph_db::SalsaDeclTy> = entries
+        .iter()
+        .map(|(_, f)| glyph_db::SalsaDeclTy::new(db, *f))
+        .collect();
+    ProjectTables::from_modules(
+        entries.iter().enumerate().map(|(i, (module_path, _))| glyph_emit::ProjectModule {
+            module_path,
+            ast: parsed[i].module(),
+            checked: resolved[i].resolved().map(|r| glyph_emit::CheckedModule {
+                resolved: r,
+                types: types[i].type_map(),
+                decls: &decls[i],
+            }),
+        }),
+        db.prelude(),
+    )
+}
+
 /// Every diagnostic one file of a project produces, in the order and under the
 /// stage tags `glyph check --json` reports them, read out of the incremental
 /// database the project is already loaded into.

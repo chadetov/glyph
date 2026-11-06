@@ -11309,7 +11309,7 @@ and is the owner's to confirm.
   and cannot be written as a name here``, and the help says the word cannot
   name a type, a type path segment or an imported item, where it talked
   about trailing commas. The code is unchanged.
-- **G302. A second name spelled through a namespace is not a second name.**
+- **G302. [FIXED] A second name spelled through a namespace is not a second name.**
   `pub type Page = a.Doc`, under `import a`, is not followed the way
   `pub type Page = Doc` is (D46 follows a bare name only). `Page` and `a.Doc`
   are E0204 against each other, `p.titel` on a `p: Page` passes Glyph's
@@ -11324,6 +11324,41 @@ and is the owner's to confirm.
   `return p.titel` is `glyph check: 2 module(s) checked, no diagnostics.`
   under `--no-tsc`, and ``[TS2551] Error: tsc: Property 'titel' does not
   exist on type 'Doc'`` with `tsc`.*
+
+  *Re-run against 0.1.131 (the dev-0.1.132 build before the fix): `let p:
+  Page = d` with `d: a.Doc` is ``[E0204] Error: typecheck: type mismatch:
+  expected `Page`, found `Doc` ``; `return p.titel` is `glyph check: 2
+  module(s) checked, no diagnostics.` under `--no-tsc`; `Page.parse(v)` is
+  ``[TS2693] Error: tsc: 'Page' only refers to a type, but is being used as a
+  value here.`` A match over `type L = a.Shape` missing `Point`, with arms
+  `a.Circle(r)` and `a.Square(x)`, passed `check`, `tsc` and `build`, where
+  the named spelling is E0200.*
+
+  Fixed in 0.1.132: D46 follows a name however it is spelled, so the
+  checker's alias chain takes a qualified body (`a.Doc`, `aa.Doc`,
+  `http.RedirectPolicy`) as it takes a bare one, and every consumer of the
+  chain follows it. The emitter binds the qualified path as the value:
+  `pub type Page = a.Doc` emits `export const Page = a.Doc;`. The program
+  above is now clean through `glyph build` (`tsc --strict passed.`), and
+  `p.titel` is ``[E0210] Error: typecheck: type `Page` has no field
+  `titel`; did you mean `title`?`` under `--no-tsc`. The match over
+  `a.Shape` is ``[E0200] Error: typecheck: non-exhaustive match on `Shape`:
+  missing variants `Point` ``. Three neighbours of the same rule were
+  closed with it, because each one gave the named spelling the wrong answer
+  too: a field read through a local second name of an imported record had
+  no field set (`p.titel` passed under `--no-tsc` with `import a { Doc }`
+  as well); a match over a second name of a string-literal union, local,
+  imported or stdlib, was held to an unbounded `string` (``[E0218] ...
+  non-exhaustive match on `string` ``) where the union's own name is held to
+  its values; and a `where` over an imported record or union, by any import
+  spelling and directly or through a second name, built and emitted a
+  descriptor where the local spelling is E0300. Each is now the local
+  answer: E0210, E0200 naming the missing literal, and ``[E0300] Error:
+  emit: TS emission for a `where` refinement on a record type (v1 supports
+  refinements on primitive base types) is not implemented yet``. Breaking:
+  `p.titel` through a second name goes from exit 0 to 1 under `--no-tsc`,
+  the `a.Shape` match and every `where` over an imported record go from
+  exit 0 to 1 under `check` and `build`.
 - **G303. `print` of a `bool` is left to `tsc`.** `print(b)` with `b: bool`
   passes `glyph check --no-tsc`; `tsc` refuses it with TS2345 (``Argument of
   type 'boolean' is not assignable to parameter of type 'string'``). The

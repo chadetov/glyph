@@ -620,3 +620,66 @@ fn an_emitter_error_moves_with_a_line_typed_above_it() {
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// `main` reads `Order.parse`, which is E0304 when `orders` gives `Order` an
+/// opaque field and clean when every field is plain: the verdict is the
+/// declaring module's (G210), so it changes with a file `main` does not hold.
+const MAIN_PARSES_ORDER: &str = "module main\nimport orders { Order }\n\n\
+    pub fn take(v: unknown) -> bool {\n  return match Order.parse(v) {\n    \
+    Ok(_) => true,\n    Err(_) => false,\n  }\n}\n";
+const ORDERS_PLAIN: &str = "module orders\npub type Order = {\n  id: string,\n}\n";
+const ORDERS_OPAQUE: &str = "module orders\npub type Handle = extern_ts(\"{ fd: number }\")\n\
+    pub type Order = {\n  id: string,\n  handle: Handle,\n}\n";
+
+/// Review 78, item 8d. An unsaved edit in a sibling republishes an open file
+/// whose diagnostics depend on it. `main` is open and clean; `orders` is
+/// opened and edited, never saved, so that `main`'s `Order.parse` becomes
+/// E0304; and `main`, untouched, is republished with it.
+#[test]
+fn a_sibling_edit_republishes_an_open_file_that_depends_on_it() {
+    let dir = tmp_dir("sibling");
+    let main_path = dir.join("main.glyph");
+    let orders_path = dir.join("orders.glyph");
+    std::fs::write(&main_path, MAIN_PARSES_ORDER).expect("write main");
+    std::fs::write(&orders_path, ORDERS_PLAIN).expect("write orders");
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+    assert!(lsp.diagnostics_for(&main_path).is_empty(), "main opens clean");
+    lsp.open(&orders_path);
+    lsp.change(&orders_path, 2, ORDERS_OPAQUE);
+    let after = lsp.publishes_until_quiet(&main_path);
+    let (_, last) = after.last().expect("a publish");
+    assert_eq!(codes_of(last), ["E0304"], "main was not republished with E0304: {after:?}");
+
+    // And back: the sibling's fix clears it.
+    lsp.change(&orders_path, 3, ORDERS_PLAIN);
+    let after = lsp.publishes_until_quiet(&main_path);
+    assert!(after.last().expect("a publish").1.is_empty(), "{after:?}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Review 78, item 8d, from disk: a sibling the editor does not have open
+/// changes behind it (a branch switch, a generator), and the watched-file
+/// notification republishes the open file that depends on it.
+#[test]
+fn a_sibling_changed_on_disk_republishes_an_open_file() {
+    let dir = tmp_dir("sibling_disk");
+    let main_path = dir.join("main.glyph");
+    let orders_path = dir.join("orders.glyph");
+    std::fs::write(&main_path, MAIN_PARSES_ORDER).expect("write main");
+    std::fs::write(&orders_path, ORDERS_PLAIN).expect("write orders");
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+    assert!(lsp.diagnostics_for(&main_path).is_empty(), "main opens clean");
+    std::fs::write(&orders_path, ORDERS_OPAQUE).expect("rewrite orders");
+    lsp.notify(
+        "workspace/didChangeWatchedFiles",
+        json!({ "changes": [{ "uri": uri(&orders_path), "type": 2 }] }),
+    );
+    let after = lsp.publishes_until_quiet(&main_path);
+    let (_, last) = after.last().expect("a publish");
+    assert_eq!(codes_of(last), ["E0304"], "main was not republished with E0304: {after:?}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}

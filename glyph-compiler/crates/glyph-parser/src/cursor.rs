@@ -166,9 +166,10 @@ impl<'a> Cursor<'a> {
     }
 
     /// Consume an identifier that refers to a name declared somewhere else: a
-    /// member after `.` or `?.`, a segment of a type path, a `typeof` path, an
-    /// item named in an import list. A reserved word is reported with help
-    /// that does not tell the author to rename something they may not own.
+    /// segment of a type path, the head of a `typeof` path, an item named in
+    /// an import list. A member after `.` is not one (`expect_member_name`). A
+    /// reserved word is reported with help that does not tell the author to
+    /// rename something they may not own.
     pub fn expect_ident_ref(&mut self, expected: &'static str) -> Result<(std::sync::Arc<str>, Span), ParseError> {
         self.expect_ident_as(expected, NameRole::Refers)
     }
@@ -193,6 +194,19 @@ impl<'a> Cursor<'a> {
                 },
             }),
         }
+    }
+
+    /// Consume a member name after `.` or `?.` (G300). Every keyword is a
+    /// member name here, as a field name in a record type or an object
+    /// literal is: `{ type: string }` is the most common wire discriminator
+    /// there is, and a field that can be declared must be readable as
+    /// `e.type`. Nothing else can follow a dot, so this takes no syntax away.
+    /// The set is the lexer's `KEYWORDS` table through `expect_field_name`.
+    pub fn expect_member_name(
+        &mut self,
+        expected: &'static str,
+    ) -> Result<(std::sync::Arc<str>, Span), ParseError> {
+        self.expect_field_name(expected)
     }
 
     /// Consume an identifier-like name (identifier OR a keyword in field-name

@@ -1,0 +1,33 @@
+// G300: a record field may be named with a keyword (`type` is the common wire
+// discriminator), and it is read back after `.` and `?.` as the same name.
+// The emitted TypeScript reads `e.type`, `e.is` and `n?.match` unchanged.
+module x
+
+pub type Event = {
+  type: "open" | "close",
+  is: bool,
+  id: number,
+}
+
+pub type Note = {
+  match: string,
+}
+
+pub fn label(e: Event) -> string {
+  return match e.type {
+    "open" => "opened",
+    "close" => "closed",
+  }
+}
+
+pub fn flag(e: Event) -> bool {
+  return e.is
+}
+
+pub fn is_any(n: Nullable<Note>) -> bool {
+  return n?.match == "any"
+}
+
+pub fn known(v: unknown) -> bool {
+  return Event.is(v)
+}

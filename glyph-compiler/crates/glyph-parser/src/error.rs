@@ -145,9 +145,10 @@ pub enum ParseError {
     ObjectDestructuringLet { span: Span },
 
     /// A reserved word where a name goes: `let where = 1`, `fn type()`,
-    /// `x.match` (G286). The generic `Expected` path printed the token's debug
-    /// name (`found Where`) and a help line about trailing commas, so nothing
-    /// told the author that `where` is a Glyph keyword. `word` is the keyword's
+    /// `fn f(x: match)` (G286, G301). A keyword after `.` is a member name
+    /// and does not come here (G300). The generic `Expected` path printed the
+    /// token's debug name (`found Where`) and a help line about trailing
+    /// commas, so nothing told the author that `where` is a Glyph keyword. `word` is the keyword's
     /// source text from the lexer's `KEYWORDS` table, so the message quotes the
     /// spelling the author typed. Kept under E0002, the code the same position
     /// has always reported: it is still "this token cannot go here", now with
@@ -172,8 +173,8 @@ pub enum NameRole {
     /// `let`, a parameter, a `fn`/`type`/`const`/`component` name, a generic,
     /// a loop binding, a pattern binding, an import alias.
     Declares,
-    /// A member after `.`/`?.`, a type or `typeof` path segment, an imported
-    /// item.
+    /// A type name, a type path segment, the head of a `typeof` path, an
+    /// imported item.
     Refers,
 }
 
@@ -346,7 +347,7 @@ impl ParseError {
                 "Pick another name: `{word}_`, or one that says what the value is. `glyph llms` lists every reserved word under \"Reserved words\"."
             )),
             ParseError::ReservedWordAsName { word, role: NameRole::Refers, .. } => Cow::Owned(format!(
-                "`{word}` is a keyword in every position where a name is read, so it cannot follow `.` or name an imported item or a type segment, even when the thing it refers to is spelled `{word}`. `glyph llms` lists every reserved word under \"Reserved words\"."
+                "`{word}` is a Glyph keyword, so it cannot name a type, a segment of a type path or an imported item, even when the thing it refers to is spelled `{word}`. A field named `{word}` is still read after a dot (`e.{word}`). `glyph llms` lists every reserved word under \"Reserved words\"."
             )),
         })
     }

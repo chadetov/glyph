@@ -1788,9 +1788,10 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 ### Reserved words
 
 These cannot name a binding, parameter, function, type, generic, loop variable
-or pattern binding, and cannot follow `.`. A record field or an object-literal
-key may use one (`{ type: "post" }`). Using one as a name draws E0002 naming the
-word; `where_` or a more specific name is the usual fix.
+or pattern binding. A record field or an object-literal key may use one
+(`{ type: "post" }`), and that field is read after a dot like any other
+(`e.type`). Using one as a name draws E0002 naming the word; `where_` or a more
+specific name is the usual fix.
 
 ```text
 fn type record component const let mut owned resource pub interface defer

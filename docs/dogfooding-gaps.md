@@ -10449,6 +10449,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: the counter with `set_count("x")` exits 0 under `--no-tsc` and fails `glyph check` with TS2345.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `set_count("x")` on a
+  `useState(0)` pair in the todo app's project is `glyph check: 3 module(s)
+  checked, no diagnostics.` under `--no-tsc`, and hover on `count`,
+  `set_count` and `useState` answers `null` in the editor.*
 - **G258. [FIXED] AGENTS.md names the `<for>` directive and never shows its syntax.**
   The dogfood agent guessed `<for each={todos} as={todo}>` and drew E0103 five
   times. The form is `<for todo in={todos} key={todo.id}>`, shown only in the
@@ -10467,24 +10471,38 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: `glyph query definition` at the binding token prints `null`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `glyph query definition`
+  and the editor's `textDocument/definition` print `null` on `Button` in
+  `import ui { Button, Props }` and in `pub component Button`, while hover
+  answers `fn(Props) -> Component` at both.*
 - **G260. Hover on a namespace base segment depends on position.** `ui` in
   `ui.Button` (value or element) hovers `null`; `ui` in `ui.Props` hovers
   `Props`, because the type entry spans the whole path.
 
   *Reproduced against 0.1.125: `glyph query hover` on `ui` gives `null` in `let b = ui.Button` and `"Props"` in `let p: ui.Props`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `glyph query hover` on `ui`
+  gives `null` in `let _b = ui.Button` and in `<ui.Button`, and `"Props"` in
+  `p: ui.Props`.*
 - **G261. A same-file definition is a zero-width range.** `glyph_definition`
   answers a declaration in the same file as a zero-width range at its start,
   and one in another module as the whole declaration.
 
   *Reproduced against 0.1.125: definition on a local call gives `start == end`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): definition on the same-file
+  calls `higher` and `fold_max` in `examples/corpus/ranking.glyph` gives
+  `start == end` (16:0 and 40:0), while the cross-module `ui::Button` spans
+  4:4 to 6:1.*
 - **G262. The prelude `Component` takes type arguments without complaint.**
   `-> Component<string>` passes Glyph; since 0.1.126 lowers `Component` to
   `React.ReactNode`, `tsc` reports `TS2315 'ReactNode' is not generic`.
 
   *Reproduced against 0.1.125: `fn v() -> Component<string>` passes `--no-tsc`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `fn v() ->
+  Component<string>` is `glyph check: 1 module(s) checked, no diagnostics.`
+  under `--no-tsc`.*
 - **G263. A generic bound is never resolved.** `component Show<T: Nope>(p: T)`
   passes Glyph with `Nope` declared nowhere, and `tsc` reports TS2304. The
   bound only reaches the emitter's `extends`, so `<T: string>` is silent too
@@ -10492,12 +10510,17 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: `fn f<T: Nope>(x: T) -> T { return x }` passes `--no-tsc`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `fn f<T: Nope>(x: T) -> T`
+  and `fn g<T: string>(x: T) -> T` are `no diagnostics` under `--no-tsc`.*
 - **G264. Elements of a bounded generic component are not checked by Glyph.**
   `<Show />` and `<Show label="x" other="y" />` against
   `component Show<T: HasLabel>(p: T)` pass Glyph and are TS2769 under `tsc`.
 
   *Reproduced against 0.1.125: both elements pass `--no-tsc`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `<Show />` and `<Show
+  label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no
+  diagnostics` under `--no-tsc`.*
 - **G265. JSX is untyped in the checker, so a JSX value passes where a string is
   declared.** `fn s() -> string { return <p>hi</p> }` passes Glyph and is
   TS2322 under `tsc`; `component A() -> string` over JSX is silent the same
@@ -10507,6 +10530,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: `fn s() -> string { return <p>hi</p> }` exits 0 under `--no-tsc`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `fn s() -> string { return
+  <p>hi</p> }` is `no diagnostics` under `--no-tsc`.*
 - **G266. A declared `children` type is never compared with what is written
   between the tags.** With `children?: string`, `<Kids title="t">{5}</Kids>`
   passes Glyph and `tsc` alike, because `createElement` children are
@@ -10514,6 +10539,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: the element passes `glyph check` with `tsc`.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `<Kids
+  title="t">{5}</Kids>` with `children?: string` is `no diagnostics` under
+  `--no-tsc`; the `tsc` half was not re-run.*
 - **G267. `default as` on a Glyph module passes the Glyph stages.**
   `import ui { default as f }` against a Glyph module with no default export
   is exit 0 under `--no-tsc`; `tsc` reports TS1192 `Module has no default
@@ -10521,6 +10549,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125: with `ui` declaring `pub fn fmt`, `import ui { default as f }` and `f(1)` exit 0 under `--no-tsc` and 1 with TS1192.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): with `ui` declaring only
+  `pub fn fmt`, `import ui { default as f }` and `f(1)` are `glyph check: 3
+  module(s) checked, no diagnostics.` under `--no-tsc`, while `import ui {
+  nothere }` is E0105 in the editor.*
 - **G268. [FIXED] Impact gives one pairing two verdicts, at an argument and at an
   attribute.** `take(5)` against `take(x: unknown)` is `UNDETERMINED` (the
   cell table's catch-all), and `<Box x={n} />` against `{ x: unknown }` is
@@ -10577,6 +10609,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.125 by reading `__glyph_eq` in the bootstrap runtime: it recurses into object fields with no visited set; the cyclic-handle run is in the item's test plan.*
 
+  *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): the bootstrap's
+  `__glyph_eq`, run under node 26 on two distinct self-referencing objects,
+  throws `RangeError: Maximum call stack size exceeded`; no checker refusal of
+  `==` on an opaque handle exists yet.*
 - **G273. A fresh object literal with a field the declaration does not name is
   accepted.** `let u: User = { name: "a", extra: 1 }` passes Glyph and is TS2353
   under `tsc`, because the relation is width subtyping and a type cannot say
@@ -10970,8 +11006,12 @@ and is the owner's to confirm.
   Nullable<User> = u` stays correct and `let n: Nullable<Shape> = u` is
   refused. A `Record<K, V>` is left undetermined: a map's validator and
   `tsc` both accept a closed record whose fields are all `V`s, so D49's
-  argument does not reach it, and it waits for a decision. Not breaking:
-  `tsc` refused every program this refuses.
+  argument does not reach it, and it waits for a decision. Breaking where
+  the emitted shapes coincide: a user union `| None | Some(number)` emits
+  the same TypeScript as `Option<number>`, so `let o: Option<number> = m`
+  passes `tsc` and exits 0 under `check` in 0.1.130, and is E0204 here,
+  exit 1 (D49: a declared union is its own type). Every other program this
+  refuses, `tsc` refused already.
 - **G294. [FIXED] The stdlib's string-literal unions are not modeled.** A match on
   `http.RedirectPolicy` (`"follow" | "manual" | "error"`) cannot be checked for
   exhaustiveness: it is E0232 since G291, and the only way to compile it is an
@@ -11208,8 +11248,10 @@ and is the owner's to confirm.
   are E0204 against each other, `p.titel` on a `p: Page` passes Glyph's
   checker, and `Page.parse` is TS2693 from `tsc`. The guarantee depends on
   how the alias is spelled, which is the defect D46 exists to remove. Found
-  while fixing G296; the emitter half (binding the descriptor) already
-  follows the chain, so the open part is whether D46 covers a qualified name.
+  while fixing G296. Neither half follows a qualified body today: the
+  checker's alias chain stops at it and the emitter binds no value for it,
+  so whether D46 covers a qualified name is the decision, and the fix then
+  reaches both.
 
   *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
   `return p.titel` is `glyph check: 2 module(s) checked, no diagnostics.`

@@ -128,7 +128,15 @@ print(user.name)</pre>
         </div>
         <div class="code">
           <span class="cap">a call zod doesn't define</span>
-<pre>z.string().nonexistent_method()
+<pre data-check="needs-npm expect-error TS2339">module main
+
+import zod { z }
+
+pub fn main() -&gt; number {
+  // ZodString has no such method:
+  let n = z.string().nonexistent_method()
+  return 0
+}
 
 // [TS2339] Property 'nonexistent_method'
 //   does not exist on type 'ZodString'.
@@ -218,8 +226,17 @@ pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
           <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading
           <code>child.stdout</code> after <code>stdio: "inherit"</code> is <code>TS18047</code>
           here and <code>TS18047</code> with the real typings, rather than two different stories
-          about the same value.
+          about the same value:
         </p>
+<pre data-check="expect-error TS18047">module main
+
+import child_process { spawn }
+
+pub fn main() -&gt; void {
+  let child = spawn(&quot;git&quot;, [&quot;status&quot;], { stdio: &quot;inherit&quot; })
+  // [TS18047] 'child.stdout' is possibly 'null'.
+  child.stdout.setEncoding(&quot;utf8&quot;)
+}</pre>
 
         <p class="block-label">Edit the shim, and the next run is the shim you edited</p>
         <p>

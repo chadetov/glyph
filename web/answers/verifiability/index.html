@@ -634,6 +634,27 @@ fn f() -&gt; number {
           previous release accepted; a full <code>glyph build</code> was already red through
           <code>tsc</code> in both cases.
         </p>
+        <p>
+          One record-literal check is still <code>tsc</code>'s and not Glyph's. A literal with a
+          field the declared record does not have passes Glyph's checker, and <code>tsc</code>
+          refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the
+          literal. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the
+          language server and the playground say nothing (G273).
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">point.glyph: an extra field, left to tsc</span>
+<pre data-check="expect-error TS2353">module point
+
+pub type Point = {
+  x: number,
+  y: number,
+}
+
+pub fn origin() -&gt; Point {
+  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+}</pre>
       </div>
 
       <p class="block-label">Where it stands</p>

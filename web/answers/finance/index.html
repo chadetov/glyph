@@ -161,11 +161,22 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
         </div>
         <div class="code">
           <span class="cap">the injection path does not</span>
-<pre>let input: Tainted&lt;string&gt; = taint(req.body)
-run_query(input)
+<pre data-check="expect-error TS2345">module query
 
-// TS2345: 'Tainted&lt;string&gt;' is not
-// assignable to 'Trusted&lt;string&gt;'.</pre>
+import std/taint { Tainted, Trusted, taint, expose }
+
+fn run_query(sql: Trusted&lt;string&gt;) -&gt; string {
+  return expose(sql)
+}
+
+pub fn handle(body: string) -&gt; string {
+  let input: Tainted&lt;string&gt; = taint(body)
+  return run_query(input)
+}
+
+// [TS2345] Argument of type 'Tainted&lt;string&gt;'
+//   is not assignable to parameter of type
+//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
         </div>
       </div>
 

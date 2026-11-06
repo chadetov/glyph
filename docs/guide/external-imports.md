@@ -575,6 +575,21 @@ both roots (a symlink is enough; the fingerprint follows it). A root that has no
 shim fails loudly: `tsc` reports `TS2307` and it is mapped back onto the
 `import extern/...` line.
 
+```glyph expect-error TS2307
+module main
+
+import extern/web { serve_web }
+
+pub fn main() -> void {
+  serve_web(8080)
+}
+```
+
+```
+[TS2307] Error: tsc: Cannot find module './extern/web' or its corresponding type declarations.
+   ╭─[ main:3:1 ]
+```
+
 An extern using the common Node surface (an `http` server, `fs`) type-checks
 against the bundled shim with nothing installed: `createServer`, `req.on(...)`
 including `"error"`, `server.listen(port, callback)`, `res.writeHead`/`end`. For

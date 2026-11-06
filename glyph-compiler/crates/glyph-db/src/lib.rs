@@ -1979,6 +1979,26 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
             Some(ty)
         }
     }
+
+    fn imported_fn_generics(&self, module_path: &str, fn_name: &str) -> Option<Vec<Ident>> {
+        // The order `exported_fn`'s signature does not carry (G292), read off
+        // the same declaration through the per-declaration `decl_ast` slice,
+        // so editing another declaration in the sibling leaves this answer's
+        // memo untouched.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let ast = decl_ast(self.db, file, Ident::from(fn_name));
+        let generics = match ast.decl()? {
+            Decl::Fn(fd) => &fd.generics,
+            Decl::Component(cd) => &cd.generics,
+            _ => return None,
+        };
+        Some(generics.iter().map(|g| g.name.clone()).collect())
+    }
 }
 
 /// Extract the declaration `file` declares under `name` from the parsed

@@ -187,6 +187,19 @@ pub trait DeclTyResolver {
         None
     }
 
+    /// The type parameter names of the `fn` or `component` the project
+    /// module at `module_path` declares under `fn_name`, in declaration
+    /// order. `None` wherever `imported_fn_decl` would answer `None`.
+    ///
+    /// The signature `imported_fn_decl` returns carries each parameter by
+    /// name only, so a written type argument (`lib.id<number>(x)`) has no
+    /// position to bind to without the declaration's list. Without this a
+    /// call through an import read its type arguments by nothing, while the
+    /// same call to a local function read them (G292).
+    fn imported_fn_generics(&self, _module_path: &str, _fn_name: &str) -> Option<Vec<Ident>> {
+        None
+    }
+
     /// Whether the project module at `module_path` exports `name`. `None` when
     /// no module at that path is part of this compile: an npm package, a
     /// sibling outside the project being built, or any import at all for a
@@ -2198,6 +2211,22 @@ impl Assigner<'_> {
                             }
                         }
                     }
+                    // G292. A written type argument is the binding of the
+                    // parameter it is written for, whatever the arguments
+                    // would have inferred, so it replaces the inferred one.
+                    // Only when the count is the declaration's: `tsc` refuses
+                    // any other count (TS2558), and pairing them by position
+                    // would report a mismatch about a binding the program
+                    // never made.
+                    if !type_args.is_empty() {
+                        if let Some(names) = self.callee_generics(callee) {
+                            if names.len() == type_args.len() {
+                                for (name, t) in names.into_iter().zip(type_args.iter()) {
+                                    subst.insert(name, self.lowerer.lower(t));
+                                }
+                            }
+                        }
+                    }
                     // Check each argument against its parameter type (with any
                     // inferred generics substituted in). Reports only a provable
                     // mismatch; an undecidable argument or parameter is silent.
@@ -3347,6 +3376,60 @@ impl Assigner<'_> {
             .collect::<Vec<_>>()
             .join("/");
         key.starts_with("std/").then_some((key, name))
+    }
+
+    /// The type parameter names, in declaration order, of the user `fn` or
+    /// `component` a call's callee names: one declared in this module, or a
+    /// project sibling's under either import spelling (`import lib { id }`
+    /// and `lib.id` through `import lib`). `None` for anything else: a stdlib
+    /// function, whose written arguments `crate::stdlib` binds; a lambda or a
+    /// function-typed value, whose type does not carry the order; and a name
+    /// this compile cannot see.
+    fn callee_generics(&self, callee: &Expr) -> Option<Vec<Ident>> {
+        let (span, field) = match callee {
+            Expr::Member {
+                object,
+                field,
+                optional: false,
+                ..
+            } => match object.as_ref() {
+                Expr::Ident { span, .. } => (*span, Some(field.to_string())),
+                _ => return None,
+            },
+            Expr::Ident { span, .. } => (*span, None),
+            _ => return None,
+        };
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let (path, name) = match (&sym.kind, field) {
+            (SymbolKind::Function { decl_idx } | SymbolKind::Component { decl_idx }, None) => {
+                return match self.module.items.get(*decl_idx as usize)? {
+                    Decl::Fn(fd) => Some(fd.generics.iter().map(|g| g.name.clone()).collect()),
+                    Decl::Component(cd) => {
+                        Some(cd.generics.iter().map(|g| g.name.clone()).collect())
+                    }
+                    _ => None,
+                };
+            }
+            (
+                SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. },
+                Some(field),
+            ) => (path, field),
+            (SymbolKind::ImportNamed { path, original }, None) => (path, original.to_string()),
+            _ => return None,
+        };
+        let key = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        if key.starts_with("std/") {
+            return None;
+        }
+        self.decl_ty_resolver.imported_fn_generics(&key, &name)
     }
 
     fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
@@ -17080,6 +17163,107 @@ fn f(a: Answer) -> number {
              \x20 return s.length\n\
              }\n",
         );
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// The `(expected, found)` pair of every E0211 in `errs`, in order.
+    fn argument_mismatches(errs: &[TypeError]) -> Vec<(String, String)> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::ArgumentTypeMismatch { expected, found, .. } => {
+                    Some((expected.clone(), found.clone()))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// G292. A written type argument is the binding of the parameter it is
+    /// written for, so the argument is checked against it and the call
+    /// returns it. Before this the checker inferred `T` from `"x"` and never
+    /// read the `<number>`, and `glyph check --no-tsc` passed a program `tsc`
+    /// refuses twice (TS2345, TS2322).
+    #[test]
+    fn an_explicit_type_argument_binds_the_parameter_it_is_written_for() {
+        let errs = errors_of(
+            "module m\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             pub fn f() -> string {\n\
+             \x20 return id<number>(\"x\")\n\
+             }\n",
+        );
+        assert_eq!(
+            argument_mismatches(&errs),
+            vec![("number".to_string(), "string".to_string())],
+            "{errs:?}"
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("string".to_string(), "number".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// The return type is the written argument even where no value argument
+    /// could have bound it, which inference alone left open and silent.
+    #[test]
+    fn an_explicit_type_argument_types_a_result_no_argument_binds() {
+        let errs = errors_of(
+            "module m\n\
+             fn empty<T>() -> Array<T> { return [] }\n\
+             fn pair<A, B>(a: A, b: B) -> B { return b }\n\
+             pub fn f() -> number {\n\
+             \x20 let xs: Array<string> = empty<number>()\n\
+             \x20 let b: string = pair<string, number>(\"a\", 1)\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![
+                ("Array<string>".to_string(), "Array<number>".to_string()),
+                ("string".to_string(), "number".to_string()),
+            ],
+            "{errs:?}"
+        );
+        assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// What `tsc` accepts stays accepted: an argument the written type
+    /// admits, a wider written type than the argument's, and a written
+    /// string-literal union the argument belongs to.
+    #[test]
+    fn a_correct_explicit_type_argument_stays_silent() {
+        let errs = errors_of(
+            "module m\n\
+             type Mode = \"read\" | \"write\"\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn empty<T>() -> Array<T> { return [] }\n\
+             pub fn f() -> string {\n\
+             \x20 let n: number = id<number>(3)\n\
+             \x20 let m: Mode = id<Mode>(\"read\")\n\
+             \x20 let xs: Array<string> = empty<string>()\n\
+             \x20 return id<string>(\"x\")\n\
+             }\n",
+        );
+        assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// A count of written type arguments that is not the declaration's
+    /// binds nothing positionally: `tsc` refuses the call (TS2558), and
+    /// pairing the first argument with the first parameter would report a
+    /// mismatch about a binding the program never made.
+    #[test]
+    fn a_wrong_number_of_explicit_type_arguments_binds_nothing() {
+        let errs = errors_of(
+            "module m\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             pub fn f() -> string {\n\
+             \x20 return id<number, bool>(\"x\")\n\
+             }\n",
+        );
+        assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
     }
 }

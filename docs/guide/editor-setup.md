@@ -12,9 +12,11 @@ What the server provides:
   including the emitter's refusals (`E0302` to `E0305`) and the warning tier,
   with their `E0xxx` codes (run `glyph --explain <code>` for the long-form fix).
   `tsc` and the missing-local-module check (`E0104`) do not run in the editor.
-  While you type, the emitter's refusals appear once you pause for about
-  300 ms; everything else updates on every keystroke. Opening or saving a
-  file shows the whole list at once.
+  Everything but the emitter updates on every keystroke. The emitter runs
+  once you pause for about 300 ms; until then its last refusals stay up,
+  moved along with the text you type above or beside them, and one whose
+  own text you edit is dropped. Opening or saving a file shows the whole
+  list at once.
 - **Hover types**
 - **Go-to-definition**
 - **Completion** — keywords, in-scope declarations, prelude names

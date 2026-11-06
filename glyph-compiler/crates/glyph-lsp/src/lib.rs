@@ -113,6 +113,15 @@ struct DocState {
     generation: u64,
     /// The editor's version of the buffer, published with the diagnostics.
     version: Option<i32>,
+    /// The emitter's part of the last full list, in the coordinates of the
+    /// current buffer: `full[front.len()..]`, which is exact because the
+    /// front-end list is a prefix of the full one (`diagnostic::Stages`).
+    ///
+    /// Set by every full run and mapped through every keystroke's edit
+    /// ([`carry_through_edit`]), so a keystroke's front-end publish can carry
+    /// the emitter's refusals forward instead of dropping them until typing
+    /// pauses. The next full run replaces them (review 78, item 8a).
+    carried: Vec<Diagnostic>,
 }
 
 /// A unit test's record of what was published: each publish as its URI, its
@@ -158,6 +167,7 @@ impl Publisher {
         let state = docs.entry(uri.clone()).or_insert(DocState {
             generation: 0,
             version: None,
+            carried: Vec::new(),
         });
         state.generation += 1;
         if version.is_some() {
@@ -172,6 +182,49 @@ impl Publisher {
             Some((text, diagnostics)) => to_lsp_diagnostics(text, diagnostics),
             None => Vec::new(),
         }
+    }
+
+    /// The full list for `uri`, emitter included, and the emitter's part of
+    /// it, which is everything after the front end's list.
+    fn compute_full(
+        &self,
+        ws: &mut Workspace,
+        root: &Path,
+        uri: &Url,
+    ) -> (Vec<Diagnostic>, Vec<Diagnostic>) {
+        let front = self.compute(ws, root, uri, Stages::FrontEnd).len();
+        let full = self.compute(ws, root, uri, Stages::All);
+        let emitter = full[front.min(full.len())..].to_vec();
+        (full, emitter)
+    }
+
+    /// Record `carried` as `uri`'s emitter diagnostics, if `generation` is
+    /// still its current one. Called with the workspace lock held, so the
+    /// buffer they are in coordinates of is the one that generation names.
+    fn set_carried(&self, uri: &Url, generation: u64, carried: Vec<Diagnostic>) {
+        let mut docs = self.docs.lock().expect("docs mutex");
+        if let Some(d) = docs.get_mut(uri).filter(|d| d.generation == generation) {
+            d.carried = carried;
+        }
+    }
+
+    /// Map `uri`'s carried emitter diagnostics from `old` to `new` and return
+    /// them, or clear them when `front` has an error: the emitter does not run
+    /// on a file with one, so its part of the full list is known to be empty.
+    /// Called with the workspace lock held, after the bump for `new`.
+    fn carry(&self, uri: &Url, old: Option<&str>, new: &str, front: &[Diagnostic]) -> Vec<Diagnostic> {
+        let mut docs = self.docs.lock().expect("docs mutex");
+        let Some(d) = docs.get_mut(uri) else {
+            return Vec::new();
+        };
+        let has_error = front
+            .iter()
+            .any(|f| f.severity == Some(DiagnosticSeverity::ERROR));
+        d.carried = match old {
+            Some(old) if !has_error => carry_through_edit(old, new, &d.carried),
+            _ => Vec::new(),
+        };
+        d.carried.clone()
     }
 
     /// Publish `diagnostics` for `uri` if `generation` is still its current
@@ -215,7 +268,9 @@ impl Publisher {
                 if this.current(&uri) != Some(generation) {
                     return;
                 }
-                this.compute(&mut ws, &root, &uri, Stages::All)
+                let (full, emitter) = this.compute_full(&mut ws, &root, &uri);
+                this.set_carried(&uri, generation, emitter);
+                full
             };
             this.publish(uri, generation, diagnostics).await;
         });
@@ -277,15 +332,26 @@ impl Backend {
         full_now: bool,
     ) {
         let root = self.analysis_root(&uri);
-        let stages = if full_now { Stages::All } else { Stages::FrontEnd };
         let (generation, diagnostics) = {
             let mut ws = self.ws.lock().expect("workspace mutex");
-            ws.set_buffer(&uri, text);
+            let old = ws.buffer(&uri);
+            ws.set_buffer(&uri, text.clone());
             if rescan {
                 ws.rescan(&root);
             }
             let generation = self.publisher.bump(&uri, version);
-            let diagnostics = self.publisher.compute(&mut ws, &root, &uri, stages);
+            let diagnostics = if full_now {
+                let (full, emitter) = self.publisher.compute_full(&mut ws, &root, &uri);
+                self.publisher.set_carried(&uri, generation, emitter);
+                full
+            } else {
+                // The front end now, and the emitter's last refusals carried
+                // through the edit until the debounced run replaces them.
+                let mut front = self.publisher.compute(&mut ws, &root, &uri, Stages::FrontEnd);
+                let carried = self.publisher.carry(&uri, old.as_deref(), &text, &front);
+                front.extend(carried);
+                front
+            };
             (generation, diagnostics)
         };
         self.publisher
@@ -326,6 +392,70 @@ impl Backend {
             });
         module_root_for(&path, &workspace)
     }
+}
+
+/// The region one change replaced: `old[start..old_end]` became
+/// `new[start..new_end]`. The common prefix and the common suffix of the two
+/// texts, trimmed to character boundaries, which with FULL sync is the one
+/// region a change event can be read as. `None` when the texts are equal.
+fn edit_region(old: &str, new: &str) -> Option<(usize, usize, usize)> {
+    if old == new {
+        return None;
+    }
+    let (a, b) = (old.as_bytes(), new.as_bytes());
+    let mut start = a.iter().zip(b).take_while(|(x, y)| x == y).count();
+    while !old.is_char_boundary(start) {
+        start -= 1;
+    }
+    let room = a.len().min(b.len()) - start;
+    let mut suffix = a
+        .iter()
+        .rev()
+        .zip(b.iter().rev())
+        .take(room)
+        .take_while(|(x, y)| x == y)
+        .count();
+    while !old.is_char_boundary(a.len() - suffix) {
+        suffix -= 1;
+    }
+    Some((start, a.len() - suffix, b.len() - suffix))
+}
+
+/// Map diagnostics in `old`'s coordinates into `new`'s, through the one edit
+/// between them (review 78, item 8a).
+///
+/// A diagnostic wholly before the edited region keeps its position, one
+/// wholly after it moves by the edit's delta, and one whose range touches or
+/// overlaps the region is dropped: the text it was about has changed, and a
+/// diagnostic shown at a place it is no longer true of is a false statement.
+/// Touching counts, so typing right against a refused expression drops its
+/// refusal too.
+fn carry_through_edit(old: &str, new: &str, carried: &[Diagnostic]) -> Vec<Diagnostic> {
+    let Some((start, old_end, new_end)) = edit_region(old, new) else {
+        return carried.to_vec();
+    };
+    let (old_index, new_index) = (LineIndex::new(old), LineIndex::new(new));
+    let at = |p: Position| old_index.offset(old, p.line, p.character);
+    let moved = |offset: usize| {
+        let (line, character) = new_index.position(new, offset - old_end + new_end);
+        Position::new(line, character)
+    };
+    carried
+        .iter()
+        .filter_map(|d| {
+            let (s, e) = (at(d.range.start), at(d.range.end));
+            if e < start {
+                Some(d.clone())
+            } else if s > old_end {
+                Some(Diagnostic {
+                    range: Range::new(moved(s), moved(e)),
+                    ..d.clone()
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Convert the compiler's diagnostics to the protocol type, mapping each span's
@@ -486,7 +616,9 @@ impl LanguageServer for Backend {
             ws.rescan(&root);
             if ws.is_open(&uri) {
                 let generation = self.publisher.bump(&uri, None);
-                Some((generation, self.publisher.compute(&mut ws, &root, &uri, Stages::All)))
+                let (full, emitter) = self.publisher.compute_full(&mut ws, &root, &uri);
+                self.publisher.set_carried(&uri, generation, emitter);
+                Some((generation, full))
             } else {
                 None
             }
@@ -1495,6 +1627,58 @@ mod tests {
             "the current run publishes the emitter's refusal"
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A diagnostic over the first occurrence of `needle` in `text`.
+    fn diag_at(text: &str, needle: &str) -> Diagnostic {
+        let index = LineIndex::new(text);
+        let s = text.find(needle).expect("needle");
+        let pos = |o: usize| {
+            let (l, c) = index.position(text, o);
+            Position::new(l, c)
+        };
+        Diagnostic {
+            range: Range::new(pos(s), pos(s + needle.len())),
+            code: Some(NumberOrString::String("E0302".to_string())),
+            ..Default::default()
+        }
+    }
+
+    /// Review 78, item 8a: a line typed above a carried diagnostic moves it
+    /// down a line, at the same column.
+    #[test]
+    fn a_carried_diagnostic_moves_down_with_a_line_typed_above_it() {
+        let old = "module m\nfn f() -> void {\n  g(x)?\n}\n";
+        let new = "module m\n// note\nfn f() -> void {\n  g(x)?\n}\n";
+        let carried = carry_through_edit(old, new, &[diag_at(old, "g(x)?")]);
+        assert_eq!(carried.len(), 1);
+        assert_eq!(carried[0].range, diag_at(new, "g(x)?").range);
+    }
+
+    /// An edit earlier on the same line moves the column, and an edit after a
+    /// diagnostic leaves it where it was.
+    #[test]
+    fn a_carried_diagnostic_shifts_by_column_and_stays_before_an_edit() {
+        let old = "let a = g(x)?\nlet b = 1\n";
+        let new = "let aaa = g(x)?\nlet b = 1\n";
+        let carried = carry_through_edit(old, new, &[diag_at(old, "g(x)?")]);
+        assert_eq!(carried.iter().map(|d| d.range).collect::<Vec<_>>(), vec![diag_at(new, "g(x)?").range]);
+
+        let new = "let a = g(x)?\nlet b = 22\n";
+        let carried = carry_through_edit(old, new, &[diag_at(old, "g(x)?")]);
+        assert_eq!(carried.iter().map(|d| d.range).collect::<Vec<_>>(), vec![diag_at(old, "g(x)?").range]);
+    }
+
+    /// An edit inside a diagnostic's range, or right against it, drops it.
+    #[test]
+    fn a_carried_diagnostic_the_edit_touches_is_dropped() {
+        let old = "let a = g(x)?\n";
+        for new in ["let a = g(y)?\n", "let a = zg(x)?\n", "let a = g(x)?z\n", "let a = r\n"] {
+            assert!(
+                carry_through_edit(old, new, &[diag_at(old, "g(x)?")]).is_empty(),
+                "kept across {new:?}"
+            );
+        }
     }
 
     /// A uniquely named temp directory for the project-root tests.

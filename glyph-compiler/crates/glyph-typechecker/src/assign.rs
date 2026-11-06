@@ -7467,15 +7467,16 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
         // `kind` is a string-literal union, so a `match` over it is exhaustive
         // under D30 with no catch-all: three named reasons that lead to three
         // different decisions, and `other` keeps the raw errno reachable.
+        // The field's type is `ServerErrorKind` by name, so a mismatch on it
+        // says `ServerErrorKind` and the literals come from the one table the
+        // runtime is checked against (G294).
         ("net", "ServerError") => vec![
             (
                 "kind",
-                Ty::StringLiteralUnion(vec![
-                    "in_use".to_string(),
-                    "denied".to_string(),
-                    "unavailable".to_string(),
-                    "other".to_string(),
-                ]),
+                Ty::Imported {
+                    module: "std/net".into(),
+                    name: Ident::from("ServerErrorKind"),
+                },
             ),
             ("message", Ty::Prim(Primitive::String)),
             ("code", Ty::Prim(Primitive::String)),
@@ -7505,8 +7506,8 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
             ("index", Ty::Prim(Primitive::Number)),
         ],
         // `kind` is a string-literal union rather than a tagged one, so it
-        // needs no variant table: D30 exhaustiveness reads the members straight
-        // off the type. Without this a caller matching `e.kind` gets E0218
+        // needs no variant table: D30 exhaustiveness reads the members off
+        // `HttpErrorKind`'s entry in `BUILTIN_STRING_LITERAL_UNIONS`. Without this a caller matching `e.kind` gets E0218
         // ("a string match can never be exhaustive") and is told to add a
         // catch-all, which is advice to switch the check off.
         ("http", "HttpError") => vec![
@@ -7514,12 +7515,10 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
             ("message", Ty::Prim(Primitive::String)),
             (
                 "kind",
-                Ty::StringLiteralUnion(vec![
-                    "timeout".to_string(),
-                    "network".to_string(),
-                    "status".to_string(),
-                    "argument".to_string(),
-                ]),
+                Ty::Imported {
+                    module: "std/http".into(),
+                    name: Ident::from("HttpErrorKind"),
+                },
             ),
         ],
         _ => return None,
@@ -11548,6 +11547,22 @@ fn outer() -> string {
         let local = codes_of(&ret(local_head, "RedirectPolicy"));
         assert!(!local.is_empty(), "the program-declared union refuses the typo");
         assert_eq!(codes_of(&ret("import std/http\n", "http.RedirectPolicy")), local);
+    }
+
+    /// A `kind` field read off a stdlib error record has its union's name, so a
+    /// mismatch names both declarations, and its literals come from the same
+    /// table the annotation reads.
+    #[test]
+    fn a_stdlib_error_kind_field_is_named_by_its_union() {
+        let src = "module app\nimport std/http\nimport std/net\n\
+                   pub fn f(e: http.HttpError) -> net.ServerErrorKind {\n  return e.kind\n}\n";
+        let errs = errors_of(src);
+        let messages: Vec<String> = errs.iter().map(|e| e.to_string()).collect();
+        assert_eq!(errs.iter().map(|e| e.code()).collect::<Vec<_>>(), ["E0204"], "{messages:?}");
+        assert!(
+            messages[0].contains("expected `ServerErrorKind`, found `HttpErrorKind`"),
+            "{messages:?}"
+        );
     }
 
     /// Reading a key out of a map is a guess, so it is E0224.

@@ -69,7 +69,7 @@ pub fn call_mcp_tool(
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -79,29 +79,180 @@ use analysis::{
     analyze, base_completions, find_symbol_span, validate_rename_name, CompletionTag, Definition,
     LineIndex, OutlineKind, OutlineSymbol, RenameError, SymbolTarget,
 };
+use diagnostic::Stages;
 use overlay::Workspace;
+
+/// How long typing has to pause before the emitter's refusals are published.
+///
+/// The front end's diagnostics go out on every keystroke; the full list, which
+/// adds the emitter's E0302 to E0305, waits for this much quiet (G295). The
+/// emitter is the one stage whose cost on a large file is the same order as
+/// the whole front end's: on the 2,205-line `minilang/main.glyph`, in-process
+/// in the dev profile, the front end took 19.3 ms per keystroke and the emitter
+/// 14.9 ms more. Running it once per pause rather than once per keystroke keeps
+/// the squiggle for a type error as fast as it was before the emitter was
+/// published at all.
+///
+/// 300 ms because it has to sit above the gap between two keystrokes of
+/// someone typing a word, which is under 200 ms for most typists, or a burst
+/// would run the emitter after every character anyway; and it has to stay
+/// short enough that the refusal is there by the time the eye comes back to
+/// the line. The emitter's own run is an order of magnitude shorter than the
+/// wait, so the wait is what a person sees. A save and an open do not wait.
+const EMIT_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(300);
+
+/// What the server knows about one open document's diagnostics.
+struct DocState {
+    /// Bumped by every change, open, save and close, while the workspace lock
+    /// is held, so it names one buffer. A debounced emitter run carries the
+    /// generation it was started for and publishes only while that is still
+    /// the current one: a stale result never overwrites fresher diagnostics.
+    ///
+    /// A counter rather than the editor's document version, because a save
+    /// carries no version and still has to supersede a pending run.
+    generation: u64,
+    /// The editor's version of the buffer, published with the diagnostics.
+    version: Option<i32>,
+}
+
+/// A unit test's record of what was published: each publish as its URI, its
+/// version and its diagnostics' codes.
+#[cfg(test)]
+type PublishLog = Arc<Mutex<Vec<(Url, Option<i32>, Vec<String>)>>>;
+
+/// Where published diagnostics go: the editor, or in a unit test a list.
+#[derive(Clone)]
+enum Sink {
+    Client(Client),
+    #[cfg(test)]
+    Record(PublishLog),
+}
+
+/// The state a debounced emitter run needs after the request that started it
+/// has returned. Every field is shared with the [`Backend`] that owns it.
+#[derive(Clone)]
+struct Publisher {
+    sink: Sink,
+    ws: Arc<Mutex<Workspace>>,
+    docs: Arc<Mutex<HashMap<Url, DocState>>>,
+    /// Held across a check of the generation and the publish that follows it,
+    /// so two publishes for one document cannot pass each other on the way
+    /// out. Without it a run that checked as current could be overtaken by a
+    /// newer keystroke's publish and land after it.
+    gate: Arc<tokio::sync::Mutex<()>>,
+}
+
+impl Publisher {
+    /// The current generation of `uri`, or `None` when it is not open.
+    fn current(&self, uri: &Url) -> Option<u64> {
+        self.docs.lock().expect("docs mutex").get(uri).map(|d| d.generation)
+    }
+
+    /// Start a new generation for `uri`. `version` replaces the stored one when
+    /// the event carried a version; a save does not, and keeps the last.
+    ///
+    /// Called with the workspace lock held, which is what makes a generation
+    /// name one buffer.
+    fn bump(&self, uri: &Url, version: Option<i32>) -> u64 {
+        let mut docs = self.docs.lock().expect("docs mutex");
+        let state = docs.entry(uri.clone()).or_insert(DocState {
+            generation: 0,
+            version: None,
+        });
+        state.generation += 1;
+        if version.is_some() {
+            state.version = version;
+        }
+        state.generation
+    }
+
+    /// The diagnostics for `uri` through `stages`, as the protocol type.
+    fn compute(&self, ws: &mut Workspace, root: &Path, uri: &Url, stages: Stages) -> Vec<Diagnostic> {
+        match ws.diagnostics(root, uri, stages) {
+            Some((text, diagnostics)) => to_lsp_diagnostics(text, diagnostics),
+            None => Vec::new(),
+        }
+    }
+
+    /// Publish `diagnostics` for `uri` if `generation` is still its current
+    /// one, and drop them otherwise.
+    async fn publish(&self, uri: Url, generation: u64, diagnostics: Vec<Diagnostic>) {
+        let _gate = self.gate.lock().await;
+        let version = {
+            let docs = self.docs.lock().expect("docs mutex");
+            match docs.get(&uri) {
+                Some(d) if d.generation == generation => d.version,
+                _ => return,
+            }
+        };
+        match &self.sink {
+            Sink::Client(client) => client.publish_diagnostics(uri, diagnostics, version).await,
+            #[cfg(test)]
+            Sink::Record(log) => {
+                let codes = diagnostics
+                    .iter()
+                    .map(|d| match &d.code {
+                        Some(NumberOrString::String(c)) => c.clone(),
+                        _ => String::new(),
+                    })
+                    .collect();
+                log.lock().expect("log mutex").push((uri, version, codes));
+            }
+        }
+    }
+
+    /// Run the emitter for `uri` once typing has paused for [`EMIT_DEBOUNCE`],
+    /// unless a newer change, save or close superseded `generation` first.
+    fn schedule_full(&self, root: PathBuf, uri: Url, generation: u64) {
+        let this = self.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(EMIT_DEBOUNCE).await;
+            let diagnostics = {
+                let mut ws = this.ws.lock().expect("workspace mutex");
+                // Checked under the workspace lock, where generations are
+                // bumped, so a run that passes here is computing the buffer
+                // it was started for.
+                if this.current(&uri) != Some(generation) {
+                    return;
+                }
+                this.compute(&mut ws, &root, &uri, Stages::All)
+            };
+            this.publish(uri, generation, diagnostics).await;
+        });
+    }
+}
 
 struct Backend {
     client: Client,
     /// The editor's open buffers and the incremental model they feed (see
     /// `overlay`). Every analysis the server does reads through this, so the
     /// answer is always about the text the editor currently has.
-    ws: Mutex<Workspace>,
+    ws: Arc<Mutex<Workspace>>,
     /// The workspace root, captured at `initialize` — the tree the workspace
     /// symbol index walks for `.glyph` files.
     root: Mutex<Option<PathBuf>>,
+    /// Publishes diagnostics, now or after typing pauses.
+    publisher: Publisher,
 }
 
 impl Backend {
     fn new(client: Client) -> Self {
+        let ws = Arc::new(Mutex::new(Workspace::new()));
+        let publisher = Publisher {
+            sink: Sink::Client(client.clone()),
+            ws: Arc::clone(&ws),
+            docs: Arc::new(Mutex::new(HashMap::new())),
+            gate: Arc::new(tokio::sync::Mutex::new(())),
+        };
         Backend {
             client,
-            ws: Mutex::new(Workspace::new()),
+            ws,
             root: Mutex::new(None),
+            publisher,
         }
     }
 
-    /// Store the document text and publish its diagnostics.
+    /// Store the document text and publish its diagnostics, in two phases.
     ///
     /// The buffer is written before anything is analysed, so a request racing
     /// this one cannot be answered from the text the change replaced. The
@@ -112,22 +263,37 @@ impl Backend {
     /// being opened and clear for a keystroke: the walk and the reads are the
     /// one cost that scales with the project rather than with the edit, and
     /// nothing about typing can have changed a file the editor did not send.
-    async fn refresh(&self, uri: Url, text: String, version: Option<i32>, rescan: bool) {
+    ///
+    /// `full_now` publishes the whole list, emitter included, straight away:
+    /// an open. A keystroke publishes the front end at once and leaves the
+    /// emitter to a run [`EMIT_DEBOUNCE`] later that the next keystroke
+    /// supersedes (G295).
+    async fn refresh(
+        &self,
+        uri: Url,
+        text: String,
+        version: Option<i32>,
+        rescan: bool,
+        full_now: bool,
+    ) {
         let root = self.analysis_root(&uri);
-        let diagnostics = {
+        let stages = if full_now { Stages::All } else { Stages::FrontEnd };
+        let (generation, diagnostics) = {
             let mut ws = self.ws.lock().expect("workspace mutex");
             ws.set_buffer(&uri, text);
             if rescan {
                 ws.rescan(&root);
             }
-            match ws.diagnostics(&root, &uri) {
-                Some((text, diagnostics)) => to_lsp_diagnostics(text, diagnostics),
-                None => Vec::new(),
-            }
+            let generation = self.publisher.bump(&uri, version);
+            let diagnostics = self.publisher.compute(&mut ws, &root, &uri, stages);
+            (generation, diagnostics)
         };
-        self.client
-            .publish_diagnostics(uri, diagnostics, version)
+        self.publisher
+            .publish(uri.clone(), generation, diagnostics)
             .await;
+        if !full_now {
+            self.publisher.schedule_full(root, uri, generation);
+        }
     }
 
     /// The project a document is analysed inside: its marked project, else its
@@ -303,14 +469,31 @@ impl LanguageServer for Backend {
         // Opening a document is when the project is (re-)read from disk: it is
         // the moment a file can have changed behind the editor's back, and it
         // is not on the typing path.
-        self.refresh(doc.uri, doc.text, Some(doc.version), true).await;
+        self.refresh(doc.uri, doc.text, Some(doc.version), true, true).await;
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         // A save is the other moment worth re-reading on: a formatter, a
         // generator or a build may have written a sibling alongside it.
-        let root = self.analysis_root(&params.text_document.uri);
-        self.ws.lock().expect("workspace mutex").rescan(&root);
+        //
+        // It also publishes the whole list at once, emitter included, and
+        // supersedes a pending debounced run: whoever saves is asking whether
+        // the file is done, and the answer should not wait for a timer (G295).
+        let uri = params.text_document.uri;
+        let root = self.analysis_root(&uri);
+        let full = {
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            ws.rescan(&root);
+            if ws.is_open(&uri) {
+                let generation = self.publisher.bump(&uri, None);
+                Some((generation, self.publisher.compute(&mut ws, &root, &uri, Stages::All)))
+            } else {
+                None
+            }
+        };
+        if let Some((generation, diagnostics)) = full {
+            self.publisher.publish(uri, generation, diagnostics).await;
+        }
     }
 
     async fn did_change_watched_files(&self, _: DidChangeWatchedFilesParams) {
@@ -334,6 +517,7 @@ impl LanguageServer for Backend {
                 change.text,
                 Some(params.text_document.version),
                 false,
+                false,
             )
             .await;
         }
@@ -341,13 +525,16 @@ impl LanguageServer for Backend {
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
-        {
+        let generation = {
             // Disk is the truth for this file again from here on.
             let mut ws = self.ws.lock().expect("workspace mutex");
             ws.close(&uri);
-        }
+            // Supersedes a pending emitter run, so it cannot put the
+            // squiggles back after they are cleared below.
+            self.publisher.bump(&uri, None)
+        };
         // Clear the squiggles for a closed file.
-        self.client.publish_diagnostics(uri, Vec::new(), None).await;
+        self.publisher.publish(uri, generation, Vec::new()).await;
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
@@ -461,7 +648,9 @@ impl LanguageServer for Backend {
         if !ws.is_open(&uri) {
             return Ok(None);
         }
-        let Some((text, diagnostics)) = ws.diagnostics(&root, &uri) else {
+        // The quick fix acts on the lint tier, which the front end produces;
+        // the emitter has nothing for it.
+        let Some((text, diagnostics)) = ws.diagnostics(&root, &uri, Stages::FrontEnd) else {
             return Ok(None);
         };
         let index = LineIndex::new(text);
@@ -1235,6 +1424,78 @@ pub fn run_stdio() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A publisher whose publishes land in the returned list.
+    fn recording() -> (Publisher, PublishLog) {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let publisher = Publisher {
+            sink: Sink::Record(Arc::clone(&log)),
+            ws: Arc::new(Mutex::new(Workspace::new())),
+            docs: Arc::new(Mutex::new(HashMap::new())),
+            gate: Arc::new(tokio::sync::Mutex::new(())),
+        };
+        (publisher, log)
+    }
+
+    /// G295: a result computed for a buffer the editor has since replaced is
+    /// dropped, never published over the newer one's diagnostics. This is the
+    /// race the generation exists for: an emitter run that finished computing
+    /// just before a keystroke landed and reaches the publish just after it.
+    #[tokio::test]
+    async fn a_superseded_generation_is_never_published() {
+        let (publisher, log) = recording();
+        let uri = Url::parse("file:///tmp/g295/main.glyph").expect("uri");
+        let stale = publisher.bump(&uri, Some(1));
+        let fresh = publisher.bump(&uri, Some(2));
+        let e0302 = Diagnostic {
+            code: Some(NumberOrString::String("E0302".to_string())),
+            ..Default::default()
+        };
+        publisher.publish(uri.clone(), fresh, Vec::new()).await;
+        publisher.publish(uri.clone(), stale, vec![e0302]).await;
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![(uri, Some(2), Vec::new())],
+            "only the current generation is published"
+        );
+    }
+
+    /// G295: a debounced emitter run publishes the whole list, emitter
+    /// included, for the buffer it was started for; and a run a newer change
+    /// superseded before it fired publishes nothing at all.
+    #[tokio::test]
+    async fn a_debounced_run_publishes_the_emitter_unless_superseded() {
+        let dir = tmp_dir("debounce");
+        let path = dir.join("main.glyph");
+        let text = "module main\npub type Id =\n  | None\n  | Some(number)\n\n\
+            fn f(b: string) -> Result<string, string> {\n  return Ok(b)\n}\n\n\
+            fn shout(s: string) -> string {\n  return s\n}\n\n\
+            pub fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+            return Ok(shout(match id {\n    None => f(b)?,\n    Some(n) => b,\n  }))\n}\n";
+        std::fs::write(&path, text).expect("write main");
+        let uri = Url::from_file_path(&path).expect("uri");
+        let (publisher, log) = recording();
+        publisher
+            .ws
+            .lock()
+            .unwrap()
+            .set_buffer(&uri, text.to_string());
+
+        let superseded = publisher.bump(&uri, Some(1));
+        publisher.schedule_full(dir.clone(), uri.clone(), superseded);
+        let current = publisher.bump(&uri, Some(2));
+        tokio::time::sleep(EMIT_DEBOUNCE * 3).await;
+        assert!(log.lock().unwrap().is_empty(), "the superseded run published: {:?}", log.lock().unwrap());
+
+        publisher.schedule_full(dir.clone(), uri.clone(), current);
+        tokio::time::sleep(EMIT_DEBOUNCE * 3).await;
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![(uri, Some(2), vec!["E0302".to_string()])],
+            "the current run publishes the emitter's refusal"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// A uniquely named temp directory for the project-root tests.
     fn tmp_dir(prefix: &str) -> PathBuf {

@@ -10526,6 +10526,56 @@ fn unknown_field_via_inferred_let_on_cross_module_call_is_e0210_naming_the_type(
 }
 
 #[test]
+fn explicit_type_arguments_bind_a_sibling_generic_under_both_import_spellings() {
+    // G292 across the module boundary. A written type argument binds the
+    // parameter it is written for, so `id<number>("x")` is E0211 on the
+    // argument and E0204 on the `return`, whether the sibling's function is
+    // imported by name or reached through its namespace. The order of the
+    // parameters is read off the sibling's declaration, because the
+    // signature carries each one by name only.
+    let root = unique_tmp("g292sibling");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\npub fn id<T>(x: T) -> T {\n  return x\n}\npub fn second<A, B>(a: A, b: B) -> B {\n  return b\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import lib { id }\n\
+         pub fn named() -> string {\n\
+         \x20 return id<number>(\"x\")\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "other.glyph",
+        "module other\n\
+         import lib\n\
+         pub fn spaced() -> number {\n\
+         \x20 return lib.second<string, number>(1, \"b\")\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let count = |code: &str, file: &str| {
+        report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains(code) && d.contains(&format!("[ {file}:")))
+            .count()
+    };
+    assert_eq!(count("E0211", "main"), 1, "{:?}", report.diagnostics);
+    assert_eq!(count("E0204", "main"), 1, "{:?}", report.diagnostics);
+    // `lib.second<string, number>(1, "b")`: both arguments disagree with the
+    // written types, and the result is the written `number`, which the
+    // declared return accepts.
+    assert_eq!(count("E0211", "other"), 2, "{:?}", report.diagnostics);
+    assert_eq!(count("E0204", "other"), 0, "{:?}", report.diagnostics);
+}
+
+#[test]
 fn nested_sibling_type_resolves_one_level_down() {
     // A sibling type named inside another sibling type is itself an imported
     // type, resolved when a field set is asked for. Nothing is expanded at

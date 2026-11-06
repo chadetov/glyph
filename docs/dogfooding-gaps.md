@@ -10904,7 +10904,7 @@ and is the owner's to confirm.
   declaration is not visible to the checker``, and the help says what would
   make it visible before it mentions `else`. Both versions exit 1, so it is
   not breaking.
-- **G292. Explicit type arguments on a user generic are ignored.**
+- **G292. [FIXED] Explicit type arguments on a user generic are ignored.**
   `id<number>("x")` with `fn id<T>(x: T) -> T`, returned from a function
   declared `-> string`, passes `glyph check --no-tsc`: the checker infers `T`
   from the argument and never reads the `<number>`. `tsc` refuses it twice
@@ -10912,7 +10912,19 @@ and is the owner's to confirm.
   which added explicit type arguments for stdlib calls only.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `glyph check: 1 module(s) checked, no diagnostics.`
-  under `--no-tsc`.*
+  under `--no-tsc`.* *Re-run against 0.1.130: the same, exit 0.*
+
+  Fixed in 0.1.131: a written type argument binds the parameter it is
+  written for, in place of what the arguments would infer, for a function
+  of the module and for a project sibling's under both import spellings
+  (the parameter order is read off the sibling's declaration). The program
+  above is ``[E0211] argument type mismatch: expected `number`, found
+  `string` `` on `"x"` and ``[E0204] type mismatch: expected `string`,
+  found `number` `` on the `return`, exit 1, and `let xs: Array<string> =
+  empty<number>()`, which no argument could bind, is E0204 as well. A count
+  of type arguments that is not the declaration's binds nothing and is
+  still left to `tsc` (TS2558). Not breaking: `tsc` refused every program
+  this refuses.
 - **G293. A record where a `Result` is expected is left to `tsc`.** The
   reverse of G289: `let r: Result<User, string> = u` with `u: User` passes
   `glyph check --no-tsc`, and `tsc` refuses it (TS2322: ``Type 'User' is not

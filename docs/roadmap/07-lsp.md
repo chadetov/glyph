@@ -27,10 +27,13 @@ rename *tool* on the MCP side. Full discussion in
 The `glyph-lsp` crate (`crates/glyph-lsp/`, tower-lsp + tokio) is launched by
 `glyph lsp` over stdio — the transport an editor extension spawns. It serves:
 
-- **Diagnostics** — the compiler front end (parse → resolve → typecheck, with
-  stdlib-stub import verification) runs over each open document; every error is
-  published with its stable code (`E0xxx`), `help` text, and a UTF-16 line/
-  character range, on open/change, and cleared on close. A parse failure
+- **Diagnostics**: the list `glyph check --no-tsc --no-test` reports for each
+  open document, the emitter's refusals (E0302 to E0305) included, published
+  with its stable code (`E0xxx`), `help` text, and a UTF-16 line/character
+  range. The front end publishes on every keystroke; the emitter's list follows
+  once typing pauses for 300 ms and at once on open and save, and between runs
+  the last one is carried through each edit. A change to one module republishes
+  every other open document. A close clears the list. A parse failure
   short-circuits (no AST for later phases).
 - **Document formatting** — returns the canonical `glyph fmt` layout as a
   whole-document edit; unparseable source is left untouched, matching the CLI.
@@ -140,7 +143,8 @@ manifesto's verifiability pillar is for.
 … }` *source-level* block, which is on CLAUDE.md's abandoned "signature-rich
 direction" list. The shipped surface re-derives the idea in TS-family terms:
 the edit is plain `TextEdit`s (no new language syntax) and the verification is
-the compiler's own front-end gate (parse → resolve → typecheck), not an
+the compiler's own gate (the edited file's `glyph check --no-tsc --no-test`
+list, emitter included, since 0.1.132), not an
 in-source annotation. The edit set is applied atomically — overlapping or
 out-of-bounds ranges are rejected before anything is spliced.
 

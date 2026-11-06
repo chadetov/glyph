@@ -30,8 +30,9 @@ identifier, which is why the next two lists exist.
 
 Source: `KEYWORDS` in `glyph-compiler/crates/glyph-lexer/src/token.rs`. That
 table drives both keyword lookup and "is this a keyword usable as a field
-name", so a name here is still fine as a record field, an object key, or after
-a dot.
+name", so a word here can still name a record field or an object-literal key.
+It cannot be read back after a dot: `e.type` is E0002 today (G300), so a record
+whose wire format has a `type` field can be declared and not read.
 
 ## 2. TypeScript reserved words (33) — `E0109`
 

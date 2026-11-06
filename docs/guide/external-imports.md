@@ -307,7 +307,7 @@ fn main(argv: Array<string>) -> number {
 
 ```
 [TS2339] Error: tsc: Property 'nonexistent_method' does not exist on type 'ZodString'.
-   ╭─[main:7:3]
+   ╭─[main:7:11]
 ```
 
 You can name the schema's inferred type directly with `typeof`:

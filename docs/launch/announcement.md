@@ -324,7 +324,7 @@ Some other edges that are open today:
 
 The gap ledger, `docs/dogfooding-gaps.md`, lists every defect found by building
 real programs, with a reproduction for each. At 0.1.130 it holds 301 entries, of
-which 25 are open and 8 partly fixed.
+which 25 are open and 7 partly fixed.
 
 ## Trying it
 

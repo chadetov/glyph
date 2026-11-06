@@ -150,7 +150,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |
-| `E0204` | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` |
+| `E0204` | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` |
 | `E0205` | `owned` used on a non-`resource` type (D25) |
 | `E0206` | `owned` resource not consumed on every path (D25) |
 | `E0207` | `owned` resource used after it was consumed (D25) |
@@ -188,7 +188,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0301` | An `<else>` that is not the immediate sibling of its `<if>` (D6) |
 | `E0302` | `?` in an arm of a `match` nested inside a larger expression (bind the match first) |
 | `E0303` | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) |
-| `E0304` | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine |
+| `E0304` | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine. Judged by the declaring module, so the call is refused from a module that imports the record too |
 | `E0305` | Two arms of one `match` lower to the same `case` label, so the later arm can never run |
 | `E0310` | `glyph run` on a module with no `fn main` (it's a library — nothing to run) |
 
@@ -225,7 +225,7 @@ spelling on every code.
 | `cause` | The `module::name` of the symbol at fault, when it is a declaration other than the enclosing one: the record for `E0210`, the union for `E0200` |
 | `expected` | The type this position required, on the codes that compare two types (`E0203`, `E0204`, `E0211`) |
 | `actual` | The type found. Answers for one class more than `expected`: a code that names one offending type and states its requirement in prose (`E0202`, `E0205`, `E0304`) has an `actual` and no `expected` |
-| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields (`E0210`), the union's variants, or a string-literal union's literals (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
+| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields, or an array's or a string's members (`E0210`), the union's variants, or a string-literal union's literals (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
 | `alternatives_kind` | Which of the four kinds `alternatives` holds: `fields`, `variants`, `literals` or `exports`; `null` exactly when `alternatives` is |
 | `related` | The union's whole variant list, in declaration order (`E0200`) |
 | `union` | The union a `match` diagnostic is over: `kind`, `module`, `name`, `declaration` |
@@ -253,7 +253,7 @@ Three of these codes have a repair the compiler settles on its own, and
 | Code | What it writes | When it declines |
 |------|----------------|------------------|
 | `E0106` | Drops the unused import, or the dead names out of a named import list | never; an unused name is unused |
-| `E0210` | The one declared field within edit distance one of the wrong name | no field is that close, or more than one is |
+| `E0210` | The one field or member within edit distance one of the wrong name | nothing the type declares is that close, or more than one is |
 | `E0220` | The suggestion in `alternatives`, when there is exactly one | the suggested variant is not one the match is missing, so writing it would produce `E0305` |
 
 `E0200` is not on the list. The compiler knows which cases a match is missing

@@ -491,7 +491,11 @@ mod tests {
                 d.display()
             );
         }
-        assert!(shown > 0, "the picker would show no catches");
+        // The release notes say all five catches are refused in the
+        // playground. A case that gained a second module or a `tsc` code would
+        // leave the picker silently, so the count is pinned: adding or dropping
+        // a catch changes it here on purpose.
+        assert_eq!(shown, 5, "every catch should be in the picker and refused here");
     }
 
     #[test]

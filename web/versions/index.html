@@ -61,8 +61,43 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.129</span>
+            <span class="rel-ver">0.1.130</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>The preview announcement makes five claims of the form "TypeScript accepts this and Glyph refuses it". A review of the draft against 0.1.129 found two of them weaker than they read: one held only inside the module that declared the type, and one was refused by <code>tsc</code> rather than by Glyph. This release makes both hold, and fixes the things a newcomer would hit first.</p>
+
+            <h3>An unverifiable <code>parse</code> is refused across an import</h3>
+            <p>E0304 refuses <code>Doc.parse(v)</code> when a field of <code>Doc</code> has no runtime check, because the validator would report success for a value it never looked at. It only fired in the module that declared <code>Doc</code>. Called from a module that imported it, the same call compiled and returned <code>Ok</code>. The refusal now follows the record across modules, including records a field check hands off to.</p>
+
+            <h3>Glyph's own checker refuses an unchecked boundary read</h3>
+            <div class="code">
+              <span class="cap">user.glyph</span>
+<pre>let user: User = json.parse(body)</pre>
+            </div>
+            <p><code>json.parse</code> returns a <code>Result</code>, so this was always an error, but only <code>tsc</code> reported it. <code>glyph check --no-tsc</code>, the editor and the playground said nothing. It is E0204 now: a <code>Result</code>, <code>Option</code>, <code>Array</code>, <code>Record</code> or <code>Nullable</code> where a declared record or union is expected is a type mismatch in the checker. All five <code>catches/</code> programs are now refused by Glyph itself, and all five reproduce in the playground.</p>
+
+            <h3>Member reads on arrays and strings</h3>
+            <p><code>xs.lenght</code> on an array was left to <code>tsc</code>. It is E0210 with "did you mean <code>length</code>", checked against the members TypeScript's library declares for arrays and strings. A CI check compares those lists with the TypeScript the project pins, in both directions, so moving the pin to a release that adds a method fails CI until the lists catch up. A TypeScript newer than the pin can still have a member Glyph does not know yet.</p>
+
+            <h3>Errors point at the expression</h3>
+            <p>A <code>tsc</code> error in Glyph code used to underline the whole statement it came from: a wrong argument marked the entire <code>let</code>, and a typo in a JSX handler marked eight lines. The emitter now maps every expression it writes, so the caret lands on the argument. The emitted TypeScript is unchanged.</p>
+            <p><code>let where = 1</code> now says <code>where</code> is a reserved word instead of giving a generic parse error, and <code>glyph llms</code> lists the 32 reserved words. A match on string literals whose type the checker cannot see is E0232, which says that, instead of E0218 suggesting an <code>else</code> arm, which would have switched the check off.</p>
+
+            <h3>The playground and the docs</h3>
+            <p>The playground opens on a program it refuses, has a picker of the <code>catches/</code> cases, and can share a program by URL. The docs check now compiles fences whose point is a <code>tsc</code> error, and fences that import zod, pg or mongodb against those packages' real types. E0400 to E0404 have <code>glyph --explain</code> pages, and a test requires every code the compiler can emit to have one.</p>
+
+            <p>This release is breaking. <code>Bag.parse(v)</code> on an imported record with an <code>Array&lt;unknown&gt;</code> field exits 0 under <code>glyph check</code> in 0.1.129 and 1 here. <code>let s: Sized = xs</code>, where <code>Sized</code> is the record <code>{ length: number }</code> and <code>xs</code> is an array, exits 0 in 0.1.129 and 1 here, although <code>tsc</code> accepts it: a declared record is its own type, and <code>Sized.parse(xs)</code> already refused the array. Declaring <code>interface Sized { length: number }</code> instead keeps the program. A misspelled array or string member was already a <code>tsc</code> error; under <code>--no-tsc</code> it exits 0 in 0.1.129 and 1 here.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.129</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

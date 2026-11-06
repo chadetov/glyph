@@ -835,8 +835,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A `?` inside an arm of a `match` that is nested in a larger \
             expression is E0302, a different rule with a different fix.",
         "E0304" => "E0304: cannot validate a record with an unverifiable field\n\n\
-            `T.parse(v)` and `T.is(v)` report whether a value really is a `T`. \
-            When one of `T`'s fields has a type the compiler cannot check at \
+            `T.parse(v)` and `T.is(v)` report whether a value really is a `T`, \
+            and so do `T.schema` and `json.parse<T>(text)`, which validates \
+            through it. When one of `T`'s fields has a type the compiler cannot check at \
             runtime, the descriptor used to emit a branch that could never fire \
             and a message naming the type it never checked, so `parse` returned \
             `Ok` for a value it had not validated. That is the one thing a \
@@ -1745,7 +1746,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0304",
         phase: "emitter",
-        meaning: "`parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine. Judged by the declaring module, so the call is refused from a module that imports the record too",
+        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too",
         fix: "Split the wire type from the domain type: parse the checkable fields, then build the record",
     },
     CodeEntry {

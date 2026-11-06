@@ -158,8 +158,9 @@ pub enum EmitError {
     /// feature.
     #[error("`?` cannot be used in this position")]
     TryInUnhoistablePosition { span: Span },
-    /// `T.parse`/`T.is` on a record holding a field whose type has no runtime
-    /// check. Declaring the record is fine; trusting one at a boundary is not.
+    /// `T.parse`/`T.is`/`T.schema`, or `json.parse<T>`, on a record holding a
+    /// field whose type has no runtime check. Declaring the record is fine;
+    /// trusting one at a boundary is not.
     /// The descriptor used to emit a branch that could never fire, under a
     /// message naming the type it never checked, so `parse` reported success
     /// for a value it had not validated.
@@ -260,7 +261,7 @@ impl EmitError {
                 "Two arms testing the same tag lower to two `case` labels in one `switch`, which JavaScript runs as first-one-wins. The compiler refuses to emit that rather than shipping a switch whose second label is unreachable.",
             ),
             EmitError::UnverifiableDescriptorUse { .. } => Some(
-                "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is` on it, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
+                "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is`/`schema` on it, and `json.parse<T>` with it as `T`, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
             ),
         }
     }
@@ -5860,8 +5861,11 @@ impl<'a> Emitter<'a> {
         None
     }
 
-    /// Refuse `T.parse`/`T.is` when `T` cannot be validated (E0304). Returns the
-    /// error to raise, or `None` when the call is fine or is not one of these.
+    /// Refuse `T.parse`/`T.is`/`T.schema` when `T` cannot be validated
+    /// (E0304). Returns the error to raise, or `None` when the use is fine or
+    /// is not one of these. `T.schema` is the same claim as `T.parse`: the
+    /// schema is built from the descriptor's `is` and `parse`, and
+    /// `json.parse<T>` lowers to `json.parse_with(text, T.schema)` (G297).
     ///
     /// The receiver is the record however this module spells it: declared
     /// here (`Doc.parse`), bound by a named import (`import w { Doc }`), or
@@ -5875,7 +5879,7 @@ impl<'a> Emitter<'a> {
         let Expr::Member { object, field, optional: false, span } = callee else {
             return None;
         };
-        if field.as_ref() != "parse" && field.as_ref() != "is" {
+        if !matches!(field.as_ref(), "parse" | "is" | "schema") {
             return None;
         }
         let (module, name) = match object.as_ref() {
@@ -5935,6 +5939,19 @@ impl<'a> Emitter<'a> {
         let Some(schema) = self.schema_expr_for(type_arg) else {
             return Ok(None);
         };
+        // The rewrite trusts `T.schema`, so it makes the claim `T.parse`
+        // makes, and is refused where `T.parse` is (G297).
+        if let Some((module, type_name)) = self.schema_target(type_arg) {
+            let mut seen = HashSet::new();
+            if let Some((field, field_ty)) = self.first_unverifiable_in(&module, &type_name, &mut seen) {
+                return Err(EmitError::UnverifiableDescriptorUse {
+                    type_name,
+                    field,
+                    field_ty,
+                    span: type_arg.span(),
+                });
+            }
+        }
         let obj = self.expr(object)?;
         let arg_str = self.expr(arg)?;
         Ok(Some(format!("{obj}.parse_with({arg_str}, {schema})")))
@@ -5947,13 +5964,18 @@ impl<'a> Emitter<'a> {
     /// type), where the casting `parse<T>` is kept as the escape hatch.
     fn schema_expr_for(&self, ty: &TypeExpr) -> Option<String> {
         match ty {
-            TypeExpr::Path { segments, .. } => {
-                let [name] = segments.as_slice() else {
-                    return None;
-                };
-                self.has_descriptor(name.as_ref())
-                    .then(|| format!("{name}.schema"))
-            }
+            TypeExpr::Path { segments, .. } => match segments.as_slice() {
+                [name] => self
+                    .has_descriptor(name.as_ref())
+                    .then(|| format!("{name}.schema")),
+                // `json.parse<w.Fine>`: the record through a namespace import
+                // is the same record, so it validates the same way rather
+                // than falling to the casting `parse<T>`.
+                [ns, name] => self
+                    .has_namespaced_descriptor(ns.as_ref(), name.as_ref())
+                    .then(|| format!("{ns}.{name}.schema")),
+                _ => None,
+            },
             TypeExpr::Generic { base, args, .. } => {
                 let TypeExpr::Path { segments, .. } = base.as_ref() else {
                     return None;
@@ -5965,6 +5987,33 @@ impl<'a> Emitter<'a> {
                     return None;
                 };
                 Some(format!("{}.array()", self.schema_expr_for(elem)?))
+            }
+            _ => None,
+        }
+    }
+
+    /// The record whose descriptor `schema_expr_for` hands `json.parse_with`,
+    /// as `(module path, type name)`, so E0304 can judge it. The same cases
+    /// `schema_expr_for` derives a schema for: a name, a namespace-qualified
+    /// name, and `Array` of either.
+    fn schema_target(&self, ty: &TypeExpr) -> Option<(String, String)> {
+        match ty {
+            TypeExpr::Path { segments, .. } => match segments.as_slice() {
+                [name] => self.descriptor_target(name.as_ref()),
+                [ns, name] => Some((self.namespace_module_path(ns.as_ref())?, name.to_string())),
+                _ => None,
+            },
+            TypeExpr::Generic { base, args, .. } => {
+                let TypeExpr::Path { segments, .. } = base.as_ref() else {
+                    return None;
+                };
+                if segments.last().map(|s| s.as_ref()) != Some("Array") {
+                    return None;
+                }
+                let [elem] = args.as_slice() else {
+                    return None;
+                };
+                self.schema_target(elem)
             }
             _ => None,
         }
@@ -6307,6 +6356,13 @@ impl<'a> Emitter<'a> {
                 optional,
                 ..
             } => {
+                // `T.schema` handed on as a value (`json.parse_with(text,
+                // T.schema)`) is a use of the descriptor like `T.parse`.
+                if field.as_ref() == "schema" {
+                    if let Some(err) = self.unverifiable_descriptor_use(e) {
+                        return Err(err);
+                    }
+                }
                 let dot = if *optional { "?." } else { "." };
                 format!("{}{dot}{field}", self.expr(object)?)
             }
@@ -11916,6 +11972,99 @@ pub fn n() -> number {\n  return 1\n}
             "Outer",
             "p.h",
             "Opaque",
+        );
+    }
+
+    /// G297: `json.parse<T>(text)` validates through `T.schema`, so it makes
+    /// the claim `T.parse` makes and is refused where `T.parse` is. It
+    /// returned `Ok` on a body whose unverifiable field nothing had checked.
+    #[test]
+    fn e0304_refuses_json_parse_of_an_unverifiable_record() {
+        let local = |ty_arg: &str| {
+            emit_err(&format!(
+                "module x\nimport std/json\n\
+                 type Opaque = extern_ts(\"{{ handle: number }}\")\n\
+                 type A = {{ id: number, cb: Opaque, }}\n\
+                 pub fn go(s: string) -> bool {{\n\
+                 \x20 return match json.parse<{ty_arg}>(s) {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            ))
+        };
+        for ty_arg in ["A", "Array<A>", "Array<Array<A>>"] {
+            let err = local(ty_arg);
+            assert!(
+                matches!(&err, EmitError::UnverifiableDescriptorUse { type_name, field, .. } if type_name == "A" && field == "cb"),
+                "json.parse<{ty_arg}>: {err:?}"
+            );
+        }
+        // An imported record, by name and through a namespace, and the
+        // module's own alias for `std/json`.
+        for (imports, call, name, field) in [
+            ("import std/json\nimport w { Doc }", "json.parse<Doc>(s)", "Doc", "lexer"),
+            ("import std/json\nimport w", "json.parse<w.Doc>(s)", "Doc", "lexer"),
+            ("import std/json as j\nimport w { Holder }", "j.parse<Holder>(s)", "Holder", "inner.lexer"),
+        ] {
+            let main = format!(
+                "module main\n{imports}\n\
+                 pub fn go(s: string) -> bool {{\n\
+                 \x20 return match {call} {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            );
+            let field_ty = "Lexer";
+            assert_g210_refused(emit_beside(("w", G210_W), &main), name, field, field_ty);
+        }
+    }
+
+    /// G297's positive control, and the namespace spelling it turned up:
+    /// `json.parse<w.Fine>` fell to the casting `parse<T>` and validated
+    /// nothing, where `json.parse<Fine>` through a named import validated.
+    #[test]
+    fn json_parse_of_a_namespaced_record_validates_through_its_schema() {
+        for (imports, call, expected) in [
+            ("import std/json\nimport w { Fine }", "json.parse<Fine>(s)", "json.parse_with(s, Fine.schema)"),
+            ("import std/json\nimport w", "json.parse<w.Fine>(s)", "json.parse_with(s, w.Fine.schema)"),
+            ("import std/json\nimport w as ww", "json.parse<Array<ww.Fine>>(s)", "json.parse_with(s, ww.Fine.schema.array())"),
+        ] {
+            let main = format!(
+                "module main\n{imports}\n\
+                 pub fn go(s: string) -> bool {{\n\
+                 \x20 return match {call} {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            );
+            let ts = emit_beside(("w", G210_W), &main)
+                .unwrap_or_else(|e| panic!("`{call}` must be accepted: {e:?}"));
+            assert!(ts.contains(expected), "`{call}` lowers to `{expected}`: {ts}");
+        }
+    }
+
+    /// `T.schema` is the third spelling of the claim. `json.parse<T>` lowers
+    /// to `json.parse_with(text, T.schema)`, so refusing the first and not the
+    /// written-out second would make the guarantee depend on the spelling.
+    #[test]
+    fn e0304_refuses_the_schema_of_an_unverifiable_record() {
+        let err = emit_err(
+            "module x\nimport std/json\n\
+             type Opaque = extern_ts(\"{ handle: number }\")\n\
+             type A = { id: number, cb: Opaque, }\n\
+             pub fn go(s: string) -> bool {\n\
+             \x20 return match json.parse_with(s, A.schema) { Ok(_) => true, Err(_) => false, }\n\
+             }\n",
+        );
+        assert!(
+            matches!(&err, EmitError::UnverifiableDescriptorUse { type_name, field, .. } if type_name == "A" && field == "cb"),
+            "{err:?}"
+        );
+        assert_g210_refused(
+            emit_beside(
+                ("w", G210_W),
+                "module main\nimport std/json\nimport w\n\
+                 pub fn go(s: string) -> bool {\n\
+                 \x20 return match json.parse_with(s, w.Doc.schema) { Ok(_) => true, Err(_) => false, }\n\
+                 }\n",
+            ),
+            "Doc",
+            "lexer",
+            "Lexer",
         );
     }
 

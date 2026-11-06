@@ -96,7 +96,8 @@ use glyph_db::{CompilerDb, SourceFile};
 use glyph_resolver::{build_prelude, ModuleGraph, StdlibStubs};
 use tower_lsp::lsp_types::Url;
 
-use crate::analysis::{analysis_in, analyze_in, hover_in, module_outline, Analysis, GlyphDiagnostic};
+use crate::analysis::{analysis_in, hover_in, module_outline, Analysis};
+use crate::diagnostic::{project_file_diagnostics, project_tables, Diagnostic};
 use crate::{collect_glyph_files, module_path_of};
 
 /// How many project databases stay live at once, least-recently-used evicted.
@@ -292,9 +293,8 @@ impl ProjectDb {
 /// `.glyph`). Nothing is evicted inside a database; whole projects are, at
 /// [`MAX_LIVE_PROJECTS`].
 pub(crate) struct Workspace {
-    /// The stdlib stub graph, shared by every project database and by the
-    /// import verification each analysis runs. Built once, because it is the
-    /// same graph on every keystroke.
+    /// The stdlib stub graph, shared by every project database. Built once,
+    /// because it is the same graph on every keystroke.
     stdlib: Arc<StdlibStubs>,
     /// The editor's buffers, by document URI. Authoritative over disk for as
     /// long as the editor says the file is open, in every project that holds
@@ -435,16 +435,52 @@ impl Workspace {
 
     /// The diagnostics for `uri` and the text they are in coordinates of, read
     /// inside the project at `root`.
+    ///
+    /// The list is `glyph check`'s for the file, assembled by the function the
+    /// `glyph_diagnostics` tool calls (`project_file_diagnostics`), so the
+    /// editor, the agent and the command line cannot report one file three
+    /// ways. Until 0.1.131 the editor assembled its own list and stopped after
+    /// the checker, so a file the emitter refuses (E0302 to E0305) showed
+    /// clean in the editor while `glyph check` failed it (G295).
+    ///
+    /// The emitter's half needs the project's tables, which are rebuilt here
+    /// on every call. The front-end queries under them are memo reads for
+    /// every module the keystroke did not touch; the scan over the modules'
+    /// ASTs is not memoized.
     pub(crate) fn diagnostics(
         &mut self,
         root: &Path,
         uri: &Url,
-    ) -> Option<(&str, Vec<GlyphDiagnostic>)> {
+    ) -> Option<(&str, Vec<Diagnostic>)> {
         let i = self.project(root);
         let open = &self.open;
         let project = &mut self.projects[i];
         let file = project.file(uri, open)?;
-        let diagnostics = analyze_in(&project.db, file, &self.stdlib);
+        // A member's module path is what its siblings import it by. A file
+        // outside the root has none, and is checked under its own stem the way
+        // the `glyph_diagnostics` tool checks one (`module_key`).
+        let module_path = project
+            .handles
+            .get(uri)
+            .and_then(|h| h.module_path.clone())
+            .unwrap_or_else(|| {
+                uri.to_file_path()
+                    .ok()
+                    .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+                    .unwrap_or_default()
+            });
+        let mut entries: Vec<(&str, SourceFile)> = project
+            .entries
+            .iter()
+            .map(|(m, f)| (m.as_str(), *f))
+            .collect();
+        // A non-member is in the scan too, as the tool puts it there: its own
+        // declarations are what its own emission reads.
+        if !entries.iter().any(|(_, f)| *f == file) {
+            entries.push((module_path.as_str(), file));
+        }
+        let tables = project_tables(&project.db, &entries);
+        let diagnostics = project_file_diagnostics(&project.db, file, &module_path, &tables);
         Some((file.source_text(&project.db).as_str(), diagnostics))
     }
 
@@ -542,8 +578,10 @@ mod tests {
 
     /// A clean two-declaration module, and the same module with the annotation
     /// on `x` broken. The second is what a keystroke turns the first into.
-    const CLEAN: &str = "module m\nfn f() -> void {\n  let x: string = \"a\"\n  print(x)\n}\n";
-    const BROKEN: &str = "module m\nfn f() -> void {\n  let x: string = 42\n  print(x)\n}\n";
+    /// `f` is `pub` because a module that exports nothing draws E0112 from
+    /// `glyph check`, and the editor publishes what `glyph check` reports.
+    const CLEAN: &str = "module m\npub fn f() -> void {\n  let x: string = \"a\"\n  print(x)\n}\n";
+    const BROKEN: &str = "module m\npub fn f() -> void {\n  let x: string = 42\n  print(x)\n}\n";
 
     fn tmp_dir(name: &str) -> PathBuf {
         use std::sync::atomic::{AtomicU64, Ordering};
@@ -753,13 +791,14 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// The two ways into the front end must not drift apart.
+    /// The `applyEdit` gate and the published diagnostics must not drift apart
+    /// on what the front end reports.
     ///
-    /// `analyze` runs it over a bare string for a caller with no database;
-    /// `analyze_in` reads the same stages out of one. They assemble the list
-    /// through a single function, and this is what holds them to that: an
-    /// editor and an agent looking at identical text see identical
-    /// diagnostics, code for code and span for span.
+    /// `analyze` runs the front end over a bare string for the gate, which
+    /// checks text no buffer holds; the published list is `glyph check`'s,
+    /// read out of the project database. On a program the emitter does not
+    /// refuse, the two report the same diagnostics, code for code and span
+    /// for span, with the help on the message's second line in both.
     ///
     /// Each source is its own project of one file, which is what the text path
     /// analyses: a module with nothing to import from cannot differ from a
@@ -786,14 +825,23 @@ mod tests {
             ws.set_buffer(&uri, (*src).to_string());
             let (_, incremental) = ws.diagnostics(&dir, &uri).expect("diagnostics");
             let text_path = crate::analysis::analyze(src);
-            let render = |ds: &[GlyphDiagnostic]| -> Vec<(String, u32, u32, String)> {
-                ds.iter()
-                    .map(|d| (d.code.clone(), d.start, d.end, d.message.clone()))
-                    .collect()
-            };
+            let published: Vec<(String, u32, u32, String)> = incremental
+                .iter()
+                .map(|d| {
+                    let message = match &d.help {
+                        Some(help) => format!("{}\n{help}", d.message),
+                        None => d.message.clone(),
+                    };
+                    (d.code.clone(), d.range.start.offset, d.range.end.offset, message)
+                })
+                .collect();
+            let gated: Vec<(String, u32, u32, String)> = text_path
+                .iter()
+                .map(|d| (d.code.clone(), d.start, d.end, d.message.clone()))
+                .collect();
             assert_eq!(
-                render(&incremental),
-                render(&text_path),
+                published,
+                gated,
                 "source {i} disagrees between the two paths"
             );
             let _ = std::fs::remove_dir_all(&dir);
@@ -813,7 +861,7 @@ mod tests {
     const MAIN: &str = "module main\n\n\
         import orders { Order, create, }\n\n\
         fn describe(o: Order) -> string {\n  o.id\n}\n\n\
-        fn use_it() -> string {\n  describe(create(\"a1\"))\n}\n";
+        pub fn use_it() -> string {\n  describe(create(\"a1\"))\n}\n";
 
     /// A two-module project on disk, with `main.glyph` open in the editor.
     fn two_modules(name: &str) -> (PathBuf, Url, Workspace) {

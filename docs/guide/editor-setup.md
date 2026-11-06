@@ -8,8 +8,10 @@ generic LSP client at the same `glyph lsp` command.
 What the server provides:
 
 - **Syntax highlighting** (VS Code, via the bundled TextMate grammar)
-- **Diagnostics** — parse, resolve, and typecheck errors with their `E0xxx`
-  codes (run `glyph --explain <code>` for the long-form fix)
+- **Diagnostics** — the list `glyph check --no-tsc` reports for the file,
+  including the emitter's refusals (`E0302` to `E0305`) and the warning tier,
+  with their `E0xxx` codes (run `glyph --explain <code>` for the long-form fix).
+  `tsc` and the missing-local-module check (`E0104`) do not run in the editor.
 - **Hover types**
 - **Go-to-definition**
 - **Completion** — keywords, in-scope declarations, prelude names

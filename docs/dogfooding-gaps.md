@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-305 entries, 265 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-20 are open. G144, the D28 boundary cast that never reached the returns a
+305 entries, 266 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+19 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11007,7 +11007,7 @@ and is the owner's to confirm.
   match goes from exit 1 to 0 and nothing tried goes from 0 to 1, so it is not
   breaking under `glyph check`; under `--no-tsc` the misspelled return goes
   from 0 to 1.
-- **G295. The editor does not show the emitter's errors.** E0302 to E0305
+- **G295. [FIXED] The editor does not show the emitter's errors.** E0302 to E0305
   (an unverifiable `parse`, a `?` the emitter cannot hoist, two arms lowering
   to one `case`) are errors of `glyph check` and of the MCP `diagnostics`
   tool, which runs the emitter through `project_file_diagnostics`. The
@@ -11017,6 +11017,28 @@ and is the owner's to confirm.
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`), by reading `glyph-lsp`: `Backend::refresh` publishes
   `Workspace::diagnostics`, which calls `analyze_in`, and nothing on that path
   calls `emit_module_mapped`.*
+
+  *Re-run against 0.1.130 (the dev-0.1.131 build before the fix), over the
+  protocol: a file with a `?` in the arm of a `match` nested in a call is
+  ``[E0302]`` from `glyph check` at `16:13`, and `glyph lsp` publishes `[]`
+  for it on `didOpen`.*
+
+  Fixed in 0.1.131: the language server publishes
+  `project_file_diagnostics`, the list the `glyph_diagnostics` tool answers
+  with, over the project tables every emitting surface now builds with one
+  function (`diagnostic::project_tables`). The editor's own front-end-only
+  assembly is gone. `the_editor_publishes_the_emitters_errors` opens an
+  E0302, an E0303, an E0305 and an imported-record E0304 over the protocol
+  and requires the published code, severity and position to equal `glyph
+  check --json`'s; it fails on E0302 with the emitter's diagnostics filtered
+  out, and on E0304 with the tables left empty. Two visible changes come with
+  the shared list: the lint tier is published as warnings rather than errors,
+  and a module that exports nothing shows E0112, both as `glyph check` reports
+  them. The cost is the emitter running on every keystroke over a file that
+  checks clean: on the 2,205-line `minilang/main.glyph`, in-process in the
+  dev profile, the front end took 19.3 ms per keystroke and the tables and
+  emitter 14.9 ms more (the tables 0.2 ms of it). Not breaking: `glyph check`
+  is unchanged.
 - **G296. [FIXED] A second name for an imported record has no value.**
   `pub type Page = Doc`, where `Doc` is imported, then `Page.parse(v)`, passes
   `glyph check --no-tsc` and fails `tsc` with TS2693 (``'Page' only refers to

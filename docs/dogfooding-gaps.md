@@ -10947,9 +10947,14 @@ and is the owner's to confirm.
   variants "manual"``; the misspelled return is ``[E0204] ... type mismatch:
   expected `RedirectPolicy`, found `"folow"` ``. A bootstrap test reads
   `runtime/std/*.ts` and fails when the table and the runtime disagree on a
-  union or a literal. With `tsc` the full match goes from exit 1 to 0 and
-  nothing tried goes from 0 to 1, so it is not breaking under `glyph check`;
-  under `--no-tsc` the misspelled return goes from 0 to 1.
+  union or a literal. The `kind` fields of `http.HttpError` and
+  `net.ServerError` now have those unions' names rather than a copy of their
+  literals, so `return e.kind` from a function declared
+  `-> net.ServerErrorKind` is ``expected `ServerErrorKind`, found
+  `HttpErrorKind` `` where it passed `--no-tsc` before. With `tsc` the full
+  match goes from exit 1 to 0 and nothing tried goes from 0 to 1, so it is not
+  breaking under `glyph check`; under `--no-tsc` the misspelled return goes
+  from 0 to 1.
 - **G295. The editor does not show the emitter's errors.** E0302 to E0305
   (an unverifiable `parse`, a `?` the emitter cannot hoist, two arms lowering
   to one `case`) are errors of `glyph check` and of the MCP `diagnostics`

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-301 entries, 265 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-16 are open. G144, the D28 boundary cast that never reached the returns a
+305 entries, 265 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+20 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11171,3 +11171,43 @@ and is the owner's to confirm.
   and cannot be written as a name here``, and the help says the word cannot
   name a type, a type path segment or an imported item, where it talked
   about trailing commas. The code is unchanged.
+- **G302. A second name spelled through a namespace is not a second name.**
+  `pub type Page = a.Doc`, under `import a`, is not followed the way
+  `pub type Page = Doc` is (D46 follows a bare name only). `Page` and `a.Doc`
+  are E0204 against each other, `p.titel` on a `p: Page` passes Glyph's
+  checker, and `Page.parse` is TS2693 from `tsc`. The guarantee depends on
+  how the alias is spelled, which is the defect D46 exists to remove. Found
+  while fixing G296; the emitter half (binding the descriptor) already
+  follows the chain, so the open part is whether D46 covers a qualified name.
+
+  *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
+  `return p.titel` is `glyph check: 2 module(s) checked, no diagnostics.`
+  under `--no-tsc`, and ``[TS2551] Error: tsc: Property 'titel' does not
+  exist on type 'Doc'`` with `tsc`.*
+- **G303. `print` of a `bool` is left to `tsc`.** `print(b)` with `b: bool`
+  passes `glyph check --no-tsc`; `tsc` refuses it with TS2345 (``Argument of
+  type 'boolean' is not assignable to parameter of type 'string'``). The
+  checker does not compare a prelude function's argument against its
+  declared parameter. Found while fixing G296.
+
+  *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
+  `no diagnostics` under `--no-tsc`, TS2345 with `tsc`.*
+- **G304. `?.` on a `Nullable` produces `undefined`, which a `Nullable` is
+  not.** `return n?.name` with `n: Nullable<Note>` from a function declared
+  `-> Nullable<string>` passes Glyph's checker, and `tsc` refuses it
+  (``TS2322: Type 'string | undefined' is not assignable to type 'string |
+  null'``). D45 makes `Nullable<T>` mean `T | null`, and the optional chain
+  yields `undefined` on the null branch, so the program the checker accepts
+  is one the type system around it does not. Found while fixing G300.
+
+  *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
+  `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+- **G305. A `match` arm for a literal outside the union is accepted.** With
+  `type Mode = "a" | "b"`, a match on a `Mode` with arms `"a"`, `"b"` and
+  `"c"` passes `glyph check --no-tsc`. The `"c"` arm can never run, and
+  `tsc` says so (``TS2678: Type '"c"' is not comparable to type 'Mode'``).
+  A misspelled arm next to the right one (`"manuel"` beside `"manual"`)
+  passes the same way. Found while fixing G294.
+
+  *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
+  `no diagnostics` under `--no-tsc`, TS2678 with `tsc`.*

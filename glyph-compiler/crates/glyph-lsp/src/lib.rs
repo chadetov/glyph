@@ -109,7 +109,10 @@ struct DocState {
     /// the current one: a stale result never overwrites fresher diagnostics.
     ///
     /// A counter rather than the editor's document version, because a save
-    /// carries no version and still has to supersede a pending run.
+    /// carries no version and still has to supersede a pending run. Drawn
+    /// from one counter for the whole session, so a document closed and
+    /// opened again never reuses a generation a run from before the close
+    /// still carries.
     generation: u64,
     /// The editor's version of the buffer, published with the diagnostics.
     version: Option<i32>,
@@ -122,6 +125,10 @@ struct DocState {
     /// the emitter's refusals forward instead of dropping them until typing
     /// pauses. The next full run replaces them (review 78, item 8a).
     carried: Vec<Diagnostic>,
+    /// The debounced emitter run waiting for typing to pause, cancelled by
+    /// the next bump (review 78, item 8c). The generation check is what keeps
+    /// a stale run from publishing; cancelling only spares the wake-up.
+    pending: Option<tokio::task::AbortHandle>,
 }
 
 /// A unit test's record of what was published: each publish as its URI, its
@@ -144,6 +151,8 @@ struct Publisher {
     sink: Sink,
     ws: Arc<Mutex<Workspace>>,
     docs: Arc<Mutex<HashMap<Url, DocState>>>,
+    /// The last generation handed out, for any document.
+    generations: Arc<std::sync::atomic::AtomicU64>,
     /// Held across a check of the generation and the publish that follows it,
     /// so two publishes for one document cannot pass each other on the way
     /// out. Without it a run that checked as current could be overtaken by a
@@ -168,12 +177,42 @@ impl Publisher {
             generation: 0,
             version: None,
             carried: Vec::new(),
+            pending: None,
         });
-        state.generation += 1;
+        state.generation = self
+            .generations
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            + 1;
+        if let Some(run) = state.pending.take() {
+            run.abort();
+        }
         if version.is_some() {
             state.version = version;
         }
         state.generation
+    }
+
+    /// Forget a closed document, cancelling its pending run, and return its
+    /// last version. `None` when it was not open (review 78, item 8b).
+    ///
+    /// Called with the workspace lock held. A run that was already past its
+    /// generation check finds no document at its publish and drops itself.
+    fn forget(&self, uri: &Url) -> Option<Option<i32>> {
+        let state = self.docs.lock().expect("docs mutex").remove(uri)?;
+        if let Some(run) = state.pending {
+            run.abort();
+        }
+        Some(state.version)
+    }
+
+    /// Clear a closed document's diagnostics, unless it was opened again
+    /// before this got through the gate, whose publish this would wipe.
+    async fn clear(&self, uri: Url, version: Option<i32>) {
+        let _gate = self.gate.lock().await;
+        if self.docs.lock().expect("docs mutex").contains_key(&uri) {
+            return;
+        }
+        self.send(uri, version, Vec::new()).await;
     }
 
     /// The diagnostics for `uri` through `stages`, as the protocol type.
@@ -238,6 +277,11 @@ impl Publisher {
                 _ => return,
             }
         };
+        self.send(uri, version, diagnostics).await;
+    }
+
+    /// Hand one publish to the sink. Callers hold the gate.
+    async fn send(&self, uri: Url, version: Option<i32>, diagnostics: Vec<Diagnostic>) {
         match &self.sink {
             Sink::Client(client) => client.publish_diagnostics(uri, diagnostics, version).await,
             #[cfg(test)]
@@ -258,7 +302,9 @@ impl Publisher {
     /// unless a newer change, save or close superseded `generation` first.
     fn schedule_full(&self, root: PathBuf, uri: Url, generation: u64) {
         let this = self.clone();
-        tokio::spawn(async move {
+        let task_uri = uri.clone();
+        let run = tokio::spawn(async move {
+            let uri = task_uri;
             tokio::time::sleep(EMIT_DEBOUNCE).await;
             let diagnostics = {
                 let mut ws = this.ws.lock().expect("workspace mutex");
@@ -274,6 +320,13 @@ impl Publisher {
             };
             this.publish(uri, generation, diagnostics).await;
         });
+        // Held so the next bump can cancel it. A bump that got in between the
+        // spawn and here has already superseded it.
+        let mut docs = self.docs.lock().expect("docs mutex");
+        match docs.get_mut(&uri).filter(|d| d.generation == generation) {
+            Some(d) => d.pending = Some(run.abort_handle()),
+            None => run.abort(),
+        }
     }
 }
 
@@ -297,6 +350,7 @@ impl Backend {
             sink: Sink::Client(client.clone()),
             ws: Arc::clone(&ws),
             docs: Arc::new(Mutex::new(HashMap::new())),
+            generations: Arc::new(std::sync::atomic::AtomicU64::new(0)),
             gate: Arc::new(tokio::sync::Mutex::new(())),
         };
         Backend {
@@ -657,16 +711,20 @@ impl LanguageServer for Backend {
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
-        let generation = {
+        let version = {
             // Disk is the truth for this file again from here on.
             let mut ws = self.ws.lock().expect("workspace mutex");
             ws.close(&uri);
-            // Supersedes a pending emitter run, so it cannot put the
-            // squiggles back after they are cleared below.
-            self.publisher.bump(&uri, None)
+            // Forgetting the document cancels its pending emitter run, and a
+            // run already past its generation check finds no document at its
+            // publish, so neither can put the squiggles back after they are
+            // cleared below.
+            self.publisher.forget(&uri)
         };
         // Clear the squiggles for a closed file.
-        self.publisher.publish(uri, generation, Vec::new()).await;
+        if let Some(version) = version {
+            self.publisher.clear(uri, version).await;
+        }
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
@@ -1564,6 +1622,7 @@ mod tests {
             sink: Sink::Record(Arc::clone(&log)),
             ws: Arc::new(Mutex::new(Workspace::new())),
             docs: Arc::new(Mutex::new(HashMap::new())),
+            generations: Arc::new(std::sync::atomic::AtomicU64::new(0)),
             gate: Arc::new(tokio::sync::Mutex::new(())),
         };
         (publisher, log)
@@ -1627,6 +1686,49 @@ mod tests {
             "the current run publishes the emitter's refusal"
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Review 78, item 8b: closing a document forgets it, and a reopen does
+    /// not start its generations again from the ones the closed document
+    /// used, so a run started before the close cannot publish after the
+    /// reopen.
+    #[tokio::test]
+    async fn a_closed_document_is_forgotten_and_its_generations_stay_dead() {
+        let (publisher, log) = recording();
+        let uri = Url::parse("file:///tmp/g295/closed.glyph").expect("uri");
+        let before = publisher.bump(&uri, Some(1));
+        assert_eq!(publisher.forget(&uri), Some(Some(1)));
+        assert!(publisher.docs.lock().unwrap().is_empty(), "the closed document is still held");
+        publisher.clear(uri.clone(), Some(1)).await;
+
+        let reopened = publisher.bump(&uri, Some(1));
+        assert_ne!(reopened, before, "the reopen reused a closed generation");
+        let e0302 = Diagnostic {
+            code: Some(NumberOrString::String("E0302".to_string())),
+            ..Default::default()
+        };
+        publisher.publish(uri.clone(), before, vec![e0302]).await;
+        // A clear for a document that was reopened in the meantime would
+        // wipe the reopen's diagnostics, so it does not go out.
+        publisher.clear(uri.clone(), Some(1)).await;
+        assert_eq!(*log.lock().unwrap(), vec![(uri, Some(1), Vec::new())]);
+    }
+
+    /// Review 78, item 8c: a debounced run a newer event superseded is
+    /// cancelled, not left to wake up and find itself stale.
+    #[tokio::test]
+    async fn a_superseded_debounced_run_is_cancelled() {
+        let (publisher, _log) = recording();
+        let uri = Url::parse("file:///tmp/g295/cancel.glyph").expect("uri");
+        let first = publisher.bump(&uri, Some(1));
+        publisher.schedule_full(PathBuf::new(), uri.clone(), first);
+        let pending = publisher.docs.lock().unwrap()[&uri]
+            .pending
+            .clone()
+            .expect("the run is held");
+        publisher.bump(&uri, Some(2));
+        tokio::time::sleep(EMIT_DEBOUNCE / 10).await;
+        assert!(pending.is_finished(), "the superseded run is still waiting");
     }
 
     /// A diagnostic over the first occurrence of `needle` in `text`.

@@ -1789,9 +1789,12 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 
 These cannot name a binding, parameter, function, type, generic, loop variable
 or pattern binding. A record field or an object-literal key may use one
-(`{ type: "post" }`), and that field is read after a dot like any other
-(`e.type`). Using one as a name draws E0002 naming the word; `where_` or a more
-specific name is the usual fix.
+(`{ type: "post" }`), and after a dot one is a name like any other: the field is
+read as `e.type`, and a module's export as `pkg.type` in a value or a type.
+Using one as a name draws E0002 naming the word; `where_` or a more specific
+name is the usual fix. An export named with one cannot be an imported item
+(`import pkg { type }` is E0002); import the module by namespace and read it as
+`pkg.type`.
 
 ```text
 fn type record component const let mut owned resource pub interface defer

@@ -188,7 +188,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0301` | An `<else>` that is not the immediate sibling of its `<if>` (D6) |
 | `E0302` | `?` in an arm of a `match` nested inside a larger expression (bind the match first) |
 | `E0303` | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) |
-| `E0304` | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine. Judged by the declaring module, so the call is refused from a module that imports the record too |
+| `E0304` | `parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too |
 | `E0305` | Two arms of one `match` lower to the same `case` label, so the later arm can never run |
 | `E0310` | `glyph run` on a module with no `fn main` (it's a library — nothing to run) |
 

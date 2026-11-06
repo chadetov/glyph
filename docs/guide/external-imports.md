@@ -449,8 +449,9 @@ type Doc = { lexer: Lexer, pattern: RegExp, title: string }
 The reference resolves, and `d.lexer.lex(src)` is checked by `tsc` against the
 real class, so a misspelt method is a real error mapped to your `.glyph`. What
 the alias does not have is a descriptor: `Lexer.parse` does not exist, and a
-record holding a `Lexer` is refused `Doc.parse` with `E0304`, because a boundary
-check that cannot see into a field must not report that it did. Construct the
+record holding a `Lexer` is refused `Doc.parse`, `Doc.schema` and
+`json.parse<Doc>` with `E0304`, because a boundary check that cannot see into a
+field must not report that it did. Construct the
 class with `new Lexer(...)` from the package import (D37) and put the value in
 the record. The host type is qualified with `globalThis.` so the module-local
 alias does not shadow it; the list of host types the reader knows is in

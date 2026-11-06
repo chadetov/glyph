@@ -12103,6 +12103,62 @@ fn parse_is_refused_on_an_imported_record_with_an_unverifiable_field() {
 }
 
 #[test]
+fn a_second_name_for_an_imported_record_parses_through_tsc() {
+    // G296. `pub type Page = Doc`, `Doc` imported, emitted a bare `type`
+    // alias and no value, so `Page.parse(v)` passed Glyph's checker and was
+    // TS2693 from `tsc`. D46 makes `Page` a second name for `a`'s
+    // declaration; the emitter now binds `const Page = Doc;`. A third module
+    // reaches it by each import spelling, and a field typed by it is checked
+    // through it rather than refused as having no runtime check. Requires
+    // tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping G296 tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("g296");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "a.glyph", "module a\n\npub type Doc = {\n  title: string,\n}\n\npub type D2 = Doc\n");
+    write_file(
+        &src,
+        "b.glyph",
+        "module b\n\nimport a { Doc }\n\npub type Page = Doc\n\n\
+         pub fn read(v: unknown) -> string {\n\
+         \x20 return match Page.parse(v) {\n\
+         \x20\x20\x20 Ok(p) => p.title,\n\
+         \x20\x20\x20 Err(_) => \"bad\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "c.glyph",
+        "module c\n\nimport a { D2 }\nimport b { Page }\nimport b as bb\n\n\
+         pub type Holder = {\n  page: Page,\n  other: bb.Page,\n  d: D2,\n}\n\n\
+         pub fn named(v: unknown) -> bool {\n\
+         \x20 return match Page.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n\n\
+         pub fn spaced(v: unknown) -> bool {\n\
+         \x20 return match bb.Page.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n\n\
+         pub fn held(v: unknown) -> bool {\n\
+         \x20 return match Holder.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build runs");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let b = std::fs::read_to_string(out.join("b.ts")).expect("read b.ts");
+    assert!(b.contains("export const Page = Doc;"), "the second name is bound: {b}");
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("a second name for an imported record failed tsc:\n{msg}"),
+        TscOutcome::NotFound => tool_missing("tsc"),
+    }
+}
+
+#[test]
 fn the_unverifiable_parse_catch_holds_with_the_record_in_its_own_module() {
     // `catches/unverifiable-parse/` declares `Conn` beside the `Conn.parse` it
     // refuses. Moving the record into its own module, the way a real project

@@ -11012,6 +11012,24 @@ and is the owner's to confirm.
   passes `tsc` and exits 0 under `check` in 0.1.130, and is E0204 here,
   exit 1 (D49: a declared union is its own type). Every other program this
   refuses, `tsc` refused already.
+
+  Fixed in 0.1.132, the `Record` part: where a `Record<string, V>` is
+  declared, a declared record (local, imported, or a stdlib type the checker
+  models) is compared field by field against `V`, the way the map's validator
+  reads it. `let m: Record<string, string> = u` with `type User = { name:
+  string, age: number }` is ``[E0204] type mismatch: expected
+  `Record<string, string>`, found `User` ``, exit 1 under `--no-tsc` where
+  0.1.131 exited 0; `tsc` refused it already (TS2322). A record whose fields
+  are all required `string`s is accepted. An `@open` record there is refused
+  unless `V` is `unknown`, and a tagged union is refused wherever any
+  `Record<K, V>` is declared; `tsc` accepts both, so `@open type Meta = { id:
+  string }` and `type Mode = | A | B` against `Record<string, string>` go from
+  exit 0 to exit 1 under `glyph check` as well. An optional field and a `K`
+  other than `string` are left to `tsc`, which accepts `nick?: string` and
+  refuses `nick?: number`. A generic record applied, `let m: Record<string,
+  string> = b` with `b: Box<string>`, was E0204 in 0.1.131 because the bases
+  were compared as two declarations, and `tsc` accepts it; it is now read
+  field by field and passes.
 - **G294. [FIXED] The stdlib's string-literal unions are not modeled.** A match on
   `http.RedirectPolicy` (`"follow" | "manual" | "error"`) cannot be checked for
   exhaustiveness: it is E0232 since G291, and the only way to compile it is an

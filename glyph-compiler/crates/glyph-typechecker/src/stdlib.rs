@@ -16,7 +16,7 @@
 use std::sync::Arc;
 
 use glyph_ast::Ident;
-use glyph_resolver::Prelude;
+use glyph_resolver::{Prelude, PreludeKind};
 
 use crate::assign::stdlib_named;
 use crate::ty::{FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty};
@@ -1332,6 +1332,46 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
     })
 }
 
+/// The signature of a prelude function: one the program calls by its bare
+/// name, with no import.
+///
+/// `runtime/glyph-prelude.d.ts` declares them, and `tsc` checks every call
+/// against that declaration. Without a row here the name typed `Unknown`, so
+/// `print(b)` with `b: bool` passed Glyph's checker and was TS2345 from `tsc`
+/// (G303). The constructors (`Ok`, `Some`, ...) are not rows: each is generic
+/// in its payload and is typed at the call by the constructor rules.
+pub(crate) fn prelude_fn_ty(kind: PreludeKind) -> Option<Ty> {
+    let (param, ret) = match kind {
+        PreludeKind::Print => (Ty::Prim(Primitive::String), Ty::Prim(Primitive::Void)),
+        PreludeKind::Assert => (Ty::Prim(Primitive::Bool), Ty::Prim(Primitive::Void)),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params: vec![required(param)],
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
+}
+
+/// The signature of a member of a prelude namespace value, read as
+/// `number.to_string(n)`, from the same declaration file as
+/// [`prelude_fn_ty`] and for the same reason (G303). `par`'s members are
+/// generic over promises and stay unmodeled.
+pub(crate) fn prelude_member_ty(prelude: &Prelude, kind: PreludeKind, field: &str) -> Option<Ty> {
+    let number = || Ty::Prim(Primitive::Number);
+    let string = || Ty::Prim(Primitive::String);
+    let (param, ret) = match (kind, field) {
+        (PreludeKind::Number, "to_string") => (number(), string()),
+        (PreludeKind::Number, "parse") => (string(), result_ty(prelude, number(), string())?),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params: vec![required(param)],
+        return_ty: Arc::new(ret),
+        is_async: false,
+    })
+}
+
 /// Build `Result<ok, err>` as a prelude `App` the `?` checker recognizes
 /// (`prelude_app` keys off the prelude `Result` symbol id). Returns `None`
 /// only if the prelude somehow lacks `Result`, which never happens.
@@ -1477,4 +1517,54 @@ fn required(ty: Ty) -> FnParam {
 /// Glyph `fn` cannot declare one.
 fn optional(ty: Ty) -> FnParam {
     FnParam { name: None, owned: false, ty, optional: true }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ty::ty_display;
+
+    /// The prelude rows against the file `tsc` checks the same calls with.
+    /// Each row is the declaration line it models, written out in TypeScript,
+    /// and the signature the checker holds for it, so a change to either side
+    /// fails here instead of turning one into a claim the other does not make.
+    #[test]
+    fn prelude_rows_match_the_prelude_declarations() {
+        let path = [env!("CARGO_MANIFEST_DIR"), "..", "..", "runtime", "glyph-prelude.d.ts"]
+            .iter()
+            .collect::<std::path::PathBuf>();
+        let dts = std::fs::read_to_string(&path).expect("read glyph-prelude.d.ts");
+        let prelude = glyph_resolver::build_prelude();
+        let rows: [(&str, Option<Ty>, &str); 4] = [
+            (
+                "declare function print(message: string): void;",
+                prelude_fn_ty(PreludeKind::Print),
+                "fn(string) -> void",
+            ),
+            (
+                "declare function assert(condition: boolean): void;",
+                prelude_fn_ty(PreludeKind::Assert),
+                "fn(bool) -> void",
+            ),
+            (
+                "to_string(n: number): string;",
+                prelude_member_ty(&prelude, PreludeKind::Number, "to_string"),
+                "fn(number) -> string",
+            ),
+            (
+                "parse(s: string): import(\"./std/result\").Result<number, string>;",
+                prelude_member_ty(&prelude, PreludeKind::Number, "parse"),
+                "fn(string) -> Result<number, string>",
+            ),
+        ];
+        for (declared, modeled, display) in rows {
+            assert!(dts.contains(declared), "glyph-prelude.d.ts no longer has `{declared}`");
+            let Some(Ty::Fn { params, return_ty, .. }) = modeled else {
+                panic!("no function row for `{declared}`");
+            };
+            let params: Vec<String> = params.iter().map(|p| ty_display(&p.ty)).collect();
+            let shown = format!("fn({}) -> {}", params.join(", "), ty_display(&return_ty));
+            assert_eq!(shown, display, "for `{declared}`");
+        }
+    }
 }

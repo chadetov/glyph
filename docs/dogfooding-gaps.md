@@ -11359,7 +11359,7 @@ and is the owner's to confirm.
   `p.titel` through a second name goes from exit 0 to 1 under `--no-tsc`,
   the `a.Shape` match and every `where` over an imported record go from
   exit 0 to 1 under `check` and `build`.
-- **G303. `print` of a `bool` is left to `tsc`.** `print(b)` with `b: bool`
+- **G303. [FIXED] `print` of a `bool` is left to `tsc`.** `print(b)` with `b: bool`
   passes `glyph check --no-tsc`; `tsc` refuses it with TS2345 (``Argument of
   type 'boolean' is not assignable to parameter of type 'string'``). The
   checker does not compare a prelude function's argument against its
@@ -11367,6 +11367,24 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
   `no diagnostics` under `--no-tsc`, TS2345 with `tsc`.*
+
+  *Re-run against 0.1.131 before the fix: the same. `print` and `assert` had
+  no signature in the checker at all, so both names typed `Unknown` and no
+  argument was compared; `number.to_string` and `number.parse` were the same
+  hole on the prelude's `number` namespace (`number.to_string(true)` passed
+  `--no-tsc`, TS2345 with `tsc`).*
+
+  Fixed in 0.1.132. The checker holds the four signatures
+  `runtime/glyph-prelude.d.ts` declares: `print(string) -> void`,
+  `assert(bool) -> void`, `number.to_string(number) -> string` and
+  `number.parse(string) -> Result<number, string>`, and a test fails when that
+  file and the table disagree. `print(b)` is ``[E0211] ... argument type
+  mismatch: expected `string`, found `bool` ``, `assert("yes")` is the same
+  code the other way round, and `print()` is E0213. `par.all` and
+  `par.all_ok` are generic over promises and stay unmodeled; the
+  constructors `Ok`, `Err`, `Some` and `None` are typed by their own rules.
+  Under `--no-tsc` the wrong argument goes from exit 0 to 1; under `glyph
+  check` it was exit 1 from `tsc` already.
 - **G304. `?.` on a `Nullable` produces `undefined`, which a `Nullable` is
   not.** `return n?.name` with `n: Nullable<Note>` from a function declared
   `-> Nullable<string>` passes Glyph's checker, and `tsc` refuses it

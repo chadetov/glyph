@@ -3124,6 +3124,9 @@ impl Assigner<'_> {
             ResolvedRef::Prelude(id) => {
                 if let Some(sym) = self.lowerer.prelude.table.get(id) {
                     if let SymbolKind::Prelude { kind } = sym.kind {
+                        if let Some(sig) = crate::stdlib::prelude_fn_ty(kind) {
+                            return sig;
+                        }
                         if let Some(construction) = prelude_type_construction(kind) {
                             let name = sym.name.as_ref().to_string();
                             self.report_type_name_as_value(
@@ -3236,6 +3239,13 @@ impl Assigner<'_> {
         let Expr::Ident { span, .. } = object else {
             return None;
         };
+        if let Some(ResolvedRef::Prelude(id)) = self.resolved.resolutions.get(*span) {
+            let sym = self.lowerer.prelude.table.get(id)?;
+            let SymbolKind::Prelude { kind } = sym.kind else {
+                return None;
+            };
+            return crate::stdlib::prelude_member_ty(self.lowerer.prelude, kind, field);
+        }
         self.namespace_member_ty(*span, field)
     }
 
@@ -15843,8 +15853,9 @@ fn f(a: Answer) -> number {
     fn a_number_into_a_nullable_int_annotation_is_accepted() {
         // The whole point of D45: a `Nullable<int>` holds an `int` or null, so
         // writing the `int` is the intended spelling and must stay silent.
+        // Returned rather than printed: `print` takes a `string` (G303).
         let errs = ty_errors_of(
-            "module x\nfn main() -> void {\n  let v: Nullable<int> = 3\n  print(v)\n}\n",
+            "module x\nfn main() -> Nullable<int> {\n  let v: Nullable<int> = 3\n  return v\n}\n",
         );
         assert!(errs.is_empty(), "errs: {errs:?}");
     }
@@ -18129,6 +18140,41 @@ fn f(a: Answer) -> number {
         assert_eq!(
             argument_mismatches(&errs),
             vec![("Record<string, string>".to_string(), "User".to_string())],
+    /// G303. `print` and `assert` are prelude functions with a declared
+    /// parameter (`runtime/glyph-prelude.d.ts`), and so are `number.to_string`
+    /// and `number.parse`. They typed `Unknown`, so a wrong argument passed
+    /// Glyph's checker and only `tsc` refused it.
+    #[test]
+    fn a_prelude_function_argument_is_checked_against_its_parameter() {
+        let errs = errors_of(
+            "module m\n\
+             pub fn f(b: bool, n: number, s: string) -> void {\n\
+             \x20 print(b)\n\
+             \x20 print(n)\n\
+             \x20 assert(s)\n\
+             \x20 let t = number.to_string(b)\n\
+             \x20 let r = number.parse(n)\n\
+             \x20 print(t)\n\
+             }\n",
+        );
+        let found: Vec<(&str, String, String)> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::ArgumentTypeMismatch { expected, found, .. } => {
+                    Some((e.code(), expected.clone(), found.clone()))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            found,
+            vec![
+                ("E0211", "string".to_string(), "bool".to_string()),
+                ("E0211", "string".to_string(), "number".to_string()),
+                ("E0211", "bool".to_string(), "string".to_string()),
+                ("E0211", "number".to_string(), "bool".to_string()),
+                ("E0211", "string".to_string(), "number".to_string()),
+            ],
             "{errs:?}"
         );
     }
@@ -18263,5 +18309,29 @@ fn main(p: Point, m: Meta, s: Status) -> number {
             );
         }
         assert_eq!(got.len(), 3, "{errs:?}");
+    /// The other side of G303: the arguments the declarations accept stay
+    /// silent, the results carry their types, and a call with the wrong
+    /// number of arguments is E0213 as it is for any `fn`.
+    #[test]
+    fn a_prelude_function_accepts_what_it_declares() {
+        let errs = errors_of(
+            "module m\n\
+             pub fn f(b: bool, n: number, s: string) -> void {\n\
+             \x20 print(s)\n\
+             \x20 print(\"lit\")\n\
+             \x20 print(number.to_string(n))\n\
+             \x20 assert(b)\n\
+             \x20 assert(n > 0)\n\
+             \x20 let r = number.parse(s)\n\
+             \x20 let x: number = number.to_string(n)\n\
+             \x20 print()\n\
+             }\n",
+        );
+        let codes: Vec<&str> = errs
+            .iter()
+            .map(|e| e.code())
+            .filter(|c| *c != "E0217")
+            .collect();
+        assert_eq!(codes, vec!["E0204", "E0213"], "{errs:?}");
     }
 }

@@ -190,28 +190,37 @@ jobs:
           exit 1
 
   build:
-    name: Build ${{ matrix.key }}
+    name: Build ${{ matrix.key }}${{ matrix.key2 && format(' + {0}', matrix.key2) || '' }}
     needs: preflight
     runs-on: ${{ matrix.os }}
     # A cold release build of the compiler; nothing in this workflow caches
-    # anything. The slowest of the five (windows-latest) has been taking four
-    # minutes.
+    # anything. The slowest single-target job (windows-latest) has been taking
+    # four minutes; the darwin job builds two targets and so takes longer.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Both Apple targets build from one image, with darwin-x64
-          # cross-compiled. This said macos-14 until macos-14 was deprecated
-          # with a stated end of support of 2 November 2026; on that date a
-          # stale label stops being assigned a runner, which is precisely how
-          # the retired macos-13 failed in the smoke job below.
+          # Both Apple targets build in one job on one image, with darwin-x64
+          # cross-compiled: one cargo invocation with two `--target`s, which
+          # shares the host build scripts and proc macros between them and
+          # holds one macOS runner instead of two. The job still uploads two
+          # separately named artifacts, `platform-darwin-arm64` and
+          # `platform-darwin-x64`, so `verify`, `publish` and `release` see
+          # exactly what they saw when these were two jobs. One target failing
+          # now fails the other's build too, which costs nothing because
+          # `publish` needs every build anyway. Execution proof for darwin-x64
+          # is unchanged: `verify` runs it on a real Intel runner.
+          #
+          # This said macos-14 until macos-14 was deprecated with a stated end
+          # of support of 2 November 2026; on that date a stale label stops
+          # being assigned a runner, which is precisely how the retired
+          # macos-13 failed in the smoke job below.
           - key: darwin-arm64
             os: macos-15
             target: aarch64-apple-darwin
-          - key: darwin-x64
-            os: macos-15
-            target: x86_64-apple-darwin
+            key2: darwin-x64
+            target2: x86_64-apple-darwin
           - key: linux-x64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -224,17 +233,23 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # `target2` is empty on every entry but darwin, so these two steps name
+      # one target there and two on darwin.
       - name: Add the target toolchain
-        run: rustup target add ${{ matrix.target }}
+        run: rustup target add ${{ matrix.target }} ${{ matrix.target2 }}
         working-directory: glyph-compiler
 
       - name: Build release binary
         working-directory: glyph-compiler
-        run: cargo build --release --locked -p glyph-cli --target ${{ matrix.target }}
+        run: cargo build --release --locked -p glyph-cli --target ${{ matrix.target }} ${{ matrix.target2 && format('--target {0}', matrix.target2) || '' }}
 
       - name: Stage binary into its platform package (unix)
         if: matrix.key != 'win32-x64'
         run: node npm/scripts/stage.mjs ${{ matrix.key }} glyph-compiler/target/${{ matrix.target }}/release/glyph
+
+      - name: Stage the second binary into its platform package
+        if: matrix.key2
+        run: node npm/scripts/stage.mjs ${{ matrix.key2 }} glyph-compiler/target/${{ matrix.target2 }}/release/glyph
 
       - name: Stage binary into its platform package (windows)
         if: matrix.key == 'win32-x64'
@@ -261,6 +276,21 @@ jobs:
         with:
           name: platform-${{ matrix.key }}
           path: platform-${{ matrix.key }}.tar.gz
+
+      # The second platform of a two-target job gets its own tarball and its
+      # own artifact under its own name, the same shape every single-target job
+      # uploads, so no consumer can tell the two darwin builds shared a runner.
+      - name: Pack the second staged package, preserving the execute bit
+        if: matrix.key2
+        shell: bash
+        run: tar -czf platform-${{ matrix.key2 }}.tar.gz -C npm/platform ${{ matrix.key2 }}
+
+      - name: Upload the second staged platform package
+        if: matrix.key2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: platform-${{ matrix.key2 }}
+          path: platform-${{ matrix.key2 }}.tar.gz
 
   verify:
     name: Verify ${{ matrix.key }}

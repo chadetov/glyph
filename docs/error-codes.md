@@ -156,7 +156,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0207` | `owned` resource used after it was consumed (D25) |
 | `E0208` | Non-exhaustive `match` on an array (length not covered) |
 | `E0209` | Non-exhaustive `match` on a `bool` |
-| `E0210` | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. Also a member an `Array<T>` or a `string` does not have (`xs.lenght`), checked against the members TypeScript's library gives a JavaScript array or string; the message names the type and the nearest real member |
+| `E0210` | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member |
 | `E0211` | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name |
 | `E0212` | `mut` reassigns a `const` binding (D20) |
 | `E0213` | Wrong number of call arguments |
@@ -225,7 +225,7 @@ spelling on every code.
 | `cause` | The `module::name` of the symbol at fault, when it is a declaration other than the enclosing one: the record for `E0210`, the union for `E0200` |
 | `expected` | The type this position required, on the codes that compare two types (`E0203`, `E0204`, `E0211`) |
 | `actual` | The type found. Answers for one class more than `expected`: a code that names one offending type and states its requirement in prose (`E0202`, `E0205`, `E0304`) has an `actual` and no `expected` |
-| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields, or an array's or a string's members (`E0210`), the union's variants, or a string-literal union's literals (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
+| `alternatives` | What may legally stand where the wrong thing stands, when the compiler holds a finite list: the record's fields, or an array's, a string's or a number's members (`E0210`), the union's variants, or a string-literal union's literals (`E0204`, `E0211`), the module's exports (`E0105`), the did-you-mean (`E0220`) |
 | `alternatives_kind` | Which of the four kinds `alternatives` holds: `fields`, `variants`, `literals` or `exports`; `null` exactly when `alternatives` is |
 | `related` | The union's whole variant list, in declaration order (`E0200`) |
 | `union` | The union a `match` diagnostic is over: `kind`, `module`, `name`, `declaration` |

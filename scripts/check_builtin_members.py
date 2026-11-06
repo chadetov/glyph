@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""The checker's array and string member lists must be TypeScript's.
+"""The checker's array, string and number member lists must be TypeScript's.
 
 `glyph-typechecker/src/builtin_members.rs` holds every member a JavaScript
-array and a JavaScript string have, and the checker refuses a member read on
-`Array<T>` or `string` whose name is not in them (G288, E0210). The lists were
+array, a JavaScript string and a JavaScript number have, and the checker
+refuses a member read on `Array<T>`, `string` or `number` whose name is not in
+them (G288, E0210). The lists were
 read out of TypeScript's checker once, and a list read once is a snapshot: the
 next TypeScript that adds a method to `Array.prototype` makes Glyph refuse a
 program `tsc` accepts, and nothing in the Rust suite can notice, because the
 suite has no TypeScript to ask.
 
 So this asks it. It loads the TypeScript CI pins (`.github/ci-tools`), builds
-the apparent type of `string[]` and of `string` under `lib: ["esnext", "dom"]`,
-which is the set the table's header says it holds, and compares the property
-names with the two Rust arrays, both directions. A name TypeScript has and the
+the apparent type of `string[]`, `string` and `number` under `lib: ["esnext",
+"dom"]`, which is the set the table's header says it holds, and compares the
+property names with the three Rust arrays, both directions. A name TypeScript has and the
 table lacks would be a false refusal; a name the table has and TypeScript lacks
 would let a typo through to `tsc`.
 
@@ -39,12 +40,12 @@ CI_TOOLS = ROOT / ".github/ci-tools"
 
 # The header sentence naming the TypeScript the lists were read with.
 HEADER_VERSION = re.compile(r"Read with TypeScript (\d+\.\d+\.\d+)")
-ARRAY_RE = re.compile(r"const (ARRAY|STRING)_MEMBERS: &\[&str\] = &\[(.*?)\];", re.S)
+ARRAY_RE = re.compile(r"const (ARRAY|STRING|NUMBER)_MEMBERS: &\[&str\] = &\[(.*?)\];", re.S)
 
 PROBE = r"""
 const ts = require(process.argv[1]);
 const file = "probe.ts";
-const text = "declare const a: string[];\ndeclare const s: string;\n";
+const text = "declare const a: string[];\ndeclare const s: string;\ndeclare const n: number;\n";
 const options = { lib: ["lib.esnext.d.ts", "lib.dom.d.ts"], strict: true, noEmit: true };
 const host = ts.createCompilerHost(options);
 const read = host.getSourceFile.bind(host);
@@ -58,7 +59,7 @@ for (const stmt of program.getSourceFile(file).statements) {
   const t = checker.getApparentType(checker.getTypeAtLocation(decl.name));
   // Symbol-keyed members (`[Symbol.iterator]`) have no name a `.` read can spell.
   const names = checker.getPropertiesOfType(t).map((p) => p.getName()).filter((n) => !n.startsWith("__@"));
-  out[decl.name.text === "a" ? "array" : "string"] = names;
+  out[{ a: "array", s: "string", n: "number" }[decl.name.text]] = names;
 }
 // `Object.prototype`'s own members, read the same way.
 const objFile = "obj.ts";
@@ -111,8 +112,8 @@ def main() -> int:
     table = {}
     for kind, body in ARRAY_RE.findall(src):
         table[kind.lower()] = re.findall(r'"([^"]+)"', body)
-    if set(table) != {"array", "string"}:
-        print(f"{TABLE.relative_to(ROOT)}: could not find ARRAY_MEMBERS and STRING_MEMBERS.")
+    if set(table) != {"array", "string", "number"}:
+        print(f"{TABLE.relative_to(ROOT)}: could not find ARRAY_MEMBERS, STRING_MEMBERS and NUMBER_MEMBERS.")
         return 1
 
     r = subprocess.run(
@@ -135,7 +136,7 @@ def main() -> int:
             f"the table's header says it was read with TypeScript {header.group(1)}, "
             f"and this is {got['version']}: re-read the lists and update the header."
         )
-    for kind in ("array", "string"):
+    for kind in ("array", "string", "number"):
         want = set(got[kind]) | set(got["object"])
         have = set(table[kind])
         missing = sorted(want - have)
@@ -153,8 +154,9 @@ def main() -> int:
             print("  " + f)
         return 1
     print(
-        f"builtin members OK: {len(table['array'])} array and {len(table['string'])} string "
-        f"members match TypeScript {got['version']} (esnext + dom, with Object's)."
+        f"builtin members OK: {len(table['array'])} array, {len(table['string'])} string and "
+        f"{len(table['number'])} number members match TypeScript {got['version']} "
+        "(esnext + dom, with Object's)."
     )
     return 0
 

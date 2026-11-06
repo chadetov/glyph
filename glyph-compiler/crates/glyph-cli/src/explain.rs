@@ -422,18 +422,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             number })` names a field the payload does not have, in a `match` arm \
             or a JSX `<case>` alike.\n\n\
             Check the field name, or add the field to the type. Only a value whose \
-            type resolves to a concrete record, an array or a string is checked; \
+            type resolves to a concrete record, an array, a string or a number is checked; \
             access on an unknown-typed value, a generic parameter or an interop \
             value is left alone. A record declared in \
             a sibling module counts, under every import spelling, and the message \
             names that record's own type.\n\n\
-            An `Array<T>` and a `string` are checked the same way, directly or \
-            through an alias: each is a JavaScript value whose members \
-            TypeScript's library fixes (`length`, `push`, `map`, `toUpperCase`, \
-            ...), so `xs.lenght` on an `Array<string>` is this error naming \
-            `Array<string>`, listing the members and suggesting `length`. There \
-            is no declaration to add a member to; fix the name, or use the \
-            `std/array` / `std/string` function.",
+            An `Array<T>`, a `string` and a `number` are checked the same way, \
+            directly or through an alias: each is a JavaScript value whose \
+            members TypeScript's library fixes (`length`, `push`, `map`, \
+            `toUpperCase`, `toFixed`, ...), so `xs.lenght` on an `Array<string>` \
+            is this error naming `Array<string>`, listing the members and \
+            suggesting `length`. There is no declaration to add a member to; fix \
+            the name, or use the `std/array`, `std/string` or `std/math` function.",
         "E0211" => "E0211: argument type mismatch\n\n\
             A call argument's type is incompatible with the parameter it is passed \
             to. v1 reports this only when both types are fully known and provably \
@@ -1583,7 +1583,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. Also a member an `Array<T>` or a `string` does not have (`xs.lenght`), checked against the members TypeScript's library gives a JavaScript array or string; the message names the type and the nearest real member",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {

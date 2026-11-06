@@ -1,16 +1,16 @@
 //! The members a built-in JavaScript value has, for the member reads Glyph
 //! checks on them (G288).
 //!
-//! An `Array<T>` emits as a JavaScript array and a `string` as a JavaScript
-//! string, so a member read on one (`xs.length`, `mut xs.push(x)`,
-//! `s.toUpperCase()`) is legal exactly when TypeScript's library declares the
-//! member. Nothing in Glyph declares these types, so before this table a
+//! An `Array<T>` emits as a JavaScript array, a `string` as a JavaScript
+//! string and a `number` as a JavaScript number, so a member read on one
+//! (`xs.length`, `mut xs.push(x)`, `s.toUpperCase()`, `n.toFixed(2)`) is legal
+//! exactly when TypeScript's library declares the member. Nothing in Glyph declares these types, so before this table a
 //! misspelled member (`xs.lenght`) was checked by `tsc` alone: `glyph check
 //! --no-tsc` passed it and the editor showed nothing, where the same typo on a
 //! record is E0210 with the record's fields listed.
 //!
 //! The lists are the property names of TypeScript's apparent type for
-//! `string[]` and `string` under `lib: ["esnext", "dom"]`, plus the members
+//! `string[]`, `string` and `number` under `lib: ["esnext", "dom"]`, plus the members
 //! every object inherits from `Object` (`hasOwnProperty`, `constructor`, ...),
 //! which `tsc` also accepts on both. Read with TypeScript 6.0.3's checker API
 //! (`getPropertiesOfType(getApparentType(t))`), not written from memory.
@@ -31,6 +31,11 @@ pub enum BuiltinReceiver {
     /// `string`, a string-literal union, or a refinement of `string`, all
     /// emitted as a JavaScript string.
     String,
+    /// `number`, and `int` and `bigint`, which the checker holds as a
+    /// `number`. A `bigint`'s members (`toString`, `toLocaleString`,
+    /// `valueOf`) are a subset of a number's, so no member a `bigint` has is
+    /// refused; a number-only member on one is left to `tsc`.
+    Number,
 }
 
 impl BuiltinReceiver {
@@ -40,6 +45,7 @@ impl BuiltinReceiver {
         match self {
             BuiltinReceiver::Array => ARRAY_MEMBERS,
             BuiltinReceiver::String => STRING_MEMBERS,
+            BuiltinReceiver::Number => NUMBER_MEMBERS,
         }
     }
 
@@ -53,6 +59,7 @@ impl BuiltinReceiver {
         match self {
             BuiltinReceiver::Array => "a JavaScript array",
             BuiltinReceiver::String => "a JavaScript string",
+            BuiltinReceiver::Number => "a JavaScript number",
         }
     }
 
@@ -61,6 +68,7 @@ impl BuiltinReceiver {
         match self {
             BuiltinReceiver::Array => "std/array",
             BuiltinReceiver::String => "std/string",
+            BuiltinReceiver::Number => "std/math",
         }
     }
 }
@@ -173,6 +181,20 @@ const STRING_MEMBERS: &[&str] = &[
     "valueOf",
 ];
 
+/// `number`'s members: `Number.prototype` under `esnext`, plus `Object`'s.
+const NUMBER_MEMBERS: &[&str] = &[
+    "constructor",
+    "hasOwnProperty",
+    "isPrototypeOf",
+    "propertyIsEnumerable",
+    "toExponential",
+    "toFixed",
+    "toLocaleString",
+    "toPrecision",
+    "toString",
+    "valueOf",
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -181,7 +203,7 @@ mod tests {
     /// a member that is there: a false E0210 on correct code.
     #[test]
     fn member_lists_are_sorted_and_unique() {
-        for r in [BuiltinReceiver::Array, BuiltinReceiver::String] {
+        for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number] {
             let m = r.members();
             assert!(m.windows(2).all(|w| w[0] < w[1]), "{r:?} is not sorted and unique");
         }
@@ -195,6 +217,10 @@ mod tests {
         for name in ["length", "toUpperCase", "split", "replaceAll", "trim", "valueOf"] {
             assert!(BuiltinReceiver::String.has(name), "{name}");
         }
+        for name in ["toFixed", "toPrecision", "toString", "valueOf"] {
+            assert!(BuiltinReceiver::Number.has(name), "{name}");
+        }
+        assert!(!BuiltinReceiver::Number.has("length"));
         assert!(!BuiltinReceiver::Array.has("lenght"));
         assert!(!BuiltinReceiver::String.has("toUppercase"));
     }

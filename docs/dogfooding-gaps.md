@@ -10852,6 +10852,15 @@ and is the owner's to confirm.
   (TS2551), so a build that ran `tsc` was already red; what changes is that
   `--no-tsc`, the editor and the MCP tools now see it.
 
+  Extended in 0.1.131 to `number`: `pub fn f(n: number) -> string { return
+  n.toFixd(2) }` was `glyph check: 1 module(s) checked, no diagnostics.` under
+  `--no-tsc` on 0.1.130, and is ``[E0210] type `number` has no field `toFixd`;
+  did you mean `toFixed`?`` now. The list is `Number.prototype` with `Object`'s,
+  ten names, and `check_builtin_members.py` reads it from TypeScript beside the
+  other two. `int` and `bigint` are a `number` to the checker and get the same
+  list; a `bigint`'s three members are among a number's ten, so nothing a
+  `bigint` has is refused, and the message names it `number`.
+
 - **G289. [FIXED] A `let` annotation that disagrees with `json.parse`'s result is
   left to `tsc`.** `let user: User = json.parse(body)` passes `glyph check
   --no-tsc`; `json.parse` returns a `Result`, and only `tsc` objects

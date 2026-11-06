@@ -410,8 +410,8 @@ pub enum TypeError {
     /// parameter, a namespace, an interop value) is left unchecked, so the
     /// check never produces a false positive.
     ///
-    /// A built-in receiver is checked the same way (G288): an `Array<T>` or a
-    /// `string` has the fixed member set TypeScript's library gives it, and
+    /// A built-in receiver is checked the same way (G288): an `Array<T>`, a
+    /// `string` or a `number` has the fixed member set TypeScript's library gives it, and
     /// `xs.lenght` is this error naming `Array<string>`, with every member in
     /// `fields` and the nearest one in `suggestion`.
     #[error("type `{type_name}` has no field `{field}`{}", .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]

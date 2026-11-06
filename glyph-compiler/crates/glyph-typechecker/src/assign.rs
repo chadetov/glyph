@@ -2032,8 +2032,8 @@ impl Assigner<'_> {
                         });
                         Ty::Unknown
                     }
-                    // A built-in receiver (G288). An `Array<T>` or a `string` is
-                    // a JavaScript value whose member set the TypeScript library
+                    // A built-in receiver (G288). An `Array<T>`, a `string` or a
+                    // `number` is a JavaScript value whose member set the TypeScript library
                     // fixes, so a name outside it is the same mistake as a field
                     // a record does not declare, and gets the same code. A
                     // member that is there stays `Unknown`, as every member read
@@ -5361,8 +5361,8 @@ impl Assigner<'_> {
     }
 
     /// The built-in receiver `ty` is, when its member reads can be checked
-    /// against a fixed set (G288): an `Array<T>`, a `string`, or a
-    /// string-literal union, written directly or reached through aliases in
+    /// against a fixed set (G288): an `Array<T>`, a `string`, a string-literal
+    /// union or a `number`, written directly or reached through aliases in
     /// this module or a sibling, generic ones included (`type Rows =
     /// Array<Row>`, `type Name = string where value.length > 0`, `type Box<T>
     /// = Array<T>`).
@@ -5384,6 +5384,7 @@ impl Assigner<'_> {
                 Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => {
                     return Some(BuiltinReceiver::String)
                 }
+                Ty::Prim(Primitive::Number) => return Some(BuiltinReceiver::Number),
                 Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
                 Ty::App { base, args } => self.alias_body(base, args)?,
                 _ => return None,
@@ -9714,6 +9715,40 @@ fn c(x: Shaped) -> number { return x.lenght }
 type Unknownish = extern_ts("any")
 "#;
         assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    /// A `number` is a JavaScript number, whose members TypeScript's library
+    /// fixes the same way, so `n.toFixd(2)` is E0210 naming `number` and
+    /// pointing at `toFixed`, where it was left to `tsc`.
+    #[test]
+    fn a_member_typo_on_a_number_is_e0210_naming_number() {
+        let src = "module m\npub fn f(n: number) -> string {\n  return n.toFixd(2)\n}\n";
+        let (field, type_name, fields, builtin, suggestion, e) = the_member_error(src);
+        assert_eq!((field.as_str(), type_name.as_str()), ("toFixd", "number"));
+        assert_eq!(builtin, Some(BuiltinReceiver::Number));
+        assert_eq!(suggestion.as_deref(), Some("toFixed"));
+        assert!(fields.iter().any(|f| f == "toPrecision"), "{fields:?}");
+        let help = e.help().expect("help").into_owned();
+        assert!(help.contains("JavaScript number") && help.contains("std/math"), "{help}");
+    }
+
+    /// Every member a JavaScript number has stays legal, on `number` and on
+    /// `int`, which the checker holds as a `number` and which emits as one.
+    #[test]
+    fn real_members_of_numbers_stay_legal() {
+        let src = r#"module m
+pub fn f(n: number, i: int) -> string {
+  let a = n.toFixed(2)
+  let b = n.toPrecision(3)
+  let c = n.toExponential(1)
+  let d = i.toString()
+  let e = n.toLocaleString()
+  let own = n.hasOwnProperty("x")
+  return a
+}
+"#;
+        let errs: Vec<_> = ty_errors_of(src);
+        assert!(errs.is_empty(), "{errs:?}");
     }
 
     /// A `<case Loaded(items)>` binding is the payload's `Array<string>`

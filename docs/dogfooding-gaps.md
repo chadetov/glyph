@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-301 entries, 264 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-17 are open. G144, the D28 boundary cast that never reached the returns a
+301 entries, 265 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+16 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11109,7 +11109,7 @@ and is the owner's to confirm.
   runtime it describes is TypeScript the checker never reads, so closing it
   is either more hand-written rows or a decision to derive the table from the
   runtime's declarations.
-- **G299. A `tsc` diagnostic in `--json` has `help: null`.** The terminal
+- **G299. [FIXED] A `tsc` diagnostic in `--json` has `help: null`.** The terminal
   render of a mapped `tsc` error carries a help line (``TypeScript's checker
   rejected the code this expression compiles to...``); the same diagnostic
   under `glyph check --json` has `"help": null`, so an agent reading the JSON
@@ -11117,6 +11117,21 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): TS2345 from `join(dir, "logs", 7)` has `help` `None` in
   the JSON.*
+
+  *Re-run against 0.1.130 (the dev-0.1.131 build before the fix): `import
+  path { join }` then `return join(dir, "logs", 7)` prints the TS2345 with
+  ``Help: TypeScript's checker rejected the code this expression compiles
+  to...`` in the terminal, and `glyph check --json` has no `help` key on the
+  same diagnostic.*
+
+  Fixed in 0.1.131: a mapped `tsc` diagnostic in `--json` carries the help the
+  terminal prints, picked by one function (`render::tsc_help`) that both
+  renderers call, so the expression and statement cases cannot drift apart.
+  The same program's JSON is now `"help": "TypeScript's checker rejected the
+  code this expression compiles to. The caret is on the Glyph expression that
+  produced it."`. A `tsc` error that maps onto no Glyph source is printed raw
+  in the terminal with no help, and still has none in the JSON. Not breaking:
+  the exit code is unchanged and a field that was absent is now present.
 - **G300. [FIXED] A field named with a keyword can be declared and not read.**
   `type Event = { type: string }` is accepted, and `e.type` is ``[E0002]
   `type` is a reserved word in Glyph and cannot be written as a name here``.

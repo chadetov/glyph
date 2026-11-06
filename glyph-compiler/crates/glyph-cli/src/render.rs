@@ -132,6 +132,18 @@ pub const TSC_HELP_EXACT: &str = "TypeScript's checker rejected the code this ex
 /// `match` lowers to), so the caret covers the statement that code came from.
 pub const TSC_HELP_STATEMENT: &str = "TypeScript's checker rejected code the compiler generated for this statement, so the caret covers the whole statement. The position inside it is in the generated `.ts` in the build output.";
 
+/// The help a mapped `tsc` error carries, by whether its position landed inside
+/// one of the author's expressions. One function, read by the terminal render
+/// and by the `--json` diagnostic, so the two surfaces cannot tell a person and
+/// an agent different things about one error (G299).
+pub fn tsc_help(exact: bool) -> &'static str {
+    if exact {
+        TSC_HELP_EXACT
+    } else {
+        TSC_HELP_STATEMENT
+    }
+}
+
 /// Render an external (`tsc`) diagnostic remapped onto Glyph source: `span` is
 /// the originating Glyph span, `exact` whether it is the expression `tsc`
 /// pointed into (otherwise the enclosing statement), `code` the `tsc` code
@@ -155,7 +167,7 @@ pub fn render_tsc_error(
         "tsc",
         message,
         code,
-        Some(if exact { TSC_HELP_EXACT } else { TSC_HELP_STATEMENT }),
+        Some(tsc_help(exact)),
         note,
         with_color,
         Severity::Error,

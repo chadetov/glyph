@@ -195,7 +195,9 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                     "error",
                     "tsc",
                     err.message.to_string(),
-                    None,
+                    // The help the terminal prints under the same error, so
+                    // the JSON is not the poorer of the two (G299).
+                    Some(crate::render::tsc_help(at.exact)),
                     is_narrowing_note(err.code, &m.glyph_source, at.statement),
                     entity,
                 ))
@@ -393,6 +395,51 @@ mod tests {
         let out = remap_tsc_output(raw, std::slice::from_ref(&m), false);
         assert!(out.contains("main:1:3"), "the statement: {out}");
         assert!(out.contains(crate::render::TSC_HELP_STATEMENT), "{out}");
+    }
+
+    /// G299. The `--json` diagnostic for a mapped `tsc` error carries the help
+    /// line the terminal prints for the same error, on both kinds of position,
+    /// so an agent reading the JSON is told what a person reading the terminal
+    /// is told.
+    #[test]
+    fn the_json_help_is_the_terminal_help() {
+        let ts = "let full = join(\"a\", 42);\n";
+        let glyph = "  let full = join(\n    \"a\",\n    42,\n  )\n";
+        let stmt_span = span(2, glyph.len() as u32 - 1);
+        let arg_start = glyph.find("42").unwrap() as u32;
+        let arg_span = span(arg_start, arg_start + 2);
+        let m = ModuleMap {
+            ts_rel: "main.ts".to_string(),
+            glyph_path: "main".to_string(),
+            glyph_source: glyph.to_string(),
+            ts_source: ts.to_string(),
+            source_map: vec![
+                stmt(0, ts.len(), stmt_span),
+                range(21, 23, arg_span, MappedKind::Expr),
+            ],
+        };
+        for (raw, expected) in [
+            (
+                "out/main.ts(1,22): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.\n",
+                crate::render::TSC_HELP_EXACT,
+            ),
+            (
+                "out/main.ts(1,25): error TS1005: ';' expected.\n",
+                crate::render::TSC_HELP_STATEMENT,
+            ),
+        ] {
+            let terminal = remap_tsc_output(raw, std::slice::from_ref(&m), false);
+            let json = remap_tsc_to_diagnostics(raw, std::slice::from_ref(&m));
+            assert_eq!(json.len(), 1, "{json:?}");
+            let help = json[0].help.as_deref().expect("the JSON carries a help");
+            assert_eq!(help, expected);
+            assert!(terminal.contains(help), "the terminal prints the same help: {terminal}");
+        }
+        // An error that maps onto no Glyph source is printed raw in the
+        // terminal, with no help, and the JSON says the same.
+        let raw = "out/other.ts(1,1): error TS2304: Cannot find name 'x'.\n";
+        let json = remap_tsc_to_diagnostics(raw, std::slice::from_ref(&m));
+        assert_eq!(json[0].help, None);
     }
 
     #[test]

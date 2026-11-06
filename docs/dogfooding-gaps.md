@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-301 entries, 262 are fixed, 7 are partly fixed, 11 are decided or resolved, and
-21 are open. G144, the D28 boundary cast that never reached the returns a
+301 entries, 262 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+19 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11005,14 +11005,33 @@ and is the owner's to confirm.
   other, `p.titel` on a `p: Page` passes the checker, and `Page.parse` is
   still TS2693. Whether D46 covers a qualified name is a decision, not part of
   this fix.
-- **G297. `json.parse<T>` is never refused for a `T` it cannot validate.**
+- **G297. [HALF FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
   `json.parse<Doc>(body)` where `Doc` has an `extern_ts` field passes `glyph
   check` with `tsc`, while `Doc.parse(v)` on the same record is E0304. The
   namespace form is documented as validating against `T.schema`, so it returns
   `Ok` on a body nothing checked, which is what E0304 exists to refuse.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` and `tsc --strict passed.`*
-- **G298. `json.parse_with` is not in the checker's stdlib table.**
+
+  *Re-run against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`): `glyph
+  check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, exit 0, for
+  `json.parse<Doc>`, `json.parse<Array<Doc>>`, `j.parse<Doc>` under `import
+  std/json as j`, and `json.parse_with(body, Doc.schema)`.*
+
+  Half fixed in 0.1.131: `json.parse<T>` lowers to `json.parse_with(text,
+  T.schema)`, so it is judged as a use of `T`'s descriptor, and so is
+  `T.schema` written out. The program above is ``[E0304] cannot validate
+  `Doc`: field `h` has type `Handle`, which has no runtime check``, exit 1,
+  pointed at the type argument; `Array<Doc>`, an imported `Doc` (by name or
+  through a namespace) and `Doc.schema` handed to `json.parse_with` are
+  refused the same way. Fixing it turned up a namespace spelling that
+  validated nothing at all: `json.parse<w.Fine>` with `import w` fell to the
+  casting `parse<T>`, where `json.parse<Fine>` through `import w { Fine }`
+  validated. It now lowers to `json.parse_with(body, w.Fine.schema)`.
+  Breaking: each refused program passes 0.1.130 under `--no-tsc`, exit 0. Still
+  open: `import std/json { parse }` then `parse<Doc>(body)` is never rewritten,
+  so it casts without validating any record, verifiable or not.
+- **G298. [HALF FIXED] `json.parse_with` is not in the checker's stdlib table.**
   `let u: User = json.parse_with(body, s)` with `s: Schema<User>` passes
   `glyph check --no-tsc`; `tsc` refuses it (TS2322: ``Type 'Result<User,
   Issue[]>' is not assignable to type 'User'``). G289 added `json.parse` and
@@ -11020,6 +11039,24 @@ and is the owner's to confirm.
   call to one has no type the checker can compare.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+
+  *Re-run against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`): `glyph
+  check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, exit 0.*
+
+  Half fixed in 0.1.131, for `json.parse_with`: the row is `fn(string, Schema<T>)
+  -> Result<T, Array<Issue>>`, `T` bound by a written type argument first,
+  then by the schema's type, and left undecided when the schema's type is one
+  the checker does not hold (`User.schema` is one). The program above is
+  ``[E0204] type mismatch: expected `User`, found `Result<User,
+  Array<Issue>>` ``, exit 1, and a misspelled field on the `Ok` binding of a
+  typed schema is E0210. The rest of the claim is not closed: `glyph llms
+  --json` counts 165 stdlib exports with no signature (126 of them values,
+  across 24 modules, `std/net`, `std/crypto`, `std/websocket` and `std/bytes`
+  the largest), each `Unknown` at every call site the way `parse_with` was.
+  The table is written by hand in `glyph-typechecker/src/stdlib.rs` and the
+  runtime it describes is TypeScript the checker never reads, so closing it
+  is either more hand-written rows or a decision to derive the table from the
+  runtime's declarations.
 - **G299. A `tsc` diagnostic in `--json` has `help: null`.** The terminal
   render of a mapped `tsc` error carries a help line (``TypeScript's checker
   rejected the code this expression compiles to...``); the same diagnostic

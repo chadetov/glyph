@@ -2228,29 +2228,30 @@ component C() -> Component {
         }
     }
 
-    /// The reference positions (a type path segment, an imported item, a
-    /// type name) name the keyword too, but do not tell the author to rename
-    /// a thing whose spelling another module or package chose. A member read
-    /// after `.` is not one of them any more (G300).
+    /// The reference positions (a type name, the head of a type path) name
+    /// the keyword too, but do not tell the author to rename a thing whose
+    /// spelling another module or package chose. A member read after `.` is
+    /// not one of them any more (G300), and neither is a type path segment
+    /// after a dot. An imported item has its own help (below).
     #[test]
     fn a_reserved_word_in_a_reference_position_does_not_suggest_renaming() {
-        for (src, word) in [
-            ("module x\nfn f(e: lib.where) -> number { return 1 }\n", "where"),
-            ("module x\nimport helper { where }\n", "where"),
+        for (src, word, role) in [
             // G301: a keyword where a type goes is named as one, where it was
             // "expected type expression, found Match" with help about
             // trailing commas.
-            ("module x\nfn f(x: match) -> number { return 1 }\n", "match"),
-            ("module x\nfn f() -> where { return 1 }\n", "where"),
-            ("module x\ntype A = { a: loop }\n", "loop"),
-            ("module x\nfn f(x: Array<is>) -> number { return 1 }\n", "is"),
+            ("module x\nfn f(x: match) -> number { return 1 }\n", "match", NameRole::Refers),
+            ("module x\nfn f() -> where { return 1 }\n", "where", NameRole::Refers),
+            ("module x\ntype A = { a: loop }\n", "loop", NameRole::Refers),
+            ("module x\nfn f(x: Array<is>) -> number { return 1 }\n", "is", NameRole::Refers),
+            // The head of a type path is not after a dot.
+            ("module x\nfn f(e: type.Kind) -> number { return 1 }\n", "type", NameRole::Refers),
         ] {
             let err = parse(src).expect_err(src);
             assert_eq!(err.code(), "E0002", "{src}");
-            let ParseError::ReservedWordAsName { word: got, role, .. } = &err else {
+            let ParseError::ReservedWordAsName { word: got, role: got_role, .. } = &err else {
                 panic!("{src}: expected ReservedWordAsName, got {err:?}");
             };
-            assert_eq!((*got, *role), (word, NameRole::Refers), "{src}");
+            assert_eq!((*got, *got_role), (word, role), "{src}");
             let help = err.help().expect("help").into_owned();
             assert!(!help.contains(&format!("`{word}_`")), "{src}: {help}");
         }
@@ -2304,6 +2305,60 @@ component C() -> Component {
         // The head of a path is not after a dot, and a keyword there is
         // still not a name.
         assert!(parse("module x\nfn f() -> unknown {\n  return where.x\n}\n").is_err());
+    }
+
+    /// A type path segment after a dot may be a keyword, as a member read
+    /// after a dot already may (G300): `pkg.type` is a type as it is a value.
+    /// TypeScript's qualified names accept a reserved word on the right of a
+    /// dot too. The head of the path is not after a dot and stays refused.
+    #[test]
+    fn a_keyword_after_a_dot_in_a_type_path_is_a_segment() {
+        use glyph_ast::{Decl, TypeExpr};
+        for word in glyph_lexer::keywords() {
+            for (ty, want) in [
+                (format!("lib.{word}"), vec!["lib".to_string(), word.to_string()]),
+                (format!("lib.{word}.{word}"), vec!["lib".to_string(), word.to_string(), word.to_string()]),
+                (format!("lib.{word}<number>"), vec!["lib".to_string(), word.to_string()]),
+            ] {
+                let src = format!("module x\ntype A = {ty}\n");
+                let m = parse(&src).unwrap_or_else(|err| panic!("`{ty}` must parse as a type: {err:?}"));
+                let Decl::Type(t) = &m.items[0] else { panic!("{ty}: not a type alias") };
+                let path = match &t.body {
+                    TypeExpr::Path { segments, .. } => segments,
+                    TypeExpr::Generic { base, .. } => match base.as_ref() {
+                        TypeExpr::Path { segments, .. } => segments,
+                        other => panic!("{ty}: generic base is {other:?}"),
+                    },
+                    other => panic!("{ty}: parsed as {other:?}"),
+                };
+                let got: Vec<String> = path.iter().map(|s| s.to_string()).collect();
+                assert_eq!(got, want, "{ty}");
+            }
+        }
+    }
+
+    /// A keyword as an imported item stays refused: it would bind a name no
+    /// expression can use, and general renaming is closed. The help points at
+    /// the spelling that works, the namespace import read as `pkg.type`, and
+    /// does not claim a type path segment cannot be a keyword.
+    #[test]
+    fn a_keyword_import_item_points_at_the_namespace_form() {
+        let err = parse("module x\nimport kinds { type }\n").expect_err("keyword import item");
+        assert_eq!(err.code(), "E0002");
+        assert!(err.to_string().contains("`type` is a reserved word"), "{err}");
+        let help = err.help().expect("help").into_owned();
+        assert!(!help.contains("`type_`"), "an export's spelling is not the author's to rename: {help}");
+        assert!(help.contains("import the module by namespace"), "{help}");
+        assert!(help.contains("`kinds.type`"), "{help}");
+        assert!(!help.contains("segment of a type path"), "{help}");
+        // A scoped package's namespace is its last path segment.
+        let err = parse("module x\nimport @acme/kinds { match }\n").expect_err("scoped");
+        let help = err.help().expect("help").into_owned();
+        assert!(help.contains("`kinds.match`"), "{help}");
+        // A keyword type name is not told about a segment either.
+        let err = parse("module x\nfn f(x: match) -> number { return 1 }\n").expect_err("type name");
+        let help = err.help().expect("help").into_owned();
+        assert!(!help.contains("segment of a type path"), "{help}");
     }
 
     /// Nothing that was a legal name stops being one: a plain identifier, a

@@ -1575,3 +1575,14 @@ fn a_space_jsx_renders_survives_formatting() {
         assert_eq!(fmt(&out), out, "format of `{body}` is not stable");
     }
 }
+
+/// A keyword may be a type path segment after a dot (`kinds.type`), as it may
+/// be a member after a dot. The formatter writes the segments back as they
+/// were parsed, and the result is a fixed point.
+#[test]
+fn a_keyword_type_path_segment_round_trips() {
+    let src = "module m\n\nimport kinds\n\ntype A = kinds.type\n\ntype B = kinds.match.where<number>\n\nfn f(k: kinds.type) -> Array<kinds.if> {\n  return []\n}\n";
+    let out = fmt(src);
+    assert_eq!(out, src, "a keyword segment is written back as written");
+    assert_eq!(fmt(&out), out, "format is stable");
+}

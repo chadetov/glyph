@@ -162,6 +162,20 @@ pub enum ParseError {
         role: NameRole,
         span: Span,
     },
+
+    /// A reserved word as an imported item: `import kinds { type }`. It
+    /// would bind a name no expression can use, and general renaming is
+    /// closed so a symbol keeps one name in every module. The export is still
+    /// reachable through the namespace import, as `kinds.type` in a value or
+    /// a type, and the help says so. `namespace` is the name that import
+    /// binds, the module path's last segment. E0002, as the other reserved
+    /// word positions.
+    #[error("`{word}` is a reserved word in Glyph and cannot be written as a name here")]
+    ReservedWordAsImportItem {
+        word: &'static str,
+        namespace: std::sync::Arc<str>,
+        span: Span,
+    },
 }
 
 /// Whether a name position introduces a name or refers to one declared
@@ -173,8 +187,8 @@ pub enum NameRole {
     /// `let`, a parameter, a `fn`/`type`/`const`/`component` name, a generic,
     /// a loop binding, a pattern binding, an import alias.
     Declares,
-    /// A type name, a type path segment, the head of a `typeof` path, an
-    /// imported item.
+    /// A type name, the head of a type path or of a `typeof` path, an
+    /// imported item (which reports `ReservedWordAsImportItem` instead).
     Refers,
 }
 
@@ -245,6 +259,7 @@ impl ParseError {
                 *span
             }
             ParseError::ReservedWordAsName { span, .. } => *span,
+            ParseError::ReservedWordAsImportItem { span, .. } => *span,
         }
     }
 
@@ -276,6 +291,7 @@ impl ParseError {
             ParseError::DestructuringLet { .. } => "E0230",
             ParseError::ObjectDestructuringLet { .. } => "E0005",
             ParseError::ReservedWordAsName { .. } => "E0002",
+            ParseError::ReservedWordAsImportItem { .. } => "E0002",
         }
     }
 
@@ -347,7 +363,10 @@ impl ParseError {
                 "Pick another name: `{word}_`, or one that says what the value is. `glyph llms` lists every reserved word under \"Reserved words\"."
             )),
             ParseError::ReservedWordAsName { word, role: NameRole::Refers, .. } => Cow::Owned(format!(
-                "`{word}` is a Glyph keyword, so it cannot name a type, a segment of a type path or an imported item, even when the thing it refers to is spelled `{word}`. A field named `{word}` is still read after a dot (`e.{word}`). `glyph llms` lists every reserved word under \"Reserved words\"."
+                "`{word}` is a Glyph keyword, so it cannot name a type or begin a type path, even when the thing it refers to is spelled `{word}`. After a dot it is a name like any other: a field is read as `e.{word}`, and a module's export as `pkg.{word}` in a value or a type. `glyph llms` lists every reserved word under \"Reserved words\"."
+            )),
+            ParseError::ReservedWordAsImportItem { word, namespace, .. } => Cow::Owned(format!(
+                "`{word}` is a Glyph keyword, so it cannot be an imported item, even when the export is spelled `{word}`. To reach it, import the module by namespace and read it as `{namespace}.{word}`: write `import {namespace}`, then `{namespace}.{word}` works in a value or a type. `glyph llms` lists every reserved word under \"Reserved words\"."
             )),
         })
     }

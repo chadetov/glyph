@@ -530,9 +530,21 @@ fn parse_import(p: &mut Cursor) -> Result<ImportDecl, ParseError> {
             p.expect(&Token::RBrace, "`}` (a default import binds one name)")?;
             ImportKind::Default(local)
         } else {
-            // `import path { Name1, Name2 }`
+            // `import path { Name1, Name2 }`. A keyword is refused here: it
+            // would bind a name no expression can use, and renaming is closed.
+            // The namespace form reads the same export as `pkg.type`, so the
+            // help names it.
             let names = p.parse_comma_separated(&Token::RBrace, true, |p| {
-                Ok(p.expect_ident_ref("imported name")?.0)
+                p.expect_ident_ref("imported name").map(|(name, _)| name).map_err(|err| match err {
+                    ParseError::ReservedWordAsName { word, span, .. } => {
+                        ParseError::ReservedWordAsImportItem {
+                            word,
+                            namespace: path.segments.last().cloned().unwrap_or_else(|| Arc::from("pkg")),
+                            span,
+                        }
+                    }
+                    other => other,
+                })
             })?;
             p.expect(&Token::RBrace, "`}`")?;
             ImportKind::Named(names)

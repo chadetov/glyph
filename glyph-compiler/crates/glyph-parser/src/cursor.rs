@@ -166,8 +166,9 @@ impl<'a> Cursor<'a> {
     }
 
     /// Consume an identifier that refers to a name declared somewhere else: a
-    /// segment of a type path, the head of a `typeof` path, an item named in
-    /// an import list. A member after `.` is not one (`expect_member_name`). A
+    /// type name or the head of a type path, the head of a `typeof` path, an
+    /// item named in an import list. A member or a type path segment after
+    /// `.` is not one (`expect_member_name`). A
     /// reserved word is reported with help that does not tell the author to
     /// rename something they may not own.
     pub fn expect_ident_ref(&mut self, expected: &'static str) -> Result<(std::sync::Arc<str>, Span), ParseError> {

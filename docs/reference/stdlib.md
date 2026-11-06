@@ -303,15 +303,29 @@ get the rest.
 ## std/json
 
 ```
-json.parse<T>(text: string) -> Result<T, Array<Issue>>          // validates a record/union T; see below
+json.parse<T>(text: string) -> Result<T, Array<Issue>>          // checks the value against T; see below
 json.parse_with<T>(text: string, schema: Schema<T>) -> Result<T, Array<Issue>>
 json.stringify(value, options?: { indent: number }) -> string
 json.discriminant(value: unknown, field: string) -> Option<string>  // read a string discriminator property; dispatch a discriminated union
 ```
 
-For a record/union type `T`, the namespace form `json.parse<T>(text)` is
-auto-rewritten to validate against `T.schema`. Use that form (not the
-named-import `parse`) when you want validation rather than a bare cast.
+`json.parse<T>(text)` checks the decoded value against `T` before it returns
+`Ok`, in both import spellings: `import std/json` then `json.parse<T>`, and
+`import std/json { parse }` then `parse<T>`. The two compile to the same check.
+
+- A record or union is checked by its `T.schema`, and an `Array` of one (or an
+  alias of that `Array`, `type Rows = Array<Row>`) by `T.schema.array()`, so a
+  failure reports the field's path (`2.port`).
+- Any other `T` (`number`, `int`, a string-literal union, `Option<User>`,
+  `Nullable<User>`, `Record<string, int>`) gets the check a record field of that
+  type gets. `json.parse<int>("2.5")` is an `Err`.
+- If `T` is a record with a field that has no runtime check (an `extern_ts`
+  type, a host handle), or contains one, the call is E0304, as `T.parse` is.
+
+`json.parse(text)` with no type argument returns `Result<unknown, Array<Issue>>`
+and checks nothing beyond the JSON syntax; `json.parse<unknown>` is the same
+read. A type parameter, an `extern_ts` type or a package type as `T` is not
+checked yet: the value is cast to `T`.
 
 ## std/url
 

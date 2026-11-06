@@ -5,15 +5,22 @@
 // in a host project that never reads the generated tsconfig), so a
 // failure can be matched and surfaced like any other validation error.
 //
-// `parse<T>` decodes and casts (no shape check) — the escape hatch. The
-// validating path is `parse_with`, which runs the decoded value through a
-// `Schema<T>` (a type's auto-generated `T.schema`). The emitter rewrites the
-// namespace form `json.parse<T>(text)` to `json.parse_with(text, <schema>)`
-// when a schema can be derived for `T` — a record/union descriptor (`T.schema`)
-// or an `Array<T>` thereof (`T.schema.array()`). A type with no descriptor (a
-// primitive, an imported type) keeps the casting `parse`. (The named-import
-// form `import std/json { parse }; parse<T>(...)` is not rewritten; use the
-// `json.parse<T>` namespace form to get validation.)
+// `parse_with` is the validating path: it runs the decoded value through a
+// `Schema<T>`. The emitter rewrites `parse<T>(text)` with a written `T` to
+// `parse_with(text, <schema for T>)`, in both import spellings (the
+// namespace form `json.parse<T>` and the named `import std/json { parse }`,
+// which calls it through a hidden aliased import). The schema is `T.schema`
+// for a record or union, `T.schema.array()` for an `Array` of one, and for any
+// other `T` (a primitive, `Option`, `Nullable`, `Record`, a literal union) a
+// schema built from the check a record field of type `T` gets.
+//
+// A record holding a field with no runtime check is refused (E0304).
+//
+// `parse` itself decodes without checking. The emitter leaves it in place for
+// `parse(text)` with no type argument and for `parse<unknown>`, which claim
+// nothing about the value. A `T` the emitter has no check for at all (a type
+// parameter, an `extern_ts` type, a package type) also still reaches it, and
+// is cast.
 
 import { type Result, Ok, Err } from "./result";
 import { type Option, Some, None } from "./option";

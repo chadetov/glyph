@@ -10869,6 +10869,17 @@ and is the owner's to confirm.
   read, a JSX attribute against a props record, and a record pattern in an arm
   or a `<case>`. A name nothing is near (`o.customer`) still gets none.
 
+  The diagnostic JSON tells the two lists apart in 0.1.131. `xs.lenght` carried
+  `"alternatives_kind": "fields"` on 0.1.130, the kind a record's fields have,
+  and carries `"members"` now: a list no declaration holds, so an agent knows
+  there is nothing to add the name to. A record's typo is still `fields`.
+
+  Still open from this entry: a member that exists is typed `Unknown`, so `let
+  a: string = xs.length` passes `--no-tsc` and is left to `tsc`. Typing members
+  by what TypeScript declares is a design choice (which members, and whether
+  methods get function types when Glyph prefers `array.map(xs, f)`), recorded
+  for the 0.1.131 review rather than taken here.
+
 - **G289. [FIXED] A `let` annotation that disagrees with `json.parse`'s result is
   left to `tsc`.** `let user: User = json.parse(body)` passes `glyph check
   --no-tsc`; `json.parse` returns a `Result`, and only `tsc` objects

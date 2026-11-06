@@ -526,7 +526,7 @@ fn accepted_values(d: &Diagnostic, symbols: &[Value]) -> Option<String> {
                 list(&written)
             ))
         }
-        // `fields` and `exports` do not reach an E0204 or an E0211, and a kind
+        // `fields`, `members` and `exports` do not reach an E0204 or an E0211, and a kind
         // this does not know about is not one to write a sentence from.
         _ => None,
     }

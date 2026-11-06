@@ -144,9 +144,11 @@ pub struct Diagnostic {
     /// What kind of thing `alternatives` holds: `"variants"` for a tagged
     /// union's variant names, `"literals"` for a string-literal union's
     /// contents with the quotes stripped, `"fields"` for a record's own
-    /// fields, `"exports"` for a module's export list.
+    /// fields, `"members"` for the members TypeScript's library gives an
+    /// array, a string or a number (no declaration holds them), `"exports"`
+    /// for a module's export list.
     ///
-    /// Four kinds arrived under one key and the wire could not tell them
+    /// The kinds arrived under one key and the wire could not tell them
     /// apart: `["Pending", "Paid"]` and `["read", "write"]` are both lists of
     /// bare names, and a consumer writing one of them has to put quotes round
     /// the second and not round the first. Reading the declared type back
@@ -1140,6 +1142,9 @@ mod tests {
         // the kind is the only thing that says how to write one of its values.
         let inline = "module main\n\nfn f() -> number {\n\
                       \x20 let m: \"read\" | \"write\" = \"rw\"\n  return 0\n}\n";
+        // An array's members are not a record's fields: there is no
+        // declaration to add one to, and the kind says so (G288).
+        let member = "module main\n\nfn f(xs: Array<string>) -> number {\n  return xs.lenght\n}\n";
 
         for (src, code, kind) in [
             (record, "E0210", "fields"),
@@ -1147,6 +1152,7 @@ mod tests {
             (literal, "E0204", "literals"),
             (pattern, "E0220", "variants"),
             (inline, "E0204", "literals"),
+            (member, "E0210", "members"),
         ] {
             let d = diagnostic_of("main", src, code);
             assert!(

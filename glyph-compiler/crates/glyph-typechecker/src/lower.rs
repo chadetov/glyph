@@ -554,6 +554,7 @@ impl ExportLowerer<'_> {
             name: td.name.clone(),
             generics: td.generics.iter().map(|g| g.name.clone()).collect(),
             body: self.0.lower(&td.body),
+            open: glyph_ast::is_open_record(&td.annotations),
         }
     }
 

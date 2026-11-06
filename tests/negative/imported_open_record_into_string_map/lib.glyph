@@ -1,0 +1,6 @@
+module lib
+
+// `@open` lets `Meta`'s validator admit keys beyond `id`, holding values no
+// validator checked.
+@open
+pub type Meta = { id: string, }

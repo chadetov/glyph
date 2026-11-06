@@ -1,0 +1,10 @@
+module main
+import lib { Meta }
+
+// G293. An `@open` record where a `Record<string, V>` map is declared is
+// refused unless `V` is `unknown`, across a module boundary as within one:
+// every declared field is a `string`, but the keys `@open` admits beyond
+// them are not checked against anything.
+pub fn labels(meta: Meta) -> Record<string, string> {
+  return meta
+}

@@ -156,6 +156,11 @@ pub struct ImportedTypeDecl {
     pub name: Ident,
     pub generics: Vec<Ident>,
     pub body: Ty,
+    /// Whether the declaration carries `@open` (D27), so its record
+    /// validator admits keys beyond the declared fields. A consumer reads it
+    /// where that matters to the relation: an `@open` record where a
+    /// `Record<string, V>` map is declared holds values no validator checked.
+    pub open: bool,
 }
 
 /// Which declaration a union's variant set came from: the module it is
@@ -417,6 +422,7 @@ pub fn builtin_string_literal_union_decl(module: &str, name: &str) -> Option<Imp
         name: Ident::from(*decl_name),
         generics: Vec::new(),
         body: Ty::StringLiteralUnion(values.iter().map(|v| v.to_string()).collect()),
+        open: false,
     })
 }
 

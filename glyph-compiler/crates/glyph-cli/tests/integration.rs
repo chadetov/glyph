@@ -7966,6 +7966,62 @@ fn match_over_a_stdlib_literal_union_is_checked_without_an_else() {
 }
 
 #[test]
+fn a_literal_arm_outside_a_union_is_refused_under_every_spelling() {
+    // G305. An arm for a literal the union does not hold can never run, and
+    // `tsc` says so (TS2678); through 0.1.131 Glyph's checker passed it. The
+    // stdlib's own union, and a sibling's union under a named import, a
+    // namespace import and an aliased one, are each refused here with E0220.
+    let stdlib = unique_tmp("g305std");
+    write_file(
+        &stdlib,
+        "main.glyph",
+        "module main\nimport std/http\n\n\
+         pub fn describe(p: http.RedirectPolicy) -> string {\n\
+         \x20 return match p {\n\
+         \x20\x20\x20 \"follow\" => \"f\",\n\
+         \x20\x20\x20 \"manual\" => \"m\",\n\
+         \x20\x20\x20 \"error\" => \"e\",\n\
+         \x20\x20\x20 \"folow\" => \"x\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let (code, stdout, stderr) = glyph_at(&stdlib, &["check", "--no-tsc", "main.glyph"]);
+    let out = format!("{stdout}\n{stderr}");
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("[E0220]"), "{out}");
+    assert!(out.contains("did you mean `\"follow\"`?"), "{out}");
+
+    for (tag, import, ty) in [
+        ("named", "import modes { Mode }", "Mode"),
+        ("namespace", "import modes", "modes.Mode"),
+        ("alias", "import modes as md", "md.Mode"),
+    ] {
+        let root = unique_tmp(&format!("g305{tag}"));
+        write_file(&root, "package.json", "{\"name\":\"x\",\"private\":true,\"glyph\":{}}\n");
+        write_file(&root, "modes.glyph", "module modes\n\npub type Mode = \"manual\" | \"auto\"\n");
+        write_file(
+            &root,
+            "main.glyph",
+            &format!(
+                "module main\n{import}\n\n\
+                 pub fn label(m: {ty}) -> string {{\n\
+                 \x20 return match m {{\n\
+                 \x20\x20\x20 \"manual\" => \"M\",\n\
+                 \x20\x20\x20 \"auto\" => \"A\",\n\
+                 \x20\x20\x20 \"manuel\" => \"X\",\n\
+                 \x20 }}\n\
+                 }}\n"
+            ),
+        );
+        let (code, stdout, stderr) = glyph_at(&root, &["check", "--no-tsc", "main.glyph"]);
+        let out = format!("{stdout}\n{stderr}");
+        assert_eq!(code, 1, "{tag}: {out}");
+        assert!(out.contains("[E0220]"), "{tag}: {out}");
+        assert!(out.contains("`\"manuel\"` is not a value of `Mode`"), "{tag}: {out}");
+    }
+}
+
+#[test]
 fn match_over_a_visible_imported_type_is_still_checked_against_it() {
     // The other side of G291: with `catalog.glyph` in the build the same
     // program is clean, and dropping a literal is E0200, never E0232.

@@ -621,6 +621,34 @@ pub fn project_file_diagnostics(
     module_path: &str,
     tables: &ProjectTables,
 ) -> Vec<Diagnostic> {
+    project_file_diagnostics_through(db, file, module_path, tables, Stages::All)
+}
+
+/// How far down the pipeline [`project_file_diagnostics_through`] goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stages {
+    /// Parse, symbols, imports, resolution, types and the lint tier: every
+    /// stage before the emitter.
+    FrontEnd,
+    /// The front end and then the emitter: `glyph check`'s list without `tsc`.
+    All,
+}
+
+/// [`project_file_diagnostics`], stopped before the emitter when `stages` is
+/// [`Stages::FrontEnd`].
+///
+/// One function with a stopping point rather than a second assembly, so the
+/// front-end list is by construction a prefix of the full one: the emitter is
+/// the last stage and only ever appends. The language server publishes the
+/// front end on every keystroke and the full list once typing pauses (G295),
+/// and the two cannot disagree about anything but the emitter's refusals.
+pub fn project_file_diagnostics_through(
+    db: &dyn Db,
+    file: SourceFile,
+    module_path: &str,
+    tables: &ProjectTables,
+    stages: Stages,
+) -> Vec<Diagnostic> {
     let source = file.source_text(db).clone();
     let mut out = Vec::new();
 
@@ -677,6 +705,10 @@ pub fn project_file_diagnostics(
         glyph_resolver::no_export_surface_lint(ast, tables.is_imported_anywhere(module_path))
     {
         out.push(from_resolve_error(module_path, &source, &e, ast));
+    }
+
+    if stages == Stages::FrontEnd {
+        return out;
     }
 
     // The emitter refuses some programs the checker accepts (a `?` in a

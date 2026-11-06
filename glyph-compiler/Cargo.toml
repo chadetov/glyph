@@ -54,7 +54,7 @@ proptest = "1"
 tower-lsp = "0.20"
 
 # Async runtime for the LSP and `glyph run` subprocess.
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process", "io-std"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process", "io-std", "time"] }
 
 # CLI parsing (glyph-cli only).
 clap = { version = "4", features = ["derive"] }

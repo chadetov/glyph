@@ -115,26 +115,82 @@ impl Lsp {
     }
 }
 
+/// One `publishDiagnostics`: the version it carried and the diagnostics.
+type Publish = (Option<i64>, Vec<Value>);
+
+/// How long the server has to stay silent before a test takes the last
+/// publish as final. Several times the server's 300 ms emitter debounce, so a
+/// pending emitter run has landed by then even on a loaded machine.
+const QUIET: Duration = Duration::from_secs(3);
+
+/// A `publishDiagnostics` for `want`, or `None` for any other message.
+fn as_publish(message: &Value, want: &str) -> Option<Publish> {
+    (message.get("method") == Some(&json!("textDocument/publishDiagnostics"))
+        && message["params"]["uri"] == json!(want))
+    .then(|| {
+        (
+            message["params"]["version"].as_i64(),
+            message["params"]["diagnostics"].as_array().cloned().unwrap_or_default(),
+        )
+    })
+}
+
 impl Lsp {
     /// The next `publishDiagnostics` for `file`, skipping everything else the
     /// server sends.
-    fn diagnostics_for(&mut self, file: &Path) -> Vec<Value> {
+    fn next_publish(&mut self, file: &Path) -> Publish {
         let want = uri(file);
         loop {
             let message = self
                 .inbox
                 .recv_timeout(Duration::from_secs(180))
                 .unwrap_or_else(|_| panic!("no diagnostics published for {want}"));
-            if message.get("method") == Some(&json!("textDocument/publishDiagnostics"))
-                && message["params"]["uri"] == json!(want)
-            {
-                return message["params"]["diagnostics"]
-                    .as_array()
-                    .cloned()
-                    .unwrap_or_default();
+            if let Some(p) = as_publish(&message, &want) {
+                return p;
             }
         }
     }
+
+    /// The diagnostics of the next publish for `file`.
+    fn diagnostics_for(&mut self, file: &Path) -> Vec<Value> {
+        self.next_publish(file).1
+    }
+
+    /// Every publish for `file` until the server has been silent for
+    /// [`QUIET`], in arrival order. At least one is required.
+    fn publishes_until_quiet(&mut self, file: &Path) -> Vec<Publish> {
+        let want = uri(file);
+        let mut out = vec![self.next_publish(file)];
+        while let Ok(message) = self.inbox.recv_timeout(QUIET) {
+            if let Some(p) = as_publish(&message, &want) {
+                out.push(p);
+            }
+        }
+        out
+    }
+
+    /// Replace `file`'s buffer with `text` at `version`, as a keystroke does.
+    fn change(&mut self, file: &Path, version: i64, text: &str) {
+        self.notify(
+            "textDocument/didChange",
+            json!({
+                "textDocument": { "uri": uri(file), "version": version },
+                "contentChanges": [{ "text": text }],
+            }),
+        );
+    }
+
+    fn save(&mut self, file: &Path) {
+        self.notify("textDocument/didSave", json!({ "textDocument": { "uri": uri(file) } }));
+    }
+}
+
+/// The codes in one publish's diagnostics.
+fn codes_of(diagnostics: &[Value]) -> Vec<String> {
+    diagnostics
+        .iter()
+        .map(|d| d["code"].as_str().unwrap_or_default().to_string())
+        .collect()
 }
 
 impl Drop for Lsp {
@@ -356,30 +412,148 @@ fn the_editor_publishes_the_emitters_errors() {
             "the fixture no longer draws {code} from `glyph check`: {from_cli:?}"
         );
 
+        let as_cli = |published: &[Value]| -> Vec<(String, String, u64, u64)> {
+            published
+                .iter()
+                .map(|d| {
+                    let severity = match d["severity"].as_u64() {
+                        Some(1) => "error",
+                        Some(2) => "warning",
+                        _ => "other",
+                    };
+                    (
+                        d["code"].as_str().unwrap_or_default().to_string(),
+                        severity.to_string(),
+                        d["range"]["start"]["line"].as_u64().unwrap_or(0),
+                        d["range"]["start"]["character"].as_u64().unwrap_or(0),
+                    )
+                })
+                .collect()
+        };
+
+        // An open publishes the whole list at once: the first publish is it.
         let mut lsp = Lsp::start(&dir);
         lsp.open(&main_path);
         let published = lsp.diagnostics_for(&main_path);
-        let from_editor: Vec<(String, String, u64, u64)> = published
-            .iter()
-            .map(|d| {
-                let severity = match d["severity"].as_u64() {
-                    Some(1) => "error",
-                    Some(2) => "warning",
-                    _ => "other",
-                };
-                (
-                    d["code"].as_str().unwrap_or_default().to_string(),
-                    severity.to_string(),
-                    d["range"]["start"]["line"].as_u64().unwrap_or(0),
-                    d["range"]["start"]["character"].as_u64().unwrap_or(0),
-                )
-            })
-            .collect();
         assert_eq!(
-            from_editor, from_cli,
-            "{code}: the editor and `glyph check` disagree about main.glyph: {published:?}"
+            as_cli(&published),
+            from_cli,
+            "{code}: on open, the editor and `glyph check` disagree about main.glyph: {published:?}"
+        );
+
+        // A keystroke publishes the front end at once, without the emitter's
+        // refusal, and the whole list once typing pauses. A trailing newline
+        // moves no position.
+        lsp.change(&main_path, 2, &format!("{main}\n"));
+        let after = lsp.publishes_until_quiet(&main_path);
+        let (first_version, first) = &after[0];
+        assert_eq!(*first_version, Some(2), "{code}: {after:?}");
+        assert!(
+            !codes_of(first).iter().any(|c| c == code),
+            "{code}: the keystroke's first publish ran the emitter: {first:?}"
+        );
+        let (last_version, last) = after.last().expect("a publish");
+        assert_eq!(*last_version, Some(2), "{code}: {after:?}");
+        assert_eq!(
+            as_cli(last),
+            from_cli,
+            "{code}: once typing pauses, the editor and `glyph check` disagree: {after:?}"
         );
         drop(lsp);
         let _ = std::fs::remove_dir_all(&dir);
     }
+}
+
+/// A clean module, the same module with a `?` in the arm of a `match` nested
+/// in a call (E0302, which only the emitter reports), and a clean edit of it.
+const CLEAN_PICK: &str = "module main\npub type Id =\n  | None\n  | Some(number)\n\n\
+    fn f(b: string) -> Result<string, string> {\n  return Ok(b)\n}\n\n\
+    fn shout(s: string) -> string {\n  return s\n}\n\n\
+    pub fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+    let r = f(b)?\n  return Ok(shout(match id {\n    None => r,\n    Some(n) => b,\n  }))\n}\n";
+const E0302_PICK: &str = "module main\npub type Id =\n  | None\n  | Some(number)\n\n\
+    fn f(b: string) -> Result<string, string> {\n  return Ok(b)\n}\n\n\
+    fn shout(s: string) -> string {\n  return s\n}\n\n\
+    pub fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+    let r = f(b)?\n  return Ok(shout(match id {\n    None => f(b)?,\n    Some(n) => r,\n  }))\n}\n";
+const FIXED_PICK: &str = "module main\npub type Id =\n  | None\n  | Some(number)\n\n\
+    fn f(b: string) -> Result<string, string> {\n  return Ok(b)\n}\n\n\
+    fn shout(s: string) -> string {\n  return s\n}\n\n\
+    pub fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+    let r = f(b)?\n  return Ok(shout(match id {\n    None => r,\n    Some(n) => r,\n  }))\n}\n";
+
+/// G295: rapid edits never leave a stale emitter diagnostic on the file.
+///
+/// An E0302 is typed and fixed again inside the debounce window. The emitter
+/// run started for the broken text must not publish once the fix has: no
+/// publish after the fix's first one carries E0302, and the last publish is
+/// the fix's, with no E0302 in it.
+#[test]
+fn a_fixed_emitter_error_never_comes_back_from_a_stale_run() {
+    let dir = tmp_dir("stale");
+    let main_path = dir.join("main.glyph");
+    std::fs::write(&main_path, CLEAN_PICK).expect("write main");
+    // The broken text draws E0302 at all, or this proves nothing.
+    let broken_dir = tmp_dir("stale_broken");
+    std::fs::write(broken_dir.join("main.glyph"), E0302_PICK).expect("write broken");
+    assert!(
+        check_codes(&broken_dir).iter().any(|(c, ..)| c == "E0302"),
+        "the broken text no longer draws E0302"
+    );
+    let _ = std::fs::remove_dir_all(&broken_dir);
+
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+    assert!(lsp.diagnostics_for(&main_path).is_empty(), "the opened text is clean");
+
+    lsp.change(&main_path, 2, E0302_PICK);
+    lsp.change(&main_path, 3, FIXED_PICK);
+    let after = lsp.publishes_until_quiet(&main_path);
+    let fixed_at = after
+        .iter()
+        .position(|(v, _)| *v == Some(3))
+        .unwrap_or_else(|| panic!("the fix was never published: {after:?}"));
+    for (version, diagnostics) in &after[fixed_at..] {
+        assert!(
+            !codes_of(diagnostics).iter().any(|c| c == "E0302"),
+            "a stale E0302 (version {version:?}) landed after the fix: {after:?}"
+        );
+    }
+    let (last_version, last) = after.last().expect("a publish");
+    assert_eq!(*last_version, Some(3), "{after:?}");
+    assert!(last.is_empty(), "the fixed text is clean: {after:?}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// G295: a save publishes the emitter's refusals at once, without the
+/// debounce. A keystroke introduces an E0302, the editor saves, and the next
+/// keystroke fixes it straight away. The fix supersedes any debounced run for
+/// the broken text, so the only publish that can carry the E0302 is the
+/// save's own.
+#[test]
+fn a_save_publishes_the_emitters_errors_at_once() {
+    let dir = tmp_dir("save");
+    let main_path = dir.join("main.glyph");
+    std::fs::write(&main_path, CLEAN_PICK).expect("write main");
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+    assert!(lsp.diagnostics_for(&main_path).is_empty(), "the opened text is clean");
+
+    lsp.change(&main_path, 2, E0302_PICK);
+    std::fs::write(&main_path, E0302_PICK).expect("write what the editor saves");
+    lsp.save(&main_path);
+    lsp.change(&main_path, 3, FIXED_PICK);
+    let after = lsp.publishes_until_quiet(&main_path);
+    assert!(
+        after
+            .iter()
+            .any(|(v, d)| *v == Some(2) && codes_of(d).iter().any(|c| c == "E0302")),
+        "the save did not publish the emitter's refusal: {after:?}"
+    );
+    let (last_version, last) = after.last().expect("a publish");
+    assert_eq!(*last_version, Some(3), "{after:?}");
+    assert!(last.is_empty(), "the fixed text is clean: {after:?}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
 }

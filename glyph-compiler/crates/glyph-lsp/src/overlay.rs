@@ -97,7 +97,7 @@ use glyph_resolver::{build_prelude, ModuleGraph, StdlibStubs};
 use tower_lsp::lsp_types::Url;
 
 use crate::analysis::{analysis_in, hover_in, module_outline, Analysis};
-use crate::diagnostic::{project_file_diagnostics, project_tables, Diagnostic};
+use crate::diagnostic::{project_file_diagnostics_through, project_tables, Diagnostic, Stages};
 use crate::{collect_glyph_files, module_path_of};
 
 /// How many project databases stay live at once, least-recently-used evicted.
@@ -443,14 +443,21 @@ impl Workspace {
     /// the checker, so a file the emitter refuses (E0302 to E0305) showed
     /// clean in the editor while `glyph check` failed it (G295).
     ///
-    /// The emitter's half needs the project's tables, which are rebuilt here
-    /// on every call. The front-end queries under them are memo reads for
-    /// every module the keystroke did not touch; the scan over the modules'
-    /// ASTs is not memoized.
+    /// `stages` says whether the emitter runs. The server publishes
+    /// [`Stages::FrontEnd`] on every keystroke and [`Stages::All`] once typing
+    /// pauses, because the emitter is the one stage whose cost on a large file
+    /// is comparable to the whole front end's (see `EMIT_DEBOUNCE` in
+    /// `lib.rs`).
+    ///
+    /// The project's tables are rebuilt on every call. The front-end queries
+    /// under them are memo reads for every module the keystroke did not touch;
+    /// the scan over the modules' ASTs is not memoized, and measured 0.2 ms on
+    /// the 2,205-line `minilang/main.glyph`.
     pub(crate) fn diagnostics(
         &mut self,
         root: &Path,
         uri: &Url,
+        stages: Stages,
     ) -> Option<(&str, Vec<Diagnostic>)> {
         let i = self.project(root);
         let open = &self.open;
@@ -480,7 +487,8 @@ impl Workspace {
             entries.push((module_path.as_str(), file));
         }
         let tables = project_tables(&project.db, &entries);
-        let diagnostics = project_file_diagnostics(&project.db, file, &module_path, &tables);
+        let diagnostics =
+            project_file_diagnostics_through(&project.db, file, &module_path, &tables, stages);
         Some((file.source_text(&project.db).as_str(), diagnostics))
     }
 
@@ -616,7 +624,7 @@ mod tests {
 
     /// The diagnostic codes for `uri`, in order.
     fn codes(ws: &mut Workspace, root: &Path, uri: &Url) -> Vec<String> {
-        ws.diagnostics(root, uri)
+        ws.diagnostics(root, uri, Stages::All)
             .map(|(_, ds)| ds.into_iter().map(|d| d.code).collect())
             .unwrap_or_default()
     }
@@ -727,7 +735,7 @@ mod tests {
         let mut ws = Workspace::with_event_sink(sink);
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        let _ = ws.diagnostics(&dir, &uri);
+        let _ = ws.diagnostics(&dir, &uri, Stages::All);
         let first: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(
             first.iter().any(|q| q.contains("parse_module")),
@@ -737,7 +745,7 @@ mod tests {
         // Everything an editor fires after a keystroke, over the same buffer.
         let _ = ws.view(&dir, &uri);
         let _ = ws.outline(&dir, &uri);
-        let _ = ws.diagnostics(&dir, &uri);
+        let _ = ws.diagnostics(&dir, &uri, Stages::All);
         let second: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(
             second.is_empty(),
@@ -747,7 +755,7 @@ mod tests {
         // A real edit does execute again, so the assertion above is a live
         // instrument rather than a claim about an inert database.
         ws.set_buffer(&uri, BROKEN.to_string());
-        let _ = ws.diagnostics(&dir, &uri);
+        let _ = ws.diagnostics(&dir, &uri, Stages::All);
         let third: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(!third.is_empty(), "an edit re-executes");
         let _ = std::fs::remove_dir_all(&dir);
@@ -766,11 +774,11 @@ mod tests {
         let mut ws = Workspace::with_event_sink(sink);
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        let _ = ws.diagnostics(&dir, &uri);
+        let _ = ws.diagnostics(&dir, &uri, Stages::All);
         log.lock().unwrap().clear();
 
         ws.set_buffer(&uri, CLEAN.to_string());
-        let _ = ws.diagnostics(&dir, &uri);
+        let _ = ws.diagnostics(&dir, &uri, Stages::All);
         let again: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(again.is_empty(), "identical text re-executed: {again:?}");
         let _ = std::fs::remove_dir_all(&dir);
@@ -823,7 +831,7 @@ mod tests {
             let mut ws = Workspace::new();
             let uri = on_disk(&dir, "s", src);
             ws.set_buffer(&uri, (*src).to_string());
-            let (_, incremental) = ws.diagnostics(&dir, &uri).expect("diagnostics");
+            let (_, incremental) = ws.diagnostics(&dir, &uri, Stages::All).expect("diagnostics");
             let text_path = crate::analysis::analyze(src);
             let published: Vec<(String, u32, u32, String)> = incremental
                 .iter()
@@ -1010,7 +1018,7 @@ mod tests {
         ws.set_buffer(&main, MAIN.to_string());
 
         // Warm: the first request analyses main and reads orders' exports.
-        let _ = ws.diagnostics(&dir, &main);
+        let _ = ws.diagnostics(&dir, &main, Stages::All);
         let _ = ws.hover(&dir, &main, at(MAIN, "create(\"a1\")", 0));
         let warm: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(
@@ -1021,7 +1029,7 @@ mod tests {
         // A keystroke inside `describe`'s body.
         let typed = MAIN.replace("  o.id\n", "  o.id\n  // x\n");
         ws.set_buffer(&main, typed);
-        let _ = ws.diagnostics(&dir, &main);
+        let _ = ws.diagnostics(&dir, &main, Stages::All);
         let after: Vec<String> = std::mem::take(&mut *log.lock().unwrap());
         assert!(!after.is_empty(), "the edited file is re-analysed");
         let re_run_elsewhere: Vec<&String> = after

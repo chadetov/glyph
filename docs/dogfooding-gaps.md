@@ -11034,11 +11034,20 @@ and is the owner's to confirm.
   out, and on E0304 with the tables left empty. Two visible changes come with
   the shared list: the lint tier is published as warnings rather than errors,
   and a module that exports nothing shows E0112, both as `glyph check` reports
-  them. The cost is the emitter running on every keystroke over a file that
-  checks clean: on the 2,205-line `minilang/main.glyph`, in-process in the
-  dev profile, the front end took 19.3 ms per keystroke and the tables and
-  emitter 14.9 ms more (the tables 0.2 ms of it). Not breaking: `glyph check`
-  is unchanged.
+  them. The emitter costs about as much as the front end on a large file: on
+  the 2,205-line `minilang/main.glyph`, in-process in the dev profile, the
+  front end took 19.3 ms per keystroke and the tables and emitter 14.9 ms
+  more (the tables 0.2 ms of it). So the server publishes in two phases: the
+  front end on every keystroke, as before, and the whole list once typing has
+  paused for 300 ms (`EMIT_DEBOUNCE`). An open and a save publish the whole
+  list at once. Each run is keyed on a per-document generation that every
+  change, save and close bumps, and a result whose generation is no longer
+  current is dropped, so a stale emitter run never lands over fresher
+  diagnostics. `a_fixed_emitter_error_never_comes_back_from_a_stale_run`
+  types an E0302 and fixes it inside the window, and no publish after the
+  fix carries it; `a_save_publishes_the_emitters_errors_at_once` and the two
+  `Publisher` unit tests in `glyph-lsp` hold the rest. Not breaking: `glyph
+  check` is unchanged.
 - **G296. [FIXED] A second name for an imported record has no value.**
   `pub type Page = Doc`, where `Doc` is imported, then `Page.parse(v)`, passes
   `glyph check --no-tsc` and fails `tsc` with TS2693 (``'Page' only refers to

@@ -2095,17 +2095,25 @@ impl Assigner<'_> {
                     // A built-in receiver (G288). An `Array<T>`, a `string` or a
                     // `number` is a JavaScript value whose member set the TypeScript library
                     // fixes, so a name outside it is the same mistake as a field
-                    // a record does not declare, and gets the same code. A
-                    // member that is there stays `Unknown`, as every member read
-                    // on these did before: typing `xs.length` as `number` would
-                    // start refusing it where an `int` is wanted, which is a
-                    // separate decision from catching the typo.
+                    // a record does not declare, and gets the same code.
+                    //
+                    // `length` on an array or a string is a `number`. It is
+                    // the only data property either has (every other member
+                    // is a method), so this is their whole property set. An
+                    // `int` wants it as well, since D31 makes the two
+                    // mutually assignable. A method stays `Unknown`.
                     None => {
                         self.unresolved_field_use(&obj_ty, field, *span, access);
-                        match self
-                            .builtin_receiver(&obj_ty)
-                            .filter(|r| !r.has(field.as_ref()))
-                        {
+                        let receiver = self.builtin_receiver(&obj_ty);
+                        match receiver.filter(|r| !r.has(field.as_ref())) {
+                            None if field.as_ref() == "length"
+                                && matches!(
+                                    receiver,
+                                    Some(BuiltinReceiver::Array | BuiltinReceiver::String)
+                                ) =>
+                            {
+                                Ty::Prim(Primitive::Number)
+                            }
                             Some(receiver) => {
                                 let members = receiver.members().iter().copied();
                                 self.errors.push(TypeError::UnknownField {
@@ -9437,11 +9445,12 @@ fn main() -> string {
 
     #[test]
     fn untyped_let_from_unknown_initializer_stays_open() {
-        // When the initializer types as Unknown (a member access here), the
+        // When the initializer types as Unknown (a method read here; `length`
+        // is a `number` since 0.1.132, but methods are not typed), the
         // binding records nothing and refs stay Unknown — no false pinning.
         let src = r#"module x
 fn main(s: string) -> number {
-  let n = s.length
+  let n = s.trim
   return n
 }
 "#;
@@ -9901,6 +9910,78 @@ pub fn f(xs: Array<string>, s: string, m: Mode, n: Name) -> number {
 }
 "#;
         assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    /// `length` is the one data property an array and a string have (every
+    /// other member is a method), and it is a `number`. It used to read as
+    /// `Unknown`, so `let a: string = xs.length` passed `--no-tsc` and was
+    /// left to `tsc` (TS2322). The receiver is reached the way the member
+    /// check reaches it: an array, a string, a string-literal union, and an
+    /// alias of each.
+    #[test]
+    fn length_on_an_array_or_a_string_is_a_number() {
+        let src = r#"module m
+type Mode = "read" | "write"
+type Rows = Array<string>
+pub fn f(xs: Array<string>, s: string, m: Mode, r: Rows) -> number {
+  let a: string = xs.length
+  let b: string = s.length
+  let c: bool = m.length
+  let d: string = r.length
+  return 0
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![
+                ("string".to_string(), "number".to_string()),
+                ("string".to_string(), "number".to_string()),
+                ("bool".to_string(), "number".to_string()),
+                ("string".to_string(), "number".to_string()),
+            ],
+            "{errs:?}"
+        );
+    }
+
+    /// A `number` is what `length` is, so it goes wherever a `number` or an
+    /// `int` (D31) is wanted, and a method read is still left `Unknown`.
+    #[test]
+    fn length_goes_where_a_number_or_an_int_goes() {
+        let src = r#"module m
+fn want(n: int) -> int {
+  return n
+}
+pub fn f(xs: Array<string>, s: string) -> int {
+  let a: number = xs.length
+  let b: int = s.length
+  let c = want(xs.length)
+  let up: number = s.toUpperCase
+  return s.length
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// A `match` over `xs.length` is a match over a `number`: the arms are
+    /// literals and the rest of the numbers is uncovered, so a missing `else`
+    /// is E0218, as it is over any other `number`.
+    #[test]
+    fn a_match_over_length_without_else_is_e0218() {
+        let src = r#"module m
+pub fn f(xs: Array<string>) -> string {
+  return match xs.length {
+    0 => "none",
+    1 => "one",
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveValueMatch { .. }]),
+            "{errs:?}"
+        );
     }
 
     /// An alias reaches the array or string it names, generic or not, and so

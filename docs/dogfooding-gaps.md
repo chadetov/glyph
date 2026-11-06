@@ -10916,6 +10916,17 @@ and is the owner's to confirm.
   methods get function types when Glyph prefers `array.map(xs, f)`), recorded
   for the 0.1.131 review rather than taken here.
 
+  Fixed in 0.1.132 for properties: `length` on an `Array<T>` or a `string`
+  (and a string-literal union, and an alias of either) is a `number`. It is
+  the only data property either has; every other member is a method. `let a:
+  string = xs.length` was `no diagnostics`, exit 0, under `--no-tsc` on
+  0.1.131 and is ``[E0204] type mismatch: expected `string`, found `number` ``,
+  exit 1, now; `tsc` refused it already (TS2322). An `int` still takes it,
+  since D31 makes the two mutually assignable. A `match xs.length` with
+  literal arms and no `else` was E0218 on 0.1.131 and is the same E0218 with
+  the same message now. Methods stay `Unknown`: typing them, and refusing a
+  method read that is not called, is planned for 0.1.133.
+
 - **G289. [FIXED] A `let` annotation that disagrees with `json.parse`'s result is
   left to `tsc`.** `let user: User = json.parse(body)` passes `glyph check
   --no-tsc`; `json.parse` returns a `Result`, and only `tsc` objects

@@ -303,7 +303,7 @@ get the rest.
 ## std/json
 
 ```
-json.parse<T>(text: string) -> Result<T, Array<Issue>>          // decode; casts to T
+json.parse<T>(text: string) -> Result<T, Array<Issue>>          // validates a record/union T; see below
 json.parse_with<T>(text: string, schema: Schema<T>) -> Result<T, Array<Issue>>
 json.stringify(value, options?: { indent: number }) -> string
 json.discriminant(value: unknown, field: string) -> Option<string>  // read a string discriminator property; dispatch a discriminated union

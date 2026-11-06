@@ -725,7 +725,7 @@ first call gets all of stdin, a call after some `read_line`s gets the rest.
 ### std/json
 
 ```
-json.parse<T>(text) -> Result<T, Array<Issue>>            // casts; use parse_with to validate
+json.parse<T>(text) -> Result<T, Array<Issue>>            // validates a record/union T; see below
 json.parse_with<T>(text, schema) -> Result<T, Array<Issue>>
 json.stringify(value, options?) -> string                 // options: { indent: number }
 ```
@@ -1904,7 +1904,7 @@ machine-readably. The full catalogue:
 | E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
 | E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |
 | E0203 | `?` error type does not match the function's `E` (no `From` in v1) | `.map_err(...)` to line the error types up |
-| E0204 | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
+| E0204 | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
 | E0205 | `owned` used on a non-`resource` type (D25) | Mark the type `resource`, or drop `owned` |
 | E0206 | `owned` resource not consumed on every path (D25) | Consume it (move to an `owned` param) on all paths |
 | E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |

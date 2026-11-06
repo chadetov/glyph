@@ -18160,6 +18160,10 @@ fn f(a: Answer) -> number {
         assert_eq!(
             argument_mismatches(&errs),
             vec![("Record<string, string>".to_string(), "User".to_string())],
+            "{errs:?}"
+        );
+    }
+
     /// G303. `print` and `assert` are prelude functions with a declared
     /// parameter (`runtime/glyph-prelude.d.ts`), and so are `number.to_string`
     /// and `number.parse`. They typed `Unknown`, so a wrong argument passed
@@ -18329,6 +18333,8 @@ fn main(p: Point, m: Meta, s: Status) -> number {
             );
         }
         assert_eq!(got.len(), 3, "{errs:?}");
+    }
+
     /// The other side of G303: the arguments the declarations accept stay
     /// silent, the results carry their types, and a call with the wrong
     /// number of arguments is E0213 as it is for any `fn`.
@@ -18458,6 +18464,7 @@ fn main(p: Point, m: Meta, s: Status) -> number {
                     name: Ident::from("Mode"),
                     generics: Vec::new(),
                     body: Ty::StringLiteralUnion(vec!["manual".to_string(), "auto".to_string()]),
+                    open: false,
                 })
             }
         }

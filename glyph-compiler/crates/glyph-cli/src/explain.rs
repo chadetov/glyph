@@ -786,6 +786,28 @@ pub fn explain(code: &str) -> Option<&'static str> {
             The standard library's literal unions (`std/http`'s `RedirectPolicy`, \
             `std/log`'s `Level`) are always in sight, so a match over one of them \
             is checked against its values and never draws this error.",
+        "E0233" => "E0233: wrong number of type arguments\n\n\
+            A call or a written type gives more or fewer type arguments than the \
+            declaration it names has type parameters.\n\n\
+            fn id<T>(x: T) -> T { return x }\n\
+            type Box<T> = { value: T, }\n\n\
+            let a = id<number, bool>(1)        // `id` takes 1, found 2\n\
+            let b: Box<number, string> = ...   // `Box` takes 1, found 2\n\n\
+            A declaration with no type parameters takes 0, so `one<number>(1)` on \
+            `fn one(x: number)` is the same mistake. A wrong count binds nothing: \
+            the written arguments are not paired with the parameters by position, \
+            so the call is not also reported for a binding the program never made.\n\n\
+            Write one type argument per type parameter. On a call you can also \
+            write none and let the arguments infer them.\n\n\
+            The count is checked where the checker reads the declaration's \
+            parameter list: a `fn`, `component`, `type` or `interface` of this \
+            module, a project sibling's under either import spelling, a prelude \
+            type (`Result` and `Record` take 2; `Option`, `Nullable`, `Array` and \
+            `Schema` take 1; the primitives take none), and a modeled stdlib \
+            function whose type parameters a written argument fills \
+            (`json.parse`). Type arguments on a function value (`let f = id`, then \
+            `f<number>(x)`) are not counted yet; `tsc` still refuses a wrong count \
+            there. TypeScript reports these as TS2558, TS2314 and TS2315.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1723,6 +1745,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A `match` with literal arms and no catch-all over a named type whose declaration this compile cannot see (a module outside the build, an npm package whose types were not materialized, any sibling import in the one-file playground). It could be a literal union the arms cover or a `string` they cannot, so coverage is undecided and the match is refused. A visible type is checked as usual (E0200, E0218)",
         fix: "Make the type visible: build from the project root, or `glyph gen dts <package>` and import from the generated module. An `else` arm opts the match out of exhaustiveness checking",
+    },
+    CodeEntry {
+        code: "E0233",
+        phase: "typechecker",
+        meaning: "Wrong number of type arguments: a call (`id<number, bool>(x)` on `fn id<T>`) or a type application (`Box<number, string>` on `type Box<T>`) writes more or fewer type arguments than the declaration has parameters. Raised for every declaration whose parameter list the checker reads: one of this module, a project sibling's, a prelude container, a modeled stdlib function. TypeScript's TS2558 and TS2314",
+        fix: "Write one type argument per type parameter, or none on a call and let the arguments infer them",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

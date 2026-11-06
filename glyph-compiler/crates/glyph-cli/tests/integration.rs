@@ -10664,6 +10664,63 @@ fn explicit_type_arguments_bind_a_sibling_generic_under_both_import_spellings() 
 }
 
 #[test]
+fn a_wrong_number_of_type_arguments_on_a_sibling_is_e0233_under_every_spelling() {
+    // E0233 across the module boundary. A sibling's `fn` and `type` have a
+    // parameter list the checker reads, so a wrong count of written type
+    // arguments is refused whether the name is imported by name or reached
+    // through the namespace, on a call and on a type alike.
+    let root = unique_tmp("e0233sibling");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\n\
+         pub fn id<T>(x: T) -> T {\n  return x\n}\n\
+         pub fn plain(x: number) -> number {\n  return x\n}\n\
+         pub type Box<T> = { value: T, }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import lib { id, plain, Box }\n\
+         pub fn named(b: Box<number, string>) -> number {\n\
+         \x20 let a = id<number, bool>(1)\n\
+         \x20 return plain<number>(1)\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "other.glyph",
+        "module other\n\
+         import lib\n\
+         pub fn spaced(b: lib.Box<number, string>) -> number {\n\
+         \x20 let a = lib.id<number, bool>(1)\n\
+         \x20 return lib.plain<number>(1)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let found = |file: &str| -> Vec<String> {
+        report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains("E0233") && d.contains(&format!("[ {file}:")))
+            .cloned()
+            .collect()
+    };
+    let named = found("main");
+    assert_eq!(named.len(), 3, "{:?}", report.diagnostics);
+    assert!(named.iter().any(|d| d.contains("`Box` takes 1, found 2")), "{named:?}");
+    assert!(named.iter().any(|d| d.contains("`id` takes 1, found 2")), "{named:?}");
+    assert!(named.iter().any(|d| d.contains("`plain` takes 0, found 1")), "{named:?}");
+    let spaced = found("other");
+    assert_eq!(spaced.len(), 3, "{:?}", report.diagnostics);
+    assert!(spaced.iter().any(|d| d.contains("`lib.Box` takes 1, found 2")), "{spaced:?}");
+    assert!(spaced.iter().any(|d| d.contains("`lib.id` takes 1, found 2")), "{spaced:?}");
+    assert!(spaced.iter().any(|d| d.contains("`lib.plain` takes 0, found 1")), "{spaced:?}");
+}
+
+#[test]
 fn nested_sibling_type_resolves_one_level_down() {
     // A sibling type named inside another sibling type is itself an imported
     // type, resolved when a field set is asked for. Nothing is expanded at

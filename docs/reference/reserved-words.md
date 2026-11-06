@@ -36,7 +36,16 @@ and that field is read after a dot like any other: `e.type`, `n?.match`,
 and read as written.
 
 Where a type goes, a keyword is refused with the same message as in a name
-position: `fn f(x: match)` is E0002 saying `match` is a reserved word.
+position: `fn f(x: match)` is E0002 saying `match` is a reserved word. After a
+dot in a type path it is a segment like any other, as it is in an expression:
+`fn f(k: pkg.type)` names the export `type` of the module imported as `pkg`.
+TypeScript accepts a reserved word on the right of a dot in a qualified type
+name too, so the emitted `pkg.type` compiles.
+
+An export whose name is a keyword cannot be an imported item:
+`import pkg { type }` is E0002, because it would bind a name no expression can
+use, and an import cannot rename what it binds. Import the module by namespace instead
+(`import pkg`) and read the export as `pkg.type`, in a value or a type.
 
 ## 2. TypeScript reserved words (33) — `E0109`
 

@@ -34,8 +34,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A reserved word where a name or a type goes (`let where = 1`, \
             `fn type()`, `fn f(x: match)`) is reported under this code too, and \
             the message names the word. Pick another name (`where_`); `glyph \
-            llms` lists every reserved word under \"Reserved words\". A field \
-            named with a keyword is read after a dot like any other (`e.type`).\n\n\
+            llms` lists every reserved word under \"Reserved words\". After a \
+            dot a keyword is a name like any other: a field is read as \
+            `e.type`, and a module's export as `pkg.type` in a value or a type. \
+            An export named with a keyword cannot be an imported item \
+            (`import pkg { type }`); import the module by namespace and read it \
+            as `pkg.type`.\n\n\
             Add the expected token shown in the message.",
         "E0003" => "E0003: unexpected token\n\n\
             This token cannot appear in this position. It is usually a typo, a \

@@ -93,7 +93,7 @@ fn keywords() -> Keywords {
     Keywords {
         source: "the lexer's `KEYWORDS` table",
         count: words.len(),
-        rule: "A reserved word cannot name a binding, parameter, function, type, generic, loop variable or pattern binding. It can be a record field name or an object-literal key, and such a field is read after `.` like any other (`e.type`).",
+        rule: "A reserved word cannot name a binding, parameter, function, type, generic, loop variable or pattern binding, and cannot be an imported item. It can be a record field name or an object-literal key, and after `.` it is a name like any other: a field is read as `e.type`, and a module's export as `pkg.type` in a value or a type, which is also how to reach an export whose name is a reserved word (`import pkg`, then `pkg.type`).",
         words,
     }
 }

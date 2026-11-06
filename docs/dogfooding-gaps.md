@@ -11028,7 +11028,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): TS2345 from `join(dir, "logs", 7)` has `help` `None` in
   the JSON.*
-- **G300. A field named with a keyword can be declared and not read.**
+- **G300. [FIXED] A field named with a keyword can be declared and not read.**
   `type Event = { type: string }` is accepted, and `e.type` is ``[E0002]
   `type` is a reserved word in Glyph and cannot be written as a name here``.
   A record that mirrors a wire format with a `type` discriminator, the most
@@ -11045,9 +11045,25 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.130, on the release-branch build, and against the
   published 0.1.129: `match Sized.is(v) { ... }` is E0002 on both.*
-- **G301. A keyword in type position gets a generic parse error.**
+
+  Fixed in 0.1.131: any keyword after `.` or `?.` is a member name, read
+  from the lexer's `KEYWORDS` table the way a field name in a record type
+  is. Nothing else can follow a dot, so no syntax was taken from anything.
+  The program above is `glyph check: 1 module(s) checked, no diagnostics.`
+  and `tsc --strict passed.`, exit 0, and emits `return e.type;`.
+  `Sized.is(v)` checks and emits as written. A misspelling is the ordinary
+  E0210, keyword or not: `e.typ` and `e.match` on that record are each
+  ``[E0210] type `Event` has no field ...`` listing `type`. The head of a
+  path is not after a dot and is unchanged: `where.x` is still E0003.
+- **G301. [FIXED] A keyword in type position gets a generic parse error.**
   `fn f(x: match)` is ``[E0002] parse: expected type expression, found
   Match``, with help about trailing commas; the G286 message that names the
   reserved word is not used in type position. Found while fixing G286.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): E0002 at `m:3:13` with the generic help.*
+
+  Fixed in 0.1.131: a keyword where a type goes takes G286's reference form.
+  `fn f(x: match)` is ``[E0002] parse: `match` is a reserved word in Glyph
+  and cannot be written as a name here``, and the help says the word cannot
+  name a type, a type path segment or an imported item, where it talked
+  about trailing commas. The code is unchanged.

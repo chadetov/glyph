@@ -151,6 +151,9 @@ struct Publisher {
     sink: Sink,
     ws: Arc<Mutex<Workspace>>,
     docs: Arc<Mutex<HashMap<Url, DocState>>>,
+    /// The editor's workspace folder, shared with the [`Backend`], which sets
+    /// it at `initialize`.
+    workspace: Arc<Mutex<Option<PathBuf>>>,
     /// The last generation handed out, for any document.
     generations: Arc<std::sync::atomic::AtomicU64>,
     /// Held across a check of the generation and the publish that follows it,
@@ -269,15 +272,76 @@ impl Publisher {
     /// Publish `diagnostics` for `uri` if `generation` is still its current
     /// one, and drop them otherwise.
     async fn publish(&self, uri: Url, generation: u64, diagnostics: Vec<Diagnostic>) {
+        self.publish_if(uri, generation, diagnostics, None).await;
+    }
+
+    /// [`Publisher::publish`], also dropped when `cause`, the document whose
+    /// change the list was computed for, has moved on since: that change's
+    /// own run republishes it.
+    async fn publish_if(
+        &self,
+        uri: Url,
+        generation: u64,
+        diagnostics: Vec<Diagnostic>,
+        cause: Option<&(Url, u64)>,
+    ) {
         let _gate = self.gate.lock().await;
         let version = {
             let docs = self.docs.lock().expect("docs mutex");
+            if let Some((cause, at)) = cause {
+                if docs.get(cause).map(|d| d.generation) != Some(*at) {
+                    return;
+                }
+            }
             match docs.get(&uri) {
                 Some(d) if d.generation == generation => d.version,
                 _ => return,
             }
         };
         self.send(uri, version, diagnostics).await;
+    }
+
+    /// The full list of every open document but `except`, each with its
+    /// current generation (review 78, item 8d).
+    ///
+    /// A document's diagnostics depend on its siblings: an import names their
+    /// exports, and E0304 is the declaring module's verdict (G210). So a
+    /// change to one document, its buffer or its file on disk, can move
+    /// another's list without touching it. Every full publish of a document
+    /// is followed by this, and the other documents' generations are read,
+    /// not bumped: an edit to one of them still supersedes the list computed
+    /// here, and its own carried diagnostics are replaced along with the
+    /// list. Called with the workspace lock held; `workspace` is the editor's
+    /// workspace folder, read before it.
+    fn others_full(
+        &self,
+        ws: &mut Workspace,
+        workspace: Option<&Path>,
+        except: Option<&Url>,
+    ) -> Vec<(Url, u64, Vec<Diagnostic>)> {
+        let open: Vec<(Url, u64)> = self
+            .docs
+            .lock()
+            .expect("docs mutex")
+            .iter()
+            .filter(|(u, _)| Some(*u) != except)
+            .map(|(u, d)| (u.clone(), d.generation))
+            .collect();
+        open.into_iter()
+            .map(|(uri, generation)| {
+                let root = analysis_root_in(workspace, &uri);
+                let (full, emitter) = self.compute_full(ws, &root, &uri);
+                self.set_carried(&uri, generation, emitter);
+                (uri, generation, full)
+            })
+            .collect()
+    }
+
+    /// Publish what [`Publisher::others_full`] computed.
+    async fn publish_others(&self, others: Vec<(Url, u64, Vec<Diagnostic>)>, cause: Option<(Url, u64)>) {
+        for (uri, generation, diagnostics) in others {
+            self.publish_if(uri, generation, diagnostics, cause.as_ref()).await;
+        }
     }
 
     /// Hand one publish to the sink. Callers hold the gate.
@@ -306,7 +370,8 @@ impl Publisher {
         let run = tokio::spawn(async move {
             let uri = task_uri;
             tokio::time::sleep(EMIT_DEBOUNCE).await;
-            let diagnostics = {
+            let workspace = this.workspace.lock().expect("root mutex").clone();
+            let (diagnostics, others) = {
                 let mut ws = this.ws.lock().expect("workspace mutex");
                 // Checked under the workspace lock, where generations are
                 // bumped, so a run that passes here is computing the buffer
@@ -316,9 +381,11 @@ impl Publisher {
                 }
                 let (full, emitter) = this.compute_full(&mut ws, &root, &uri);
                 this.set_carried(&uri, generation, emitter);
-                full
+                let others = this.others_full(&mut ws, workspace.as_deref(), Some(&uri));
+                (full, others)
             };
-            this.publish(uri, generation, diagnostics).await;
+            this.publish(uri.clone(), generation, diagnostics).await;
+            this.publish_others(others, Some((uri, generation))).await;
         });
         // Held so the next bump can cancel it. A bump that got in between the
         // spawn and here has already superseded it.
@@ -338,7 +405,7 @@ struct Backend {
     ws: Arc<Mutex<Workspace>>,
     /// The workspace root, captured at `initialize` — the tree the workspace
     /// symbol index walks for `.glyph` files.
-    root: Mutex<Option<PathBuf>>,
+    root: Arc<Mutex<Option<PathBuf>>>,
     /// Publishes diagnostics, now or after typing pauses.
     publisher: Publisher,
 }
@@ -346,7 +413,9 @@ struct Backend {
 impl Backend {
     fn new(client: Client) -> Self {
         let ws = Arc::new(Mutex::new(Workspace::new()));
+        let root = Arc::new(Mutex::new(None));
         let publisher = Publisher {
+            workspace: Arc::clone(&root),
             sink: Sink::Client(client.clone()),
             ws: Arc::clone(&ws),
             docs: Arc::new(Mutex::new(HashMap::new())),
@@ -356,7 +425,7 @@ impl Backend {
         Backend {
             client,
             ws,
-            root: Mutex::new(None),
+            root,
             publisher,
         }
     }
@@ -411,7 +480,9 @@ impl Backend {
         self.publisher
             .publish(uri.clone(), generation, diagnostics)
             .await;
-        if !full_now {
+        if full_now {
+            self.republish_others(Some(&uri), Some((uri.clone(), generation))).await;
+        } else {
             self.publisher.schedule_full(root, uri, generation);
         }
     }
@@ -430,22 +501,34 @@ impl Backend {
     /// has no project. Its root is the empty path, which walks nothing, so it
     /// is analysed on its own exactly as it was before.
     fn analysis_root(&self, uri: &Url) -> PathBuf {
-        let Ok(path) = uri.to_file_path() else {
-            return PathBuf::new();
-        };
-        let workspace = self
-            .root
-            .lock()
-            .expect("root mutex")
-            .clone()
-            .unwrap_or_else(|| {
-                path.parent()
-                    .filter(|p| !p.as_os_str().is_empty())
-                    .unwrap_or_else(|| Path::new("."))
-                    .to_path_buf()
-            });
-        module_root_for(&path, &workspace)
+        let workspace = self.root.lock().expect("root mutex").clone();
+        analysis_root_in(workspace.as_deref(), uri)
     }
+
+    /// Publish the full list of every open document but `except`, after a
+    /// change that can have moved them (see [`Publisher::others_full`]).
+    async fn republish_others(&self, except: Option<&Url>, cause: Option<(Url, u64)>) {
+        let workspace = self.root.lock().expect("root mutex").clone();
+        let others = {
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            self.publisher.others_full(&mut ws, workspace.as_deref(), except)
+        };
+        self.publisher.publish_others(others, cause).await;
+    }
+}
+
+/// [`Backend::analysis_root`] for the editor's workspace folder `workspace`.
+fn analysis_root_in(workspace: Option<&Path>, uri: &Url) -> PathBuf {
+    let Ok(path) = uri.to_file_path() else {
+        return PathBuf::new();
+    };
+    let workspace = workspace.map(Path::to_path_buf).unwrap_or_else(|| {
+        path.parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf()
+    });
+    module_root_for(&path, &workspace)
 }
 
 /// The region one change replaced: `old[start..old_end]` became
@@ -677,9 +760,13 @@ impl LanguageServer for Backend {
                 None
             }
         };
+        let cause = full.as_ref().map(|(generation, _)| (uri.clone(), *generation));
         if let Some((generation, diagnostics)) = full {
-            self.publisher.publish(uri, generation, diagnostics).await;
+            self.publisher.publish(uri.clone(), generation, diagnostics).await;
         }
+        // The save re-read the project, which may have changed what the other
+        // open documents import.
+        self.republish_others(Some(&uri), cause).await;
     }
 
     async fn did_change_watched_files(&self, _: DidChangeWatchedFilesParams) {
@@ -693,6 +780,8 @@ impl LanguageServer for Backend {
         // as the nearest one, and a deleted file names a root that may never
         // have been a project at all.
         self.ws.lock().expect("workspace mutex").rescan_live();
+        // What changed can be what an open document imports.
+        self.republish_others(None, None).await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
@@ -723,8 +812,11 @@ impl LanguageServer for Backend {
         };
         // Clear the squiggles for a closed file.
         if let Some(version) = version {
-            self.publisher.clear(uri, version).await;
+            self.publisher.clear(uri.clone(), version).await;
         }
+        // The closed file reads from disk again, and its siblings import
+        // that, not the buffer they were last checked against.
+        self.republish_others(Some(&uri), None).await;
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
@@ -1620,6 +1712,7 @@ mod tests {
         let log = Arc::new(Mutex::new(Vec::new()));
         let publisher = Publisher {
             sink: Sink::Record(Arc::clone(&log)),
+            workspace: Arc::new(Mutex::new(None)),
             ws: Arc::new(Mutex::new(Workspace::new())),
             docs: Arc::new(Mutex::new(HashMap::new())),
             generations: Arc::new(std::sync::atomic::AtomicU64::new(0)),

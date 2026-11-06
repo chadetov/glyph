@@ -10989,6 +10989,19 @@ and is the owner's to confirm.
   of type arguments that is not the declaration's binds nothing and is
   still left to `tsc` (TS2558). Not breaking: `tsc` refused every program
   this refuses.
+
+  Fixed in 0.1.132 for the count: a call whose written type arguments are
+  not the declaration's count is E0233. `id<number, bool>(1)` was `no
+  diagnostics`, exit 0, under `--no-tsc` on 0.1.131 and is ``[E0233] wrong
+  number of type arguments: `id` takes 1, found 2``, exit 1, now; `tsc`
+  refused it already (TS2558). It covers a function or component of the
+  module, a project sibling's under both import spellings, a non-generic
+  `fn` (which takes 0), and `json.parse` and `json.parse_with`. A written
+  type gets the same code: `Box<number, string>` on `type Box<T>` was left
+  to `tsc` (TS2314) and is E0233 too, on a local `type` or `interface`, a
+  sibling's `type` and the prelude types. Type arguments on a function value
+  (`let f = id`, then `f<number>(x)`) are still not read; that is planned for
+  0.1.133.
 - **G293. [FIXED] A record where a `Result` is expected is left to `tsc`.** The
   reverse of G289: `let r: Result<User, string> = u` with `u: User` passes
   `glyph check --no-tsc`, and `tsc` refuses it (TS2322: ``Type 'User' is not

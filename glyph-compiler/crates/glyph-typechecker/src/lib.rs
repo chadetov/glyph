@@ -514,6 +514,26 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// A call or a type application writes more or fewer type arguments than
+    /// the declaration it names has type parameters: `id<number, bool>(x)` on
+    /// `fn id<T>`, `one<number>(x)` on a non-generic `fn one`, or
+    /// `Box<number, string>` on `type Box<T>`. Raised only where the checker
+    /// reads the declaration's parameter list: a declaration of this module,
+    /// a project sibling's, a prelude type, and a stdlib function whose type
+    /// parameters a written argument fills. TypeScript refuses the same
+    /// programs (TS2558 for a call, TS2314 and TS2315 for a type).
+    ///
+    /// Its own code rather than E0213's: E0213 counts the values a call
+    /// passes, and one code meaning two counts is one an agent dispatching on
+    /// codes cannot tell apart.
+    #[error("wrong number of type arguments: `{name}` takes {expected}, found {found}")]
+    TypeArgumentCountMismatch {
+        name: String,
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
+
     /// `mut N = ...` reassigning a module-level `const` binding. D20 makes
     /// `const` immutable; only a function-level `let` may be reassigned with
     /// `mut`. Fires when the assignment target resolves to a `const` declaration.
@@ -936,6 +956,7 @@ impl TypeError {
             TypeError::MapFieldAccess { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
+            TypeError::TypeArgumentCountMismatch { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
             TypeError::ComponentMultipleParams { span, .. } => *span,
             TypeError::ComponentParamNotRecord { span, .. } => *span,
@@ -978,6 +999,7 @@ impl TypeError {
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
+            TypeError::TypeArgumentCountMismatch { .. } => "E0233",
             TypeError::ComponentMultipleParams { .. } => "E0214",
             TypeError::ComponentParamNotRecord { .. } => "E0229",
             TypeError::OwnedAliased { .. } => "E0215",
@@ -1114,6 +1136,9 @@ impl TypeError {
             }
             TypeError::ArgumentCountMismatch { .. } => {
                 "Supply exactly one argument per parameter. Glyph has no optional or variadic parameters."
+            }
+            TypeError::TypeArgumentCountMismatch { .. } => {
+                "Write one type argument per type parameter the declaration lists, or none on a call and let the arguments infer them."
             }
             TypeError::MutateConst { .. } => {
                 "`const` is immutable (D20). Use a function-level `let` if the binding must change."

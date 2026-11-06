@@ -1313,6 +1313,16 @@ impl Assigner<'_> {
     fn check_nullable_args(&mut self, te: &TypeExpr) {
         match te {
             TypeExpr::Generic { base, args, span } => {
+                if let Some(expected) = self.type_param_count(base) {
+                    if expected != args.len() {
+                        self.errors.push(TypeError::TypeArgumentCountMismatch {
+                            name: type_expr_source(base),
+                            expected,
+                            found: args.len(),
+                            span: *span,
+                        });
+                    }
+                }
                 if self.is_prelude_named(base, "Nullable") {
                     if let [arg] = args.as_slice() {
                         let lowered = self.lowerer.lower(arg);
@@ -1353,6 +1363,53 @@ impl Assigner<'_> {
             | TypeExpr::Extern { .. }
             | TypeExpr::StringLiteralUnion { .. }
             | TypeExpr::TypeOf { .. } => {}
+        }
+    }
+
+    /// How many type parameters the declaration a written type's base names
+    /// has, for the E0233 count of a type application (`Box<number, string>`
+    /// on `type Box<T>`). Read from a `type` or `interface` of this module, a
+    /// project sibling's `type` under either import spelling, and the prelude,
+    /// whose containers take the counts TypeScript gives them and whose other
+    /// types take none. `None` for anything whose list the checker does not
+    /// read: a type parameter, an npm package's type, a stdlib-modeled type.
+    fn type_param_count(&self, base: &TypeExpr) -> Option<usize> {
+        match self.lowerer.lower(base) {
+            Ty::Imported { module, name } => self
+                .decl_ty_resolver
+                .imported_type_decl(module.as_str(), name.as_ref())
+                .map(|d| d.generics.len()),
+            Ty::Named { symbol, path } => {
+                let name = path.last()?;
+                let local = self
+                    .resolved
+                    .symbols
+                    .table
+                    .get(SymbolId(symbol.0))
+                    .filter(|sym| sym.name == *name)
+                    .and_then(|sym| match sym.kind {
+                        SymbolKind::Type { decl_idx } => {
+                            match self.module.items.get(decl_idx as usize)? {
+                                Decl::Type(td) => Some(td.generics.len()),
+                                Decl::Interface(id) => Some(id.generics.len()),
+                                _ => None,
+                            }
+                        }
+                        _ => None,
+                    });
+                local.or_else(|| {
+                    let id = self.lowerer.prelude.lookup(name.as_ref())?;
+                    if id != SymbolId(symbol.0) {
+                        return None;
+                    }
+                    match self.lowerer.prelude.table.get(id)?.kind {
+                        SymbolKind::Prelude { kind } => prelude_type_param_count(kind),
+                        _ => None,
+                    }
+                })
+            }
+            Ty::Prim(_) | Ty::UnknownTop | Ty::Never => Some(0),
+            _ => None,
         }
     }
 
@@ -2203,8 +2260,25 @@ impl Assigner<'_> {
                     // bound, else the row's own answer for an unwritten one.
                     if let Some((key, field)) = self.stdlib_callee(callee) {
                         let names = crate::stdlib::explicit_type_params(&key, &field);
+                        // E0233: the row lists every type parameter the
+                        // function has, so a written count that is not its
+                        // own binds nothing, the rule G292 keeps below.
+                        let written = if names.is_empty()
+                            || type_args.is_empty()
+                            || names.len() == type_args.len()
+                        {
+                            type_args.as_slice()
+                        } else {
+                            self.errors.push(TypeError::TypeArgumentCountMismatch {
+                                name: callee_source(callee),
+                                expected: names.len(),
+                                found: type_args.len(),
+                                span: *span,
+                            });
+                            &[]
+                        };
                         for (i, (name, unwritten)) in names.iter().enumerate() {
-                            match type_args.get(i) {
+                            match written.get(i) {
                                 Some(t) => {
                                     subst.insert(Ident::from(*name), self.lowerer.lower(t));
                                 }
@@ -2217,16 +2291,25 @@ impl Assigner<'_> {
                     // G292. A written type argument is the binding of the
                     // parameter it is written for, whatever the arguments
                     // would have inferred, so it replaces the inferred one.
-                    // Only when the count is the declaration's: `tsc` refuses
-                    // any other count (TS2558), and pairing them by position
-                    // would report a mismatch about a binding the program
-                    // never made.
+                    // Only when the count is the declaration's. Any other
+                    // count is E0233 (TS2558 under `tsc`), and it binds
+                    // nothing: pairing them by position would report a
+                    // mismatch about a binding the program never made. A
+                    // declaration with no type parameters takes 0, so any
+                    // written type argument on it is the same mistake.
                     if !type_args.is_empty() {
                         if let Some(names) = self.callee_generics(callee) {
                             if names.len() == type_args.len() {
                                 for (name, t) in names.into_iter().zip(type_args.iter()) {
                                     subst.insert(name, self.lowerer.lower(t));
                                 }
+                            } else {
+                                self.errors.push(TypeError::TypeArgumentCountMismatch {
+                                    name: callee_source(callee),
+                                    expected: names.len(),
+                                    found: type_args.len(),
+                                    span: *span,
+                                });
                             }
                         }
                     }
@@ -8199,6 +8282,53 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
 /// `Option<number>`). Every form is exact except a tagged union, which lists
 /// its variant names without payloads; E0229 quotes a component parameter of
 /// any form, a function type or `Nullable<{ name: string }>` included.
+/// The callee of a call as it is written, for a diagnostic that names it:
+/// `id`, `lib.id`, `json.parse`. Any other callee shape is shown as `callee`.
+fn callee_source(callee: &Expr) -> String {
+    match callee {
+        Expr::Ident { name, .. } => name.to_string(),
+        Expr::Member { object, field, .. } => match object.as_ref() {
+            Expr::Ident { name, .. } => format!("{name}.{field}"),
+            _ => field.to_string(),
+        },
+        _ => "callee".to_string(),
+    }
+}
+
+/// The number of type parameters a prelude type has. The containers take
+/// TypeScript's counts (`Result<T, E>`, `Record<K, V>`, `Array<T>`); every
+/// other prelude type, the primitives and `Component` and `Issue` among them,
+/// takes none. A prelude value or namespace is not a type and answers `None`.
+/// The match lists every kind, so a container added to the prelude has to be
+/// given its count here rather than inheriting a 0 that would refuse it.
+fn prelude_type_param_count(kind: PreludeKind) -> Option<usize> {
+    Some(match kind {
+        PreludeKind::Result | PreludeKind::Record => 2,
+        PreludeKind::Option
+        | PreludeKind::Nullable
+        | PreludeKind::Array
+        | PreludeKind::Schema
+        | PreludeKind::InferOutput => 1,
+        PreludeKind::String
+        | PreludeKind::Number
+        | PreludeKind::Int
+        | PreludeKind::BigInt
+        | PreludeKind::Bool
+        | PreludeKind::Void
+        | PreludeKind::UnknownTop
+        | PreludeKind::Never
+        | PreludeKind::Component
+        | PreludeKind::Issue => 0,
+        PreludeKind::Ok
+        | PreludeKind::Err
+        | PreludeKind::Some
+        | PreludeKind::None
+        | PreludeKind::Par
+        | PreludeKind::Print
+        | PreludeKind::Assert => return None,
+    })
+}
+
 fn type_expr_source(te: &TypeExpr) -> String {
     match te {
         TypeExpr::Path { segments, .. } => segments
@@ -17493,6 +17623,179 @@ fn f(a: Answer) -> number {
         );
         assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// The `(name, expected, found)` of every E0233 in `errs`, in order.
+    fn type_arg_counts(errs: &[TypeError]) -> Vec<(String, usize, usize)> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::TypeArgumentCountMismatch {
+                    name,
+                    expected,
+                    found,
+                    ..
+                } => Some((name.clone(), *expected, *found)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// E0233. A call writing more or fewer type arguments than the
+    /// declaration has parameters is refused, where it used to bind nothing
+    /// and pass `--no-tsc` (TS2558 under `tsc`). A non-generic `fn` takes 0,
+    /// so any written type argument on it is the same mistake.
+    #[test]
+    fn a_wrong_number_of_type_arguments_on_a_call_is_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn pair<A, B>(a: A, b: B) -> B { return b }\n\
+             fn one(x: number) -> number { return x }\n\
+             pub fn f() -> number {\n\
+             \x20 let a = id<number, bool>(1)\n\
+             \x20 let b = pair<number>(1, 2)\n\
+             \x20 let c = one<number>(1)\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            type_arg_counts(&errs),
+            vec![
+                ("id".to_string(), 1, 2),
+                ("pair".to_string(), 2, 1),
+                ("one".to_string(), 0, 1),
+            ],
+            "{errs:?}"
+        );
+        let e = errs
+            .iter()
+            .find(|e| matches!(e, TypeError::TypeArgumentCountMismatch { .. }))
+            .expect("an E0233");
+        assert_eq!(e.code(), "E0233");
+        assert_eq!(
+            e.to_string(),
+            "wrong number of type arguments: `id` takes 1, found 2"
+        );
+    }
+
+    /// A modeled stdlib function whose type parameters a written argument
+    /// fills has a parameter list the checker reads, so a wrong count on it
+    /// is E0233 too. A stdlib function the checker models without one stays
+    /// unchecked here, because its count is not known.
+    #[test]
+    fn a_wrong_number_of_type_arguments_on_json_parse_is_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/json { parse }\n\
+             pub fn f() -> number {\n\
+             \x20 let a = json.parse<number, string>(\"1\")\n\
+             \x20 let b = parse<number, string>(\"1\")\n\
+             \x20 let c = json.parse<number>(\"1\")\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            type_arg_counts(&errs),
+            vec![("json.parse".to_string(), 1, 2), ("parse".to_string(), 1, 2)],
+            "{errs:?}"
+        );
+    }
+
+    /// The right count, and no type arguments at all on a call, stay silent.
+    #[test]
+    fn the_right_number_of_type_arguments_is_not_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn pair<A, B>(a: A, b: B) -> B { return b }\n\
+             fn one(x: number) -> number { return x }\n\
+             pub fn f() -> number {\n\
+             \x20 let a = id<number>(1)\n\
+             \x20 let b = pair<number, number>(1, 2)\n\
+             \x20 let c = one(1)\n\
+             \x20 let d = id(1)\n\
+             \x20 let e = json.parse<number>(\"1\")\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// `let f = id; f<number>(x)` is not checked in 0.1.132: a function value's
+    /// type does not carry its type parameters yet, so its count is unknown and
+    /// nothing is reported, right or wrong.
+    #[test]
+    fn type_arguments_on_a_function_value_are_not_counted_yet() {
+        let errs = errors_of(
+            "module m\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             pub fn f() -> number {\n\
+             \x20 let g = id\n\
+             \x20 let a = g<number, bool>(1)\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// E0233 on a type application: a written type with more or fewer
+    /// arguments than the declaration it names. Before this it was left to
+    /// `tsc` (TS2314, TS2315) and `--no-tsc` passed it. A local `type`, a
+    /// local `interface`, a prelude container and a non-generic declaration
+    /// (which takes 0) are all counted, wherever the type is written.
+    #[test]
+    fn a_wrong_number_of_type_arguments_on_a_type_is_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             type Box<T> = { value: T, }\n\
+             type User = { name: string, }\n\
+             interface Named<T> {\n\
+             \x20 name: T\n\
+             }\n\
+             type Wrapped = { b: Box<number, string>, }\n\
+             fn take(r: Result<number>) -> number { return 0 }\n\
+             pub fn f(n: Named<string, number>) -> number {\n\
+             \x20 let o: Option<number, string> = Some(1)\n\
+             \x20 let u: User<number> = { name: \"a\", }\n\
+             \x20 let xs: Array<Box<number, bool>> = []\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            type_arg_counts(&errs),
+            vec![
+                ("Box".to_string(), 1, 2),
+                ("Result".to_string(), 2, 1),
+                ("Named".to_string(), 1, 2),
+                ("Option".to_string(), 1, 2),
+                ("User".to_string(), 0, 1),
+                ("Box".to_string(), 1, 2),
+            ],
+            "{errs:?}"
+        );
+    }
+
+    /// The right count on a type stays silent, a type parameter applied to
+    /// arguments is not a declaration the checker can count, and the prelude
+    /// containers take the counts TypeScript gives them.
+    #[test]
+    fn the_right_number_of_type_arguments_on_a_type_is_not_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             import std/result { Result }\n\
+             type Box<T> = { value: T, }\n\
+             type Pair<A, B> = { a: A, b: B, }\n\
+             fn take(r: Result<number, string>, m: Record<string, number>) -> number { return 0 }\n\
+             pub fn f(b: Box<number>, p: Pair<string, Box<bool>>) -> number {\n\
+             \x20 let o: Option<number> = Some(1)\n\
+             \x20 let n: Nullable<string> = null\n\
+             \x20 let xs: Array<Box<number>> = []\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
     }
 
     /// G293, the reverse of G289. A declared record or tagged union where a

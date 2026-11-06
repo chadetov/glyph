@@ -351,6 +351,13 @@ const RESULT_TY: &str = "__GlyphResult";
 /// record descriptor gets `import { schema as __glyph_schema } from "std/schema"`.
 const SCHEMA_FACTORY: &str = "__glyph_schema";
 
+/// The local name a module binds `std/json`'s `parse_with` to when it writes
+/// the named-import `parse<T>(text)` (`import std/json { parse }`). That call
+/// is rewritten to validate like `json.parse<T>`, and the rewrite needs
+/// `parse_with`, which the author did not import. Aliased so no binding of
+/// the author's (a local `parse_with`, say) can capture it.
+const JSON_PARSE_WITH: &str = "__glyph_json_parse_with";
+
 /// The TS mapped-type alias `infer_output<S>` (D28) lowers to. A module that
 /// renders any `infer_output` gets one injected alias that maps each field of a
 /// record of parsers to that parser's output type. It matches a field
@@ -971,6 +978,7 @@ impl<'a> Emitter<'a> {
             used_schema: Rc::new(Cell::new(false)),
             used_result: Rc::new(Cell::new(false)),
             used_infer_output: Rc::new(Cell::new(false)),
+            used_json_parse_with: Rc::new(Cell::new(false)),
             used_react: Rc::new(Cell::new(false)),
             shadowed_globals: shadowed,
             desc_param_guards: RefCell::new(Vec::new()),
@@ -1174,6 +1182,10 @@ struct Emitter<'a> {
     /// the one injected mapped-type alias (`__GlyphInferOutput`) it lowers to.
     /// Shared across sub-emitters via the `Rc<Cell>` like the flags above.
     used_infer_output: Rc<Cell<bool>>,
+    /// Set once a named-import `parse<T>(text)` from `std/json` is rewritten
+    /// to validate, so the module gets the hidden `parse_with` import the
+    /// rewrite calls ([`JSON_PARSE_WITH`]). Shared with sub-emitters.
+    used_json_parse_with: Rc<Cell<bool>>,
     /// Set once the output names the `React` namespace: a JSX element (which
     /// lowers to `React.createElement`) or the prelude `Component` type (which
     /// lowers to `React.ReactNode`). The module then gets the namespace import.
@@ -1306,6 +1318,7 @@ impl<'a> Emitter<'a> {
             used_schema: Rc::clone(&self.used_schema),
             used_result: Rc::clone(&self.used_result),
             used_infer_output: Rc::clone(&self.used_infer_output),
+            used_json_parse_with: Rc::clone(&self.used_json_parse_with),
             used_react: Rc::clone(&self.used_react),
             shadowed_globals: Rc::clone(&self.shadowed_globals),
             // Descriptor field checks are generated on the main emitter, never a
@@ -1439,6 +1452,13 @@ impl<'a> Emitter<'a> {
                 &format!(
                     "type {INFER_OUTPUT_ALIAS}<S> = {{ [K in keyof S]: S[K] extends {{ parse(input: unknown): infer R }} ? (Extract<R, {{ tag: \"Ok\" }}> extends {{ value: infer V }} ? V : never) : never }};\n\n"
                 ),
+            );
+        }
+        if self.used_json_parse_with.get() {
+            let spec = runtime_specifier(self.ctx.module_path, "std/json");
+            self.out.insert_str(
+                0,
+                &format!("import {{ parse_with as {JSON_PARSE_WITH} }} from \"{spec}\";\n\n"),
             );
         }
         if self.used_schema.get() {
@@ -5908,66 +5928,146 @@ impl<'a> Emitter<'a> {
         })
     }
 
-    /// Rewrite `json.parse<T>(text)` to the validating `json.parse_with(text,
-    /// T.schema)` when `T` is a local type with a runtime descriptor (G3). The
-    /// plain `json.parse<T>` casts the decoded JSON to `T` without checking it;
-    /// routing through the descriptor validates the shape instead. Returns `None`
-    /// (so the caller emits the call normally) for any non-matching call —
-    /// including a type argument with no descriptor, where the cast escape hatch
-    /// is the intended behavior.
+    /// Rewrite `parse<T>(text)` from `std/json`, with a written `T`, to the
+    /// validating `parse_with(text, <schema for T>)`. A `T` with a written
+    /// type argument validates or is refused; it never casts (G297).
+    ///
+    /// Both spellings take the rewrite. The namespace form (`json.parse<T>`,
+    /// or `j.parse<T>` under `import std/json as j`) calls `parse_with`
+    /// through the same binding. The named form (`import std/json { parse }`
+    /// then `parse<T>`) calls it through a hidden aliased import, since the
+    /// author imported only `parse`. Before, the named form was never
+    /// rewritten and cast every `T`, so the same call validated or not
+    /// depending on how the import was spelled.
+    ///
+    /// Returns `None` (so the caller emits the call as written) for a call
+    /// that is not `std/json`'s `parse` with one type argument and one
+    /// argument, and for a `T` [`Self::json_parse_schema`] leaves as a plain
+    /// read.
     fn try_json_parse_validating(
         &self,
         callee: &Expr,
         type_args: &[TypeExpr],
         args: &[Expr],
     ) -> Result<Option<String>, EmitError> {
-        let Expr::Member { object, field, optional: false, .. } = callee else {
-            return Ok(None);
-        };
-        if field.as_ref() != "parse" {
-            return Ok(None);
-        }
-        let Expr::Ident { name, .. } = object.as_ref() else {
-            return Ok(None);
-        };
-        if !self.is_json_namespace(name) {
-            return Ok(None);
-        }
         let ([type_arg], [arg]) = (type_args, args) else {
             return Ok(None);
         };
-        let Some(schema) = self.schema_expr_for(type_arg) else {
+        let namespace = match callee {
+            Expr::Member { object, field, optional: false, .. } if field.as_ref() == "parse" => {
+                let Expr::Ident { name, .. } = object.as_ref() else {
+                    return Ok(None);
+                };
+                if !self.is_json_namespace(name) {
+                    return Ok(None);
+                }
+                Some(object)
+            }
+            Expr::Ident { name, span } if self.is_json_named_parse(name, *span) => None,
+            _ => return Ok(None),
+        };
+        let Some(schema) = self.json_parse_schema(type_arg)? else {
             return Ok(None);
         };
-        // The rewrite trusts `T.schema`, so it makes the claim `T.parse`
-        // makes, and is refused where `T.parse` is (G297).
-        if let Some((module, type_name)) = self.schema_target(type_arg) {
+        let arg_str = self.expr(arg)?;
+        Ok(Some(match namespace {
+            Some(object) => format!("{}.parse_with({arg_str}, {schema})", self.expr(object)?),
+            None => {
+                self.used_json_parse_with.set(true);
+                format!("{JSON_PARSE_WITH}({arg_str}, {schema})")
+            }
+        }))
+    }
+
+    /// The `Schema<T>` `parse<T>` validates against, or `None` for a `T` it
+    /// reads without a check.
+    ///
+    /// A record or union is checked by its own descriptor's schema (and an
+    /// `Array` of one, or an alias of that `Array`, by `.array()` on it), so a
+    /// failure reports the field's path. Any other `T` is checked by the
+    /// predicate a record field of type `T` gets (`field_check`), made into a
+    /// schema by the runtime's `schema(name, is)`: one definition of what a
+    /// `T` is, whether it arrives as a field or as the whole document.
+    ///
+    /// The schema trusts every record descriptor its check calls, so it makes
+    /// the claim each of their `parse` makes, and is refused (E0304) where
+    /// one of theirs is.
+    ///
+    /// `None` for a `T` that claims nothing (`unknown`, `Nullable<unknown>`),
+    /// where the plain read is the honest lowering, and for a `T` with no
+    /// runtime check that is not a record holding one: a type parameter, an
+    /// `extern_ts` type, a package type. Those still cast.
+    fn json_parse_schema(&self, type_arg: &TypeExpr) -> Result<Option<String>, EmitError> {
+        let refuse = |module: &str, type_name: &str| {
             let mut seen = HashSet::new();
-            if let Some((field, field_ty)) = self.first_unverifiable_in(&module, &type_name, &mut seen) {
-                return Err(EmitError::UnverifiableDescriptorUse {
-                    type_name,
+            self.first_unverifiable_in(module, type_name, &mut seen).map(|(field, field_ty)| {
+                EmitError::UnverifiableDescriptorUse {
+                    type_name: type_name.to_string(),
                     field,
                     field_ty,
                     span: type_arg.span(),
-                });
+                }
+            })
+        };
+        if let Some(schema) = self.schema_expr_for(type_arg) {
+            if let Some((module, type_name)) = self.schema_target(type_arg) {
+                if let Some(err) = refuse(&module, &type_name) {
+                    return Err(err);
+                }
+            }
+            return Ok(Some(schema));
+        }
+        let (check, called) = self.field_check_delegations(type_arg);
+        let FieldCheck::Deep(check) = check else {
+            return Ok(None);
+        };
+        for (module, type_name) in called {
+            if let Some(err) = refuse(&module, &type_name) {
+                return Err(err);
             }
         }
-        let obj = self.expr(object)?;
-        let arg_str = self.expr(arg)?;
-        Ok(Some(format!("{obj}.parse_with({arg_str}, {schema})")))
+        self.used_schema.set(true);
+        let ts = self.ty(type_arg)?;
+        let label = escape_double_quoted(&type_label(type_arg));
+        Ok(Some(format!(
+            "{SCHEMA_FACTORY}<{ts}>({label}, (__x: unknown): __x is {ts} => {check})"
+        )))
     }
 
-    /// A `Schema<T>` expression for `json.parse<T>`'s type argument, when one can
-    /// be derived: a record/union type's descriptor `T.schema`, or `Array<T>`
-    /// (and nested arrays) via the schema factory's `.array()` combinator.
-    /// `None` for a type with no descriptor (a primitive, an imported or generic
-    /// type), where the casting `parse<T>` is kept as the escape hatch.
+    /// Whether the identifier `name` at `span` is `std/json`'s `parse` bound
+    /// by a named import (`import std/json { parse }`). Read off the
+    /// resolution of this use, so a local binding that shadows the import is
+    /// not mistaken for it.
+    fn is_json_named_parse(&self, name: &str, span: Span) -> bool {
+        if name != "parse" {
+            return false;
+        }
+        let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(span) else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(id) else {
+            return false;
+        };
+        let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+            return false;
+        };
+        original.as_ref() == "parse"
+            && path.segments.iter().map(|s| s.as_ref()).eq(["std", "json"])
+    }
+
+    /// A descriptor's `Schema<T>` expression for `json.parse<T>`'s type
+    /// argument, when one can be derived: a record/union type's descriptor
+    /// `T.schema`, or `Array<T>` (and nested arrays) via the schema factory's
+    /// `.array()` combinator. A local alias of such an `Array` (`type Rows =
+    /// Array<Row>`) is the `Array` it names. `None` for any other type, which
+    /// [`Self::json_parse_schema`] checks by its field predicate instead.
     fn schema_expr_for(&self, ty: &TypeExpr) -> Option<String> {
         match ty {
             TypeExpr::Path { segments, .. } => match segments.as_slice() {
+                [name] if self.has_descriptor(name.as_ref()) => Some(format!("{name}.schema")),
                 [name] => self
-                    .has_descriptor(name.as_ref())
-                    .then(|| format!("{name}.schema")),
+                    .array_alias_body(name.as_ref())
+                    .and_then(|body| self.schema_expr_for(&body)),
                 // `json.parse<w.Fine>`: the record through a namespace import
                 // is the same record, so it validates the same way rather
                 // than falling to the casting `parse<T>`.
@@ -5992,6 +6092,16 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// The body of the local alias `name` when it is an `Array<..>`, the one
+    /// alias body `schema_expr_for` reads through. The body is this module's,
+    /// so the element type in it is spelled in this module's scope.
+    fn array_alias_body(&self, name: &str) -> Option<TypeExpr> {
+        let body = self.alias_leaf(name)?;
+        let is_array = matches!(&body, TypeExpr::Generic { .. })
+            && self.type_shape(&body, Origin::Local) == TypeShape::Array;
+        is_array.then_some(body)
+    }
+
     /// The record whose descriptor `schema_expr_for` hands `json.parse_with`,
     /// as `(module path, type name)`, so E0304 can judge it. The same cases
     /// `schema_expr_for` derives a schema for: a name, a namespace-qualified
@@ -5999,6 +6109,9 @@ impl<'a> Emitter<'a> {
     fn schema_target(&self, ty: &TypeExpr) -> Option<(String, String)> {
         match ty {
             TypeExpr::Path { segments, .. } => match segments.as_slice() {
+                [name] if !self.has_descriptor(name.as_ref()) => self
+                    .array_alias_body(name.as_ref())
+                    .and_then(|body| self.schema_target(&body)),
                 [name] => self.descriptor_target(name.as_ref()),
                 [ns, name] => Some((self.namespace_module_path(ns.as_ref())?, name.to_string())),
                 _ => None,
@@ -8961,12 +9074,13 @@ mod tests {
     #[test]
     fn json_parse_with_descriptor_routes_through_schema() {
         // G3: `json.parse<T>(text)` for a type with a descriptor validates via
-        // `T.schema`; a type without one keeps the plain (casting) parse.
+        // `T.schema`.
         let ts = emit(
             "module x\nimport std/json\npub type User = { name: string }\npub fn load(text: string) -> Result<User, Array<Issue>> {\n  return json.parse<User>(text)\n}\npub fn loose(text: string) -> Result<number, Array<Issue>> {\n  return json.parse<number>(text)\n}\n",
         );
         assert!(ts.contains("json.parse_with(text, User.schema)"), "{ts}");
-        assert!(ts.contains("json.parse<number>(text)"), "{ts}");
+        // A primitive validates too: `parse<T>` with a written `T` never casts.
+        assert!(ts.contains("json.parse_with(text, __glyph_schema<number>("), "{ts}");
     }
 
     #[test]
@@ -12066,6 +12180,198 @@ pub fn n() -> number {\n  return 1\n}
             "lexer",
             "Lexer",
         );
+    }
+
+    /// The two spellings of `std/json`'s `parse`, as `(imports, callee)`.
+    /// The named form used to cast whatever `T` it was given, because only
+    /// the namespace form was rewritten (G297's open half).
+    const JSON_SPELLINGS: [(&str, &str); 3] = [
+        ("import std/json", "json.parse"),
+        ("import std/json as j", "j.parse"),
+        ("import std/json { parse }", "parse"),
+    ];
+
+    /// The validating call each spelling lowers to.
+    fn parse_with_call(callee: &str) -> &'static str {
+        match callee {
+            "json.parse" => "json.parse_with(",
+            "j.parse" => "j.parse_with(",
+            _ => "__glyph_json_parse_with(",
+        }
+    }
+
+    /// The named-import `parse<T>` is rewritten like the namespace form:
+    /// through a hidden, aliased `parse_with` import, so a user binding named
+    /// `parse_with` cannot capture it.
+    #[test]
+    fn named_json_parse_validates_like_the_namespace_form() {
+        let ts = emit(
+            "module x\nimport std/json { parse }\n\
+             pub type User = { name: string, }\n\
+             fn parse_with(s: string) -> string { return s }\n\
+             pub fn one(s: string) -> Result<User, Array<Issue>> { return parse<User>(s) }\n\
+             pub fn many(s: string) -> Result<Array<User>, Array<Issue>> { return parse<Array<User>>(s) }\n",
+        );
+        assert!(
+            ts.contains("import { parse_with as __glyph_json_parse_with } from \"./.glyph-runtime/std/json\";"),
+            "the hidden import: {ts}"
+        );
+        assert!(ts.contains("return __glyph_json_parse_with(s, User.schema);"), "{ts}");
+        assert!(ts.contains("return __glyph_json_parse_with(s, User.schema.array());"), "{ts}");
+        assert!(!ts.contains("parse<User>(s)"), "no casting parse left: {ts}");
+        // The user's own `parse_with` is untouched and unused by the rewrite.
+        assert!(ts.contains("function parse_with(s: string)"), "{ts}");
+    }
+
+    /// A module that never writes the named `parse<T>` gets no hidden import.
+    #[test]
+    fn named_json_parse_import_only_when_used() {
+        let ts = emit(
+            "module x\nimport std/json { parse }\n\
+             pub fn raw(s: string) -> Result<unknown, Array<Issue>> { return parse(s) }\n",
+        );
+        assert!(!ts.contains("__glyph_json_parse_with"), "{ts}");
+    }
+
+    /// The named form across a module boundary: a record imported by name and
+    /// through a namespace validates the same way the namespace form does.
+    #[test]
+    fn named_json_parse_of_an_imported_record_validates() {
+        for (imports, call, expected) in [
+            ("import std/json { parse }\nimport w { Fine }", "parse<Fine>(s)", "__glyph_json_parse_with(s, Fine.schema)"),
+            ("import std/json { parse }\nimport w", "parse<w.Fine>(s)", "__glyph_json_parse_with(s, w.Fine.schema)"),
+        ] {
+            let main = format!(
+                "module main\n{imports}\n\
+                 pub fn go(s: string) -> bool {{\n\
+                 \x20 return match {call} {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            );
+            let ts = emit_beside(("w", G210_W), &main)
+                .unwrap_or_else(|e| panic!("`{call}` must be accepted: {e:?}"));
+            assert!(ts.contains(expected), "`{call}` lowers to `{expected}`: {ts}");
+        }
+    }
+
+    /// E0304 applies to the named form as it does to the namespace form.
+    #[test]
+    fn e0304_refuses_named_json_parse_of_an_unverifiable_record() {
+        for ty_arg in ["A", "Array<A>", "Option<A>", "Nullable<A>", "Record<string, A>"] {
+            for (imports, callee) in JSON_SPELLINGS {
+                let err = emit_err(&format!(
+                    "module x\n{imports}\n\
+                     type Opaque = extern_ts(\"{{ handle: number }}\")\n\
+                     type A = {{ id: number, cb: Opaque, }}\n\
+                     pub fn go(s: string) -> bool {{\n\
+                     \x20 return match {callee}<{ty_arg}>(s) {{ Ok(_) => true, Err(_) => false, }}\n\
+                     }}\n"
+                ));
+                assert!(
+                    matches!(&err, EmitError::UnverifiableDescriptorUse { type_name, field, .. } if type_name == "A" && field == "cb"),
+                    "{callee}<{ty_arg}>: {err:?}"
+                );
+            }
+        }
+        for (imports, call, name, field) in [
+            ("import std/json { parse }\nimport w { Doc }", "parse<Doc>(s)", "Doc", "lexer"),
+            ("import std/json { parse }\nimport w", "parse<w.Doc>(s)", "Doc", "lexer"),
+            ("import std/json { parse }\nimport w { Holder }", "parse<Holder>(s)", "Holder", "inner.lexer"),
+        ] {
+            let main = format!(
+                "module main\n{imports}\n\
+                 pub fn go(s: string) -> bool {{\n\
+                 \x20 return match {call} {{ Ok(_) => true, Err(_) => false, }}\n\
+                 }}\n"
+            );
+            assert_g210_refused(emit_beside(("w", G210_W), &main), name, field, "Lexer");
+        }
+    }
+
+    /// `parse<T>` for a `T` with no descriptor of its own (a primitive,
+    /// `Option`, `Nullable`, `Record`, an alias) validates with the check a
+    /// record field of that type gets, built into a schema from its guard. In
+    /// every spelling; before, each of these cast.
+    #[test]
+    fn json_parse_of_a_non_record_type_validates_like_a_field() {
+        for (ty_arg, check) in [
+            ("number", "typeof __x === \"number\""),
+            ("int", "Number.isInteger(__x)"),
+            ("string", "typeof __x === \"string\""),
+            ("bool", "typeof __x === \"boolean\""),
+            ("Tier", "__x === \"free\" || __x === \"pro\""),
+            ("Option<User>", "\"Some\" && User.is(((__x) as { value?: unknown }).value)"),
+            ("Nullable<User>", "(__x === null || User.is(__x))"),
+            ("Record<string, int>", ".values(__x as Record<string, unknown>).every("),
+            ("Array<number>", "Array.isArray(__x)"),
+        ] {
+            for (imports, callee) in JSON_SPELLINGS {
+                let ts = emit(&format!(
+                    "module x\n{imports}\n\
+                     pub type User = {{ name: string, }}\n\
+                     pub type Tier = \"free\" | \"pro\"\n\
+                     pub fn go(s: string) -> bool {{\n\
+                     \x20 return match {callee}<{ty_arg}>(s) {{ Ok(_) => true, Err(_) => false, }}\n\
+                     }}\n"
+                ));
+                let with = parse_with_call(callee);
+                assert!(ts.contains(&format!("{with}s, __glyph_schema<")), "{callee}<{ty_arg}>: {ts}");
+                assert!(ts.contains(check), "{callee}<{ty_arg}> checks `{check}`: {ts}");
+                assert!(
+                    ts.contains("import { schema as __glyph_schema } from \"./.glyph-runtime/std/schema\";"),
+                    "{callee}<{ty_arg}> imports the schema factory: {ts}"
+                );
+                assert!(!ts.contains(&format!("{callee}<")), "{callee}<{ty_arg}> still casts: {ts}");
+            }
+        }
+    }
+
+    /// An alias of `Array` validates like the `Array` it names, through the
+    /// element's schema, so a bad row reports its own path.
+    #[test]
+    fn json_parse_of_an_array_alias_validates_like_the_array() {
+        for (imports, callee) in JSON_SPELLINGS {
+            let ts = emit(&format!(
+                "module x\n{imports}\n\
+                 pub type User = {{ name: string, }}\n\
+                 pub type Rows = Array<User>\n\
+                 pub fn go(s: string) -> Result<Rows, Array<Issue>> {{ return {callee}<Rows>(s) }}\n"
+            ));
+            let with = parse_with_call(callee);
+            assert!(ts.contains(&format!("{with}s, User.schema.array())")), "{callee}<Rows>: {ts}");
+        }
+    }
+
+    /// `parse<unknown>` claims nothing, so it stays the plain read in every
+    /// spelling, as does `parse(text)` with no type argument.
+    #[test]
+    fn json_parse_of_unknown_stays_a_plain_read() {
+        for (imports, callee) in JSON_SPELLINGS {
+            let ts = emit(&format!(
+                "module x\n{imports}\n\
+                 pub fn a(s: string) -> Result<unknown, Array<Issue>> {{ return {callee}<unknown>(s) }}\n\
+                 pub fn b(s: string) -> Result<unknown, Array<Issue>> {{ return {callee}(s) }}\n"
+            ));
+            assert!(ts.contains(&format!("return {callee}<unknown>(s);")), "{ts}");
+            assert!(ts.contains(&format!("return {callee}(s);")), "{ts}");
+            assert!(!ts.contains("parse_with"), "{ts}");
+        }
+    }
+
+    /// The 0.1.133 half is not this change: a `T` with no runtime check that
+    /// is not a record holding one (a type parameter, an `extern_ts` type)
+    /// is still accepted in every spelling.
+    #[test]
+    fn json_parse_of_a_generic_or_extern_type_is_still_accepted() {
+        for (imports, callee) in JSON_SPELLINGS {
+            let ts = emit(&format!(
+                "module x\n{imports}\n\
+                 type Opaque = extern_ts(\"{{ handle: number }}\")\n\
+                 pub fn load<T>(s: string) -> Result<T, Array<Issue>> {{ return {callee}<T>(s) }}\n\
+                 pub fn raw(s: string) -> Result<Opaque, Array<Issue>> {{ return {callee}<Opaque>(s) }}\n"
+            ));
+            assert!(ts.contains(&format!("{callee}<T>(s)")), "{ts}");
+            assert!(ts.contains(&format!("{callee}<Opaque>(s)")), "{ts}");
+        }
     }
 
     #[test]

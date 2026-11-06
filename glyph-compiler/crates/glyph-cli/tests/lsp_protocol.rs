@@ -441,16 +441,18 @@ fn the_editor_publishes_the_emitters_errors() {
             "{code}: on open, the editor and `glyph check` disagree about main.glyph: {published:?}"
         );
 
-        // A keystroke publishes the front end at once, without the emitter's
-        // refusal, and the whole list once typing pauses. A trailing newline
-        // moves no position.
+        // A keystroke publishes the front end at once, with the emitter's
+        // last refusal carried forward through the edit, and the whole list
+        // once typing pauses. A trailing newline moves no position, so the
+        // carried refusal is where `glyph check` puts it.
         lsp.change(&main_path, 2, &format!("{main}\n"));
         let after = lsp.publishes_until_quiet(&main_path);
         let (first_version, first) = &after[0];
         assert_eq!(*first_version, Some(2), "{code}: {after:?}");
-        assert!(
-            !codes_of(first).iter().any(|c| c == code),
-            "{code}: the keystroke's first publish ran the emitter: {first:?}"
+        assert_eq!(
+            as_cli(first),
+            from_cli,
+            "{code}: the keystroke's first publish dropped or moved the emitter's refusal: {first:?}"
         );
         let (last_version, last) = after.last().expect("a publish");
         assert_eq!(*last_version, Some(2), "{code}: {after:?}");
@@ -551,6 +553,67 @@ fn a_save_publishes_the_emitters_errors_at_once() {
             .any(|(v, d)| *v == Some(2) && codes_of(d).iter().any(|c| c == "E0302")),
         "the save did not publish the emitter's refusal: {after:?}"
     );
+    let (last_version, last) = after.last().expect("a publish");
+    assert_eq!(*last_version, Some(3), "{after:?}");
+    assert!(last.is_empty(), "the fixed text is clean: {after:?}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The start of the first diagnostic with `code` in one publish.
+fn start_of(diagnostics: &[Value], code: &str) -> Option<(u64, u64)> {
+    diagnostics.iter().find(|d| d["code"] == json!(code)).map(|d| {
+        (
+            d["range"]["start"]["line"].as_u64().unwrap_or(0),
+            d["range"]["start"]["character"].as_u64().unwrap_or(0),
+        )
+    })
+}
+
+/// Review 78, item 8a. A keystroke's publish carries the emitter's last
+/// refusals forward, mapped through the edit, so they neither vanish while a
+/// person types nor stay at a position the text has moved away from.
+///
+/// A comment line is typed above an E0302: the keystroke's own publish, the
+/// one before any emitter run, has the E0302 one line lower. Then the E0302
+/// is fixed inside the debounce window. The fix's edit replaces the refused
+/// expression, so the carried E0302 is dropped with it, and nothing after the
+/// fix's first publish carries one.
+#[test]
+fn an_emitter_error_moves_with_a_line_typed_above_it() {
+    let dir = tmp_dir("carry");
+    let main_path = dir.join("main.glyph");
+    std::fs::write(&main_path, E0302_PICK).expect("write main");
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+    let opened = lsp.diagnostics_for(&main_path);
+    let (line, character) =
+        start_of(&opened, "E0302").unwrap_or_else(|| panic!("the open has no E0302: {opened:?}"));
+
+    let above = "pub fn pick(";
+    let typed = E0302_PICK.replacen(above, &format!("// a note\n{above}"), 1);
+    lsp.change(&main_path, 2, &typed);
+    let (version, first) = lsp.next_publish(&main_path);
+    assert_eq!(version, Some(2));
+    assert_eq!(
+        start_of(&first, "E0302"),
+        Some((line + 1, character)),
+        "the keystroke's publish did not carry the E0302 one line down: {first:?}"
+    );
+
+    let fixed = FIXED_PICK.replacen(above, &format!("// a note\n{above}"), 1);
+    lsp.change(&main_path, 3, &fixed);
+    let after = lsp.publishes_until_quiet(&main_path);
+    let fixed_at = after
+        .iter()
+        .position(|(v, _)| *v == Some(3))
+        .unwrap_or_else(|| panic!("the fix was never published: {after:?}"));
+    for (version, diagnostics) in &after[fixed_at..] {
+        assert!(
+            !codes_of(diagnostics).iter().any(|c| c == "E0302"),
+            "a stale E0302 (version {version:?}) landed after the fix: {after:?}"
+        );
+    }
     let (last_version, last) = after.last().expect("a publish");
     assert_eq!(*last_version, Some(3), "{after:?}");
     assert!(last.is_empty(), "the fixed text is clean: {after:?}");

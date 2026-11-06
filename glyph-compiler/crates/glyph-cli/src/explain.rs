@@ -547,7 +547,20 @@ pub fn explain(code: &str) -> Option<&'static str> {
               Loadign => 2,   // E0220: did you mean `Loading`?\n\
             }\n\n\
             Fix the spelling, or add the variant to the union. A genuinely \
-            missing variant is still reported separately as E0200.",
+            missing variant is still reported separately as E0200.\n\n\
+            A string-literal union (D30) is held to the same rule. A literal \
+            arm for a value the union does not hold can never run, whether \
+            the value is new or a misspelling of one the union has, and an \
+            `else` does not change that:\n\n\
+            type Mode = \"manual\" | \"auto\"\n\
+            match m {\n  \
+              \"manual\" => 1,\n  \
+              \"manuel\" => 2,   // E0220: did you mean `\"manual\"`?\n  \
+              else => 3,\n\
+            }\n\n\
+            This holds for a union declared in the module, one imported from \
+            a sibling under any import spelling, and the standard library's \
+            own (`http.RedirectPolicy`).",
 
         "E0221" => "E0221: unknown annotation\n\n\
             An `@<name>` the compiler does not recognize (D27). Unknown \
@@ -1671,8 +1684,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0220",
         phase: "typechecker",
-        meaning: "A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9)",
-        fix: "Fix the spelling (a `did you mean` suggestion is offered), or add the variant",
+        meaning: "A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9). Also a literal arm over a string-literal union for a value the union does not hold (`\"c\"` over `\"a\" | \"b\"`, or `\"manuel\"` beside `\"manual\"`), with or without an `else`, for a local, imported or stdlib union (D30)",
+        fix: "Fix the spelling (a `did you mean` suggestion is offered), add the variant or value, or delete an arm for a value the union does not have",
     },
     CodeEntry {
         code: "E0221",

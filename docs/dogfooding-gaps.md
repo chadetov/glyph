@@ -11395,7 +11395,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
   `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
-- **G305. A `match` arm for a literal outside the union is accepted.** With
+- **G305. [FIXED] A `match` arm for a literal outside the union is accepted.** With
   `type Mode = "a" | "b"`, a match on a `Mode` with arms `"a"`, `"b"` and
   `"c"` passes `glyph check --no-tsc`. The `"c"` arm can never run, and
   `tsc` says so (``TS2678: Type '"c"' is not comparable to type 'Mode'``).
@@ -11404,6 +11404,25 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
   `no diagnostics` under `--no-tsc`, TS2678 with `tsc`.*
+
+  *Re-run against 0.1.131 before the fix: the same, for a local union, a
+  sibling's union under a named and a namespace import, and
+  `http.RedirectPolicy` with a `"folow"` arm (`no diagnostics` under
+  `--no-tsc`, TS2678 with `tsc`).*
+
+  Fixed in 0.1.132. A literal arm over a string-literal union is checked
+  against the union's values, before the catch-all is considered, so an
+  `else` does not hide it. The `"c"` arm is ``[E0220] ... `"c"` is not a value
+  of `Mode`; did you mean `"a"`?`` at the arm, and the misspelling is
+  ``... `"manuel"` is not a value of `Mode`; did you mean `"manual"`?``. E0220
+  was the variant-head form of the same mistake and now covers both. The
+  union is read through the lookup exhaustiveness already uses, so a local
+  union, an inline one, an imported one under a named, namespace or aliased
+  import and the stdlib's four are all covered. Under `--no-tsc` the program
+  goes from exit 0 to 1; under `glyph check` it was exit 1 from `tsc` already.
+  The suggestion uses E0220's shared edit-distance rule and can name a value
+  another arm already covers (`"a"` for `"c"`); `glyph fix` declines a
+  literal arm rather than rewriting it.
 - **G307. `array.concat`'s row accepts two arrays the runtime does not.** The
   checker's row is `fn(Array<T>, Array<U>) -> Array<T>`: the second array may
   hold any element type, and the result is typed as the first. The runtime is

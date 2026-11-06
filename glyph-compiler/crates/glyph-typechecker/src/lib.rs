@@ -721,6 +721,21 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// A literal `match` arm over a string-literal union (D30) whose value the
+    /// union does not hold (G305): `"c"` over `"a" | "b"`, or a misspelling
+    /// beside the right literal (`"manuel"` beside `"manual"`). The arm can
+    /// never run, and `tsc` refuses it (TS2678). The literal-union twin of
+    /// `UnknownVariantPattern`, under the same code: in both an arm names a
+    /// case the scrutinee's union does not have. `suggestion` is the nearest
+    /// literal by the same edit-distance rule.
+    #[error("`\"{value}\"` is not a value of `{union}`{}", .suggestion.as_deref().map(|s| format!("; did you mean `\"{s}\"`?")).unwrap_or_default())]
+    UnknownLiteralPattern {
+        union: String,
+        value: String,
+        suggestion: Option<String>,
+        span: Span,
+    },
+
     /// `await` written outside an `async fn`. Glyph has no user-visible
     /// `Promise`, so `await` is only meaningful inside a callable declared
     /// `async`; anywhere else the emitted TypeScript is rejected by `tsc`
@@ -964,6 +979,7 @@ impl TypeError {
             TypeError::UnreachableMatchArm { span } => *span,
             TypeError::UnusedResult { span } => *span,
             TypeError::UnknownVariantPattern { span, .. } => *span,
+            TypeError::UnknownLiteralPattern { span, .. } => *span,
             TypeError::AwaitOutsideAsyncFn { span } => *span,
             TypeError::MatchArmProducesNoValue { span } => *span,
             TypeError::DestructureUnproven { span, .. } => *span,
@@ -1006,6 +1022,7 @@ impl TypeError {
             TypeError::UnreachableMatchArm { .. } => "E0216",
             TypeError::UnusedResult { .. } => "E0217",
             TypeError::UnknownVariantPattern { .. } => "E0220",
+            TypeError::UnknownLiteralPattern { .. } => "E0220",
             TypeError::AwaitOutsideAsyncFn { .. } => "E0222",
             TypeError::MatchArmProducesNoValue { .. } => "E0223",
             TypeError::DestructureUnproven { .. } => "E0230",
@@ -1167,6 +1184,9 @@ impl TypeError {
             TypeError::UnknownVariantPattern { .. } => {
                 "Check the name for a typo, or add the variant to the union. A lowercase name would be a binding; a PascalCase name is read as a variant."
             }
+            TypeError::UnknownLiteralPattern { .. } => {
+                "Check the literal for a typo, or add the value to the union. If the arm is for a value the union no longer has, delete it."
+            }
             TypeError::AwaitOutsideAsyncFn { .. } => {
                 "Mark the enclosing function `async fn`, or call a non-async function here."
             }
@@ -1223,6 +1243,9 @@ impl TypeError {
             ),
             TypeError::UnknownVariantPattern { .. } => Some(
                 "A bare PascalCase arm head is a variant reference, not a binding (D9). Treating a non-variant as a binding would hide it as a silent catch-all.",
+            ),
+            TypeError::UnknownLiteralPattern { .. } => Some(
+                "A string-literal union is a closed set of values (D30), so a value outside it never reaches the match and the arm is dead code.",
             ),
             TypeError::AwaitOutsideAsyncFn { .. } => Some(
                 "Glyph has no user-visible `Promise`: an `async fn -> T` is awaited to a `T`, and `await` only appears inside one.",
@@ -1383,7 +1406,8 @@ impl TypeError {
             | TypeError::ArgumentTypeMismatch { accepted, .. } => {
                 accepted.as_ref().map(|a| a.values.clone())
             }
-            TypeError::UnknownVariantPattern { suggestion, .. } => {
+            TypeError::UnknownVariantPattern { suggestion, .. }
+            | TypeError::UnknownLiteralPattern { suggestion, .. } => {
                 suggestion.as_ref().map(|s| vec![s.clone()])
             }
             _ => None,
@@ -1414,6 +1438,9 @@ impl TypeError {
             }
             TypeError::UnknownVariantPattern { suggestion, .. } => {
                 suggestion.as_ref().map(|_| AlternativesKind::Variants)
+            }
+            TypeError::UnknownLiteralPattern { suggestion, .. } => {
+                suggestion.as_ref().map(|_| AlternativesKind::Literals)
             }
             _ => None,
         }

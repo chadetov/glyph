@@ -4598,6 +4598,26 @@ impl Assigner<'_> {
                 _ => self.cover_decline(cov.as_ref(), ordinal, None),
             }
         }
+        // G305. A literal the union does not hold can never reach this match,
+        // so its arm is dead code, and `tsc` refuses it (TS2678). Checked
+        // before the catch-all return: an `else` absorbs the values the arms
+        // leave out, and says nothing about a value that is not there.
+        for arm in arms {
+            if let Pattern::Literal {
+                value: LiteralPattern::String(s),
+                span,
+            } = &arm.pattern
+            {
+                if !values.iter().any(|v| v == s) {
+                    self.errors.push(TypeError::UnknownLiteralPattern {
+                        union: ty_display(scrutinee_ty),
+                        value: s.clone(),
+                        suggestion: nearest_name(s, values.iter().map(String::as_str)),
+                        span: *span,
+                    });
+                }
+            }
+        }
         if has_catch_all {
             return;
         }
@@ -18333,5 +18353,141 @@ fn main(p: Point, m: Meta, s: Status) -> number {
             .filter(|c| *c != "E0217")
             .collect();
         assert_eq!(codes, vec!["E0204", "E0213"], "{errs:?}");
+    }
+
+    /// The `E0220`s a program draws for literal arms, as `(value, union,
+    /// suggestion)`.
+    fn unknown_literal_arms(errs: &[TypeError]) -> Vec<(String, String, Option<String>)> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::UnknownLiteralPattern { value, union, suggestion, .. } => {
+                    assert_eq!(e.code(), "E0220");
+                    Some((value.clone(), union.clone(), suggestion.clone()))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// G305. A literal arm outside the scrutinee's string-literal union can
+    /// never run, and `tsc` refuses it (TS2678). It passed Glyph's checker,
+    /// whether the literal was a new value (`"c"`) or a misspelling next to
+    /// the right one (`"manuel"` beside `"manual"`), and an `else` did not
+    /// change that.
+    #[test]
+    fn a_literal_arm_outside_the_union_is_refused() {
+        let errs = errors_of(
+            "module m\n\
+             type Mode = \"a\" | \"b\"\n\
+             type Entry = \"manual\" | \"auto\"\n\
+             pub fn f(m: Mode) -> string {\n\
+             \x20 return match m {\n\
+             \x20\x20\x20 \"a\" => \"A\",\n\
+             \x20\x20\x20 \"b\" => \"B\",\n\
+             \x20\x20\x20 \"c\" => \"C\",\n\
+             \x20 }\n\
+             }\n\
+             pub fn g(e: Entry) -> string {\n\
+             \x20 return match e {\n\
+             \x20\x20\x20 \"manual\" => \"M\",\n\
+             \x20\x20\x20 \"manuel\" => \"X\",\n\
+             \x20\x20\x20 else => \"A\",\n\
+             \x20 }\n\
+             }\n\
+             pub fn h(i: \"x\" | \"y\") -> string {\n\
+             \x20 return match i {\n\
+             \x20\x20\x20 \"x\" => \"X\",\n\
+             \x20\x20\x20 \"y\" => \"Y\",\n\
+             \x20\x20\x20 \"zebra\" => \"Z\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert_eq!(
+            unknown_literal_arms(&errs),
+            vec![
+                ("c".to_string(), "Mode".to_string(), Some("a".to_string())),
+                ("manuel".to_string(), "Entry".to_string(), Some("manual".to_string())),
+                ("zebra".to_string(), "\"x\" | \"y\"".to_string(), None),
+            ],
+            "{errs:?}"
+        );
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert_eq!(codes, vec!["E0220", "E0220", "E0220"], "{errs:?}");
+    }
+
+    /// The arms G305 must not touch: every value of the union, with or
+    /// without a catch-all, and a literal arm over a plain `string`, whose
+    /// domain has no outside.
+    #[test]
+    fn literal_arms_inside_the_union_stay_silent() {
+        let errs = errors_of(
+            "module m\n\
+             type Mode = \"a\" | \"b\"\n\
+             pub fn f(m: Mode, s: string) -> string {\n\
+             \x20 let x = match m {\n\
+             \x20\x20\x20 \"a\" => \"A\",\n\
+             \x20\x20\x20 else => \"B\",\n\
+             \x20 }\n\
+             \x20 let y = match s {\n\
+             \x20\x20\x20 \"c\" => \"C\",\n\
+             \x20\x20\x20 else => \"D\",\n\
+             \x20 }\n\
+             \x20 return match m {\n\
+             \x20\x20\x20 \"a\" => x,\n\
+             \x20\x20\x20 \"b\" => y,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// G305 under both import spellings of a sibling's union.
+    #[test]
+    fn a_literal_arm_outside_an_imported_union_is_refused() {
+        struct ModesModule;
+        impl DeclTyResolver for ModesModule {
+            fn decl_ty(&self, _decl_idx: u32) -> Ty {
+                Ty::Unknown
+            }
+            fn imported_type_decl(
+                &self,
+                module_path: &str,
+                type_name: &str,
+            ) -> Option<ImportedTypeDecl> {
+                (module_path == "modes" && type_name == "Mode").then(|| ImportedTypeDecl {
+                    name: Ident::from("Mode"),
+                    generics: Vec::new(),
+                    body: Ty::StringLiteralUnion(vec!["manual".to_string(), "auto".to_string()]),
+                })
+            }
+        }
+        let src = "module app\n\
+                   import modes { Mode }\n\
+                   import modes as md\n\
+                   pub fn named(m: Mode) -> number {\n\
+                   \x20 return match m {\n\
+                   \x20\x20\x20 \"manual\" => 1,\n\
+                   \x20\x20\x20 \"auto\" => 2,\n\
+                   \x20\x20\x20 \"manuel\" => 3,\n\
+                   \x20 }\n\
+                   }\n\
+                   pub fn spaced(m: md.Mode) -> number {\n\
+                   \x20 return match m {\n\
+                   \x20\x20\x20 \"manual\" => 1,\n\
+                   \x20\x20\x20 \"auto\" => 2,\n\
+                   \x20\x20\x20 \"manuel\" => 3,\n\
+                   \x20 }\n\
+                   }\n";
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, errs) = assign_types_with_resolver(&m, &resolved, &prelude, &ModesModule);
+        let expected = ("manuel".to_string(), "Mode".to_string(), Some("manual".to_string()));
+        assert_eq!(
+            unknown_literal_arms(&errs),
+            vec![expected.clone(), expected],
+            "the import spelling does not change the answer: {errs:?}"
+        );
     }
 }

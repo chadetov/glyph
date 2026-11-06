@@ -60,26 +60,36 @@ jobs:
       # on the first cargo invocation. The registry and the build dir are
       # cached so third-party crates are not recompiled on every run.
       #
-      # The key is the lockfile hash, and every release PR changes the
-      # lockfile, so for a long time the exact key never matched and this
-      # restored nothing. `restore-keys` takes the newest cache from any
-      # lockfile instead; cargo rebuilds whatever that lockfile changed and
-      # reuses the rest. Restoring cannot weaken a check: `--locked` still
-      # holds, and the workspace crates rebuild on every run because their
-      # artifacts are pruned before saving (and checkout gives their sources
-      # fresh mtimes regardless).
+      # The key is the toolchain hash plus the lockfile hash. A toolchain bump
+      # makes every third-party artifact useless, so a cache from another
+      # toolchain is never restored, not even as a fallback.
       #
-      # Restored everywhere, saved only from pushes to main by the last step
-      # of this job, so a pull request cannot write a cache other runs read.
+      # Pushes to main restore only on an exact key match. When the key
+      # changes, main builds from scratch and saves, so every saved cache is
+      # one cold build of one toolchain and one lockfile, and what it holds
+      # does not depend on the lockfiles it was restored through before.
+      #
+      # Pull requests also take `restore-keys`: the newest cache for the same
+      # toolchain from any lockfile. Cargo rebuilds whatever the lockfile
+      # changed and reuses the rest. Restoring cannot weaken a check:
+      # `--locked` still holds, and the workspace crates rebuild on every run
+      # because their artifacts are pruned before saving (and checkout gives
+      # their sources fresh mtimes regardless). The expression is empty on a
+      # push, and the action drops empty lines from `restore-keys`.
+      #
+      # Saved only from pushes to main by the last step of this job, and only
+      # when this restore missed the exact key, so a pull request cannot write
+      # a cache other runs read and an exact hit is not saved again.
       - name: Restore the cargo cache
+        id: cargo-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             glyph-compiler/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}
-          restore-keys: cargo-${{ runner.os }}-
+          key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/rust-toolchain.toml') }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}
+          restore-keys: ${{ github.event_name == 'pull_request' && format('cargo-{0}-{1}-', runner.os, hashFiles('glyph-compiler/rust-toolchain.toml')) || '' }}
 
       # node + tsx + tsc let the toolchain-dependent tests (glyph run, @example /
       # @doc @run execution) and the `--check` step actually run rather than skip.
@@ -287,6 +297,9 @@ jobs:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
         run: python3 scripts/check_catches.py
 
+      # Skipped on an exact cache hit, with the save below: the restored cache
+      # already is this key's cold build, so there is nothing new to save.
+      #
       # Last in the job because pruning deletes the `glyph` binary every step
       # above uses. Only the third-party build is worth keeping: the workspace
       # crates rebuild on every run anyway, and `incremental/` only grows. Left
@@ -294,7 +307,7 @@ jobs:
       # The crate list comes from `cargo metadata`, so a new workspace member
       # is pruned without anyone editing this step.
       - name: Prune the workspace's own build artifacts
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.cargo-cache.outputs.cache-hit != 'true'
         working-directory: glyph-compiler
         run: |
           set -euo pipefail
@@ -308,11 +321,11 @@ jobs:
           du -sh target || true
 
       - name: Save the cargo cache
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.cargo-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             glyph-compiler/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}
+          key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/rust-toolchain.toml') }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}

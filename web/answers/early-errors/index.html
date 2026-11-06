@@ -423,6 +423,24 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
+        <p>
+          The same containers against a declared record or union came next. Since 0.1.130
+          <code>let user: User = json.parse(body)</code> is <code>E0204</code>, expected
+          <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Before,
+          only <code>tsc</code> said so, which meant <code>glyph check --no-tsc</code>, the editor
+          and the playground showed a clean file on the one line a boundary exists to get right.
+        </p>
+        <p>
+          A misspelled member on an array or a string is the other case that used to wait for
+          <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with "did you mean
+          <code>length</code>", checked against the members TypeScript's library declares for
+          arrays and strings, the way a record's field read is checked against its fields.
+          <code>tsc</code> would have refused both, so a build that ran it was already red; the
+          change is that the checker, and everything built on it, sees them first.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">And two more in 0.1.122</p>
         <p>
           <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the
@@ -701,7 +719,7 @@ string.repeeat(s, 2)
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic "expected module path segment", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic "expected module path segment", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>

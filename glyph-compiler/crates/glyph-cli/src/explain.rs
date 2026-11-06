@@ -1546,7 +1546,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0204",
         phase: "typechecker",
-        meaning: "Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
+        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
         fix: "Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)`",
     },
     CodeEntry {
@@ -1745,7 +1745,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0304",
         phase: "emitter",
-        meaning: "`parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine",
+        meaning: "`parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine. Judged by the declaring module, so the call is refused from a module that imports the record too",
         fix: "Split the wire type from the domain type: parse the checkable fields, then build the record",
     },
     CodeEntry {

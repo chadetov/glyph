@@ -554,8 +554,9 @@ Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the mes
         </p>
         <p>
           Holding a socket in a record is ordinary and still compiles.
-          Validating one is now refused where it is written, naming the field and
-          its type, and the refusal follows the shape: through a nested record,
+          Validating one is now refused where it is written and in every module
+          that imports the record, naming the field and its type, and the refusal
+          follows the shape: through a nested record,
           an <code>Array</code>, an <code>Option</code>. The fix it asks for is
           the split you would have written anyway, a wire type whose fields are
           all checkable, then a domain record you build from it.

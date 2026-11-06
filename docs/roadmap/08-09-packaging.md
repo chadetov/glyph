@@ -74,10 +74,11 @@ standalone-library bundling. Full notes in `archive/glyph-day-0-parser.md §Part
   `.github/workflows/playground.yml` deploys to GitHub Pages. Verified end to
   end: the real web artifact compiles a program in Node, diagnostics carry codes
   and positions, and every asset serves with the right MIME (`application/wasm`).
-  The default example is a small `Plan` pricing union that compiles to a clean
-  discriminated union + exhaustive `switch` — the verifiability pillar made
-  visible. (The `02_async_errors.glyph` `load_feed` example noted below is an
-  even stronger TS-boilerplate contrast and a good alternate default.)
+  Since 0.1.130 the page opens on a program Glyph refuses and `tsc --strict`
+  accepts, the non-exhaustive match from `catches/`. The example picker is
+  generated from `catches/` and the plain programs in `playground/examples/`
+  by `scripts/gen_playground_examples.py`, and Share puts the program in the
+  URL fragment, so it never reaches a server.
 
 ### What's kept
 

@@ -1903,7 +1903,7 @@ machine-readably. The full catalogue:
 | E0201 | `?` used outside a `Result`-returning function | Return `Result`, or handle with `match` |
 | E0202 | `?` applied to a non-`Result` operand | Drop the `?`, or return a `Result` |
 | E0203 | `?` error type does not match the function's `E` (no `From` in v1) | `.map_err(...)` to line the error types up |
-| E0204 | Type mismatch. Includes an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
+| E0204 | Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>` | Make the value and the expected type agree; bind a non-record payload to one name, `Loaded(users)` |
 | E0205 | `owned` used on a non-`resource` type (D25) | Mark the type `resource`, or drop `owned` |
 | E0206 | `owned` resource not consumed on every path (D25) | Consume it (move to an `owned` param) on all paths |
 | E0207 | `owned` resource used after it was consumed (D25) | Reorder so uses precede the consume |
@@ -1936,7 +1936,7 @@ machine-readably. The full catalogue:
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |
 | E0303 | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) | Bind the operand first (`let r = f(x)?`), then use `r` |
-| E0304 | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine | Split the wire type from the domain type: parse the checkable fields, then build the record |
+| E0304 | `parse`/`is` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union); declaring the record is fine. Judged by the declaring module, so the call is refused from a module that imports the record too | Split the wire type from the domain type: parse the checkable fields, then build the record |
 | E0305 | Two arms of one `match` lower to the same `case` label, so the later arm can never run | Remove the later arm, or give the two arms patterns that test different values |
 | E0310 | `glyph run` on a module with no `fn main` (it's a library — nothing to run) | Add `fn main`, or `glyph build` it as a library |
 | E0400 | An `@example` compared unequal, or threw while it was evaluated | Fix the code if the example states what you meant, or the example if it does not |

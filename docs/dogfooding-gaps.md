@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-301 entries, 257 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+301 entries, 258 are fixed, 7 are partly fixed, 11 are decided or resolved, and
 25 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -10238,7 +10238,7 @@ and is the owner's to confirm.
   under `--no-tsc` and `[TS2740]` with `tsc`. Copying the example in alone
   draws `[E0104] unresolved import api/users`.*
 
-- **G248. [HALF] A `needs-deps` fence is compiled by nothing.** `check_docs_compile.py`
+- **G248. [FIXED] A `needs-deps` fence is compiled by nothing.** `check_docs_compile.py`
   skips a fence marked `needs-deps` (an npm import or a `component`), so the
   AGENTS.md bootstrap taught `component Greeting(name: string)`, a spelling
   that never rendered and that 0.1.125 refuses as E0229, and no gate noticed.
@@ -10260,6 +10260,16 @@ and is the owner's to confirm.
   AGENTS.md component fences and the TypeScript guide's Card fence are
   compiled. Left: the AGENTS.md mount fence, which imports a sibling module,
   and the fences that need other packages (pg, mongodb, leftpad, zod).
+
+  Fixed in 0.1.130: a `needs-npm` fence is compiled against zod, pg and
+  mongodb installed from the committed lockfile in
+  `scripts/fixtures/docs-deps`, with any `declare module` a page shows in a
+  `ts` fence written into `.types/`. The database guide's and the imports
+  guide's fences, and the two AGENTS.md import examples rewritten as whole
+  modules, are all compiled, and no fence in the docs is marked `needs-deps`
+  any more: `check_docs_compile.py` reports 131 checked and 0 failed, with 11
+  against npm packages, and a deliberately wrong `leftpad` argument in AGENTS.md
+  fails it with TS2345.
 - **G249. [FIXED] Go-to-definition on a namespace member answers `null`, where the
   named import answers.** With `ui` declaring `pub component Button`,
   `glyph query definition` on `Button` in `let b = Button` under
@@ -10860,7 +10870,9 @@ and is the owner's to confirm.
   Array<Issue>>` ``, exit 1, and `catches/unvalidated-boundary-read` is an
   E0204 case. Breaking: `let s: Sized = xs` with `Sized = { length: number }`
   and `xs: Array<string>` passes 0.1.129 with and without `tsc`, exit 0, and is
-  E0204 now.
+  E0204 now. The rule is D49: a declared record or union is its own type, so a
+  container is another declaration, as `Sized.parse` already said at runtime.
+  `interface Sized { length: number }` (D34) keeps the program.
 - **G290. [FIXED] `glyph gen dts` threw away the caller's `NODE_PATH`.**
   The helper that reads a `.d.ts` ran node with `NODE_PATH` set to
   `npm root -g`, replacing whatever the caller had set, so a TypeScript
@@ -10967,6 +10979,15 @@ and is the owner's to confirm.
   G286.
 
   *Reproduced against 0.1.129 (the dev-0.1.130 build, `glyph 0.1.129`): the declaration passes, the read at `m:8:12` is E0002.*
+
+  The same rule makes a documented call impossible to write. `T.is(value)` is
+  listed as a descriptor in AGENTS.md, the typed-APIs guide and E0228's own
+  text, and `Sized.is(v)` is ``[E0002] parse: `is` is a reserved word in Glyph
+  and cannot be written as a name here`` on 0.1.130 (``expected identifier
+  after `.`, found Is`` on 0.1.129). Only `T.parse` can be called.
+
+  *Reproduced against 0.1.130, on the release-branch build, and against the
+  published 0.1.129: `match Sized.is(v) { ... }` is E0002 on both.*
 - **G301. A keyword in type position gets a generic parse error.**
   `fn f(x: match)` is ``[E0002] parse: expected type expression, found
   Match``, with help about trailing commas; the G286 message that names the

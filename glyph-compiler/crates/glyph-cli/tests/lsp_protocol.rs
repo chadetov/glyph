@@ -683,3 +683,95 @@ fn a_sibling_changed_on_disk_republishes_an_open_file() {
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+impl Lsp {
+    /// `glyph/applyEdit` replacing `file`'s whole buffer, `old`, with `new`.
+    fn apply_whole(&mut self, file: &Path, old: &str, new: &str) -> Value {
+        let lines: Vec<&str> = old.split('\n').collect();
+        let last = lines.len() - 1;
+        self.request(
+            "glyph/applyEdit",
+            json!({
+                "uri": uri(file),
+                "edits": [{
+                    "range": {
+                        "start": { "line": 0, "character": 0 },
+                        "end": { "line": last, "character": lines[last].len() },
+                    },
+                    "newText": new,
+                }],
+            }),
+        )
+    }
+}
+
+/// G306. `glyph/applyEdit` refuses what `glyph check` refuses: the gate
+/// checks the candidate inside its project and through the emitter, with
+/// the list the editor publishes, where it checked the text alone and
+/// stopped after the checker. An emitter refusal (E0302), an import of a
+/// name the sibling does not export (E0105) and a wrong argument count
+/// against an imported function (E0213) were each accepted. A rejected edit
+/// leaves the buffer as it was, so a clean edit after it is checked against
+/// the original text.
+#[test]
+fn apply_edit_refuses_what_glyph_check_refuses() {
+    let dir = tmp_dir("apply_edit");
+    let main_path = dir.join("main.glyph");
+    let lib = "module lib\n\npub fn hello() -> string {\n  return \"hi\"\n}\n";
+    let uses = |call: &str, name: &str| {
+        format!(
+            "module main\nimport lib {{ {name} }}\n\npub fn run() -> string {{\n  return {call}\n}}\n\n{}",
+            CLEAN_PICK.trim_start_matches("module main\n")
+        )
+    };
+    let clean = uses("hello()", "hello");
+    std::fs::write(&main_path, &clean).expect("write main");
+    std::fs::write(dir.join("lib.glyph"), lib).expect("write lib");
+    let e0302 = uses("hello()", "hello").replace("    None => r,\n    Some(n) => b,", "    None => f(b)?,\n    Some(n) => r,");
+    let cases = [
+        ("E0302", e0302),
+        ("E0105", uses("goodbye()", "goodbye")),
+        ("E0213", uses("hello(1)", "hello")),
+    ];
+
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+    for (code, candidate) in &cases {
+        let broken = tmp_dir("apply_edit_cli");
+        std::fs::write(broken.join("main.glyph"), candidate).expect("write candidate");
+        std::fs::write(broken.join("lib.glyph"), lib).expect("write lib");
+        assert!(
+            check_codes(&broken).iter().any(|(c, ..)| c == code),
+            "the candidate no longer draws {code} from `glyph check`"
+        );
+        let _ = std::fs::remove_dir_all(&broken);
+
+        let answer = lsp.apply_whole(&main_path, &clean, candidate);
+        assert_eq!(answer["ok"], json!(false), "{code}: the gate accepted it: {answer}");
+        assert_eq!(answer["rejected"], json!("verification_failed"), "{code}: {answer}");
+        let codes = codes_of(answer["diagnostics"].as_array().expect("diagnostics"));
+        assert!(codes.iter().any(|c| c == code), "{code}: rejected for {codes:?}");
+    }
+
+    // A point edit at the end of `return hello()`, so a buffer still holding
+    // a rejected candidate would answer with that candidate's text.
+    let edited = clean.replace("hello()", "hello() + \"!\"");
+    let line = clean.lines().position(|l| l == "  return hello()").expect("the call line");
+    let answer = lsp.request(
+        "glyph/applyEdit",
+        json!({
+            "uri": uri(&main_path),
+            "edits": [{
+                "range": {
+                    "start": { "line": line, "character": 16 },
+                    "end": { "line": line, "character": 16 },
+                },
+                "newText": " + \"!\"",
+            }],
+        }),
+    );
+    assert_eq!(answer["ok"], json!(true), "a clean edit was refused: {answer}");
+    assert_eq!(answer["content"], json!(edited));
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}

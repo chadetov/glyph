@@ -76,7 +76,7 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use analysis::{
-    analyze, base_completions, find_symbol_span, validate_rename_name, CompletionTag, Definition,
+    base_completions, find_symbol_span, validate_rename_name, CompletionTag, Definition,
     LineIndex, OutlineKind, OutlineSymbol, RenameError, SymbolTarget,
 };
 use diagnostic::Stages;
@@ -623,29 +623,6 @@ fn to_lsp_diagnostics(text: &str, diagnostics: Vec<diagnostic::Diagnostic>) -> V
                 Some(help) => format!("{}\n{help}", d.message),
                 None => d.message,
             },
-            ..Default::default()
-        })
-        .collect()
-}
-
-/// [`to_lsp_diagnostics`] for the text path's diagnostics, which only
-/// `glyph/applyEdit` still reads: it checks a candidate text that is in no
-/// database. Every diagnostic is an error there, because the gate refuses an
-/// edit on any of them.
-fn text_path_to_lsp(text: &str, glyphs: Vec<analysis::GlyphDiagnostic>) -> Vec<Diagnostic> {
-    let index = LineIndex::new(text);
-    let pos = |offset: u32| {
-        let (line, character) = index.position(text, offset as usize);
-        Position::new(line, character)
-    };
-    glyphs
-        .into_iter()
-        .map(|d| Diagnostic {
-            range: Range::new(pos(d.start), pos(d.end)),
-            severity: Some(DiagnosticSeverity::ERROR),
-            code: Some(NumberOrString::String(d.code)),
-            source: Some("glyph".to_string()),
-            message: d.message,
             ..Default::default()
         })
         .collect()
@@ -1542,25 +1519,49 @@ impl Backend {
     /// open document and accept them only if the result type-checks clean. This
     /// is the TS-family reconciliation of the abandoned `edit { … } @verify { … }`
     /// source syntax: the edit is plain LSP `TextEdit`s and the verification is
-    /// the compiler's own front-end gate (parse → resolve → typecheck), not a
-    /// new language construct. A successful call returns the verified new text
+    /// the compiler's own check of the file, not a new language construct. A
+    /// successful call returns the verified new text
     /// (the caller applies it and syncs via the normal `didChange`); a rejected
     /// call changes nothing and returns the errors the edit would have caused,
     /// making "the agent broke the file" a rejection rather than a saved edit.
     ///
-    /// v1 gate: the result must have *no* errors (a crisp "lands a clean
-    /// change" guarantee). Running the `@example`/property tests as part of the
+    /// v1 gate: the result must have no diagnostics at all, the warning tier
+    /// included (a crisp "lands a clean change" guarantee). Running the `@example`/property tests as part of the
     /// gate is a v1.1 enhancement (it needs the build pipeline factored into a
     /// library the server can call without the current cli→lsp dependency cycle).
+    ///
+    /// The candidate is checked inside the document's project, through the
+    /// emitter, with the list the server publishes for the file and `glyph
+    /// check --no-tsc` reports for it. Until 0.1.132 it was checked as text
+    /// alone and the check stopped after the checker, so an edit introducing
+    /// an emitter refusal or an error against a sibling module was accepted
+    /// (G306). The buffer is swapped for the candidate and back under one
+    /// hold of the workspace lock, so nothing else ever reads the candidate.
     async fn apply_edit_request(&self, params: ApplyEditParams) -> Result<ApplyEditResponse> {
-        let Some(text) = self.buffer(&params.uri) else {
-            return Ok(reject("document_not_open", Vec::new()));
+        let uri = &params.uri;
+        let root = self.analysis_root(uri);
+        let checked = {
+            let mut ws = self.ws.lock().expect("workspace mutex");
+            match ws.buffer(uri) {
+                None => Err("document_not_open".to_string()),
+                Some(text) => match apply_text_edits(&text, &params.edits) {
+                    Err(reason) => Err(reason),
+                    Ok(candidate) => {
+                        ws.set_buffer(uri, candidate.clone());
+                        let diags = ws
+                            .diagnostics(&root, uri, Stages::All)
+                            .map(|(t, d)| to_lsp_diagnostics(t, d))
+                            .unwrap_or_default();
+                        ws.set_buffer(uri, text);
+                        Ok((candidate, diags))
+                    }
+                },
+            }
         };
-        let candidate = match apply_text_edits(&text, &params.edits) {
+        let (candidate, diags) = match checked {
             Ok(c) => c,
             Err(reason) => return Ok(reject(&reason, Vec::new())),
         };
-        let diags = analyze(&candidate);
         if diags.is_empty() {
             Ok(ApplyEditResponse {
                 ok: true,
@@ -1569,8 +1570,7 @@ impl Backend {
                 diagnostics: Vec::new(),
             })
         } else {
-            let lsp = text_path_to_lsp(&candidate, diags);
-            Ok(reject("verification_failed", lsp))
+            Ok(reject("verification_failed", diags))
         }
     }
 
@@ -1706,6 +1706,7 @@ pub fn run_stdio() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use analysis::analyze;
 
     /// A publisher whose publishes land in the returned list.
     fn recording() -> (Publisher, PublishLog) {
@@ -2029,7 +2030,9 @@ mod tests {
 
     #[test]
     fn an_edit_that_typechecks_clean_has_no_diagnostics() {
-        // The gate the RPC applies: a clean result yields no diagnostics.
+        // The text path over a spliced candidate: a clean result yields no
+        // diagnostics. The gate itself is tested over the protocol
+        // (`apply_edit_refuses_what_glyph_check_refuses`).
         let candidate = apply_text_edits(
             "fn a() -> number {\n  return 1\n}\n",
             &[edit(1, 9, 1, 10, "42")],

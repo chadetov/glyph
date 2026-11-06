@@ -11423,6 +11423,28 @@ and is the owner's to confirm.
   The suggestion uses E0220's shared edit-distance rule and can name a value
   another arm already covers (`"a"` for `"c"`); `glyph fix` declines a
   literal arm rather than rewriting it.
+- **G306. [FIXED] `glyph/applyEdit` accepts an edit `glyph check` refuses.** The
+  gate checks the candidate text on its own with the text path, which stops
+  after the checker and has no project. An edit that introduces an emitter
+  refusal (E0302 to E0305) or an error that needs a sibling module is
+  accepted with `ok: true`: a `?` in a `match` arm nested in a call (E0302),
+  `import lib { goodbye }` where `lib` exports only `hello` (E0105), and
+  `hello(1)` against an imported zero-parameter `hello` (E0213). Each of the
+  three candidate texts fails `glyph check --no-tsc`. The gate exists to make
+  "the agent broke the file" a rejection, and these three are saved edits.
+  Found while fixing G295.
+
+  *Reproduced against 0.1.131 (`glyph 0.1.131`, release build): each edit
+  answered `{"ok": true, "rejected": null}` over the protocol, and `glyph
+  check --no-tsc` on the same text reported E0302, E0105 and E0213.*
+
+  Fixed in 0.1.132: the gate checks the candidate inside the document's
+  project and through the emitter, with the list the editor publishes for
+  the file (`project_file_diagnostics`). The three edits above are each
+  rejected with `verification_failed` and the code `glyph check` reports,
+  and a rejected edit leaves the buffer as it was. The gate still checks
+  only the edited file: an edit that breaks a module importing it is not
+  seen.
 - **G307. `array.concat`'s row accepts two arrays the runtime does not.** The
   checker's row is `fn(Array<T>, Array<U>) -> Array<T>`: the second array may
   hold any element type, and the result is typed as the first. The runtime is

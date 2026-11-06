@@ -26,15 +26,20 @@ use glyph_ast::{
 };
 use glyph_db::{Db, ParsedModule, Resolved, SourceFile, Types};
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, module_lints, resolve_module, verify_imports, Prelude,
-    QualifiedTypeRef, ResolvedModule, ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
+    build_prelude, collect_module_symbols, resolve_module, Prelude, QualifiedTypeRef,
+    ResolvedModule, ResolvedRef, SymbolId, SymbolKind,
 };
+#[cfg(test)]
+use glyph_resolver::{module_lints, verify_imports, StdlibStubs};
 use glyph_typechecker::{
-    assign_types, display_ty, imported_decl_chain_end, DeclTyResolver, DiagnosticDecl, Lowerer,
-    RecordField, Ty, TypeMap, UnionVariant as TyUnionVariant,
+    assign_types, display_ty, imported_decl_chain_end, DeclTyResolver, Lowerer, RecordField, Ty,
+    TypeMap, UnionVariant as TyUnionVariant,
 };
+#[cfg(test)]
+use glyph_typechecker::DiagnosticDecl;
 
 /// One diagnostic in source-byte coordinates, independent of the LSP protocol.
+#[cfg(test)]
 pub struct GlyphDiagnostic {
     /// Byte offsets into the source `[start, end)`.
     pub start: u32,
@@ -94,9 +99,12 @@ pub struct GlyphDiagnostic {
 /// circuits — downstream phases cannot run without an AST.
 ///
 /// This is the text path: it runs the whole front end on every call, which is
-/// what a caller holding a bare `&str` and no database has to do. It stops
+/// what a caller holding a bare `&str` and no database has to do. Only tests
+/// call it since 0.1.132, when `glyph/applyEdit`, its last caller, moved to
+/// the project's list (G306). It stops
 /// after the checker, so it does not see the emitter's refusals (E0302 to
 /// E0305); the language server publishes `project_file_diagnostics` instead.
+#[cfg(test)]
 pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     let module = match glyph_parser::parse(text) {
         Ok(m) => m,
@@ -130,6 +138,7 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
 /// The order is the order the editor shows: import verification, then
 /// resolution, then types, and the warning-tier lints only when nothing else
 /// fired.
+#[cfg(test)]
 fn diagnostics_of(
     module: &Module,
     resolved: &ResolvedModule,
@@ -162,6 +171,7 @@ fn diagnostics_of(
 
 /// A parse failure as a diagnostic. No `decl_name`: a file that failed to parse
 /// has no AST to look an enclosing declaration up in.
+#[cfg(test)]
 fn parse_diag(e: &glyph_parser::ParseError) -> GlyphDiagnostic {
     GlyphDiagnostic {
         start: e.span().start,
@@ -175,6 +185,7 @@ fn parse_diag(e: &glyph_parser::ParseError) -> GlyphDiagnostic {
 }
 
 /// A type error as a diagnostic.
+#[cfg(test)]
 fn type_diag(e: &glyph_typechecker::TypeError, module: &Module) -> GlyphDiagnostic {
     GlyphDiagnostic {
         start: e.span().start,
@@ -2430,6 +2441,7 @@ pub fn base_completions() -> Vec<Completion> {
     out
 }
 
+#[cfg(test)]
 fn resolve_diag(e: &glyph_resolver::ResolveError, module: &Module) -> GlyphDiagnostic {
     GlyphDiagnostic {
         start: e.span().start,
@@ -2443,6 +2455,7 @@ fn resolve_diag(e: &glyph_resolver::ResolveError, module: &Module) -> GlyphDiagn
     }
 }
 
+#[cfg(test)]
 fn with_help(message: String, help: Option<&str>) -> String {
     match help {
         Some(h) => format!("{message}\n{h}"),

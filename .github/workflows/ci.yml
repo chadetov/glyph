@@ -57,16 +57,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The Rust toolchain is pinned by rust-toolchain.toml; rustup installs it
-      # on the first cargo invocation. Cache the registry + build dir to keep CI
-      # fast.
-      - name: Cache cargo
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # on the first cargo invocation. The registry and the build dir are
+      # cached so third-party crates are not recompiled on every run.
+      #
+      # The key is the lockfile hash, and every release PR changes the
+      # lockfile, so for a long time the exact key never matched and this
+      # restored nothing. `restore-keys` takes the newest cache from any
+      # lockfile instead; cargo rebuilds whatever that lockfile changed and
+      # reuses the rest. Restoring cannot weaken a check: `--locked` still
+      # holds, and the workspace crates rebuild on every run because their
+      # artifacts are pruned before saving (and checkout gives their sources
+      # fresh mtimes regardless).
+      #
+      # Restored everywhere, saved only from pushes to main by the last step
+      # of this job, so a pull request cannot write a cache other runs read.
+      - name: Restore the cargo cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             glyph-compiler/target
           key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
 
       # node + tsx + tsc let the toolchain-dependent tests (glyph run, @example /
       # @doc @run execution) and the `--check` step actually run rather than skip.
@@ -273,3 +286,33 @@ jobs:
         env:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
         run: python3 scripts/check_catches.py
+
+      # Last in the job because pruning deletes the `glyph` binary every step
+      # above uses. Only the third-party build is worth keeping: the workspace
+      # crates rebuild on every run anyway, and `incremental/` only grows. Left
+      # in, both would make the cache larger with each save and buy nothing.
+      # The crate list comes from `cargo metadata`, so a new workspace member
+      # is pruned without anyone editing this step.
+      - name: Prune the workspace's own build artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: glyph-compiler
+        run: |
+          set -euo pipefail
+          du -sh target || true
+          pkgs=()
+          for name in $(cargo metadata --no-deps --format-version 1 --locked | jq -r '.packages[].name'); do
+            pkgs+=(-p "$name")
+          done
+          cargo clean --locked "${pkgs[@]}"
+          rm -rf target/debug/incremental target/suite.log
+          du -sh target || true
+
+      - name: Save the cargo cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            glyph-compiler/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}

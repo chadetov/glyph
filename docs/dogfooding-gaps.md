@@ -11170,7 +11170,7 @@ and is the owner's to confirm.
   other, `p.titel` on a `p: Page` passes the checker, and `Page.parse` is
   still TS2693. Whether D46 covers a qualified name is a decision, not part of
   this fix.
-- **G297. [FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
+- **G297. [HALF FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
   `json.parse<Doc>(body)` where `Doc` has an `extern_ts` field passes `glyph
   check` with `tsc`, while `Doc.parse(v)` on the same record is E0304. The
   namespace form is documented as validating against `T.schema`, so it returns

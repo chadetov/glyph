@@ -324,7 +324,7 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
 
       <div class="code">
         <span class="cap">glyph build, on a typo'd field of an imported record</span>
-<pre><span class="del">[E0210] type `Sheet` has no field `rowz`</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
 <span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
       </div>
 
@@ -622,7 +622,7 @@ fn f() -&gt; number {
 
       <div class="code">
         <span class="cap">glyph build, now</span>
-<pre><span class="del">[E0210] type `Sheet` has no field `rowz`</span></pre>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
       </div>
 
       <div class="detail">

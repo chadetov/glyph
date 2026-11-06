@@ -10861,6 +10861,14 @@ and is the owner's to confirm.
   list; a `bigint`'s three members are among a number's ten, so nothing a
   `bigint` has is refused, and the message names it `number`.
 
+  A record's field typo gets the same "did you mean" in 0.1.131. `o.totl` on
+  `type Order = { total: number, items: Array<string> }` was ``[E0210] type
+  `Order` has no field `totl` `` on 0.1.130 and is ``[E0210] type `Order` has
+  no field `totl`; did you mean `total`?`` now, by the threshold the array
+  members and E0220's variant heads use, on all three record sites: a field
+  read, a JSX attribute against a props record, and a record pattern in an arm
+  or a `<case>`. A name nothing is near (`o.customer`) still gets none.
+
 - **G289. [FIXED] A `let` annotation that disagrees with `json.parse`'s result is
   left to `tsc`.** `let user: User = json.parse(body)` passes `glyph check
   --no-tsc`; `json.parse` returns a `Result`, and only `tsc` objects

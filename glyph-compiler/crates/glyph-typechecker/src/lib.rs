@@ -414,6 +414,10 @@ pub enum TypeError {
     /// `string` or a `number` has the fixed member set TypeScript's library gives it, and
     /// `xs.lenght` is this error naming `Array<string>`, with every member in
     /// `fields` and the nearest one in `suggestion`.
+    ///
+    /// A record's field typo carries the nearest declared field in
+    /// `suggestion` the same way: `o.totl` on `{ total: number }` says "did
+    /// you mean `total`?".
     #[error("type `{type_name}` has no field `{field}`{}", .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
     UnknownField {
         field: String,
@@ -436,8 +440,8 @@ pub enum TypeError {
         /// says what the value is instead.
         builtin: Option<BuiltinReceiver>,
         /// The nearest declared name by edit distance, when one is close
-        /// enough to be a plausible typo. Filled for a built-in receiver,
-        /// whose forty-odd members are declared in no file a reader can open.
+        /// enough to be a plausible typo: a record's field or a built-in
+        /// receiver's member, by the same threshold either way.
         suggestion: Option<String>,
         span: Span,
     },

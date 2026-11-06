@@ -62,7 +62,7 @@ E0211 (argument type mismatch) as real Glyph diagnostics with carets into the
 now reports it at the Glyph level before `tsc` ever runs:
 
 ```
-[E0210] Error: typecheck: type `U` has no field `naem`
+[E0210] Error: typecheck: type `U` has no field `naem`; did you mean `name`?
 [E0211] Error: typecheck: argument type mismatch: expected `number`, found `string`
 ```
 

@@ -11169,7 +11169,7 @@ pub fn f(u: U) -> string {
         assert_eq!(d["cause"], "a::U", "{value}");
         // `help` is its own field. The message is the sentence the compiler
         // wrote and nothing else.
-        assert_eq!(d["message"], "type `U` has no field `naem`", "{value}");
+        assert_eq!(d["message"], "type `U` has no field `naem`; did you mean `name`?", "{value}");
         assert!(
             d["help"].as_str().unwrap().starts_with("Check the field name"),
             "{value}"

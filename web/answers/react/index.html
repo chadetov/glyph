@@ -154,7 +154,7 @@ pub component App() {
 }
 
 <span class="add">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`
-// E0210 type `CardProps` has no field `cout`
+// E0210 type `CardProps` has no field `cout`; did you mean `count`?
 // E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
       </div>
 
@@ -196,7 +196,7 @@ component Results(props: { page: Page }) {
   &lt;/match&gt;
 }
 
-<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`</span></pre>
+<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
       </div>
 
       <div class="detail">

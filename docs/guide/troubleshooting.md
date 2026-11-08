@@ -110,7 +110,13 @@ the message suggests the nearest real variant when one is close and no other
 arm already names it. A lowercase head (`rest`) is still a binding. A qualified
 head over a union you imported by namespace (`model.Loadign`) gets the same
 check; a misspelled bare head is caught one stage earlier as an unresolved name
-(E0103) and again here.
+(E0103) and again here. Fix it by correcting the spelling or adding the variant
+to the union.
+
+A literal arm over a string-literal union draws the same code when the union
+does not hold the value (`"c"` over `"a" | "b"`, or `"manuel"` beside
+`"manual"`), with or without an `else`, since the arm can never run. Write a
+value the union has, add the value to the union, or delete the arm.
 
 **E0105: `N` is not exported by `M`.** The name you imported is either
 misspelled or private. Declarations are module-private by default; mark the one

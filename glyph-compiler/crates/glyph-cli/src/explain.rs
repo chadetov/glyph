@@ -561,6 +561,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
               \"manuel\" => 1,   // E0220: did you mean `\"manual\"`?\n  \
               else => 2,\n\
             }\n\n\
+            Fix a literal arm by writing a value the union has, adding the \
+            value to the union, or deleting the arm. Lowercase or not, a \
+            literal is never a binding.\n\n\
             This holds for a union declared in the module, one imported from \
             a sibling under any import spelling, and the standard library's \
             own (`http.RedirectPolicy`).",
@@ -2120,6 +2123,17 @@ mod tests {
             assert!(example.corrected.is_none());
             assert!(example.corrected_absent.is_some());
         }
+    }
+
+    /// E0220 covers a PascalCase head and a literal arm over a string-literal
+    /// union. The help `--explain --json` reads off the counter-example, and
+    /// the prose, give advice that fits both, not only the variant case.
+    #[test]
+    fn the_e0220_help_covers_a_literal_arm() {
+        let answer = explain_json("E0220").expect("E0220 is documented");
+        let help = answer.help.expect("the E0220 counter-example carries a help");
+        assert!(help.contains("a value the union has"), "{help}");
+        assert!(answer.explanation.contains("writing a value the union has"), "{}", answer.explanation);
     }
 
     /// E0233 has a wrong program in `tests/negative/`, so `--explain E0233

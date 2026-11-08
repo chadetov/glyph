@@ -1240,7 +1240,7 @@ impl TypeError {
                 "Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional."
             }
             TypeError::UnknownVariantPattern { .. } => {
-                "Check the name for a typo, or add the variant to the union. A lowercase name would be a binding; a PascalCase name is read as a variant."
+                "Check the arm for a typo, or add the variant to the union. An arm names a variant the union has, or for a string-literal union a value the union has. A lowercase name would be a binding; a PascalCase name is read as a variant."
             }
             TypeError::UnknownLiteralPattern { .. } => {
                 "Check the literal for a typo, or add the value to the union. If the arm is for a value the union no longer has, delete it."

@@ -61,8 +61,47 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.131</span>
+            <span class="rel-ver">0.1.132</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release removes places where a guarantee depended on how something was spelled, and closes more of the programs only <code>tsc</code> used to refuse.</p>
+
+            <h3>An alias is the type it names, however you import it</h3>
+            <p><code>pub type Page = Doc</code> was already a second name for <code>Doc</code>. Written through a namespace, <code>pub type Page = a.Doc</code>, it was a different type: <code>Page</code> and <code>a.Doc</code> did not match, <code>Page.parse</code> did not exist, and a misspelled field passed. Both spellings now mean the same thing. A misspelled field through an alias names both types: <code>type `Page` (a second name for `a.Doc`) has no field `titel`; did you mean `title`?</code></p>
+
+            <h3>Reading through a <code>Nullable</code></h3>
+            <div class="code">
+              <span class="cap">note.glyph</span>
+<pre>pub fn label(n: Nullable&lt;Note&gt;) -&gt; string {
+  return n?.name ?? "none"
+}</pre>
+            </div>
+            <p><code>n?.name</code> is now checked against <code>Note</code>'s fields. Its value is the name or JavaScript's <code>undefined</code>, and Glyph has no type for <code>undefined</code>, so it can only be the left side of <code>??</code> or compared with <code>==</code>. Anywhere else, such as a <code>let</code> or a <code>"${...}"</code>, it is the new E0235. That catches <code>"${n?.name}"</code> printing the text "undefined", which <code>tsc</code> accepts. <code>n.name</code> without the <code>?</code> is E0235 too.</p>
+
+            <h3><code>json.parse</code> validates in both spellings</h3>
+            <p><code>parse&lt;Doc&gt;(body)</code> through <code>import std/json { parse }</code> used to compile to a cast, where <code>json.parse&lt;Doc&gt;</code> validated. Both validate now, and so does a <code>T</code> that is an <code>Option</code>, a <code>Nullable</code>, a <code>Record</code> or a primitive. A type parameter or an <code>extern_ts</code> type still casts; that is next.</p>
+
+            <h3>Smaller checks</h3>
+            <p>A wrong number of type arguments, including none on a generic type (<code>let b: Box</code>), is the new E0233. <code>print(b)</code> with a <code>bool</code> is an argument mismatch. A match arm for a string outside its union is E0220. <code>xs.length</code> is a <code>number</code>. A record where <code>Record&lt;string, V&gt;</code> is declared is compared field by field. <code>kinds.type</code> works as a type name.</p>
+
+            <h3>The editor</h3>
+            <p>The emitter's errors no longer disappear while you type; they move with your edits until the next check. Editing one file refreshes the other open files that import it. For agents, <code>glyph/applyEdit</code> now refuses only what an edit introduces, warnings included, and returns what the file already had under <code>preexisting</code>. It still checks only the edited file, so <code>glyph check</code> remains the authority for changes that affect other modules.</p>
+
+            <p>This release is breaking, at compile time and at run time.</p>
+            <p>At run time: <code>parse&lt;Doc&gt;("{}")</code> through <code>import std/json { parse }</code> returned <code>Ok</code> in 0.1.131 and returns <code>Err</code> here.</p>
+            <p>Under <code>glyph check</code>, these exit 0 in 0.1.131 and 1 here, although <code>tsc</code> accepts them: a match over an alias of an imported union that misses a variant; <code>type T = a.Doc where ...</code>; an <code>@open</code> record or a tagged union where <code>Record&lt;string, string&gt;</code> is declared; <code>let x = n?.name</code> and <code>"${n?.name}"</code> on a <code>Nullable</code>; and the named-import <code>parse&lt;Doc&gt;</code> over a record holding an <code>extern_ts</code> field.</p>
+            <p>Under <code>--no-tsc</code> only, programs <code>tsc</code> already refused now exit 1: a misspelled field through an alias, a wrong or missing type-argument count, <code>let a: string = xs.length</code>, <code>print</code> of a <code>bool</code>, a literal arm outside its union, and <code>return n?.name</code> from a function returning <code>Nullable&lt;string&gt;</code>. Three programs go the other way and now pass: <code>let p: Page = d</code> with <code>Page = a.Doc</code>, a <code>Box&lt;string&gt;</code> where <code>Record&lt;string, string&gt;</code> is declared, and a full match over an alias of <code>http.RedirectPolicy</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.131</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

@@ -775,3 +775,215 @@ fn apply_edit_refuses_what_glyph_check_refuses() {
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The zero-based LSP position of byte `offset` in ASCII `text`.
+fn position_of(text: &str, offset: usize) -> Value {
+    let before = &text[..offset];
+    let line = before.matches('\n').count();
+    let character = offset - before.rfind('\n').map(|i| i + 1).unwrap_or(0);
+    json!({ "line": line, "character": character })
+}
+
+/// A `TextEdit` replacing the first `old` in `text` with `new`.
+fn replace_first(text: &str, old: &str, new: &str) -> Value {
+    let start = text.find(old).unwrap_or_else(|| panic!("`{old}` is not in the text"));
+    json!({
+        "range": { "start": position_of(text, start), "end": position_of(text, start + old.len()) },
+        "newText": new,
+    })
+}
+
+impl Lsp {
+    /// `glyph/applyEdit` with `edits` on `file`.
+    fn apply(&mut self, file: &Path, edits: Value) -> Value {
+        self.request("glyph/applyEdit", json!({ "uri": uri(file), "edits": edits }))
+    }
+}
+
+/// The codes under `field` of an applyEdit answer.
+fn answer_codes(answer: &Value, field: &str) -> Vec<String> {
+    let list = answer[field]
+        .as_array()
+        .unwrap_or_else(|| panic!("no `{field}` list in {answer}"));
+    codes_of(list)
+}
+
+/// A project of `files`, a server on it, and `open` opened.
+fn gate_project(prefix: &str, files: &[(&str, &str)], open: &str) -> (PathBuf, PathBuf, Lsp) {
+    let dir = tmp_dir(prefix);
+    for (name, text) in files {
+        std::fs::write(dir.join(name), text).expect("write a fixture");
+    }
+    let path = dir.join(open);
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&path);
+    (dir, path, lsp)
+}
+
+/// Review 81, decision 2: the gate holds an edit to what it introduced. A
+/// module that draws E0112 (nothing in it is reachable) used to refuse
+/// every edit to it, a comment typo included, because the gate demanded an
+/// empty list. The warning was there before the edit, so it is returned
+/// under `preexisting` and does not refuse it.
+#[test]
+fn apply_edit_accepts_an_edit_to_a_module_that_draws_e0112() {
+    let util = "module util\n\n// a helper nobody calls yet\nfn helper() -> number {\n  return 1\n}\n";
+    let (dir, path, mut lsp) = gate_project("gate_e0112", &[("util.glyph", util)], "util.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(util, "nobody", "no one")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), Vec::<String>::new(), "{answer}");
+    assert!(answer_codes(&answer, "preexisting").contains(&"E0112".to_string()), "{answer}");
+    assert_eq!(answer["content"], json!(util.replace("nobody", "no one")));
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The sibling the fixtures below import `hello` from.
+const GATE_LIB: &str = "module lib\n\npub fn hello() -> string {\n  return \"hi\"\n}\n";
+
+/// The warning tier counts: an edit that adds an unused binding is refused
+/// with E0107, and the file had nothing before, so `preexisting` is empty.
+#[test]
+fn apply_edit_refuses_an_edit_that_adds_an_unused_let() {
+    let main = "module main\nimport lib { hello }\n\npub fn run() -> string {\n  return hello()\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_e0107",
+        &[("main.glyph", main), ("lib.glyph", GATE_LIB)],
+        "main.glyph",
+    );
+    let answer = lsp.apply(&path, json!([replace_first(main, "  return", "  let x = 1\n  return")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(answer["rejected"], json!("verification_failed"));
+    assert_eq!(answer_codes(&answer, "diagnostics"), ["E0107"], "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), Vec::<String>::new(), "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Two errors, one call each, both wrong argument counts against `hello`.
+const TWO_ERRORS: &str = "module main\nimport lib { hello }\n\n\
+    pub fn one() -> string {\n  return hello(1)\n}\n\n\
+    pub fn two() -> string {\n  return hello(2)\n}\n";
+
+/// Fixing one of two errors is accepted, and the other comes back under
+/// `preexisting` at its new position. The old gate refused it, so an agent
+/// had to repair a whole file in one edit.
+#[test]
+fn apply_edit_accepts_fixing_one_of_two_errors() {
+    let (dir, path, mut lsp) = gate_project(
+        "gate_one_of_two",
+        &[("main.glyph", TWO_ERRORS), ("lib.glyph", GATE_LIB)],
+        "main.glyph",
+    );
+    let answer = lsp.apply(&path, json!([replace_first(TWO_ERRORS, "hello(1)", "hello()")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), Vec::<String>::new(), "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0213"], "{answer}");
+    let fixed = TWO_ERRORS.replacen("hello(1)", "hello()", 1);
+    let at = fixed.find("hello(2)").expect("the second call");
+    let range = &answer["preexisting"][0]["range"];
+    assert_eq!(range["start"]["line"], position_of(&fixed, at)["line"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A whole-buffer replacement that changes one line is one edited line, not
+/// an edited file: the error two functions away keeps its place and stays
+/// `preexisting`, so the edit is accepted.
+#[test]
+fn apply_edit_reads_a_whole_buffer_replacement_as_the_lines_it_changed() {
+    let (dir, path, mut lsp) = gate_project(
+        "gate_whole_buffer",
+        &[("main.glyph", TWO_ERRORS), ("lib.glyph", GATE_LIB)],
+        "main.glyph",
+    );
+    let candidate = TWO_ERRORS.replacen("hello(1)", "hello()", 1);
+    let answer = lsp.apply_whole(&path, TWO_ERRORS, &candidate);
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0213"], "{answer}");
+    assert_eq!(answer["content"], json!(candidate));
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A parse error hides every later stage. Fixing it exposes the type error
+/// behind it, which nothing before could have shown, and the edit is
+/// refused with that error: one rule, no exemption for hidden stages.
+#[test]
+fn apply_edit_refuses_a_parse_fix_that_exposes_a_type_error() {
+    let broken = "module main\nimport lib { hello }\n\n\
+        pub fn one() -> string {\n  return hello(\n}\n\n\
+        pub fn two() -> string {\n  return hello(2)\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_parse_fix",
+        &[("main.glyph", broken), ("lib.glyph", GATE_LIB)],
+        "main.glyph",
+    );
+    let answer = lsp.apply(&path, json!([replace_first(broken, "hello(\n", "hello()\n")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), ["E0213"], "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), Vec::<String>::new(), "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Adding a variant to a union a `match` in the same file already misses
+/// one of changes that E0200's message (it now misses two), so the
+/// diagnostic is the edit's own and the edit is refused.
+#[test]
+fn apply_edit_refuses_a_variant_that_changes_an_e0200() {
+    let main = "module main\n\npub type Color =\n  | Red\n  | Green\n\n\
+        pub fn name(c: Color) -> string {\n  return match c {\n    Red => \"red\",\n  }\n}\n";
+    let (dir, path, mut lsp) = gate_project("gate_e0200", &[("main.glyph", main)], "main.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(main, "  | Green\n", "  | Green\n  | Blue\n")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), ["E0200"], "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), Vec::<String>::new(), "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The one message that embeds a source position is the lexer's (`lex
+/// error: ... at offset N`). An edit above it moves the offset, and the
+/// gate maps the number through the edit the way it maps the range, so the
+/// lex error stays `preexisting` and the edit is accepted.
+#[test]
+fn apply_edit_maps_the_offset_inside_a_lex_error() {
+    let main = "module main\n\n// note\npub fn run() -> string {\n  return \"open\n}\n";
+    let (dir, path, mut lsp) = gate_project("gate_lex", &[("main.glyph", main)], "main.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(main, "// note", "// a longer note")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0001"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Several `TextEdit`s are several regions. A diagnostic between two of
+/// them shifts by the first one's delta only and stays `preexisting`; a
+/// diagnostic one of them touches is dropped, so the error the edit leaves
+/// in text it wrote is the edit's own.
+#[test]
+fn apply_edit_maps_through_each_text_edit() {
+    let (dir, path, mut lsp) = gate_project(
+        "gate_multi",
+        &[("main.glyph", TWO_ERRORS), ("lib.glyph", GATE_LIB)],
+        "main.glyph",
+    );
+    let fix_one = json!([
+        replace_first(TWO_ERRORS, "pub fn one", "// first\npub fn one"),
+        replace_first(TWO_ERRORS, "hello(1)", "hello()"),
+    ]);
+    let answer = lsp.apply(&path, fix_one);
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0213"], "{answer}");
+
+    let rewrite_two = json!([
+        replace_first(TWO_ERRORS, "hello(1)", "hello()"),
+        replace_first(TWO_ERRORS, "hello(2)", "hello(3)"),
+    ]);
+    let answer = lsp.apply(&path, rewrite_two);
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), ["E0213"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}

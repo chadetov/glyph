@@ -1449,17 +1449,22 @@ struct ApplyEditParams {
     edits: Vec<TextEdit>,
 }
 
-/// Response to `glyph/applyEdit`. On success `content` is the verified new
-/// document text and `diagnostics` is empty; on rejection `content` is absent,
-/// `rejected` names the reason, and `diagnostics` carries the errors the edit
-/// would have introduced (empty for a structural rejection like overlapping
-/// edits).
+/// Response to `glyph/applyEdit` (review 81, decision 2). `diagnostics` holds
+/// only the diagnostics the edit introduced, warnings included, and `ok` is
+/// true exactly when it is empty. `preexisting` holds the candidate's other
+/// diagnostics, the ones the file already had, on acceptance and on refusal
+/// alike, so `ok: true` means "this edit introduced nothing" and `ok: true`
+/// with an empty `preexisting` means the file is clean. On success `content`
+/// is the verified new text; on rejection it is absent and `rejected` names
+/// the reason (both lists are empty for a structural rejection like
+/// overlapping edits). Both lists are in the candidate's coordinates.
 #[derive(Debug, serde::Serialize)]
 struct ApplyEditResponse {
     ok: bool,
     content: Option<String>,
     rejected: Option<String>,
     diagnostics: Vec<Diagnostic>,
+    preexisting: Vec<Diagnostic>,
 }
 
 impl Backend {
@@ -1525,10 +1530,16 @@ impl Backend {
     /// call changes nothing and returns the errors the edit would have caused,
     /// making "the agent broke the file" a rejection rather than a saved edit.
     ///
-    /// v1 gate: the result must have no diagnostics at all, the warning tier
-    /// included (a crisp "lands a clean change" guarantee). Running the `@example`/property tests as part of the
-    /// gate is a v1.1 enhancement (it needs the build pipeline factored into a
-    /// library the server can call without the current cli→lsp dependency cycle).
+    /// The gate: the edit may introduce no diagnostic, the warning tier
+    /// included; diagnostics the file already had are returned under
+    /// `preexisting` and do not refuse it (review 81, decision 2). "Already
+    /// had" is decided by mapping the file's list before the edit through the
+    /// edit (`split_introduced`) and matching the candidate's list against it
+    /// as a multiset. A diagnostic whose text the edit wrote or touched is the
+    /// edit's own, and so is one a removed error used to hide behind it.
+    /// Running the `@example`/property tests as part of the gate is a v1.1
+    /// enhancement (it needs the build pipeline factored into a library the
+    /// server can call without the current cli→lsp dependency cycle).
     ///
     /// The candidate is checked inside the document's project, through the
     /// emitter, with the list the server publishes for the file and `glyph
@@ -1536,7 +1547,12 @@ impl Backend {
     /// alone and the check stopped after the checker, so an edit introducing
     /// an emitter refusal or an error against a sibling module was accepted
     /// (G306). The buffer is swapped for the candidate and back under one
-    /// hold of the workspace lock, so nothing else ever reads the candidate.
+    /// hold of the workspace lock, so nothing else ever reads the candidate,
+    /// and the list before the edit is read under the same hold.
+    ///
+    /// The gate compares the edited file's list only; an edit that breaks a
+    /// module importing it is accepted. `glyph check` over the project is the
+    /// authority until 0.1.133 (G310).
     async fn apply_edit_request(&self, params: ApplyEditParams) -> Result<ApplyEditResponse> {
         let uri = &params.uri;
         let root = self.analysis_root(uri);
@@ -1544,33 +1560,42 @@ impl Backend {
             let mut ws = self.ws.lock().expect("workspace mutex");
             match ws.buffer(uri) {
                 None => Err("document_not_open".to_string()),
-                Some(text) => match apply_text_edits(&text, &params.edits) {
+                Some(text) => match resolve_text_edits(&text, &params.edits) {
                     Err(reason) => Err(reason),
-                    Ok(candidate) => {
-                        ws.set_buffer(uri, candidate.clone());
-                        let diags = ws
+                    Ok(spans) => {
+                        let candidate = splice_text_edits(&text, &spans);
+                        let regions = edit_regions(&text, &spans);
+                        let before = ws
                             .diagnostics(&root, uri, Stages::All)
-                            .map(|(t, d)| to_lsp_diagnostics(t, d))
+                            .map(|(_, d)| d)
+                            .unwrap_or_default();
+                        ws.set_buffer(uri, candidate.clone());
+                        let after = ws
+                            .diagnostics(&root, uri, Stages::All)
+                            .map(|(_, d)| d)
                             .unwrap_or_default();
                         ws.set_buffer(uri, text);
-                        Ok((candidate, diags))
+                        Ok((candidate, split_introduced(&before, &regions, after)))
                     }
                 },
             }
         };
-        let (candidate, diags) = match checked {
+        let (candidate, (introduced, preexisting)) = match checked {
             Ok(c) => c,
-            Err(reason) => return Ok(reject(&reason, Vec::new())),
+            Err(reason) => return Ok(reject(&reason, Vec::new(), Vec::new())),
         };
-        if diags.is_empty() {
+        let diagnostics = to_lsp_diagnostics(&candidate, introduced);
+        let preexisting = to_lsp_diagnostics(&candidate, preexisting);
+        if diagnostics.is_empty() {
             Ok(ApplyEditResponse {
                 ok: true,
                 content: Some(candidate),
                 rejected: None,
-                diagnostics: Vec::new(),
+                diagnostics,
+                preexisting,
             })
         } else {
-            Ok(reject("verification_failed", diags))
+            Ok(reject("verification_failed", diagnostics, preexisting))
         }
     }
 
@@ -1599,14 +1624,153 @@ impl Backend {
     }
 }
 
-/// A rejected `glyph/applyEdit` response carrying a reason and any diagnostics.
-fn reject(reason: &str, diagnostics: Vec<Diagnostic>) -> ApplyEditResponse {
+/// A rejected `glyph/applyEdit` response carrying a reason, the diagnostics
+/// the edit introduced and the ones the file already had.
+fn reject(
+    reason: &str,
+    diagnostics: Vec<Diagnostic>,
+    preexisting: Vec<Diagnostic>,
+) -> ApplyEditResponse {
     ApplyEditResponse {
         ok: false,
         content: None,
         rejected: Some(reason.to_string()),
         diagnostics,
+        preexisting,
     }
+}
+
+/// One `TextEdit`'s edited region in the old text: `old[start..old_end]`
+/// became `new_len` bytes. The edit's range shrunk by the common prefix and
+/// the common suffix of the text it replaced and its `newText`, so a
+/// whole-buffer replacement that changes one line edits that line, not the
+/// file (review 81, decision 2).
+struct EditRegion {
+    start: usize,
+    old_end: usize,
+    new_len: usize,
+}
+
+/// The edited regions of resolved, sorted `spans` over `text`, in order. An
+/// edit whose `newText` equals what it replaces edits nothing and has none.
+fn edit_regions(text: &str, spans: &[(usize, usize, &str)]) -> Vec<EditRegion> {
+    spans
+        .iter()
+        .filter_map(|&(start, end, new_text)| {
+            let (prefix, old_end, new_end) = edit_region(&text[start..end], new_text)?;
+            Some(EditRegion {
+                start: start + prefix,
+                old_end: start + old_end,
+                new_len: new_end - prefix,
+            })
+        })
+        .collect()
+}
+
+/// The byte range `[start, end)` of the old text in the new text's
+/// coordinates, through `regions` (sorted): unmoved when wholly before every
+/// region, shifted by the deltas of the regions before it otherwise, and
+/// `None` when it overlaps or touches one, the rule `carry_through_edit` uses
+/// for a single region.
+fn map_through_regions(regions: &[EditRegion], start: usize, end: usize) -> Option<(usize, usize)> {
+    let mut shift = 0isize;
+    for r in regions {
+        if end < r.start {
+            break;
+        }
+        if start > r.old_end {
+            shift += r.new_len as isize - (r.old_end - r.start) as isize;
+            continue;
+        }
+        return None;
+    }
+    let moved = |o: usize| (o as isize + shift) as usize;
+    Some((moved(start), moved(end)))
+}
+
+/// The lexer's message embeds the error's byte offset (`lex error: ... at
+/// offset N`, `glyph_lexer::LexError`), the one message in the catalogue that
+/// carries a source position. When `N` is the diagnostic's own start, the
+/// mapped message says the mapped start; an edit that moved the error would
+/// otherwise make it look new. An offset counted from somewhere else (an
+/// interpolation's interior) is left as written.
+fn map_message_offset(d: &diagnostic::Diagnostic, mapped_start: usize) -> String {
+    const AT: &str = " at offset ";
+    if d.code != "E0001" {
+        return d.message.clone();
+    }
+    let Some(at) = d.message.rfind(AT) else {
+        return d.message.clone();
+    };
+    let digits_start = at + AT.len();
+    let digits_len = d.message[digits_start..]
+        .bytes()
+        .take_while(u8::is_ascii_digit)
+        .count();
+    let digits = &d.message[digits_start..digits_start + digits_len];
+    if digits.parse::<u32>().ok() != Some(d.range.start.offset) {
+        return d.message.clone();
+    }
+    format!(
+        "{}{mapped_start}{}",
+        &d.message[..digits_start],
+        &d.message[digits_start + digits_len..]
+    )
+}
+
+/// Split the candidate's diagnostics `after` into the ones the edit
+/// introduced and the ones the file already had (review 81, decision 2).
+///
+/// Each of `before` is mapped into the candidate's coordinates through the
+/// edit's `regions`; one the edit overlaps or touches is dropped, because the
+/// text it was about is now the edit's. A candidate diagnostic is already
+/// there when an unused mapped one has the same code, severity, message, help
+/// and range: a multiset match, so two identical diagnostics need two
+/// before. Everything else, a changed message included, is introduced.
+fn split_introduced(
+    before: &[diagnostic::Diagnostic],
+    regions: &[EditRegion],
+    after: Vec<diagnostic::Diagnostic>,
+) -> (Vec<diagnostic::Diagnostic>, Vec<diagnostic::Diagnostic>) {
+    type Key<'a> = (&'a str, &'a str, String, Option<&'a str>, usize, usize);
+    let mut mapped: Vec<Option<Key>> = before
+        .iter()
+        .filter_map(|d| {
+            let (s, e) = map_through_regions(
+                regions,
+                d.range.start.offset as usize,
+                d.range.end.offset as usize,
+            )?;
+            Some(Some((
+                d.code.as_str(),
+                d.severity.as_str(),
+                map_message_offset(d, s),
+                d.help.as_deref(),
+                s,
+                e,
+            )))
+        })
+        .collect();
+    let mut introduced = Vec::new();
+    let mut preexisting = Vec::new();
+    for d in after {
+        let key: Key = (
+            d.code.as_str(),
+            d.severity.as_str(),
+            d.message.clone(),
+            d.help.as_deref(),
+            d.range.start.offset as usize,
+            d.range.end.offset as usize,
+        );
+        match mapped.iter_mut().find(|m| m.as_ref() == Some(&key)) {
+            Some(slot) => {
+                *slot = None;
+                preexisting.push(d);
+            }
+            None => introduced.push(d),
+        }
+    }
+    (introduced, preexisting)
 }
 
 /// Apply LSP `TextEdit`s to `text`, producing the candidate document. Edits are
@@ -1614,14 +1778,36 @@ fn reject(reason: &str, diagnostics: Vec<Diagnostic>) -> ApplyEditResponse {
 /// backwards so earlier offsets stay valid. Returns `Err(reason)` for an
 /// out-of-bounds range or overlapping edits (the edit set is then applied
 /// atomically: all or nothing).
+#[cfg(test)]
 fn apply_text_edits(text: &str, edits: &[TextEdit]) -> std::result::Result<String, String> {
+    resolve_text_edits(text, edits).map(|spans| splice_text_edits(text, &spans))
+}
+
+/// Splice resolved, sorted, non-overlapping `spans` into `text`, from the end
+/// backwards so earlier offsets stay valid.
+fn splice_text_edits(text: &str, spans: &[(usize, usize, &str)]) -> String {
+    let mut out = text.to_string();
+    for &(start, end, new_text) in spans.iter().rev() {
+        out.replace_range(start..end, new_text);
+    }
+    out
+}
+
+/// Resolve LSP `TextEdit`s over `text` to byte spans `(start, end, newText)`,
+/// sorted by start. Returns `Err(reason)` for an out-of-bounds range, a
+/// position off a character boundary, or overlapping edits, so the set is
+/// applied all or nothing.
+fn resolve_text_edits<'e>(
+    text: &str,
+    edits: &'e [TextEdit],
+) -> std::result::Result<Vec<(usize, usize, &'e str)>, String> {
     let index = LineIndex::new(text);
     // The highest valid line index. `LineIndex::offset` silently clamps an
     // out-of-range line to EOF, which would mis-apply an edit instead of failing;
     // reject such ranges explicitly so a bogus position is a rejection, not a
     // corrupt splice.
     let max_line = text.bytes().filter(|&b| b == b'\n').count();
-    let mut spans: Vec<(usize, usize, &str)> = Vec::with_capacity(edits.len());
+    let mut spans: Vec<(usize, usize, &'e str)> = Vec::with_capacity(edits.len());
     for e in edits {
         if e.range.start.line as usize > max_line || e.range.end.line as usize > max_line {
             return Err("edit_out_of_bounds".to_string());
@@ -1642,11 +1828,7 @@ fn apply_text_edits(text: &str, edits: &[TextEdit]) -> std::result::Result<Strin
             return Err("overlapping_edits".to_string());
         }
     }
-    let mut out = text.to_string();
-    for (start, end, new_text) in spans.into_iter().rev() {
-        out.replace_range(start..end, new_text);
-    }
-    Ok(out)
+    Ok(spans)
 }
 
 /// A `Location` for byte range `[start, end)` in `text` at `uri`.
@@ -1997,6 +2179,51 @@ mod tests {
             range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
             new_text: new_text.to_string(),
         }
+    }
+
+    /// A compiler diagnostic over `[start, end)` of `source`, for the gate's
+    /// matching tests.
+    fn gate_diag(source: &str, start: u32, end: u32, message: &str) -> diagnostic::Diagnostic {
+        diagnostic::Diagnostic::new(
+            "main",
+            source,
+            glyph_ast::Span::new(start, end),
+            "E0213",
+            "error",
+            "typecheck",
+            message.to_string(),
+            None,
+            None,
+            None,
+        )
+    }
+
+    /// Review 81, decision 2: "already there" is a multiset match. One
+    /// diagnostic before the edit accounts for one identical diagnostic after
+    /// it, not for two, so an edit that duplicates an error is refused for
+    /// the copy.
+    #[test]
+    fn the_gate_matches_preexisting_diagnostics_as_a_multiset() {
+        let source = "abcdefghij";
+        let before = [gate_diag(source, 2, 4, "m")];
+        let after = vec![gate_diag(source, 2, 4, "m"), gate_diag(source, 2, 4, "m")];
+        let (introduced, preexisting) = split_introduced(&before, &[], after);
+        assert_eq!((introduced.len(), preexisting.len()), (1, 1));
+    }
+
+    /// The regions of several edits shift a diagnostic by the deltas of the
+    /// regions before it, and drop one a region touches.
+    #[test]
+    fn the_gate_maps_a_range_through_every_region_before_it() {
+        let regions = [
+            EditRegion { start: 2, old_end: 3, new_len: 4 },
+            EditRegion { start: 10, old_end: 10, new_len: 2 },
+        ];
+        assert_eq!(map_through_regions(&regions, 0, 1), Some((0, 1)));
+        assert_eq!(map_through_regions(&regions, 5, 7), Some((8, 10)));
+        assert_eq!(map_through_regions(&regions, 12, 14), Some((17, 19)));
+        assert_eq!(map_through_regions(&regions, 1, 2), None);
+        assert_eq!(map_through_regions(&regions, 8, 10), None);
     }
 
     #[test]

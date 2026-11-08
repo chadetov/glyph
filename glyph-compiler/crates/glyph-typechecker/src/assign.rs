@@ -2149,6 +2149,7 @@ impl Assigner<'_> {
                             self.errors.push(TypeError::UnknownField {
                                 field: field.to_string(),
                                 type_name: field_owner_display(&obj_ty),
+                                second_name_for: self.second_name_target(&obj_ty, &shape.owner),
                                 fields: shape
                                     .fields
                                     .iter()
@@ -2218,6 +2219,7 @@ impl Assigner<'_> {
                                 self.errors.push(TypeError::UnknownField {
                                     field: field.to_string(),
                                     type_name: ty_display(&obj_ty),
+                                    second_name_for: None,
                                     fields: members.clone().map(str::to_string).collect(),
                                     record: None,
                                     builtin: Some(receiver),
@@ -2879,6 +2881,7 @@ impl Assigner<'_> {
                 self.errors.push(TypeError::UnknownField {
                     field: name.to_string(),
                     type_name: field_owner_display(&props_ty),
+                    second_name_for: self.second_name_target(&props_ty, &shape.owner),
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     builtin: None,
@@ -4115,6 +4118,71 @@ impl Assigner<'_> {
             }),
             FieldOwner::Undeclared { .. } | FieldOwner::Unresolved { .. } => None,
         }
+    }
+
+    /// The declaration a record's fields came from, spelled for this site,
+    /// when `written` reached it through a chain of second names (D46), for
+    /// E0210's ``type `Page` (a second name for `a.Doc`)`` (G302). `None` when
+    /// `written` is that declaration itself, or names nothing declared.
+    fn second_name_target(&self, written: &Ty, owner: &FieldOwner) -> Option<String> {
+        let FieldOwner::Declared { module, name } = owner else {
+            return None;
+        };
+        let base = match written {
+            Ty::App { base, .. } => base.as_ref(),
+            other => other,
+        };
+        let (written_module, written_name) = match base {
+            Ty::Imported { module, name } => (module.as_str().to_string(), name.to_string()),
+            Ty::Named { symbol, path } => {
+                // The same collision guard `direct_type_decl` holds: a prelude
+                // id must not index an unrelated declaration of this module.
+                let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+                if path.last() != Some(&sym.name) {
+                    return None;
+                }
+                (self.own_module_key(), sym.name.to_string())
+            }
+            _ => return None,
+        };
+        if written_module == *module && written_name == *name {
+            return None;
+        }
+        Some(self.scope_spelling(module, name))
+    }
+
+    /// How this module writes the declaration `name` of `module`: the bare
+    /// name for one of its own or one it imports by name, `ns.Name` through a
+    /// namespace or aliased import. A declaration the module has no name for
+    /// is spelled through its module's last path segment, the spelling a
+    /// namespace import of it would give.
+    fn scope_spelling(&self, module: &str, name: &str) -> String {
+        if module == self.own_module_key() {
+            return name.to_string();
+        }
+        let table = &self.resolved.symbols.table;
+        let symbols = (0..table.len() as u32).filter_map(|i| table.get(SymbolId(i)));
+        let mut qualified = None;
+        for sym in symbols {
+            match &sym.kind {
+                SymbolKind::ImportNamed { original, path }
+                    if original.as_ref() == name
+                        && crate::lower::module_key(path).as_str() == module =>
+                {
+                    return sym.name.to_string();
+                }
+                SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. }
+                    if qualified.is_none() && crate::lower::module_key(path).as_str() == module =>
+                {
+                    qualified = Some(format!("{}.{name}", sym.name));
+                }
+                _ => {}
+            }
+        }
+        qualified.unwrap_or_else(|| {
+            let last = module.rsplit('/').next().unwrap_or(module);
+            format!("{last}.{name}")
+        })
     }
 
     /// The module key this file is known by, or the empty string when it
@@ -7429,6 +7497,7 @@ impl Assigner<'_> {
                 self.errors.push(TypeError::UnknownField {
                     field: pf.key.to_string(),
                     type_name: field_owner_display(ty),
+                    second_name_for: self.second_name_target(ty, &shape.owner),
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     builtin: None,
@@ -16183,6 +16252,41 @@ fn f(a: Answer) -> number {
                 e,
                 TypeError::UnknownField { field, .. } if field == "naem"
             )),
+            "{errs:?}"
+        );
+    }
+
+    /// G302's message. E0210 through a second name names the name the site
+    /// wrote and the declaration the fields come from, so the reader does not
+    /// have to go through `type Page = Doc` to find them. The parenthetical
+    /// appears only when a chain was followed, however many hops it took, and
+    /// on each site that raises E0210 for a record.
+    #[test]
+    fn a_field_typo_through_a_second_name_names_both_names() {
+        let errs = errors_of(
+            "module x\n\
+             type Doc = { title: string, }\n\
+             type Page = Doc\n\
+             type Again = Page\n\
+             fn a(p: Page) -> string {\n  return p.titel\n}\n\
+             fn b(q: Again) -> string {\n  return q.titel\n}\n\
+             fn c(d: Doc) -> string {\n  return d.titel\n}\n\
+             component Row(props: Page) -> Component {\n  return <p>a</p>\n}\n\
+             component V() -> Component {\n  return <Row titel={\"a\"} title={\"b\"} />\n}\n",
+        );
+        let got: Vec<String> = errs
+            .iter()
+            .filter(|e| matches!(e, TypeError::UnknownField { .. }))
+            .map(|e| e.to_string())
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                "type `Page` (a second name for `Doc`) has no field `titel`; did you mean `title`?",
+                "type `Again` (a second name for `Doc`) has no field `titel`; did you mean `title`?",
+                "type `Doc` has no field `titel`; did you mean `title`?",
+                "type `Page` (a second name for `Doc`) has no field `titel`; did you mean `title`?",
+            ],
             "{errs:?}"
         );
     }

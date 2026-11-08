@@ -418,10 +418,16 @@ pub enum TypeError {
     /// A record's field typo carries the nearest declared field in
     /// `suggestion` the same way: `o.totl` on `{ total: number }` says "did
     /// you mean `total`?".
-    #[error("type `{type_name}` has no field `{field}`{}", .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
+    #[error("type `{type_name}`{} has no field `{field}`{}", .second_name_for.as_deref().map(|t| format!(" (a second name for `{t}`)")).unwrap_or_default(), .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
     UnknownField {
         field: String,
         type_name: String,
+        /// The declaration the fields come from, when `type_name` reached it
+        /// through a chain of second names (D46): `Doc` for a `p: Page` with
+        /// `type Page = Doc`. Spelled as the site's scope spells it (`Doc`
+        /// under `import a { Doc }`, `a.Doc` under `import a`). `None` when
+        /// no chain was followed.
+        second_name_for: Option<String>,
         /// Every field the record does declare, in declaration order.
         ///
         /// The checker resolved the record to decide the access was illegal,

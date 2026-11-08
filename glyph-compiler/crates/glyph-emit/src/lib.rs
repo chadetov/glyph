@@ -9102,7 +9102,8 @@ mod tests {
             "module x\nimport std/json\npub type User = { name: string }\npub fn load(text: string) -> Result<User, Array<Issue>> {\n  return json.parse<User>(text)\n}\npub fn loose(text: string) -> Result<number, Array<Issue>> {\n  return json.parse<number>(text)\n}\n",
         );
         assert!(ts.contains("json.parse_with(text, User.schema)"), "{ts}");
-        // A primitive validates too: `parse<T>` with a written `T` never casts.
+        // A primitive validates too, as every written `T` does that a check can
+        // be built for (the rest still cast until 0.1.133, G297).
         assert!(ts.contains("json.parse_with(text, __glyph_schema<number>("), "{ts}");
     }
 

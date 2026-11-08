@@ -1536,7 +1536,10 @@ impl Backend {
     /// had" is decided by mapping the file's list before the edit through the
     /// edit (`split_introduced`) and matching the candidate's list against it
     /// as a multiset. A diagnostic whose text the edit wrote or touched is the
-    /// edit's own, and so is one a removed error used to hide behind it.
+    /// edit's own, and so is one a removed error used to hide behind it. One
+    /// that strictly encloses the edit (an E0200 over a `match` whose arm
+    /// changed) keeps its start, stretches its end, and is preexisting when
+    /// its message is unchanged (review 82, item 3(b)).
     /// Running the `@example`/property tests as part of the gate is a v1.1
     /// enhancement (it needs the build pipeline factored into a library the
     /// server can call without the current cli→lsp dependency cycle).

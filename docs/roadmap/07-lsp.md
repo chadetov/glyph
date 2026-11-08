@@ -159,7 +159,10 @@ included; diagnostics the file already had are returned under `preexisting`
 and do not refuse it. The list before the edit is mapped through it: each
 `TextEdit` is one region, shrunk by the common prefix and suffix of the text it
 replaced and its `newText`; a diagnostic the region overlaps or touches is
-dropped, and one after it moves by its length change. A candidate diagnostic
+dropped, one after it moves by its length change, and one that strictly
+encloses it (starts before it and ends after it, like an E0200 over the whole
+`match` whose arm the edit changed) keeps its start while its end moves by the
+length change. A candidate diagnostic
 with the same code, severity, message, help and range as an unmatched mapped
 one is preexisting; any other is the edit's. So an error left in text the edit
 rewrote is the edit's own, a message that changed (a `match` now missing two

@@ -2606,7 +2606,10 @@ impl Assigner<'_> {
     /// `T` when `ty` is a `Nullable<T>`, read through second names and
     /// through a `type` whose body is one (`type MaybeNote = Nullable<Note>`),
     /// local or a sibling's under either import spelling, so the guarantee
-    /// does not depend on which name a parameter wrote.
+    /// does not depend on which name a parameter wrote. A generic one
+    /// (`type Maybe<T> = Nullable<T>`) is read with the application's
+    /// arguments substituted into its body, so `Maybe<Note>` is
+    /// `Nullable<Note>`.
     fn nullable_inner(&self, ty: &Ty) -> Option<Ty> {
         self.nullable_inner_at(ty, 0)
     }
@@ -2619,17 +2622,17 @@ impl Assigner<'_> {
         if depth >= 8 {
             return None;
         }
-        if let Ty::Imported { module, name } = &canonical {
+        let (base, args) = split_type_app(&canonical);
+        if let Ty::Imported { module, name } = base {
             let (_, _, decl) =
                 imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
-            return match decl.generics.is_empty() {
-                true => self.nullable_inner_at(&decl.body, depth + 1),
-                false => None,
-            };
+            let body = alias_body_applied(&decl.body, &decl.generics, args)?;
+            return self.nullable_inner_at(&body, depth + 1);
         }
         match self.local_type_decl(&canonical) {
-            Some(td) if td.generics.is_empty() && td.refinement.is_none() => {
-                let body = self.lowerer.lower(&td.body);
+            Some(td) if td.refinement.is_none() => {
+                let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
+                let body = alias_body_applied(&self.lowerer.lower(&td.body), &generics, args)?;
                 self.nullable_inner_at(&body, depth + 1)
             }
             _ => None,
@@ -8757,6 +8760,22 @@ fn type_expr_source(te: &TypeExpr) -> String {
 /// Replace every `Ty::Param` named in `subst` with its bound type, walking
 /// the type structurally. An empty substitution (the non-generic call case)
 /// returns a clone unchanged, so this is a no-op for ordinary calls.
+/// A `type` declaration's body read at an application of it: the body itself
+/// for a non-generic declaration, the body with `args` substituted for
+/// `generics` for a generic one applied with one argument per parameter, and
+/// `None` for a generic one written bare or with the wrong count (E0233
+/// refuses those), whose body says nothing about the parameters.
+fn alias_body_applied(body: &Ty, generics: &[Ident], args: &[Ty]) -> Option<Ty> {
+    if generics.is_empty() {
+        return Some(body.clone());
+    }
+    if generics.len() != args.len() {
+        return None;
+    }
+    let subst: HashMap<Ident, Ty> = generics.iter().cloned().zip(args.iter().cloned()).collect();
+    Some(substitute_type_params(body, &subst))
+}
+
 fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
     if subst.is_empty() {
         return ty.clone();
@@ -16025,6 +16044,25 @@ fn f(a: Answer) -> number {
         assert_eq!(codes, vec!["E0210"], "the field check");
         let errs = g304_errors(&format!("{alias}fn f(n: MaybeNote) -> string {{\n  return n?.name ?? \"\"\n}}\n"));
         assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    #[test]
+    fn a_generic_alias_of_a_nullable_is_read_as_the_substituted_nullable() {
+        // `type Maybe<T> = Nullable<T>` applied to `Note` is `Nullable<Note>`,
+        // so the guarantee does not depend on whether the alias is generic.
+        let alias = "type Maybe<T> = Nullable<T>\n";
+        let codes = g304_codes(&format!("{alias}fn f(m: Maybe<Note>) -> string {{\n  return m.name\n}}\n"));
+        assert_eq!(codes, vec!["E0235"], "the plain dot");
+        let codes = g304_codes(&format!("{alias}fn f(m: Maybe<Note>) -> string {{\n  return \"hi ${{m?.name}}\"\n}}\n"));
+        assert_eq!(codes, vec!["E0235"], "the interpolated chain");
+        let codes = g304_codes(&format!("{alias}fn f(m: Maybe<Note>) -> string {{\n  return m?.nmae ?? \"\"\n}}\n"));
+        assert_eq!(codes, vec!["E0210"], "the field check");
+        let errs = g304_errors(&format!("{alias}fn f(m: Maybe<Note>) -> string {{\n  return m?.name ?? \"\"\n}}\n"));
+        assert!(errs.is_empty(), "{errs:?}");
+        // A generic alias of a generic alias substitutes through both hops.
+        let two = "type Maybe<T> = Nullable<T>\ntype Opt<U> = Maybe<U>\n";
+        let codes = g304_codes(&format!("{two}fn f(m: Opt<Note>) -> string {{\n  return m.name\n}}\n"));
+        assert_eq!(codes, vec!["E0235"], "two hops");
     }
 
     #[test]

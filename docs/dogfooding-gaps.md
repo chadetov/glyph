@@ -11631,3 +11631,35 @@ and is the owner's to confirm.
   *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
   `no diagnostics` under `--no-tsc`, and `glyph check: tsc --strict passed.`
   with `tsc`.*
+- **G313. `glyph/applyEdit` lets an edit add a warning to a file that has an
+  error.** The gate's rule counts the warning tier, but the list it compares
+  is the one `glyph check --no-tsc --no-test` prints, and that list stops
+  after the type checker when the file has an error
+  (`project_file_diagnostics` in `glyph-lsp/src/diagnostic.rs` returns before
+  the lint tier and the emitter). Before and after an edit to such a file,
+  neither tier runs, so the edit can add a warning or an E0302 to E0305
+  emitter refusal and is answered `ok: true`. The diagnostic surfaces later,
+  on the edit that fixes the file's last error, which is then refused for a
+  diagnostic it did not write.
+
+  With `main.glyph` holding `pub type S = | A | B | C` and `pub fn f(s: S)
+  -> number { return match s { A => 1, B => 2 } }` (E0200, missing `C`) and
+  `pub fn g() -> number { return 1 }`, the edit that inserts `let x = 1`
+  into `g` is answered `{"ok": true, "diagnostics": [], "preexisting":
+  [E0200]}`. The same edit to a file with only `g` in it is refused with
+  E0107 (``unused variable `x` ``). On the edited file, the edit that then
+  adds `C => 3` is refused with `{"ok": false, "diagnostics": [E0107],
+  "preexisting": []}`.
+
+  Review 82 (item 3(c)) takes no pipeline change for 0.1.132; the gap is
+  stated on `apply_edit_request` and in `docs/roadmap/07-lsp.md`. The
+  options are to run the lint tier and the emitter on a file with errors
+  for the gate's comparison, or to keep the pipeline and say the gate does
+  not count those tiers while the file has an error.
+
+  *Reproduced against 0.1.132 (the release build: the wt-132c-fixlsp
+  branch at fc41addd, which still reads `glyph 0.1.131` because the version
+  bump is not committed) over JSON-RPC: the `let x = 1` edit on the E0200
+  file answered `ok: true` with empty `diagnostics` and E0200 under
+  `preexisting`; the same edit on the clean file answered `ok: false` with
+  E0107; the `C => 3` edit afterwards answered `ok: false` with E0107.*

@@ -1540,6 +1540,14 @@ impl Backend {
     /// that strictly encloses the edit (an E0200 over a `match` whose arm
     /// changed) keeps its start, stretches its end, and is preexisting when
     /// its message is unchanged (review 82, item 3(b)).
+    ///
+    /// "The warning tier included" holds only while the file has no error.
+    /// The file's list stops after the type checker when it has one
+    /// (`project_file_diagnostics`), so the lint tier and the emitter never
+    /// run on either side of the comparison: an edit to a file that already
+    /// has an error can add a warning or an E0302 to E0305 refusal and is
+    /// still answered `ok: true`. The diagnostic surfaces on the edit that
+    /// fixes the last error, which is then refused for it (G313).
     /// Running the `@example`/property tests as part of the gate is a v1.1
     /// enhancement (it needs the build pipeline factored into a library the
     /// server can call without the current cli→lsp dependency cycle).

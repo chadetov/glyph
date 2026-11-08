@@ -836,10 +836,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             stand in two places only: as the left of `??`, which replaces the \
             absence, and as an operand of `==` or `!=`, which compare it without \
             holding it. A `let`, an argument, a `return`, a field value, a \
-            `${...}` interpolation and a `match` scrutinee all hold it, and each is \
-            this error. `tsc` accepts several of those (`let x = n?.name`, \
-            `print(\"${n?.name}\")`, an `unknown` argument), and the second one \
-            prints the text \"undefined\".\n\n\
+            `${...}` interpolation, a JSX child or attribute \
+            (`<p>{n?.name}</p>`, `<Label text={n?.name} />`) and a `match` \
+            scrutinee all hold it, and each is this error. `tsc` accepts several \
+            of those (`let x = n?.name`, `print(\"${n?.name}\")`, an `unknown` \
+            argument, a JSX child), and what each does with `undefined` at run \
+            time differs: an interpolation prints it, React renders it as \
+            nothing. The refusal rests on neither. It rests on the missing \
+            type.\n\n\
             fn label(n: Nullable<Note>) -> Nullable<string> {\n  \
             return n?.name                // E0235\n\
             }\n\n\
@@ -1800,7 +1804,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0235",
         phase: "typechecker",
-        meaning: "A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=`: that value is `F` or `undefined`, and Glyph has no `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts and Glyph does not",
+        meaning: "A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=` (a binding, an argument, a `return`, a field value, an interpolation, a JSX child or attribute, a `match` scrutinee): that value is `F` or `undefined`, and Glyph has no type for `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts (a JSX child among them) and Glyph does not",
         fix: "Give the absent case a value with `??` (`n?.name ?? \"none\"`), or convert the whole value with `nullable.to_option(n)` and `match` on it",
     },
     // ----- emitter (E03xx) -----

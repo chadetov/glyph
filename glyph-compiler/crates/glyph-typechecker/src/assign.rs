@@ -16066,6 +16066,21 @@ fn f(a: Answer) -> number {
     }
 
     #[test]
+    fn an_escaping_chain_in_jsx_is_e0235_and_a_defaulted_one_is_clean() {
+        // A JSX child holds the chain's value as an attribute does. `tsc`
+        // accepts the child (a `ReactNode` may be `undefined`) and React
+        // renders it as nothing, but Glyph has no type for `undefined`.
+        let child = "component Card(props: { n: Nullable<Note> }) -> Component {\n  return <p>{props.n?.name}</p>\n}\n";
+        assert_eq!(g304_codes(child), vec!["E0235"], "the JSX child");
+        let attr = "component Label(props: { text: string }) -> Component {\n  return <p>{props.text}</p>\n}\n\
+                    component Card(props: { n: Nullable<Note> }) -> Component {\n  return <Label text={props.n?.name} />\n}\n";
+        assert_eq!(g304_codes(attr), vec!["E0235"], "the JSX attribute");
+        let fine = "component Card(props: { n: Nullable<Note> }) -> Component {\n  return <p>{props.n?.name ?? \"\"}</p>\n}\n";
+        let errs = g304_errors(fine);
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    #[test]
     fn a_plain_dot_after_a_chain_reaches_a_nullable_field_is_e0235() {
         // `n?.maybe` is a `Nullable<Inner>`, so `.name` on it may read null.
         let codes = g304_codes("fn f(n: Nullable<Note>) -> string {\n  return n?.maybe.name ?? \"\"\n}\n");

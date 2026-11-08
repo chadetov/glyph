@@ -5950,7 +5950,10 @@ impl<'a> Emitter<'a> {
 
     /// Rewrite `parse<T>(text)` from `std/json`, with a written `T`, to the
     /// validating `parse_with(text, <schema for T>)`. A `T` with a written
-    /// type argument validates or is refused; it never casts (G297).
+    /// type argument validates or is refused, except the types
+    /// `json_parse_schema` cannot build a check for yet (a type parameter, an
+    /// `extern_ts` or package type, a container of `unknown`, an imported
+    /// `Array` alias), which still cast until 0.1.133 (G297).
     ///
     /// Both spellings take the rewrite. The namespace form (`json.parse<T>`,
     /// or `j.parse<T>` under `import std/json as j`) calls `parse_with`

@@ -741,8 +741,10 @@ failure names the field's path. Any other `T` (`int`, `Option<User>`,
 `Record<string, int>`, an alias of `Array<User>`) gets the check a record field
 of that type gets. If `T` is a record with a field that has no runtime check,
 the call is E0304. `json.parse(text)` with no type argument, or
-`json.parse<unknown>`, is the unchecked read. A type parameter, an `extern_ts`
-type or a package type as `T` is not checked yet: the value is cast.
+`json.parse<unknown>`, is the unchecked read. Some `T` are not checked yet
+and the value is cast: a type parameter, an `extern_ts` type, a package
+type, a container of `unknown` (`Array<unknown>`, `Record<string, unknown>`)
+and an `Array` alias imported from another module.
 
 ### Runtime validators (`T.parse` / `T.is` / `T.schema`)
 

@@ -319,6 +319,9 @@ json.discriminant(value: unknown, field: string) -> Option<string>  // read a st
 - Any other `T` (`number`, `int`, a string-literal union, `Option<User>`,
   `Nullable<User>`, `Record<string, int>`) gets the check a record field of that
   type gets. `json.parse<int>("2.5")` is an `Err`.
+- Not checked yet, and cast: a type parameter, an `extern_ts` type, a package
+  type, a container of `unknown` (`Array<unknown>`, `Record<string, unknown>`)
+  and an `Array` alias imported from another module.
 - If `T` is a record with a field that has no runtime check (an `extern_ts`
   type, a host handle), or contains one, the call is E0304, as `T.parse` is.
 

@@ -10623,6 +10623,11 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.126: `let b: Opt = { name: "b", extra: 1 }` with `type Opt = { name: string, nick?: string }` exits 0 under `--no-tsc` and is TS2353 under `tsc`.*
 
+  *Reproduced against 0.1.132 (re-run on the release build): the same
+  program is `glyph check: 1 module(s) checked, no diagnostics.` under
+  `--no-tsc`, and ``[TS2353] Error: tsc: Object literal may only specify
+  known properties, and 'extra' does not exist in type 'Opt'.`` with `tsc`.*
+
 - **G274. [FIXED] Four more positions compared loosely: an optional field, a
   declared record against a structural one, a function's return, and an
   interface member.** Found checking G270's premise, all the same hole: each

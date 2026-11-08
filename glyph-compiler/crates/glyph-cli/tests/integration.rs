@@ -877,7 +877,7 @@ fn build_flags_unknown_variant_pattern_with_suggestion() {
     // A PascalCase arm head that names no variant of the union is E0220, not a
     // silent binding catch-all. Here `Loadign` is a typo for `Loading`; the
     // diagnostic escalates it AND suggests the nearest real variant. Because it
-    // is no longer read as a catch-all, the genuinely missing `Failed` still
+    // is no longer read as a catch-all, the genuinely missing `Loading` still
     // surfaces as a separate non-exhaustiveness error.
     let root = unique_tmp("unknownvariant");
     let src = root.join("src");
@@ -889,9 +889,9 @@ fn build_flags_unknown_variant_pattern_with_suggestion() {
          type Feed = | Loading | Loaded | Failed\n\
          fn show(f: Feed) -> number {\n  \
            return match f {\n    \
-             Loading => 1,\n    \
              Loaded => 2,\n    \
-             Loadign => 3,\n  \
+             Failed => 3,\n    \
+             Loadign => 1,\n  \
            }\n\
          }\n",
     );
@@ -936,12 +936,12 @@ fn cross_module_union_typo_draws_e0220_like_the_module_local_one() {
         &src,
         "app.glyph",
         "module app\n\
-         import lib { Feed, Loading, Loaded }\n\
+         import lib { Feed, Loaded, Failed }\n\
          fn show(f: Feed) -> number {\n  \
            return match f {\n    \
-             Loading => 1,\n    \
              Loaded => 2,\n    \
-             Loadign => 3,\n  \
+             Failed => 3,\n    \
+             Loadign => 1,\n  \
            }\n\
          }\n",
     );
@@ -961,7 +961,7 @@ fn cross_module_union_typo_draws_e0220_like_the_module_local_one() {
         report
             .diagnostics
             .iter()
-            .any(|d| d.contains("E0200") && d.contains("Failed")),
+            .any(|d| d.contains("E0200") && d.contains("Loading")),
         "the unnamed variant must still surface: {:?}",
         report.diagnostics
     );
@@ -7978,7 +7978,6 @@ fn a_literal_arm_outside_a_union_is_refused_under_every_spelling() {
         "module main\nimport std/http\n\n\
          pub fn describe(p: http.RedirectPolicy) -> string {\n\
          \x20 return match p {\n\
-         \x20\x20\x20 \"follow\" => \"f\",\n\
          \x20\x20\x20 \"manual\" => \"m\",\n\
          \x20\x20\x20 \"error\" => \"e\",\n\
          \x20\x20\x20 \"folow\" => \"x\",\n\
@@ -7989,6 +7988,8 @@ fn a_literal_arm_outside_a_union_is_refused_under_every_spelling() {
     let out = format!("{stdout}\n{stderr}");
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("[E0220]"), "{out}");
+    // No arm names `"follow"`, so it is the suggestion. A value another arm
+    // already names is never offered (G305).
     assert!(out.contains("did you mean `\"follow\"`?"), "{out}");
 
     for (tag, import, ty) in [

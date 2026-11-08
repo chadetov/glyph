@@ -543,20 +543,23 @@ pub fn explain(code: &str) -> Option<&'static str> {
             it to an error and suggests the nearest real variant:\n\n\
             type Feed = | Loading | Loaded | Failed\n\
             match f {\n  \
-              Loading => 1,\n  \
-              Loadign => 2,   // E0220: did you mean `Loading`?\n\
+              Loadign => 1,   // E0220: did you mean `Loading`?\n  \
+              Loaded => 2,\n\
             }\n\n\
             Fix the spelling, or add the variant to the union. A genuinely \
             missing variant is still reported separately as E0200.\n\n\
+            The suggestion comes only from the cases no other arm already \
+            names. Writing a named one a second time would give the match an \
+            arm that can never run (E0305), so when every case is named there \
+            is no suggestion.\n\n\
             A string-literal union (D30) is held to the same rule. A literal \
             arm for a value the union does not hold can never run, whether \
             the value is new or a misspelling of one the union has, and an \
             `else` does not change that:\n\n\
             type Mode = \"manual\" | \"auto\"\n\
             match m {\n  \
-              \"manual\" => 1,\n  \
-              \"manuel\" => 2,   // E0220: did you mean `\"manual\"`?\n  \
-              else => 3,\n\
+              \"manuel\" => 1,   // E0220: did you mean `\"manual\"`?\n  \
+              else => 2,\n\
             }\n\n\
             This holds for a union declared in the module, one imported from \
             a sibling under any import spelling, and the standard library's \
@@ -1714,7 +1717,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0220",
         phase: "typechecker",
         meaning: "A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9). Also a literal arm over a string-literal union for a value the union does not hold (`\"c\"` over `\"a\" | \"b\"`, or `\"manuel\"` beside `\"manual\"`), with or without an `else`, for a local, imported or stdlib union (D30)",
-        fix: "Fix the spelling (a `did you mean` suggestion is offered), add the variant or value, or delete an arm for a value the union does not have",
+        fix: "Fix the spelling (a `did you mean` suggestion names the nearest case no other arm already names), add the variant or value, or delete an arm for a value the union does not have",
     },
     CodeEntry {
         code: "E0221",

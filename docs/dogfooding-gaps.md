@@ -11447,6 +11447,18 @@ and is the owner's to confirm.
   The suggestion uses E0220's shared edit-distance rule and can name a value
   another arm already covers (`"a"` for `"c"`); `glyph fix` declines a
   literal arm rather than rewriting it.
+
+  Fixed in 0.1.132 for the suggestion: the did-you-mean comes only from the
+  cases no other arm names, for a literal arm and a variant head alike, local
+  or imported. With every case named there is none, since writing a named one
+  again is an arm that can never run (E0305). The `"c"` arm above is now
+  ``[E0220] ... `"c"` is not a value of `Mode` `` with no suggestion, and
+  `Loadin` beside a `Loading` arm and an uncovered `Loaded` is ``... did you
+  mean `Loaded`?`` where it was `Loading`. An `else` names nothing, so the
+  values it absorbs stay candidates. A variant reached only through a nested
+  sub-pattern (`A(X)`) stays one too, because `A(y)` beside it can still
+  run. The message text changes; exit codes do not. `glyph fix` for a
+  literal arm is planned for 0.1.133.
 - **G306. [FIXED] `glyph/applyEdit` accepts an edit `glyph check` refuses.** The
   gate checks the candidate text on its own with the text path, which stops
   after the checker and has no project. An edit that introduces an emitter

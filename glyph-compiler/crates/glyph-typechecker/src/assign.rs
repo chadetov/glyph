@@ -4536,7 +4536,8 @@ impl Assigner<'_> {
             }
         }
         for (name, span) in unknown {
-            let suggestion = nearest_variant(&name, required);
+            let suggestion =
+                uncovered_nearest(&name, required, |v| covered.contains(v.as_ref()));
             self.errors.push(TypeError::UnknownVariantPattern {
                 union: type_name.to_string(),
                 name,
@@ -4784,10 +4785,23 @@ impl Assigner<'_> {
             } = &arm.pattern
             {
                 if !values.iter().any(|v| v == s) {
+                    // Only a value no arm already names: writing one that is
+                    // named would give the match two arms for it (E0305).
+                    let named = |v: &&String| {
+                        arms.iter().any(|a| {
+                            matches!(&a.pattern, Pattern::Literal {
+                                value: LiteralPattern::String(o),
+                                ..
+                            } if o == *v)
+                        })
+                    };
                     self.errors.push(TypeError::UnknownLiteralPattern {
                         union: ty_display(scrutinee_ty),
                         value: s.clone(),
-                        suggestion: nearest_name(s, values.iter().map(String::as_str)),
+                        suggestion: nearest_name(
+                            s,
+                            values.iter().filter(|v| !named(v)).map(String::as_str),
+                        ),
                         span: *span,
                     });
                 }
@@ -5069,6 +5083,7 @@ impl Assigner<'_> {
         let mut covered: HashSet<Ident> = HashSet::new();
         let mut nested: HashMap<Ident, Vec<(u16, &Pattern)>> = HashMap::new();
         let mut has_catch_all = false;
+        let mut unknown: Vec<(String, glyph_ast::Span)> = Vec::new();
         for &(arm, pat) in patterns {
             // `is TypeName` (D9) is read here rather than in the shared
             // classifier: only this side ever credited one, and crediting it
@@ -5124,13 +5139,9 @@ impl Assigner<'_> {
                 // nearest-variant hint, before the arm is dropped. It is
                 // neither covered nor a catch-all, so a genuinely missing
                 // variant still surfaces as E0200 alongside it.
+                // The suggestion is drawn once every arm is read, below.
                 ArmCoverage::UnknownVariant { name, span } => {
-                    self.errors.push(TypeError::UnknownVariantPattern {
-                        union: type_name.clone(),
-                        name: name.to_string(),
-                        suggestion: nearest_variant(name.as_ref(), &variants),
-                        span,
-                    });
+                    unknown.push((name.to_string(), span));
                 }
                 // A value-testing record payload, or a top-level shape this
                 // check does not model. Recorded as declined rather than
@@ -5142,6 +5153,16 @@ impl Assigner<'_> {
                     self.cover_decline(cov.as_ref(), arm, variant.as_deref());
                 }
             }
+        }
+        // Emitted before the catch-all return: an `else` absorbs the variants
+        // the arms leave out and says nothing about a head that names none.
+        for (name, span) in unknown {
+            self.errors.push(TypeError::UnknownVariantPattern {
+                union: type_name.clone(),
+                suggestion: uncovered_nearest(&name, &variants, |v| covered.contains(v)),
+                name,
+                span,
+            });
         }
 
         if has_catch_all {
@@ -8882,12 +8903,21 @@ fn is_constructor_shaped(name: &Ident) -> bool {
     name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
 }
 
-/// The nearest variant name to `name` by Levenshtein distance, when one is
-/// close enough to be a plausible typo. Powers the `did you mean` hint on
-/// `UnknownVariantPattern` (E0220). Returns `None` when every variant is too
-/// far to be a likely misspelling, so the diagnostic never guesses wildly.
-fn nearest_variant(name: &str, variants: &[Ident]) -> Option<String> {
-    nearest_name(name, variants.iter().map(|v| v.as_ref()))
+/// The E0220 suggestion for a head that names no variant (G305): the nearest
+/// of the variants no other arm already covers. A covered one is left out
+/// because writing it would give the match a second arm for that variant, an
+/// arm that can never run (E0305). With every variant covered there is no
+/// suggestion. A variant reached only through a nested sub-pattern (`A(X)`) is
+/// not covered and stays a candidate: `A(y)` beside it can still run.
+fn uncovered_nearest(
+    name: &str,
+    variants: &[Ident],
+    covered: impl Fn(&Ident) -> bool,
+) -> Option<String> {
+    nearest_name(
+        name,
+        variants.iter().filter(|v| !covered(v)).map(|v| v.as_ref()),
+    )
 }
 
 /// The nearest of `candidates` to `name` by Levenshtein distance, when one is
@@ -10679,8 +10709,8 @@ fn show(f: Feed) -> number {
 type Feed = | Loading | Loaded | Failed
 fn show(f: Feed) -> number {
   return match f {
-    Loading => 1,
     Loaded => 2,
+    Failed => 3,
     Loadign => 999,
   }
 }
@@ -10696,7 +10726,7 @@ fn show(f: Feed) -> number {
         );
         // The typechecker independently escalates the typo to E0220 with a
         // union-scoped `did you mean` suggestion, and — because the typo is no
-        // longer read as a catch-all — the genuinely missing `Failed` variant
+        // longer read as a catch-all — the genuinely missing `Loading` variant
         // now surfaces as E0200 alongside it.
         let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
         let e0220 = ty_errs
@@ -10770,13 +10800,13 @@ fn show(f: Feed) -> number {
         // mistake shape for the prelude unions an agent touches most (`Errr(e)`,
         // `Somee(x)`); before this fix only the bare `Ident` head was caught and
         // the parenthesized form walked straight through. The genuinely missing
-        // `Failed` still surfaces as E0200 because the dropped arm covers nothing.
+        // `Loading` still surfaces as E0200 because the dropped arm covers nothing.
         let src = r#"module x
 type Feed = | Loading | Loaded | Failed
 fn show(f: Feed) -> number {
   return match f {
-    Loading => 1,
     Loaded => 2,
+    Failed => 3,
     Loadign(x) => x,
   }
 }
@@ -10807,7 +10837,7 @@ fn show(f: Feed) -> number {
         assert_eq!(suggestion.as_deref(), Some("Loading"));
         assert!(
             ty_errs.iter().any(|e| e.code() == "E0200"),
-            "the missing `Failed` variant must still surface: {ty_errs:?}"
+            "the missing `Loading` variant must still surface: {ty_errs:?}"
         );
     }
 
@@ -10820,9 +10850,9 @@ fn show(f: Feed) -> number {
 type Feed = | Loading | Loaded | Failed
 fn show(f: Feed) -> number {
   return match f {
-    Feed.Loading => 1,
     Feed.Loaded => 2,
-    Feed.Loadign => 3,
+    Feed.Failed => 3,
+    Feed.Loadign => 1,
   }
 }
 "#;
@@ -10849,7 +10879,73 @@ fn show(f: Feed) -> number {
         assert_eq!(suggestion.as_deref(), Some("Loading"));
         assert!(
             ty_errs.iter().any(|e| e.code() == "E0200"),
-            "the missing `Failed` variant must still surface: {ty_errs:?}"
+            "the missing `Loading` variant must still surface: {ty_errs:?}"
+        );
+    }
+
+    /// G305. The suggestion is drawn from the variants no other arm covers.
+    /// `Loadin` is one edit from `Loading`, but a `Loading` arm is already
+    /// there and writing it again is an arm that can never run (E0305), so the
+    /// suggestion is the uncovered `Loaded`, two edits away. With every variant
+    /// covered there is nothing left to suggest. A variant reached only through
+    /// a nested sub-pattern (`Wrap(X)`) is not covered: `Wrap(y)` beside it can
+    /// still run, so it stays a candidate.
+    #[test]
+    fn e0220_suggests_only_a_variant_no_other_arm_covers() {
+        let src = r#"module x
+type Inner = | X | Y
+type Feed = | Loading | Loaded | Failed
+type Boxed = | Wrap(Inner) | Done
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loadin => 2,
+    Failed => 3,
+  }
+}
+fn all(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Failed => 3,
+    Loadign => 4,
+  }
+}
+fn nest(b: Boxed) -> number {
+  return match b {
+    Wrap(X) => 1,
+    Wrapp(y) => 2,
+    Done => 3,
+  }
+}
+"#;
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
+        let got: Vec<(String, Option<String>)> = ty_errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::UnknownVariantPattern { name, suggestion, .. } => {
+                    Some((name.clone(), suggestion.clone()))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("Loadin".to_string(), Some("Loaded".to_string())),
+                ("Loadign".to_string(), None),
+                ("Wrapp".to_string(), Some("Wrap".to_string())),
+            ],
+            "{ty_errs:?}"
+        );
+        assert!(
+            !format!("{}", ty_errs.iter().find(|e| e.code() == "E0220").unwrap())
+                .contains("`Loading`"),
+            "{ty_errs:?}"
         );
     }
 
@@ -15004,8 +15100,8 @@ fn f(a: Answer) -> number {
         });
         assert_eq!(
             reported,
-            Some(("Answer".to_string(), "Zed".to_string(), Some("Yes".to_string()))),
-            "errs: {errs:?}"
+            Some(("Answer".to_string(), "Zed".to_string(), None)),
+            "both variants are covered, so there is nothing to suggest: {errs:?}"
         );
         // The unknown head must not be credited as coverage on its way past:
         // an arm naming nothing this union declares cannot make it exhaustive.
@@ -15014,6 +15110,33 @@ fn f(a: Answer) -> number {
                 .iter()
                 .any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
             "every declared variant is named, so there is no gap: {errs:?}"
+        );
+    }
+
+    /// G305 on the imported side: the suggestion skips a variant another arm
+    /// covers. `Nos` is one edit from the covered `No` and two from `Yes`.
+    #[test]
+    fn an_imported_union_head_suggests_only_an_uncovered_variant() {
+        let src = r#"module app
+import model { Answer, Yes, No, Nos }
+fn f(a: Answer) -> number {
+  return match a {
+    No => 0,
+    Nos => 1,
+  }
+}
+"#;
+        let (_cov, errs) = imported_coverage_and_errors(src);
+        let reported = errs.iter().find_map(|e| match e {
+            TypeError::UnknownVariantPattern { name, suggestion, .. } => {
+                Some((name.clone(), suggestion.clone()))
+            }
+            _ => None,
+        });
+        assert_eq!(
+            reported,
+            Some(("Nos".to_string(), Some("Yes".to_string()))),
+            "errs: {errs:?}"
         );
     }
 
@@ -18774,7 +18897,6 @@ fn main(p: Point, m: Meta, s: Status) -> number {
              }\n\
              pub fn g(e: Entry) -> string {\n\
              \x20 return match e {\n\
-             \x20\x20\x20 \"manual\" => \"M\",\n\
              \x20\x20\x20 \"manuel\" => \"X\",\n\
              \x20\x20\x20 else => \"A\",\n\
              \x20 }\n\
@@ -18790,7 +18912,7 @@ fn main(p: Point, m: Meta, s: Status) -> number {
         assert_eq!(
             unknown_literal_arms(&errs),
             vec![
-                ("c".to_string(), "Mode".to_string(), Some("a".to_string())),
+                ("c".to_string(), "Mode".to_string(), None),
                 ("manuel".to_string(), "Entry".to_string(), Some("manual".to_string())),
                 ("zebra".to_string(), "\"x\" | \"y\"".to_string(), None),
             ],
@@ -18798,6 +18920,43 @@ fn main(p: Point, m: Meta, s: Status) -> number {
         );
         let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
         assert_eq!(codes, vec!["E0220", "E0220", "E0220"], "{errs:?}");
+    }
+
+    /// G305's suggestion rule. The did-you-mean comes only from the values no
+    /// other arm names: `"ad"` is one edit from both `"ab"` and `"ac"`, and
+    /// `"ab"` has an arm, so the suggestion is `"ac"`. With every value named
+    /// (`"c"` over `"a" | "b"` with both arms written) there is none, since
+    /// either would give the match a second arm that can never run (E0305).
+    /// An `else` names nothing, so it leaves `"ac"` a candidate.
+    #[test]
+    fn a_literal_arm_suggests_only_a_value_no_other_arm_names() {
+        let errs = errors_of(
+            "module m\n\
+             type Two = \"ab\" | \"ac\"\n\
+             type Mode = \"a\" | \"b\"\n\
+             pub fn f(t: Two) -> string {\n\
+             \x20 return match t {\n\
+             \x20\x20\x20 \"ab\" => \"B\",\n\
+             \x20\x20\x20 \"ad\" => \"D\",\n\
+             \x20\x20\x20 else => \"E\",\n\
+             \x20 }\n\
+             }\n\
+             pub fn g(m: Mode) -> string {\n\
+             \x20 return match m {\n\
+             \x20\x20\x20 \"a\" => \"A\",\n\
+             \x20\x20\x20 \"c\" => \"C\",\n\
+             \x20\x20\x20 \"b\" => \"B\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert_eq!(
+            unknown_literal_arms(&errs),
+            vec![
+                ("ad".to_string(), "Two".to_string(), Some("ac".to_string())),
+                ("c".to_string(), "Mode".to_string(), None),
+            ],
+            "{errs:?}"
+        );
     }
 
     /// The arms G305 must not touch: every value of the union, with or
@@ -18852,14 +19011,12 @@ fn main(p: Point, m: Meta, s: Status) -> number {
                    import modes as md\n\
                    pub fn named(m: Mode) -> number {\n\
                    \x20 return match m {\n\
-                   \x20\x20\x20 \"manual\" => 1,\n\
                    \x20\x20\x20 \"auto\" => 2,\n\
                    \x20\x20\x20 \"manuel\" => 3,\n\
                    \x20 }\n\
                    }\n\
                    pub fn spaced(m: md.Mode) -> number {\n\
                    \x20 return match m {\n\
-                   \x20\x20\x20 \"manual\" => 1,\n\
                    \x20\x20\x20 \"auto\" => 2,\n\
                    \x20\x20\x20 \"manuel\" => 3,\n\
                    \x20 }\n\

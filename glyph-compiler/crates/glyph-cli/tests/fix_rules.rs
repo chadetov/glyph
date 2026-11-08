@@ -221,12 +221,12 @@ fn e0220_applies_the_one_suggestion_the_checker_computed() {
     assert_eq!(code, 0, "{output}\n{after}");
 }
 
-/// The suggestion is a nearest name, not a coverage answer. Writing `Loading`
-/// over a match that already has a `Loading` arm produces E0305, an arm that
-/// can never run, so the rule stops when the suggested variant is not one the
-/// match is missing.
+/// Writing `Loading` over a match that already has a `Loading` arm would
+/// produce E0305, an arm that can never run. Since G305 the checker never
+/// suggests a variant another arm covers, so with every variant matched there
+/// is no suggestion and nothing for the rule to write.
 #[test]
-fn e0220_declines_when_the_suggested_variant_is_already_matched() {
+fn e0220_declines_when_every_variant_is_already_matched() {
     let before = "module main\n\
                   \n\
                   type Feed = | Loading | Loaded | Failed\n\
@@ -242,8 +242,8 @@ fn e0220_declines_when_the_suggested_variant_is_already_matched() {
     let dir = project("e0220dup", before);
     let out = fix(&dir);
     assert!(
-        out.contains("declined E0220") && out.contains("E0305"),
-        "the refusal names the error the repair would have caused:\n{out}"
+        out.contains("declined E0220") && out.contains("no nearest variant"),
+        "the checker offers no suggestion, so the rule has nothing to write:\n{out}"
     );
     assert_eq!(source_of(&dir), before, "the file is untouched");
 }

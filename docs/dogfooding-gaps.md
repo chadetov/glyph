@@ -11476,7 +11476,7 @@ and is the owner's to confirm.
   `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc`, and
   `glyph llms --json` gives `pad_end` the signature
   `fn(string, number, string) -> string`.*
-- **G309. The array runtime takes `ReadonlyArray<T>` where the rows declare
+- **G309. [FIXED] The array runtime takes `ReadonlyArray<T>` where the rows declare
   `Array<T>`.** Nineteen `std/array` rows (`any`, `concat`, `filter`, `find`,
   `flat_map`, `fold`, `fold_while`, `get`, `len`, `map`, `max`, `max_by`,
   `min`, `min_by`, `reverse`, `sort`, `sum`, `try_fold`, `zip`) plus `slice`
@@ -11496,3 +11496,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
   `python3 scripts/check_stdlib_signatures.py` reports the declared-to-runtime
   mismatch for all twenty rows under TypeScript 6.0.3.*
+
+  Fixed in 0.1.132 by deciding it is a distinction the gate keeps, not one it
+  drops. A stdlib function never mutates an array it is passed; the runtime
+  declares every array parameter `ReadonlyArray<T>`, and the signature gate
+  holds every row to it. The gate reads every top-level parameter a row
+  declares as `Array<X>` as `ReadonlyArray<X>` before comparing, and leaves
+  the return type `Array<X>`, because a program may `mut` the array it gets
+  back. The twenty rows pass declared to runtime, so each one is checked past
+  its first parameter again, and a runtime function that takes a mutable
+  array now fails runtime to declared. `array.slice` keeps its G308 entry.
+  Glyph's own types are unchanged.

@@ -14825,6 +14825,41 @@ fn a_nullable_over_an_option_is_rejected_at_build() {
     );
 }
 
+/// G304. A sibling's `pub type MaybeNote = Nullable<Note>` is read as the
+/// `Nullable` it names under every import spelling, so the plain dot is E0235,
+/// a typo through `?.` is E0210 naming `Note`, and the defaulted chain is
+/// clean. Without it the guarantee would depend on where the alias lives.
+#[test]
+fn a_nullable_read_through_an_imported_alias_is_checked_by_every_spelling() {
+    for (import, q) in [("import a { MaybeNote }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
+        let root = unique_tmp("g304alias");
+        let src = root.join("src");
+        write_file(
+            &src,
+            "a.glyph",
+            "module a\n\npub type Note = { name: string }\n\npub type MaybeNote = Nullable<Note>\n",
+        );
+        write_file(
+            &src,
+            "b.glyph",
+            &format!(
+                "module b\n\n{import}\n\n\
+                 pub fn dot(n: {q}MaybeNote) -> string {{\n  return n.name\n}}\n\n\
+                 pub fn typo(n: {q}MaybeNote) -> string {{\n  return n?.nmae ?? \"\"\n}}\n\n\
+                 pub fn fine(n: {q}MaybeNote) -> string {{\n  return n?.name ?? \"\"\n}}\n"
+            ),
+        );
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let d = &report.diagnostics;
+        assert_eq!(d.iter().filter(|d| d.contains("[E0235]")).count(), 1, "`{import}`: {d:?}");
+        assert!(
+            d.iter().any(|d| d.contains("[E0210]") && d.contains("type `Note` has no field `nmae`")),
+            "`{import}`: {d:?}"
+        );
+        assert_eq!(d.len(), 2, "`{import}`: only the two refusals: {d:?}");
+    }
+}
+
 #[test]
 fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
     // G207. `type Positive = Rec where value.x > 0` refines a record whenever

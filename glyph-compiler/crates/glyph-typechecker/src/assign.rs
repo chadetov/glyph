@@ -2581,9 +2581,9 @@ impl Assigner<'_> {
     }
 
     /// `T` when `ty` is a `Nullable<T>`, read through second names and
-    /// through a local `type` whose body is one (`type MaybeNote =
-    /// Nullable<Note>`), the reach E0227's `resolves_to_nullable_or_option`
-    /// has, so the guarantee does not depend on which name a parameter wrote.
+    /// through a `type` whose body is one (`type MaybeNote = Nullable<Note>`),
+    /// local or a sibling's under either import spelling, so the guarantee
+    /// does not depend on which name a parameter wrote.
     fn nullable_inner(&self, ty: &Ty) -> Option<Ty> {
         self.nullable_inner_at(ty, 0)
     }
@@ -2595,6 +2595,14 @@ impl Assigner<'_> {
         }
         if depth >= 8 {
             return None;
+        }
+        if let Ty::Imported { module, name } = &canonical {
+            let (_, _, decl) =
+                imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
+            return match decl.generics.is_empty() {
+                true => self.nullable_inner_at(&decl.body, depth + 1),
+                false => None,
+            };
         }
         match self.local_type_decl(&canonical) {
             Some(td) if td.generics.is_empty() && td.refinement.is_none() => {

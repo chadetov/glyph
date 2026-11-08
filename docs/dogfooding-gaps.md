@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-313 entries, 273 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-20 are open. G144, the D28 boundary cast that never reached the returns a
+315 entries, 273 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+22 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11669,3 +11669,25 @@ and is the owner's to confirm.
   file answered `ok: true` with empty `diagnostics` and E0200 under
   `preexisting`; the same edit on the clean file answered `ok: false` with
   E0107; the `C => 3` edit afterwards answered `ok: false` with E0107.*
+- **G314. A type parameter nested in a type is not compared.**
+  `fn g<T>(x: Array<T>) -> Array<string> { return x }` passes Glyph's checker,
+  and `tsc` refuses it (``TS2322: Type 'T[]' is not assignable to type
+  'string[]'``). The same open parameter inside a record field passes where
+  a `Record<string, Array<string>>` is declared. 0.1.132 refuses a field whose
+  type is exactly a type parameter (D49) and nothing deeper. Found by the
+  0.1.132 release review.
+
+  *Reproduced against 0.1.132 (the release build): `no diagnostics` under
+  `--no-tsc`, TS2322 with `tsc`, for both programs.*
+- **G315. A second name for `unknown`, a type parameter or a `Nullable` is
+  refused where the plain spelling is accepted.** With `type Any = unknown`, a
+  `Box<T>` where `Record<string, Any>` is declared is E0204, and the same
+  program with `Record<string, unknown>` passes; `type Maybe<T> =
+  Nullable<T>` returned as a `Nullable<Note>` is E0204, where the non-generic
+  `type MaybeNote = Nullable<Note>` is accepted. A guarantee that depends on
+  which name a type was reached by is what D46 exists to remove. Found by the
+  0.1.132 release review.
+
+  *Reproduced against 0.1.132 (the release build): ``[E0204] Error:
+  typecheck: type mismatch: expected `Record<string, Any>` `` and ``expected
+  `Nullable<Note>` `` under `--no-tsc`.*

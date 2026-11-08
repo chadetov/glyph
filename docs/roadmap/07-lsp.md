@@ -168,7 +168,13 @@ one is preexisting; any other is the edit's. So an error left in text the edit
 rewrote is the edit's own, a message that changed (a `match` now missing two
 variants instead of one) is new, and an error that a fixed parse error used to
 hide is new too. `ok: true` therefore means "this edit introduced nothing";
-the file is clean only when `preexisting` is empty as well. Before 0.1.132 the
+the file is clean only when `preexisting` is empty as well. "Warnings
+included" holds only while the file has no error: the file's list stops after
+the type checker when it has one, so the lint tier and the emitter run on
+neither side of the comparison. An edit to a file that already has an error
+can add a warning, or an E0302 to E0305 emitter refusal, and still get
+`ok: true`; the diagnostic then surfaces on the edit that fixes the last
+error, and that edit is refused for it (G313). Before 0.1.132 the
 result had to have no diagnostics at all, so an edit to a file that already
 had one was always refused. Running the `@example`/property tests as part of the gate is
 a v1.1 enhancement; it needs the `glyph build`/test pipeline factored into a

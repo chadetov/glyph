@@ -10494,7 +10494,7 @@ and is the owner's to confirm.
   calls `higher` and `fold_max` in `examples/corpus/ranking.glyph` gives
   `start == end` (16:0 and 40:0), while the cross-module `ui::Button` spans
   4:4 to 6:1.*
-- **G262. The prelude `Component` takes type arguments without complaint.**
+- **G262. [FIXED] The prelude `Component` takes type arguments without complaint.**
   `-> Component<string>` passes Glyph; since 0.1.126 lowers `Component` to
   `React.ReactNode`, `tsc` reports `TS2315 'ReactNode' is not generic`.
 
@@ -10503,6 +10503,12 @@ and is the owner's to confirm.
   *Reproduced against 0.1.131 (re-run on the dev-0.1.131 build): `fn v() ->
   Component<string>` is `glyph check: 1 module(s) checked, no diagnostics.`
   under `--no-tsc`.*
+
+  Fixed in 0.1.132. The type-argument count E0233 checks covers the prelude
+  types, and `Component` takes none, so `fn v() -> Component<string>` is
+  ``[E0233] Error: typecheck: wrong number of type arguments: `Component`
+  takes 0, found 1`` under `--no-tsc`, exit 1 where the published 0.1.131
+  exits 0.
 - **G263. A generic bound is never resolved.** `component Show<T: Nope>(p: T)`
   passes Glyph with `Nope` declared nowhere, and `tsc` reports TS2304. The
   bound only reaches the emitter's `extends`, so `<T: string>` is silent too

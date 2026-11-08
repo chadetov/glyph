@@ -11013,6 +11013,21 @@ and is the owner's to confirm.
   sibling's `type` and the prelude types. Type arguments on a function value
   (`let f = id`, then `f<number>(x)`) are still not read; that is planned for
   0.1.133.
+
+  Fixed in 0.1.132 for the bare count: a generic declaration written with no
+  type arguments takes fewer than it has parameters, so it is E0233 too. `let
+  b: Box = x` on `type Box<T>`, `type B = Box` and `fn f(a: Array) -> number`
+  were each `no diagnostics`, exit 0, under `--no-tsc` on 0.1.131 and are
+  ``[E0233] ... `Array` takes 1, found 0`` (and the same for `Box`), exit 1,
+  now; `tsc` refused all three already (TS2314). It covers a parameter, `let`,
+  field or return annotation, a type argument (`json.parse<Box>`), a name
+  that resolves to an `interface`, a prelude container and a D46 body, for a
+  local declaration and a sibling's under both import spellings. The count
+  follows resolution, so a sibling's non-generic `Result` written bare is not
+  counted against the prelude's. Two places are not counted: a bare name in
+  an `is` arm, which is a runtime test and stays E0300 on a generic union,
+  and a type parameter's bound (`<T: Named>`), which the resolver does not
+  resolve yet.
 - **G293. [FIXED] A record where a `Result` is expected is left to `tsc`.** The
   reverse of G289: `let r: Result<User, string> = u` with `u: User` passes
   `glyph check --no-tsc`, and `tsc` refuses it (TS2322: ``Type 'User' is not

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-309 entries, 271 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-18 are open. G144, the D28 boundary cast that never reached the returns a
+310 entries, 271 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+19 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11507,3 +11507,38 @@ and is the owner's to confirm.
   its first parameter again, and a runtime function that takes a mutable
   array now fails runtime to declared. `array.slice` keeps its G308 entry.
   Glyph's own types are unchanged.
+- **G310. `glyph/applyEdit` accepts an edit that breaks another module.** The
+  gate compares the edited file's own list before and after the edit, and a
+  file's diagnostics depend on its siblings, so two kinds of edit pass it and
+  then fail or warn under `glyph check` over the project:
+
+  - An edit that renames a `pub fn` a sibling calls. With
+    `lib.glyph` = `module lib` / `pub fn hello() -> string { return "hi" }`
+    and `main.glyph` importing `lib { hello }` and calling `hello()`, the
+    edit `pub fn hello` → `pub fn greet` on the open `lib.glyph` is answered
+    `{"ok": true, "diagnostics": [], "rejected": null, ...}`. `glyph check
+    --no-tsc --no-test` on the tree with that text exits 1 with E0105 in
+    `main`: `` `hello` is not exported by `lib` (exports: greet) ``.
+  - An edit that removes the last import of a module. E0112 is decided by
+    whether any file in the project imports the module, so it runs along the
+    import edge the other way: an importer's edit changes the imported
+    module's list. With `util.glyph` = `module util` / `fn helper() -> number
+    { return 1 }` and `main.glyph` holding `import util` and a `pub fn run`,
+    the edit that deletes `import util` from the open `main.glyph` is
+    answered `{"ok": true, "diagnostics": [], ...}`, and `glyph check` on
+    the result reports E0112 on `util` (``this module declares nothing
+    `pub`, has no `main`, and nothing in the project imports it``).
+
+  The decision record for 0.1.132 (review 81, decision 1) takes the whole
+  project as the gate's scope in 0.1.133, with the atomic multi-document
+  `changes` form in the same change, because a project-scoped gate without
+  it would refuse every rename across a module boundary one file at a time.
+  Until then the gate's scope is documented on `apply_edit_request` and in
+  `docs/roadmap/07-lsp.md`, and `glyph check` over the project is the
+  authority.
+
+  *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`, at
+  6ed2f1c1) over JSON-RPC: both edits answered `ok: true` with empty
+  `diagnostics`; `glyph check --no-tsc --no-test` then exits 1 with E0105 on
+  `main` for the first and exits 0 with an E0112 warning on `util` for the
+  second.*

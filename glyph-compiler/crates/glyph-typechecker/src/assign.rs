@@ -18735,6 +18735,29 @@ fn f(a: Answer) -> number {
         assert_eq!(got.len(), 2, "{errs:?}");
     }
 
+    /// G293 with a generic `@open` record. Substituting the arguments does
+    /// not close it: `Bag<string>` has only `string` fields and its validator
+    /// still admits keys beyond them, so it is refused where a
+    /// `Record<string, string>` is declared and accepted only for `unknown`.
+    #[test]
+    fn a_generic_open_record_where_a_string_keyed_map_is_declared_is_refused_unless_unknown() {
+        let errs = errors_of(
+            "module m\n\
+             @open\n\
+             type Bag<T> = { id: T, }\n\
+             pub fn f(b: Bag<string>) -> number {\n\
+             \x20 let a: Record<string, string> = b\n\
+             \x20 let c: Record<string, unknown> = b\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("Record<string, string>".to_string(), "Bag<string>".to_string())],
+            "{errs:?}"
+        );
+    }
+
     /// G293. A tagged union has no fields in Glyph, and its runtime encoding
     /// is not a contract, so it is refused wherever any `Record<K, V>` is
     /// declared: a `V` of `unknown` and a `K` other than `string` included.

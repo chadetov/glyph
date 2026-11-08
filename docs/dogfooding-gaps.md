@@ -11385,7 +11385,7 @@ and is the owner's to confirm.
   constructors `Ok`, `Err`, `Some` and `None` are typed by their own rules.
   Under `--no-tsc` the wrong argument goes from exit 0 to 1; under `glyph
   check` it was exit 1 from `tsc` already.
-- **G304. `?.` on a `Nullable` produces `undefined`, which a `Nullable` is
+- **G304. [FIXED] `?.` on a `Nullable` produces `undefined`, which a `Nullable` is
   not.** `return n?.name` with `n: Nullable<Note>` from a function declared
   `-> Nullable<string>` passes Glyph's checker, and `tsc` refuses it
   (``TS2322: Type 'string | undefined' is not assignable to type 'string |
@@ -11395,6 +11395,30 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.130 (the dev-0.1.131 build, `glyph 0.1.130`):
   `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+
+  *Re-run against 0.1.131 before the fix: the same, and wider. The member
+  read ignored `?.` and found no field set on a `Nullable<Note>`, so `return
+  n?.nmae ?? ""` and `return n.name` passed `--no-tsc` too (TS2339 and
+  TS18047 with `tsc`), and `let x = n?.name`, `print("${n?.name}")`,
+  `keep(n?.name)` into an `unknown` parameter and `match n?.kind` passed
+  `tsc` as well, holding an `undefined` no Glyph type describes.*
+
+  Fixed in 0.1.132 (D45). A field of a `Nullable<R>` is read with `?.` and
+  checked against `R`: `n?.nmae` is ``[E0210] Error: typecheck: type `Note`
+  has no field `nmae`; did you mean `name`?``. The plain dot is ``[E0235]
+  Error: typecheck: `.name` reads through a `Nullable<Note>`, which may be
+  null``. The chain `n?.name`, and any chain it starts, may stand only as
+  the left of `??` or an operand of `==`/`!=`; `return n?.name` and the four
+  positions above are ``[E0235] Error: typecheck: `?.name` over a
+  `Nullable<Note>` is `undefined` when the value is null, and it is not
+  given a default with `??` or compared with `==`/`!=` ``. `n?.name ??
+  "none"` is a `string` (the inner `T` when the field is a `Nullable<T>`),
+  and `n ?? d` on a `Nullable<T>` is a `T`, when the default is one, so `let
+  k: number = n?.name ?? "none"` is E0204. Under `--no-tsc` each of these
+  goes from exit 0 to 1; under `glyph check` the four `tsc` accepted go from
+  exit 0 to 1 as well. A `type` whose body is a `Nullable<R>`, local or a
+  sibling's under any import spelling, is read as the `Nullable`. The member
+  arm still ignores `?.` on an `Option` and a `Result` (D18).
 - **G305. [FIXED] A `match` arm for a literal outside the union is accepted.** With
   `type Mode = "a" | "b"`, a match on a `Mode` with arms `"a"`, `"b"` and
   `"c"` passes `glyph check --no-tsc`. The `"c"` arm can never run, and

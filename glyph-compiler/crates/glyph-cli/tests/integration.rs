@@ -15963,6 +15963,49 @@ fn a_destructured_tuple_keeps_its_element_types_under_tsc() {
     }
 }
 
+/// G293 with a generic record. A `Box<T>` whose field type is still a type
+/// parameter after substitution is not a `Record<string, string>`: `T` may
+/// be anything. Glyph's checker reads the unsubstituted field as permissive
+/// and leaves the pairing to `tsc`, which refuses it (TS2322), so the program
+/// does not pass `glyph check`. If the checker comes to refuse it itself,
+/// this test changes deliberately.
+#[test]
+fn a_generic_record_with_an_unsubstituted_field_is_not_a_string_map_under_tsc() {
+    if !tsc_available() {
+        eprintln!("skipping Box<T> as Record<string, string>: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+
+    let root = unique_tmp("g293-box-t");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         \n\
+         type Box<T> = { value: T, }\n\
+         \n\
+         pub fn f<T>(b: Box<T>) -> Record<string, string> {\n\
+         \x20 return b\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Failed(msg) => {
+            assert!(
+                msg.contains("TS2322")
+                    && msg.contains("Type 'Box<T>' is not assignable to type 'Record<string, string>'"),
+                "expected TS2322 from Box<T> to Record<string, string>:\n{msg}"
+            );
+        }
+        TscOutcome::NotFound => tool_missing("tsc"),
+        TscOutcome::Passed => panic!("`return b` with `b: Box<T>` must be TS2322, and tsc passed it"),
+    }
+}
+
 #[test]
 fn a_destructuring_of_the_wrong_arity_is_refused_by_tsc() {
     // The length a checker cannot see is proved by `tsc`: three names over a

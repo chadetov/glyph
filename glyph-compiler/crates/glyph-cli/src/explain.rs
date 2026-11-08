@@ -2122,6 +2122,15 @@ mod tests {
         }
     }
 
+    /// E0233 has a wrong program in `tests/negative/`, so `--explain E0233
+    /// --json` shows one rather than saying the corpus has none.
+    #[test]
+    fn e0233_has_a_counter_example() {
+        let answer = explain_json("E0233").expect("E0233 is documented");
+        let example = answer.counter_example.expect("a negative case for E0233");
+        assert_eq!(example.diagnostic.map(|d| d.code), Some("E0233".to_string()));
+    }
+
     #[test]
     fn explain_is_case_insensitive_and_rejects_unknown() {
         assert!(explain("e0200").is_some());

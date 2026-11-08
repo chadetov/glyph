@@ -1077,7 +1077,7 @@ mod tests {
             Row {
                 code: "E0220",
                 src: "module main\n\ntype Feed =\n  | Loading\n  | Loaded\n\n\
-                       fn f(x: Feed) -> number {\n  return match x {\n    Loading => 1,\n    Loadd => 2,\n    Loaded => 3,\n  }\n}\n",
+                       fn f(x: Feed) -> number {\n  return match x {\n    Loading => 1,\n    Loadd => 2,\n  }\n}\n",
                 fields: &["alternatives"],
             },
         ];
@@ -1212,7 +1212,7 @@ mod tests {
                        fn f() -> number {\n  let m: Mode = \"rw\"\n  return 0\n}\n";
         let pattern = "module main\n\ntype Feed =\n  | Loading\n  | Loaded\n\n\
                        fn f(x: Feed) -> number {\n  return match x {\n    Loading => 1,\n\
-                       \x20   Loadd => 2,\n    Loaded => 3,\n  }\n}\n";
+                       \x20   Loadd => 2,\n  }\n}\n";
         // An inline literal set is declared nowhere, so no tool describes it;
         // the kind is the only thing that says how to write one of its values.
         let inline = "module main\n\nfn f() -> number {\n\

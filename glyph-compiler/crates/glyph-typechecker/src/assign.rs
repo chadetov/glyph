@@ -353,11 +353,13 @@ pub fn assign_types_with_relations(
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
+            null_chains: NullChains::default(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
             assigner.declare_record_fields(decl);
             assigner.walk_decl(decl);
+            assigner.report_unhandled_null_chains();
         }
     }
     // D25: a second pass over the completed `TypeMap`. `owned` single-
@@ -445,6 +447,7 @@ pub fn assignability(
         decl_ty_resolver,
         return_stack: Vec::new(),
         local_tys: HashMap::new(),
+        null_chains: NullChains::default(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -490,6 +493,7 @@ pub fn declared_record_fields(
         decl_ty_resolver,
         return_stack: Vec::new(),
         local_tys: HashMap::new(),
+        null_chains: NullChains::default(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1223,6 +1227,57 @@ struct Assigner<'a> {
     /// a def-site span across K/V, the latter need the bidirectional checker
     /// to derive types from the scrutinee).
     local_tys: HashMap<u32, Ty>,
+    /// The optional chains over a `Nullable` whose value has not yet been
+    /// handled (G304, D45). See `NullChains`.
+    null_chains: NullChains,
+}
+
+/// The optional chains over a `Nullable` (G304, D45), tracked by span.
+///
+/// `n?.f` on `n: Nullable<R>` is an `F` or JavaScript's `undefined`, and Glyph
+/// has no type for `undefined`, so the chain's value may stand only where the
+/// absence is dealt with on the spot: the left operand of `??`, or an operand
+/// of `==`/`!=`. Rather than a `Ty` for "an `F` or `undefined`", which every
+/// match on `Ty` would then have to answer for, the walk keeps the obligation
+/// beside the type map. The member arm opens one at each `?.` over a
+/// `Nullable`, a member, index or call on top of the chain moves it outward
+/// (JavaScript short-circuits the whole chain, so the outermost link is the
+/// value), the binary arm discharges it, and whatever is still open when a
+/// declaration's walk ends is E0235.
+#[derive(Default)]
+struct NullChains {
+    /// Open chains, in the order they were met: the span of the chain's value,
+    /// the field read through the `Nullable`, and the `Nullable`'s display.
+    open: Vec<(Span, String, String)>,
+    /// Chains already discharged, so a subexpression the walk reaches a second
+    /// time is not opened again after its parent handled it.
+    handled: HashSet<Span>,
+}
+
+impl NullChains {
+    /// Open an obligation at `span`, unless that chain was already handled.
+    fn open(&mut self, span: Span, root: (String, String)) {
+        if !self.handled.contains(&span) && !self.open.iter().any(|(s, ..)| *s == span) {
+            self.open.push((span, root.0, root.1));
+        }
+    }
+
+    /// Take the open chain at `span`, to move it to an enclosing link.
+    fn take(&mut self, span: Span) -> Option<(String, String)> {
+        let i = self.open.iter().position(|(s, ..)| *s == span)?;
+        let (_, field, ty) = self.open.remove(i);
+        Some((field, ty))
+    }
+
+    /// Discharge the chain at `span`. True when `span` is a chain over a
+    /// `Nullable`, open or already handled.
+    fn handle(&mut self, span: Span) -> bool {
+        if self.take(span).is_some() {
+            self.handled.insert(span);
+            return true;
+        }
+        self.handled.contains(&span)
+    }
 }
 
 /// The `@<name>` annotations the compiler recognizes (D27). Anything else is a
@@ -2006,7 +2061,7 @@ impl Assigner<'_> {
                 self.walk_expr(child);
                 self.tm.insert(*span, Ty::Unknown);
             }
-            Expr::Member { object, field, span, .. } => {
+            Expr::Member { object, field, span, optional } => {
                 // The object of a member access is the one expression position
                 // a type name belongs in: `Order.parse(json)` and `Order.is(v)`
                 // are the descriptor forms (G217). Marked before the walk and
@@ -2017,7 +2072,33 @@ impl Assigner<'_> {
                 };
                 self.walk_expr(object);
                 self.member_object = outer_member_object;
-                let obj_ty = self.tm.get(object.span()).clone();
+                let mut obj_ty = self.tm.get(object.span()).clone();
+                // G304, D45. A chain this link continues moves out to it, and
+                // a `?.` over a `Nullable<R>` starts one and reads the field
+                // off `R`. The plain dot over one may read null: E0235.
+                let chain = self.null_chains.take(object.span());
+                let mut root = None;
+                if let Some(inner) = self.nullable_inner(&obj_ty) {
+                    let through = ty_display(&obj_ty);
+                    if !*optional {
+                        self.errors.push(TypeError::NullableRead {
+                            kind: crate::NullableReadKind::Dot,
+                            field: field.to_string(),
+                            type_name: through,
+                            span: *span,
+                        });
+                        if let Some(c) = chain {
+                            self.null_chains.open(*span, c);
+                        }
+                        self.tm.insert(*span, Ty::Unknown);
+                        return;
+                    }
+                    root = Some((field.to_string(), through));
+                    obj_ty = inner;
+                }
+                if let Some(c) = chain.or(root) {
+                    self.null_chains.open(*span, c);
+                }
                 let access = if self.assign_target == Some(*span) {
                     FieldAccess::Write
                 } else {
@@ -2161,10 +2242,21 @@ impl Assigner<'_> {
                     }
                 }
             }
-            Expr::Binary { left, right, span, .. } => {
+            Expr::Binary { left, right, span, op } => {
                 self.walk_expr(left);
                 self.walk_expr(right);
-                self.tm.insert(*span, Ty::Unknown);
+                let ty = match op {
+                    glyph_ast::BinOp::NullishCoalesce => self.coalesce_ty(left, right),
+                    // A comparison reads the chain's value without holding
+                    // it, so `n?.f == "x"` handles the `undefined` (D45).
+                    glyph_ast::BinOp::Eq | glyph_ast::BinOp::NotEq => {
+                        self.null_chains.handle(left.span());
+                        self.null_chains.handle(right.span());
+                        Ty::Unknown
+                    }
+                    _ => Ty::Unknown,
+                };
+                self.tm.insert(*span, ty);
             }
             // Indexing. `xs[i]` on an array stays unchecked: the bound is a
             // value, and a program that has just measured `array.len` is not
@@ -2178,6 +2270,10 @@ impl Assigner<'_> {
                 ..
             } => {
                 self.walk_expr(object);
+                // `n?.xs[0]` is one chain (G304): the index is its value now.
+                if let Some(c) = self.null_chains.take(object.span()) {
+                    self.null_chains.open(*span, c);
+                }
                 self.walk_expr(index);
                 let obj_ty = self.tm.get(object.span()).clone();
                 if self.resolves_to_map(&obj_ty) {
@@ -2214,6 +2310,10 @@ impl Assigner<'_> {
                     self.check_nullable_args(t);
                 }
                 self.walk_expr(callee);
+                // `n?.f()` is one chain (G304): the call is its value now.
+                if let Some(c) = self.null_chains.take(callee.span()) {
+                    self.null_chains.open(*span, c);
+                }
                 for a in args {
                     self.walk_expr(a);
                 }
@@ -2477,6 +2577,57 @@ impl Assigner<'_> {
                 self.walk_jsx(j);
                 self.tm.insert(j.span, Ty::Unknown);
             }
+        }
+    }
+
+    /// `T` when `ty` is a `Nullable<T>`, read through second names.
+    fn nullable_inner(&self, ty: &Ty) -> Option<Ty> {
+        let canonical = self.canonicalize_aliases(ty);
+        match self.prelude_container(&canonical) {
+            Some(("Nullable", args)) => args.first().cloned(),
+            _ => None,
+        }
+    }
+
+    /// The type of `left ?? right` (G304, D45).
+    ///
+    /// Two lefts have a type here, and each removes an absence: an optional
+    /// chain over a `Nullable` (its `undefined`, and also the field's own null
+    /// when the field is a `Nullable<T>`), and a `Nullable<T>` value itself.
+    /// The expression is the field's type, or `T`, when the default is
+    /// accepted there by a rule of the relation. Anything else stays `Unknown`
+    /// and `tsc` decides, because the union TypeScript would give it has no
+    /// Glyph spelling.
+    fn coalesce_ty(&mut self, left: &Expr, right: &Expr) -> Ty {
+        let left_ty = self.tm.get(left.span()).clone();
+        let target = if self.null_chains.handle(left.span()) {
+            self.nullable_inner(&left_ty).unwrap_or(left_ty)
+        } else {
+            match self.nullable_inner(&left_ty) {
+                Some(inner) => inner,
+                None => return Ty::Unknown,
+            }
+        };
+        let default = self.tm.get(right.span()).clone();
+        if ty_is_decidable(&target) && self.accepting_rule(&default, &target).is_some() {
+            target
+        } else {
+            Ty::Unknown
+        }
+    }
+
+    /// E0235 for every optional chain over a `Nullable` the walk opened and
+    /// nothing handled. Called after each declaration's walk.
+    fn report_unhandled_null_chains(&mut self) {
+        let mut open = std::mem::take(&mut self.null_chains.open);
+        open.sort_by_key(|(s, ..)| (s.start, s.end));
+        for (span, field, type_name) in open {
+            self.errors.push(TypeError::NullableRead {
+                kind: crate::NullableReadKind::ChainEscapes,
+                field,
+                type_name,
+                span,
+            });
         }
     }
 
@@ -14973,6 +15124,7 @@ component View(props: { s: Status }) -> Component {
             decl_ty_resolver: resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
+            null_chains: NullChains::default(),
         };
         f(&assigner)
     }
@@ -15571,6 +15723,195 @@ fn f(a: Answer) -> number {
         );
         assert!(
             errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { found, .. } if found == "bool")),
+            "{errs:?}"
+        );
+    }
+
+    // ----- G304 / D45: a member read through a `Nullable` -----
+
+    /// The records every G304 test reads through. `Note` has a plain field, a
+    /// string-literal union, a nested record, a `Nullable` record and a
+    /// `Nullable` string, so each shape of chain has something to reach.
+    const G304_TYPES: &str = "module x\nimport std/array\n\
+         type Inner = { name: string }\n\
+         type Note = { name: string, kind: \"a\" | \"b\", inner: Inner, maybe: Nullable<Inner>, label: Nullable<string> }\n";
+
+    fn g304_errors(body: &str) -> Vec<TypeError> {
+        errors_of(&format!("{G304_TYPES}{body}"))
+    }
+
+    fn g304_codes(body: &str) -> Vec<&'static str> {
+        g304_errors(body).iter().map(|e| e.code()).collect()
+    }
+
+    #[test]
+    fn a_plain_dot_read_through_a_nullable_is_e0235() {
+        // TypeScript's TS18047: `n` may be null.
+        let errs = g304_errors("fn f(n: Nullable<Note>) -> string {\n  return n.name\n}\n");
+        let hits: Vec<_> = errs.iter().filter(|e| e.code() == "E0235").collect();
+        assert_eq!(hits.len(), 1, "expected one E0235 for `n.name`: {errs:?}");
+        let e = hits[0];
+        assert!(
+            matches!(e, TypeError::NullableRead { kind: crate::NullableReadKind::Dot, .. }),
+            "the plain dot is its own form, not an escaping chain: {e:?}"
+        );
+        assert!(e.to_string().contains("may be null"), "{e}");
+        assert!(e.help().is_some_and(|h| h.starts_with("Read the field with `?.`")), "{e:?}");
+    }
+
+    #[test]
+    fn a_plain_dot_after_a_chain_reaches_a_nullable_field_is_e0235() {
+        // `n?.maybe` is a `Nullable<Inner>`, so `.name` on it may read null.
+        let codes = g304_codes("fn f(n: Nullable<Note>) -> string {\n  return n?.maybe.name ?? \"\"\n}\n");
+        assert!(codes.contains(&"E0235"), "{codes:?}");
+    }
+
+    #[test]
+    fn an_optional_chain_over_a_nullable_checks_the_field_against_the_record() {
+        let errs = g304_errors("fn f(n: Nullable<Note>) -> string {\n  return n?.nmae ?? \"\"\n}\n");
+        let e = errs
+            .iter()
+            .find_map(|e| match e {
+                TypeError::UnknownField { field, type_name, suggestion, .. } => {
+                    Some((field.clone(), type_name.clone(), suggestion.clone()))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("expected E0210 for `n?.nmae`: {errs:?}"));
+        assert_eq!(e.0, "nmae");
+        assert_eq!(e.1, "Note");
+        assert_eq!(e.2.as_deref(), Some("name"));
+        assert!(!errs.iter().any(|e| e.code() == "E0235"), "the `??` handles it: {errs:?}");
+    }
+
+    #[test]
+    fn a_chain_past_the_first_field_is_checked_against_the_inner_record() {
+        let errs = g304_errors("fn f(n: Nullable<Note>) -> string {\n  return n?.inner.nmae ?? \"\"\n}\n");
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { type_name, .. } if type_name == "Inner")),
+            "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn an_optional_chain_over_a_nullable_that_escapes_is_e0235() {
+        // Each position holds the `undefined` the chain produces on a null
+        // `n`, and Glyph has no type for it.
+        let cases = [
+            ("a return", "fn f(n: Nullable<Note>) -> Nullable<string> {\n  return n?.name\n}\n"),
+            (
+                "a let",
+                "fn f(n: Nullable<Note>) -> string {\n  let x = n?.name\n  return \"a\"\n}\n",
+            ),
+            (
+                "an interpolation",
+                "fn f(n: Nullable<Note>) -> void {\n  print(\"${n?.name}\")\n  return void\n}\n",
+            ),
+            (
+                "an argument",
+                "fn keep(v: unknown) -> void { return void }\n\
+                 fn f(n: Nullable<Note>) -> void {\n  keep(n?.name)\n  return void\n}\n",
+            ),
+            (
+                "a match scrutinee",
+                "fn f(n: Nullable<Note>) -> string {\n  return match n?.kind {\n    \"a\" => \"A\",\n    else => \"other\",\n  }\n}\n",
+            ),
+            (
+                "a field value",
+                "type Out = { v: unknown }\n\
+                 fn f(n: Nullable<Note>) -> Out {\n  return { v: n?.name }\n}\n",
+            ),
+            (
+                "a deeper chain",
+                "fn f(n: Nullable<Note>) -> Nullable<string> {\n  return n?.inner.name\n}\n",
+            ),
+            (
+                "the right of `??`",
+                "fn f(n: Nullable<Note>, m: Nullable<Note>) -> string {\n  let x = n?.name ?? m?.name\n  return \"a\"\n}\n",
+            ),
+        ];
+        for (what, body) in cases {
+            let errs = g304_errors(body);
+            let hits: Vec<_> = errs.iter().filter(|e| e.code() == "E0235").collect();
+            assert_eq!(hits.len(), 1, "{what}: expected one E0235: {errs:?}");
+            assert!(
+                hits[0].help().is_some_and(|h| h.contains("??") && h.contains("nullable.to_option")),
+                "{what}: {:?}",
+                hits[0]
+            );
+        }
+    }
+
+    #[test]
+    fn an_optional_chain_over_a_nullable_is_legal_where_the_absence_is_handled() {
+        let cases = [
+            "fn f(n: Nullable<Note>) -> string {\n  return n?.name ?? \"none\"\n}\n",
+            "fn f(n: Nullable<Note>) -> bool {\n  return n?.name == \"x\"\n}\n",
+            "fn f(n: Nullable<Note>) -> bool {\n  return \"x\" != n?.inner.name\n}\n",
+            "fn f(n: Nullable<Note>) -> string {\n  return n?.inner.name ?? \"none\"\n}\n",
+            "fn f(n: Nullable<Note>) -> string {\n  return n?.maybe?.name ?? \"none\"\n}\n",
+            "fn f(n: Nullable<Note>) -> string {\n  let s: string = n?.name ?? \"none\"\n  return s\n}\n",
+            "fn f(n: Nullable<Note>, xs: Array<string>) -> Array<string> {\n  return array.map(xs, fn(x: string) -> string { return n?.name ?? x })\n}\n",
+            "fn f(n: Nullable<Note>) -> string {\n  return match n?.name == \"x\" {\n    true => n?.name ?? \"\",\n    false => \"no\",\n  }\n}\n",
+        ];
+        for body in cases {
+            let errs = g304_errors(body);
+            assert!(errs.is_empty(), "expected no diagnostics for\n{body}\n{errs:?}");
+        }
+    }
+
+    #[test]
+    fn a_defaulted_chain_has_the_field_type() {
+        // `n?.name ?? "none"` is a `string`, so it is refused where a `number`
+        // is declared (TS2322 under `tsc`).
+        let errs = g304_errors(
+            "fn f(n: Nullable<Note>) -> number {\n  let k: number = n?.name ?? \"none\"\n  return k\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { expected, found, .. }
+                if expected == "number" && found == "string")),
+            "{errs:?}"
+        );
+        assert!(!errs.iter().any(|e| e.code() == "E0235"), "{errs:?}");
+    }
+
+    #[test]
+    fn a_defaulted_chain_to_a_nullable_field_has_the_inner_type() {
+        // `label` is a `Nullable<string>`; `??` replaces its null as well.
+        let errs = g304_errors(
+            "fn f(n: Nullable<Note>) -> number {\n  let k: number = n?.label ?? \"none\"\n  return k\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { found, .. } if found == "string")),
+            "{errs:?}"
+        );
+        let errs = g304_errors(
+            "fn f(n: Nullable<Note>) -> string {\n  let s: string = n?.label ?? \"none\"\n  return s\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    #[test]
+    fn a_default_that_does_not_fit_leaves_the_coalesce_to_tsc() {
+        // `string | number` has no Glyph spelling; the checker claims nothing.
+        let errs = g304_errors(
+            "fn f(n: Nullable<Note>) -> number {\n  let k: number = n?.name ?? 3\n  return k\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    #[test]
+    fn a_coalesce_on_the_nullable_itself_has_the_inner_type() {
+        let errs = g304_errors(
+            "fn f(n: Nullable<string>) -> string {\n  let s: string = n ?? \"none\"\n  return s\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+        let errs = g304_errors(
+            "fn f(n: Nullable<string>) -> number {\n  let k: number = n ?? \"none\"\n  return k\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { expected, found, .. }
+                if expected == "number" && found == "string")),
             "{errs:?}"
         );
     }

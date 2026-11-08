@@ -20,9 +20,20 @@ This asks `tsc` directly. For every export whose signature in `glyph llms
      function type cannot yet be generic (generic `Ty::Fn` is a later release)
      and `tsc` compares two generic signatures by unifying them, which a generic
      alias of a plain function would not let it do;
-  3. binds the runtime export to the declared type and a value of the declared
+  3. reads every top-level parameter the alias declares as `Array<X>` as
+     `ReadonlyArray<X>`, and leaves the return type `Array<X>`;
+  4. binds the runtime export to the declared type and a value of the declared
      type to the runtime export's type, one line each, and runs the pinned
      TypeScript over the result.
+
+A stdlib function never mutates an array it is passed; the runtime declares
+every array parameter `ReadonlyArray<T>`, and the signature gate holds every
+row to it. Step 3 is how. Glyph has no readonly array, so a row cannot spell
+the distinction, and every array a program holds is assignable to both. Read
+as readonly, a declared array parameter does not fit a runtime parameter that
+takes a mutable `Array<X>`, so a runtime function that could mutate its input
+fails runtime to declared. Returns stay mutable because a program may `mut`
+the array it gets back.
 
 Runtime to declared fails when the runtime cannot be called the way the row
 says it can. Declared to runtime fails when the row describes a function the
@@ -73,28 +84,7 @@ KNOWN: dict[tuple[str, str, str], str] = {
     ("std/string", "pad_end", DECLARED_TO_RUNTIME): "G308",
     ("std/string", "pad_start", DECLARED_TO_RUNTIME): "G308",
     ("std/string", "slice", DECLARED_TO_RUNTIME): "G308",
-    ("std/array", "slice", DECLARED_TO_RUNTIME): "G308, G309",
-    # The runtime takes `ReadonlyArray<T>` where the row declares `Array<T>`.
-    # Glyph has no readonly array, so no program can observe it.
-    ("std/array", "any", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "concat", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "filter", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "find", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "flat_map", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "fold", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "fold_while", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "get", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "len", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "map", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "max", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "max_by", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "min", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "min_by", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "reverse", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "sort", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "sum", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "try_fold", DECLARED_TO_RUNTIME): "G309",
-    ("std/array", "zip", DECLARED_TO_RUNTIME): "G309",
+    ("std/array", "slice", DECLARED_TO_RUNTIME): "G308",
 }
 
 # Names a rendered signature may carry unqualified that are types, not type
@@ -110,6 +100,7 @@ BARE_TYPES = {
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*")
 FIELD_NAME = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\??:")
 STRING_LIT = re.compile(r'"(?:[^"\\]|\\.)*"')
+FN_SIG = re.compile(r"(?:async )?fn\(")
 
 
 def typescript_dir() -> pathlib.Path | None:
@@ -173,6 +164,99 @@ def names_in(sig: str) -> tuple[list[str], set[str]]:
 
 def ns(module_path: str) -> str:
     return "rt_" + module_path.removeprefix("std/").replace("/", "_")
+
+
+CLOSE = {"(": ")", "<": ">", "[": "]", "{": "}"}
+
+
+def closing(text: str, start: int) -> int:
+    """Index of the bracket that closes the one at `start`, or -1.
+
+    Counts all four bracket kinds and skips string literals and the `>` of an
+    arrow (`=>`), which is not a bracket.
+    """
+    stack: list[str] = []
+    i = start
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            m = STRING_LIT.match(text, i)
+            if m is None:
+                return -1
+            i = m.end()
+            continue
+        if c in CLOSE:
+            stack.append(CLOSE[c])
+        elif c == ">" and i > 0 and text[i - 1] == "=":
+            pass
+        elif c in ")>]}":
+            if not stack or stack.pop() != c:
+                return -1
+            if not stack:
+                return i
+        i += 1
+    return -1
+
+
+def split_top_level(text: str) -> list[str] | None:
+    """`text` split at the commas no bracket encloses, or None if unbalanced."""
+    parts: list[str] = []
+    i = last = 0
+    while i < len(text):
+        c = text[i]
+        if c in CLOSE:
+            end = closing(text, i)
+            if end < 0:
+                return None
+            i = end + 1
+            continue
+        if c == '"':
+            m = STRING_LIT.match(text, i)
+            if m is None:
+                return None
+            i = m.end()
+            continue
+        if c == ",":
+            parts.append(text[last:i])
+            last = i + 1
+        i += 1
+    parts.append(text[last:])
+    return parts
+
+
+def readonly_params(emitted: str, alias: str) -> tuple[str, int] | None:
+    """Read the alias's top-level `Array<X>` parameters as `ReadonlyArray<X>`.
+
+    Returns the rewritten module and how many parameters changed, or None when
+    the alias, or a function type with a parameter list, is not where it should
+    be. Only a parameter whose whole type is `Array<...>` changes; an array
+    nested in another type, and the return type, are left as they are.
+    """
+    m = re.search(rf"^export type {alias}(?:<[^=\n]*>)? = (<[^(\n]*>)?\(", emitted, re.M)
+    if m is None:
+        return None
+    open_at = m.end() - 1
+    close_at = closing(emitted, open_at)
+    if close_at < 0 or not emitted.startswith(" => ", close_at + 1):
+        return None
+    inner = emitted[open_at + 1:close_at]
+    if not inner.strip():
+        return emitted, 0
+    params = split_top_level(inner)
+    if params is None:
+        return None
+    changed = 0
+    out = []
+    for p in params:
+        pm = re.fullmatch(r"(\s*[A-Za-z_][A-Za-z0-9_]*\??: )(.*?)(\s*)", p, re.S)
+        if pm is None:
+            return None
+        ty = pm.group(2)
+        if ty.startswith("Array<") and closing(ty, len("Array")) == len(ty) - 1:
+            ty = "Readonly" + ty
+            changed += 1
+        out.append(pm.group(1) + ty + pm.group(3))
+    return emitted[:open_at + 1] + ",".join(out) + emitted[close_at:], changed
 
 
 def main() -> int:
@@ -252,6 +336,20 @@ def main() -> int:
             if n != 1:
                 print(f"could not find the emitted alias `{alias}<{', '.join(params)}>` in sigs.ts.")
                 return 1
+        # Read each alias's top-level array parameters as readonly:
+        # `type S0 = <T>(a0: Array<T>) => Array<T>` becomes
+        # `type S0 = <T>(a0: ReadonlyArray<T>) => Array<T>`.
+        # A row that is not a function (`math.PI` is `number`) has no
+        # parameters to read; every other row must have a parameter list.
+        for i, (_, _, sig) in enumerate(rows):
+            if not FN_SIG.match(sig):
+                continue
+            rewritten = readonly_params(emitted, f"S{i}")
+            if rewritten is None:
+                print(f"could not find the parameter list of the emitted alias `S{i}` "
+                      f"({rows[i][0]}::{rows[i][1]}) in sigs.ts.")
+                return 1
+            emitted = rewritten[0]
         (dist / "sigs.ts").write_text(emitted)
 
         check = ['import type * as S from "./sigs";']

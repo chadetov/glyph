@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-310 entries, 271 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-19 are open. G144, the D28 boundary cast that never reached the returns a
+312 entries, 272 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+20 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11604,3 +11604,25 @@ and is the owner's to confirm.
   `diagnostics`; `glyph check --no-tsc --no-test` then exits 1 with E0105 on
   `main` for the first and exits 0 with an E0112 warning on `util` for the
   second.*
+- **G311. `?.` on an `Option` or a `Result` is not checked.** The checker
+  reads the `optional` flag of a member only for a `Nullable` (G304); on an
+  `Option<Note>`, `o?.nmae` passes `glyph check --no-tsc`, and `tsc` refuses
+  it (``TS2339: Property 'nmae' does not exist on type 'Option<Note>'``). An
+  `Option` is a tagged object at run time, so `?.` on one reads the tag
+  object rather than the payload; D18 leaves `?.` on a `Result` to the
+  checker and nothing decides it for `Option`. Named as a follow-up in the
+  0.1.132 decision record on G304.
+
+  *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
+  `return o?.nmae` is `glyph check: 1 module(s) checked, no diagnostics.`
+  under `--no-tsc`, and TS2339 with `tsc`.*
+- **G312. A built-in method read without a call is accepted.** `let up =
+  s.toUpperCase` then `up()` passes `glyph check` with `tsc` (``tsc --strict
+  passed.``), and throws a `TypeError` at run time, because an ES module is
+  strict and the detached method has no `this`. Neither checker sees it. The
+  0.1.132 decision record schedules E0234 for it with the generated method
+  table.
+
+  *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
+  `no diagnostics` under `--no-tsc`, and `glyph check: tsc --strict passed.`
+  with `tsc`.*

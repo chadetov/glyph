@@ -11374,6 +11374,17 @@ and is the owner's to confirm.
   `p.titel` through a second name goes from exit 0 to 1 under `--no-tsc`,
   the `a.Shape` match and every `where` over an imported record go from
   exit 0 to 1 under `check` and `build`.
+
+  Fixed in 0.1.132 for the message: E0210 through a second name names the
+  name the site wrote and the declaration the fields come from. `p.titel`
+  above is ``[E0210] Error: typecheck: type `Page` (a second name for
+  `a.Doc`) has no field `titel`; did you mean `title`?``. The parenthetical
+  appears only when a chain was followed, for a local chain and an imported
+  one, on a field read, a JSX attribute and a record pattern alike. The
+  target is spelled as the site's module spells it: `Doc` under `import a {
+  Doc }`, `a.Doc` under `import a`, `aa.Doc` under `import a as aa`; a module
+  with no name for it at all (`import a { Page }` only) gets `a.Doc`. The
+  message text changes; exit codes do not.
 - **G303. [FIXED] `print` of a `bool` is left to `tsc`.** `print(b)` with `b: bool`
   passes `glyph check --no-tsc`; `tsc` refuses it with TS2345 (``Argument of
   type 'boolean' is not assignable to parameter of type 'string'``). The

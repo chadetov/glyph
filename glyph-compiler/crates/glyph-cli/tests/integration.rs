@@ -12524,6 +12524,11 @@ fn a_qualified_second_name_is_the_declaration_by_every_import_spelling() {
         ("import a", "a."),
         ("import a as aa", "aa."),
     ] {
+        // The message names the second name the site wrote and the
+        // declaration it reaches, spelled the way this module spells it.
+        let message = format!(
+            "type `Page` (a second name for `{q}Doc`) has no field `titel`; did you mean `title`?"
+        );
         let root = unique_tmp("g302");
         let src = root.join("src");
         write_file(&src, "a.glyph", G302_A);
@@ -12532,8 +12537,8 @@ fn a_qualified_second_name_is_the_declaration_by_every_import_spelling() {
         let codes = |code: &str| report.diagnostics.iter().filter(|d| d.contains(code)).count();
         assert_eq!(codes("[E0204]"), 0, "`{import}`: a second name passes both ways: {:?}", report.diagnostics);
         assert!(
-            report.diagnostics.iter().any(|d| d.contains("[E0210]") && d.contains("titel")),
-            "`{import}`: the field typo is E0210: {:?}",
+            report.diagnostics.iter().any(|d| d.contains("[E0210]") && d.contains(&message)),
+            "`{import}`: the field typo is E0210 naming both names: {:?}",
             report.diagnostics
         );
         assert!(
@@ -12542,6 +12547,44 @@ fn a_qualified_second_name_is_the_declaration_by_every_import_spelling() {
             report.diagnostics
         );
         assert_eq!(report.diagnostics.len(), 2, "`{import}`: {:?}", report.diagnostics);
+    }
+}
+
+#[test]
+fn a_second_name_imported_from_a_sibling_names_its_target_in_the_sites_spelling() {
+    // G302's message when the second name is the sibling's own: `a` declares
+    // `pub type Page = Doc` and the site imports `Page`. The target is spelled
+    // as this module would spell it, `Doc` when it imports `Doc` by name and
+    // `a.Doc` when it reaches `a` through the namespace. A module that has no
+    // name for `Doc` at all gets the namespace spelling of `Doc`'s module.
+    for (import, ty, target) in [
+        ("import a { Page, Doc }", "Page", "Doc"),
+        ("import a", "a.Page", "a.Doc"),
+        ("import a { Page }", "Page", "a.Doc"),
+    ] {
+        let root = unique_tmp("g302msg");
+        let src = root.join("src");
+        write_file(
+            &src,
+            "a.glyph",
+            "module a\n\npub type Doc = {\n  title: string,\n}\n\npub type Page = Doc\n",
+        );
+        write_file(
+            &src,
+            "b.glyph",
+            &format!(
+                "module b\n\n{import}\n\npub fn typo(p: {ty}) -> string {{\n  return p.titel\n}}\n"
+            ),
+        );
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let message = format!(
+            "type `Page` (a second name for `{target}`) has no field `titel`; did you mean `title`?"
+        );
+        assert!(
+            report.diagnostics.iter().any(|d| d.contains("[E0210]") && d.contains(&message)),
+            "`{import}`: {:?}",
+            report.diagnostics
+        );
     }
 }
 

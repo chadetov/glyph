@@ -121,7 +121,7 @@ compiler. The newest, `examples/apps/todo`, is a counter and a todo list on
 React 18 using React's own hooks; CI bundles it with Vite, renders it in
 headless Chromium and checks the text on the page.
 
-The compiler's test suite is 2014 tests at 0.1.131.
+The compiler's test suite is 2098 tests at 0.1.132.
 
 ## What has not been measured
 

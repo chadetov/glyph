@@ -2580,11 +2580,27 @@ impl Assigner<'_> {
         }
     }
 
-    /// `T` when `ty` is a `Nullable<T>`, read through second names.
+    /// `T` when `ty` is a `Nullable<T>`, read through second names and
+    /// through a local `type` whose body is one (`type MaybeNote =
+    /// Nullable<Note>`), the reach E0227's `resolves_to_nullable_or_option`
+    /// has, so the guarantee does not depend on which name a parameter wrote.
     fn nullable_inner(&self, ty: &Ty) -> Option<Ty> {
+        self.nullable_inner_at(ty, 0)
+    }
+
+    fn nullable_inner_at(&self, ty: &Ty, depth: usize) -> Option<Ty> {
         let canonical = self.canonicalize_aliases(ty);
-        match self.prelude_container(&canonical) {
-            Some(("Nullable", args)) => args.first().cloned(),
+        if let Some(("Nullable", args)) = self.prelude_container(&canonical) {
+            return args.first().cloned();
+        }
+        if depth >= 8 {
+            return None;
+        }
+        match self.local_type_decl(&canonical) {
+            Some(td) if td.generics.is_empty() && td.refinement.is_none() => {
+                let body = self.lowerer.lower(&td.body);
+                self.nullable_inner_at(&body, depth + 1)
+            }
             _ => None,
         }
     }
@@ -15757,6 +15773,20 @@ fn f(a: Answer) -> number {
         );
         assert!(e.to_string().contains("may be null"), "{e}");
         assert!(e.help().is_some_and(|h| h.starts_with("Read the field with `?.`")), "{e:?}");
+    }
+
+    #[test]
+    fn a_local_alias_of_a_nullable_is_read_as_the_nullable() {
+        // The guarantee may not depend on which name the parameter wrote.
+        let alias = "type MaybeNote = Nullable<Note>\n";
+        let codes = g304_codes(&format!("{alias}fn f(n: MaybeNote) -> string {{\n  return n.name\n}}\n"));
+        assert_eq!(codes, vec!["E0235"], "the plain dot");
+        let codes = g304_codes(&format!("{alias}fn f(n: MaybeNote) -> Nullable<string> {{\n  return n?.name\n}}\n"));
+        assert_eq!(codes, vec!["E0235"], "the escaping chain");
+        let codes = g304_codes(&format!("{alias}fn f(n: MaybeNote) -> string {{\n  return n?.nmae ?? \"\"\n}}\n"));
+        assert_eq!(codes, vec!["E0210"], "the field check");
+        let errs = g304_errors(&format!("{alias}fn f(n: MaybeNote) -> string {{\n  return n?.name ?? \"\"\n}}\n"));
+        assert!(errs.is_empty(), "{errs:?}");
     }
 
     #[test]

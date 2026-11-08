@@ -106,10 +106,11 @@ is proved over a set of tags, not over a combination of field values.
 variant of the union you are matching, usually a typo (`Loadign` for `Loading`)
 or a variant from the wrong union. Glyph reads a capitalized bare head as a
 variant reference, not a fresh binding, so it does not silently swallow the arm;
-the message suggests the nearest real variant when one is close. A lowercase head
-(`rest`) is still a binding. A qualified head over a union you imported by
-namespace (`model.Loadign`) gets the same check; a misspelled bare head is caught
-one stage earlier as an unresolved name (E0103) and again here.
+the message suggests the nearest real variant when one is close and no other
+arm already names it. A lowercase head (`rest`) is still a binding. A qualified
+head over a union you imported by namespace (`model.Loadign`) gets the same
+check; a misspelled bare head is caught one stage earlier as an unresolved name
+(E0103) and again here.
 
 **E0105: `N` is not exported by `M`.** The name you imported is either
 misspelled or private. Declarations are module-private by default; mark the one

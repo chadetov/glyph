@@ -256,7 +256,7 @@ Three of these codes have a repair the compiler settles on its own, and
 |------|----------------|------------------|
 | `E0106` | Drops the unused import, or the dead names out of a named import list | never; an unused name is unused |
 | `E0210` | The one field or member within edit distance one of the wrong name | nothing the type declares is that close, or more than one is |
-| `E0220` | The suggestion in `alternatives`, when there is exactly one | the suggested variant is not one the match is missing, so writing it would produce `E0305` |
+| `E0220` | The suggestion in `alternatives`, when there is exactly one, written over a variant head | the suggestion is not one of the cases the match is missing |
 
 `E0200` is not on the list. The compiler knows which cases a match is missing
 and the pattern each one takes, but not what the program should do in any of

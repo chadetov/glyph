@@ -457,12 +457,12 @@ fn e0200_decline(d: &Diagnostic) -> String {
 /// computed; more than one of them, or none, and there is nothing determined to
 /// write.
 ///
-/// The suggestion is a nearest name, not a coverage answer: the checker will
-/// suggest `Loading` for `Loadign` whether or not a `Loading` arm is already
-/// there, and writing it over a match that has one produces `E0305`, an arm
-/// that can never run. Whether the suggested variant is still free is settled
-/// by the match's own `E0200`: a variant the match is missing is free, and a
-/// match with no `E0200` at all has every variant spoken for.
+/// The checker suggests only a variant no other arm covers (G305), but a
+/// variant reached through a nested sub-pattern (`A(X)`) is not covered and is
+/// not missing either, and writing a variant the match does not need is not a
+/// repair. So whether the suggested variant is free is still settled by the
+/// match's own `E0200`: a variant the match is missing is free, and a match
+/// with no `E0200` at all has every variant spoken for.
 fn plan_e0220(
     source: &str,
     d: &Diagnostic,

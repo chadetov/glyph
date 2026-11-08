@@ -1,0 +1,11 @@
+module neg
+
+// E0233. `Box` declares one type parameter and the annotation writes two.
+// TypeScript refuses the same thing as TS2314; Glyph counts it itself, so the
+// refusal holds under `--no-tsc`, in the editor and in the playground.
+type Box<T> = { value: T }
+
+pub fn main() -> void {
+  let b: Box<int, string> = { value: 1 }
+  print("x")
+}

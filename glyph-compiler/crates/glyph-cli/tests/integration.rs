@@ -14954,6 +14954,42 @@ fn a_nullable_read_through_an_imported_alias_is_checked_by_every_spelling() {
     }
 }
 
+/// G304 with a generic alias. A sibling's `pub type Maybe<T> = Nullable<T>`
+/// applied to `Note` is read as `Nullable<Note>` under every import spelling:
+/// the plain dot and the interpolated chain are E0235, a typo through `?.` is
+/// E0210 naming `Note`, and the defaulted chain is clean.
+#[test]
+fn a_nullable_read_through_an_imported_generic_alias_is_checked_by_every_spelling() {
+    for (import, q) in [("import a { Maybe, Note }", ""), ("import a", "a."), ("import a as aa", "aa.")] {
+        let root = unique_tmp("g304generic");
+        let src = root.join("src");
+        write_file(
+            &src,
+            "a.glyph",
+            "module a\n\npub type Note = { name: string }\n\npub type Maybe<T> = Nullable<T>\n",
+        );
+        write_file(
+            &src,
+            "b.glyph",
+            &format!(
+                "module b\n\n{import}\n\n\
+                 pub fn dot(m: {q}Maybe<{q}Note>) -> string {{\n  return m.name\n}}\n\n\
+                 pub fn hi(m: {q}Maybe<{q}Note>) -> string {{\n  return \"hi ${{m?.name}}\"\n}}\n\n\
+                 pub fn typo(m: {q}Maybe<{q}Note>) -> string {{\n  return m?.nmae ?? \"\"\n}}\n\n\
+                 pub fn fine(m: {q}Maybe<{q}Note>) -> string {{\n  return m?.name ?? \"\"\n}}\n"
+            ),
+        );
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let d = &report.diagnostics;
+        assert_eq!(d.iter().filter(|d| d.contains("[E0235]")).count(), 2, "`{import}`: {d:?}");
+        assert!(
+            d.iter().any(|d| d.contains("[E0210]") && d.contains("type `Note` has no field `nmae`")),
+            "`{import}`: {d:?}"
+        );
+        assert_eq!(d.len(), 3, "`{import}`: only the three refusals: {d:?}");
+    }
+}
+
 #[test]
 fn where_over_an_alias_of_a_record_is_e0300_like_the_direct_spelling() {
     // G207. `type Positive = Rec where value.x > 0` refines a record whenever

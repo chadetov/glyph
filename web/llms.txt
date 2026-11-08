@@ -598,6 +598,10 @@ type Option<T>              // constructors: Some(value), None
 
 ### std/array
 
+A stdlib function never mutates an array it is passed; the runtime declares
+every array parameter `ReadonlyArray<T>`, and the signature gate holds every
+row to it.
+
 ```
 array.find<T>(xs, predicate) -> Option<T>
 array.filter<T>(xs, predicate) -> Array<T>

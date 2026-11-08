@@ -1672,20 +1672,34 @@ fn edit_regions(text: &str, spans: &[(usize, usize, &str)]) -> Vec<EditRegion> {
 /// region, shifted by the deltas of the regions before it otherwise, and
 /// `None` when it overlaps or touches one, the rule `carry_through_edit` uses
 /// for a single region.
+///
+/// A range that strictly encloses a region (starts before it and ends after
+/// it) is about the text around the edit, not the text the edit wrote: an
+/// E0200 spans the whole `match` whose arm was changed. It keeps its start
+/// and its end moves by the region's delta (review 82, item 3(b)). Whether
+/// it is the same diagnostic is still decided by its message, so an E0200
+/// that now misses one more variant is the edit's own.
 fn map_through_regions(regions: &[EditRegion], start: usize, end: usize) -> Option<(usize, usize)> {
-    let mut shift = 0isize;
+    let mut start_shift = 0isize;
+    let mut end_shift = 0isize;
     for r in regions {
         if end < r.start {
             break;
         }
+        let delta = r.new_len as isize - (r.old_end - r.start) as isize;
         if start > r.old_end {
-            shift += r.new_len as isize - (r.old_end - r.start) as isize;
+            start_shift += delta;
+            end_shift += delta;
+            continue;
+        }
+        if start < r.start && end > r.old_end {
+            end_shift += delta;
             continue;
         }
         return None;
     }
-    let moved = |o: usize| (o as isize + shift) as usize;
-    Some((moved(start), moved(end)))
+    let moved = |o: usize, shift: isize| (o as isize + shift) as usize;
+    Some((moved(start, start_shift), moved(end, end_shift)))
 }
 
 /// The lexer's message embeds the error's byte offset (`lex error: ... at
@@ -1723,7 +1737,8 @@ fn map_message_offset(d: &diagnostic::Diagnostic, mapped_start: usize) -> String
 ///
 /// Each of `before` is mapped into the candidate's coordinates through the
 /// edit's `regions`; one the edit overlaps or touches is dropped, because the
-/// text it was about is now the edit's. A candidate diagnostic is already
+/// text it was about is now the edit's, and one that strictly encloses a
+/// region keeps its start and stretches its end. A candidate diagnostic is already
 /// there when an unused mapped one has the same code, severity, message, help
 /// and range: a multiset match, so two identical diagnostics need two
 /// before. Everything else, a changed message included, is introduced.
@@ -2224,6 +2239,30 @@ mod tests {
         assert_eq!(map_through_regions(&regions, 12, 14), Some((17, 19)));
         assert_eq!(map_through_regions(&regions, 1, 2), None);
         assert_eq!(map_through_regions(&regions, 8, 10), None);
+    }
+
+    /// Review 82, item 3(b): a diagnostic that strictly encloses a region
+    /// (an E0200 over a whole `match` whose arm the edit changed) keeps its
+    /// start and moves its end by the region's delta. One that starts or
+    /// ends at a region's edge still touches it and is dropped, and one
+    /// that encloses a region but ends inside the next is dropped too.
+    #[test]
+    fn the_gate_keeps_a_diagnostic_that_encloses_a_region() {
+        let one = [EditRegion { start: 5, old_end: 6, new_len: 3 }];
+        assert_eq!(map_through_regions(&one, 2, 9), Some((2, 11)));
+        assert_eq!(map_through_regions(&one, 5, 9), None);
+        assert_eq!(map_through_regions(&one, 2, 6), None);
+        let insert = [EditRegion { start: 5, old_end: 5, new_len: 1 }];
+        assert_eq!(map_through_regions(&insert, 2, 9), Some((2, 10)));
+        let two = [
+            EditRegion { start: 2, old_end: 3, new_len: 4 },
+            EditRegion { start: 6, old_end: 7, new_len: 0 },
+            EditRegion { start: 12, old_end: 13, new_len: 2 },
+        ];
+        assert_eq!(map_through_regions(&two, 1, 9), Some((1, 11)));
+        assert_eq!(map_through_regions(&two, 4, 10), Some((7, 12)));
+        assert_eq!(map_through_regions(&two, 1, 12), None);
+        assert_eq!(map_through_regions(&two, 1, 14), Some((1, 17)));
     }
 
     #[test]

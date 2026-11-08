@@ -943,6 +943,26 @@ fn apply_edit_refuses_a_variant_that_changes_an_e0200() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// Review 82, item 3(b). E0200's range is the whole `match`, so an edit to
+/// one of its arms falls inside it. The diagnostic encloses the edit rather
+/// than sitting in the text the edit wrote: it keeps its start, its end
+/// moves by the edit's delta, and an unchanged message makes it
+/// `preexisting`, so the edit is accepted. The variant test above still
+/// holds, because there the message changes.
+#[test]
+fn apply_edit_accepts_an_edit_inside_an_e0200_it_leaves_unchanged() {
+    let main = "module main\n\npub type S =\n  | A\n  | B\n  | C\n\n\
+        pub fn f(s: S) -> number {\n  return match s {\n    A => 1,\n    B => 2,\n  }\n}\n";
+    let (dir, path, mut lsp) = gate_project("gate_enclosing", &[("main.glyph", main)], "main.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(main, "A => 1", "A => 10")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), Vec::<String>::new(), "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0200"], "{answer}");
+    assert_eq!(answer["content"], json!(main.replace("A => 1", "A => 10")));
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// The one message that embeds a source position is the lexer's (`lex
 /// error: ... at offset N`). An edit above it moves the offset, and the
 /// gate maps the number through the edit the way it maps the range, so the
@@ -961,7 +981,10 @@ fn apply_edit_maps_the_offset_inside_a_lex_error() {
 /// Several `TextEdit`s are several regions. A diagnostic between two of
 /// them shifts by the first one's delta only and stays `preexisting`; a
 /// diagnostic one of them touches is dropped, so the error the edit leaves
-/// in text it wrote is the edit's own.
+/// in text it wrote is the edit's own. A diagnostic that strictly encloses
+/// one (`hello(2)` → `hello(3)` edits only the `2`) keeps its start and is
+/// matched on its message (review 82, item 3(b)): the same wrong count is
+/// the same error, so it stays `preexisting`.
 #[test]
 fn apply_edit_maps_through_each_text_edit() {
     let (dir, path, mut lsp) = gate_project(
@@ -977,13 +1000,22 @@ fn apply_edit_maps_through_each_text_edit() {
     assert_eq!(answer["ok"], json!(true), "refused: {answer}");
     assert_eq!(answer_codes(&answer, "preexisting"), ["E0213"], "{answer}");
 
-    let rewrite_two = json!([
+    let rewrite_inside_two = json!([
         replace_first(TWO_ERRORS, "hello(1)", "hello()"),
         replace_first(TWO_ERRORS, "hello(2)", "hello(3)"),
+    ]);
+    let answer = lsp.apply(&path, rewrite_inside_two);
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0213"], "{answer}");
+
+    let rewrite_two = json!([
+        replace_first(TWO_ERRORS, "hello(1)", "hello()"),
+        replace_first(TWO_ERRORS, "return hello(2)", "return (hello(2))"),
     ]);
     let answer = lsp.apply(&path, rewrite_two);
     assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
     assert_eq!(answer_codes(&answer, "diagnostics"), ["E0213"], "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), Vec::<String>::new(), "{answer}");
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }

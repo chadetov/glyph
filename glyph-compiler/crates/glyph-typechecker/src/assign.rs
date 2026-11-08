@@ -1392,7 +1392,8 @@ impl Assigner<'_> {
                         }
                     }
                 }
-                self.check_nullable_args(base);
+                // The base is not walked: it is the name the arguments above
+                // were counted against, not a bare use of it.
                 for a in args {
                     self.check_nullable_args(a);
                 }
@@ -1417,8 +1418,22 @@ impl Assigner<'_> {
                     }
                 }
             }
-            TypeExpr::Path { .. }
-            | TypeExpr::Extern { .. }
+            // G292. A generic declaration written with no type arguments takes
+            // fewer than it has parameters, which is E0233 like any other
+            // wrong count (`tsc` says TS2314). The count follows resolution,
+            // so a name that resolves to a non-generic declaration (a local
+            // `type Array`, an imported `Result`) takes 0 and passes.
+            TypeExpr::Path { span, .. } => {
+                if let Some(expected) = self.type_param_count(te).filter(|n| *n > 0) {
+                    self.errors.push(TypeError::TypeArgumentCountMismatch {
+                        name: type_expr_source(te),
+                        expected,
+                        found: 0,
+                        span: *span,
+                    });
+                }
+            }
+            TypeExpr::Extern { .. }
             | TypeExpr::StringLiteralUnion { .. }
             | TypeExpr::TypeOf { .. } => {}
         }
@@ -2497,8 +2512,14 @@ impl Assigner<'_> {
             }
             Expr::Match { scrutinee, arms, span } => {
                 for arm in arms {
+                    // A bare name in an `is` arm is a runtime test of the
+                    // declaration (D9), not an annotation, so the bare count
+                    // (G292) does not apply to it: `is S` on a generic `S` is
+                    // still E0300 from the emitter. An applied one is walked.
                     if let Pattern::IsType { ty, .. } = &arm.pattern {
-                        self.check_nullable_args(ty);
+                        if !matches!(ty, TypeExpr::Path { .. }) {
+                            self.check_nullable_args(ty);
+                        }
                     }
                 }
                 self.walk_expr(scrutinee);
@@ -18533,6 +18554,75 @@ fn f(a: Answer) -> number {
              \x20 let n: Nullable<string> = null\n\
              \x20 let xs: Array<Box<number>> = []\n\
              \x20 return 0\n\
+             }\n",
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// G292, the bare count. A generic declaration written with no type
+    /// arguments takes fewer than it has parameters, so it is E0233 wherever
+    /// a type is written: a parameter, `let`, field or return annotation, a
+    /// type argument, an interface name, a prelude container and a D46 body. Left alone, every parameter read through it stayed an
+    /// unsubstituted `Param`, so nothing behind it was checked even by shape.
+    #[test]
+    fn a_generic_type_written_with_no_type_arguments_is_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             type Box<T> = { value: T, }\n\
+             interface Named<T> {\n\
+             \x20 name: T\n\
+             }\n\
+             type B = Box\n\
+             type Holder = { b: Box, }\n\
+             fn arr(a: Array) -> number { return 0 }\n\
+             fn back(x: Box<number>) -> Box { return x }\n\
+             pub fn f(n: Named, x: Box<number>, m: Record) -> number {\n\
+             \x20 let b: Box = x\n\
+             \x20 let r = json.parse<Box>(\"1\")\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        let mut got = type_arg_counts(&errs);
+        got.sort();
+        let mut want = vec![
+            ("Box".to_string(), 1, 0),
+            ("Box".to_string(), 1, 0),
+            ("Array".to_string(), 1, 0),
+            ("Box".to_string(), 1, 0),
+            ("Named".to_string(), 1, 0),
+            ("Record".to_string(), 2, 0),
+            ("Box".to_string(), 1, 0),
+            ("Box".to_string(), 1, 0),
+        ];
+        want.sort();
+        assert_eq!(got, want, "{errs:?}");
+        let e = errs
+            .iter()
+            .find(|e| matches!(e, TypeError::TypeArgumentCountMismatch { name, .. } if name == "Array"))
+            .expect("an E0233 on `Array`");
+        assert_eq!(
+            e.to_string(),
+            "wrong number of type arguments: `Array` takes 1, found 0"
+        );
+    }
+
+    /// What the bare count leaves alone. A type name in an expression
+    /// (`Box.is(v)`) is the descriptor, not a type. A non-generic
+    /// declaration, a primitive and a type parameter are written bare as
+    /// always, and the base of an applied type is not itself a bare use. A
+    /// name is counted by what it resolves to; the shadowing cases are in
+    /// `tests/negative/type_shadows_prelude_array.glyph` and the CLI test of
+    /// a sibling's non-generic `Result`.
+    #[test]
+    fn a_bare_name_that_takes_no_arguments_is_not_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             type Box<T> = { value: T, }\n\
+             type User = { name: string, }\n\
+             pub fn f<T>(t: T, u: User, b: Box<User>, v: unknown) -> bool {\n\
+             \x20 let s: string = u.name\n\
+             \x20 return Box.is(v)\n\
              }\n",
         );
         assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");

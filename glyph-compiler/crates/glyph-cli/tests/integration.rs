@@ -10778,6 +10778,56 @@ fn a_wrong_number_of_type_arguments_on_a_sibling_is_e0233_under_every_spelling()
 }
 
 #[test]
+fn a_sibling_generic_written_with_no_type_arguments_is_e0233_under_every_spelling() {
+    // G292, the bare count across the module boundary. A sibling's generic
+    // `type` written with no arguments takes 0 of its 1, by name and through
+    // the namespace alike. The sibling's own non-generic `Result` takes 0, so
+    // naming it bare is not counted against the prelude's 2.
+    let root = unique_tmp("e0233bare");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\n\
+         pub type Box<T> = { value: T, }\n\
+         pub type Result = | Won | Lost\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import lib { Box, Result }\n\
+         pub fn named(b: Box, r: Result) -> number {\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "other.glyph",
+        "module other\n\
+         import lib\n\
+         pub fn spaced(b: lib.Box, r: lib.Result) -> number {\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let found = |file: &str| -> Vec<String> {
+        report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains("E0233") && d.contains(&format!("[ {file}:")))
+            .cloned()
+            .collect()
+    };
+    let named = found("main");
+    assert_eq!(named.len(), 1, "{:?}", report.diagnostics);
+    assert!(named[0].contains("`Box` takes 1, found 0"), "{named:?}");
+    let spaced = found("other");
+    assert_eq!(spaced.len(), 1, "{:?}", report.diagnostics);
+    assert!(spaced[0].contains("`lib.Box` takes 1, found 0"), "{spaced:?}");
+}
+
+#[test]
 fn nested_sibling_type_resolves_one_level_down() {
     // A sibling type named inside another sibling type is itself an imported
     // type, resolved when a field set is asked for. Nothing is expanded at

@@ -593,6 +593,29 @@ pub enum TypeError {
     #[error("`Nullable<{inner}>`: the argument of `Nullable` may not itself be `Nullable` or `Option`")]
     NullableNested { inner: String, span: Span },
 
+    /// G304, D45: a member read through a `Nullable<R>` that does not handle
+    /// the null. Two forms, one code (E0235):
+    ///
+    /// - `n.f` with the plain dot, where `n` may be null. TypeScript refuses it
+    ///   too (TS18047).
+    /// - the value of an optional chain over one (`n?.f`, `n?.a.b`) standing
+    ///   anywhere but the left of `??` or an operand of `==`/`!=`. That value
+    ///   is an `F` or JavaScript's `undefined`, and Glyph has no type for
+    ///   `undefined`. `tsc` accepts most of these (`let x = n?.f`, an
+    ///   interpolation, an `unknown` argument), which is why the checker is
+    ///   the one that has to say so.
+    ///
+    /// `field` is the field the read names (for a chain, the first one after
+    /// the `?.` over the `Nullable`), and `type_name` the `Nullable` it reads
+    /// through.
+    #[error("{}", nullable_read_message(*.kind, .field, .type_name))]
+    NullableRead {
+        kind: NullableReadKind,
+        field: String,
+        type_name: String,
+        span: Span,
+    },
+
     /// G217. A type's name standing where a value is wanted. `return Order {
     /// id: "a", total: 1 }` is the TypeScript-adjacent guess for constructing a
     /// record, and Glyph has no such form: the value is the record literal on
@@ -890,6 +913,27 @@ pub enum PropsRefusal {
     TypeParam,
 }
 
+/// Which of E0235's two forms a member read through a `Nullable` is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NullableReadKind {
+    /// `n.f` with the plain dot, where `n` may be null.
+    Dot,
+    /// The value of `n?.f` (or a chain it starts) held somewhere other than
+    /// the left of `??` or an operand of `==`/`!=`.
+    ChainEscapes,
+}
+
+fn nullable_read_message(kind: NullableReadKind, field: &str, type_name: &str) -> String {
+    match kind {
+        NullableReadKind::Dot => format!(
+            "`.{field}` reads through a `{type_name}`, which may be null"
+        ),
+        NullableReadKind::ChainEscapes => format!(
+            "`?.{field}` over a `{type_name}` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`"
+        ),
+    }
+}
+
 /// The tail E0229's sentence gets for the two refusals the type alone does
 /// not explain.
 fn props_refusal_suffix(why: PropsRefusal) -> &'static str {
@@ -964,6 +1008,7 @@ impl TypeError {
             TypeError::UnseenMatchType { span, .. } => *span,
             TypeError::NonExhaustiveFieldMatch { span } => *span,
             TypeError::NullableNested { span, .. } => *span,
+            TypeError::NullableRead { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
@@ -1007,6 +1052,7 @@ impl TypeError {
             TypeError::UnseenMatchType { .. } => "E0232",
             TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
             TypeError::NullableNested { .. } => "E0227",
+            TypeError::NullableRead { .. } => "E0235",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
@@ -1095,6 +1141,12 @@ impl TypeError {
             }
             TypeError::MapFieldAccess { .. } => {
                 "Use `record.get(map, \"key\")`, which returns `Option<V>` so the absent case has somewhere to go. `record.has` tests for the key alone."
+            }
+            TypeError::NullableRead { kind: NullableReadKind::Dot, .. } => {
+                "Read the field with `?.` and give the absent case a value with `??` (`n?.name ?? \"none\"`), or convert the whole value with `nullable.to_option(n)` and `match` on it."
+            }
+            TypeError::NullableRead { kind: NullableReadKind::ChainEscapes, .. } => {
+                "Give the absent case a value with `??` (`n?.name ?? \"none\"`), or convert the whole value with `nullable.to_option(n)` and `match` on it."
             }
             TypeError::NullableNested { .. } => {
                 "Write `Nullable` over the plain type (`Nullable<int>`) for a field the wire sends as null, or `Option<T>` alone inside the program; `nullable.to_option` and `nullable.from_option` convert between them."
@@ -1231,6 +1283,9 @@ impl TypeError {
             ),
             TypeError::UnseenMatchType { .. } => Some(
                 "The type could be a literal union these arms cover, or a plain `string` they never can. Without its declaration the checker cannot tell which, and a match it cannot prove covers every value is not accepted.",
+            ),
+            TypeError::NullableRead { .. } => Some(
+                "`Nullable<T>` is `T | null` (D45), and `?.` over a null value gives JavaScript's `undefined`, which Glyph has no type for. The chain may stand only where the absence is handled on the spot: the left of `??`, or an operand of `==` or `!=`.",
             ),
             TypeError::NullableNested { .. } => Some(
                 "`Nullable<T>` is `T | null` at run time (D45): null is the whole of its absent state, so a nested `Nullable` or `Option` has no second thing to say.",

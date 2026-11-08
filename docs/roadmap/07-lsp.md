@@ -131,11 +131,13 @@ renaming (`$0`, `$1`, …) and the bidirectional text↔canonical *position* map
 ## Increment 7 (shipped): gated structured edit (Q29 reconciled)
 
 The custom LSP request `glyph/applyEdit` (`{ uri, edits: [TextEdit] }` →
-`{ ok, content, rejected, diagnostics }`) applies a set of standard LSP text
-edits to an open document and accepts them *only if the result type-checks
-clean*. On success it returns the verified new text (the caller applies it and
-syncs through the normal `didChange`); on rejection it changes nothing and
-returns the errors the edit would have introduced. This makes "the agent broke
+`{ ok, content, rejected, diagnostics, preexisting }`) applies a set of
+standard LSP text edits to an open document and accepts them only if the edit
+introduces no diagnostic. On success it returns the verified new text (the
+caller applies it and syncs through the normal `didChange`); on rejection it
+changes nothing and returns, under `diagnostics`, what the edit would have
+introduced. Under `preexisting`, on both answers, are the diagnostics the
+file already had. This makes "the agent broke
 the file" a structured rejection rather than a saved edit — the workflow the
 manifesto's verifiability pillar is for.
 
@@ -148,8 +150,24 @@ list, emitter included, since 0.1.132), not an
 in-source annotation. The edit set is applied atomically — overlapping or
 out-of-bounds ranges are rejected before anything is spliced.
 
-v1 gate semantics are crisp: the *result* must have no errors (a "lands a clean
-change" guarantee). Running the `@example`/property tests as part of the gate is
+The gate compares the edited file's list only; an edit that breaks a module
+importing it is accepted. `glyph check` over the project is the authority until
+0.1.133 (G310).
+
+The gate's rule, since 0.1.132: the edit introduces no diagnostic, warnings
+included; diagnostics the file already had are returned under `preexisting`
+and do not refuse it. The list before the edit is mapped through it: each
+`TextEdit` is one region, shrunk by the common prefix and suffix of the text it
+replaced and its `newText`; a diagnostic the region overlaps or touches is
+dropped, and one after it moves by its length change. A candidate diagnostic
+with the same code, severity, message, help and range as an unmatched mapped
+one is preexisting; any other is the edit's. So an error left in text the edit
+rewrote is the edit's own, a message that changed (a `match` now missing two
+variants instead of one) is new, and an error that a fixed parse error used to
+hide is new too. `ok: true` therefore means "this edit introduced nothing";
+the file is clean only when `preexisting` is empty as well. Before 0.1.132 the
+result had to have no diagnostics at all, so an edit to a file that already
+had one was always refused. Running the `@example`/property tests as part of the gate is
 a v1.1 enhancement; it needs the `glyph build`/test pipeline factored into a
 library the server can call, since today `glyph-cli` depends on `glyph-lsp` (for
 `run_stdio`), so the server cannot depend back on the cli's build code without a

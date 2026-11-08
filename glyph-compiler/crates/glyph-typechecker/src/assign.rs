@@ -7147,6 +7147,9 @@ impl Assigner<'_> {
     ///   union has no fields in Glyph, and its runtime shape is the emitter's
     ///   encoding rather than a contract, so comparing it to `V` would let a
     ///   change to the encoding change type checking.
+    /// - A required field whose substituted type is still a type parameter
+    ///   is refused unless `V` is `unknown` or that parameter
+    ///   (`map_field_incompatible`).
     /// - An optional field, and a `K` other than `string`, are not decided:
     ///   the map's validator and `tsc` disagree about them (the validator
     ///   accepts an absent key and ignores the keys `K` names; `tsc` reads the
@@ -7201,9 +7204,23 @@ impl Assigner<'_> {
         self.relating.borrow_mut().push(pair);
         let refused = fields
             .iter()
-            .any(|f| !f.optional && self.assign_incompatible(&f.ty, value));
+            .any(|f| !f.optional && self.map_field_incompatible(&f.ty, value));
         self.relating.borrow_mut().pop();
         refused
+    }
+
+    /// One required field of a closed record against the map's `V`. A field
+    /// whose substituted type is still a type parameter (`value: T` in a
+    /// `Box<T>` read inside `fn g<T>`) is not a `V`: `T` may be anything, so
+    /// it is refused unless `V` is `unknown` or that same parameter. The
+    /// relation itself reads an open parameter as undecidable and stays
+    /// silent, which would leave the pairing to `tsc` (TS2322) and let it
+    /// pass `--no-tsc`, the editor and the playground.
+    fn map_field_incompatible(&self, field: &Ty, value: &Ty) -> bool {
+        if matches!(field, Ty::Param { .. }) {
+            return !matches!(value, Ty::UnknownTop) && field != value;
+        }
+        self.assign_incompatible(field, value)
     }
 
     /// Whether `ty` is a declaration D49 gives an identity to and the checker
@@ -18948,6 +18965,33 @@ fn f(a: Answer) -> number {
         assert_eq!(
             g289_mismatches(&errs),
             vec![("Record<string, string>".to_string(), "Bag<string>".to_string())],
+            "{errs:?}"
+        );
+    }
+
+    /// G293 with a generic record whose substituted field is still a type
+    /// parameter. `T` may be anything, so `Box<T>` is not a
+    /// `Record<string, string>` and Glyph refuses it, as 0.1.131 did; `tsc`
+    /// refuses it too (TS2322). It is accepted where `V` is `unknown`, and
+    /// where `V` is that same parameter.
+    #[test]
+    fn a_generic_record_with_an_open_parameter_field_is_not_a_string_map() {
+        let errs = errors_of(
+            "module m\n\
+             type Box<T> = { value: T, }\n\
+             fn g<T>(x: Box<T>) -> Record<string, string> { return x }\n\
+             fn h<T>(x: Box<T>) -> Record<string, unknown> { return x }\n\
+             fn k<T>(x: Box<T>) -> Record<string, T> { return x }\n\
+             pub fn f<T>(b: Box<T>) -> number {\n\
+             \x20 let a: Record<string, string> = b\n\
+             \x20 let c: Record<string, unknown> = b\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        let got = g289_mismatches(&errs);
+        assert_eq!(got.len(), 2, "{errs:?}");
+        assert!(
+            got.iter().all(|(e, f)| e == "Record<string, string>" && f.starts_with("Box<")),
             "{errs:?}"
         );
     }

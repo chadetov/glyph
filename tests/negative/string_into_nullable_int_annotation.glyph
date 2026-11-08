@@ -5,5 +5,5 @@ module neg
 // a `T` or null; a `string` is neither.
 pub fn main() -> void {
   let v: Nullable<int> = "three"
-  print(v)
+  print("x")
 }

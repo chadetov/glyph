@@ -821,6 +821,35 @@ pub fn explain(code: &str) -> Option<&'static str> {
             (`json.parse`). Type arguments on a function value (`let f = id`, then \
             `f<number>(x)`) are not counted yet; `tsc` still refuses a wrong count \
             there. TypeScript reports these as TS2558, TS2314 and TS2315.",
+        "E0235" => "E0235: a read through a `Nullable` that does not handle the null\n\n\
+            `Nullable<T>` (D45) is `T | null`. A field of a `Nullable<R>` is read \
+            with `?.`, and the field is checked against `R` as it would be on an \
+            `R` (a typo is E0210). Two reads are refused.\n\n\
+            The plain dot. `n.name` reads through a value that may be null, and \
+            throws when it is. TypeScript refuses it too (TS18047).\n\n\
+            A chain that escapes. `n?.name`, and any chain it starts \
+            (`n?.inner.name`), is the field's value or JavaScript's `undefined` \
+            when `n` is null. Glyph has no type for `undefined`, so the chain may \
+            stand in two places only: as the left of `??`, which replaces the \
+            absence, and as an operand of `==` or `!=`, which compare it without \
+            holding it. A `let`, an argument, a `return`, a field value, a \
+            `${...}` interpolation and a `match` scrutinee all hold it, and each is \
+            this error. `tsc` accepts several of those (`let x = n?.name`, \
+            `print(\"${n?.name}\")`, an `unknown` argument), and the second one \
+            prints the text \"undefined\".\n\n\
+            fn label(n: Nullable<Note>) -> Nullable<string> {\n  \
+            return n?.name                // E0235\n\
+            }\n\n\
+            fn label(n: Nullable<Note>) -> string {\n  \
+            return n?.name ?? \"none\"      // fine: a `string`\n\
+            }\n\n\
+            `n?.name ?? \"none\"` has the field's type, or the inner `T` when the \
+            field is itself a `Nullable<T>`, provided the default is one. `n ?? d` \
+            on the `Nullable<T>` itself is a `T` by the same rule. When the \
+            default is some other type the expression is left to `tsc`.\n\n\
+            To use the whole value instead, convert it with \
+            `nullable.to_option(n)` and `match` on the `Option`. That call is the \
+            greppable record of where null enters the program.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1764,6 +1793,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "Wrong number of type arguments: a call (`id<number, bool>(x)` on `fn id<T>`) or a type application (`Box<number, string>` on `type Box<T>`) writes more or fewer type arguments than the declaration has parameters. Raised for every declaration whose parameter list the checker reads: one of this module, a project sibling's, a prelude container, a modeled stdlib function. TypeScript's TS2558 and TS2314",
         fix: "Write one type argument per type parameter, or none on a call and let the arguments infer them",
+    },
+    CodeEntry {
+        code: "E0235",
+        phase: "typechecker",
+        meaning: "A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=`: that value is `F` or `undefined`, and Glyph has no `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts and Glyph does not",
+        fix: "Give the absent case a value with `??` (`n?.name ?? \"none\"`), or convert the whole value with `nullable.to_option(n)` and `match` on it",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

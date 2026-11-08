@@ -1,0 +1,18 @@
+module neg
+
+import std/nullable
+
+// G304, D45. `n?.name` is a `string` or JavaScript's `undefined` when `n` is
+// null, and Glyph has no type for `undefined`. Interpolated, it prints the
+// text "undefined", and `tsc` accepts the program. The chain may stand only
+// as the left of `??` (`n?.name ?? "none"`) or as an operand of `==`/`!=`.
+type Note = { name: string }
+
+fn greet(n: Nullable<Note>) -> string {
+  return "hello ${n?.name}"
+}
+
+pub fn main() -> void {
+  print(greet(nullable.from_option(None)))
+  return void
+}

@@ -94,7 +94,7 @@ export function flag(e: Event): boolean {
 }
 
 export function is_any(n: Note | null): boolean {
-  return (__glyph_eq(n?.match, "any"));
+  return (n?.match === "any");
 }
 
 export function known(v: unknown): boolean {

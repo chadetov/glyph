@@ -488,16 +488,44 @@ fn plan_e0220(
         ));
     }
     let suggestion = &alts[0];
-    let enclosing = siblings
+    let pattern = (d.range.start.offset, d.range.end.offset);
+    let owner = match_owning_arm(module, pattern)
+        .ok_or("the arm this diagnostic points at is not an arm of a `match` in this file")?;
+
+    // Two arms whose one suggestion is the same value cannot both be renamed
+    // to it: the second would be unreachable (E0305). Which of them was meant
+    // is not something the checker decided, so neither is renamed. A literal
+    // head and a variant head make the same claim, so both are held to it.
+    let mut rivals: Vec<(u32, &str)> = siblings
         .iter()
         .filter(|o| {
-            o.code == "E0200"
-                && o.range.start.offset <= d.range.start.offset
-                && o.range.end.offset >= d.range.end.offset
+            o.code == "E0220"
+                && owner.owns(o)
+                && o.alternatives.as_deref().is_some_and(|a| a.contains(suggestion))
         })
-        .min_by_key(|o| o.range.end.offset - o.range.start.offset);
-    let pattern = (d.range.start.offset, d.range.end.offset);
-    let arms = arms_of_enclosing_match(module, pattern);
+        .filter_map(|o| {
+            let (s, e) = range_bytes(source, o)?;
+            Some((o.range.start.offset, &source[s..e]))
+        })
+        .collect();
+    rivals.sort_by_key(|(at, _)| *at);
+    rivals.dedup_by_key(|(at, _)| *at);
+    if rivals.len() > 1 {
+        let arms: Vec<String> = rivals.iter().map(|(_, text)| text.to_string()).collect();
+        return Err(format!(
+            "the rename is not determined: {} arms of this match ({}) would each be renamed to the same value, `{suggestion}`, and only one of them can take it",
+            arms.len(),
+            quoted_list(&arms)
+        ));
+    }
+
+    // The E0200 that says whether the suggestion is free has to be the one
+    // about this arm's own match, which is where the checker points it. One
+    // whose range merely holds the arm can be an enclosing match's, missing a
+    // case this match already handles.
+    let enclosing = siblings.iter().find(|o| {
+        o.code == "E0200" && (o.range.start.offset, o.range.end.offset) == owner.span
+    });
     match enclosing {
         // No E0200 means no case is missing, and there are two reasons that
         // can be true, which need different sentences. Without a catch-all the
@@ -508,7 +536,7 @@ fn plan_e0220(
         // reader about an unreachable arm sends them looking for a duplicate
         // that is not there.
         None => {
-            if let Some(catch_all) = arms.and_then(catch_all_arm) {
+            if let Some(catch_all) = catch_all_arm(&owner.arms) {
                 return Err(format!(
                     "this match is missing no case because its {catch_all} handles `{suggestion}` now, so renaming this head to `{suggestion}` would move that case out of it, and which arm should handle it is not something the compiler determines"
                 ));
@@ -532,8 +560,7 @@ fn plan_e0220(
         // escaped the way the formatter writes one: a suggestion holding `"`,
         // `\` or `${` written between bare quotes would be a different string
         // or not a string at all.
-        let (start, end) = arms
-            .and_then(|arms| literal_head_span(arms, pattern))
+        let (start, end) = literal_head_span(&owner.arms, pattern)
             .ok_or("the arm head is not a string literal in the source this diagnostic points at")?;
         return Ok((
             start,
@@ -546,33 +573,60 @@ fn plan_e0220(
     Ok((start, end, alts[0].clone()))
 }
 
-/// The arms of the innermost `match` in `module` whose span holds `pattern`,
-/// the byte range of one of its arm patterns.
-///
-/// Spans nest, so every `match` that holds the range is an ancestor of the
-/// next one found; the walk keeps descending and the last one recorded is the
-/// match the pattern belongs to. A JSX `<match>` is not an `Expr::Match` in
-/// the tree, and finds nothing here.
-fn arms_of_enclosing_match(
-    module: &glyph_ast::Module,
-    pattern: (u32, u32),
-) -> Option<&[glyph_ast::MatchArm]> {
-    use glyph_ast::{visit, Block, Expr, JsxAttr, JsxChild, JsxElement, MatchArm};
+/// The `match` one arm belongs to: the whole expression's span, which is
+/// where the checker points that match's `E0200`, and its arms.
+struct OwningMatch {
+    span: (u32, u32),
+    arms: Vec<glyph_ast::MatchArm>,
+}
 
-    type Found<'a> = Option<&'a [MatchArm]>;
-    fn block<'a>(b: &'a Block, at: (u32, u32), found: &mut Found<'a>) {
+impl OwningMatch {
+    /// Whether the diagnostic points at exactly one of this match's arm
+    /// patterns.
+    fn owns(&self, d: &Diagnostic) -> bool {
+        has_arm_at(&self.arms, (d.range.start.offset, d.range.end.offset))
+    }
+}
+
+/// Whether one of `arms` has a pattern spanning exactly `at`.
+fn has_arm_at(arms: &[glyph_ast::MatchArm], at: (u32, u32)) -> bool {
+    arms.iter().any(|arm| {
+        let span = arm.pattern.span();
+        (span.start, span.end) == at
+    })
+}
+
+/// The `match` in `module` that has an arm whose pattern spans exactly
+/// `pattern`.
+///
+/// Ownership is decided by the arm, not by which match's span holds the
+/// range: a match nested in another arm's body is held by both spans, and
+/// only one of them has this pattern as an arm. A JSX `<match>` is read
+/// through `as_value_match`, the one view the checker and the emitter use,
+/// whose arms keep the `<case>` patterns' spans and whose span is the
+/// element's.
+fn match_owning_arm(module: &glyph_ast::Module, pattern: (u32, u32)) -> Option<OwningMatch> {
+    use glyph_ast::{visit, Block, Expr, JsxAttr, JsxChild, JsxElement, JsxKind};
+
+    fn block(b: &Block, at: (u32, u32), found: &mut Option<OwningMatch>) {
         for s in &b.stmts {
             visit::stmt_exprs(s, &mut |e| expr(e, at, found));
             visit::stmt_blocks(s, &mut |b| block(b, at, found));
         }
     }
-    fn expr<'a>(e: &'a Expr, at: (u32, u32), found: &mut Found<'a>) {
+    fn expr(e: &Expr, at: (u32, u32), found: &mut Option<OwningMatch>) {
         let span = e.span();
-        if span.start > at.0 || span.end < at.1 {
+        if found.is_some() || span.start > at.0 || span.end < at.1 {
             return;
         }
-        if let Expr::Match { arms, .. } = e {
-            *found = Some(arms);
+        if let Expr::Match { arms, span, .. } = e {
+            if has_arm_at(arms, at) {
+                *found = Some(OwningMatch {
+                    span: (span.start, span.end),
+                    arms: arms.clone(),
+                });
+                return;
+            }
         }
         visit::child_exprs(e, &mut |c| expr(c, at, found));
         visit::child_blocks(e, &mut |b| block(b, at, found));
@@ -582,7 +636,21 @@ fn arms_of_enclosing_match(
             jsx(el, at, found);
         }
     }
-    fn jsx<'a>(el: &'a JsxElement, at: (u32, u32), found: &mut Found<'a>) {
+    fn jsx(el: &JsxElement, at: (u32, u32), found: &mut Option<OwningMatch>) {
+        if found.is_some() || el.span.start > at.0 || el.span.end < at.1 {
+            return;
+        }
+        if el.kind() == JsxKind::Match {
+            if let Some(Expr::Match { arms, span, .. }) = el.as_value_match() {
+                if has_arm_at(&arms, at) {
+                    *found = Some(OwningMatch {
+                        span: (span.start, span.end),
+                        arms,
+                    });
+                    return;
+                }
+            }
+        }
         for a in &el.attrs {
             if let JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } = a {
                 expr(value, at, found);
@@ -597,7 +665,7 @@ fn arms_of_enclosing_match(
         }
     }
 
-    let mut found: Found = None;
+    let mut found = None;
     for item in &module.items {
         match item {
             Decl::Fn(f) => block(&f.body, pattern, &mut found),

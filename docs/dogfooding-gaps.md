@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-315 entries, 273 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-22 are open. G144, the D28 boundary cast that never reached the returns a
+321 entries, 274 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+27 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11691,3 +11691,87 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): ``[E0204] Error:
   typecheck: type mismatch: expected `Record<string, Any>` `` and ``expected
   `Nullable<Note>` `` under `--no-tsc`.*
+- **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
+  In a child list that holds an element, a text child goes on a line of its
+  own, and the formatter wrote a space at either end of it as a separate
+  `{" "}` child, one space however many the text had. `<div><p>x</p> (    </div>`
+  emits `"(    "` and its formatted form emits `"(", " "`: three spaces of
+  rendered text gone and a child added, which `React.Children.count` sees.
+  The output was a fixed point, so idempotence could not see it; the nightly
+  `format_idempotent` target failed on it every day for at least fifteen days
+  before anyone read the run, and it failed for the wrong reason, a string
+  literal that appeared from nowhere, because JSX text was not in its stream.
+
+  *Reproduced against 0.1.132 (the release build): the source emits
+  `React.createElement("div", null, React.createElement("p", null, "x"),
+  "(    ")` and its `glyph fmt` output emits `..., "(", " ")`.*
+
+  Fixed in 0.1.133 (record 84). A text with an edge space, laid out on a line
+  of its own, is written whole as one string child: `{"(    "}`, `{" and "}`,
+  `{"   "}`. A text child and a string child emit the same quoted string, so
+  formatting leaves the emitted TypeScript unchanged byte for byte, child count
+  included, and the space test asserts that instead of comparing with adjacent
+  strings joined. A `{" "}` the source already wrote stays a child of its own,
+  so a file the earlier formatter left alone is still a fixed point. The fuzz
+  stream counts JSX text as the text it renders, and a new nightly target,
+  `format_preserves_emit`, asserts emitted-TypeScript equality on fuzzed input.
+  The minimized input is `fuzz/seeds/fuzz-jsx-edge-space-run.glyph`.
+- **G317. Characters TSX reads as JSX text are lex errors.** `<p>don't
+  stop</p>` is E0001, ``unexpected character `'` ``, so any English contraction
+  in JSX text fails to compile. The same holds for a backslash (`<p>a \
+  b</p>`), an unpaired double quote (`<p>a "b</p>`, an unterminated string),
+  `/*` (a nested block comment) and the `;` of an entity (`<p>a &amp; b</p>`).
+  The cause is shared with G318 to G321: JSX text is lexed as ordinary tokens
+  and sliced back out of the source, so whatever the token lexer refuses, text
+  cannot hold. Loud rather than silent, and common. Found while writing the
+  G316 tests; widened by record 85. Fixed by the JSX-text scanner planned for
+  0.1.135.
+
+  *Reproduced against 0.1.132 (the release build): `[E0001] Error: parse: lex
+  error: unexpected character `'``, ``unexpected character `\` ``,
+  `unterminated string literal`, `nested block comment not supported` and
+  ``unexpected character `;` `` under `--no-tsc`, one program each.*
+- **G318. `//` in JSX text deletes the rest of the line.**
+  `<div><p>x</p>\n    see http://example.com\n  </div>` emits `"see http:"`:
+  the token lexer reads `//example.com` as a line comment, and the text after it
+  leaves the program without a diagnostic. TSX renders the whole line. `glyph
+  fmt` then moves the "comment" out of the element to the line after it, and
+  does the same to a `// note` written among JSX children. Shared cause with
+  G317. Found by the strengthened `format_idempotent` stream in its first ten
+  minutes. Fixed in 0.1.135 by refusing `//` in JSX text, with a comment-only
+  `{ // note }` child as the place a comment goes (record 85).
+
+  *Reproduced against 0.1.132 (the release build): the program above emits
+  `React.createElement("div", null, React.createElement("p", null, "x"), "see
+  http:")`, and its `glyph fmt` output holds `//example.com` after `</div>`.*
+- **G319. `}` in JSX text is accepted, splits the text, and `glyph fmt` changes
+  the program.** `<div>a }\nb</div>` emits `"a }", "b"`, two children with
+  the line break's space lost; its formatted form `<div>a }b</div>` emits
+  `"a }b"`. TSX refuses `}` in JSX text (TS1381). The `}` lowers the lexer's
+  bracket depth, so the newline after it becomes a token and ends the run.
+  Shared cause with G317. Found by the new `format_preserves_emit` target.
+  Fixed in 0.1.135 by refusing `}` and `>` in text, with help to write `{"}"}`
+  (record 85).
+
+  *Reproduced against 0.1.132 (the release build): `React.createElement("div",
+  null, "a }", "b")` before formatting and `React.createElement("div", null,
+  "a }b")` after.*
+- **G320. A `"` in JSX text reads a string across tags and merges elements.**
+  `<div>\n    <p>a "b</p>\n    <p>c" d</p>\n  </div>` compiles, and emits one
+  `<p>` whose text is `a "b</p> <p>c" d`: the token lexer read `"b</p>\n
+  <p>c"` as a string literal, so two elements became one with markup in its
+  text, and nothing says so. Shared cause with G317. Inferred by record 85
+  from the lexer and reproduced before filing. Fixed in 0.1.135.
+
+  *Reproduced against 0.1.132 (the release build): `React.createElement("div",
+  null, React.createElement("p", null, "a \"b</p> <p>c\" d"))`.*
+- **G321. Multi-line JSX text at the top level renders without its space.**
+  `pub const X: Component = <div>a\nb</div>` emits `"a", "b"`, which renders
+  "ab"; the same text inside a function body emits `"a b"`. At bracket depth 0
+  the newline is a token and ends the text run, so one run becomes one child per
+  line. TSX and Babel join the lines with a space into one child. Shared cause
+  with G317. Inferred by record 85 and reproduced before filing. Fixed in
+  0.1.135, one text child per run.
+
+  *Reproduced against 0.1.132 (the release build): `export const X:
+  React.ReactNode = React.createElement("div", null, "a", "b")`.*

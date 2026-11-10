@@ -827,6 +827,31 @@ pub fn explain(code: &str) -> Option<&'static str> {
             (`json.parse`). Type arguments on a function value (`let f = id`, then \
             `f<number>(x)`) are not counted yet; `tsc` still refuses a wrong count \
             there. TypeScript reports these as TS2558, TS2314 and TS2315.",
+        "E0234" => "E0234: a built-in method read without being called\n\n\
+            A method of a JavaScript array, string or number is read and not \
+            called on the spot.\n\n\
+            let up = s.toUpperCase       // E0234\n\
+            return up()\n\n\
+            The read hands on a bare function. A method finds its receiver in \
+            `this`, which only a call through the member supplies, and an ES \
+            module is strict, so `up()` runs with `this` undefined and throws \
+            `TypeError: String.prototype.toUpperCase called on null or \
+            undefined`. `tsc` accepts the read, so nothing reports it before \
+            the program runs. Handing a method on as an argument \
+            (`xs.map(s.concat)`) is the same read.\n\n\
+            Call the method where it is read:\n\n\
+            let up = s.toUpperCase()\n\n\
+            To pass it on as a value, wrap the call in a lambda, \
+            `fn(x: string) -> string { return x.toUpperCase() }`, or pass the \
+            function `std/string`, `std/array` or `std/math` has for it.\n\n\
+            A call is never refused for its form: `s.toUpperCase()`, \
+            `mut xs.push(x)` and `xs.map(f)` are all legal, and so is a data \
+            property (`xs.length`). The methods are read from a table generated \
+            out of TypeScript's library, which also types each call: \
+            `let n: string = xs.indexOf(2)` is E0204, and `xs.indexOf(\"a\")` on \
+            an `Array<number>` is E0211. A method with overloads, a `this` \
+            type, a type predicate or a rest parameter (`split`, `sort`, \
+            `push`) stays unchecked, and its call is left to `tsc`.",
         "E0235" => "E0235: a read through a `Nullable` that does not handle the null\n\n\
             `Nullable<T>` (D45) is `T | null`. A field of a `Nullable<R>` is read \
             with `?.`, and the field is checked against `R` as it would be on an \
@@ -932,7 +957,15 @@ pub fn explain(code: &str) -> Option<&'static str> {
              \x20        let w = Wire.parse(body)?\n\
              \x20        let conn = { id: w.id, sock: open() }  // built, not parsed\n\n\
             `unknown` is not this error. It claims nothing, so every value \
-            satisfies it and presence is the whole check.\n\n\
+            satisfies it and presence is the whole check. A container of it is \
+            not either: `Array<unknown>` is checked by being an array, and \
+            `Record<string, unknown>` by being an object that is not one.\n\n\
+            `json.parse<T>(text)` is refused the same way when `T` itself has \
+            no runtime check: a type parameter, which is erased at run time, \
+            or an `extern_ts` or package type. It never casts. Take a \
+            `Schema<T>` and read with `json.parse_with(text, schema)`, or read \
+            `json.parse(text)` with no type argument and check the `unknown` \
+            it returns.\n\n\
             The rule propagates: a field whose type is a record with an \
             unverifiable field, or an `Array`/`Option`/`Record` of one, is \
             unverifiable for the same reason.",
@@ -1805,6 +1838,12 @@ pub static CODES: &[CodeEntry] = &[
         fix: "Write one type argument per type parameter, or none on a call and let the arguments infer them",
     },
     CodeEntry {
+        code: "E0234",
+        phase: "typechecker",
+        meaning: "A method of an `Array<T>`, a `string` or a `number` read without being called: `let up = s.toUpperCase`, or `xs.map(s.trim)`. The read hands on a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read. A call is never refused (`s.toUpperCase()`, `mut xs.push(x)`), and neither is a data property (`xs.length`). The methods are the ones in the table generated from TypeScript's library, which also types each call's arguments and result (G312)",
+        fix: "Call the method where it is read, `s.toUpperCase()`; to hand it on as a value, wrap the call in a lambda or pass the `std/array`, `std/string` or `std/math` function",
+    },
+    CodeEntry {
         code: "E0235",
         phase: "typechecker",
         meaning: "A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=` (a binding, an argument, a `return`, a field value, an interpolation, a JSX child or attribute, a `match` scrutinee): that value is `F` or `undefined`, and Glyph has no type for `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts (a JSX child among them) and Glyph does not",
@@ -1838,8 +1877,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0304",
         phase: "emitter",
-        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too",
-        fix: "Split the wire type from the domain type: parse the checkable fields, then build the record",
+        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too. Also `json.parse<T>` for any `T` with no runtime check: a type parameter, an `extern_ts` type, a package type. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error; `json.parse(text)` with no type argument is the unchecked read",
+        fix: "Split the wire type from the domain type: parse the checkable fields, then build the record. For a `T` with no check of its own, take a `Schema<T>` and read with `json.parse_with(text, schema)`",
     },
     CodeEntry {
         code: "E0305",
@@ -2134,6 +2173,15 @@ mod tests {
         let help = answer.help.expect("the E0220 counter-example carries a help");
         assert!(help.contains("a value the union has"), "{help}");
         assert!(answer.explanation.contains("writing a value the union has"), "{}", answer.explanation);
+    }
+
+    /// E0234 has a wrong program in `tests/negative/`, so `--explain E0234
+    /// --json` shows one rather than saying the corpus has none.
+    #[test]
+    fn e0234_has_a_counter_example() {
+        let answer = explain_json("E0234").expect("E0234 is documented");
+        let example = answer.counter_example.expect("a negative case for E0234");
+        assert_eq!(example.diagnostic.map(|d| d.code), Some("E0234".to_string()));
     }
 
     /// E0233 has a wrong program in `tests/negative/`, so `--explain E0233

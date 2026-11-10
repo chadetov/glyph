@@ -10778,6 +10778,69 @@ fn a_wrong_number_of_type_arguments_on_a_sibling_is_e0233_under_every_spelling()
 }
 
 #[test]
+fn type_arguments_through_a_function_value_hold_for_a_sibling_under_both_spellings() {
+    // A sibling's function bound to a local keeps its type parameters, so a
+    // call through the local reads its written type arguments the way a call
+    // of the declaration does: the right count binds (E0211, E0204), a wrong
+    // count is E0233, and any on a non-generic function is E0233. If this
+    // regresses, `let f = id` turns `f<number>("x")` into a call `--no-tsc`
+    // passes, and whether the guarantee holds depends on how the function
+    // was reached.
+    let root = unique_tmp("fnvaluetargs");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\n\
+         pub fn id<T>(x: T) -> T {\n  return x\n}\n\
+         pub fn plain(x: number) -> number {\n  return x\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import lib { id, plain }\n\
+         pub fn named() -> string {\n\
+         \x20 let f = id\n\
+         \x20 let g = plain\n\
+         \x20 let n: number = f<number, bool>(1)\n\
+         \x20 let m: number = g<number>(1)\n\
+         \x20 return f<number>(\"x\")\n\
+         }\n",
+    );
+    write_file(
+        &src,
+        "other.glyph",
+        "module other\n\
+         import lib\n\
+         pub fn spaced() -> string {\n\
+         \x20 let f = lib.id\n\
+         \x20 let g = lib.plain\n\
+         \x20 let n: number = f<number, bool>(1)\n\
+         \x20 let m: number = g<number>(1)\n\
+         \x20 return f<number>(\"x\")\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    for file in ["main", "other"] {
+        let found = |code: &str| -> Vec<String> {
+            report
+                .diagnostics
+                .iter()
+                .filter(|d| d.contains(code) && d.contains(&format!("[ {file}:")))
+                .cloned()
+                .collect()
+        };
+        let counts = found("E0233");
+        assert_eq!(counts.len(), 2, "{file}: {:?}", report.diagnostics);
+        assert!(counts.iter().any(|d| d.contains("`f` takes 1, found 2")), "{counts:?}");
+        assert!(counts.iter().any(|d| d.contains("`g` takes 0, found 1")), "{counts:?}");
+        assert_eq!(found("E0211").len(), 1, "{file}: {:?}", report.diagnostics);
+        assert_eq!(found("E0204").len(), 1, "{file}: {:?}", report.diagnostics);
+    }
+}
+
+#[test]
 fn a_sibling_generic_written_with_no_type_arguments_is_e0233_under_every_spelling() {
     // G292, the bare count across the module boundary. A sibling's generic
     // `type` written with no arguments takes 0 of its 1, by name and through
@@ -12392,7 +12455,6 @@ fn parse_is_refused_on_an_imported_record_with_an_unverifiable_field() {
         ("named", "import w { Doc }", "Doc.parse(v)", "`Doc`: field `lexer` has type `Lexer`"),
         ("namespace", "import w", "w.Doc.parse(v)", "`Doc`: field `lexer` has type `Lexer`"),
         ("aliased", "import w as ww", "ww.Doc.parse(v)", "`Doc`: field `lexer` has type `Lexer`"),
-        ("bag", "import w { Bag }", "Bag.parse(v)", "`Bag`: field `items` has type `Array<unknown>`"),
     ];
     for (dir, import, call, expected) in cases {
         let root = unique_tmp(&format!("g210_{dir}"));
@@ -12417,19 +12479,27 @@ fn parse_is_refused_on_an_imported_record_with_an_unverifiable_field() {
     }
 
     // Positive control: a record every field of which has a check is still
-    // accepted through the import.
+    // accepted through the import. `Bag` is one since 0.1.133: its
+    // `Array<unknown>` field is checked by being an array, where it used to
+    // be refused as unverifiable.
     let root = unique_tmp("g210_fine");
     let src = root.join("src");
     write_file(&src, "w.glyph", W);
     write_file(
         &src,
         "u.glyph",
-        "module u\nimport w { Fine }\nimport w as ww\n\
+        "module u\nimport w { Fine, Bag }\nimport w as ww\n\
          pub fn a(v: unknown) -> bool {\n\
          \x20 return match Fine.parse(v) { Ok(_) => true, Err(_) => false, }\n\
          }\n\
          pub fn b(v: unknown) -> bool {\n\
          \x20 return match ww.Fine.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n\
+         pub fn c(v: unknown) -> bool {\n\
+         \x20 return match Bag.parse(v) { Ok(_) => true, Err(_) => false, }\n\
+         }\n\
+         pub fn d(v: unknown) -> bool {\n\
+         \x20 return match ww.Bag.parse(v) { Ok(_) => true, Err(_) => false, }\n\
          }\n",
     );
     let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
@@ -16508,4 +16578,132 @@ fn main() {
         ],
         "each document is checked against its written type: {stdout}"
     );
+}
+
+/// `json.parse<T>` never casts, the run-time half. A container of `unknown`
+/// is checked by its shape: `json.parse<Array<unknown>>("{}")` returned `Ok`
+/// and handed the program an object it then treated as an array. An
+/// `Array` alias imported from a sibling validates as the local alias does,
+/// against the sibling's own record even where this module declares a record
+/// of the same name; it used to cast, so `[{"name": 1}]` came back `Ok` as a
+/// list of users. And a record holding an `Array<unknown>` is no longer
+/// refused, since its field has a complete check. The program is run so the
+/// arm taken is the evidence.
+#[test]
+fn json_parse_checks_a_container_of_unknown_and_an_imported_array_alias_at_run_time() {
+    let root = unique_tmp("g297-never-casts-run");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "rows.glyph",
+        "module rows\npub type User = { name: string, }\npub type Rows = Array<User>\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+import std/io { println }
+import std/json
+import std/json { parse }
+import rows { Rows }
+import rows as r
+type User = { id: number, }
+type Bag = { items: Array<unknown>, }
+fn say(label: string, ok: bool) {
+  println(label + match ok { true => " Ok", false => " Err", })
+}
+fn main() {
+  say("arr-unknown object", match json.parse<Array<unknown>>("{}") { Ok(_) => true, Err(_) => false, })
+  say("arr-unknown array", match json.parse<Array<unknown>>("[1, \"a\"]") { Ok(_) => true, Err(_) => false, })
+  say("rec-unknown array", match parse<Record<string, unknown>>("[1]") { Ok(_) => true, Err(_) => false, })
+  say("rec-unknown null", match parse<Record<string, unknown>>("null") { Ok(_) => true, Err(_) => false, })
+  say("rec-unknown object", match parse<Record<string, unknown>>("{\"a\": 1}") { Ok(_) => true, Err(_) => false, })
+  say("arr-rec numbers", match json.parse<Array<Record<string, unknown>>>("[1, 2]") { Ok(_) => true, Err(_) => false, })
+  say("arr-rec objects", match json.parse<Array<Record<string, unknown>>>("[{}, {\"a\": 1}]") { Ok(_) => true, Err(_) => false, })
+  say("opt-unknown bad tag", match json.parse<Option<unknown>>("{\"tag\": \"Nope\"}") { Ok(_) => true, Err(_) => false, })
+  say("opt-unknown some", match json.parse<Option<unknown>>("{\"tag\": \"Some\", \"value\": 3}") { Ok(_) => true, Err(_) => false, })
+  say("bag items number", match json.parse<Bag>("{\"items\": 3}") { Ok(_) => true, Err(_) => false, })
+  say("bag items array", match json.parse<Bag>("{\"items\": [1, null]}") { Ok(_) => true, Err(_) => false, })
+  say("imported rows bad", match json.parse<Rows>("[{\"name\": 1}]") { Ok(_) => true, Err(_) => false, })
+  say("imported rows local shape", match parse<Rows>("[{\"id\": 1}]") { Ok(_) => true, Err(_) => false, })
+  say("imported rows good", match parse<Rows>("[{\"name\": \"a\"}]") { Ok(_) => true, Err(_) => false, })
+  say("ns rows bad", match json.parse<r.Rows>("[{\"name\": 1}]") { Ok(_) => true, Err(_) => false, })
+  say("ns rows good", match json.parse<r.Rows>("[{\"name\": \"a\"}]") { Ok(_) => true, Err(_) => false, })
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        vec![
+            "arr-unknown object Err",
+            "arr-unknown array Ok",
+            "rec-unknown array Err",
+            "rec-unknown null Err",
+            "rec-unknown object Ok",
+            "arr-rec numbers Err",
+            "arr-rec objects Ok",
+            "opt-unknown bad tag Err",
+            "opt-unknown some Ok",
+            "bag items number Err",
+            "bag items array Ok",
+            "imported rows bad Err",
+            "imported rows local shape Err",
+            "imported rows good Ok",
+            "ns rows bad Err",
+            "ns rows good Ok",
+        ],
+        "each document is checked against its written type: {stdout}"
+    );
+}
+
+/// `json.parse<T>` never casts, the compile-time half. A `T` nothing can
+/// check at run time (a type parameter, an `extern_ts` type) is E0304 in both
+/// import spellings. It used to lower to the casting `parse<T>`, so
+/// `read<number>("\"x\"")` returned `Ok` holding a string, and the program
+/// failed later and somewhere else. `json.parse(text)` with no type argument
+/// stays the unchecked read.
+#[test]
+fn json_parse_of_a_type_with_no_runtime_check_is_e0304_in_both_spellings() {
+    let cases = [
+        (
+            "typeparam-ns",
+            "import std/json\nfn read<T>(body: string) -> Result<T, Array<Issue>> {\n  return json.parse<T>(body)\n}\n",
+        ),
+        (
+            "typeparam-named",
+            "import std/json { parse }\nfn read<T>(body: string) -> Result<T, Array<Issue>> {\n  return parse<T>(body)\n}\n",
+        ),
+        (
+            "extern-ns",
+            "import std/json\ntype Handle = extern_ts(\"{ fd: number }\")\nfn read(body: string) -> Result<Handle, Array<Issue>> {\n  return json.parse<Handle>(body)\n}\n",
+        ),
+        (
+            "extern-named",
+            "import std/json { parse }\ntype Handle = extern_ts(\"{ fd: number }\")\nfn read(body: string) -> Result<Handle, Array<Issue>> {\n  return parse<Handle>(body)\n}\n",
+        ),
+    ];
+    for (dir, body) in cases {
+        let root = unique_tmp(&format!("g297-refuse-{dir}"));
+        write_file(&root, "main.glyph", &format!("module main\n{body}"));
+        let (code, stderr) = check_no_tsc(&root);
+        assert_ne!(code, 0, "{dir}: a `T` with no runtime check must be refused:\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains("json.parse_with"), "{dir}: the help names the checked read: {stderr}");
+    }
+
+    // Positive control: the unchecked read with no type argument is still
+    // accepted, as is a container of `unknown`.
+    let root = unique_tmp("g297-refuse-control");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\nimport std/json\n\
+         pub fn raw(body: string) -> Result<unknown, Array<Issue>> {\n  return json.parse(body)\n}\n\
+         pub fn arr(body: string) -> Result<Array<unknown>, Array<Issue>> {\n  return json.parse<Array<unknown>>(body)\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_eq!(code, 0, "the unchecked read and a container of `unknown` are accepted:\n{stderr}");
 }

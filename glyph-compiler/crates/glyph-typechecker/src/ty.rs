@@ -71,6 +71,20 @@ pub enum Ty {
         params: Vec<FnParam>,
         return_ty: Arc<Ty>,
         is_async: bool,
+        /// The type parameters the function declares, in order, so a call
+        /// through a value bound to it (`let f = id; f<number>(x)`) binds
+        /// written type arguments and counts them (E0233) the way a call of
+        /// the declaration does. Reading them off the resolved declaration
+        /// only, as the call site once did, dropped them silently for any
+        /// function reached through a binding.
+        ///
+        /// `None` is "not known", which is different from "none": a stdlib
+        /// signature is modeled without its TypeScript type parameters, so
+        /// claiming it takes 0 would refuse a call `tsc` accepts. Everything
+        /// Glyph source spells (a `fn`, a `component`, a lambda, a written
+        /// `fn(...)` type) knows its list, which is empty unless the
+        /// declaration has `<...>`.
+        type_params: Option<Vec<Ident>>,
     },
 
     /// Tagged union (D8): `Ok(T) | Err(E)`. Variants carry an optional payload.

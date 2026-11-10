@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-324 entries, 276 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-28 are open. G144, the D28 boundary cast that never reached the returns a
+324 entries, 278 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+26 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11580,7 +11580,7 @@ and is the owner's to confirm.
   its first parameter again, and a runtime function that takes a mutable
   array now fails runtime to declared. `array.slice` keeps its G308 entry.
   Glyph's own types are unchanged.
-- **G310. `glyph/applyEdit` accepts an edit that breaks another module.** The
+- **G310. [FIXED] `glyph/applyEdit` accepts an edit that breaks another module.** The
   gate compares the edited file's own list before and after the edit, and a
   file's diagnostics depend on its siblings, so two kinds of edit pass it and
   then fail or warn under `glyph check` over the project:
@@ -11614,7 +11614,24 @@ and is the owner's to confirm.
   6ed2f1c1) over JSON-RPC: both edits answered `ok: true` with empty
   `diagnostics`; `glyph check --no-tsc --no-test` then exits 1 with E0105 on
   `main` for the first and exits 0 with an E0112 warning on `util` for the
-  second.*
+  second. Reproduced again against 0.1.132, where a `{ changes: ... }`
+  request failed JSON-RPC parameter parsing with -32602 "missing field
+  `uri`".*
+
+  Fixed in 0.1.133, as review 81 decision 1 specifies. The gate reads
+  `glyph check --no-tsc --no-test`'s list for every module of the project
+  before and after the edit and applies the delta rule file by file, a file
+  the edit did not touch matched on exact ranges. Each other file's verdict
+  comes back under `elsewhere: [{ uri, diagnostics, preexisting }]`, sorted
+  by URI. The request gained the `{ changes: { <uri>: [TextEdit] } }` form,
+  checked as one change under one hold of the workspace lock, with `contents`
+  in place of `content`; both forms or neither is `invalid_params`, and a
+  document that is not open is `document_not_open` with its `uri`. Both
+  programs above are now refused (E0105 under `elsewhere` for `main`, E0112
+  for `util`), as is a field rename that breaks a module two imports away
+  (E0210 through D46), and the rename sent through `changes` with the call
+  site's fix is accepted. A protocol test holds the gate's project lists
+  equal to `glyph check --no-tsc --json` on the same tree.
 - **G311. `?.` on an `Option` or a `Result` is not checked.** The checker
   reads the `optional` flag of a member only for a `Nullable` (G304); on an
   `Option<Note>`, `o?.nmae` passes `glyph check --no-tsc`, and `tsc` refuses
@@ -11627,7 +11644,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
   `return o?.nmae` is `glyph check: 1 module(s) checked, no diagnostics.`
   under `--no-tsc`, and TS2339 with `tsc`.*
-- **G312. A built-in method read without a call is accepted.** `let up =
+- **G312. [FIXED] A built-in method read without a call is accepted.** `let up =
   s.toUpperCase` then `up()` passes `glyph check` with `tsc` (``tsc --strict
   passed.``), and throws a `TypeError` at run time, because an ES module is
   strict and the detached method has no `this`. Neither checker sees it. The
@@ -11636,7 +11653,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
   `no diagnostics` under `--no-tsc`, and `glyph check: tsc --strict passed.`
-  with `tsc`.*
+  with `tsc`. Reproduced again against 0.1.132, where `let n: string =
+  xs.indexOf(2)` was also refused by `tsc` alone (TS2322).*
+
+  Fixed in 0.1.133. A method of an `Array<T>`, a `string` or a `number` read
+  outside a callee's position is E0234. A called method is typed from
+  `builtin_methods.rs`, a table `scripts/check_builtin_members.py --write`
+  generates from the pinned TypeScript's `lib.d.ts` and CI regenerates and
+  diffs: the array's `T` is the receiver's element type, an optional
+  parameter is optional, and a method with overloads, a `this` type, a type
+  predicate or a rest parameter is left untyped with the reason in its row.
+  So `let n: string = xs.indexOf(2)` is E0204 and `xs.indexOf("a")` on an
+  `Array<number>` is E0211 without `tsc`.
 - **G313. `glyph/applyEdit` lets an edit add a warning to a file that has an
   error.** The gate's rule counts the warning tier, but the list it compares
   is the one `glyph check --no-tsc --no-test` prints, and that list stops

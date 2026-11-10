@@ -30,6 +30,7 @@ use crate::ty::{
     builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
     SymbolRef, Ty, UnionRef, UnionVariant,
 };
+use crate::builtin_members::{MethodSig, MethodTy};
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{
     Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, PropsRefusal,
@@ -348,6 +349,7 @@ pub fn assign_types_with_relations(
             coverage: &mut coverage,
             field_uses: &mut field_uses,
             assign_target: None,
+            call_callee: None,
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver,
@@ -442,6 +444,7 @@ pub fn assignability(
         coverage: &mut coverage,
         field_uses: &mut field_uses,
         assign_target: None,
+        call_callee: None,
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -488,6 +491,7 @@ pub fn declared_record_fields(
         coverage: &mut coverage,
         field_uses: &mut field_uses,
         assign_target: None,
+        call_callee: None,
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -1197,6 +1201,13 @@ struct Assigner<'a> {
     /// walked with it still set, and a flag would exempt every identifier
     /// underneath.
     member_object: Option<Span>,
+    /// The span of the expression currently standing as a call's callee, so
+    /// the one `Expr::Member` arm can tell `s.toUpperCase()` from
+    /// `s.toUpperCase` read alone (E0234, G312). A span rather than a flag
+    /// for the reason `assign_target` is one: the callee's object is walked
+    /// with it still set, and a flag would take the `s.trim` in
+    /// `s.trim.bind(s)()` for a call.
+    call_callee: Option<Span>,
     /// The interface pairings the relation is in the middle of deciding, so a
     /// type that names itself through a member does not recurse without end.
     /// See the interface arm of `assign_incompatible_at`.
@@ -2201,10 +2212,22 @@ impl Assigner<'_> {
                     // the only data property either has (every other member
                     // is a method), so this is their whole property set. An
                     // `int` wants it as well, since D31 makes the two
-                    // mutually assignable. A method stays `Unknown`.
+                    // mutually assignable.
+                    //
+                    // A method is typed from the table generated out of
+                    // TypeScript's library (G312), with the array's element
+                    // type for its `T`, so the call arm checks the arguments
+                    // and gives the call its return type. Read without being
+                    // called, it is E0234: the bare function loses its
+                    // receiver and throws when called later, and `tsc` lets
+                    // the read through.
                     None => {
                         self.unresolved_field_use(&obj_ty, field, *span, access);
-                        let receiver = self.builtin_receiver(&obj_ty);
+                        let (receiver, elem) = match self.builtin_receiver_elem(&obj_ty) {
+                            Some((r, elem)) => (Some(r), elem),
+                            None => (None, Ty::Unknown),
+                        };
+                        let method = receiver.and_then(|r| Some((r, r.method(field.as_ref())?)));
                         match receiver.filter(|r| !r.has(field.as_ref())) {
                             None if field.as_ref() == "length"
                                 && matches!(
@@ -2228,10 +2251,27 @@ impl Assigner<'_> {
                                 });
                                 Ty::Unknown
                             }
-                            None => self
-                                .stdlib_member_ty(object, field)
-                                .or_else(|| self.descriptor_member_ty(object, field))
-                                .unwrap_or(Ty::Unknown),
+                            None => match method {
+                                // A write (`mut xs.push = f`) detaches
+                                // nothing, so only a read is refused.
+                                Some((receiver, m))
+                                    if self.call_callee != Some(*span)
+                                        && matches!(access, FieldAccess::Read) =>
+                                {
+                                    self.errors.push(TypeError::UncalledBuiltinMethod {
+                                        method: m.name.to_string(),
+                                        type_name: ty_display(&obj_ty),
+                                        builtin: receiver,
+                                        span: *span,
+                                    });
+                                    Ty::Unknown
+                                }
+                                Some((_, m)) => builtin_method_ty(&m.sig, &elem, |t| self.array_ty(t)),
+                                None => self
+                                    .stdlib_member_ty(object, field)
+                                    .or_else(|| self.descriptor_member_ty(object, field))
+                                    .unwrap_or(Ty::Unknown),
+                            },
                         }
                     }
                 };
@@ -2326,7 +2366,9 @@ impl Assigner<'_> {
                 for t in type_args {
                     self.check_nullable_args(t);
                 }
+                let outer = self.call_callee.replace(callee.span());
                 self.walk_expr(callee);
+                self.call_callee = outer;
                 // `n?.f()` is one chain (G304): the call is its value now.
                 if let Some(c) = self.null_chains.take(callee.span()) {
                     self.null_chains.open(*span, c);
@@ -2355,7 +2397,13 @@ impl Assigner<'_> {
                         return;
                     }
                 }
-                let call_ty = if let Ty::Fn { params, return_ty, .. } = &callee_ty {
+                let call_ty = if let Ty::Fn {
+                    params,
+                    return_ty,
+                    type_params,
+                    ..
+                } = &callee_ty
+                {
                     // Arity check. A Glyph `fn`/`component` has no optional or
                     // variadic parameter and a call carries no spread, so for
                     // user code this is still an exact comparison. The standard
@@ -2425,8 +2473,17 @@ impl Assigner<'_> {
                     // mismatch about a binding the program never made. A
                     // declaration with no type parameters takes 0, so any
                     // written type argument on it is the same mistake.
+                    //
+                    // The declaration's list comes first, then the callee's
+                    // type: a function bound to a value (`let f = id`) is not
+                    // a declaration the resolver can name, and its type
+                    // carries the list so `f<number>(x)` is read as
+                    // `id<number>(x)` is. A type whose list is not known (a
+                    // stdlib signature) stays unchecked, as it always was.
                     if !type_args.is_empty() {
-                        if let Some(names) = self.callee_generics(callee) {
+                        if let Some(names) =
+                            self.callee_generics(callee).or_else(|| type_params.clone())
+                        {
                             if names.len() == type_args.len() {
                                 for (name, t) in names.into_iter().zip(type_args.iter()) {
                                     subst.insert(name, self.lowerer.lower(t));
@@ -2591,9 +2648,12 @@ impl Assigner<'_> {
                     self.check_value_match_tail(body);
                 }
                 self.return_stack.pop();
-                let ty = self
-                    .lowerer
-                    .lower_callable_signature(params, return_ty.as_ref(), *is_async);
+                let ty = self.lowerer.lower_callable_signature(
+                    &[],
+                    params,
+                    return_ty.as_ref(),
+                    *is_async,
+                );
                 self.tm.insert(*span, ty);
             }
             Expr::Jsx(j) => {
@@ -3562,6 +3622,7 @@ impl Assigner<'_> {
             }],
             return_ty: Arc::new(self.stdlib_result_ty(parsed, issues)?),
             is_async: false,
+            type_params: None,
         })
     }
 
@@ -5597,6 +5658,7 @@ impl Assigner<'_> {
                 params,
                 return_ty,
                 is_async,
+                type_params,
             } => Ty::Fn {
                 params: params
                     .iter()
@@ -5609,6 +5671,7 @@ impl Assigner<'_> {
                     .collect(),
                 return_ty: Arc::new(self.canonicalize_aliases(return_ty)),
                 is_async: *is_async,
+                type_params: type_params.clone(),
             },
             Ty::Record { fields } => Ty::Record {
                 fields: fields
@@ -5794,19 +5857,28 @@ impl Assigner<'_> {
     /// this cannot read. Only the prelude `Array` counts, so a user type that
     /// happens to be called `Array` is not mistaken for it.
     fn builtin_receiver(&self, ty: &Ty) -> Option<BuiltinReceiver> {
+        self.builtin_receiver_elem(ty).map(|(r, _)| r)
+    }
+
+    /// `builtin_receiver`, with the array's element type beside it: what a
+    /// generated method row's `Elem` stands for (G312). `Unknown` for a
+    /// string or a number, whose rows never name one, and for an `Array`
+    /// written with no argument.
+    fn builtin_receiver_elem(&self, ty: &Ty) -> Option<(BuiltinReceiver, Ty)> {
         let mut current = ty.clone();
         // Each step goes one alias further, and a chain can cross modules,
         // where the per-module cycle guard cannot see it; the bound stops a
         // cycle there.
         for _ in 0..16 {
-            if self.prelude_app(&current, "Array").is_some() {
-                return Some(BuiltinReceiver::Array);
+            if let Some(args) = self.prelude_app(&current, "Array") {
+                let elem = args.first().cloned().unwrap_or(Ty::Unknown);
+                return Some((BuiltinReceiver::Array, elem));
             }
             current = match &current {
                 Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => {
-                    return Some(BuiltinReceiver::String)
+                    return Some((BuiltinReceiver::String, Ty::Unknown))
                 }
-                Ty::Prim(Primitive::Number) => return Some(BuiltinReceiver::Number),
+                Ty::Prim(Primitive::Number) => return Some((BuiltinReceiver::Number, Ty::Unknown)),
                 Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
                 Ty::App { base, args } => self.alias_body(base, args)?,
                 _ => return None,
@@ -6153,6 +6225,8 @@ impl Assigner<'_> {
                                     .unwrap_or(Ty::Prim(Primitive::Void)),
                             ),
                             is_async: false,
+                            // An interface method cannot declare `<...>`.
+                            type_params: Some(Vec::new()),
                         },
                         optional: false,
                     },
@@ -8266,6 +8340,46 @@ fn stdlib_variant_payload(ty: &Ty, variant: &Ident) -> Option<Ty> {
 /// required: the lexical name on the base path AND the prelude id. Public so
 /// the emitter decides a runtime check from the same guard the checker
 /// decides a type from.
+/// The type of a built-in method read as a callee, from its generated row
+/// (G312): a function of the row's parameters and return type, with `elem`
+/// for the array's `T` and `array` building `Array<X>`. A row the mapping
+/// rules left untyped is `Unknown`, which the call arm leaves unchecked.
+///
+/// The type parameters are `None`, "not known", rather than an empty list:
+/// `map` and `flatMap` have TypeScript type parameters the row does not
+/// carry, so claiming none would refuse `xs.map<string>(f)`, which `tsc`
+/// accepts.
+fn builtin_method_ty(sig: &MethodSig, elem: &Ty, array: impl Fn(Ty) -> Ty) -> Ty {
+    fn lower(t: MethodTy, elem: &Ty, array: &dyn Fn(Ty) -> Ty) -> Ty {
+        match t {
+            MethodTy::Unknown => Ty::Unknown,
+            MethodTy::Number => Ty::Prim(Primitive::Number),
+            MethodTy::String => Ty::Prim(Primitive::String),
+            MethodTy::Bool => Ty::Prim(Primitive::Bool),
+            MethodTy::Void => Ty::Prim(Primitive::Void),
+            MethodTy::Elem => elem.clone(),
+            MethodTy::ArrayOf(inner) => array(lower(*inner, elem, array)),
+        }
+    }
+    let MethodSig::Typed { params, ret } = sig else {
+        return Ty::Unknown;
+    };
+    Ty::Fn {
+        params: params
+            .iter()
+            .map(|p| FnParam {
+                name: None,
+                owned: false,
+                ty: lower(p.ty, elem, &array),
+                optional: p.optional,
+            })
+            .collect(),
+        return_ty: Arc::new(lower(*ret, elem, &array)),
+        is_async: false,
+        type_params: None,
+    }
+}
+
 pub fn prelude_app<'a>(prelude: &Prelude, ty: &'a Ty, name: &str) -> Option<&'a [Ty]> {
     let Ty::App { base, args } = ty else { return None };
     let Ty::Named { symbol, path } = base.as_ref() else { return None };
@@ -8786,7 +8900,12 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
             base: Arc::new(substitute_type_params(base, subst)),
             args: args.iter().map(|a| substitute_type_params(a, subst)).collect(),
         },
-        Ty::Fn { params, return_ty, is_async } => Ty::Fn {
+        Ty::Fn {
+            params,
+            return_ty,
+            is_async,
+            type_params,
+        } => Ty::Fn {
             params: params
                 .iter()
                 .map(|p| FnParam {
@@ -8798,6 +8917,7 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 .collect(),
             return_ty: Arc::new(substitute_type_params(return_ty, subst)),
             is_async: *is_async,
+            type_params: type_params.clone(),
         },
         Ty::Record { fields } => Ty::Record {
             fields: fields
@@ -10294,6 +10414,135 @@ pub fn f(xs: Array<string>, s: string, m: Mode, n: Name) -> number {
         assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
     }
 
+    // ----- G312: built-in methods are typed, and an uncalled one is refused -----
+
+    /// A method of a JavaScript array, string or number read without being
+    /// called is E0234. `let up = s.toUpperCase` followed by `up()` passes
+    /// `tsc --strict` and throws a TypeError at run time, because an ES
+    /// module is strict and the detached method runs with `this` undefined.
+    /// If this regresses, that crash compiles clean under both checkers
+    /// again, and the only report is the user's stack trace.
+    #[test]
+    fn a_builtin_method_read_without_a_call_is_e0234() {
+        let cases = [
+            (
+                "module m\npub fn f(s: string) -> string {\n  let up = s.toUpperCase\n  return up()\n}\n",
+                "toUpperCase",
+                "string",
+                "std/string",
+            ),
+            (
+                "module m\npub fn f(xs: Array<number>) -> number {\n  let find = xs.indexOf\n  return find(2)\n}\n",
+                "indexOf",
+                "Array<number>",
+                "std/array",
+            ),
+            (
+                "module m\npub fn f(n: number) -> string {\n  let fmt = n.toFixed\n  return fmt(2)\n}\n",
+                "toFixed",
+                "number",
+                "std/math",
+            ),
+            // Handed on as a value is the same detached read.
+            (
+                "module m\npub fn f(xs: Array<string>, s: string) -> Array<string> {\n  return xs.map(s.concat)\n}\n",
+                "concat",
+                "string",
+                "std/string",
+            ),
+        ];
+        for (src, method, type_name, module) in cases {
+            let errs = ty_errors_of(src);
+            let hits: Vec<&TypeError> = errs.iter().filter(|e| e.code() == "E0234").collect();
+            assert_eq!(hits.len(), 1, "{method}: expected one E0234, got {errs:?}");
+            let e = hits[0];
+            assert_eq!(
+                e.to_string(),
+                format!("method `{method}` of `{type_name}` is read without being called"),
+            );
+            let help = e.help().expect("help").into_owned();
+            assert!(help.contains(&format!("{method}(")), "{help}");
+            assert!(help.contains(module), "{help}");
+        }
+    }
+
+    /// The other side of E0234: a method that is called is never refused for
+    /// the form, as a call, a `mut` statement, a callee in a chain, an
+    /// argument or a JSX child, and a data property read alone stays legal.
+    /// AGENTS.md documents the method form, so refusing a call would break
+    /// documented programs.
+    #[test]
+    fn a_called_builtin_method_is_never_refused() {
+        let src = r#"module m
+pub fn f(xs: Array<number>, s: string, n: number) -> number {
+  mut xs.push(1)
+  let up: string = s.toUpperCase()
+  let at: number = xs.indexOf(2)
+  let has: bool = xs.includes(3)
+  let joined: string = xs.join(",")
+  let tail: Array<number> = xs.slice(1)
+  let fixed: string = n.toFixed(2)
+  let trimmed: number = s.trim().length
+  let doubled = xs.map(fn(x: number) -> number { return x * 2 })
+  let count = s.split(",").length
+  print(s.padStart(4, " "))
+  return xs.length + at + trimmed + count + up.length + joined.length + tail.length + fixed.length
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// A called method has the type TypeScript's library declares for it,
+    /// read through the receiver's element type, and its arguments are
+    /// checked against its parameters. Before this every built-in method
+    /// call was `Unknown`, so `let n: string = xs.indexOf(2)` passed
+    /// `glyph check --no-tsc`, the editor and the playground, and only `tsc`
+    /// refused it (TS2322). If this regresses, the mistake is visible again
+    /// only to a build that runs `tsc`.
+    #[test]
+    fn a_builtin_method_call_has_the_type_typescript_declares() {
+        let src = r#"module m
+pub fn f(xs: Array<number>, s: string, n: number) -> number {
+  let a: string = xs.indexOf(2)
+  let b: number = s.trim()
+  let c: string = xs.slice(1)
+  let d: number = n.toFixed(2)
+  let e: string = xs.includes(1)
+  return 0
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![
+                ("string".to_string(), "number".to_string()),
+                ("number".to_string(), "string".to_string()),
+                ("string".to_string(), "Array<number>".to_string()),
+                ("number".to_string(), "string".to_string()),
+                ("string".to_string(), "bool".to_string()),
+            ],
+            "{errs:?}"
+        );
+
+        // A parameter is the receiver's element type, and the count is
+        // TypeScript's: `indexOf` needs its search element, and its
+        // `fromIndex` may be left off.
+        let src = r#"module m
+pub fn f(xs: Array<number>) -> number {
+  let a = xs.indexOf("two")
+  let b = xs.indexOf()
+  let c = xs.indexOf(2, 1)
+  return 0
+}
+"#;
+        let errs = ty_errors_of(src);
+        let wrong: Vec<String> = argument_mismatches(&errs).into_iter().map(|(e, _)| e).collect();
+        assert_eq!(wrong, vec!["number".to_string()], "{errs:?}");
+        let counts: Vec<&str> = errs.iter().map(|e| e.code()).filter(|c| *c == "E0213").collect();
+        assert_eq!(counts, vec!["E0213"], "{errs:?}");
+    }
+
     /// `length` is the one data property an array and a string have (every
     /// other member is a method), and it is a `number`. It used to read as
     /// `Unknown`, so `let a: string = xs.length` passed `--no-tsc` and was
@@ -10327,7 +10576,8 @@ pub fn f(xs: Array<string>, s: string, m: Mode, r: Rows) -> number {
     }
 
     /// A `number` is what `length` is, so it goes wherever a `number` or an
-    /// `int` (D31) is wanted, and a method read is still left `Unknown`.
+    /// `int` (D31) is wanted. A method read without a call, which this test
+    /// once held `Unknown`, is E0234 since G312; called, it has its type.
     #[test]
     fn length_goes_where_a_number_or_an_int_goes() {
         let src = r#"module m
@@ -10338,7 +10588,7 @@ pub fn f(xs: Array<string>, s: string) -> int {
   let a: number = xs.length
   let b: int = s.length
   let c = want(xs.length)
-  let up: number = s.toUpperCase
+  let up: string = s.toUpperCase()
   return s.length
 }
 "#;
@@ -13986,6 +14236,7 @@ fn label(s: Status) -> string {
             params: vec![],
             return_ty: Arc::new(ret),
             is_async: false,
+            type_params: Some(vec![]),
         };
 
         // A concrete scalar is never a record or a function, in either direction.
@@ -14026,6 +14277,7 @@ fn label(s: Status) -> string {
             params: vec![],
             return_ty: Arc::new(ret),
             is_async,
+            type_params: Some(vec![]),
         };
 
         assert!(definitely_incompatible(
@@ -15392,6 +15644,7 @@ component View(props: { s: Status }) -> Component {
             coverage: &mut coverage,
             field_uses: &mut field_uses,
             assign_target: None,
+            call_callee: None,
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver: resolver,
@@ -18658,21 +18911,77 @@ fn f(a: Answer) -> number {
         assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
     }
 
-    /// `let f = id; f<number>(x)` is not checked in 0.1.132: a function value's
-    /// type does not carry its type parameters yet, so its count is unknown and
-    /// nothing is reported, right or wrong.
+    /// A function bound to a value keeps its type parameters, so type
+    /// arguments written on a call through the value are read the way they
+    /// are on the declaration: the right count binds (E0211, E0204), a wrong
+    /// one is E0233, and any on a non-generic function is E0233 too. If this
+    /// regresses, `let f = id` followed by `f<number>("x")` passes
+    /// `glyph check --no-tsc` with the written type silently dropped, and
+    /// only `tsc` refuses it (TS2345, TS2558): how a function was reached
+    /// would decide whether the guarantee holds.
     #[test]
-    fn type_arguments_on_a_function_value_are_not_counted_yet() {
+    fn type_arguments_on_a_function_value_are_read_like_the_declarations() {
         let errs = errors_of(
             "module m\n\
              fn id<T>(x: T) -> T { return x }\n\
-             pub fn f() -> number {\n\
-             \x20 let g = id\n\
-             \x20 let a = g<number, bool>(1)\n\
-             \x20 return 0\n\
+             pub fn f() -> string {\n\
+             \x20 let f = id\n\
+             \x20 let s: string = f<number>(\"x\")\n\
+             \x20 return s\n\
+             }\n",
+        );
+        assert_eq!(
+            argument_mismatches(&errs),
+            vec![("number".to_string(), "string".to_string())],
+            "{errs:?}"
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![("string".to_string(), "number".to_string())],
+            "{errs:?}"
+        );
+
+        let errs = errors_of(
+            "module m\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn inc(x: number) -> number { return x + 1 }\n\
+             pub fn g() -> number {\n\
+             \x20 let f = inc\n\
+             \x20 let h = id\n\
+             \x20 let n: number = f<string>(1)\n\
+             \x20 let m: number = h<number, bool>(1)\n\
+             \x20 return n + m\n\
+             }\n",
+        );
+        assert_eq!(
+            type_arg_counts(&errs),
+            vec![("f".to_string(), 0, 1), ("h".to_string(), 1, 2)],
+            "{errs:?}"
+        );
+        // A wrong count binds nothing, so no mismatch is invented from it.
+        assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// The right count through a function value, and none at all, stay
+    /// silent.
+    #[test]
+    fn the_right_type_arguments_on_a_function_value_are_not_refused() {
+        let errs = errors_of(
+            "module m\n\
+             fn id<T>(x: T) -> T { return x }\n\
+             fn inc(x: number) -> number { return x + 1 }\n\
+             pub fn g() -> number {\n\
+             \x20 let f = id\n\
+             \x20 let k = inc\n\
+             \x20 let a: number = f<number>(1)\n\
+             \x20 let b: number = f(1)\n\
+             \x20 let c: number = k(1)\n\
+             \x20 return a + b + c\n\
              }\n",
         );
         assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
+        assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
     }
 
     /// E0233 on a type application: a written type with more or fewer

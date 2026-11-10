@@ -1,0 +1,9 @@
+module neg
+
+// E0234. `s.toUpperCase` without `()` hands on the bare method. An ES module
+// is strict, so `up()` runs it with `this` undefined and throws a TypeError.
+// `tsc` accepts the read; Glyph refuses it, under `--no-tsc` as well.
+pub fn shout(s: string) -> string {
+  let up = s.toUpperCase
+  return up()
+}

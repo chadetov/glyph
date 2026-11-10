@@ -14,13 +14,13 @@
 // other `T` (a primitive, `Option`, `Nullable`, `Record`, a literal union) a
 // schema built from the check a record field of type `T` gets.
 //
-// A record holding a field with no runtime check is refused (E0304).
+// A record holding a field with no runtime check is refused (E0304), and so
+// is a `T` the emitter has no check for at all (a type parameter, an
+// `extern_ts` type, a package type).
 //
-// `parse` itself decodes without checking. The emitter leaves it in place for
-// `parse(text)` with no type argument and for `parse<unknown>`, which claim
-// nothing about the value. A `T` the emitter has no check for at all (a type
-// parameter, an `extern_ts` type, a package type) also still reaches it, and
-// is cast.
+// `parse` itself decodes without checking. The emitter leaves it in place only
+// for `parse(text)` with no type argument and for `parse<unknown>`, which claim
+// nothing about the value.
 
 import { type Result, Ok, Err } from "./result";
 import { type Option, Some, None } from "./option";

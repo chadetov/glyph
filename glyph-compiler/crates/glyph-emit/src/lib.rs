@@ -171,6 +171,14 @@ pub enum EmitError {
         field_ty: String,
         span: Span,
     },
+    /// `json.parse<T>(text)` where `T` itself has no runtime check: a type
+    /// parameter, an `extern_ts` type, a package type, or a container of one.
+    /// The same E0304 as a record holding such a field, reached without a
+    /// record in between. The call used to lower to the casting `parse<T>`,
+    /// which returns `Ok` on any document: a cast spelled as a type argument,
+    /// where the type argument reads as the thing that was checked.
+    #[error("cannot validate `{type_name}`: `json.parse<{type_name}>` has no runtime check to run for it")]
+    UnverifiableJsonParse { type_name: String, span: Span },
     /// Two arms of one `match` lowered to the same `case` label. JavaScript
     /// accepts that switch and runs the first label for every value, so the
     /// later arm is dead code and the earlier one silently answers in its
@@ -190,6 +198,7 @@ impl EmitError {
             EmitError::TryInNestedExpressionMatch { span } => *span,
             EmitError::TryInUnhoistablePosition { span } => *span,
             EmitError::UnverifiableDescriptorUse { span, .. } => *span,
+            EmitError::UnverifiableJsonParse { span, .. } => *span,
             EmitError::DuplicateMatchCase { span, .. } => *span,
         }
     }
@@ -205,6 +214,7 @@ impl EmitError {
     pub fn actual(&self) -> Option<&str> {
         match self {
             EmitError::UnverifiableDescriptorUse { field_ty, .. } => Some(field_ty),
+            EmitError::UnverifiableJsonParse { type_name, .. } => Some(type_name),
             _ => None,
         }
     }
@@ -216,6 +226,7 @@ impl EmitError {
             EmitError::TryInNestedExpressionMatch { .. } => "E0302",
             EmitError::TryInUnhoistablePosition { .. } => "E0303",
             EmitError::UnverifiableDescriptorUse { .. } => "E0304",
+            EmitError::UnverifiableJsonParse { .. } => "E0304",
             EmitError::DuplicateMatchCase { .. } => "E0305",
         }
     }
@@ -237,6 +248,9 @@ impl EmitError {
             ),
             EmitError::UnverifiableDescriptorUse { .. } => Some(
                 "Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.",
+            ),
+            EmitError::UnverifiableJsonParse { .. } => Some(
+                "Take a `Schema<T>` and read with `json.parse_with(text, schema)`, or read `json.parse(text)` with no type argument and check the `unknown` it returns.",
             ),
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
@@ -262,6 +276,9 @@ impl EmitError {
             ),
             EmitError::UnverifiableDescriptorUse { .. } => Some(
                 "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is`/`schema` on it, and `json.parse<T>` with it as `T`, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
+            ),
+            EmitError::UnverifiableJsonParse { .. } => Some(
+                "`json.parse<T>` validates the document against `T` and returns `Ok` only when it matches, so a `T` with no runtime check cannot be its type argument: a type parameter is erased at run time, and an `extern_ts` or package type is a TypeScript type the compiler cannot see into. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error.",
             ),
         }
     }
@@ -358,6 +375,14 @@ const SCHEMA_FACTORY: &str = "__glyph_schema";
 /// the author's (a local `parse_with`, say) can capture it.
 const JSON_PARSE_WITH: &str = "__glyph_json_parse_with";
 
+/// The prefix of the hidden namespace import through which a module reaches a
+/// sibling's record descriptor that it never imported: the `User` in an
+/// imported `pub type Rows = Array<User>`. The sibling's name is in the
+/// sibling's scope, so it cannot be written bare here, where this module may
+/// not import it or may declare a different record under it. See
+/// [`sibling_namespace_alias`].
+const SIBLING_NAMESPACE_PREFIX: &str = "__glyph_mod_";
+
 /// The TS mapped-type alias `infer_output<S>` (D28) lowers to. A module that
 /// renders any `infer_output` gets one injected alias that maps each field of a
 /// record of parsers to that parser's output type. It matches a field
@@ -429,6 +454,23 @@ fn relative_specifier(from: &str, to: &str) -> String {
     }
     out.push_str(&to_segs[i..].join("/"));
     out
+}
+
+/// The hidden namespace binding for the project module `module`
+/// ([`SIBLING_NAMESPACE_PREFIX`]). A character a JavaScript identifier cannot
+/// hold is written as `$` and its code point in hex closed by another `$`,
+/// and `$` cannot appear in a module path, so two paths never share a binding
+/// (`a/b` is `__glyph_mod_a$2f$b`, `a_b` is `__glyph_mod_a_b`).
+fn sibling_namespace_alias(module: &str) -> String {
+    let mut alias = String::from(SIBLING_NAMESPACE_PREFIX);
+    for c in module.chars() {
+        if c.is_ascii_alphanumeric() || c == '_' {
+            alias.push(c);
+        } else {
+            alias.push_str(&format!("${:x}$", c as u32));
+        }
+    }
+    alias
 }
 
 /// The relative specifier from a module at `module_path` to a file bundled
@@ -980,6 +1022,7 @@ impl<'a> Emitter<'a> {
             used_result: Rc::new(Cell::new(false)),
             used_infer_output: Rc::new(Cell::new(false)),
             used_json_parse_with: Rc::new(Cell::new(false)),
+            used_sibling_namespaces: Rc::new(RefCell::new(BTreeSet::new())),
             used_react: Rc::new(Cell::new(false)),
             shadowed_globals: shadowed,
             desc_param_guards: RefCell::new(Vec::new()),
@@ -995,6 +1038,7 @@ impl<'a> Emitter<'a> {
             synth_types: Rc::new(RefCell::new(HashMap::new())),
             synth_bindings: Rc::new(RefCell::new(HashSet::new())),
             delegations: RefCell::new(None),
+            expanding_sibling_aliases: RefCell::new(Vec::new()),
             marks: mapped.then(|| Rc::new(RefCell::new(Vec::new()))),
             ctx,
         }
@@ -1142,9 +1186,9 @@ enum TypeShape {
 }
 
 /// Where a `TypeExpr` handed to a runtime-check builder was written, which
-/// decides what its shape is read from.
+/// decides what its shape is read from and what scope its names are in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Origin {
+enum Origin<'s> {
     /// This module. Its names resolve in `self.resolved`, so the shape is the
     /// checker's: the resolution of a bare name, and of an application's
     /// base. A user's `type Option<T>` resolves to the module and is
@@ -1157,7 +1201,12 @@ enum Origin {
     /// leaf was before. The export-lowered `Ty` cannot stand in: it maps
     /// `int` and `bigint` to `number`, and the integer check would be lost.
     /// A sibling that shadows a prelude name is the edge this leaves.
-    Sibling,
+    ///
+    /// Carries the sibling's module path, because a name in the body is a
+    /// name in that module's scope: `pub type Rows = Array<User>` means the
+    /// sibling's `User`, which this module may not import, or may declare a
+    /// different record under.
+    Sibling(&'s str),
 }
 
 struct Emitter<'a> {
@@ -1187,6 +1236,11 @@ struct Emitter<'a> {
     /// to validate, so the module gets the hidden `parse_with` import the
     /// rewrite calls ([`JSON_PARSE_WITH`]). Shared with sub-emitters.
     used_json_parse_with: Rc<Cell<bool>>,
+    /// The project modules whose descriptors a runtime check reaches through
+    /// a hidden namespace import ([`SIBLING_NAMESPACE_PREFIX`]), because an
+    /// imported alias's body names a record of its own module. Shared with
+    /// sub-emitters like the flags above.
+    used_sibling_namespaces: Rc<RefCell<BTreeSet<String>>>,
     /// Set once the output names the `React` namespace: a JSX element (which
     /// lowers to `React.createElement`) or the prelude `Component` type (which
     /// lowers to `React.ReactNode`). The module then gets the namespace import.
@@ -1265,6 +1319,10 @@ struct Emitter<'a> {
     /// `T.is(..)` call, so the records E0304 follows are exactly the ones the
     /// emitted check trusts, never a second reading of the type.
     delegations: RefCell<Option<Vec<(String, String)>>>,
+    /// The sibling aliases whose bodies `field_check_in` is expanding, so a
+    /// recursive one (`pub type L = Array<L>`) ends as unverifiable rather
+    /// than expanding forever.
+    expanding_sibling_aliases: RefCell<Vec<(String, String)>>,
     /// The span table the source-map markers index (see "Source-map markers"
     /// above `strip_marks`). Shared with every sub-emitter, so a statement in
     /// a lambda body gets a marker that survives the splice into the parent.
@@ -1320,6 +1378,7 @@ impl<'a> Emitter<'a> {
             used_result: Rc::clone(&self.used_result),
             used_infer_output: Rc::clone(&self.used_infer_output),
             used_json_parse_with: Rc::clone(&self.used_json_parse_with),
+            used_sibling_namespaces: Rc::clone(&self.used_sibling_namespaces),
             used_react: Rc::clone(&self.used_react),
             shadowed_globals: Rc::clone(&self.shadowed_globals),
             // Descriptor field checks are generated on the main emitter, never a
@@ -1344,6 +1403,7 @@ impl<'a> Emitter<'a> {
             synth_types: Rc::clone(&self.synth_types),
             synth_bindings: Rc::clone(&self.synth_bindings),
             delegations: RefCell::new(None),
+            expanding_sibling_aliases: RefCell::new(Vec::new()),
             // The same table: a sub-emitter's markers travel inside its
             // output when it is spliced into the parent, and the final strip
             // pass places them in the finished file.
@@ -1454,6 +1514,13 @@ impl<'a> Emitter<'a> {
                     "type {INFER_OUTPUT_ALIAS}<S> = {{ [K in keyof S]: S[K] extends {{ parse(input: unknown): infer R }} ? (Extract<R, {{ tag: \"Ok\" }}> extends {{ value: infer V }} ? V : never) : never }};\n\n"
                 ),
             );
+        }
+        // Inserted in reverse so the imports read in module order.
+        for module in self.used_sibling_namespaces.borrow().iter().rev() {
+            let spec = relative_specifier(self.ctx.module_path, module);
+            let alias = sibling_namespace_alias(module);
+            self.out
+                .insert_str(0, &format!("import * as {alias} from \"{spec}\";\n\n"));
         }
         if self.used_json_parse_with.get() {
             let spec = runtime_specifier(self.ctx.module_path, "std/json");
@@ -4843,6 +4910,43 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// The check for the bare name `name` written in the body of an alias
+    /// exported by the sibling `module`, read in that module's scope: its
+    /// record by its descriptor, reached through the hidden namespace import,
+    /// and its descriptorless alias by that alias's own body. `None` for a
+    /// name the sibling exports neither way (a prelude name, a private type),
+    /// which the caller reads as before.
+    ///
+    /// Reading the name in this module's scope instead, as every sibling body
+    /// was read until 0.1.133, refused an imported `Rows = Array<User>` where
+    /// this module did not import `User`, and checked it against the wrong
+    /// record where this module declared a `User` of its own.
+    fn sibling_name_check(&self, module: &str, name: &str, access: &str) -> Option<FieldCheck> {
+        let key = (module.to_string(), name.to_string());
+        if self.ctx.plain_descriptors.contains(&key) {
+            let ns = self.sibling_namespace(module);
+            self.note_delegation(Some(key));
+            return Some(FieldCheck::Deep(format!("{ns}.{name}.is({access})")));
+        }
+        let leaf = self.resolve_imported_alias_leaf(module, name)?;
+        if self.expanding_sibling_aliases.borrow().contains(&key) {
+            return Some(FieldCheck::Unverifiable);
+        }
+        self.expanding_sibling_aliases.borrow_mut().push(key);
+        let check = self.field_check_in(&leaf, access, Origin::Sibling(module));
+        self.expanding_sibling_aliases.borrow_mut().pop();
+        Some(check)
+    }
+
+    /// The hidden namespace binding for the sibling `module`, recorded so the
+    /// module gets its `import * as` line.
+    fn sibling_namespace(&self, module: &str) -> String {
+        self.used_sibling_namespaces
+            .borrow_mut()
+            .insert(module.to_string());
+        sibling_namespace_alias(module)
+    }
+
     /// The `Ty::Named` of the type this module declares under `name`, or
     /// `None` for a name it does not declare as a `type` (an import, a prelude
     /// name, a value). The entry from a spelled name into the checker's chain:
@@ -5147,15 +5251,25 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// The deep predicate for `ty`, or `None` for the two cases that have none.
-    /// Used by the recursive arms, where an `unknown` element and an
-    /// unverifiable one are equally unusable as a sub-check. `origin` is the
-    /// enclosing type's, so a sibling's `Array<int>` element is read where
-    /// the array was.
+    /// The predicate for a part of a container (an element, a map value, a
+    /// payload, an inline record's field), or `None` when the part has no
+    /// runtime check, which makes the whole container unverifiable. `origin`
+    /// is the enclosing type's, so a sibling's `Array<int>` element is read
+    /// where the array was.
+    ///
+    /// An `unknown` part gets the presence floor a record field of type
+    /// `unknown` gets, so a container of `unknown` is checked by its shape:
+    /// `Array<unknown>` is an array, `Record<string, unknown>` a non-array
+    /// object. Treating that part as unverifiable instead refused
+    /// `Bag.parse` over an `items: Array<unknown>` field and left
+    /// `json.parse<Array<unknown>>` with nothing to check, though the
+    /// container has a complete check: `unknown` claims nothing about the
+    /// part, and the container's shape is all the type says.
     fn field_value_check_opt(&self, ty: &TypeExpr, access: &str, origin: Origin) -> Option<String> {
         match self.field_check_in(ty, access, origin) {
             FieldCheck::Deep(c) => Some(c),
-            _ => None,
+            FieldCheck::PresenceOnly => Some(format!("{access} !== undefined")),
+            FieldCheck::Unverifiable => None,
         }
     }
 
@@ -5227,11 +5341,11 @@ impl<'a> Emitter<'a> {
         let kind = match (origin, te) {
             (Origin::Local, TypeExpr::Path { .. }) => self.prelude_kind_of_name(te),
             (Origin::Local, TypeExpr::Generic { base, .. }) => self.prelude_kind_of_name(base),
-            (Origin::Sibling, TypeExpr::Path { segments, .. }) => match segments.as_slice() {
+            (Origin::Sibling(_), TypeExpr::Path { segments, .. }) => match segments.as_slice() {
                 [name] => self.prelude_kind_by_spelling(name.as_ref()),
                 _ => None,
             },
-            (Origin::Sibling, TypeExpr::Generic { base, .. }) => match base.as_ref() {
+            (Origin::Sibling(_), TypeExpr::Generic { base, .. }) => match base.as_ref() {
                 TypeExpr::Path { segments, .. } => segments
                     .last()
                     .and_then(|n| self.prelude_kind_by_spelling(n.as_ref())),
@@ -5302,6 +5416,11 @@ impl<'a> Emitter<'a> {
         match ty {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
                 let name = segments[0].as_ref();
+                if let Origin::Sibling(module) = origin {
+                    if let Some(check) = self.sibling_name_check(module, name, access) {
+                        return check;
+                    }
+                }
                 if let Some(guard) = self.param_guard(name) {
                     // A field typed as one of the enclosing generic descriptor's
                     // parameters: validate it with the checker threaded in at the
@@ -5317,15 +5436,15 @@ impl<'a> Emitter<'a> {
                     // (membership, isInteger, …), not a bare presence check.
                     // The leaf is this module's, so it keeps the caller's origin.
                     self.field_check_in(&leaf, access, origin)
-                } else if let Some(leaf) = self
-                    .import_module_path(name)
-                    .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
-                {
+                } else if let Some((module, leaf)) = self.import_module_path(name).and_then(|m| {
+                    let leaf = self.resolve_imported_alias_leaf(&m, name)?;
+                    Some((m, leaf))
+                }) {
                     // The same alias, imported from a sibling module. Without
                     // this the D30 membership check survives at home and
                     // evaporates across the import. The leaf is the sibling's
                     // body, read by its spelling.
-                    self.field_check_in(&leaf, access, Origin::Sibling)
+                    self.field_check_in(&leaf, access, Origin::Sibling(&module))
                 } else {
                     FieldCheck::Unverifiable
                 }
@@ -5342,13 +5461,13 @@ impl<'a> Emitter<'a> {
                         self.namespace_module_path(ns).map(|m| (m, name.to_string())),
                     );
                     FieldCheck::Deep(format!("{ns}.{name}.is({access})"))
-                } else if let Some(leaf) = self
-                    .namespace_module_path(ns)
-                    .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
-                {
+                } else if let Some(module) = self.namespace_module_path(ns) {
                     // `import catalog` then a field typed `catalog.ColType`:
                     // the same descriptorless alias reached through a namespace.
-                    self.field_check_in(&leaf, access, Origin::Sibling)
+                    match self.resolve_imported_alias_leaf(&module, name) {
+                        Some(leaf) => self.field_check_in(&leaf, access, Origin::Sibling(&module)),
+                        None => FieldCheck::Unverifiable,
+                    }
                 } else {
                     FieldCheck::Unverifiable
                 }
@@ -5960,11 +6079,9 @@ impl<'a> Emitter<'a> {
     }
 
     /// Rewrite `parse<T>(text)` from `std/json`, with a written `T`, to the
-    /// validating `parse_with(text, <schema for T>)`. A `T` with a written
-    /// type argument validates or is refused, except the types
-    /// `json_parse_schema` cannot build a check for yet (a type parameter, an
-    /// `extern_ts` or package type, a container of `unknown`, an imported
-    /// `Array` alias), which still cast until 0.1.133 (G297).
+    /// validating `parse_with(text, <schema for T>)`. A written `T` validates
+    /// or is refused (E0304); it never casts. `parse<unknown>` claims nothing
+    /// and stays the plain read (G297).
     ///
     /// Both spellings take the rewrite. The namespace form (`json.parse<T>`,
     /// or `j.parse<T>` under `import std/json as j`) calls `parse_with`
@@ -5976,8 +6093,8 @@ impl<'a> Emitter<'a> {
     ///
     /// Returns `None` (so the caller emits the call as written) for a call
     /// that is not `std/json`'s `parse` with one type argument and one
-    /// argument, and for a `T` [`Self::json_parse_schema`] leaves as a plain
-    /// read.
+    /// argument, and for the `T` that claims nothing, which
+    /// [`Self::json_parse_schema`] leaves as a plain read.
     fn try_json_parse_validating(
         &self,
         callee: &Expr,
@@ -6028,9 +6145,11 @@ impl<'a> Emitter<'a> {
     /// one of theirs is.
     ///
     /// `None` for a `T` that claims nothing (`unknown`, `Nullable<unknown>`),
-    /// where the plain read is the honest lowering, and for a `T` with no
-    /// runtime check that is not a record holding one: a type parameter, an
-    /// `extern_ts` type, a package type. Those still cast.
+    /// where the plain read is the honest lowering. A `T` with no runtime
+    /// check of its own (a type parameter, an `extern_ts` type, a package
+    /// type, a container of one) is refused with E0304: lowering it to the
+    /// casting `parse<T>`, as before 0.1.133, returned `Ok` on any document
+    /// under a type argument that reads as the thing checked.
     fn json_parse_schema(&self, type_arg: &TypeExpr) -> Result<Option<String>, EmitError> {
         let refuse = |module: &str, type_name: &str| {
             let mut seen = HashSet::new();
@@ -6052,8 +6171,15 @@ impl<'a> Emitter<'a> {
             return Ok(Some(schema));
         }
         let (check, called) = self.field_check_delegations(type_arg);
-        let FieldCheck::Deep(check) = check else {
-            return Ok(None);
+        let check = match check {
+            FieldCheck::Deep(check) => check,
+            FieldCheck::PresenceOnly => return Ok(None),
+            FieldCheck::Unverifiable => {
+                return Err(EmitError::UnverifiableJsonParse {
+                    type_name: type_label(type_arg),
+                    span: type_arg.span(),
+                })
+            }
         };
         for (module, type_name) in called {
             if let Some(err) = refuse(&module, &type_name) {
@@ -6093,21 +6219,31 @@ impl<'a> Emitter<'a> {
     /// argument, when one can be derived: a record/union type's descriptor
     /// `T.schema`, or `Array<T>` (and nested arrays) via the schema factory's
     /// `.array()` combinator. A local alias of such an `Array` (`type Rows =
-    /// Array<Row>`) is the `Array` it names. `None` for any other type, which
-    /// [`Self::json_parse_schema`] checks by its field predicate instead.
+    /// Array<Row>`) is the `Array` it names, and so is one imported from a
+    /// sibling, by name or through a namespace ([`Self::imported_array_alias_schema`]).
+    /// `None` for any other type, which [`Self::json_parse_schema`] checks by
+    /// its field predicate instead.
     fn schema_expr_for(&self, ty: &TypeExpr) -> Option<String> {
         match ty {
             TypeExpr::Path { segments, .. } => match segments.as_slice() {
                 [name] if self.has_descriptor(name.as_ref()) => Some(format!("{name}.schema")),
                 [name] => self
                     .array_alias_body(name.as_ref())
-                    .and_then(|body| self.schema_expr_for(&body)),
+                    .and_then(|body| self.schema_expr_for(&body))
+                    .or_else(|| {
+                        let module = self.import_module_path(name.as_ref())?;
+                        Some(self.imported_array_alias_schema(&module, name.as_ref())?.0)
+                    }),
                 // `json.parse<w.Fine>`: the record through a namespace import
                 // is the same record, so it validates the same way rather
                 // than falling to the casting `parse<T>`.
-                [ns, name] => self
-                    .has_namespaced_descriptor(ns.as_ref(), name.as_ref())
-                    .then(|| format!("{ns}.{name}.schema")),
+                [ns, name] if self.has_namespaced_descriptor(ns.as_ref(), name.as_ref()) => {
+                    Some(format!("{ns}.{name}.schema"))
+                }
+                [ns, name] => {
+                    let module = self.namespace_module_path(ns.as_ref())?;
+                    Some(self.imported_array_alias_schema(&module, name.as_ref())?.0)
+                }
                 _ => None,
             },
             TypeExpr::Generic { base, args, .. } => {
@@ -6136,6 +6272,67 @@ impl<'a> Emitter<'a> {
         is_array.then_some(body)
     }
 
+    /// The schema of the alias `name` the sibling `module` exports, when its
+    /// body is an `Array` of that module's records (`pub type Rows =
+    /// Array<User>`), with the record it validates against, for E0304. The
+    /// importer's twin of [`Self::array_alias_body`]: the body is read in the
+    /// sibling's scope and its record reached through the hidden namespace
+    /// import, since the importer may not import `User` or may declare a
+    /// `User` of its own. `None` for any other body, which
+    /// [`Self::json_parse_schema`] checks by its field predicate, read in the
+    /// same scope.
+    fn imported_array_alias_schema(
+        &self,
+        module: &str,
+        name: &str,
+    ) -> Option<(String, (String, String))> {
+        let body = self.resolve_imported_alias_leaf(module, name)?;
+        if self.type_shape(&body, Origin::Sibling(module)) != TypeShape::Array {
+            return None;
+        }
+        self.sibling_schema(module, &body, &mut vec![name.to_string()])
+    }
+
+    /// [`Self::imported_array_alias_schema`]'s walk over `ty`, a type written
+    /// in the sibling `module`: one of its records, an `Array` of one, or an
+    /// alias of either. `seen` holds the aliases being expanded, so a
+    /// recursive one ends rather than spinning.
+    fn sibling_schema(
+        &self,
+        module: &str,
+        ty: &TypeExpr,
+        seen: &mut Vec<String>,
+    ) -> Option<(String, (String, String))> {
+        match ty {
+            TypeExpr::Path { segments, .. } => {
+                let [name] = segments.as_slice() else {
+                    return None;
+                };
+                let key = (module.to_string(), name.to_string());
+                if self.ctx.plain_descriptors.contains(&key) {
+                    let ns = self.sibling_namespace(module);
+                    return Some((format!("{ns}.{name}.schema"), key));
+                }
+                if seen.contains(&key.1) {
+                    return None;
+                }
+                let body = self.resolve_imported_alias_leaf(module, name.as_ref())?;
+                seen.push(key.1);
+                self.sibling_schema(module, &body, seen)
+            }
+            TypeExpr::Generic { args, .. }
+                if self.type_shape(ty, Origin::Sibling(module)) == TypeShape::Array =>
+            {
+                let [elem] = args.as_slice() else {
+                    return None;
+                };
+                let (schema, target) = self.sibling_schema(module, elem, seen)?;
+                Some((format!("{schema}.array()"), target))
+            }
+            _ => None,
+        }
+    }
+
     /// The record whose descriptor `schema_expr_for` hands `json.parse_with`,
     /// as `(module path, type name)`, so E0304 can judge it. The same cases
     /// `schema_expr_for` derives a schema for: a name, a namespace-qualified
@@ -6145,9 +6342,20 @@ impl<'a> Emitter<'a> {
             TypeExpr::Path { segments, .. } => match segments.as_slice() {
                 [name] if !self.has_descriptor(name.as_ref()) => self
                     .array_alias_body(name.as_ref())
-                    .and_then(|body| self.schema_target(&body)),
+                    .and_then(|body| self.schema_target(&body))
+                    .or_else(|| {
+                        let module = self.import_module_path(name.as_ref())?;
+                        Some(self.imported_array_alias_schema(&module, name.as_ref())?.1)
+                    }),
                 [name] => self.descriptor_target(name.as_ref()),
-                [ns, name] => Some((self.namespace_module_path(ns.as_ref())?, name.to_string())),
+                [ns, name] => {
+                    let module = self.namespace_module_path(ns.as_ref())?;
+                    if self.has_namespaced_descriptor(ns.as_ref(), name.as_ref()) {
+                        Some((module, name.to_string()))
+                    } else {
+                        Some(self.imported_array_alias_schema(&module, name.as_ref())?.1)
+                    }
+                }
                 _ => None,
             },
             TypeExpr::Generic { base, args, .. } => {
@@ -9118,6 +9326,41 @@ mod tests {
         assert!(ts.contains("json.parse_with(text, __glyph_schema<number>("), "{ts}");
     }
 
+    /// `json.parse<T>` never casts. A container of `unknown` has a complete
+    /// check, its shape, so it validates rather than handing back whatever
+    /// the text held under a type that says "array". A `T` with no runtime
+    /// check at all (a type parameter, an `extern_ts` type) is refused, where
+    /// it used to lower to the casting `parse<T>` and return `Ok` on any
+    /// document: a caller branching on that `Ok` would then index a number as
+    /// an array, with every build green.
+    #[test]
+    fn json_parse_checks_a_container_of_unknown_and_refuses_a_type_with_no_check() {
+        let ts = emit(
+            "module x\nimport std/json\n\
+             pub fn arr(text: string) -> Result<Array<unknown>, Array<Issue>> {\n  return json.parse<Array<unknown>>(text)\n}\n\
+             pub fn rec(text: string) -> Result<Record<string, unknown>, Array<Issue>> {\n  return json.parse<Record<string, unknown>>(text)\n}\n",
+        );
+        assert!(
+            ts.contains("json.parse_with(text, __glyph_schema<Array<unknown>>(\"Array<unknown>\", (__x: unknown): __x is Array<unknown> => Array.isArray(__x)"),
+            "an `Array<unknown>` is checked by being an array: {ts}"
+        );
+        assert!(
+            ts.contains("json.parse_with(text, __glyph_schema<Record<string, unknown>>("),
+            "a `Record<string, unknown>` is checked by being an object: {ts}"
+        );
+        assert!(!ts.contains("json.parse<"), "nothing is left to the casting read: {ts}");
+
+        for src in [
+            "module x\nimport std/json\nfn read<T>(body: string) -> Result<T, Array<Issue>> {\n  return json.parse<T>(body)\n}\n",
+            "module x\nimport std/json { parse }\nfn read<T>(body: string) -> Result<T, Array<Issue>> {\n  return parse<T>(body)\n}\n",
+            "module x\nimport std/json\ntype Handle = extern_ts(\"{ fd: number }\")\npub fn h(body: string) -> Result<Handle, Array<Issue>> {\n  return json.parse<Handle>(body)\n}\n",
+            "module x\nimport std/json { parse }\ntype Handle = extern_ts(\"{ fd: number }\")\npub fn h(body: string) -> Result<Handle, Array<Issue>> {\n  return parse<Handle>(body)\n}\n",
+        ] {
+            let err = emit_err(src);
+            assert_eq!(err.code(), "E0304", "{src}\n{err:?}");
+        }
+    }
+
     #[test]
     fn prelude_values_used_without_import_are_auto_imported() {
         // G7: a module that uses prelude `Ok`/`Result`/`None`/`Option` without an
@@ -11894,12 +12137,10 @@ pub fn n() -> number {\n  return 1\n}
             "lexer",
             "Lexer",
         );
-        assert_g210_refused(
-            emit_beside(("w", G210_W), &g210_main("import w { Bag }", "Bag.parse(v)")),
-            "Bag",
-            "items",
-            "Array<unknown>",
-        );
+        // A container of `unknown` is checked by its shape (0.1.133), so a
+        // record holding one is accepted through the import, as at home.
+        let bag = emit_beside(("w", G210_W), &g210_main("import w { Bag }", "Bag.parse(v)"));
+        assert!(bag.is_ok(), "`items: Array<unknown>` has a check: {bag:?}");
     }
 
     /// The same record through a namespace import is the same record, refused
@@ -11913,12 +12154,8 @@ pub fn n() -> number {\n  return 1\n}
             "lexer",
             "Lexer",
         );
-        assert_g210_refused(
-            emit_beside(("w", G210_W), &g210_main("import w as ww", "ww.Bag.parse(v)")),
-            "Bag",
-            "items",
-            "Array<unknown>",
-        );
+        let bag = emit_beside(("w", G210_W), &g210_main("import w as ww", "ww.Bag.parse(v)"));
+        assert!(bag.is_ok(), "`items: Array<unknown>` has a check: {bag:?}");
     }
 
     /// Glyph has no re-exports (D15); the nearest form is a second name the
@@ -12461,20 +12698,27 @@ pub fn n() -> number {\n  return 1\n}
         }
     }
 
-    /// The 0.1.133 half is not this change: a `T` with no runtime check that
-    /// is not a record holding one (a type parameter, an `extern_ts` type)
-    /// is still accepted in every spelling.
+    /// G297's 0.1.133 half: a `T` with no runtime check that is not a record
+    /// holding one (a type parameter, an `extern_ts` type) is refused in
+    /// every spelling, where it lowered to the casting `parse<T>` and
+    /// returned `Ok` on any document. The error names the type argument.
     #[test]
-    fn json_parse_of_a_generic_or_extern_type_is_still_accepted() {
+    fn json_parse_of_a_generic_or_extern_type_is_refused_in_every_spelling() {
         for (imports, callee) in JSON_SPELLINGS {
-            let ts = emit(&format!(
-                "module x\n{imports}\n\
-                 type Opaque = extern_ts(\"{{ handle: number }}\")\n\
-                 pub fn load<T>(s: string) -> Result<T, Array<Issue>> {{ return {callee}<T>(s) }}\n\
-                 pub fn raw(s: string) -> Result<Opaque, Array<Issue>> {{ return {callee}<Opaque>(s) }}\n"
-            ));
-            assert!(ts.contains(&format!("{callee}<T>(s)")), "{ts}");
-            assert!(ts.contains(&format!("{callee}<Opaque>(s)")), "{ts}");
+            for (decl, ty) in [
+                (format!("pub fn load<T>(s: string) -> Result<T, Array<Issue>> {{ return {callee}<T>(s) }}"), "T"),
+                (format!("pub fn raw(s: string) -> Result<Opaque, Array<Issue>> {{ return {callee}<Opaque>(s) }}"), "Opaque"),
+            ] {
+                let err = emit_err(&format!(
+                    "module x\n{imports}\n\
+                     type Opaque = extern_ts(\"{{ handle: number }}\")\n\
+                     {decl}\n"
+                ));
+                assert!(
+                    matches!(&err, EmitError::UnverifiableJsonParse { type_name, .. } if type_name == ty),
+                    "`{callee}<{ty}>` is E0304: {err:?}"
+                );
+            }
         }
     }
 

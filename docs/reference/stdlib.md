@@ -314,21 +314,21 @@ json.discriminant(value: unknown, field: string) -> Option<string>  // read a st
 `import std/json { parse }` then `parse<T>`. The two compile to the same check.
 
 - A record or union is checked by its `T.schema`, and an `Array` of one (or an
-  alias of that `Array`, `type Rows = Array<Row>`) by `T.schema.array()`, so a
-  failure reports the field's path (`2.port`).
+  alias of that `Array`, `type Rows = Array<Row>`, declared here or imported) by
+  `T.schema.array()`, so a failure reports the field's path (`2.port`).
 - Any other `T` (`number`, `int`, a string-literal union, `Option<User>`,
   `Nullable<User>`, `Record<string, int>`) gets the check a record field of that
-  type gets. `json.parse<int>("2.5")` is an `Err`.
-- Not checked yet, and cast: a type parameter, an `extern_ts` type, a package
-  type, a container of `unknown` (`Array<unknown>`, `Record<string, unknown>`)
-  and an `Array` alias imported from another module.
+  type gets. `json.parse<int>("2.5")` is an `Err`. A container of `unknown` is
+  checked by its shape: `json.parse<Array<unknown>>("{}")` is an `Err`.
 - If `T` is a record with a field that has no runtime check (an `extern_ts`
   type, a host handle), or contains one, the call is E0304, as `T.parse` is.
+- If `T` itself has no runtime check (a type parameter, an `extern_ts` type, a
+  package type), the call is E0304 too. Take a `Schema<T>` and call
+  `json.parse_with(text, schema)` instead.
 
 `json.parse(text)` with no type argument returns `Result<unknown, Array<Issue>>`
 and checks nothing beyond the JSON syntax; `json.parse<unknown>` is the same
-read. A type parameter, an `extern_ts` type or a package type as `T` is not
-checked yet: the value is cast to `T`.
+read. No written `T` other than `unknown` is cast.
 
 ## std/url
 

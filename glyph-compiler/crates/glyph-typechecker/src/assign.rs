@@ -3753,8 +3753,10 @@ impl Assigner<'_> {
     /// project sibling's under either import spelling (`import lib { id }`
     /// and `lib.id` through `import lib`). `None` for anything else: a stdlib
     /// function, whose written arguments `crate::stdlib` binds; a lambda or a
-    /// function-typed value, whose type does not carry the order; and a name
-    /// this compile cannot see.
+    /// function-typed value, which has no declaration to name here, so its
+    /// list is read off the value's `Ty::Fn` instead (`type_params`, where a
+    /// declaration, a lambda and a written function type all carry it); and a
+    /// name this compile cannot see.
     fn callee_generics(&self, callee: &Expr) -> Option<Vec<Ident>> {
         let (span, field) = match callee {
             Expr::Member {
@@ -5856,11 +5858,8 @@ impl Assigner<'_> {
     /// was: a generic parameter, an interop value, a map, a type whose body
     /// this cannot read. Only the prelude `Array` counts, so a user type that
     /// happens to be called `Array` is not mistaken for it.
-    fn builtin_receiver(&self, ty: &Ty) -> Option<BuiltinReceiver> {
-        self.builtin_receiver_elem(ty).map(|(r, _)| r)
-    }
-
-    /// `builtin_receiver`, with the array's element type beside it: what a
+    ///
+    /// The array's element type comes back beside the receiver: what a
     /// generated method row's `Elem` stands for (G312). `Unknown` for a
     /// string or a number, whose rows never name one, and for an `Array`
     /// written with no argument.
@@ -8316,30 +8315,6 @@ fn stdlib_variant_payload(ty: &Ty, variant: &Ident) -> Option<Ty> {
     }
 }
 
-/// Split a type into the base it applies and the arguments it applies to it:
-/// `Tree<string>` is `(Tree, [string])`, and an unapplied `Tree` is
-/// `(Tree, [])`. The one place the exhaustiveness path unwraps the
-/// `Ty::App`-versus-base distinction, so a question about a union answers the
-/// same whether or not the declaration takes parameters. The emitter keeps
-/// its own copies of the same unwrap at `glyph-emit/src/lib.rs:2530, 2568,
-/// 2687, 3812`, and `record_fields_of` and `owned.rs:477` each have one too;
-/// none of those are this function's call to consolidate.
-///
-/// Three separate checks were written against a bare base and silently stopped
-/// applying the moment a type parameter appeared: the module-local variant set,
-/// a variant's payload type, and the imported-union exhaustiveness gate. Each
-/// one turned a compile-time error into a runtime throw for the generic
-/// spelling of a program the non-generic spelling rejected. A caller that asks
-/// this instead of matching `Ty::App` itself cannot regress that way.
-/// If `ty` is an application of the prelude container type called `name`
-/// (`Array`, `Option`, `Nullable`, `Record`, `Result`), return its type
-/// arguments. The single collision-guarded prelude-app detector: prelude and
-/// module symbol tables both number ids from 0, so an id match alone could
-/// collide with an unrelated module symbol, and a name match alone would let
-/// a user's own `type Option<T>` answer for the prelude's (G213). Both are
-/// required: the lexical name on the base path AND the prelude id. Public so
-/// the emitter decides a runtime check from the same guard the checker
-/// decides a type from.
 /// The type of a built-in method read as a callee, from its generated row
 /// (G312): a function of the row's parameters and return type, with `elem`
 /// for the array's `T` and `array` building `Array<X>`. A row the mapping
@@ -8380,6 +8355,15 @@ fn builtin_method_ty(sig: &MethodSig, elem: &Ty, array: impl Fn(Ty) -> Ty) -> Ty
     }
 }
 
+/// If `ty` is an application of the prelude container type called `name`
+/// (`Array`, `Option`, `Nullable`, `Record`, `Result`), return its type
+/// arguments. The single collision-guarded prelude-app detector: prelude and
+/// module symbol tables both number ids from 0, so an id match alone could
+/// collide with an unrelated module symbol, and a name match alone would let
+/// a user's own `type Option<T>` answer for the prelude's (G213). Both are
+/// required: the lexical name on the base path AND the prelude id. Public so
+/// the emitter decides a runtime check from the same guard the checker
+/// decides a type from.
 pub fn prelude_app<'a>(prelude: &Prelude, ty: &'a Ty, name: &str) -> Option<&'a [Ty]> {
     let Ty::App { base, args } = ty else { return None };
     let Ty::Named { symbol, path } = base.as_ref() else { return None };
@@ -8404,6 +8388,21 @@ pub fn prelude_container<'a>(prelude: &Prelude, ty: &'a Ty) -> Option<(&'static 
     None
 }
 
+/// Split a type into the base it applies and the arguments it applies to it:
+/// `Tree<string>` is `(Tree, [string])`, and an unapplied `Tree` is
+/// `(Tree, [])`. The one place the exhaustiveness path unwraps the
+/// `Ty::App`-versus-base distinction, so a question about a union answers the
+/// same whether or not the declaration takes parameters. The emitter keeps
+/// its own copies of the same unwrap at `glyph-emit/src/lib.rs:2530, 2568,
+/// 2687, 3812`, and `record_fields_of` and `owned.rs:477` each have one too;
+/// none of those are this function's call to consolidate.
+///
+/// Three separate checks were written against a bare base and silently stopped
+/// applying the moment a type parameter appeared: the module-local variant set,
+/// a variant's payload type, and the imported-union exhaustiveness gate. Each
+/// one turned a compile-time error into a runtime throw for the generic
+/// spelling of a program the non-generic spelling rejected. A caller that asks
+/// this instead of matching `Ty::App` itself cannot regress that way.
 pub fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
     match ty {
         Ty::App { base, args } => (base.as_ref(), args.as_slice()),

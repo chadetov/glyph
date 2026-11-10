@@ -53,7 +53,7 @@ read.
 ## Build
 
 You need the wasm target and a `wasm-bindgen-cli` whose version is exactly the
-`wasm-bindgen` crate pinned in `crates/glyph-wasm/Cargo.toml`, currently 0.2.127.
+`wasm-bindgen` crate pinned in `crates/glyph-wasm/Cargo.toml`, currently 0.2.129.
 The manifest is the one place that version is written; `build.sh` reads it from
 there, prints it with `--pin`, and refuses to run against any other cli version.
 

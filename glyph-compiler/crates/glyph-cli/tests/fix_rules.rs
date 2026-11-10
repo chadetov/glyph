@@ -434,6 +434,118 @@ fn e0220_renames_a_literal_head_over_a_namespace_imported_union() {
     assert_eq!(code, 0, "{output}\n{after}");
 }
 
+/// The E0200 that approves a rename has to be the one for the arm's own match.
+/// Here the outer match is missing `off` and the inner one is missing nothing,
+/// because its `else` handles `off`. The rule used to take the smallest E0200
+/// whose range held the arm, which is the outer one, and rename the inner
+/// `"of"` to `"off"`: the program then compiled with `off` moved out of the
+/// inner `else`, a change of behaviour nothing decided.
+#[test]
+fn e0220_does_not_take_an_outer_match_e0200_for_a_nested_literal_arm() {
+    let before = "module main\n\
+                  \n\
+                  type Mode = \"on\" | \"off\"\n\
+                  \n\
+                  pub fn label(a: Mode, b: Mode) -> int {\n\
+                  \x20 return match a {\n\
+                  \x20   \"on\" => match b {\n\
+                  \x20     \"on\" => 1,\n\
+                  \x20     \"of\" => 2,\n\
+                  \x20     else => 3,\n\
+                  \x20   },\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0220nestlit", before);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(!out.contains("applied E0220"), "{out}");
+    assert!(
+        out.contains("`else` arm"),
+        "the decline is about the inner match, whose `else` handles `off`:\n{out}"
+    );
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+}
+
+/// The same nesting over a tagged union: the outer match's missing `Off` does
+/// not license renaming `Of` in the inner match, which covers `Off` already.
+#[test]
+fn e0220_does_not_take_an_outer_match_e0200_for_a_nested_variant_arm() {
+    let before = "module main\n\
+                  \n\
+                  type Light = | On | Off\n\
+                  \n\
+                  pub fn label(a: Light, b: Light) -> int {\n\
+                  \x20 return match a {\n\
+                  \x20   On => match b {\n\
+                  \x20     On => 1,\n\
+                  \x20     Of => 2,\n\
+                  \x20     else => 3,\n\
+                  \x20   },\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0220nestvar", before);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(!out.contains("applied E0220"), "{out}");
+    assert!(out.contains("`else` arm"), "{out}");
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+}
+
+/// Two misspelled arms that each have `off` as their one suggestion cannot both
+/// become `"off"`: the second would be unreachable (E0305). Which of the two
+/// meant `off` is not something the compiler determines, so neither is
+/// renamed, and the decline names both.
+#[test]
+fn e0220_declines_two_literal_arms_with_the_same_suggestion() {
+    let before = "module main\n\
+                  \n\
+                  type Mode = \"on\" | \"off\" | \"auto\"\n\
+                  \n\
+                  pub fn label(m: Mode) -> string {\n\
+                  \x20 return match m {\n\
+                  \x20   \"on\" => \"N\",\n\
+                  \x20   \"of\" => \"O\",\n\
+                  \x20   \"offf\" => \"F\",\n\
+                  \x20   \"auto\" => \"A\",\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0220litdupsugg", before);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(!out.contains("applied E0220"), "{out}");
+    assert!(
+        out.contains("`\"of\"`") && out.contains("`\"offf\"`") && out.contains("same value"),
+        "the decline names both arms that would take `off`:\n{out}"
+    );
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+}
+
+/// The tagged-union twin: `Readi` and `Readyy` both suggest `Ready`.
+#[test]
+fn e0220_declines_two_variant_arms_with_the_same_suggestion() {
+    let before = "module main\n\
+                  \n\
+                  type Status = | Idle | Ready | Done\n\
+                  \n\
+                  pub fn label(s: Status) -> string {\n\
+                  \x20 return match s {\n\
+                  \x20   Idle => \"I\",\n\
+                  \x20   Readi => \"R\",\n\
+                  \x20   Readyy => \"Y\",\n\
+                  \x20   Done => \"D\",\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0220vardupsugg", before);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(!out.contains("applied E0220"), "{out}");
+    assert!(
+        out.contains("`Readi`") && out.contains("`Readyy`") && out.contains("same value"),
+        "the decline names both arms that would take `Ready`:\n{out}"
+    );
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+}
+
 // ---------------------------------------------------------------------------
 // E0210
 // ---------------------------------------------------------------------------

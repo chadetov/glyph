@@ -1650,9 +1650,15 @@ impl Printer {
         // Children with any element are laid out one-per-line; text and
         // expression children alone stay inline. Either way a text child is
         // printed as the text it renders (`glyph_ast::jsx_text_value`), so a
-        // space JSX keeps, such as the one in `{n} left`, survives. On its own
-        // line a space at either end of the text would be dropped as layout,
-        // so it is written as `{" "}`, the spelling JSX formatters use.
+        // space JSX keeps, such as the one in `{n} left`, survives.
+        //
+        // On its own line a space at either end of the text would be dropped
+        // as layout, so such a text is written whole as one string child:
+        // `{" and "}`, `{"(    "}`, `{"   "}`. A text child and a string child
+        // emit the same quoted string, so the emitted TypeScript is unchanged
+        // byte for byte, child count included. Splitting the edge space off as
+        // its own `{" "}` child changed the child count, and it wrote a run of
+        // spaces as one, which changed the rendered text (record 84).
         let has_element = j.children.iter().any(|c| matches!(c, JsxChild::Element(_)));
         if has_element {
             self.indent += 1;
@@ -1663,18 +1669,13 @@ impl Printer {
                         if text.is_empty() {
                             continue;
                         }
-                        if text.starts_with(' ') {
-                            self.newline();
-                            self.push("{\" \"}");
-                        }
-                        let inner = text.trim_matches(' ');
-                        if !inner.is_empty() {
-                            self.newline();
-                            self.push(inner);
-                        }
-                        if text.ends_with(' ') && !inner.is_empty() {
-                            self.newline();
-                            self.push("{\" \"}");
+                        self.newline();
+                        if text.starts_with(' ') || text.ends_with(' ') {
+                            self.push("{\"");
+                            self.push(&escape_string(&text));
+                            self.push("\"}");
+                        } else {
+                            self.push(&text);
                         }
                     }
                     _ => {

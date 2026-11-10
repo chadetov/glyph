@@ -834,6 +834,60 @@ pub fn jsx_text_value(content: &str) -> String {
     out
 }
 
+/// Every JSX text child in `module` that renders something, in source order,
+/// with its span and the text it renders (`jsx_text_value`). Text that renders
+/// nothing, such as the indentation between two elements, is left out, as the
+/// emitter leaves it out.
+///
+/// The formatter's literal-and-comment property reads it: JSX text is not a
+/// token, and a text child and a string child emit the same quoted string, so
+/// both are compared as the text they render (G316).
+pub fn jsx_texts(module: &Module) -> Vec<(Span, String)> {
+    fn block(b: &Block, out: &mut Vec<(Span, String)>) {
+        for s in &b.stmts {
+            visit::stmt_exprs(s, &mut |e| expr(e, out));
+            visit::stmt_blocks(s, &mut |b| block(b, out));
+        }
+    }
+    fn expr(e: &Expr, out: &mut Vec<(Span, String)>) {
+        if let Expr::Jsx(el) = e {
+            jsx(el, out);
+        }
+        visit::child_exprs(e, &mut |c| expr(c, out));
+        visit::child_blocks(e, &mut |b| block(b, out));
+    }
+    fn jsx(el: &JsxElement, out: &mut Vec<(Span, String)>) {
+        for a in &el.attrs {
+            if let JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } = a {
+                expr(value, out);
+            }
+        }
+        for c in &el.children {
+            match c {
+                JsxChild::Element(child) => jsx(child, out),
+                JsxChild::Expr(e) => expr(e, out),
+                JsxChild::Text { content, span } => {
+                    let value = jsx_text_value(content);
+                    if !value.is_empty() {
+                        out.push((*span, value));
+                    }
+                }
+            }
+        }
+    }
+
+    let mut out = Vec::new();
+    for d in &module.items {
+        match d {
+            Decl::Fn(f) => block(&f.body, &mut out),
+            Decl::Component(c) => block(&c.body, &mut out),
+            Decl::Const(c) => expr(&c.value, &mut out),
+            Decl::Type(_) | Decl::Interface(_) | Decl::Import(_) => {}
+        }
+    }
+    out
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JsxChild {
     Element(JsxElement),

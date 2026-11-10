@@ -534,11 +534,18 @@ pub enum TypeError {
     /// Its own code rather than E0213's: E0213 counts the values a call
     /// passes, and one code meaning two counts is one an agent dispatching on
     /// codes cannot tell apart.
+    ///
+    /// `value_of` is set when the callee is a value read off a stdlib
+    /// function whose type parameter only a type argument written on a direct
+    /// call fills (`let p = json.parse` then `p<User>(s)`, record 88): the
+    /// function as the program spelled it, and the written type arguments.
+    /// It changes the help, never the message.
     #[error("wrong number of type arguments: `{name}` takes {expected}, found {found}")]
     TypeArgumentCountMismatch {
         name: String,
         expected: usize,
         found: usize,
+        value_of: Option<(String, String)>,
         span: Span,
     },
 
@@ -1136,6 +1143,15 @@ impl TypeError {
                 "Call the method where it is read, `{method}(...)`, or wrap the call in a lambda if it is handed on as a value. `{}` holds Glyph's own functions over {}, which can be passed as values.",
                 builtin.std_module(),
                 builtin.runtime_name(),
+            )));
+        }
+        if let TypeError::TypeArgumentCountMismatch {
+            value_of: Some((function, written)),
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(format!(
+                "Call `{function}<{written}>(...)` directly; a `{function}` value returns `unknown`, because only a type argument written on the call itself makes the call validate its input."
             )));
         }
         if let TypeError::UnseenMatchType {

@@ -1987,7 +1987,11 @@ fn unary_sym(op: UnaryOp) -> &'static str {
 /// discarded) and for `format_expr` (which has no source to copy from); plain
 /// `Expr::String` literals are emitted verbatim from source instead, which
 /// preserves D12 multi-line strings exactly.
-fn escape_string(s: &str) -> String {
+///
+/// Public because `glyph fix` writes a string-literal arm head from a decoded
+/// value (the checker's E0220 suggestion), and the two must agree on how a
+/// value is spelled as a Glyph string.
+pub fn escape_string(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {

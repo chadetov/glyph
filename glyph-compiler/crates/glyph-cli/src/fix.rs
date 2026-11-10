@@ -348,18 +348,18 @@ fn fix_one_file(
 ) -> Result<(), String> {
     let source =
         std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    if glyph_parser::parse(&source).is_err() {
+    let Ok(module) = glyph_parser::parse(&source) else {
         // A file that does not parse has parse diagnostics of its own, and
         // every rule here reads offsets into a parsed file.
         return Ok(());
-    }
+    };
 
     let mut edits: Vec<(u32, u32, String)> = Vec::new();
     let mut applied: Vec<Applied> = Vec::new();
 
     for d in diags {
         match d.code.as_str() {
-            "E0220" => match plan_e0220(&source, d, diags) {
+            "E0220" => match plan_e0220(&source, &module, d, diags) {
                 Ok(edit) => {
                     applied.push(Applied {
                         code: d.code.clone(),
@@ -463,8 +463,16 @@ fn e0200_decline(d: &Diagnostic) -> String {
 /// repair. So whether the suggested variant is free is still settled by the
 /// match's own `E0200`: a variant the match is missing is free, and a match
 /// with no `E0200` at all has every variant spoken for.
+///
+/// A string-literal union (D30) takes the same repair with a different head:
+/// the arm is a literal (`"of"`), the suggestion is the value unquoted (`off`),
+/// and what is written is that value as a string literal again. Which of the
+/// two the head is comes off `alternatives_kind`, which the checker set when
+/// it built the suggestion; reading it off the source text instead would treat
+/// any quoted head as a literal without the checker having said so.
 fn plan_e0220(
     source: &str,
+    module: &glyph_ast::Module,
     d: &Diagnostic,
     siblings: &[Diagnostic],
 ) -> Result<(u32, u32, String), String> {
@@ -488,11 +496,26 @@ fn plan_e0220(
                 && o.range.end.offset >= d.range.end.offset
         })
         .min_by_key(|o| o.range.end.offset - o.range.start.offset);
+    let pattern = (d.range.start.offset, d.range.end.offset);
+    let arms = arms_of_enclosing_match(module, pattern);
     match enclosing {
+        // No E0200 means no case is missing, and there are two reasons that
+        // can be true, which need different sentences. Without a catch-all the
+        // other arms name every case and the rename duplicates one (E0305).
+        // With one, the rename would compile: it moves the suggested case out
+        // of the catch-all into an arm written for some other value, which is
+        // a change of behaviour the compiler did not decide. Telling that
+        // reader about an unreachable arm sends them looking for a duplicate
+        // that is not there.
         None => {
+            if let Some(catch_all) = arms.and_then(catch_all_arm) {
+                return Err(format!(
+                    "this match is missing no case because its {catch_all} handles `{suggestion}` now, so renaming this head to `{suggestion}` would move that case out of it, and which arm should handle it is not something the compiler determines"
+                ));
+            }
             return Err(format!(
                 "the other arms of this match already cover every case, so renaming this head to `{suggestion}` would write an arm that can never run (E0305)"
-            ))
+            ));
         }
         Some(m) => {
             let missing = m.missing_variants.as_deref().unwrap_or(&[]);
@@ -504,9 +527,123 @@ fn plan_e0220(
             }
         }
     }
+    if d.alternatives_kind.as_deref() == Some("literals") {
+        // The whole literal is replaced, quotes included, and the value is
+        // escaped the way the formatter writes one: a suggestion holding `"`,
+        // `\` or `${` written between bare quotes would be a different string
+        // or not a string at all.
+        let (start, end) = arms
+            .and_then(|arms| literal_head_span(arms, pattern))
+            .ok_or("the arm head is not a string literal in the source this diagnostic points at")?;
+        return Ok((
+            start,
+            end,
+            format!("\"{}\"", glyph_formatter::escape_string(suggestion)),
+        ));
+    }
     let (start, end) = head_ident_span(source, d)
         .ok_or("the arm head is not a plain name in the source this diagnostic points at")?;
     Ok((start, end, alts[0].clone()))
+}
+
+/// The arms of the innermost `match` in `module` whose span holds `pattern`,
+/// the byte range of one of its arm patterns.
+///
+/// Spans nest, so every `match` that holds the range is an ancestor of the
+/// next one found; the walk keeps descending and the last one recorded is the
+/// match the pattern belongs to. A JSX `<match>` is not an `Expr::Match` in
+/// the tree, and finds nothing here.
+fn arms_of_enclosing_match(
+    module: &glyph_ast::Module,
+    pattern: (u32, u32),
+) -> Option<&[glyph_ast::MatchArm]> {
+    use glyph_ast::{visit, Block, Expr, JsxAttr, JsxChild, JsxElement, MatchArm};
+
+    type Found<'a> = Option<&'a [MatchArm]>;
+    fn block<'a>(b: &'a Block, at: (u32, u32), found: &mut Found<'a>) {
+        for s in &b.stmts {
+            visit::stmt_exprs(s, &mut |e| expr(e, at, found));
+            visit::stmt_blocks(s, &mut |b| block(b, at, found));
+        }
+    }
+    fn expr<'a>(e: &'a Expr, at: (u32, u32), found: &mut Found<'a>) {
+        let span = e.span();
+        if span.start > at.0 || span.end < at.1 {
+            return;
+        }
+        if let Expr::Match { arms, .. } = e {
+            *found = Some(arms);
+        }
+        visit::child_exprs(e, &mut |c| expr(c, at, found));
+        visit::child_blocks(e, &mut |b| block(b, at, found));
+        // `child_exprs` does not descend into a JSX element, so a `match`
+        // inside one is reached here or not at all.
+        if let Expr::Jsx(el) = e {
+            jsx(el, at, found);
+        }
+    }
+    fn jsx<'a>(el: &'a JsxElement, at: (u32, u32), found: &mut Found<'a>) {
+        for a in &el.attrs {
+            if let JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } = a {
+                expr(value, at, found);
+            }
+        }
+        for c in &el.children {
+            match c {
+                JsxChild::Element(child) => jsx(child, at, found),
+                JsxChild::Expr(e) => expr(e, at, found),
+                JsxChild::Text { .. } => {}
+            }
+        }
+    }
+
+    let mut found: Found = None;
+    for item in &module.items {
+        match item {
+            Decl::Fn(f) => block(&f.body, pattern, &mut found),
+            Decl::Component(c) => block(&c.body, pattern, &mut found),
+            Decl::Const(c) => expr(&c.value, pattern, &mut found),
+            Decl::Type(t) => {
+                if let Some(pred) = &t.refinement {
+                    expr(pred, pattern, &mut found);
+                }
+            }
+            Decl::Interface(_) | Decl::Import(_) => {}
+        }
+    }
+    found
+}
+
+/// The arm of a match that takes every value the others leave, described the
+/// way the decline names it, when the match has one.
+///
+/// The same three shapes the checker counts as a catch-all: `else`, `_`, and a
+/// lowercase name, which binds rather than naming a variant.
+fn catch_all_arm(arms: &[glyph_ast::MatchArm]) -> Option<String> {
+    use glyph_ast::Pattern;
+    arms.iter().find_map(|arm| match &arm.pattern {
+        Pattern::Else { .. } => Some("`else` arm".to_string()),
+        Pattern::Wildcard { .. } => Some("`_` arm".to_string()),
+        Pattern::Ident { name, .. }
+            if !name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) =>
+        {
+            Some(format!("catch-all arm `{name}`"))
+        }
+        _ => None,
+    })
+}
+
+/// The byte span of the string-literal arm pattern at exactly `pattern`, when
+/// the arm there is one.
+fn literal_head_span(arms: &[glyph_ast::MatchArm], pattern: (u32, u32)) -> Option<(u32, u32)> {
+    use glyph_ast::{LiteralPattern, Pattern};
+    arms.iter().find_map(|arm| match &arm.pattern {
+        Pattern::Literal {
+            value: LiteralPattern::String(_),
+            span,
+        } if (span.start, span.end) == pattern => Some((span.start, span.end)),
+        _ => None,
+    })
 }
 
 /// The byte span of the head identifier inside a match-arm pattern span: what

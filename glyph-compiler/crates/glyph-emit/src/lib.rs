@@ -3864,6 +3864,17 @@ impl<'a> Emitter<'a> {
         arms: &[MatchArm],
         term: ArmTerm,
     ) -> Result<(), EmitError> {
+        // The checker refuses a `match` with no arms (E0218), but the
+        // playground emits past a type error, and every lowering below reads
+        // the first arm. Decline it here rather than index an empty slice
+        // (G322).
+        if arms.is_empty() {
+            return Err(EmitError::Unsupported {
+                construct: "a match with no arms",
+                span: scrutinee.span(),
+            });
+        }
+
         // An `is TypeName` arm makes this a type-guard match, lowered to an
         // `if`/`else if` chain rather than a `switch`.
         if arms.iter().any(|a| matches!(a.pattern, Pattern::IsType { .. })) {

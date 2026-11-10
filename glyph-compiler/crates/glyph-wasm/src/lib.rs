@@ -353,6 +353,25 @@ mod tests {
         assert_eq!(diags[0]["start_line"], 1);
     }
 
+    /// The playground emits best-effort past a type error, so the emitter sees
+    /// programs the checker refused. A `match` with no arms is E0218 to the
+    /// checker, and the emitter indexed its first arm and panicked, which in
+    /// the browser is a dead module (G322).
+    #[test]
+    fn a_match_with_no_arms_is_reported_not_a_panic() {
+        let json = compile("fn f(x: number) -> number {\n  match x {\n  }\n  return 1\n}\n");
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let codes: Vec<&str> = v["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|d| d["code"].as_str())
+            .collect();
+        assert!(codes.contains(&"E0218"), "the checker's refusal: {codes:?}");
+        assert!(codes.contains(&"E0300"), "the emitter declines it: {codes:?}");
+        assert!(v["ts"].is_null(), "no TypeScript for it");
+    }
+
     #[test]
     fn parse_error_stops_with_no_ts() {
         let json = compile("fn (");

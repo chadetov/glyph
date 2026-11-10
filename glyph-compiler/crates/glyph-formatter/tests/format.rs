@@ -1654,3 +1654,22 @@ fn a_comment_inside_a_binary_expression_stays_above_its_operand() {
         assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
     }
 }
+
+/// A comment inside an operand belongs to that operand: an argument list or a
+/// lambda body places it, and the operator expression around it stays on one
+/// line. Breaking the chain for it reformatted files 0.1.132 left alone, so
+/// `glyph fmt --check` went red on upgrade (record 86).
+#[test]
+fn a_comment_nested_in_an_operand_does_not_break_the_operator_expression() {
+    // Each is `glyph fmt` output from the published 0.1.132, which
+    // `glyph fmt --check` 0.1.132 accepts.
+    let fixed_points = [
+        "module m\n\nfn g(x: number) -> number {\n  return x\n}\n\npub fn f() -> number {\n  return 1 + g(\n    // c\n    2,\n  )\n}\n",
+        "module m\n\nimport std/array\n\npub fn f(xs: Array<number>) -> bool {\n  return xs.length == 0\n    || xs.length == array.count(\n      xs,\n      fn(x) {\n        // keep the positives\n        return x > 0\n      },\n    )\n}\n",
+        "module m\n\nfn g(x: number) -> number {\n  return x\n}\n\npub fn f(a: bool) -> bool {\n  return a\n    && g(\n      // c\n      2,\n    ) == 2\n}\n",
+        "module m\n\npub fn f(a: number) -> number {\n  return a * [\n    // one\n    1,\n    2,\n  ].length\n}\n",
+    ];
+    for src in fixed_points {
+        assert_eq!(fmt(src), src, "an 0.1.132 fixed point is still one");
+    }
+}

@@ -1208,13 +1208,22 @@ impl Printer {
     /// Only the top-level run of one operator flattens. `a && b || c && d`
     /// breaks at `||` and leaves each `&&` group whole, which keeps the printed
     /// shape a picture of the precedence rather than of the line width.
+    ///
+    /// A comment written inside the expression breaks it the same way, for
+    /// any operator and at any width, and sits above the line of the operand
+    /// that followed it in source (D14). Laid out on one line, the expression
+    /// had nowhere to hold the comment, which stayed pending and came out
+    /// below the statement, past the operands it was written between (G323).
     fn binary_chain(&mut self, e: &Expr, op: BinOp) -> bool {
-        if !matches!(op, BinOp::LogicalAnd | BinOp::LogicalOr | BinOp::NullishCoalesce) {
-            return false;
-        }
         // `flat` is a `${...}` interpolation, where a line break comes back as a
         // literal `\n`. `in_block` is the D1 bracket-depth guard.
         if self.flat || !self.in_block {
+            return false;
+        }
+        let holds_comment = self.has_comment_before(e.span().end);
+        if !holds_comment
+            && !matches!(op, BinOp::LogicalAnd | BinOp::LogicalOr | BinOp::NullishCoalesce)
+        {
             return false;
         }
         let mut operands: Vec<&Expr> = Vec::new();
@@ -1240,13 +1249,16 @@ impl Printer {
             }
         });
         self.cidx = saved_cidx;
-        if !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH {
+        if !holds_comment && !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH {
             return false;
         }
         self.bin_operand(operands[0], prec, false);
         self.indent += 1;
         for operand in &operands[1..] {
             self.newline();
+            // A comment between two operands goes above the line that starts
+            // with the operator, which is where the next operand begins.
+            self.flush_comments_before(operand.span().start);
             self.push(bin_sym(op));
             self.push(" ");
             self.bin_operand(operand, prec, true);

@@ -1617,3 +1617,40 @@ fn a_keyword_type_path_segment_round_trips() {
     assert_eq!(out, src, "a keyword segment is written back as written");
     assert_eq!(fmt(&out), out, "format is stable");
 }
+
+/// A comment written between the operands of a multi-line expression stays
+/// above the operand that followed it, for any operator (D14). The formatter
+/// used to print the expression on one line and put the comment below the
+/// statement, past the operands, and the result was a fixed point (G323,
+/// found by the nightly fuzzer).
+#[test]
+fn a_comment_inside_a_binary_expression_stays_above_its_operand() {
+    let cases = [
+        (
+            "module m\n\npub fn f(a: number) -> number {\n  return a\n    // half it\n    / 2\n}\n",
+            "module m\n\npub fn f(a: number) -> number {\n  return a\n    // half it\n    / 2\n}\n",
+        ),
+        (
+            "module m\n\npub fn f(a: number) -> number {\n  return a /\n    // half it\n    2\n}\n",
+            "module m\n\npub fn f(a: number) -> number {\n  return a\n    // half it\n    / 2\n}\n",
+        ),
+        (
+            "module m\n\npub fn f(a: number) -> number {\n  return a +\n    // add one\n    1 +\n    // and two\n    2\n}\n",
+            "module m\n\npub fn f(a: number) -> number {\n  return a\n    // add one\n    + 1\n    // and two\n    + 2\n}\n",
+        ),
+        // Mixed precedence: the comment is inside `3 * b`, the right operand
+        // of `+`, so both break, and the `*` line is indented under its own
+        // operand. A flat `a + 3` above `* b` would read as `(a + 3) * b`.
+        (
+            "module m\n\npub fn f(a: number, b: number) -> number {\n  let x = a + 3 *\n    // scaled\n    b\n  return x\n}\n",
+            "module m\n\npub fn f(a: number, b: number) -> number {\n  let x = a\n    + 3\n      // scaled\n      * b\n  return x\n}\n",
+        ),
+    ];
+    for (src, want) in cases {
+        let out = fmt(src);
+        assert_eq!(out, want, "layout of:\n{src}");
+        assert_stream_preserved("binary comment", src, &out);
+        assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
+        assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+    }
+}

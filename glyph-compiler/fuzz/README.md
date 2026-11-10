@@ -1,6 +1,6 @@
 # Fuzzing
 
-Three targets, run with [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz).
+Four targets, run with [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz).
 The crate is outside the workspace on purpose: it needs nightly and libfuzzer,
 and a workspace member that does not build on the pinned stable toolchain would
 break `cargo test --workspace` for everyone.
@@ -9,6 +9,7 @@ break `cargo test --workspace` for everyone.
 cargo +nightly fuzz run parse            fuzz/corpus/parse            fuzz/seeds -- -max_total_time=60
 cargo +nightly fuzz run lex              fuzz/corpus/lex              fuzz/seeds -- -max_total_time=60
 cargo +nightly fuzz run format_idempotent fuzz/corpus/format_idempotent fuzz/seeds -- -max_total_time=60
+cargo +nightly fuzz run format_preserves_emit fuzz/corpus/format_preserves_emit fuzz/seeds -- -max_total_time=60
 ```
 
 The first directory is the working corpus the fuzzer writes to; the second is
@@ -28,6 +29,17 @@ oscillate between two spellings, so every save is a diff and `glyph fmt --check`
 passes on one of them and fails on the other. G23 was exactly this shape: the
 formatter moved comments out of the construct they documented, and the mangled
 output was itself a fixed point, so nothing downstream noticed.
+
+It also holds the ordered literals and comments to what the source wrote. JSX
+text counts there as the text it renders, the same item as a string child that
+renders it, so a formatter that changes what a page says fails it.
+
+**`format_preserves_emit`** asserts that formatting leaves the emitted
+TypeScript unchanged, byte for byte. G316 needed it: `glyph fmt` wrote JSX text
+ending in four spaces as the text and a one-space `{" "}`, a fixed point that
+changed the program. It runs the resolver and the checker on fuzzed input, so it
+is a target of its own; a panic in either fails here rather than hiding every
+formatter check in `format_idempotent`.
 
 ## What is committed, and what is not
 
@@ -52,3 +64,10 @@ At 0.1.95, seeded from real programs: `parse` 251k executions, `lex` 223k,
 `format_idempotent` 309k. No crashes and no idempotency violations.
 That is a floor, not a proof: these targets take raw bytes, so most inputs are
 rejected early, and a structure-aware generator would reach deeper.
+
+At 0.1.133, with JSX text in the stream and the emit target added, local runs
+stopped at their first failure: `format_idempotent` after about 263k
+executions on G318 (`//` in JSX text read as a comment) and
+`format_preserves_emit` after about 314k on G319 (`}` in JSX text). Both are
+filed and are fixed by the JSX-text scanner planned for 0.1.135; the nightly
+fails on them until then, and fork mode keeps it fuzzing past them.

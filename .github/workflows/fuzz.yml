@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [parse, lex, format_idempotent]
+        target: [parse, lex, format_idempotent, format_preserves_emit]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -44,14 +44,27 @@ jobs:
           # corpus/ is gitignored, so it does not exist on a fresh checkout and
           # libfuzzer refuses a corpus directory that is not there.
           mkdir -p fuzz/corpus/${{ matrix.target }}
+          # Fork mode with -ignore_crashes keeps fuzzing past a crash, so one
+          # known failure cannot hide a new one for the rest of the run (the
+          # nightly once sat red on a single crash for fifteen days). It also
+          # exits 0 when it found crashes, so the files it saved are the
+          # verdict, not the exit code.
           cargo +nightly fuzz run ${{ matrix.target }} \
             fuzz/corpus/${{ matrix.target }} fuzz/seeds -- \
+            -fork=2 -ignore_crashes=1 \
             -max_total_time=$(( MINUTES * 60 )) \
             -max_len=8192
+          found=$(find fuzz/artifacts/${{ matrix.target }} -type f \
+            \( -name 'crash-*' -o -name 'leak-*' -o -name 'timeout-*' -o -name 'oom-*' \) 2>/dev/null | wc -l)
+          if [ "$found" -gt 0 ]; then
+            echo "::error::${{ matrix.target }} saved $found failing input(s)"
+            ls fuzz/artifacts/${{ matrix.target }}
+            exit 1
+          fi
 
       # A crash is only useful if the input survives the job that found it.
       - name: Upload crash inputs
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fuzz-${{ matrix.target }}-artifacts

@@ -1138,6 +1138,86 @@ fn apply_edit_refuses_removing_the_last_import_of_a_module() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// Review 88, 4b. A diagnostic is the same diagnostic when its file, code,
+/// severity, range and subject match, and the subject is the message with
+/// its suggestion left out. `main` already imports a name `orders` does not
+/// export, and E0105's message lists `orders`'s exports. Adding an export to
+/// `orders` rewrites that list but not the defect, so the edit is accepted,
+/// with the E0105 under `main`'s `preexisting` in its new wording.
+#[test]
+fn apply_edit_accepts_an_export_that_rewrites_another_files_e0105() {
+    let orders = "module orders\n\npub fn create() -> number {\n  return 1\n}\n";
+    let main = "module main\nimport orders { create, zzz }\n\npub fn run() -> number {\n  return create()\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_subject_e0105",
+        &[("orders.glyph", orders), ("main.glyph", main)],
+        "orders.glyph",
+    );
+    let main_path = dir.join("main.glyph");
+    let added = "  return 1\n}\n\npub fn total() -> number {\n  return 2\n}\n";
+    let answer = lsp.apply(&path, json!([replace_first(orders, "  return 1\n}\n", added)]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(elsewhere_codes(&answer, &main_path, "diagnostics"), Vec::<String>::new(), "{answer}");
+    assert_eq!(elsewhere_codes(&answer, &main_path, "preexisting"), ["E0105"], "{answer}");
+    let message = &elsewhere_for(&answer, &main_path).expect("main")["preexisting"][0]["message"];
+    assert!(
+        message.as_str().is_some_and(|m| m.contains("create, total")),
+        "the preexisting E0105 is the list after the edit: {answer}"
+    );
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Review 88, 4b. `main`'s E0210 suggests the nearest field of `User`.
+/// Adding a nearer field to `User` changes the suggestion from `name` to
+/// `nme`, and the field `main` misspelled is still missing in the same
+/// place, so the edit is accepted.
+#[test]
+fn apply_edit_accepts_a_field_that_rewrites_another_files_e0210_suggestion() {
+    let a = "module a\n\npub type User = { name: string, age: number, }\n";
+    let main = "module main\nimport a { User }\n\npub fn show(u: User) -> string {\n  return u.nmae\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_subject_e0210",
+        &[("a.glyph", a), ("main.glyph", main)],
+        "a.glyph",
+    );
+    let main_path = dir.join("main.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(a, "age: number,", "age: number, nme: string,")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(elsewhere_codes(&answer, &main_path, "diagnostics"), Vec::<String>::new(), "{answer}");
+    assert_eq!(elsewhere_codes(&answer, &main_path, "preexisting"), ["E0210"], "{answer}");
+    let message = &elsewhere_for(&answer, &main_path).expect("main")["preexisting"][0]["message"];
+    assert!(
+        message.as_str().is_some_and(|m| m.contains("did you mean `nme`?")),
+        "the preexisting E0210 carries the suggestion after the edit: {answer}"
+    );
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Review 88, 4b, with record 81. The list E0200 reports is the defect
+/// itself, not a suggestion, so it stays in the subject: a variant added in
+/// `a` makes `main`'s match miss two variants instead of one, and the edit
+/// is refused with that E0200 under `main`.
+#[test]
+fn apply_edit_refuses_a_variant_that_grows_another_files_e0200() {
+    let a = "module a\n\npub type Color =\n  | Red\n  | Green\n";
+    let main = "module main\nimport a { Color, Red }\n\n\
+        pub fn name(c: Color) -> string {\n  return match c {\n    Red => \"red\",\n  }\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_subject_e0200",
+        &[("a.glyph", a), ("main.glyph", main)],
+        "a.glyph",
+    );
+    let main_path = dir.join("main.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(a, "  | Green\n", "  | Green\n  | Blue\n")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(elsewhere_codes(&answer, &main_path, "diagnostics"), ["E0200"], "{answer}");
+    assert_eq!(elsewhere_codes(&answer, &main_path, "preexisting"), Vec::<String>::new(), "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// A rename across a module boundary cannot pass a project-scoped gate one
 /// file at a time: renaming the declaration first breaks the caller, and
 /// renaming the call first names something that does not exist. The

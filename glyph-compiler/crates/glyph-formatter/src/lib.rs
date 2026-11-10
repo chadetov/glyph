@@ -868,6 +868,15 @@ impl Printer {
         self.cidx < self.comments.len() && self.comments[self.cidx].span.start < offset
     }
 
+    /// Whether a pending comment starts in `from..to`, a gap between two of a
+    /// construct's own children.
+    fn has_comment_between(&self, from: u32, to: u32) -> bool {
+        self.comments[self.cidx.min(self.comments.len())..]
+            .iter()
+            .take_while(|c| c.span.start < to)
+            .any(|c| c.span.start >= from)
+    }
+
     fn stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Let(l) => {
@@ -1209,26 +1218,31 @@ impl Printer {
     /// breaks at `||` and leaves each `&&` group whole, which keeps the printed
     /// shape a picture of the precedence rather than of the line width.
     ///
-    /// A comment written inside the expression breaks it the same way, for
+    /// A comment written between two operands breaks it the same way, for
     /// any operator and at any width, and sits above the line of the operand
     /// that followed it in source (D14). Laid out on one line, the expression
     /// had nowhere to hold the comment, which stayed pending and came out
     /// below the statement, past the operands it was written between (G323).
+    ///
+    /// Only a comment in a gap between operands counts. One inside an operand,
+    /// in a call's argument list or a lambda body, belongs to that construct,
+    /// which places it already; breaking the chain for it would reformat a
+    /// file the earlier formatter left alone (record 86).
     fn binary_chain(&mut self, e: &Expr, op: BinOp) -> bool {
         // `flat` is a `${...}` interpolation, where a line break comes back as a
         // literal `\n`. `in_block` is the D1 bracket-depth guard.
         if self.flat || !self.in_block {
             return false;
         }
-        let holds_comment = self.has_comment_before(e.span().end);
-        if !holds_comment
-            && !matches!(op, BinOp::LogicalAnd | BinOp::LogicalOr | BinOp::NullishCoalesce)
-        {
-            return false;
-        }
         let mut operands: Vec<&Expr> = Vec::new();
         flatten_chain(e, op, &mut operands);
         if operands.len() < 2 {
+            return false;
+        }
+        let holds_comment = self.binary_gap_comment(e, op);
+        if !holds_comment
+            && !matches!(op, BinOp::LogicalAnd | BinOp::LogicalOr | BinOp::NullishCoalesce)
+        {
             return false;
         }
         let col = self.current_column();
@@ -1265,6 +1279,31 @@ impl Printer {
         }
         self.indent -= 1;
         true
+    }
+
+    /// Whether a comment sits in a gap between the operands of `e`'s chain of
+    /// `op`, or in the gaps of an operand printed without parentheses. The
+    /// second half keeps the layout a picture of the precedence: when `3 * b`
+    /// breaks for a comment, `a + 3 * b` breaks around it, or `a + 3` would sit
+    /// on one line above `* b` and read as `(a + 3) * b`.
+    fn binary_gap_comment(&self, e: &Expr, op: BinOp) -> bool {
+        let mut operands: Vec<&Expr> = Vec::new();
+        flatten_chain(e, op, &mut operands);
+        if operands
+            .windows(2)
+            .any(|w| self.has_comment_between(w[0].span().end, w[1].span().start))
+        {
+            return true;
+        }
+        let prec = bin_prec(op);
+        operands.iter().enumerate().any(|(i, operand)| match operand {
+            Expr::Binary { op: inner, .. } => {
+                let cp = bin_prec(*inner);
+                let parenthesized = if i > 0 { cp <= prec } else { cp < prec };
+                !parenthesized && self.binary_gap_comment(operand, *inner)
+            }
+            _ => false,
+        })
     }
 
     /// Render `e` as the operand of a binary operator at `parent` precedence.

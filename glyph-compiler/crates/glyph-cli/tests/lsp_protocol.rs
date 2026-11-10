@@ -1019,3 +1019,296 @@ fn apply_edit_maps_through_each_text_edit() {
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+impl Lsp {
+    /// `glyph/applyEdit` in the multi-document form: `changes` maps each file
+    /// to its `TextEdit`s, the shape of LSP `WorkspaceEdit.changes`.
+    fn apply_changes(&mut self, changes: &[(&Path, Value)]) -> Value {
+        let map: serde_json::Map<String, Value> = changes
+            .iter()
+            .map(|(file, edits)| (uri(file), edits.clone()))
+            .collect();
+        self.request("glyph/applyEdit", json!({ "changes": map }))
+    }
+}
+
+/// The `elsewhere` entry of an applyEdit answer for `file`, if it has one.
+fn elsewhere_for<'a>(answer: &'a Value, file: &Path) -> Option<&'a Value> {
+    answer["elsewhere"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no `elsewhere` list in {answer}"))
+        .iter()
+        .find(|e| e["uri"] == json!(uri(file)))
+}
+
+/// The codes under `field` of `file`'s `elsewhere` entry, empty when the
+/// answer lists nothing for it.
+fn elsewhere_codes(answer: &Value, file: &Path, field: &str) -> Vec<String> {
+    elsewhere_for(answer, file).map(|e| answer_codes(e, field)).unwrap_or_default()
+}
+
+/// A project of `files` with a server on it and every name in `open` opened.
+fn gate_project_open(prefix: &str, files: &[(&str, &str)], open: &[&str]) -> (PathBuf, Lsp) {
+    let dir = tmp_dir(prefix);
+    for (name, text) in files {
+        std::fs::write(dir.join(name), text).expect("write a fixture");
+    }
+    let mut lsp = Lsp::start(&dir);
+    for name in open {
+        lsp.open(&dir.join(name));
+    }
+    (dir, lsp)
+}
+
+/// The importer of [`GATE_LIB`]: one call to `hello`.
+const GATE_MAIN: &str = "module main\nimport lib { hello }\n\npub fn run() -> string {\n  return hello()\n}\n";
+
+/// G310, review 81 decision 1. The gate's scope is the project, because an
+/// agent reads `ok: true` as "the project still checks" and stops there. An
+/// edit to `lib` that breaks `main`, which imports it, was answered `ok: true`
+/// with an empty list, and `glyph check` then failed `main`. Renaming the
+/// `pub fn` (E0105 on the import) and changing its arity (E0213 at the call)
+/// are each refused now, and the refusal names the error in `main`'s own
+/// coordinates under `elsewhere`, with `lib`'s own list empty.
+#[test]
+fn apply_edit_refuses_an_edit_that_breaks_a_module_importing_it() {
+    let (dir, path, mut lsp) = gate_project(
+        "gate_importer",
+        &[("lib.glyph", GATE_LIB), ("main.glyph", GATE_MAIN)],
+        "lib.glyph",
+    );
+    let main_path = dir.join("main.glyph");
+    // The line of `main` each error sits on: the import, then the call.
+    for (code, edit, line) in [
+        ("E0105", replace_first(GATE_LIB, "hello", "greet"), 1),
+        ("E0213", replace_first(GATE_LIB, "hello()", "hello(n: number)"), 4),
+    ] {
+        let answer = lsp.apply(&path, json!([edit]));
+        assert_eq!(answer["ok"], json!(false), "{code}: accepted: {answer}");
+        assert_eq!(answer["rejected"], json!("verification_failed"), "{code}: {answer}");
+        assert_eq!(answer_codes(&answer, "diagnostics"), Vec::<String>::new(), "{code}: {answer}");
+        assert_eq!(elsewhere_codes(&answer, &main_path, "diagnostics"), [code], "{answer}");
+        assert_eq!(elsewhere_codes(&answer, &main_path, "preexisting"), Vec::<String>::new());
+        let first = &elsewhere_for(&answer, &main_path).expect("main")["diagnostics"][0];
+        assert_eq!(first["range"]["start"]["line"], json!(line), "{code}: not in main's coordinates: {answer}");
+    }
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The importer break does not stop at the importer. Under D46 a field read
+/// belongs to the record that declares the field, so renaming `Doc.title` in
+/// `a` breaks `c`, which imports only `b`, which names `a.Doc`. A gate that
+/// checked the reverse-import closure of `a` one step deep would accept it.
+#[test]
+fn apply_edit_refuses_a_field_rename_that_breaks_a_module_two_imports_away() {
+    let a = "module a\n\npub type Doc = { title: string, }\n";
+    let b = "module b\nimport a\n\npub fn first(docs: Array<a.Doc>) -> a.Doc {\n  return docs[0]\n}\n";
+    let c = "module c\nimport b\n\npub fn heading() -> string {\n  return b.first([]).title\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_d46_chain",
+        &[("a.glyph", a), ("b.glyph", b), ("c.glyph", c)],
+        "a.glyph",
+    );
+    let answer = lsp.apply(&path, json!([replace_first(a, "title", "name")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(elsewhere_codes(&answer, &dir.join("c.glyph"), "diagnostics"), ["E0210"], "{answer}");
+    assert!(elsewhere_for(&answer, &dir.join("b.glyph")).is_none(), "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// E0112 runs along the import edge the other way: whether `util` draws it
+/// depends on whether anything imports `util`. Deleting `import util` from
+/// `main` leaves `util` unreachable, so the edit is refused with E0112 in
+/// `util`, a file the edit never touched and that imports nothing.
+#[test]
+fn apply_edit_refuses_removing_the_last_import_of_a_module() {
+    let util = "module util\nfn helper() -> number {\n  return 1\n}\n";
+    let main = "module main\nimport util\n\npub fn run() -> number {\n  return 1\n}\n";
+    let (dir, path, mut lsp) = gate_project(
+        "gate_forward_e0112",
+        &[("util.glyph", util), ("main.glyph", main)],
+        "main.glyph",
+    );
+    let answer = lsp.apply(&path, json!([replace_first(main, "import util\n", "")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(elsewhere_codes(&answer, &dir.join("util.glyph"), "diagnostics"), ["E0112"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A rename across a module boundary cannot pass a project-scoped gate one
+/// file at a time: renaming the declaration first breaks the caller, and
+/// renaming the call first names something that does not exist. The
+/// `changes` form checks both edits as one change and accepts it, with each
+/// document's verified text under `contents` and each edited document listed
+/// under `elsewhere`.
+#[test]
+fn apply_edit_accepts_a_cross_module_rename_only_as_one_change() {
+    let (dir, mut lsp) = gate_project_open(
+        "gate_atomic_rename",
+        &[("lib.glyph", GATE_LIB), ("main.glyph", GATE_MAIN)],
+        &["lib.glyph", "main.glyph"],
+    );
+    let (lib, main) = (dir.join("lib.glyph"), dir.join("main.glyph"));
+    let lib_edit = json!([replace_first(GATE_LIB, "hello", "greet")]);
+    let main_edits = json!([
+        replace_first(GATE_MAIN, "{ hello }", "{ greet }"),
+        replace_first(GATE_MAIN, "hello()", "greet()"),
+    ]);
+
+    let answer = lsp.apply(&lib, lib_edit.clone());
+    assert_eq!(answer["ok"], json!(false), "lib alone was accepted: {answer}");
+    let answer = lsp.apply(&main, main_edits.clone());
+    assert_eq!(answer["ok"], json!(false), "main alone was accepted: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), ["E0105"], "{answer}");
+
+    let answer = lsp.apply_changes(&[(&lib, lib_edit), (&main, main_edits)]);
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer["content"], Value::Null, "{answer}");
+    assert_eq!(answer["contents"][uri(&lib)], json!(GATE_LIB.replace("hello", "greet")));
+    assert_eq!(answer["contents"][uri(&main)], json!(GATE_MAIN.replace("hello", "greet")));
+    assert_eq!(answer_codes(&answer, "diagnostics"), Vec::<String>::new(), "{answer}");
+    let listed: Vec<String> = answer["elsewhere"]
+        .as_array()
+        .expect("elsewhere")
+        .iter()
+        .map(|e| e["uri"].as_str().unwrap_or_default().to_string())
+        .collect();
+    let mut want = vec![uri(&lib), uri(&main)];
+    want.sort();
+    assert_eq!(listed, want, "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The two request forms exclude each other. Giving both, or neither, is
+/// `invalid_params` and changes nothing, rather than one form silently
+/// winning or a JSON-RPC parse failure the agent cannot act on.
+#[test]
+fn apply_edit_takes_exactly_one_request_form() {
+    let (dir, path, mut lsp) = gate_project(
+        "gate_forms",
+        &[("lib.glyph", GATE_LIB), ("main.glyph", GATE_MAIN)],
+        "lib.glyph",
+    );
+    let edit = json!([replace_first(GATE_LIB, "\"hi\"", "\"hey\"")]);
+    let both = json!({ "uri": uri(&path), "edits": edit, "changes": { uri(&path): edit } });
+    for params in [both, json!({}), json!({ "uri": uri(&path) })] {
+        let answer = lsp.request("glyph/applyEdit", params.clone());
+        assert_eq!(answer["ok"], json!(false), "{params}: {answer}");
+        assert_eq!(answer["rejected"], json!("invalid_params"), "{params}: {answer}");
+    }
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Every document a request edits must be open, because the gate checks the
+/// buffer the editor holds. The refusal names the one that is not, so an
+/// agent sending several knows which to open.
+#[test]
+fn apply_edit_names_the_document_that_is_not_open() {
+    let (dir, path, mut lsp) = gate_project(
+        "gate_not_open",
+        &[("lib.glyph", GATE_LIB), ("main.glyph", GATE_MAIN)],
+        "lib.glyph",
+    );
+    let main = dir.join("main.glyph");
+    let answer = lsp.apply_changes(&[
+        (&path, json!([replace_first(GATE_LIB, "hello", "greet")])),
+        (&main, json!([replace_first(GATE_MAIN, "hello()", "greet()")])),
+    ]);
+    assert_eq!(answer["ok"], json!(false), "{answer}");
+    assert_eq!(answer["rejected"], json!("document_not_open"), "{answer}");
+    assert_eq!(answer["uri"], json!(uri(&main)), "{answer}");
+    let answer = lsp.apply(&main, json!([replace_first(GATE_MAIN, "hello()", "greet()")]));
+    assert_eq!(answer["rejected"], json!("document_not_open"), "{answer}");
+    assert_eq!(answer["uri"], json!(uri(&main)), "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// `glyph check --json --no-tsc` over `dir`: every diagnostic as its file,
+/// code, severity and zero-based start, sorted.
+fn check_project(dir: &Path) -> Vec<(String, String, String, u64, u64)> {
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .arg("check")
+        .arg(dir)
+        .arg("--no-tsc")
+        .arg("--no-test")
+        .arg("--json")
+        .output()
+        .expect("spawn `glyph check`");
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    let report: Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("`glyph check --json` wrote non-JSON ({e}): {stdout}"));
+    let mut all: Vec<_> = report["diagnostics"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no diagnostics: {report}"))
+        .iter()
+        .map(|d| {
+            (
+                d["file"].as_str().unwrap_or_default().to_string(),
+                d["code"].as_str().unwrap_or_default().to_string(),
+                d["severity"].as_str().unwrap_or_default().to_string(),
+                d["range"]["start"]["line"].as_u64().unwrap_or(0) - 1,
+                d["range"]["start"]["col"].as_u64().unwrap_or(0) - 1,
+            )
+        })
+        .collect();
+    all.sort();
+    all
+}
+
+/// The gate's project lists are `glyph check`'s. A `changes` request lists
+/// every edited document and every file with a diagnostic under `elsewhere`,
+/// so `diagnostics` and `preexisting` together, file by file, are what
+/// `glyph check --no-tsc` reports for the candidate tree: an error the edit
+/// introduced in an importer, a warning that was already there in a module
+/// nothing imports, and one in the edited file itself. A gate whose lists
+/// drifted from the command line would answer `ok` about a different program
+/// than the one the agent then builds.
+#[test]
+fn apply_edit_reports_the_project_glyph_check_reports() {
+    let util = "module util\nfn helper() -> number {\n  return 1\n}\n";
+    let lib = "module lib\n\npub fn hello() -> string {\n  let unused = 1\n  return \"hi\"\n}\n";
+    let files = [("lib.glyph", lib), ("main.glyph", GATE_MAIN), ("util.glyph", util)];
+    let (dir, mut lsp) = gate_project_open("gate_parity", &files, &["lib.glyph"]);
+    let edit = replace_first(lib, "hello", "greet");
+    let answer = lsp.apply_changes(&[(&dir.join("lib.glyph"), json!([edit]))]);
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+
+    let mut gate = Vec::new();
+    for entry in answer["elsewhere"].as_array().expect("elsewhere") {
+        let file = entry["uri"].as_str().expect("uri").rsplit('/').next().expect("name").to_string();
+        for field in ["diagnostics", "preexisting"] {
+            for d in entry[field].as_array().expect("a list") {
+                let severity = if d["severity"] == json!(2) { "warning" } else { "error" };
+                gate.push((
+                    file.clone(),
+                    d["code"].as_str().unwrap_or_default().to_string(),
+                    severity.to_string(),
+                    d["range"]["start"]["line"].as_u64().unwrap_or(0),
+                    d["range"]["start"]["character"].as_u64().unwrap_or(0),
+                ));
+            }
+        }
+    }
+    gate.sort();
+
+    let tree = tmp_dir("gate_parity_cli");
+    for (name, text) in files {
+        let text = if name == "lib.glyph" { lib.replacen("hello", "greet", 1) } else { text.to_string() };
+        std::fs::write(tree.join(name), text).expect("write the candidate tree");
+    }
+    let cli = check_project(&tree);
+    let codes: Vec<&str> = cli.iter().map(|d| d.1.as_str()).collect();
+    for code in ["E0105", "E0107", "E0112"] {
+        assert!(codes.contains(&code), "the fixture no longer draws {code}: {cli:?}");
+    }
+    assert_eq!(gate, cli, "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&tree);
+}

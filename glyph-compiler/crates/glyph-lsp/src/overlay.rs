@@ -492,6 +492,78 @@ impl Workspace {
         Some((file.source_text(&project.db).as_str(), diagnostics))
     }
 
+    /// The full list of every module of the project at `root`, each with its
+    /// URI and, when the list is not empty, the text it is in coordinates of:
+    /// what `glyph check --no-tsc` reports over the project, file by file.
+    /// Each of `also` that is not a member (an open document outside the
+    /// root) is added with its own list, the one [`Workspace::diagnostics`]
+    /// gives it. Sorted by URI.
+    ///
+    /// The `glyph/applyEdit` gate reads this before and after swapping its
+    /// candidates in, because a file's list depends on its siblings: an
+    /// import names their exports, and E0112 is decided by whether anything
+    /// in the project imports the module (G310). Every member is read rather
+    /// than the files importing the edited one, because E0112 runs along the
+    /// import edge the other way, so no closure over importers covers it.
+    ///
+    /// The tables are built once from the members alone, the set `glyph
+    /// check` scans, so a non-member open buffer cannot make a member look
+    /// imported.
+    pub(crate) fn project_diagnostics(
+        &mut self,
+        root: &Path,
+        also: &[Url],
+    ) -> Vec<(Url, Vec<Diagnostic>, Option<String>)> {
+        let i = self.project(root);
+        let open = &self.open;
+        let project = &mut self.projects[i];
+        // Read an edited document the project has not seen yet, so it is a
+        // member from the first list on rather than only after the swap.
+        for uri in also {
+            project.file(uri, open);
+        }
+        let uri_of: HashMap<SourceFile, &Url> =
+            project.handles.iter().map(|(u, h)| (h.file, u)).collect();
+        let members: Vec<(Url, SourceFile, String)> = project
+            .entries
+            .iter()
+            .filter_map(|(module_path, file)| {
+                Some(((*uri_of.get(file)?).clone(), *file, module_path.clone()))
+            })
+            .collect();
+        let entries: Vec<(&str, SourceFile)> = project
+            .entries
+            .iter()
+            .map(|(m, f)| (m.as_str(), *f))
+            .collect();
+        let tables = project_tables(&project.db, &entries);
+        let mut out: Vec<(Url, Vec<Diagnostic>, Option<String>)> = members
+            .iter()
+            .map(|(uri, file, module_path)| {
+                let list = project_file_diagnostics_through(
+                    &project.db,
+                    *file,
+                    module_path,
+                    &tables,
+                    Stages::All,
+                );
+                let text = (!list.is_empty()).then(|| file.source_text(&project.db).clone());
+                (uri.clone(), list, text)
+            })
+            .collect();
+        for uri in also {
+            if out.iter().any(|(u, ..)| u == uri) {
+                continue;
+            }
+            if let Some((text, list)) = self.diagnostics(root, uri, Stages::All) {
+                let text = (!list.is_empty()).then(|| text.to_string());
+                out.push((uri.clone(), list, text));
+            }
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+
     /// The analysis of `uri` and the text its spans index into. `None` when the
     /// document does not parse or its symbols do not collect.
     pub(crate) fn view(&mut self, root: &Path, uri: &Url) -> Option<(&str, Analysis)> {
@@ -996,6 +1068,44 @@ mod tests {
             !codes(&mut ws, &dir, &main).is_empty(),
             "the call in main.glyph now passes one argument to a function that takes two"
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The codes of each file in a [`Workspace::project_diagnostics`] answer.
+    fn project_codes(ws: &mut Workspace, root: &Path, also: &[Url]) -> Vec<(String, Vec<String>)> {
+        ws.project_diagnostics(root, also)
+            .into_iter()
+            .map(|(uri, list, _)| {
+                let name = uri.path().rsplit('/').next().unwrap_or_default().to_string();
+                (name, list.into_iter().map(|d| d.code).collect())
+            })
+            .collect()
+    }
+
+    /// G310: the `glyph/applyEdit` gate reads every module of the project, so
+    /// what it reads has to cover a file nobody has open and follow a buffer
+    /// swapped in and back. Swapping a candidate into one buffer moves the
+    /// list of a sibling the editor never opened, and restoring the buffer
+    /// moves it back, which is the before/after pair the gate compares.
+    #[test]
+    fn the_project_lists_follow_every_swapped_buffer() {
+        let dir = tmp_dir("projectlists");
+        let orders = on_disk(&dir, "orders", ORDERS);
+        on_disk(&dir, "main", MAIN);
+        let mut ws = Workspace::new();
+        ws.set_buffer(&orders, ORDERS.to_string());
+        let clean = vec![("main.glyph".to_string(), Vec::new()), ("orders.glyph".to_string(), Vec::new())];
+        assert_eq!(project_codes(&mut ws, &dir, std::slice::from_ref(&orders)), clean, "every member, clean");
+
+        let renamed = ORDERS.replace("pub fn create", "pub fn make");
+        ws.set_buffer(&orders, renamed);
+        assert_eq!(
+            project_codes(&mut ws, &dir, std::slice::from_ref(&orders)),
+            vec![("main.glyph".to_string(), vec!["E0105".to_string()]), ("orders.glyph".to_string(), Vec::new())],
+            "the importer's list moved with the declaring module's buffer"
+        );
+        ws.set_buffer(&orders, ORDERS.to_string());
+        assert_eq!(project_codes(&mut ws, &dir, &[orders]), clean, "and moved back");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

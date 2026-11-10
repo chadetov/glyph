@@ -355,6 +355,8 @@ pub fn assign_types_with_relations(
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
+            stdlib_values: HashMap::new(),
+            local_stdlib_values: HashMap::new(),
             null_chains: NullChains::default(),
         };
         for decl in &module.items {
@@ -450,6 +452,8 @@ pub fn assignability(
         decl_ty_resolver,
         return_stack: Vec::new(),
         local_tys: HashMap::new(),
+        stdlib_values: HashMap::new(),
+        local_stdlib_values: HashMap::new(),
         null_chains: NullChains::default(),
     };
     if assigner.assign_incompatible(found, expected) {
@@ -497,6 +501,8 @@ pub fn declared_record_fields(
         decl_ty_resolver,
         return_stack: Vec::new(),
         local_tys: HashMap::new(),
+        stdlib_values: HashMap::new(),
+        local_stdlib_values: HashMap::new(),
         null_chains: NullChains::default(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
@@ -1238,6 +1244,14 @@ struct Assigner<'a> {
     /// a def-site span across K/V, the latter need the bidirectional checker
     /// to derive types from the scrutinee).
     local_tys: HashMap<u32, Ty>,
+    /// Record 88, 4a. Every expression, and every `let` binding (by its
+    /// definition start, as `local_tys` keys it), whose value is a stdlib
+    /// function read without being called whose type parameter only a type
+    /// argument on a direct call fills: `json.parse` in `let p = json.parse`.
+    /// The value is the function as the program spelled it, so an E0233 on
+    /// `p<User>(s)` can say which direct call to write instead.
+    stdlib_values: HashMap<Span, String>,
+    local_stdlib_values: HashMap<u32, String>,
     /// The optional chains over a `Nullable` whose value has not yet been
     /// handled (G304, D45). See `NullChains`.
     null_chains: NullChains,
@@ -1388,6 +1402,7 @@ impl Assigner<'_> {
                             name: type_expr_source(base),
                             expected,
                             found: args.len(),
+                            value_of: None,
                             span: *span,
                         });
                     }
@@ -1440,6 +1455,7 @@ impl Assigner<'_> {
                         name: type_expr_source(te),
                         expected,
                         found: 0,
+                        value_of: None,
                         span: *span,
                     });
                 }
@@ -1809,6 +1825,9 @@ impl Assigner<'_> {
                 if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
                 }
+                if let Some(f) = self.stdlib_values.get(&l.value.span()).cloned() {
+                    self.local_stdlib_values.insert(l.span.start, f);
+                }
             }
             Stmt::Mut(m) => match &m.kind {
                 glyph_ast::MutKind::Assign { target, value } => {
@@ -2071,6 +2090,7 @@ impl Assigner<'_> {
             }
             Expr::Ident { span, .. } => {
                 let ty = self.type_of_ident_ref(*span);
+                let ty = self.value_read_ty(e, ty);
                 self.tm.insert(*span, ty);
             }
             Expr::Postfix { op, operand, span } => {
@@ -2275,6 +2295,7 @@ impl Assigner<'_> {
                         }
                     }
                 };
+                let member_ty = self.value_read_ty(e, member_ty);
                 self.tm.insert(*span, member_ty);
             }
             Expr::Await { expr, span } => {
@@ -2449,6 +2470,7 @@ impl Assigner<'_> {
                                 name: callee_source(callee),
                                 expected: names.len(),
                                 found: type_args.len(),
+                                value_of: None,
                                 span: *span,
                             });
                             &[]
@@ -2489,10 +2511,19 @@ impl Assigner<'_> {
                                     subst.insert(name, self.lowerer.lower(t));
                                 }
                             } else {
+                                // A value read off `json.parse` says how to
+                                // write the validating call instead.
+                                let value_of =
+                                    self.stdlib_values.get(&callee.span()).map(|f| {
+                                        let written: Vec<String> =
+                                            type_args.iter().map(type_expr_source).collect();
+                                        (f.clone(), written.join(", "))
+                                    });
                                 self.errors.push(TypeError::TypeArgumentCountMismatch {
                                     name: callee_source(callee),
                                     expected: names.len(),
                                     found: type_args.len(),
+                                    value_of,
                                     span: *span,
                                 });
                             }
@@ -3746,6 +3777,76 @@ impl Assigner<'_> {
             .collect::<Vec<_>>()
             .join("/");
         key.starts_with("std/").then_some((key, name))
+    }
+
+    /// The type of `e`, a name or a member read, once its position is
+    /// known: unchanged in a callee's position, and for a stdlib function
+    /// read as a value, the value's own type (record 88, 4a).
+    ///
+    /// `json.parse`'s `T` appears in no parameter. A direct call fills it from
+    /// the written type argument, and the emitter makes that call validate
+    /// its input. A value read off the function is the function itself, and a
+    /// call through it is the casting `parse<T>`, so the value gets no type
+    /// parameters (`Some([])`: a type argument on it is E0233) and `T` is
+    /// `unknown`, the top type. `Ty::Unknown` there would let `let r:
+    /// Result<User, _> = p(s)` pass, and `tsc` would then infer `T = User`
+    /// from the annotation: a cast again.
+    ///
+    /// A parameter an argument carries (`json.parse_with`'s `T` rides on the
+    /// schema) is still bound through the value, so only a function every one
+    /// of whose explicit parameters is `unknown` when unwritten is narrowed.
+    fn value_read_ty(&mut self, e: &Expr, ty: Ty) -> Ty {
+        // A name bound to such a value carries where it came from, in a
+        // callee's position too: that is where the E0233 is reported.
+        if let Expr::Ident { span, .. } = e {
+            if let Some(ResolvedRef::Local(def)) = self.resolved.resolutions.get(*span) {
+                if let Some(f) = self.local_stdlib_values.get(&def).cloned() {
+                    self.stdlib_values.insert(*span, f);
+                }
+                return ty;
+            }
+        }
+        if self.call_callee == Some(e.span()) {
+            return ty;
+        }
+        let Some((key, field)) = self.stdlib_callee(e) else {
+            return ty;
+        };
+        let params = crate::stdlib::explicit_type_params(&key, &field);
+        if params.is_empty()
+            || params
+                .iter()
+                .any(|(_, u)| *u != crate::stdlib::Unwritten::UnknownTop)
+        {
+            return ty;
+        }
+        let Ty::Fn {
+            params: fn_params,
+            return_ty,
+            is_async,
+            ..
+        } = &ty
+        else {
+            return ty;
+        };
+        let subst: HashMap<Ident, Ty> = params
+            .iter()
+            .map(|(name, unwritten)| (Ident::from(*name), unwritten.ty()))
+            .collect();
+        let value = Ty::Fn {
+            params: fn_params
+                .iter()
+                .map(|p| FnParam {
+                    ty: substitute_type_params(&p.ty, &subst),
+                    ..p.clone()
+                })
+                .collect(),
+            return_ty: Arc::new(substitute_type_params(return_ty, &subst)),
+            is_async: *is_async,
+            type_params: Some(Vec::new()),
+        };
+        self.stdlib_values.insert(e.span(), callee_source(e));
+        value
     }
 
     /// The type parameter names, in declaration order, of the user `fn` or
@@ -15649,6 +15750,8 @@ component View(props: { s: Status }) -> Component {
             decl_ty_resolver: resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
+            stdlib_values: HashMap::new(),
+            local_stdlib_values: HashMap::new(),
             null_chains: NullChains::default(),
         };
         f(&assigner)
@@ -18980,6 +19083,111 @@ fn f(a: Answer) -> number {
         );
         assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
         assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
+        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// The help on every E0233 in `errs`, in order.
+    fn type_arg_count_helps(errs: &[TypeError]) -> Vec<String> {
+        errs.iter()
+            .filter(|e| matches!(e, TypeError::TypeArgumentCountMismatch { .. }))
+            .map(|e| e.help().expect("E0233 has help").into_owned())
+            .collect()
+    }
+
+    /// Record 88, 4a. `json.parse`'s `T` is filled only by a type argument
+    /// written on a direct call, which the emitter turns into a validating
+    /// call. A `json.parse` value is the function itself, so a type argument
+    /// on a call through it validates nothing: the emitted call is the
+    /// casting `parse<T>`. The value therefore has no type parameters, and a
+    /// type argument on it is E0233 under either import spelling, a type
+    /// parameter of the enclosing function included. If this regresses,
+    /// `let p = json.parse` then `p<User>(s)` passes every Glyph stage and
+    /// `tsc` with an unvalidated `User`: how the function was reached would
+    /// decide whether the input is checked.
+    #[test]
+    fn type_arguments_on_a_json_parse_value_are_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/json { parse }\n\
+             type User = { name: string, }\n\
+             pub fn f(s: string) -> number {\n\
+             \x20 let p = json.parse\n\
+             \x20 let q = parse\n\
+             \x20 let a = p<User>(s)\n\
+             \x20 let b = q<User>(s)\n\
+             \x20 return 0\n\
+             }\n\
+             pub fn read<T>(b: string) -> Result<T, Array<Issue>> {\n\
+             \x20 let p = json.parse\n\
+             \x20 return p<T>(b)\n\
+             }\n",
+        );
+        assert_eq!(
+            type_arg_counts(&errs),
+            vec![
+                ("p".to_string(), 0, 1),
+                ("q".to_string(), 0, 1),
+                ("p".to_string(), 0, 1),
+            ],
+            "{errs:?}"
+        );
+        assert_eq!(
+            type_arg_count_helps(&errs),
+            vec![
+                "Call `json.parse<User>(...)` directly; a `json.parse` value returns `unknown`, because only a type argument written on the call itself makes the call validate its input.".to_string(),
+                "Call `parse<User>(...)` directly; a `parse` value returns `unknown`, because only a type argument written on the call itself makes the call validate its input.".to_string(),
+                "Call `json.parse<T>(...)` directly; a `json.parse` value returns `unknown`, because only a type argument written on the call itself makes the call validate its input.".to_string(),
+            ],
+            "{errs:?}"
+        );
+    }
+
+    /// A `json.parse` value returns `Result<unknown, ...>`, the top type and
+    /// not the undecided one (`Ty::Unknown`, displayed `?`), under either
+    /// import spelling. A refusal that names the value's type shows which.
+    #[test]
+    fn a_json_parse_value_returns_unknown_not_an_undecided_type() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/json { parse }\n\
+             pub fn f(s: string) -> number {\n\
+             \x20 let p = json.parse\n\
+             \x20 let q = parse\n\
+             \x20 let a: number = p(s)\n\
+             \x20 let b: number = q(s)\n\
+             \x20 let c: Result<unknown, Array<Issue>> = p(s)\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![
+                ("number".to_string(), "Result<unknown, Array<Issue>>".to_string()),
+                ("number".to_string(), "Result<unknown, Array<Issue>>".to_string()),
+            ],
+            "{errs:?}"
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// The direct call keeps its own rule: `json.parse<User>(s)` binds `T`
+    /// to `User` and is the validating call, under either import spelling.
+    #[test]
+    fn a_direct_json_parse_call_is_unchanged_by_the_value_rule() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/json { parse }\n\
+             type User = { name: string, }\n\
+             pub fn f(s: string) -> number {\n\
+             \x20 let a: Result<User, Array<Issue>> = json.parse<User>(s)\n\
+             \x20 let b: Result<User, Array<Issue>> = parse<User>(s)\n\
+             \x20 return 0\n\
+             }\n",
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
     }
 

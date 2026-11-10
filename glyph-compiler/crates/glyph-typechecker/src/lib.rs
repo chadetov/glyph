@@ -29,6 +29,7 @@
 
 pub mod assign;
 pub mod builtin_members;
+mod builtin_methods;
 pub mod concurrency;
 pub mod lower;
 pub mod owned;
@@ -116,6 +117,7 @@ pub fn display_ty(ty: &Ty) -> String {
             params,
             return_ty,
             is_async,
+            ..
         } => {
             let params = params
                 .iter()
@@ -537,6 +539,24 @@ pub enum TypeError {
         name: String,
         expected: usize,
         found: usize,
+        span: Span,
+    },
+
+    /// A method of a JavaScript array, string or number read without being
+    /// called: `let up = s.toUpperCase`, or `xs.map(s.trim)` (G312). The
+    /// emitted read hands on the bare function, and an ES module is strict,
+    /// so when it is called later it runs with `this` undefined and throws a
+    /// TypeError. `tsc` accepts the read, so nothing else reports it before
+    /// it runs.
+    ///
+    /// A call is never refused (`s.toUpperCase()`, `mut xs.push(x)`), and
+    /// neither is a data property (`xs.length`): only a member the generated
+    /// method table holds, outside a callee's position.
+    #[error("method `{method}` of `{type_name}` is read without being called")]
+    UncalledBuiltinMethod {
+        method: String,
+        type_name: String,
+        builtin: BuiltinReceiver,
         span: Span,
     },
 
@@ -1023,6 +1043,7 @@ impl TypeError {
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::TypeArgumentCountMismatch { span, .. } => *span,
+            TypeError::UncalledBuiltinMethod { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
             TypeError::ComponentMultipleParams { span, .. } => *span,
             TypeError::ComponentParamNotRecord { span, .. } => *span,
@@ -1068,6 +1089,7 @@ impl TypeError {
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
             TypeError::TypeArgumentCountMismatch { .. } => "E0233",
+            TypeError::UncalledBuiltinMethod { .. } => "E0234",
             TypeError::ComponentMultipleParams { .. } => "E0214",
             TypeError::ComponentParamNotRecord { .. } => "E0229",
             TypeError::OwnedAliased { .. } => "E0215",
@@ -1104,6 +1126,16 @@ impl TypeError {
                 "Check the member name for a typo. `{type_name}` is {}, so its members are the ones TypeScript's library declares for it and no others; `{}` holds Glyph's own functions over it.",
                 receiver.runtime_name(),
                 receiver.std_module(),
+            )));
+        }
+        if let TypeError::UncalledBuiltinMethod {
+            method, builtin, ..
+        } = self
+        {
+            return Some(Cow::Owned(format!(
+                "Call the method where it is read, `{method}(...)`, or wrap the call in a lambda if it is handed on as a value. `{}` holds Glyph's own functions over {}, which can be passed as values.",
+                builtin.std_module(),
+                builtin.runtime_name(),
             )));
         }
         if let TypeError::UnseenMatchType {
@@ -1265,6 +1297,7 @@ impl TypeError {
             }
             TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
+            TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
         }))
     }
 
@@ -1289,6 +1322,9 @@ impl TypeError {
             ),
             TypeError::UnseenMatchType { .. } => Some(
                 "The type could be a literal union these arms cover, or a plain `string` they never can. Without its declaration the checker cannot tell which, and a match it cannot prove covers every value is not accepted.",
+            ),
+            TypeError::UncalledBuiltinMethod { .. } => Some(
+                "A method reads its receiver from `this`, which a call through the member supplies. Read alone, the method is a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read.",
             ),
             TypeError::NullableRead { .. } => Some(
                 "`Nullable<T>` is `T | null` (D45), and `?.` over a null value gives JavaScript's `undefined`, which Glyph has no type for. The chain may stand only where the absence is handled on the spot: the left of `??`, or an operand of `==` or `!=`.",

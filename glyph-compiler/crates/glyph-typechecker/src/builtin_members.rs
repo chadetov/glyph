@@ -71,6 +71,121 @@ impl BuiltinReceiver {
             BuiltinReceiver::Number => "std/math",
         }
     }
+
+    /// Every method the receiver has, sorted by name, with the signature
+    /// generated from TypeScript's library (G312). The members not here are
+    /// its data properties: `length` on an array and a string, and
+    /// `constructor` on all three.
+    pub fn methods(self) -> &'static [BuiltinMethod] {
+        match self {
+            BuiltinReceiver::Array => crate::builtin_methods::ARRAY_METHODS,
+            BuiltinReceiver::String => crate::builtin_methods::STRING_METHODS,
+            BuiltinReceiver::Number => crate::builtin_methods::NUMBER_METHODS,
+        }
+    }
+
+    /// The method `name`, when the receiver has a method by that name.
+    pub fn method(self, name: &str) -> Option<&'static BuiltinMethod> {
+        let methods = self.methods();
+        methods
+            .binary_search_by(|m| m.name.cmp(name))
+            .ok()
+            .map(|i| &methods[i])
+    }
+}
+
+/// A method of a built-in receiver and the signature TypeScript's library
+/// declares for it (G312).
+///
+/// The rows live in `builtin_methods.rs`, which is generated: the script
+/// `scripts/check_builtin_members.py --write` asks the pinned TypeScript's
+/// checker for every method of `Array<T>`, `String`, `Number` and `Object`
+/// and writes one row each, and CI runs the same script without `--write`
+/// and fails when the committed file differs from what it would write. A
+/// hand-kept table would be the one part of this receiver model nobody reads
+/// from TypeScript, and the first library release that changes a signature
+/// would make it wrong in silence.
+///
+/// The mapping from a TypeScript signature to a row is the script's, and its
+/// rules are these, all chosen so a row can never refuse a call `tsc`
+/// accepts:
+///
+/// - A method with more than one signature, a `this` type anywhere in it, a
+///   type predicate, or a rest parameter is `Untyped`, with the reason. Its
+///   call stays `Unknown`, as every built-in method call was before G312.
+/// - A parameter or a return type that is not one of the shapes
+///   [`MethodTy`] spells is `Unknown`: a union (`string | RegExp`), `any`, a
+///   callback, a type parameter of the method itself (`map`'s `U`), and
+///   `T | undefined`, which `at`, `pop` and `find` return and which Glyph
+///   cannot spell, having no `undefined` (D45).
+/// - An optional parameter (`fromIndex?: number`) is optional in the row, so
+///   the arity check is TypeScript's: the required ones set the floor, the
+///   whole list the ceiling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BuiltinMethod {
+    pub name: &'static str,
+    pub sig: MethodSig,
+}
+
+/// What the checker knows about a built-in method's call.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MethodSig {
+    /// One signature, with every position mapped or `Unknown`.
+    Typed {
+        params: &'static [MethodParam],
+        ret: MethodTy,
+    },
+    /// A signature the mapping rules leave alone, and why.
+    Untyped(Untyped),
+}
+
+/// Why a method's call is left `Unknown`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Untyped {
+    /// More than one signature (`concat`, `replace`, `split`): which one a
+    /// call picks is TypeScript's overload resolution, which Glyph does not
+    /// repeat.
+    Overloads,
+    /// A `this` parameter or a `this` type (`sort` and `fill` return `this`,
+    /// `flat` takes `this: A`).
+    ThisType,
+    /// A type predicate (`value is S`).
+    Predicate,
+    /// A rest parameter (`push(...items: T[])`), which Glyph's function type
+    /// has no way to say.
+    RestParameter,
+}
+
+/// One parameter of a typed built-in method.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MethodParam {
+    pub ty: MethodTy,
+    pub optional: bool,
+}
+
+/// A required parameter, for the generated rows.
+pub const fn req(ty: MethodTy) -> MethodParam {
+    MethodParam { ty, optional: false }
+}
+
+/// An optional parameter, for the generated rows.
+pub const fn opt(ty: MethodTy) -> MethodParam {
+    MethodParam { ty, optional: true }
+}
+
+/// The TypeScript types a built-in method's row can spell. Anything else is
+/// `Unknown`, which never refuses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MethodTy {
+    Unknown,
+    Number,
+    String,
+    Bool,
+    Void,
+    /// The array's element type, `T` in `Array<T>`.
+    Elem,
+    /// `X[]`.
+    ArrayOf(&'static MethodTy),
 }
 
 /// `Array<T>`'s members: `Array.prototype` under `esnext`, plus `Object`'s.
@@ -206,6 +321,28 @@ mod tests {
         for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number] {
             let m = r.members();
             assert!(m.windows(2).all(|w| w[0] < w[1]), "{r:?} is not sorted and unique");
+        }
+    }
+
+    /// The method rows and the member lists are read from TypeScript by two
+    /// probes, so they are compared here: every member is a method or one of
+    /// the data properties, and every method is a member. A member missing
+    /// from the rows would be read without E0234 and called as `Unknown`; a
+    /// row that is not a member could never be reached, which says the two
+    /// were generated from different libraries. `method` binary-searches, so
+    /// the rows are sorted as well.
+    #[test]
+    fn method_rows_are_the_members_less_the_data_properties() {
+        for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number] {
+            let rows = r.methods();
+            assert!(rows.windows(2).all(|w| w[0].name < w[1].name), "{r:?} rows are not sorted and unique");
+            for m in rows {
+                assert!(r.has(m.name), "{r:?}: `{}` is a method row and not a member", m.name);
+            }
+            for name in r.members() {
+                let property = matches!(*name, "length" | "constructor");
+                assert_eq!(r.method(name).is_some(), !property, "{r:?}: `{name}`");
+            }
         }
     }
 

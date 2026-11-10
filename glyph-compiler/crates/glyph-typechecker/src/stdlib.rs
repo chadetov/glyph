@@ -55,6 +55,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params: vec![required(param)],
             return_ty: Arc::new(ret),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -77,6 +78,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
                 "other".to_string(),
             ])),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -89,6 +91,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params: vec![required(Ty::Unknown), optional(Ty::Unknown)],
             return_ty: Arc::new(Ty::Prim(Primitive::String)),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -115,6 +118,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params: vec![required(Ty::Prim(Primitive::String))],
             return_ty: Arc::new(result_ty(prelude, t, issues_ty(prelude)?)?),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -140,6 +144,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             ],
             return_ty: Arc::new(result_ty(prelude, t(), issues_ty(prelude)?)?),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -165,6 +170,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params,
             return_ty: Arc::new(return_ty),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -181,6 +187,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             }],
             return_ty: Arc::new(return_ty),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -208,6 +215,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params,
             return_ty: Arc::new(return_ty),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -227,6 +235,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params,
             return_ty: Arc::new(stdlib_named("http", "Fetch")),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -251,6 +260,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             params,
             return_ty: Arc::new(stdlib_named("http", "Response")),
             is_async: false,
+            type_params: None,
         });
     }
 
@@ -459,6 +469,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
         params,
         return_ty: Arc::new(return_ty),
         is_async,
+        type_params: None,
     })
 }
 
@@ -543,6 +554,7 @@ pub(crate) fn string_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -576,6 +588,7 @@ pub(crate) fn time_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
                     params: vec![required(n())],
                     return_ty: Arc::new(duration()),
                     is_async: false,
+                    type_params: None,
                 },
                 optional: false,
             }],
@@ -584,6 +597,7 @@ pub(crate) fn time_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
             params: Vec::new(),
             return_ty: Arc::new(n()),
             is_async: false,
+            type_params: None,
         }),
         // Async, so the row carries the resolved type and `is_async`, the way
         // the `std/http` rows do.
@@ -591,26 +605,31 @@ pub(crate) fn time_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
             params: vec![required(duration())],
             return_ty: Arc::new(Ty::Prim(Primitive::Void)),
             is_async: true,
+            type_params: None,
         }),
         "format_iso" => Some(Ty::Fn {
             params: vec![required(n())],
             return_ty: Arc::new(Ty::Prim(Primitive::String)),
             is_async: false,
+            type_params: None,
         }),
         "parse_iso" => Some(Ty::Fn {
             params: vec![required(Ty::Prim(Primitive::String))],
             return_ty: Arc::new(option_ty(prelude, n())?),
             is_async: false,
+            type_params: None,
         }),
         "add_days" | "add_hours" => Some(Ty::Fn {
             params: vec![required(n()), required(n())],
             return_ty: Arc::new(n()),
             is_async: false,
+            type_params: None,
         }),
         "year" | "month" | "day" => Some(Ty::Fn {
             params: vec![required(n())],
             return_ty: Arc::new(n()),
             is_async: false,
+            type_params: None,
         }),
         _ => None,
     }
@@ -655,6 +674,7 @@ pub(crate) fn regex_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -690,6 +710,7 @@ pub(crate) fn process_fn_ty(prelude: &Prelude, module_key: &str, field: &str) ->
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -710,27 +731,32 @@ pub(crate) fn timers_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
         params: Vec::new(),
         return_ty: Arc::new(Ty::Prim(Primitive::Void)),
         is_async: false,
+        type_params: None,
     };
     match field {
         "after" | "every" => Some(Ty::Fn {
             params: vec![required(n()), required(handler())],
             return_ty: Arc::new(timer()),
             is_async: false,
+            type_params: None,
         }),
         "cancel" => Some(Ty::Fn {
             params: vec![required(timer())],
             return_ty: Arc::new(Ty::Prim(Primitive::Void)),
             is_async: false,
+            type_params: None,
         }),
         "unref" => Some(Ty::Fn {
             params: vec![required(timer())],
             return_ty: Arc::new(timer()),
             is_async: false,
+            type_params: None,
         }),
         "sleep" => Some(Ty::Fn {
             params: vec![required(n())],
             return_ty: Arc::new(Ty::Prim(Primitive::Void)),
             is_async: true,
+            type_params: None,
         }),
         _ => None,
     }
@@ -773,6 +799,7 @@ pub(crate) fn host_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -806,6 +833,7 @@ pub(crate) fn io_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Opti
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -831,6 +859,7 @@ pub(crate) fn math_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
         params: (0..arity).map(|_| required(n())).collect(),
         return_ty: Arc::new(n()),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -859,6 +888,7 @@ pub(crate) fn path_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Op
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -951,6 +981,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         }],
         return_ty: Arc::new(Ty::Prim(Primitive::Bool)),
         is_async: false,
+        type_params: None,
     };
     // `U`, the callback's own return type, for the three functions whose
     // result element differs from their input's.
@@ -969,6 +1000,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         }],
         return_ty: Arc::new(to),
         is_async: false,
+        type_params: None,
     };
     let ys = array_ty(prelude, out())?;
     let (params, ret): (Vec<FnParam>, Ty) = match field {
@@ -1020,6 +1052,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
                     params: vec![of(elem()), of(elem())],
                     return_ty: Arc::new(Ty::Prim(Primitive::Number)),
                     is_async: false,
+                    type_params: None,
                 }),
             ],
             xs,
@@ -1042,6 +1075,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
                 ],
                 return_ty: Arc::new(xs),
                 is_async: false,
+                type_params: None,
             })
         }
         "get" => (
@@ -1061,6 +1095,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
                         params: vec![of(acc.clone()), of(elem())],
                         return_ty: Arc::new(acc.clone()),
                         is_async: false,
+                        type_params: None,
                     }),
                 ],
                 acc,
@@ -1089,6 +1124,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
                         params: vec![of(acc.clone()), of(elem())],
                         return_ty: Arc::new(acc.clone()),
                         is_async: false,
+                        type_params: None,
                     }),
                     of(mapper(acc.clone(), Ty::Prim(Primitive::Bool))),
                 ],
@@ -1113,6 +1149,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
                         params: vec![of(acc.clone()), of(elem())],
                         return_ty: Arc::new(step),
                         is_async: false,
+                        type_params: None,
                     }),
                 ],
                 result_ty(prelude, acc, err)?,
@@ -1165,6 +1202,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
                         params: vec![of(elem()), of(second())],
                         return_ty: Arc::new(combined()),
                         is_async: false,
+                        type_params: None,
                     }),
                 ],
                 array_ty(prelude, combined())?,
@@ -1176,6 +1214,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -1215,6 +1254,7 @@ pub(crate) fn fs_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Opti
             params,
             return_ty: Arc::new(result_ty(prelude, ok, stdlib_named("fs", "FsError"))?),
             is_async: false,
+            type_params: None,
         })
     };
     let plain = |params: Vec<FnParam>, ret: Ty| {
@@ -1222,6 +1262,7 @@ pub(crate) fn fs_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Opti
             params,
             return_ty: Arc::new(ret),
             is_async: false,
+            type_params: None,
         })
     };
     match field {
@@ -1329,6 +1370,7 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         params,
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -1350,6 +1392,7 @@ pub(crate) fn prelude_fn_ty(kind: PreludeKind) -> Option<Ty> {
         params: vec![required(param)],
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 
@@ -1369,6 +1412,7 @@ pub(crate) fn prelude_member_ty(prelude: &Prelude, kind: PreludeKind, field: &st
         params: vec![required(param)],
         return_ty: Arc::new(ret),
         is_async: false,
+        type_params: None,
     })
 }
 

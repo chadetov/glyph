@@ -740,11 +740,13 @@ json.stringify(value, options?) -> string                 // options: { indent: 
 failure names the field's path. Any other `T` (`int`, `Option<User>`,
 `Record<string, int>`, an alias of `Array<User>`) gets the check a record field
 of that type gets. If `T` is a record with a field that has no runtime check,
-the call is E0304. `json.parse(text)` with no type argument, or
-`json.parse<unknown>`, is the unchecked read. Some `T` are not checked yet
-and the value is cast: a type parameter, an `extern_ts` type, a package
-type, a container of `unknown` (`Array<unknown>`, `Record<string, unknown>`)
-and an `Array` alias imported from another module.
+the call is E0304, and so is a `T` with no runtime check of its own: a type
+parameter, an `extern_ts` type, a package type. A container of `unknown` is
+checked by its shape (`Array<unknown>` must be an array), and an `Array` alias
+imported from another module is checked like a local one. `json.parse(text)`
+with no type argument, or `json.parse<unknown>`, is the unchecked read; to
+read a `T` you cannot name a check for, take a `Schema<T>` and call
+`json.parse_with(text, schema)`.
 
 ### Runtime validators (`T.parse` / `T.is` / `T.schema`)
 
@@ -1954,7 +1956,7 @@ machine-readably. The full catalogue:
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |
 | E0303 | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) | Bind the operand first (`let r = f(x)?`), then use `r` |
-| E0304 | `parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too | Split the wire type from the domain type: parse the checkable fields, then build the record |
+| E0304 | `parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too. Also `json.parse<T>` for any `T` with no runtime check: a type parameter, an `extern_ts` type, a package type. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error; `json.parse(text)` with no type argument is the unchecked read | Split the wire type from the domain type: parse the checkable fields, then build the record. For a `T` with no check of its own, take a `Schema<T>` and read with `json.parse_with(text, schema)` |
 | E0305 | Two arms of one `match` lower to the same `case` label, so the later arm can never run | Remove the later arm, or give the two arms patterns that test different values |
 | E0310 | `glyph run` on a module with no `fn main` (it's a library — nothing to run) | Add `fn main`, or `glyph build` it as a library |
 | E0400 | An `@example` compared unequal, or threw while it was evaluated | Fix the code if the example states what you meant, or the example if it does not |

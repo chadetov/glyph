@@ -12,7 +12,7 @@
 
 use std::sync::Arc;
 
-use glyph_ast::{Decl, Ident, Param, TypeExpr};
+use glyph_ast::{Decl, GenericParam, Ident, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::ty::{
@@ -211,6 +211,9 @@ impl<'a> Lowerer<'a> {
                         .unwrap_or(Ty::Prim(Primitive::Void)),
                 ),
                 is_async: *is_async,
+                // A written function type has no `<...>` of its own, so it
+                // takes no type arguments, as `(x: T) => U` takes none in TS.
+                type_params: Some(Vec::new()),
             },
             TypeExpr::Record { fields, .. } => Ty::Record {
                 fields: fields
@@ -253,9 +256,11 @@ impl<'a> Lowerer<'a> {
     /// Lower a callable signature (`fn` or `component`) to a `Ty::Fn`. Used
     /// from `assign.rs` for `Expr::Lambda` and from `lower_decl_signature`;
     /// downstream crates should call `lower_decl_signature` rather than this
-    /// helper directly.
+    /// helper directly. `generics` is the declaration's `<...>` list, empty
+    /// for a lambda, which cannot declare one.
     pub(crate) fn lower_callable_signature(
         &self,
+        generics: &[GenericParam],
         params: &[Param],
         return_ty: Option<&TypeExpr>,
         is_async: bool,
@@ -276,6 +281,7 @@ impl<'a> Lowerer<'a> {
             params,
             return_ty: Arc::new(return_ty),
             is_async,
+            type_params: Some(generics.iter().map(|g| g.name.clone()).collect()),
         }
     }
 
@@ -286,19 +292,38 @@ impl<'a> Lowerer<'a> {
     /// a new `Decl` variant lands the compiler must force a decision here.
     pub fn lower_decl_signature(&self, decl: &Decl) -> Ty {
         match decl {
-            Decl::Fn(f) => self.lower_callable_signature(&f.params, f.return_ty.as_ref(), f.is_async),
+            Decl::Fn(f) => self.lower_callable_signature(
+                &f.generics,
+                &f.params,
+                f.return_ty.as_ref(),
+                f.is_async,
+            ),
             // D19 gives a component an implied JSX-returning body, so a
             // component written without `-> Component` returns the prelude
             // `Component` all the same. Reading the absence as `void`, as a
             // plain `fn` does, told hover and `glyph_symbol` that a component
             // returns nothing and refused its element as a `void`.
             Decl::Component(c) => {
-                let sig = self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false);
+                let sig = self.lower_callable_signature(
+                    &c.generics,
+                    &c.params,
+                    c.return_ty.as_ref(),
+                    false,
+                );
                 match (sig, c.return_ty.is_none()) {
-                    (Ty::Fn { params, is_async, .. }, true) => Ty::Fn {
+                    (
+                        Ty::Fn {
+                            params,
+                            is_async,
+                            type_params,
+                            ..
+                        },
+                        true,
+                    ) => Ty::Fn {
                         params,
                         return_ty: Arc::new(self.prelude_component()),
                         is_async,
+                        type_params,
                     },
                     (sig, _) => sig,
                 }

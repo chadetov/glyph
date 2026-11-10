@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-321 entries, 274 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+323 entries, 276 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 27 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -11775,3 +11775,37 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.132 (the release build): `export const X:
   React.ReactNode = React.createElement("div", null, "a", "b")`.*
+- **G322. [FIXED] A `match` with no arms panics the emitter, which kills the
+  playground.** The checker refuses `match x { }` (E0218), so `glyph build`
+  never emits it, but the playground emits best-effort past a type error and
+  every lowering of a `match` read its first arm: `index out of bounds: the len
+  is 0 but the index is 0` at `glyph-emit/src/lib.rs`, which in the browser is
+  a dead wasm module. Found by the first run of the `format_preserves_emit`
+  nightly target.
+
+  *Reproduced against 0.1.132 (the release build's emitter, unchanged on
+  dev-0.1.133): `glyph_wasm::compile` on `fn f(x: number) -> number { match x
+  { } return 1 }` panics at the first-arm index.*
+
+  Fixed in 0.1.133. The emitter declines a `match` with no arms as E0300, so
+  the playground reports E0218 and E0300 and shows no TypeScript. A
+  `glyph-wasm` test holds it through the playground's own entry point.
+- **G323. [FIXED] `glyph fmt` moves a comment out of a multi-line operator
+  expression.** `return a +\n    // add one\n    1 +\n    // and two\n    2`
+  came back as `return a + 1 + 2` with both comments below it, past the
+  operands they were written between. D14 promised a comment stays above the
+  item that followed it, and listed the constructs where that held; an operand
+  was not one of them, so the comment stayed pending and surfaced at the next
+  statement. The result was a fixed point. Found by the `format_idempotent`
+  nightly in fork mode, the run after G316.
+
+  *Reproduced against 0.1.132 (the release build): `glyph fmt` on the program
+  above writes `return a + 1 + 2` then `// add one` and `// and two`.*
+
+  Fixed in 0.1.133. A comment inside a binary expression breaks it, for any
+  operator and at any width, into the leading-operator layout `||` chains
+  already use, with the comment above the line of the operand that followed it.
+  A precedence group breaks on its own line under its operand, so the layout
+  still reads as the precedence. Every file the earlier formatter left alone is
+  still a fixed point (no fixed point of the old formatter has a comment inside
+  an operator expression), and `glyph fmt --check examples` is unchanged.

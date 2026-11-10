@@ -958,12 +958,24 @@ enum StreamItem {
 /// delimiters on every layout decision. What it is never allowed to do is change
 /// what a literal says, drop a comment, duplicate one, or move one past a
 /// literal.
+///
+/// JSX text is in the projection as the text it renders
+/// (`glyph_ast::jsx_texts`), the same item as a string child that renders it,
+/// since the two emit the same quoted string. The lexer still reads words,
+/// quotes and `//` inside the text as tokens and comments; those are dropped,
+/// because the text is the item (G316).
 fn literal_and_comment_stream(src: &str) -> Vec<StreamItem> {
     let tokens = glyph_lexer::tokenize(src).unwrap_or_else(|e| panic!("lex: {e:?}"));
     let comments = glyph_lexer::comments(src);
+    let module = glyph_parser::parse(src).unwrap_or_else(|e| panic!("parse: {e:?}"));
+    let texts = glyph_ast::jsx_texts(&module);
+    let in_text = |at: u32| texts.iter().any(|(span, _)| span.start <= at && at < span.end);
 
-    let mut items: Vec<(u32, StreamItem)> = Vec::new();
-    for t in &tokens {
+    let mut items: Vec<(u32, StreamItem)> = texts
+        .iter()
+        .map(|(span, value)| (span.start, StreamItem::Str(blank_interpolations(value))))
+        .collect();
+    for t in tokens.iter().filter(|t| !in_text(t.span.start)) {
         let item = match &t.token {
             glyph_lexer::Token::Number(raw) => StreamItem::Number(raw.clone()),
             glyph_lexer::Token::String(value) => StreamItem::Str(blank_interpolations(value)),
@@ -973,7 +985,7 @@ fn literal_and_comment_stream(src: &str) -> Vec<StreamItem> {
         };
         items.push((t.span.start, item));
     }
-    for c in &comments {
+    for c in comments.iter().filter(|c| !in_text(c.span.start)) {
         items.push((c.span.start, StreamItem::Comment(c.text.clone())));
     }
     items.sort_by_key(|(start, _)| *start);
@@ -1557,23 +1569,42 @@ fn a_space_jsx_renders_survives_formatting() {
         "<p><b>x</b> <i>y</i></p>",
         // A run spanning lines collapses to one space, and indentation is not text.
         "<p>\n    one\n    two <b>x</b>\n  </p>",
+        // A run of several edge spaces is kept as written, not cut to one.
+        // The nightly fuzzer found the first: `"(    "` came back as `"(", " "`.
+        "<div>\n      <p>x</p>\n (    </div>",
+        "<p><b>x</b>   <i>y</i></p>",
+        "<p>{n}  and  <b>x</b></p>",
+        // A text written as a string child keeps its quotes and dollar signs
+        // as text.
+        "<p>{n} say \"hi\" for $5 <b>x</b></p>",
     ];
     for body in bodies {
         let src = format!(
             "module x\n\npub component C(props: {{ n: number }}) {{\n  let n = props.n\n  return {body}\n}}\n"
         );
-        // React renders adjacent text children as one run, so `" ", "and"`
-        // and `" and"` are the same page; join them before comparing. The
-        // formatter writes a significant edge space as its own `{" "}` child
-        // when the text goes on a line of its own.
-        let rendered = |ts: String| ts.replace("\", \"", "");
-        let before = rendered(emit_ts(&src).unwrap_or_else(|| panic!("emits: {src}")));
+        // Byte for byte, child count included: `" ", "and"` and `" and"` read
+        // the same on the page, but not to `React.Children.count`.
+        let before = emit_ts(&src).unwrap_or_else(|| panic!("emits: {src}"));
         let out = fmt(&src);
-        let after =
-            rendered(emit_ts(&out).unwrap_or_else(|| panic!("formatted source emits:\n{out}")));
-        assert_eq!(before, after, "formatting changed what `{body}` renders:\n{out}");
+        let after = emit_ts(&out).unwrap_or_else(|| panic!("formatted source emits:\n{out}"));
+        assert_eq!(before, after, "formatting changed what `{body}` emits:\n{out}");
         assert_eq!(fmt(&out), out, "format of `{body}` is not stable");
     }
+}
+
+/// A text with an edge space, laid out on a line of its own, is written whole
+/// as one string child. A `{" "}` the source already wrote is a child of its
+/// own and stays one, so a file the earlier formatter left alone is still a
+/// fixed point.
+#[test]
+fn an_edge_spaced_text_child_is_written_as_one_string() {
+    let src = "module x\n\npub component C(props: { n: number }) {\n  let n = props.n\n  return <p>{n} and <b>x</b>  (    </p>\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("    {\" and \"}\n"), "one string child:\n{out}");
+    assert!(out.contains("    {\"  (    \"}\n"), "a run kept whole:\n{out}");
+
+    let earlier = "module x\n\npub component C(props: { n: number }) {\n  let n = props.n\n  return <p>\n    {n}\n    {\" \"}\n    and\n    <b>x</b>\n  </p>\n}\n";
+    assert_eq!(fmt(earlier), earlier, "the earlier formatter's output is still a fixed point");
 }
 
 /// A keyword may be a type path segment after a dot (`kinds.type`), as it may

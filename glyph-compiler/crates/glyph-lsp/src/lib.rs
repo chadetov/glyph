@@ -1440,31 +1440,71 @@ struct CanonicalViewResponse {
     error: Option<String>,
 }
 
-/// Parameters of the custom `glyph/applyEdit` request (Q29). A set of standard
-/// LSP text edits to apply atomically to an open document, gated on the result
-/// type-checking clean.
+/// Parameters of the custom `glyph/applyEdit` request (Q29). Standard LSP
+/// text edits to apply atomically, gated on the project still checking, in
+/// one of two forms: `{ uri, edits }` for one open document, or `{ changes }`,
+/// LSP `WorkspaceEdit.changes`'s shape, for several checked as one change
+/// (review 81, decision 1).
+///
+/// Every field is optional so that a request giving both forms, or neither,
+/// reaches the handler and is answered `invalid_params` like any other
+/// refusal, rather than failing JSON-RPC parameter parsing with a message
+/// about one missing field.
 #[derive(Debug, serde::Deserialize)]
 struct ApplyEditParams {
-    uri: Url,
-    edits: Vec<TextEdit>,
+    uri: Option<Url>,
+    edits: Option<Vec<TextEdit>>,
+    changes: Option<std::collections::BTreeMap<Url, Vec<TextEdit>>>,
 }
 
-/// Response to `glyph/applyEdit` (review 81, decision 2). `diagnostics` holds
-/// only the diagnostics the edit introduced, warnings included, and `ok` is
-/// true exactly when it is empty. `preexisting` holds the candidate's other
-/// diagnostics, the ones the file already had, on acceptance and on refusal
-/// alike, so `ok: true` means "this edit introduced nothing" and `ok: true`
-/// with an empty `preexisting` means the file is clean. On success `content`
-/// is the verified new text; on rejection it is absent and `rejected` names
-/// the reason (both lists are empty for a structural rejection like
-/// overlapping edits). Both lists are in the candidate's coordinates.
+/// One file's part of a `glyph/applyEdit` answer, in that file's own
+/// coordinates: the diagnostics the edit introduced in it and the ones it
+/// already had.
+#[derive(Debug, serde::Serialize)]
+struct FileVerdict {
+    uri: Url,
+    diagnostics: Vec<Diagnostic>,
+    preexisting: Vec<Diagnostic>,
+}
+
+/// Response to `glyph/applyEdit` (review 81, decisions 1 and 2).
+///
+/// `diagnostics` holds only the diagnostics the edit introduced in the edited
+/// document, warnings included, and `preexisting` the ones it already had, on
+/// acceptance and on refusal alike, both in the candidate's coordinates.
+/// `elsewhere` carries the same pair for every other file of the project
+/// whose list after the edit is not empty, sorted by URI. In the `changes`
+/// form `diagnostics` and `preexisting` are empty and every edited document
+/// is listed under `elsewhere` too.
+///
+/// `ok` is true exactly when no file has a non-empty `diagnostics`: `glyph
+/// check --no-tsc --no-test` over the project after the edit reports nothing
+/// it did not report before. `ok: true` with every `preexisting` empty means
+/// it reports nothing at all. On success `content` (one document) or
+/// `contents` (by URI, the `changes` form) is the verified new text; on
+/// rejection both are absent and `rejected` names the reason, every list
+/// empty for a structural one like overlapping edits. `uri` names the
+/// document a `document_not_open` refusal is about.
 #[derive(Debug, serde::Serialize)]
 struct ApplyEditResponse {
     ok: bool,
     content: Option<String>,
+    contents: Option<std::collections::BTreeMap<Url, String>>,
     rejected: Option<String>,
+    uri: Option<Url>,
     diagnostics: Vec<Diagnostic>,
     preexisting: Vec<Diagnostic>,
+    elsewhere: Vec<FileVerdict>,
+}
+
+/// One document a `glyph/applyEdit` request edits, resolved and spliced: its
+/// text before, its candidate text, and the regions the edits changed.
+struct EditedDoc {
+    uri: Url,
+    root: PathBuf,
+    text: String,
+    candidate: String,
+    regions: Vec<EditRegion>,
 }
 
 impl Backend {
@@ -1520,8 +1560,9 @@ impl Backend {
         })
     }
 
-    /// Custom request `glyph/applyEdit` (Q29): apply structured text edits to an
-    /// open document and accept them only if the result type-checks clean. This
+    /// Custom request `glyph/applyEdit` (Q29): apply structured text edits to
+    /// one or more open documents and accept them only if the project still
+    /// checks. This
     /// is the TS-family reconciliation of the abandoned `edit { … } @verify { … }`
     /// source syntax: the edit is plain LSP `TextEdit`s and the verification is
     /// the compiler's own check of the file, not a new language construct. A
@@ -1557,57 +1598,107 @@ impl Backend {
     /// check --no-tsc` reports for it. Until 0.1.132 it was checked as text
     /// alone and the check stopped after the checker, so an edit introducing
     /// an emitter refusal or an error against a sibling module was accepted
-    /// (G306). The buffer is swapped for the candidate and back under one
-    /// hold of the workspace lock, so nothing else ever reads the candidate,
-    /// and the list before the edit is read under the same hold.
+    /// (G306).
     ///
-    /// The gate compares the edited file's list only; an edit that breaks a
-    /// module importing it is accepted. `glyph check` over the project is the
-    /// authority until 0.1.133 (G310).
+    /// The scope is every module of the project, not the edited file, and
+    /// the rule above holds file by file (review 81, decision 1). A file's
+    /// list depends on its siblings, so an edit that renames a `pub fn` a
+    /// sibling calls breaks the sibling, and one that deletes the last
+    /// `import util` makes `util` draw E0112. Until 0.1.133 both were
+    /// accepted (G310). Every module is read, not only the importers of the
+    /// edited one: E0112 runs along the import edge the other way, and under
+    /// D46 a field rename breaks a module two imports away.
+    ///
+    /// A project-scoped gate cannot accept a rename across a module boundary
+    /// one file at a time, because each half breaks the other file. The
+    /// `changes` form exists for that: every document's candidate is swapped
+    /// in, the project is read, and every buffer is swapped back, all under
+    /// one hold of the workspace lock, so nothing else ever reads a
+    /// candidate. The lists before the edit are read under the same hold.
     async fn apply_edit_request(&self, params: ApplyEditParams) -> Result<ApplyEditResponse> {
-        let uri = &params.uri;
-        let root = self.analysis_root(uri);
+        // Exactly one form. An empty `changes` edits nothing and would answer
+        // `ok: true` having checked nothing, so it is no form either.
+        let (single, requested) = match (params.uri, params.edits, params.changes) {
+            (Some(uri), Some(edits), None) => (true, vec![(uri, edits)]),
+            (None, None, Some(changes)) if !changes.is_empty() => {
+                (false, changes.into_iter().collect::<Vec<_>>())
+            }
+            _ => return Ok(reject("invalid_params", Vec::new(), Vec::new())),
+        };
+        let roots: Vec<PathBuf> = requested.iter().map(|(u, _)| self.analysis_root(u)).collect();
         let checked = {
             let mut ws = self.ws.lock().expect("workspace mutex");
-            match ws.buffer(uri) {
-                None => Err("document_not_open".to_string()),
-                Some(text) => match resolve_text_edits(&text, &params.edits) {
-                    Err(reason) => Err(reason),
-                    Ok(spans) => {
-                        let candidate = splice_text_edits(&text, &spans);
-                        let regions = edit_regions(&text, &spans);
-                        let before = ws
-                            .diagnostics(&root, uri, Stages::All)
-                            .map(|(_, d)| d)
-                            .unwrap_or_default();
-                        ws.set_buffer(uri, candidate.clone());
-                        let after = ws
-                            .diagnostics(&root, uri, Stages::All)
-                            .map(|(_, d)| d)
-                            .unwrap_or_default();
-                        ws.set_buffer(uri, text);
-                        Ok((candidate, split_introduced(&before, &regions, after)))
-                    }
-                },
+            prepare_edits(&ws, &requested, roots).map(|docs| {
+                let before = project_lists(&mut ws, &docs);
+                for d in &docs {
+                    ws.set_buffer(&d.uri, d.candidate.clone());
+                }
+                let after = project_lists(&mut ws, &docs);
+                for d in &docs {
+                    ws.set_buffer(&d.uri, d.text.clone());
+                }
+                (docs, before, after)
+            })
+        };
+        let (docs, mut before, mut after) = match checked {
+            Ok(checked) => checked,
+            Err((reason, uri)) => {
+                let mut answer = reject(&reason, Vec::new(), Vec::new());
+                answer.uri = uri;
+                return Ok(answer);
             }
         };
-        let (candidate, (introduced, preexisting)) = match checked {
-            Ok(c) => c,
-            Err(reason) => return Ok(reject(&reason, Vec::new(), Vec::new())),
-        };
-        let diagnostics = to_lsp_diagnostics(&candidate, introduced);
-        let preexisting = to_lsp_diagnostics(&candidate, preexisting);
-        if diagnostics.is_empty() {
-            Ok(ApplyEditResponse {
-                ok: true,
-                content: Some(candidate),
-                rejected: None,
-                diagnostics,
-                preexisting,
-            })
-        } else {
-            Ok(reject("verification_failed", diagnostics, preexisting))
+
+        // Split every file's list against its list before the edit. An edited
+        // document's is mapped through its edit; every other file's text is
+        // the same on both sides, so its diagnostics match on their exact
+        // ranges (review 81, decision 2).
+        let mut files: Vec<Url> = after.keys().cloned().collect();
+        files.extend(docs.iter().map(|d| d.uri.clone()));
+        files.sort();
+        files.dedup();
+        let mut ok = true;
+        let mut own = None;
+        let mut elsewhere = Vec::new();
+        for uri in files {
+            let (list, text) = after.remove(&uri).unwrap_or_default();
+            let before = before.remove(&uri).map(|(b, _)| b).unwrap_or_default();
+            let doc = docs.iter().find(|d| d.uri == uri);
+            let regions = doc.map(|d| d.regions.as_slice()).unwrap_or_default();
+            let (introduced, preexisting) = split_introduced(&before, regions, list);
+            ok &= introduced.is_empty();
+            let text = match doc {
+                Some(d) => d.candidate.as_str(),
+                None => text.as_deref().unwrap_or_default(),
+            };
+            let verdict = FileVerdict {
+                uri,
+                diagnostics: to_lsp_diagnostics(text, introduced),
+                preexisting: to_lsp_diagnostics(text, preexisting),
+            };
+            if single && doc.is_some() {
+                own = Some(verdict);
+            } else if doc.is_some()
+                || !verdict.diagnostics.is_empty()
+                || !verdict.preexisting.is_empty()
+            {
+                elsewhere.push(verdict);
+            }
         }
+        let (diagnostics, preexisting) = own
+            .map(|v| (v.diagnostics, v.preexisting))
+            .unwrap_or_default();
+        Ok(ApplyEditResponse {
+            ok,
+            content: (ok && single).then(|| docs[0].candidate.clone()),
+            contents: (ok && !single)
+                .then(|| docs.into_iter().map(|d| (d.uri, d.candidate)).collect()),
+            rejected: (!ok).then(|| "verification_failed".to_string()),
+            uri: None,
+            diagnostics,
+            preexisting,
+            elsewhere,
+        })
     }
 
     /// Resolve an imported `module_path` to its file and locate the declaration
@@ -1645,10 +1736,67 @@ fn reject(
     ApplyEditResponse {
         ok: false,
         content: None,
+        contents: None,
         rejected: Some(reason.to_string()),
+        uri: None,
         diagnostics,
         preexisting,
+        elsewhere: Vec::new(),
     }
+}
+
+/// Resolve and splice every requested document's edits against its open
+/// buffer, all or nothing. `Err` is the refusal: `document_not_open` with the
+/// URI it is about, or a structural reason from [`resolve_text_edits`].
+fn prepare_edits(
+    ws: &Workspace,
+    requested: &[(Url, Vec<TextEdit>)],
+    roots: Vec<PathBuf>,
+) -> std::result::Result<Vec<EditedDoc>, (String, Option<Url>)> {
+    let mut docs = Vec::with_capacity(requested.len());
+    for ((uri, edits), root) in requested.iter().zip(roots) {
+        let text = ws
+            .buffer(uri)
+            .ok_or_else(|| ("document_not_open".to_string(), Some(uri.clone())))?;
+        let spans = resolve_text_edits(&text, edits).map_err(|reason| (reason, None))?;
+        docs.push(EditedDoc {
+            uri: uri.clone(),
+            root,
+            candidate: splice_text_edits(&text, &spans),
+            regions: edit_regions(&text, &spans),
+            text,
+        });
+    }
+    Ok(docs)
+}
+
+/// Every file's compiler list, by URI, over the projects `docs` live in, with
+/// the text of each non-empty one. A file two of those projects both hold
+/// gets both lists, so a diagnostic either project reports is judged.
+type ProjectLists = std::collections::BTreeMap<Url, (Vec<diagnostic::Diagnostic>, Option<String>)>;
+
+/// [`Workspace::project_diagnostics`] for every distinct project root among
+/// `docs`, merged by URI. Called with the workspace lock held.
+fn project_lists(ws: &mut Workspace, docs: &[EditedDoc]) -> ProjectLists {
+    let mut roots: Vec<&PathBuf> = docs.iter().map(|d| &d.root).collect();
+    roots.sort();
+    roots.dedup();
+    let mut out = ProjectLists::new();
+    for root in roots {
+        let also: Vec<Url> = docs
+            .iter()
+            .filter(|d| &d.root == root)
+            .map(|d| d.uri.clone())
+            .collect();
+        for (uri, list, text) in ws.project_diagnostics(root, &also) {
+            let slot = out.entry(uri).or_default();
+            slot.0.extend(list);
+            if slot.1.is_none() {
+                slot.1 = text;
+            }
+        }
+    }
+    out
 }
 
 /// One `TextEdit`'s edited region in the old text: `old[start..old_end]`
@@ -2235,6 +2383,22 @@ mod tests {
         let after = vec![gate_diag(source, 2, 4, "m"), gate_diag(source, 2, 4, "m")];
         let (introduced, preexisting) = split_introduced(&before, &[], after);
         assert_eq!((introduced.len(), preexisting.len()), (1, 1));
+    }
+
+    /// G310: a file the edit did not touch has the same text on both sides,
+    /// so its diagnostics are matched with no regions, on their exact
+    /// ranges. The same message at a different place in it is new: the edit
+    /// elsewhere in the project caused it, and the gate refuses it.
+    #[test]
+    fn the_gate_matches_an_untouched_file_on_exact_ranges() {
+        let source = "abcdefghij";
+        let before = [gate_diag(source, 2, 4, "m")];
+        let after = vec![gate_diag(source, 2, 4, "m"), gate_diag(source, 5, 7, "m")];
+        let (introduced, preexisting) = split_introduced(&before, &[], after);
+        let starts = |ds: &[diagnostic::Diagnostic]| -> Vec<u32> {
+            ds.iter().map(|d| d.range.start.offset).collect()
+        };
+        assert_eq!((starts(&introduced), starts(&preexisting)), (vec![5], vec![2]));
     }
 
     /// The regions of several edits shift a diagnostic by the deltas of the

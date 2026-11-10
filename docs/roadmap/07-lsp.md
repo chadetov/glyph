@@ -130,10 +130,11 @@ renaming (`$0`, `$1`, …) and the bidirectional text↔canonical *position* map
 
 ## Increment 7 (shipped): gated structured edit (Q29 reconciled)
 
-The custom LSP request `glyph/applyEdit` (`{ uri, edits: [TextEdit] }` →
-`{ ok, content, rejected, diagnostics, preexisting }`) applies a set of
-standard LSP text edits to an open document and accepts them only if the edit
-introduces no diagnostic. On success it returns the verified new text (the
+The custom LSP request `glyph/applyEdit` (`{ uri, edits: [TextEdit] }` or
+`{ changes: { <uri>: [TextEdit] } }` → `{ ok, content, contents, rejected,
+uri, diagnostics, preexisting, elsewhere }`) applies a set of standard LSP
+text edits to one or more open documents and accepts them only if the edit
+introduces no diagnostic anywhere in the project. On success it returns the verified new text (the
 caller applies it and syncs through the normal `didChange`); on rejection it
 changes nothing and returns, under `diagnostics`, what the edit would have
 introduced. Under `preexisting`, on both answers, are the diagnostics the
@@ -145,18 +146,36 @@ manifesto's verifiability pillar is for.
 … }` *source-level* block, which is on CLAUDE.md's abandoned "signature-rich
 direction" list. The shipped surface re-derives the idea in TS-family terms:
 the edit is plain `TextEdit`s (no new language syntax) and the verification is
-the compiler's own gate (the edited file's `glyph check --no-tsc --no-test`
-list, emitter included, since 0.1.132), not an
+the compiler's own gate (`glyph check --no-tsc --no-test`'s list for every
+module of the project, emitter included, since 0.1.133), not an
 in-source annotation. The edit set is applied atomically — overlapping or
 out-of-bounds ranges are rejected before anything is spliced.
 
-The gate compares the edited file's list only; an edit that breaks a module
-importing it is accepted. `glyph check` over the project is the authority until
-0.1.133 (G310).
+The gate's scope, since 0.1.133, is every module of the edited document's
+project (G310). A file's list depends on its siblings: renaming a `pub fn` a
+sibling calls is E0105 in the sibling, a field rename is E0210 in a module that
+reaches the record through another (D46), and deleting the last `import util`
+makes `util` draw E0112. Until 0.1.133 the gate compared the edited file's list
+only and accepted all three. Each other file's new and pre-existing diagnostics
+come back under `elsewhere: [{ uri, diagnostics, preexisting }]`, sorted by
+URI, in that file's own coordinates, for every file whose list after the edit
+is not empty. `ok` is true exactly when no file has a non-empty `diagnostics`.
+
+A rename across a module boundary cannot pass a project-scoped gate one file
+at a time, because each half breaks the other file. The `changes` form, LSP
+`WorkspaceEdit.changes`'s shape, checks several documents as one change: every
+candidate is swapped in, the project is read, and every buffer is swapped back,
+under one hold of the workspace lock. In that form `diagnostics` and
+`preexisting` are empty, every edited document is listed under `elsewhere`, and
+`contents` (by URI) replaces `content`. A request giving both forms, neither,
+or an empty `changes` is refused `invalid_params`; an edited document that is
+not open is refused `document_not_open` with its URI under `uri`.
 
 The gate's rule, since 0.1.132: the edit introduces no diagnostic, warnings
 included; diagnostics the file already had are returned under `preexisting`
-and do not refuse it. The list before the edit is mapped through it: each
+and do not refuse it. A file the edit did not touch has the same text on both
+sides, so its diagnostics are matched on their exact ranges. An edited file's
+list before the edit is mapped through it: each
 `TextEdit` is one region, shrunk by the common prefix and suffix of the text it
 replaced and its `newText`; a diagnostic the region overlaps or touches is
 dropped, one after it moves by its length change, and one that strictly

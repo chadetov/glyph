@@ -15,6 +15,16 @@
 //! literal rewritten. A comment moved somewhere that crosses no literal is
 //! outside it. The same property runs over the corpus and the seeds in
 //! `glyph-formatter/tests/format.rs`.
+//!
+//! JSX text is in the stream as the text it renders. It is not a token, so a
+//! stream of lexer tokens alone could not see a formatter that changed it,
+//! and saw a string child the formatter wrote in its place as a literal that
+//! had appeared from nowhere. Text and string children emit the same quoted
+//! string, so they compare the same here (record 84).
+//!
+//! Whether formatting changes the emitted TypeScript is the separate
+//! `format_preserves_emit` target. It runs the resolver and the checker on
+//! arbitrary input, and a panic there would hide every formatter check here.
 #![no_main]
 use libfuzzer_sys::fuzz_target;
 
@@ -30,10 +40,17 @@ enum StreamItem {
 /// Literal values and comment texts, in source order. Identifiers and
 /// punctuation are deliberately out: the formatter may add parentheses (G60) and
 /// reshuffles delimiters on every layout decision.
-fn stream(src: &str) -> Option<Vec<StreamItem>> {
+fn stream(src: &str, module: &glyph_ast::Module) -> Option<Vec<StreamItem>> {
     let tokens = glyph_lexer::tokenize(src).ok()?;
-    let mut items: Vec<(u32, StreamItem)> = Vec::new();
-    for t in &tokens {
+    let texts = glyph_ast::jsx_texts(module);
+    // Inside JSX text the lexer still reads words, quotes and `//` as tokens
+    // and comments, but none of them is one: the text is the item.
+    let in_text = |at: u32| texts.iter().any(|(span, _)| span.start <= at && at < span.end);
+    let mut items: Vec<(u32, StreamItem)> = texts
+        .iter()
+        .map(|(span, value)| (span.start, StreamItem::Str(blank_interpolations(value))))
+        .collect();
+    for t in tokens.iter().filter(|t| !in_text(t.span.start)) {
         let item = match &t.token {
             glyph_lexer::Token::Number(raw) => StreamItem::Number(raw.clone()),
             glyph_lexer::Token::String(value) => StreamItem::Str(blank_interpolations(value)),
@@ -43,7 +60,7 @@ fn stream(src: &str) -> Option<Vec<StreamItem>> {
         };
         items.push((t.span.start, item));
     }
-    for c in glyph_lexer::comments(src) {
+    for c in glyph_lexer::comments(src).iter().filter(|c| !in_text(c.span.start)) {
         items.push((c.span.start, StreamItem::Comment(c.text.clone())));
     }
     items.sort_by_key(|(start, _)| *start);
@@ -127,8 +144,8 @@ fuzz_target!(|data: &[u8]| {
 
     // Parsing succeeded, so the input lexed; if the output does not, the
     // formatter wrote something the lexer cannot read back.
-    let before = stream(src).expect("input parsed, so it lexes");
-    let Some(after) = stream(&once) else {
+    let before = stream(src, &module).expect("input parsed, so it lexes");
+    let Some(after) = stream(&once, &reparsed) else {
         panic!("formatter produced output that does not lex:\n{once}");
     };
     // Skipped rather than asserted when the input writes its annotations out of

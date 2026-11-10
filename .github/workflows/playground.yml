@@ -43,7 +43,7 @@ jobs:
         working-directory: glyph-compiler
 
       - name: Install wasm-bindgen-cli (matching the pinned crate version)
-        run: cargo install wasm-bindgen-cli --version 0.2.127 --locked
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
 
       - name: Build the playground wasm
         run: ./playground/build.sh

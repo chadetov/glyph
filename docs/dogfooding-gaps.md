@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-323 entries, 276 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-27 are open. G144, the D28 boundary cast that never reached the returns a
+324 entries, 276 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+28 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11802,10 +11802,37 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): `glyph fmt` on the program
   above writes `return a + 1 + 2` then `// add one` and `// and two`.*
 
-  Fixed in 0.1.133. A comment inside a binary expression breaks it, for any
-  operator and at any width, into the leading-operator layout `||` chains
-  already use, with the comment above the line of the operand that followed it.
-  A precedence group breaks on its own line under its operand, so the layout
-  still reads as the precedence. Every file the earlier formatter left alone is
-  still a fixed point (no fixed point of the old formatter has a comment inside
-  an operator expression), and `glyph fmt --check examples` is unchanged.
+  Fixed in 0.1.133. A comment in a gap between two operands breaks the
+  expression, for any operator and at any width, into the leading-operator
+  layout `||` chains already use, with the comment above the line of the
+  operand that followed it. A precedence group that breaks for a comment breaks
+  the expression around it too, so the layout still reads as the precedence. A
+  comment inside an operand (an argument list, a lambda body) belongs to that
+  construct and breaks nothing; the first version of this fix keyed on any
+  comment in the expression's span and reformatted 0.1.132 fixed points such as
+  `return 1 + g(\n    // c\n    2,\n  )`, which record 86 caught. Verified by
+  formatting the repo's 447 `.glyph` files with the published 0.1.132 and
+  running this build's `glyph fmt --check` over the result: all 429 that parse
+  are still fixed points.
+- **G324. `glyph fmt` moves a comment out of a member chain, an index, a unary
+  or `await` operand, a type annotation or a pattern path.** `return s\n
+  .trim()\n    // then count\n    .length` comes back as `return
+  s.trim().length` with the comment below the statement; `xs[\n    // the
+  index\n    i\n  ]` comes back as `xs[i]` with the comment below; `s\n    //
+  trim it\n    .trim()` puts the comment inside `trim()`'s empty argument list.
+  The same holds for `!` and `await` operands, a parameter's or a `let`'s type
+  annotation, a generic type argument and a qualified pattern path (`C.\n//
+  c\nRed`). Those printers write one line and never emit a comment, so it stays
+  pending until the next construct that does. Each result is a fixed point.
+  Found by the `format_idempotent` nightly after G323. A commented method chain
+  is a common style, which makes it the most urgent shape.
+
+  *Reproduced against 0.1.132 (the release build): the method-chain and index
+  programs above, one `glyph fmt` each.*
+
+  Planned (record 86): a member/call chain layout first, one segment per line
+  with the dot leading and a comment above its segment, keyed on the same gap
+  test as G323; then, in a release of its own, `glyph fmt` refuses a file whose
+  comment sits in a construct with no layout to hold it, naming the line, rather
+  than moving it. D14 is restated as that general guarantee when the refusal
+  lands.

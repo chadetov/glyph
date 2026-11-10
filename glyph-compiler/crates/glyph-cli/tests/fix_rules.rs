@@ -285,6 +285,155 @@ fn e0220_repairs_a_head_in_a_non_exhaustive_match_and_e0200_is_declined() {
     assert_eq!(code, 1, "{output}");
 }
 
+/// A string-literal union (D30) gets the same repair a tagged union does. The
+/// checker suggests `off` for `"of"` and the match's E0200 lists `off` as
+/// missing, so the rename is determined. The rule used to stop at the head,
+/// which it only knew how to read as a bare variant name, and say the head
+/// "is not a plain name": an agent got a decline for the one repair the
+/// compiler had fully worked out, and the reason it was given was wrong.
+#[test]
+fn e0220_renames_a_literal_head_to_the_value_the_match_is_missing() {
+    let dir = project(
+        "e0220lit",
+        "module main\n\
+         \n\
+         type Mode = \"manual\" | \"auto\" | \"off\"\n\
+         \n\
+         pub fn label(m: Mode) -> string {\n\
+         \x20 return match m {\n\
+         \x20   \"manual\" => \"M\",\n\
+         \x20   \"of\" => \"O\",\n\
+         \x20   \"auto\" => \"A\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let out = fix(&dir);
+    assert!(out.contains("applied E0220"), "{out}");
+    assert!(!out.contains("declined E0220"), "{out}");
+    let after = source_of(&dir);
+    assert!(
+        after.contains("\"off\" => \"O\","),
+        "the literal is rewritten with its quotes, and only the literal:\n{after}"
+    );
+    assert!(!after.contains("\"of\""), "{after}");
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "{output}\n{after}");
+}
+
+/// The suggestion is the value, not its spelling, so a value holding a quote is
+/// written back escaped. Put between bare quotes it would end the string early
+/// and the rewrite would not parse.
+#[test]
+fn e0220_writes_a_literal_suggestion_with_its_escapes() {
+    let dir = project(
+        "e0220litesc",
+        "module main\n\
+         \n\
+         type Quote = \"say \\\"hi\\\"\" | \"none\"\n\
+         \n\
+         pub fn label(q: Quote) -> string {\n\
+         \x20 return match q {\n\
+         \x20   \"say \\\"hj\\\"\" => \"S\",\n\
+         \x20   \"none\" => \"N\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let out = fix(&dir);
+    assert!(out.contains("applied E0220"), "{out}");
+    let after = source_of(&dir);
+    assert!(after.contains("\"say \\\"hi\\\"\" => \"S\","), "{after}");
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "{output}\n{after}");
+}
+
+/// With every value of the union named by another arm, nothing is missing and
+/// the checker suggests nothing (G305), so the rule has nothing to write and
+/// the misspelled arm stays for its author to delete or correct.
+#[test]
+fn e0220_declines_a_literal_head_when_every_value_is_already_matched() {
+    let before = "module main\n\
+                  \n\
+                  type Mode = \"manual\" | \"auto\" | \"off\"\n\
+                  \n\
+                  pub fn label(m: Mode) -> string {\n\
+                  \x20 return match m {\n\
+                  \x20   \"manual\" => \"M\",\n\
+                  \x20   \"of\" => \"O\",\n\
+                  \x20   \"auto\" => \"A\",\n\
+                  \x20   \"off\" => \"F\",\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0220litdup", before);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(!out.contains("applied E0220"), "{out}");
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+}
+
+/// With an `else` arm the match has no E0200: `off` is not missing, the `else`
+/// handles it. Renaming `"of"` to `"off"` would compile and quietly move `off`
+/// out of the `else` into an arm written for a different value, which is a
+/// change of behaviour the compiler did not determine, so the rule declines.
+/// The reason has to be the true one. It used to say the other arms already
+/// cover every case and the rename would be unreachable (E0305), which is
+/// false here and sends the reader looking for a duplicate arm that is not
+/// there.
+#[test]
+fn e0220_declines_a_literal_head_when_an_else_arm_handles_the_suggestion() {
+    let before = "module main\n\
+                  \n\
+                  type Mode = \"manual\" | \"auto\" | \"off\"\n\
+                  \n\
+                  pub fn label(m: Mode) -> string {\n\
+                  \x20 return match m {\n\
+                  \x20   \"manual\" => \"M\",\n\
+                  \x20   \"of\" => \"O\",\n\
+                  \x20   else => \"A\",\n\
+                  \x20 }\n\
+                  }\n";
+    let dir = project("e0220litelse", before);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(!out.contains("applied E0220"), "{out}");
+    assert!(
+        out.contains("`else` arm") && out.contains("`off`"),
+        "the decline names the arm that handles `off` now:\n{out}"
+    );
+    assert!(
+        !out.contains("already cover every case") && !out.contains("E0305"),
+        "the rename would not be unreachable, so the decline must not say it is:\n{out}"
+    );
+    assert_eq!(source_of(&dir), before, "the file is untouched");
+}
+
+/// The union in another module, reached through a namespace import, takes the
+/// same repair: the import spelling does not change what the match is missing.
+#[test]
+fn e0220_renames_a_literal_head_over_a_namespace_imported_union() {
+    let modes = "module modes\n\
+                 \n\
+                 pub type Mode = \"manual\" | \"auto\" | \"off\"\n";
+    let main = "module main\n\
+                import modes as md\n\
+                \n\
+                pub fn label(m: md.Mode) -> string {\n\
+                \x20 return match m {\n\
+                \x20   \"manual\" => \"M\",\n\
+                \x20   \"of\" => \"O\",\n\
+                \x20   \"auto\" => \"A\",\n\
+                \x20 }\n\
+                }\n";
+    let dir = project_modules("e0220litns", &[("modes.glyph", modes), ("main.glyph", main)]);
+    assert_eq!(check(&dir).0, 1, "the fixture starts wrong");
+    let out = fix(&dir);
+    assert!(out.contains("applied E0220"), "{out}");
+    let after = source_of_module(&dir, "main.glyph");
+    assert!(after.contains("\"off\" => \"O\","), "{after}");
+    assert_eq!(source_of_module(&dir, "modes.glyph"), modes, "the union's module is untouched");
+    let (code, output) = check(&dir);
+    assert_eq!(code, 0, "{output}\n{after}");
+}
+
 // ---------------------------------------------------------------------------
 // E0210
 // ---------------------------------------------------------------------------

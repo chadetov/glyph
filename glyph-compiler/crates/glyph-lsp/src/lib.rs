@@ -1864,30 +1864,31 @@ fn map_through_regions(regions: &[EditRegion], start: usize, end: usize) -> Opti
 /// The lexer's message embeds the error's byte offset (`lex error: ... at
 /// offset N`, `glyph_lexer::LexError`), the one message in the catalogue that
 /// carries a source position. When `N` is the diagnostic's own start, the
-/// mapped message says the mapped start; an edit that moved the error would
+/// mapped subject says the mapped start; an edit that moved the error would
 /// otherwise make it look new. An offset counted from somewhere else (an
 /// interpolation's interior) is left as written.
-fn map_message_offset(d: &diagnostic::Diagnostic, mapped_start: usize) -> String {
+fn mapped_subject(d: &diagnostic::Diagnostic, mapped_start: usize) -> String {
     const AT: &str = " at offset ";
+    let subject = d.subject();
     if d.code != "E0001" {
-        return d.message.clone();
+        return subject.to_string();
     }
-    let Some(at) = d.message.rfind(AT) else {
-        return d.message.clone();
+    let Some(at) = subject.rfind(AT) else {
+        return subject.to_string();
     };
     let digits_start = at + AT.len();
-    let digits_len = d.message[digits_start..]
+    let digits_len = subject[digits_start..]
         .bytes()
         .take_while(u8::is_ascii_digit)
         .count();
-    let digits = &d.message[digits_start..digits_start + digits_len];
+    let digits = &subject[digits_start..digits_start + digits_len];
     if digits.parse::<u32>().ok() != Some(d.range.start.offset) {
-        return d.message.clone();
+        return subject.to_string();
     }
     format!(
         "{}{mapped_start}{}",
-        &d.message[..digits_start],
-        &d.message[digits_start + digits_len..]
+        &subject[..digits_start],
+        &subject[digits_start + digits_len..]
     )
 }
 
@@ -1898,15 +1899,22 @@ fn map_message_offset(d: &diagnostic::Diagnostic, mapped_start: usize) -> String
 /// edit's `regions`; one the edit overlaps or touches is dropped, because the
 /// text it was about is now the edit's, and one that strictly encloses a
 /// region keeps its start and stretches its end. A candidate diagnostic is already
-/// there when an unused mapped one has the same code, severity, message, help
-/// and range: a multiset match, so two identical diagnostics need two
-/// before. Everything else, a changed message included, is introduced.
+/// there when an unused mapped one has the same code, severity, subject and
+/// range: a multiset match, so two identical diagnostics need two before.
+/// Everything else, a changed subject included, is introduced.
+///
+/// The file is the list's own, so the identity is (file, code, severity,
+/// range, subject), one key for an edited file and an untouched one (review
+/// 88, 4b). The subject is the message without its suggestion
+/// ([`diagnostic::Diagnostic::subject`]): an edit to a sibling that rewrites
+/// E0105's export list or E0210's nearest field leaves the defect where it
+/// was. `help` is advice and is never part of the identity.
 fn split_introduced(
     before: &[diagnostic::Diagnostic],
     regions: &[EditRegion],
     after: Vec<diagnostic::Diagnostic>,
 ) -> (Vec<diagnostic::Diagnostic>, Vec<diagnostic::Diagnostic>) {
-    type Key<'a> = (&'a str, &'a str, String, Option<&'a str>, usize, usize);
+    type Key<'a> = (&'a str, &'a str, String, usize, usize);
     let mut mapped: Vec<Option<Key>> = before
         .iter()
         .filter_map(|d| {
@@ -1918,8 +1926,7 @@ fn split_introduced(
             Some(Some((
                 d.code.as_str(),
                 d.severity.as_str(),
-                map_message_offset(d, s),
-                d.help.as_deref(),
+                mapped_subject(d, s),
                 s,
                 e,
             )))
@@ -1931,8 +1938,7 @@ fn split_introduced(
         let key: Key = (
             d.code.as_str(),
             d.severity.as_str(),
-            d.message.clone(),
-            d.help.as_deref(),
+            d.subject().to_string(),
             d.range.start.offset as usize,
             d.range.end.offset as usize,
         );

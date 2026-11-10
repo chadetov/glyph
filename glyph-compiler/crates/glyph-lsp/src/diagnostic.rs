@@ -171,6 +171,14 @@ pub struct Diagnostic {
     /// `null` for a `tsc` passthrough code, which has no Glyph documentation.
     #[serde(default)]
     pub explain: Option<ExplainPointer>,
+    /// The message with its suggestion left out, when the message carries
+    /// one; `None` when the message is its own subject (see `subject`).
+    ///
+    /// Never serialized: `glyph check --json` and the MCP tool report the
+    /// message, and this exists for one reader, the `glyph/applyEdit` gate,
+    /// which computes it fresh on both sides of an edit.
+    #[serde(skip)]
+    pub subject: Option<String>,
 }
 
 /// Where to read a diagnostic code's explanation.
@@ -301,7 +309,29 @@ impl Diagnostic {
             alternatives_kind: None,
             related: None,
             explain: explain_pointer(code),
+            subject: None,
         }
+    }
+
+    /// What this diagnostic says is wrong, without what it suggests doing
+    /// about it: the message rendered with its suggestion fields cleared
+    /// (review 88, 4b).
+    ///
+    /// A suggestion is computed from another declaration, often in another
+    /// file: E0105 lists the exports of the module it imports from, E0210
+    /// names the record's nearest field. An edit to that other file rewrites
+    /// the suggestion and leaves the defect where it was, so the gate, which
+    /// asks whether a diagnostic is the same one it saw before the edit,
+    /// compares subjects. What the defect itself lists (the variants an
+    /// E0200 misses) is not a suggestion and stays in the subject.
+    pub fn subject(&self) -> &str {
+        self.subject.as_deref().unwrap_or(&self.message)
+    }
+
+    /// Attach the subject, when the message carries a suggestion.
+    fn with_subject(mut self, subject: Option<String>) -> Self {
+        self.subject = subject;
+        self
     }
 
     /// Attach the union this diagnostic concerns and the variants it reports
@@ -424,6 +454,7 @@ pub fn from_resolve_error(
         err.alternatives_kind(),
         None,
     )
+    .with_subject(resolve_subject(err))
 }
 
 pub fn from_type_error(
@@ -474,6 +505,109 @@ pub fn from_type_error(
         err.related(),
     )
     .missing_fields(err.missing_fields().map(<[String]>::to_vec))
+    .with_subject(type_subject(err))
+}
+
+/// The resolver errors whose message carries a suggestion: a field the
+/// message renders that names a fix rather than the defect. The enumeration
+/// test reads the resolver's source and fails when a variant with a
+/// suggestion field is missing here.
+pub const RESOLVE_SUGGESTION_VARIANTS: &[&str] = &["UnknownStdModule", "UnknownExportedName"];
+
+/// The checker's counterpart of [`RESOLVE_SUGGESTION_VARIANTS`].
+pub const TYPE_SUGGESTION_VARIANTS: &[&str] =
+    &["UnknownField", "UnknownVariantPattern", "UnknownLiteralPattern"];
+
+/// `err`'s message rendered with its suggestion cleared, or `None` when it
+/// carries no suggestion and the message is its own subject.
+///
+/// The match names every variant, with no `_` arm, so a new variant cannot
+/// compile until someone decides whether its message carries a suggestion.
+fn resolve_subject(err: &ResolveError) -> Option<String> {
+    use ResolveError as R;
+    match err {
+        R::UnknownStdModule { suggestion, .. } | R::UnknownExportedName { suggestion, .. } => {
+            if suggestion.is_empty() {
+                return None;
+            }
+            let mut bare = err.clone();
+            if let R::UnknownStdModule { suggestion, .. } | R::UnknownExportedName { suggestion, .. } =
+                &mut bare
+            {
+                suggestion.clear();
+            }
+            Some(bare.to_string())
+        }
+        R::DuplicateName { .. }
+        | R::RelativeImport { .. }
+        | R::ReservedModulePrefix { .. }
+        | R::BarrelFile { .. }
+        | R::UnresolvedName { .. }
+        | R::UnresolvedModule { .. }
+        | R::UnusedImport { .. }
+        | R::UnusedBinding { .. }
+        | R::UnreachableCode { .. }
+        | R::ReservedWordName { .. }
+        | R::ShadowedGlobalName { .. }
+        | R::PrimitiveUnionType { .. }
+        | R::NoExportSurface { .. } => None,
+    }
+}
+
+/// The checker's counterpart of [`resolve_subject`], under the same rule: no
+/// `_` arm.
+fn type_subject(err: &TypeError) -> Option<String> {
+    use TypeError as T;
+    match err {
+        T::UnknownField { suggestion, .. }
+        | T::UnknownVariantPattern { suggestion, .. }
+        | T::UnknownLiteralPattern { suggestion, .. } => {
+            suggestion.as_ref()?;
+            let mut bare = err.clone();
+            if let T::UnknownField { suggestion, .. }
+            | T::UnknownVariantPattern { suggestion, .. }
+            | T::UnknownLiteralPattern { suggestion, .. } = &mut bare
+            {
+                *suggestion = None;
+            }
+            Some(bare.to_string())
+        }
+        T::NonExhaustiveMatch { .. }
+        | T::QuestionOutsideResultFn { .. }
+        | T::QuestionOnNonResult { .. }
+        | T::QuestionErrorTypeMismatch { .. }
+        | T::TypeMismatch { .. }
+        | T::OwnedRequiresResourceType { .. }
+        | T::MutAcrossAwait { .. }
+        | T::OwnedNotConsumed { .. }
+        | T::OwnedUsedAfterMove { .. }
+        | T::NonExhaustiveArrayMatch { .. }
+        | T::MapFieldAccess { .. }
+        | T::ArgumentTypeMismatch { .. }
+        | T::ArgumentCountMismatch { .. }
+        | T::TypeArgumentCountMismatch { .. }
+        | T::UncalledBuiltinMethod { .. }
+        | T::MutateConst { .. }
+        | T::NonExhaustiveBoolMatch { .. }
+        | T::NonExhaustiveValueMatch { .. }
+        | T::UnseenMatchType { .. }
+        | T::NonExhaustiveFieldMatch { .. }
+        | T::NullableNested { .. }
+        | T::NullableRead { .. }
+        | T::TypeNameAsValue { .. }
+        | T::RedactUnknownField { .. }
+        | T::UnknownAnnotation { .. }
+        | T::ComponentMultipleParams { .. }
+        | T::ComponentParamNotRecord { .. }
+        | T::OwnedAliased { .. }
+        | T::UnreachableMatchArm { .. }
+        | T::UnusedResult { .. }
+        | T::AwaitOutsideAsyncFn { .. }
+        | T::MatchArmProducesNoValue { .. }
+        | T::DestructureUnproven { .. }
+        | T::PatternNotRecord { .. }
+        | T::CaseBind { .. } => None,
+    }
 }
 
 pub fn from_emit_error(
@@ -733,6 +867,7 @@ pub fn project_file_diagnostics_through(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
 
     #[test]
     fn pos_of_computes_line_and_col() {
@@ -1311,5 +1446,161 @@ mod tests {
             .find(|e| e.code() == "E0200")
             .unwrap_or_else(|| panic!("expected E0200: {errors:?}"));
         from_type_error(module_path, src, err, &module)
+    }
+
+    /// The variants of `enum_name` in the source file at `path` (relative to
+    /// this crate) whose message carries a suggestion: a field named for one
+    /// (`suggestion`, `nearest`) or an `#[error]` that says "did you mean".
+    ///
+    /// Read from the source rather than from a list someone keeps, so a
+    /// variant added with a suggestion field and no subject handling fails
+    /// the test below. A tuple variant has no field names and is not caught;
+    /// none of these enums uses one for a suggestion.
+    fn suggestion_variants_in(path: &str, enum_name: &str) -> BTreeSet<String> {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
+        let src = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        let header = format!("pub enum {enum_name} {{");
+        let start = src.find(&header).unwrap_or_else(|| panic!("no `{header}` in {}", path.display()));
+        let body = &src[start + header.len()..];
+        let body = &body[..body.find("\n}\n").expect("the enum's closing brace")];
+        let mut found = BTreeSet::new();
+        let mut current: Option<String> = None;
+        let mut attrs = String::new();
+        for line in body.lines() {
+            let trimmed = line.trim_start();
+            if trimmed.starts_with("//") {
+                continue;
+            }
+            let indent = line.len() - trimmed.len();
+            if indent == 4 && trimmed.starts_with(|c: char| c.is_ascii_uppercase()) {
+                let name: String = trimmed.chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+                if attrs.contains("did you mean") {
+                    found.insert(name.clone());
+                }
+                attrs.clear();
+                current = Some(name);
+                continue;
+            }
+            if indent == 4 {
+                attrs.push_str(trimmed);
+                continue;
+            }
+            let field = trimmed.split(':').next().unwrap_or_default();
+            let names_a_suggestion = trimmed.contains(':')
+                && field.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+                && (field.contains("suggest") || field.contains("nearest"));
+            if names_a_suggestion {
+                if let Some(name) = &current {
+                    found.insert(name.clone());
+                }
+            } else {
+                attrs.push_str(trimmed);
+            }
+        }
+        found
+    }
+
+    fn names(list: &[&str]) -> BTreeSet<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// Review 88, 4b: every error variant whose message carries a suggestion
+    /// has its subject handled. The lists `resolve_subject` and
+    /// `type_subject` clear are the lists the error enums' own source says
+    /// carry one, and the stages whose conversion computes no subject (the
+    /// lexer, the parser, the emitter) carry none.
+    #[test]
+    fn every_suggestion_bearing_variant_has_a_subject() {
+        let cases: [(&str, &str, BTreeSet<String>); 5] = [
+            ("../glyph-resolver/src/error.rs", "ResolveError", names(RESOLVE_SUGGESTION_VARIANTS)),
+            ("../glyph-typechecker/src/lib.rs", "TypeError", names(TYPE_SUGGESTION_VARIANTS)),
+            ("../glyph-emit/src/lib.rs", "EmitError", BTreeSet::new()),
+            ("../glyph-parser/src/error.rs", "ParseError", BTreeSet::new()),
+            ("../glyph-lexer/src/error.rs", "LexError", BTreeSet::new()),
+        ];
+        for (path, enum_name, handled) in cases {
+            assert_eq!(
+                suggestion_variants_in(path, enum_name),
+                handled,
+                "`{enum_name}`: a variant whose message carries a suggestion needs its subject \
+                 computed in `diagnostic.rs` (review 88, 4b)"
+            );
+        }
+    }
+
+    /// Each listed variant, rendered with and without its suggestion. With
+    /// one, the subject is the message the variant gives with none; without
+    /// one, there is nothing to clear and the subject is the message. In both
+    /// the message itself, what `glyph check` prints, is untouched.
+    #[test]
+    fn a_subject_is_the_message_without_its_suggestion() {
+        let span = Span::new(0, 1);
+        let resolve = |suggestion: &str| {
+            [
+                ResolveError::UnknownStdModule {
+                    path: "std/sokcet".into(),
+                    suggestion: suggestion.into(),
+                    span,
+                },
+                ResolveError::UnknownExportedName {
+                    name: "zzz".into(),
+                    module: "orders".into(),
+                    suggestion: suggestion.into(),
+                    exports: vec!["create".into()],
+                    span,
+                },
+            ]
+        };
+        let types = |suggestion: Option<&str>| {
+            [
+                TypeError::UnknownField {
+                    field: "nmae".into(),
+                    type_name: "User".into(),
+                    second_name_for: None,
+                    fields: vec!["name".into()],
+                    record: None,
+                    builtin: None,
+                    suggestion: suggestion.map(str::to_string),
+                    span,
+                },
+                TypeError::UnknownVariantPattern {
+                    union: "Color".into(),
+                    name: "Rde".into(),
+                    suggestion: suggestion.map(str::to_string),
+                    span,
+                },
+                TypeError::UnknownLiteralPattern {
+                    union: "Mode".into(),
+                    value: "manuel".into(),
+                    suggestion: suggestion.map(str::to_string),
+                    span,
+                },
+            ]
+        };
+        let src = "x";
+        let module = glyph_parser::parse("module main\n").expect("parses");
+        let mut seen = BTreeSet::new();
+        for (with, without) in resolve(" (did you mean `x`?)").iter().zip(resolve("")) {
+            let d = from_resolve_error("main", src, with, &module);
+            assert_eq!(d.message, with.to_string());
+            assert_eq!(d.subject(), without.to_string(), "{with:?}");
+            assert_ne!(d.subject(), d.message);
+            let bare = from_resolve_error("main", src, &without, &module);
+            assert_eq!((bare.subject.as_deref(), bare.subject()), (None, bare.message.as_str()));
+            seen.insert(format!("{with:?}").split([' ', '{']).next().unwrap_or_default().to_string());
+        }
+        assert_eq!(seen, names(RESOLVE_SUGGESTION_VARIANTS));
+        let mut seen = BTreeSet::new();
+        for (with, without) in types(Some("x")).iter().zip(types(None)) {
+            let d = from_type_error("main", src, with, &module);
+            assert_eq!(d.message, with.to_string());
+            assert_eq!(d.subject(), without.to_string(), "{with:?}");
+            assert_ne!(d.subject(), d.message);
+            let bare = from_type_error("main", src, &without, &module);
+            assert_eq!((bare.subject.as_deref(), bare.subject()), (None, bare.message.as_str()));
+            seen.insert(format!("{with:?}").split([' ', '{']).next().unwrap_or_default().to_string());
+        }
+        assert_eq!(seen, names(TYPE_SUGGESTION_VARIANTS));
     }
 }

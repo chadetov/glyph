@@ -314,8 +314,13 @@ json.discriminant(value: unknown, field: string) -> Option<string>  // read a st
 `import std/json { parse }` then `parse<T>`. The two compile to the same check.
 
 - A record or union is checked by its `T.schema`, and an `Array` of one (or an
-  alias of that `Array`, `type Rows = Array<Row>`, declared here or imported) by
-  `T.schema.array()`, so a failure reports the field's path (`2.port`).
+  alias of that `Array`, `type Rows = Array<Row>`) by `T.schema.array()`, so a
+  failure reports the field's path (`2.port`). An alias imported from another
+  module validates when its body names only types that module declares and
+  exports. A body that names a type the module imports, keeps private or
+  applies as a generic is E0304 for now; following it into the declaring module
+  is planned for 0.1.139. Those names are never read in your module's scope,
+  where a type of the same name would be the wrong one.
 - Any other `T` (`number`, `int`, a string-literal union, `Option<User>`,
   `Nullable<User>`, `Record<string, int>`) gets the check a record field of that
   type gets. `json.parse<int>("2.5")` is an `Err`. A container of `unknown` is
@@ -323,8 +328,12 @@ json.discriminant(value: unknown, field: string) -> Option<string>  // read a st
 - If `T` is a record with a field that has no runtime check (an `extern_ts`
   type, a host handle), or contains one, the call is E0304, as `T.parse` is.
 - If `T` itself has no runtime check (a type parameter, an `extern_ts` type, a
-  package type), the call is E0304 too. Take a `Schema<T>` and call
-  `json.parse_with(text, schema)` instead.
+  package type, an interface, `Result`, a generic tagged union, or an `Option`,
+  `Nullable` or `Record` of one), the call is E0304 too, and the note names
+  which. Take a `Schema<T>` and call `json.parse_with(text, schema)` instead.
+- `json.parse` validates only where it is called by name. A `json.parse` value
+  (`let p = json.parse`) takes no type arguments, which is E0233, and returns
+  `unknown`.
 
 `json.parse(text)` with no type argument returns `Result<unknown, Array<Issue>>`
 and checks nothing beyond the JSON syntax; `json.parse<unknown>` is the same

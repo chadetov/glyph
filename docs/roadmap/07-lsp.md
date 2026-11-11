@@ -182,11 +182,17 @@ dropped, one after it moves by its length change, and one that strictly
 encloses it (starts before it and ends after it, like an E0200 over the whole
 `match` whose arm the edit changed) keeps its start while its end moves by the
 length change. A candidate diagnostic
-with the same code, severity, message, help and range as an unmatched mapped
-one is preexisting; any other is the edit's. So an error left in text the edit
-rewrote is the edit's own, a message that changed (a `match` now missing two
-variants instead of one) is new, and an error that a fixed parse error used to
-hide is new too. The verdict depends on how wide the edit is: replacing only
+with the same code, severity, subject and range as an unmatched mapped one is
+preexisting; any other is the edit's. The subject is the message with its
+suggestion cleared: E0105's "(exports: …)" and "(did you mean …)", and the
+"; did you mean …" of E0210, E0220 and the literal-value error. `help` is not
+part of it. Without that, adding an export to a module, or a field to a
+record, changed the suggestion in another file's existing error and the edit
+was refused for an error it did not cause (record 88). So an error left in
+text the edit rewrote is the edit's own, a defect that changed (a `match` now
+missing two variants instead of one) is new, and an error that a fixed parse
+error used to hide is new too. The same key applies to every file of the
+project the gate checks. The verdict depends on how wide the edit is: replacing only
 the `2` in an existing `hello(2)` arity error leaves it preexisting, while the
 same result sent as an edit that reaches the diagnostic's edge is refused with
 it. That errs toward refusing, so an agent sending whole-line edits should

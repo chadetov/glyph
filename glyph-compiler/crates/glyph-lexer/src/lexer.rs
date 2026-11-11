@@ -8,6 +8,10 @@ use crate::{Comment, Span};
 
 /// Public entry point: tokenize a source string into a vector of `Spanned<Token>`,
 /// ending with `Token::Eof`. Errors return on the first lexical failure.
+///
+/// This is the eager form of the same lexer the parser pulls from one token
+/// at a time: it is a loop over [`Lexer::next_token`], so the two cannot
+/// produce different streams.
 pub fn tokenize(source: &str) -> Result<Vec<Spanned<Token>>, LexError> {
     Lexer::new(source).tokenize_all()
 }
@@ -20,12 +24,23 @@ pub fn comments(source: &str) -> Vec<Comment> {
     let mut lexer = Lexer::new(source);
     loop {
         match lexer.next_token() {
-            Ok(Some(s)) if matches!(s.token, Token::Eof) => break,
+            Ok(s) if matches!(s.token, Token::Eof) => break,
             Ok(_) => {}
             Err(_) => break,
         }
     }
     lexer.comments
+}
+
+/// Everything the lexer carries from one token to the next, apart from its
+/// byte offset. Saved after a token, it is what [`Lexer::at`] needs to resume
+/// lexing exactly where that token ended and produce the same tokens the
+/// uninterrupted lexer would have.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct LexState {
+    /// Open `(`, `[` and `{` not yet closed. A newline is a token only at
+    /// depth 0 (D1).
+    pub bracket_depth: u32,
 }
 
 pub struct Lexer<'a> {
@@ -37,32 +52,57 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(source: &'a str) -> Self {
+        Self::at(source, 0, LexState::default())
+    }
+
+    /// A lexer that starts at byte `offset` of `source` in `state`. Given the
+    /// end of a token and the [`LexState`] the lexer was in after producing
+    /// it, the tokens that follow are the ones lexing from the start of the
+    /// file would have produced. Comments are collected from `offset` on.
+    pub fn at(source: &'a str, offset: usize, state: LexState) -> Self {
         Self {
             source,
-            pos: 0,
-            bracket_depth: 0,
+            pos: offset.min(source.len()),
+            bracket_depth: state.bracket_depth,
             comments: Vec::new(),
+        }
+    }
+
+    /// The state after the last token produced, to resume from with
+    /// [`Lexer::at`] at that token's end.
+    pub fn state(&self) -> LexState {
+        LexState {
+            bracket_depth: self.bracket_depth,
         }
     }
 
     pub fn tokenize_all(mut self) -> Result<Vec<Spanned<Token>>, LexError> {
         let mut out = Vec::new();
         loop {
-            match self.next_token()? {
-                Some(spanned) => {
-                    let is_eof = matches!(spanned.token, Token::Eof);
-                    out.push(spanned);
-                    if is_eof {
-                        break;
-                    }
-                }
-                None => continue,
+            let spanned = self.next_token()?;
+            let is_eof = matches!(spanned.token, Token::Eof);
+            out.push(spanned);
+            if is_eof {
+                break;
             }
         }
         Ok(out)
     }
 
-    fn next_token(&mut self) -> Result<Option<Spanned<Token>>, LexError> {
+    /// The next token, skipping whitespace, comments and newlines that are
+    /// not significant. At the end of the source this returns `Token::Eof`,
+    /// and keeps returning it. After an error the lexer's position is
+    /// unspecified and it should not be asked for more.
+    pub fn next_token(&mut self) -> Result<Spanned<Token>, LexError> {
+        loop {
+            if let Some(spanned) = self.next_raw()? {
+                return Ok(spanned);
+            }
+        }
+    }
+
+    /// One step: a token, or `None` when the step only skipped something.
+    fn next_raw(&mut self) -> Result<Option<Spanned<Token>>, LexError> {
         self.skip_inline_whitespace();
 
         let start = self.pos;

@@ -130,6 +130,142 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 
+/// Why a type has no runtime check, so E0304 names the fact it rests on.
+/// The refusal is one rule (a boundary that reports success must have
+/// checked what it claims); the reasons a type cannot be checked are
+/// several, and a note that named one of them for all of them sent a reader
+/// looking for a type parameter in a program that had none.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NoCheckCause {
+    /// A type the compiler cannot see into: a type parameter, erased at run
+    /// time, or an `extern_ts` or package type, which is TypeScript's.
+    Opaque,
+    /// An interface: it emits as a TypeScript `interface`, with no value
+    /// behind it to check a document with.
+    Interface,
+    /// The prelude `Result`: nothing checks a value against its layout.
+    Result,
+    /// A generic tagged union: only a generic record carries a descriptor.
+    GenericUnion,
+    /// A name in the body of an alias another module exports, which the
+    /// check would have to read somewhere other than that module's own
+    /// exports. Boxed so an `EmitError` carrying it stays small.
+    SiblingAlias(Box<SiblingAliasName>),
+}
+
+/// The name [`NoCheckCause::SiblingAlias`] is about.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SiblingAliasName {
+    /// The alias whose body holds the name.
+    pub alias: String,
+    /// The module that declares the alias.
+    pub module: String,
+    /// The name as the body spells it (`User`, `u.User`).
+    pub name: String,
+    pub reach: SiblingReach,
+}
+
+/// What the name in a sibling alias's body is, in the sibling's own scope,
+/// when it is not a type the sibling declares and exports.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SiblingReach {
+    /// The sibling imports it from a third module.
+    Imported,
+    /// The sibling declares it without `pub`.
+    Private,
+    /// A generic type the sibling declares and applies in the body.
+    Generic,
+}
+
+impl NoCheckCause {
+    /// For a sibling alias: what its body names, and what the compiler does
+    /// not do with it yet, as two halves of one sentence.
+    fn sibling_clause(&self) -> Option<(String, &'static str)> {
+        let NoCheckCause::SiblingAlias(sibling) = self else {
+            return None;
+        };
+        let SiblingAliasName { alias, module, name, reach } = sibling.as_ref();
+        Some(match reach {
+            SiblingReach::Imported => (
+                format!("`{alias}`'s body names `{name}`, which `{module}` imports"),
+                "does not yet follow an alias across a second module",
+            ),
+            SiblingReach::Private => (
+                format!("`{alias}`'s body names `{name}`, which `{module}` declares without `pub`"),
+                "reads a sibling alias only through the types its module exports",
+            ),
+            SiblingReach::Generic => (
+                format!("`{alias}`'s body names the generic `{name}`"),
+                "does not yet follow a generic type through a sibling alias",
+            ),
+        })
+    }
+}
+
+/// The E0304 message for `json.parse<T>`.
+fn json_parse_message(type_name: &str, cause: &NoCheckCause) -> String {
+    match cause.sibling_clause() {
+        Some((names, limit)) => {
+            format!("cannot validate `{type_name}`: {names}; `json.parse` {limit}")
+        }
+        None => format!(
+            "cannot validate `{type_name}`: `json.parse<{type_name}>` has no runtime check to run for it"
+        ),
+    }
+}
+
+/// The E0304 message for `parse`/`is`/`schema` on a record, or
+/// `json.parse<T>` of one, with a field that has no check.
+fn descriptor_use_message(
+    type_name: &str,
+    field: &str,
+    field_ty: &str,
+    cause: &NoCheckCause,
+) -> String {
+    match cause.sibling_clause() {
+        Some((names, limit)) => format!(
+            "cannot validate `{type_name}`: field `{field}` has type `{field_ty}`, and {names}; a descriptor {limit}"
+        ),
+        None => format!(
+            "cannot validate `{type_name}`: field `{field}` has type `{field_ty}`, which has no runtime check"
+        ),
+    }
+}
+
+// The E0304 notes, one sentence per cause, after a lead naming the claim
+// being refused. Macros rather than consts so `concat!` can join them into
+// the `&'static str` a note is.
+macro_rules! json_parse_note_lead {
+    () => {
+        "`json.parse<T>` validates the document against `T` and returns `Ok` only when it matches, so `T` needs a runtime check. "
+    };
+}
+macro_rules! descriptor_use_note_lead {
+    () => {
+        "`parse`/`is`/`schema` on a record, and `json.parse<T>` of one, report every field checked, so each field's type needs a runtime check. "
+    };
+}
+macro_rules! interface_note {
+    () => {
+        "Here an interface has no descriptor: it emits as a TypeScript `interface`, with no value behind it to check a document with. A record with the same fields has one."
+    };
+}
+macro_rules! result_note {
+    () => {
+        "Here `Result` has no runtime check: nothing checks a value against its `Ok`/`Err` layout. Parse the payload's type and build the `Result` from what comes back."
+    };
+}
+macro_rules! generic_union_note {
+    () => {
+        "Here a generic union has no descriptor: only a generic record carries one. A union with no type parameters, or a record, can be checked."
+    };
+}
+macro_rules! sibling_alias_note {
+    () => {
+        "An alias imported from another module is read in the module that declares it, and its body is followed only through the types that module declares and exports. A name that module imports, a type it keeps private, and a generic type it applies are not followed yet. Parse a type written in this module that names the record directly, imported from the module that declares it, or export the private type."
+    };
+}
+
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum EmitError {
     /// A construct whose emission lands in a later week-4 day. Carries the
@@ -164,11 +300,12 @@ pub enum EmitError {
     /// The descriptor used to emit a branch that could never fire, under a
     /// message naming the type it never checked, so `parse` reported success
     /// for a value it had not validated.
-    #[error("cannot validate `{type_name}`: field `{field}` has type `{field_ty}`, which has no runtime check")]
+    #[error("{}", descriptor_use_message(type_name, field, field_ty, cause))]
     UnverifiableDescriptorUse {
         type_name: String,
         field: String,
         field_ty: String,
+        cause: NoCheckCause,
         span: Span,
     },
     /// `json.parse<T>(text)` where `T` itself has no runtime check: a type
@@ -177,8 +314,8 @@ pub enum EmitError {
     /// record in between. The call used to lower to the casting `parse<T>`,
     /// which returns `Ok` on any document: a cast spelled as a type argument,
     /// where the type argument reads as the thing that was checked.
-    #[error("cannot validate `{type_name}`: `json.parse<{type_name}>` has no runtime check to run for it")]
-    UnverifiableJsonParse { type_name: String, span: Span },
+    #[error("{}", json_parse_message(type_name, cause))]
+    UnverifiableJsonParse { type_name: String, cause: NoCheckCause, span: Span },
     /// Two arms of one `match` lowered to the same `case` label. JavaScript
     /// accepts that switch and runs the first label for every value, so the
     /// later arm is dead code and the earlier one silently answers in its
@@ -274,12 +411,20 @@ impl EmitError {
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Two arms testing the same tag lower to two `case` labels in one `switch`, which JavaScript runs as first-one-wins. The compiler refuses to emit that rather than shipping a switch whose second label is unreachable.",
             ),
-            EmitError::UnverifiableDescriptorUse { .. } => Some(
-                "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is`/`schema` on it, and `json.parse<T>` with it as `T`, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
-            ),
-            EmitError::UnverifiableJsonParse { .. } => Some(
-                "`json.parse<T>` validates the document against `T` and returns `Ok` only when it matches, so a `T` with no runtime check cannot be its type argument: a type parameter is erased at run time, and an `extern_ts` or package type is a TypeScript type the compiler cannot see into. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error.",
-            ),
+            EmitError::UnverifiableDescriptorUse { cause, .. } => Some(match cause {
+                NoCheckCause::Opaque => "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is`/`schema` on it, and `json.parse<T>` with it as `T`, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
+                NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
+                NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
+                NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
+                NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
+            }),
+            EmitError::UnverifiableJsonParse { cause, .. } => Some(match cause {
+                NoCheckCause::Opaque => "`json.parse<T>` validates the document against `T` and returns `Ok` only when it matches, so a `T` with no runtime check cannot be its type argument: a type parameter is erased at run time, and an `extern_ts` or package type is a TypeScript type the compiler cannot see into. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error.",
+                NoCheckCause::Interface => concat!(json_parse_note_lead!(), interface_note!()),
+                NoCheckCause::Result => concat!(json_parse_note_lead!(), result_note!()),
+                NoCheckCause::GenericUnion => concat!(json_parse_note_lead!(), generic_union_note!()),
+                NoCheckCause::SiblingAlias(_) => concat!(json_parse_note_lead!(), sibling_alias_note!()),
+            }),
         }
     }
 }
@@ -299,7 +444,8 @@ enum FieldCheck {
     /// The field is `unknown`: being there is all there is to check.
     PresenceOnly,
     /// Nothing can check it, and the declared type names something specific.
-    Unverifiable,
+    /// The cause is what E0304 says about it.
+    Unverifiable(NoCheckCause),
 }
 
 /// The discriminant field of an emitted tagged-union value. Single-sourced
@@ -584,6 +730,29 @@ pub struct EmitContext<'a> {
     /// refused (E0304) when `Doc`'s descriptor, emitted in another, cannot
     /// check one of its fields.
     pub descriptor_walks: &'a DescriptorWalks,
+    /// What each project module binds, under names its exports do not
+    /// cover: a type it imports, one it keeps private, a generic type, an
+    /// interface. Keyed by `(module path, name)`. A sibling alias's body is
+    /// read in the sibling's scope, and this is how E0304 says what a name
+    /// in that body is there, rather than looking it up in the importer's
+    /// scope, where it can be a different type of the same name.
+    pub sibling_names: &'a std::collections::BTreeMap<(String, String), SiblingName>,
+}
+
+/// What a project module binds a name to, for the names
+/// [`EmitContext::sibling_names`] records.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SiblingName {
+    /// A named, namespace or aliased import.
+    Imported,
+    /// A `type` declared without `pub`.
+    Private,
+    /// An exported generic record.
+    GenericRecord,
+    /// An exported generic tagged union.
+    GenericUnion,
+    /// An interface, exported or not.
+    Interface,
 }
 
 /// Where a module-local chain of second names (D46) ends when it leaves the
@@ -603,7 +772,11 @@ enum WalkStep {
     /// The field `field` has a type no runtime check exists for, spelled
     /// `field_ty` as the declaring module wrote it. The walk stops here: the
     /// descriptor already cannot be trusted.
-    Unverifiable { field: String, field_ty: String },
+    Unverifiable {
+        field: String,
+        field_ty: String,
+        cause: NoCheckCause,
+    },
     /// The field `field` is checked by calling the descriptor of the record
     /// `name` declared in the project module `module` (the record's own module
     /// included). The field's check is only as good as that descriptor, so
@@ -669,9 +842,14 @@ impl<'a> EmitContext<'a> {
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
+            sibling_names: &EMPTY_SIBLING_NAMES,
         }
     }
 }
+
+static EMPTY_SIBLING_NAMES: std::sync::LazyLock<
+    std::collections::BTreeMap<(String, String), SiblingName>,
+> = std::sync::LazyLock::new(Default::default);
 
 static EMPTY_WALKS: std::sync::LazyLock<DescriptorWalks> =
     std::sync::LazyLock::new(DescriptorWalks::default);
@@ -712,6 +890,7 @@ pub struct ProjectTables {
     descriptorless_aliases: std::collections::BTreeMap<(String, String), TypeExpr>,
     imported_module_paths: std::collections::BTreeSet<String>,
     descriptor_walks: DescriptorWalks,
+    sibling_names: std::collections::BTreeMap<(String, String), SiblingName>,
 }
 
 /// One module of a project, as [`ProjectTables::from_modules`] reads it.
@@ -832,6 +1011,41 @@ impl ProjectTables {
                     // something reaches for it (G124).
                     self.imported_module_paths
                         .insert(glyph_resolver::path_key(&imp.path));
+                    let bound: Vec<String> = match &imp.kind {
+                        ImportKind::Named(names) => names.iter().map(|n| n.to_string()).collect(),
+                        ImportKind::Namespace => {
+                            imp.path.segments.last().map(|s| s.to_string()).into_iter().collect()
+                        }
+                        ImportKind::Aliased(alias) => vec![alias.to_string()],
+                        ImportKind::Default(_) => Vec::new(),
+                    };
+                    for name in bound {
+                        self.sibling_names
+                            .insert((module_path.to_string(), name), SiblingName::Imported);
+                    }
+                }
+                Decl::Interface(i) => {
+                    self.sibling_names.insert(
+                        (module_path.to_string(), i.name.to_string()),
+                        SiblingName::Interface,
+                    );
+                }
+                Decl::Type(td) if !td.is_public => {
+                    self.sibling_names.insert(
+                        (module_path.to_string(), td.name.to_string()),
+                        SiblingName::Private,
+                    );
+                }
+                Decl::Type(td) if !td.generics.is_empty() => {
+                    let kind = match td.body {
+                        TypeExpr::Union { .. } => Some(SiblingName::GenericUnion),
+                        TypeExpr::Record { .. } => Some(SiblingName::GenericRecord),
+                        _ => None,
+                    };
+                    if let Some(kind) = kind {
+                        self.sibling_names
+                            .insert((module_path.to_string(), td.name.to_string()), kind);
+                    }
                 }
                 // Only an exported, non-generic type is a descriptor question
                 // for a sibling: a generic one threads checkers instead, and
@@ -867,6 +1081,7 @@ impl ProjectTables {
             descriptorless_aliases: &self.descriptorless_aliases,
             decls,
             descriptor_walks: &self.descriptor_walks,
+            sibling_names: &self.sibling_names,
         }
     }
 
@@ -2192,7 +2407,7 @@ impl<'a> Emitter<'a> {
                 // where that is not honest enough to call validation.
                 let presence_only = matches!(
                     self.field_check(&field.ty, &access),
-                    FieldCheck::PresenceOnly | FieldCheck::Unverifiable
+                    FieldCheck::PresenceOnly | FieldCheck::Unverifiable(_)
                 );
                 let check = self.field_value_check(&field.ty, &access);
                 let type_issue = format!(
@@ -4871,7 +5086,14 @@ impl<'a> Emitter<'a> {
     /// imported, so the boundary check is weaker than the type declares.
     /// Stops at a type that has its own descriptor (that path is already
     /// handled) and guards against a cycle.
-    fn resolve_imported_alias_leaf(&self, module_path: &str, name: &str) -> Option<TypeExpr> {
+    ///
+    /// Returns the leaf with the name of the alias whose body it is (the last
+    /// hop), which is the alias E0304 names when the body cannot be followed.
+    fn resolve_imported_alias_leaf(
+        &self,
+        module_path: &str,
+        name: &str,
+    ) -> Option<(String, TypeExpr)> {
         let mut current = name.to_string();
         let mut seen = std::collections::HashSet::new();
         loop {
@@ -4901,11 +5123,11 @@ impl<'a> Emitter<'a> {
                     {
                         // A prelude type (`int`, `string`) or a name this module
                         // does not export: the body is already the leaf.
-                        return Some(body.clone());
+                        return Some((current, body.clone()));
                     }
                     current = next;
                 }
-                other => return Some(other.clone()),
+                other => return Some((current, other.clone())),
             }
         }
     }
@@ -4913,29 +5135,181 @@ impl<'a> Emitter<'a> {
     /// The check for the bare name `name` written in the body of an alias
     /// exported by the sibling `module`, read in that module's scope: its
     /// record by its descriptor, reached through the hidden namespace import,
-    /// and its descriptorless alias by that alias's own body. `None` for a
-    /// name the sibling exports neither way (a prelude name, a private type),
-    /// which the caller reads as before.
+    /// and its descriptorless alias by that alias's own body.
     ///
-    /// Reading the name in this module's scope instead, as every sibling body
-    /// was read until 0.1.133, refused an imported `Rows = Array<User>` where
-    /// this module did not import `User`, and checked it against the wrong
-    /// record where this module declared a `User` of its own.
-    fn sibling_name_check(&self, module: &str, name: &str, access: &str) -> Option<FieldCheck> {
+    /// Any other name is unverifiable, with the reason (E0304): a name the
+    /// sibling imports, a type it keeps private, an interface. Such a name
+    /// was read in this module's scope until 0.1.133, which refused an
+    /// imported `Rows = Array<User>` where this module had no `User`, and
+    /// checked it against the wrong record where this module declared a
+    /// `User` of its own. Following an imported name into the module that
+    /// declares it is a second hop this does not make.
+    fn sibling_name_check(&self, module: &str, name: &str, access: &str) -> FieldCheck {
         let key = (module.to_string(), name.to_string());
         if self.ctx.plain_descriptors.contains(&key) {
             let ns = self.sibling_namespace(module);
             self.note_delegation(Some(key));
-            return Some(FieldCheck::Deep(format!("{ns}.{name}.is({access})")));
+            return FieldCheck::Deep(format!("{ns}.{name}.is({access})"));
         }
-        let leaf = self.resolve_imported_alias_leaf(module, name)?;
+        match self.resolve_imported_alias_leaf(module, name) {
+            Some((owner, leaf)) => self.expand_sibling_alias(module, &owner, &leaf, access),
+            None => FieldCheck::Unverifiable(self.sibling_miss(module, name, name)),
+        }
+    }
+
+    /// The check for `leaf`, the body of the alias `owner` the sibling
+    /// `module` exports, read in that module's scope. `owner` is held on
+    /// `expanding_sibling_aliases` while the body is read, which stops a
+    /// recursive alias and names the alias in the E0304 of a name in it.
+    fn expand_sibling_alias(
+        &self,
+        module: &str,
+        owner: &str,
+        leaf: &TypeExpr,
+        access: &str,
+    ) -> FieldCheck {
+        let key = (module.to_string(), owner.to_string());
         if self.expanding_sibling_aliases.borrow().contains(&key) {
-            return Some(FieldCheck::Unverifiable);
+            return FieldCheck::Unverifiable(NoCheckCause::Opaque);
         }
         self.expanding_sibling_aliases.borrow_mut().push(key);
-        let check = self.field_check_in(&leaf, access, Origin::Sibling(module));
+        let check = self.field_check_in(leaf, access, Origin::Sibling(module));
         self.expanding_sibling_aliases.borrow_mut().pop();
-        Some(check)
+        check
+    }
+
+    /// Why `written`, a name in the body of the sibling alias being read,
+    /// has no check here. `binding` is the name the sibling binds it under:
+    /// the type's own name, or for `u.User` the namespace `u`. Read off the
+    /// sibling's declarations ([`ProjectTables`]), never this module's.
+    fn sibling_miss(&self, module: &str, written: &str, binding: &str) -> NoCheckCause {
+        let alias = self
+            .expanding_sibling_aliases
+            .borrow()
+            .last()
+            .map(|(_, a)| a.clone());
+        let entry = self
+            .ctx
+            .sibling_names
+            .get(&(module.to_string(), binding.to_string()))
+            .copied();
+        let reach = match entry {
+            Some(SiblingName::Imported) => SiblingReach::Imported,
+            Some(SiblingName::Private) => SiblingReach::Private,
+            Some(SiblingName::GenericRecord) => SiblingReach::Generic,
+            Some(SiblingName::Interface) => return NoCheckCause::Interface,
+            Some(SiblingName::GenericUnion) => return NoCheckCause::GenericUnion,
+            None => return NoCheckCause::Opaque,
+        };
+        let Some(alias) = alias else {
+            return NoCheckCause::Opaque;
+        };
+        NoCheckCause::SiblingAlias(Box::new(SiblingAliasName {
+            alias,
+            module: module.to_string(),
+            name: written.to_string(),
+            reach,
+        }))
+    }
+
+    /// Why the application `base<..>` in the body of an alias of the sibling
+    /// `module` has no check here: the prelude `Result` by its spelling, as
+    /// a sibling's body is read, and otherwise what the sibling binds the
+    /// base to.
+    fn sibling_generic_cause(&self, module: &str, base: &TypeExpr) -> NoCheckCause {
+        let TypeExpr::Path { segments, .. } = base else {
+            return NoCheckCause::Opaque;
+        };
+        match segments.as_slice() {
+            [name] if self.prelude_kind_by_spelling(name.as_ref()) == Some(PreludeKind::Result) => {
+                NoCheckCause::Result
+            }
+            [name] => self.sibling_miss(module, name.as_ref(), name.as_ref()),
+            [ns, name] => self.sibling_miss(module, &format!("{ns}.{name}"), ns.as_ref()),
+            _ => NoCheckCause::Opaque,
+        }
+    }
+
+    /// Why the type `name`, which the project module `module` exports or
+    /// declares, has no check: an interface, a generic union, or a type the
+    /// compiler cannot see into.
+    fn exported_name_cause(&self, module: &str, name: &str) -> NoCheckCause {
+        match self
+            .ctx
+            .sibling_names
+            .get(&(module.to_string(), name.to_string()))
+        {
+            Some(SiblingName::Interface) => NoCheckCause::Interface,
+            Some(SiblingName::GenericUnion) => NoCheckCause::GenericUnion,
+            _ => NoCheckCause::Opaque,
+        }
+    }
+
+    /// Why the bare name `name`, written in this module, has no check: an
+    /// interface this module declares or imports, or a type parameter,
+    /// `extern_ts` or package type.
+    fn local_name_cause(&self, name: &str) -> NoCheckCause {
+        let Some(sym) = self
+            .resolved
+            .symbols
+            .by_name
+            .get(name)
+            .and_then(|&id| self.resolved.symbols.table.get(id))
+        else {
+            return NoCheckCause::Opaque;
+        };
+        match &sym.kind {
+            SymbolKind::Type { decl_idx } => match self.module.items.get(*decl_idx as usize) {
+                Some(Decl::Interface(_)) => NoCheckCause::Interface,
+                _ => NoCheckCause::Opaque,
+            },
+            SymbolKind::ImportNamed { path, original } => {
+                self.exported_name_cause(&glyph_resolver::path_key(path), original.as_ref())
+            }
+            _ => NoCheckCause::Opaque,
+        }
+    }
+
+    /// Why the application `base<..>`, written in this module, has no
+    /// check: the prelude `Result`, or a generic union this module declares
+    /// or imports by name or through a namespace.
+    fn local_generic_cause(&self, base: &TypeExpr) -> NoCheckCause {
+        if self.prelude_kind_of_name(base) == Some(PreludeKind::Result) {
+            return NoCheckCause::Result;
+        }
+        let TypeExpr::Path { segments, .. } = base else {
+            return NoCheckCause::Opaque;
+        };
+        match segments.as_slice() {
+            [name] => {
+                let local_union = self.module.items.iter().any(|d| {
+                    matches!(d, Decl::Type(t) if t.name.as_ref() == name.as_ref()
+                        && !t.generics.is_empty()
+                        && matches!(t.body, TypeExpr::Union { .. }))
+                });
+                if local_union {
+                    return NoCheckCause::GenericUnion;
+                }
+                let kind = self
+                    .resolved
+                    .symbols
+                    .by_name
+                    .get(name.as_ref())
+                    .and_then(|&id| self.resolved.symbols.table.get(id))
+                    .map(|sym| &sym.kind);
+                match kind {
+                    Some(SymbolKind::ImportNamed { path, original }) => {
+                        self.exported_name_cause(&glyph_resolver::path_key(path), original.as_ref())
+                    }
+                    _ => NoCheckCause::Opaque,
+                }
+            }
+            [ns, name] => match self.namespace_module_path(ns.as_ref()) {
+                Some(module) => self.exported_name_cause(&module, name.as_ref()),
+                None => NoCheckCause::Opaque,
+            },
+            _ => NoCheckCause::Opaque,
+        }
     }
 
     /// The hidden namespace binding for the sibling `module`, recorded so the
@@ -5245,7 +5619,7 @@ impl<'a> Emitter<'a> {
     fn field_value_check(&self, ty: &TypeExpr, access: &str) -> String {
         match self.field_check(ty, access) {
             FieldCheck::Deep(c) => c,
-            FieldCheck::PresenceOnly | FieldCheck::Unverifiable => {
+            FieldCheck::PresenceOnly | FieldCheck::Unverifiable(_) => {
                 format!("{access} !== undefined")
             }
         }
@@ -5265,11 +5639,14 @@ impl<'a> Emitter<'a> {
     /// `json.parse<Array<unknown>>` with nothing to check, though the
     /// container has a complete check: `unknown` claims nothing about the
     /// part, and the container's shape is all the type says.
-    fn field_value_check_opt(&self, ty: &TypeExpr, access: &str, origin: Origin) -> Option<String> {
+    ///
+    /// `Err` carries why the part has no check, which is the container's
+    /// reason too: `Option<Shape>` is refused because `Shape` is an interface.
+    fn part_check(&self, ty: &TypeExpr, access: &str, origin: Origin) -> Result<String, NoCheckCause> {
         match self.field_check_in(ty, access, origin) {
-            FieldCheck::Deep(c) => Some(c),
-            FieldCheck::PresenceOnly => Some(format!("{access} !== undefined")),
-            FieldCheck::Unverifiable => None,
+            FieldCheck::Deep(c) => Ok(c),
+            FieldCheck::PresenceOnly => Ok(format!("{access} !== undefined")),
+            FieldCheck::Unverifiable(cause) => Err(cause),
         }
     }
 
@@ -5416,10 +5793,11 @@ impl<'a> Emitter<'a> {
         match ty {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
                 let name = segments[0].as_ref();
+                // A name in a sibling's body is a name in the sibling's scope,
+                // and nothing below reads that scope: each branch resolves the
+                // name here, where it can be another record of the same name.
                 if let Origin::Sibling(module) = origin {
-                    if let Some(check) = self.sibling_name_check(module, name, access) {
-                        return check;
-                    }
+                    return self.sibling_name_check(module, name, access);
                 }
                 if let Some(guard) = self.param_guard(name) {
                     // A field typed as one of the enclosing generic descriptor's
@@ -5436,17 +5814,19 @@ impl<'a> Emitter<'a> {
                     // (membership, isInteger, …), not a bare presence check.
                     // The leaf is this module's, so it keeps the caller's origin.
                     self.field_check_in(&leaf, access, origin)
-                } else if let Some((module, leaf)) = self.import_module_path(name).and_then(|m| {
-                    let leaf = self.resolve_imported_alias_leaf(&m, name)?;
-                    Some((m, leaf))
-                }) {
+                } else if let Some((module, owner, leaf)) =
+                    self.import_module_path(name).and_then(|m| {
+                        let (owner, leaf) = self.resolve_imported_alias_leaf(&m, name)?;
+                        Some((m, owner, leaf))
+                    })
+                {
                     // The same alias, imported from a sibling module. Without
                     // this the D30 membership check survives at home and
                     // evaporates across the import. The leaf is the sibling's
                     // body, read by its spelling.
-                    self.field_check_in(&leaf, access, Origin::Sibling(&module))
+                    self.expand_sibling_alias(&module, &owner, &leaf, access)
                 } else {
-                    FieldCheck::Unverifiable
+                    FieldCheck::Unverifiable(self.local_name_cause(name))
                 }
             }
             // A namespaced reference to another project module's type
@@ -5456,6 +5836,13 @@ impl<'a> Emitter<'a> {
             TypeExpr::Path { segments, .. } if segments.len() == 2 => {
                 let ns = segments[0].as_ref();
                 let name = segments[1].as_ref();
+                // In a sibling's body, `ns` is the sibling's namespace import,
+                // not this module's binding of the same name.
+                if let Origin::Sibling(module) = origin {
+                    return FieldCheck::Unverifiable(
+                        self.sibling_miss(module, &format!("{ns}.{name}"), ns),
+                    );
+                }
                 if self.has_namespaced_descriptor(ns, name) {
                     self.note_delegation(
                         self.namespace_module_path(ns).map(|m| (m, name.to_string())),
@@ -5465,11 +5852,13 @@ impl<'a> Emitter<'a> {
                     // `import catalog` then a field typed `catalog.ColType`:
                     // the same descriptorless alias reached through a namespace.
                     match self.resolve_imported_alias_leaf(&module, name) {
-                        Some(leaf) => self.field_check_in(&leaf, access, Origin::Sibling(&module)),
-                        None => FieldCheck::Unverifiable,
+                        Some((owner, leaf)) => {
+                            self.expand_sibling_alias(&module, &owner, &leaf, access)
+                        }
+                        None => FieldCheck::Unverifiable(self.exported_name_cause(&module, name)),
                     }
                 } else {
-                    FieldCheck::Unverifiable
+                    FieldCheck::Unverifiable(NoCheckCause::Opaque)
                 }
             }
             TypeExpr::Generic { base, args, .. } => {
@@ -5484,8 +5873,9 @@ impl<'a> Emitter<'a> {
                 // rendering that descriptor call.
                 match (shape, base_name, args.as_slice()) {
                     (TypeShape::Array, _, [elem]) => {
-                        let Some(elem_check) = self.field_value_check_opt(elem, "__e", origin) else {
-                            return FieldCheck::Unverifiable;
+                        let elem_check = match self.part_check(elem, "__e", origin) {
+                            Ok(c) => c,
+                            Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
                             "{}.isArray({access}) && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})",
@@ -5503,16 +5893,18 @@ impl<'a> Emitter<'a> {
                         if self.type_shape(inner, origin) == TypeShape::UnknownTop {
                             return FieldCheck::PresenceOnly;
                         }
-                        let Some(inner_check) = self.field_value_check_opt(inner, access, origin) else {
-                            return FieldCheck::Unverifiable;
+                        let inner_check = match self.part_check(inner, access, origin) {
+                            Ok(c) => c,
+                            Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!("({access} === null || {inner_check})"))
                     }
                     (TypeShape::Option, _, [inner]) => {
                         let tag = format!("(({access}) as {{ tag?: unknown }}).tag");
                         let value = format!("(({access}) as {{ value?: unknown }}).value");
-                        let Some(inner_check) = self.field_value_check_opt(inner, &value, origin) else {
-                            return FieldCheck::Unverifiable;
+                        let inner_check = match self.part_check(inner, &value, origin) {
+                            Ok(c) => c,
+                            Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
                             "(typeof {access} === \"object\" && {access} !== null && ({tag} === \"None\" || ({tag} === \"Some\" && {inner_check})))"
@@ -5523,8 +5915,9 @@ impl<'a> Emitter<'a> {
                     // every entry, so a `Record<string, number>` field can never
                     // bind to a string or an object whose values are not numbers.
                     (TypeShape::Record, _, [_key, value]) => {
-                        let Some(value_check) = self.field_value_check_opt(value, "__v", origin) else {
-                            return FieldCheck::Unverifiable;
+                        let value_check = match self.part_check(value, "__v", origin) {
+                            Ok(c) => c,
+                            Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
                         FieldCheck::Deep(format!(
                             "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}) && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))",
@@ -5539,7 +5932,12 @@ impl<'a> Emitter<'a> {
                     // imported; `generic_descriptor_arity` resolves both, so a
                     // nested cross-module argument (`Box.parse<Box<User>>`)
                     // validates deeply instead of falling to the presence floor.
-                    (_, Some(gname), _) if self.generic_descriptor_arity(gname) > 0 => {
+                    // Only for a local application: the arity and the checkers
+                    // are read in this module's scope, so a sibling's
+                    // `Page<User>` would be checked with this module's `Page`.
+                    (_, Some(gname), _)
+                        if origin == Origin::Local && self.generic_descriptor_arity(gname) > 0 =>
+                    {
                         let checkers = args
                             .iter()
                             .map(|a| self.checker_lambda(a))
@@ -5547,7 +5945,10 @@ impl<'a> Emitter<'a> {
                             .join(", ");
                         FieldCheck::Deep(format!("{gname}.is({access}, {checkers})"))
                     }
-                    _ => FieldCheck::Unverifiable,
+                    _ => FieldCheck::Unverifiable(match origin {
+                        Origin::Local => self.local_generic_cause(base),
+                        Origin::Sibling(module) => self.sibling_generic_cause(module, base),
+                    }),
                 }
             }
             // A function-typed field (`run: fn(x: number) -> number`) is
@@ -5566,8 +5967,9 @@ impl<'a> Emitter<'a> {
                 ];
                 for f in fields {
                     let sub = format!("({access} as Record<string, unknown>).{}", f.name);
-                    let Some(c) = self.field_value_check_opt(&f.ty, &sub, origin) else {
-                        return FieldCheck::Unverifiable;
+                    let c = match self.part_check(&f.ty, &sub, origin) {
+                        Ok(c) => c,
+                        Err(cause) => return FieldCheck::Unverifiable(cause),
                     };
                     if f.optional {
                         let present = format!("\"{}\" in ({access} as object)", f.name);
@@ -5591,7 +5993,7 @@ impl<'a> Emitter<'a> {
                     .collect();
                 FieldCheck::Deep(format!("({})", arms.join(" || ")))
             }
-            _ => FieldCheck::Unverifiable,
+            _ => FieldCheck::Unverifiable(NoCheckCause::Opaque),
         }
     }
 
@@ -5938,10 +6340,11 @@ impl<'a> Emitter<'a> {
             let (check, called) = self.field_check_delegations(&f.ty);
             // `PresenceOnly` is not an error: an `unknown` field claims
             // nothing, so being there is the whole of what the descriptor said.
-            if check == FieldCheck::Unverifiable {
+            if let FieldCheck::Unverifiable(cause) = check {
                 steps.push(WalkStep::Unverifiable {
                     field: f.name.to_string(),
                     field_ty: type_label(&f.ty),
+                    cause,
                 });
                 break;
             }
@@ -5983,7 +6386,7 @@ impl<'a> Emitter<'a> {
 
     /// The first field of the record `name` declared in `module` that has no
     /// runtime check, as a dotted path through the records its check calls,
-    /// with that field's type. Drives E0304.
+    /// with that field's type and why it has no check. Drives E0304.
     ///
     /// A record of this module is walked here; a record of another module is
     /// read from the walk its own module recorded ([`DescriptorWalks`]), since
@@ -5997,7 +6400,7 @@ impl<'a> Emitter<'a> {
         module: &str,
         name: &str,
         seen: &mut HashSet<(String, String)>,
-    ) -> Option<(String, String)> {
+    ) -> Option<(String, String, NoCheckCause)> {
         if !seen.insert((module.to_string(), name.to_string())) {
             return None;
         }
@@ -6013,12 +6416,12 @@ impl<'a> Emitter<'a> {
         };
         for step in steps {
             match step {
-                WalkStep::Unverifiable { field, field_ty } => {
-                    return Some((field.clone(), field_ty.clone()));
+                WalkStep::Unverifiable { field, field_ty, cause } => {
+                    return Some((field.clone(), field_ty.clone(), cause.clone()));
                 }
                 WalkStep::Delegates { field, module, name } => {
-                    if let Some((sub, ty)) = self.first_unverifiable_in(module, name, seen) {
-                        return Some((format!("{field}.{sub}"), ty));
+                    if let Some((sub, ty, cause)) = self.first_unverifiable_in(module, name, seen) {
+                        return Some((format!("{field}.{sub}"), ty, cause));
                     }
                 }
                 WalkStep::SecondNameFor { module, name } => {
@@ -6069,11 +6472,12 @@ impl<'a> Emitter<'a> {
             _ => return None,
         };
         let mut seen = HashSet::new();
-        let (field_name, field_ty) = self.first_unverifiable_in(&module, &name, &mut seen)?;
+        let (field_name, field_ty, cause) = self.first_unverifiable_in(&module, &name, &mut seen)?;
         Some(EmitError::UnverifiableDescriptorUse {
             type_name: name,
             field: field_name,
             field_ty,
+            cause,
             span: *span,
         })
     }
@@ -6153,14 +6557,15 @@ impl<'a> Emitter<'a> {
     fn json_parse_schema(&self, type_arg: &TypeExpr) -> Result<Option<String>, EmitError> {
         let refuse = |module: &str, type_name: &str| {
             let mut seen = HashSet::new();
-            self.first_unverifiable_in(module, type_name, &mut seen).map(|(field, field_ty)| {
-                EmitError::UnverifiableDescriptorUse {
+            self.first_unverifiable_in(module, type_name, &mut seen).map(
+                |(field, field_ty, cause)| EmitError::UnverifiableDescriptorUse {
                     type_name: type_name.to_string(),
                     field,
                     field_ty,
+                    cause,
                     span: type_arg.span(),
-                }
-            })
+                },
+            )
         };
         if let Some(schema) = self.schema_expr_for(type_arg) {
             if let Some((module, type_name)) = self.schema_target(type_arg) {
@@ -6174,9 +6579,10 @@ impl<'a> Emitter<'a> {
         let check = match check {
             FieldCheck::Deep(check) => check,
             FieldCheck::PresenceOnly => return Ok(None),
-            FieldCheck::Unverifiable => {
+            FieldCheck::Unverifiable(cause) => {
                 return Err(EmitError::UnverifiableJsonParse {
                     type_name: type_label(type_arg),
+                    cause,
                     span: type_arg.span(),
                 })
             }
@@ -6286,7 +6692,7 @@ impl<'a> Emitter<'a> {
         module: &str,
         name: &str,
     ) -> Option<(String, (String, String))> {
-        let body = self.resolve_imported_alias_leaf(module, name)?;
+        let (_, body) = self.resolve_imported_alias_leaf(module, name)?;
         if self.type_shape(&body, Origin::Sibling(module)) != TypeShape::Array {
             return None;
         }
@@ -6316,7 +6722,7 @@ impl<'a> Emitter<'a> {
                 if seen.contains(&key.1) {
                     return None;
                 }
-                let body = self.resolve_imported_alias_leaf(module, name.as_ref())?;
+                let (_, body) = self.resolve_imported_alias_leaf(module, name.as_ref())?;
                 seen.push(key.1);
                 self.sibling_schema(module, &body, seen)
             }
@@ -8533,6 +8939,7 @@ mod tests {
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
+            sibling_names: &EMPTY_SIBLING_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -8562,6 +8969,7 @@ mod tests {
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
+            sibling_names: &EMPTY_SIBLING_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -9062,6 +9470,7 @@ mod tests {
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &siblings,
             descriptor_walks: &EMPTY_WALKS,
+            sibling_names: &EMPTY_SIBLING_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -9182,6 +9591,7 @@ mod tests {
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
+            sibling_names: &EMPTY_SIBLING_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -12790,6 +13200,7 @@ pub fn n() -> number {\n  return 1\n}
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
+            sibling_names: &EMPTY_SIBLING_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

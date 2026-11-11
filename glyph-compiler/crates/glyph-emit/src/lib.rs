@@ -316,6 +316,13 @@ pub enum EmitError {
     /// where the type argument reads as the thing that was checked.
     #[error("{}", json_parse_message(type_name, cause))]
     UnverifiableJsonParse { type_name: String, cause: NoCheckCause, span: Span },
+    /// A generic record's descriptor called with a type argument that has no
+    /// runtime check: `Pair.parse<Shape>(v)`, where the `Pair<Shape>` check
+    /// would have tested `a` for presence only and returned `Ok` on any value
+    /// there. `json.parse<Pair<Shape>>` is refused through
+    /// [`EmitError::UnverifiableJsonParse`] for the same reason.
+    #[error("cannot validate `{type_name}`: its type argument `{arg}` has no runtime check")]
+    UnverifiableTypeArgument { type_name: String, arg: String, cause: NoCheckCause, span: Span },
     /// Two arms of one `match` lowered to the same `case` label. JavaScript
     /// accepts that switch and runs the first label for every value, so the
     /// later arm is dead code and the earlier one silently answers in its
@@ -336,6 +343,7 @@ impl EmitError {
             EmitError::TryInUnhoistablePosition { span } => *span,
             EmitError::UnverifiableDescriptorUse { span, .. } => *span,
             EmitError::UnverifiableJsonParse { span, .. } => *span,
+            EmitError::UnverifiableTypeArgument { span, .. } => *span,
             EmitError::DuplicateMatchCase { span, .. } => *span,
         }
     }
@@ -352,6 +360,7 @@ impl EmitError {
         match self {
             EmitError::UnverifiableDescriptorUse { field_ty, .. } => Some(field_ty),
             EmitError::UnverifiableJsonParse { type_name, .. } => Some(type_name),
+            EmitError::UnverifiableTypeArgument { arg, .. } => Some(arg),
             _ => None,
         }
     }
@@ -364,6 +373,7 @@ impl EmitError {
             EmitError::TryInUnhoistablePosition { .. } => "E0303",
             EmitError::UnverifiableDescriptorUse { .. } => "E0304",
             EmitError::UnverifiableJsonParse { .. } => "E0304",
+            EmitError::UnverifiableTypeArgument { .. } => "E0304",
             EmitError::DuplicateMatchCase { .. } => "E0305",
         }
     }
@@ -388,6 +398,9 @@ impl EmitError {
             ),
             EmitError::UnverifiableJsonParse { .. } => Some(
                 "Take a `Schema<T>` and read with `json.parse_with(text, schema)`, or read `json.parse(text)` with no type argument and check the `unknown` it returns.",
+            ),
+            EmitError::UnverifiableTypeArgument { .. } => Some(
+                "Apply the generic record to a type with a runtime check (a record, a primitive, a container of one), or take a `Schema<T>` and read with `json.parse_with(text, schema)`.",
             ),
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
@@ -424,6 +437,13 @@ impl EmitError {
                 NoCheckCause::Result => concat!(json_parse_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(json_parse_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(json_parse_note_lead!(), sibling_alias_note!()),
+            }),
+            EmitError::UnverifiableTypeArgument { cause, .. } => Some(match cause {
+                NoCheckCause::Opaque => "A generic record checks each type argument wherever its parameter appears, so an argument with no runtime check (a type parameter, which is erased at run time, an `extern_ts` or package type) would leave those fields tested for presence only, and `parse` would return `Ok` on a value it did not check.",
+                NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
+                NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
+                NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
+                NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
             }),
         }
     }
@@ -4992,6 +5012,15 @@ impl<'a> Emitter<'a> {
                     // than hard-erroring. A user's own `Record<K, V>` or
                     // `Array<T>` lands here, since its shape is `Other`.
                     (_, Some(gname)) if self.generic_descriptor_arity(gname) > 0 => {
+                        // A type argument with no check of its own would get
+                        // the presence floor, and `is Pair<Shape>` narrowed
+                        // `{ a: 5 }`; such a pattern is refused instead.
+                        if args
+                            .iter()
+                            .any(|a| matches!(self.field_check(a, "__cv"), FieldCheck::Unverifiable(_)))
+                        {
+                            return None;
+                        }
                         let mut targ_strs = Vec::with_capacity(args.len());
                         for a in args {
                             targ_strs.push(self.ty(a).ok()?);
@@ -5938,6 +5967,16 @@ impl<'a> Emitter<'a> {
                     (_, Some(gname), _)
                         if origin == Origin::Local && self.generic_descriptor_arity(gname) > 0 =>
                     {
+                        // An argument with no check of its own makes the
+                        // application unverifiable, as a container's part
+                        // does: its checker would be the presence floor, and
+                        // `json.parse<Pair<Shape>>` returned `Ok` with
+                        // anything in `a` (record 90).
+                        for a in args {
+                            if let FieldCheck::Unverifiable(cause) = self.field_check(a, "__cv") {
+                                return FieldCheck::Unverifiable(cause);
+                            }
+                        }
                         let checkers = args
                             .iter()
                             .map(|a| self.checker_lambda(a))
@@ -6868,6 +6907,17 @@ impl<'a> Emitter<'a> {
         // can complete soundly, so leave it for `tsc` to judge.
         if arity == 0 || type_args.len() != arity {
             return Ok(None);
+        }
+        for ta in type_args {
+            if let FieldCheck::Unverifiable(cause) = self.field_check(ta, "__cv") {
+                let applied: Vec<String> = type_args.iter().map(type_label).collect();
+                return Err(EmitError::UnverifiableTypeArgument {
+                    type_name: format!("{receiver}<{}>", applied.join(", ")),
+                    arg: type_label(ta),
+                    cause,
+                    span: ta.span(),
+                });
+            }
         }
         let mut targ_strs = Vec::with_capacity(type_args.len());
         for ta in type_args {
@@ -13174,6 +13224,56 @@ pub fn n() -> number {\n  return 1\n}
             );
             assert!(!ts.contains("<unknown><unknown>"), "{ts}");
             assert!(!ts.contains("parse_with"), "{ts}");
+        }
+    }
+
+    /// A generic record applied to a type with no runtime check is refused,
+    /// as a container of one is. Its checker for the argument was the
+    /// presence floor, so `json.parse<Pair<Shape>>` and `Pair.parse<Shape>`
+    /// returned `Ok` with anything in `a` (record 90). A checkable argument,
+    /// `unknown`, and the descriptor's own parameter inside another generic
+    /// record are unchanged.
+    #[test]
+    fn a_generic_record_applied_to_an_unverifiable_type_is_refused() {
+        let head = "module x\nimport std/json\n\
+                    type Pair<A> = { a: A, }\n\
+                    type User = { name: string, }\n\
+                    interface Shape { name: string }\n\
+                    type Handle = extern_ts(\"{ fd: number }\")\n";
+        for body in [
+            "pub fn f<T>(s: string) -> Result<Pair<T>, Array<Issue>> { return json.parse<Pair<T>>(s) }",
+            "pub fn f(s: string) -> bool { let r = json.parse<Pair<Shape>>(s)\n return true }",
+            "pub fn f(s: string) -> bool { let r = json.parse<Pair<Handle>>(s)\n return true }",
+            "pub fn f(s: string) -> bool { let r = json.parse<Option<Pair<Shape>>>(s)\n return true }",
+        ] {
+            let err = emit_err(&format!("{head}{body}\n"));
+            assert!(
+                matches!(&err, EmitError::UnverifiableJsonParse { .. }),
+                "{body}: {err:?}"
+            );
+        }
+        let err = emit_err(&format!(
+            "{head}pub fn f(v: unknown) -> bool {{ let r = Pair.parse<Shape>(v)\n return true }}\n"
+        ));
+        assert!(
+            matches!(&err, EmitError::UnverifiableTypeArgument { arg, .. } if arg == "Shape"),
+            "{err:?}"
+        );
+        let err = emit_err(&format!(
+            "{head}type Doc = {{ p: Pair<Shape>, }}\npub fn f(v: unknown) -> bool {{ let r = Doc.parse(v)\n return true }}\n"
+        ));
+        assert!(matches!(&err, EmitError::UnverifiableDescriptorUse { .. }), "{err:?}");
+        let err = emit_err(&format!(
+            "{head}pub fn f(v: unknown) -> bool {{\n return match v {{\n is Pair<Shape> => true,\n else => false,\n }}\n}}\n"
+        ));
+        assert!(matches!(&err, EmitError::Unsupported { .. }), "an `is` over it is refused: {err:?}");
+        for body in [
+            "pub fn f(s: string) -> bool { let r = json.parse<Pair<User>>(s)\n return true }",
+            "pub fn f(s: string) -> bool { let r = json.parse<Pair<unknown>>(s)\n return true }",
+            "pub fn f(v: unknown) -> bool { let r = Pair.parse<number>(v)\n return true }",
+            "type Box<T> = { inner: Pair<T>, }\npub fn f(v: unknown) -> bool { let r = Box.parse<User>(v)\n return true }",
+        ] {
+            emit(&format!("{head}{body}\n"));
         }
     }
 

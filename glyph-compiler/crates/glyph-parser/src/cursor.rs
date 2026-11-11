@@ -1,6 +1,18 @@
-//! Token cursor: peek/advance/expect over a `Vec<Spanned<Token>>`.
+//! Token cursor: peek/advance/expect over tokens pulled from the lexer on
+//! demand.
+//!
+//! The cursor does not lex the file up front. It asks the lexer for the next
+//! token only when the parser looks at it, and keeps every token it has
+//! pulled in a buffer along with the lexer state after it, so lookahead and
+//! a later resume of the lexer both have what they need.
+//!
+//! A lexical error is held, not raised: it sits in the buffer as an entry the
+//! parser sees as end of input, at the error's span. Lookahead that reaches
+//! it backs off as it would at the end of the file. It becomes a
+//! `ParseError::Lex`, with the span and message `tokenize` reports, only when
+//! the parser arrives at it (see `Cursor::lex_error_here`).
 
-use glyph_lexer::{Span, Spanned, Token};
+use glyph_lexer::{LexState, Lexer, Span, Spanned, Token};
 
 use crate::error::{NameRole, ParseError};
 
@@ -39,8 +51,26 @@ use crate::error::{NameRole, ParseError};
 /// `examples/apps/watchrun/main.glyph`; a file that reaches 64 was generated.
 pub const MAX_NESTING_DEPTH: u32 = 64;
 
+/// One pulled token and the lexer state after it. A lex error is an entry
+/// whose token is `Eof` at the error's span, with the error's message; it is
+/// always the last entry, because the lexer is not asked for more after it.
+struct Entry {
+    token: Spanned<Token>,
+    /// What `Lexer::at` needs to resume right after this token. Nothing reads
+    /// it yet; the JSX text scanner resumes from it.
+    #[allow(dead_code)]
+    after: LexState,
+    lex_error: Option<String>,
+}
+
 pub(crate) struct Cursor<'a> {
-    tokens: Vec<Spanned<Token>>,
+    lexer: Lexer<'a>,
+    /// Every token pulled so far, in order. It ends at `Eof` or at a lex
+    /// error once the lexer has been driven that far, and `pos` never moves
+    /// past that last entry.
+    buf: Vec<Entry>,
+    /// The lexer produced `Eof` or failed; nothing more will be pulled.
+    exhausted: bool,
     pos: usize,
     /// Levels of nested construct currently open. Maintained by `nested`, which
     /// is the only thing that touches it, so it cannot leak on an error path.
@@ -52,13 +82,66 @@ pub(crate) struct Cursor<'a> {
 }
 
 impl<'a> Cursor<'a> {
-    pub fn new(tokens: Vec<Spanned<Token>>, source: &'a str) -> Self {
+    pub fn new(source: &'a str) -> Self {
         Self {
-            tokens,
+            lexer: Lexer::new(source),
+            buf: Vec::new(),
+            exhausted: false,
             pos: 0,
             depth: 0,
             source,
         }
+    }
+
+    /// Pull until the buffer holds index `i`, or the lexer is done. Returns
+    /// whether index `i` exists.
+    fn fill(&mut self, i: usize) -> bool {
+        while self.buf.len() <= i && !self.exhausted {
+            let entry = match self.lexer.next_token() {
+                Ok(token) => {
+                    self.exhausted = matches!(token.token, Token::Eof);
+                    Entry {
+                        token,
+                        after: self.lexer.state(),
+                        lex_error: None,
+                    }
+                }
+                Err(e) => {
+                    self.exhausted = true;
+                    Entry {
+                        token: Spanned {
+                            token: Token::Eof,
+                            span: e.span(),
+                        },
+                        after: self.lexer.state(),
+                        lex_error: Some(e.to_string()),
+                    }
+                }
+            };
+            self.buf.push(entry);
+        }
+        i < self.buf.len()
+    }
+
+    /// The entry at `pos`. One always exists: the buffer is filled to `pos`
+    /// before it is read, and `pos` never passes the last entry.
+    fn current(&mut self) -> &Entry {
+        let filled = self.fill(self.pos);
+        debug_assert!(filled, "the cursor never moves past the last entry");
+        &self.buf[self.pos]
+    }
+
+    /// The held lex error at the cursor's position, if the parser has arrived
+    /// at one, as the `ParseError` the eager lexer's failure produced. The
+    /// entry points check this whatever the parse returned: a parse stopped
+    /// at the error, or one that took it for the end of input, is reporting
+    /// the lex error.
+    pub fn lex_error_here(&mut self) -> Option<ParseError> {
+        let entry = self.current();
+        entry.lex_error.as_ref().map(|message| ParseError::Lex {
+            message: message.clone(),
+            span: entry.token.span,
+        })
     }
 
     /// Slice the source between two byte offsets. Used by the JSX text-run
@@ -91,31 +174,42 @@ impl<'a> Cursor<'a> {
         end
     }
 
-    pub fn peek(&self) -> &Token {
-        &self.tokens[self.pos].token
+    pub fn peek(&mut self) -> &Token {
+        &self.current().token.token
     }
 
-    pub fn peek_at(&self, offset: usize) -> Option<&Token> {
-        self.tokens.get(self.pos + offset).map(|s| &s.token)
+    pub fn peek_at(&mut self, offset: usize) -> Option<&Token> {
+        let i = self.pos + offset;
+        if self.fill(i) {
+            Some(&self.buf[i].token.token)
+        } else {
+            None
+        }
     }
 
-    pub fn peek_span(&self) -> Span {
-        self.tokens[self.pos].span
+    pub fn peek_span(&mut self) -> Span {
+        self.current().token.span
     }
 
-    pub fn peek_span_at(&self, offset: usize) -> Option<Span> {
-        self.tokens.get(self.pos + offset).map(|s| s.span)
+    pub fn peek_span_at(&mut self, offset: usize) -> Option<Span> {
+        let i = self.pos + offset;
+        if self.fill(i) {
+            Some(self.buf[i].token.span)
+        } else {
+            None
+        }
     }
 
     pub fn advance(&mut self) -> &Spanned<Token> {
         let i = self.pos;
-        if self.pos < self.tokens.len() - 1 {
+        self.fill(i + 1);
+        if i + 1 < self.buf.len() {
             self.pos += 1;
         }
-        &self.tokens[i]
+        &self.buf[i].token
     }
 
-    pub fn is_at_end(&self) -> bool {
+    pub fn is_at_end(&mut self) -> bool {
         matches!(self.peek(), Token::Eof)
     }
 
@@ -127,7 +221,7 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn check(&self, t: &Token) -> bool {
+    pub fn check(&mut self, t: &Token) -> bool {
         std::mem::discriminant(self.peek()) == std::mem::discriminant(t)
     }
 
@@ -386,5 +480,68 @@ impl<'a> Cursor<'a> {
             return f(self);
         }
         self.nested(construct, span, f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn eager_lex_error(src: &str) -> ParseError {
+        let e = glyph_lexer::tokenize(src).expect_err("source has a lex error");
+        ParseError::Lex {
+            message: e.to_string(),
+            span: e.span(),
+        }
+    }
+
+    #[test]
+    fn lookahead_past_a_lex_error_backs_off_without_failing() {
+        // `"\q"` is an invalid escape. Peeking at it, or past it, sees the
+        // end of input and raises nothing while the cursor is short of it.
+        let src = "a b \"\\q\" c";
+        let mut p = Cursor::new(src);
+        assert_eq!(p.peek_at(2), Some(&Token::Eof));
+        assert_eq!(p.peek_at(3), None);
+        assert!(p.lex_error_here().is_none());
+        assert!(matches!(p.peek(), Token::Identifier(_)));
+        p.advance();
+        assert!(p.lex_error_here().is_none());
+        assert!(matches!(p.peek(), Token::Identifier(_)));
+    }
+
+    #[test]
+    fn arriving_at_a_lex_error_reports_the_eager_span_and_message() {
+        let src = "a b \"\\q\" c";
+        let mut p = Cursor::new(src);
+        p.advance();
+        p.advance();
+        assert!(p.is_at_end());
+        // The cursor does not move past the error entry.
+        p.advance();
+        assert_eq!(p.lex_error_here(), Some(eager_lex_error(src)));
+        assert_eq!(p.peek_span(), eager_lex_error(src).span());
+    }
+
+    #[test]
+    fn every_lex_error_kind_is_reported_as_the_eager_lexer_reported_it() {
+        for src in [
+            "fn f() {\n  let x = 1 # 2\n}\n",
+            "fn f() {\n  let s = \"open\n}\n",
+            "fn f() {\n  let s = \"\\q\"\n}\n",
+            "fn f() {\n  let n = 1__0\n}\n",
+            "/* no */\n",
+        ] {
+            assert_eq!(crate::parse(src).unwrap_err(), eager_lex_error(src), "{src:?}");
+        }
+    }
+
+    #[test]
+    fn a_generic_call_scan_into_a_lex_error_still_reports_it() {
+        // At `<` the generic-call scan walks forward over `b ,` and reaches
+        // the bad escape. It backs off to a comparison, the parser carries on
+        // to the string, and the lex error is what the parse reports.
+        let src = "fn g() {\n  let x = f(a < b, \"\\q\")\n}\n";
+        assert_eq!(crate::parse(src).unwrap_err(), eager_lex_error(src));
     }
 }

@@ -41,17 +41,23 @@ pub use cursor::MAX_NESTING_DEPTH;
 pub use error::{LetPatternRefusal, NameRole, ParseError, RELATIVE_IMPORT_HELP};
 
 use glyph_ast::Module;
-use glyph_lexer::{tokenize, Span};
+use glyph_lexer::Span;
 
 /// Top-level entry point: source string → `Module` AST.
+///
+/// The parser pulls tokens from the lexer as it goes. A lex error is reported
+/// when the parser reaches it, with the span and message `tokenize` gives it.
 pub fn parse(source: &str) -> Result<Module, ParseError> {
-    let tokens = tokenize(source).map_err(|e| ParseError::Lex {
-        message: e.to_string(),
-        span: glyph_lexer::LexError::span(&e),
-    })?;
+    let mut p = cursor::Cursor::new(source);
+    let result = parse_module_to_eof(&mut p);
+    match p.lex_error_here() {
+        Some(lex) => Err(lex),
+        None => result,
+    }
+}
 
-    let mut p = cursor::Cursor::new(tokens, source);
-    let module = decl::parse_module(&mut p)?;
+fn parse_module_to_eof(p: &mut cursor::Cursor<'_>) -> Result<Module, ParseError> {
+    let module = decl::parse_module(p)?;
 
     // After the module, only EOF should remain.
     if !p.is_at_end() {
@@ -65,13 +71,17 @@ pub fn parse(source: &str) -> Result<Module, ParseError> {
 /// (`"${expr}"`) to parse the interior without wrapping it in a synthetic
 /// module/fn. Spans are relative to `source`.
 pub fn parse_expression(source: &str) -> Result<glyph_ast::Expr, ParseError> {
-    let tokens = tokenize(source).map_err(|e| ParseError::Lex {
-        message: e.to_string(),
-        span: glyph_lexer::LexError::span(&e),
-    })?;
-    let mut p = cursor::Cursor::new(tokens, source);
+    let mut p = cursor::Cursor::new(source);
+    let result = parse_expression_to_eof(&mut p);
+    match p.lex_error_here() {
+        Some(lex) => Err(lex),
+        None => result,
+    }
+}
+
+fn parse_expression_to_eof(p: &mut cursor::Cursor<'_>) -> Result<glyph_ast::Expr, ParseError> {
     p.skip_newlines();
-    let e = expr::parse_expr(&mut p)?;
+    let e = expr::parse_expr(p)?;
     p.skip_newlines();
     if !p.is_at_end() {
         return Err(ParseError::ExpectedEof { span: p.peek_span() });

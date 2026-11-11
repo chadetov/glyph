@@ -251,7 +251,7 @@ fn parse_interface_member(p: &mut Cursor) -> Result<InterfaceMember, ParseError>
 /// `Minus` and `Bang` are deliberately absent. Both can begin an expression
 /// (`-1`, `!flag`), so a line starting with one is genuinely ambiguous, and
 /// treating it as a continuation would swallow whatever follows the annotation.
-fn continues_after_newline(p: &Cursor) -> bool {
+fn continues_after_newline(p: &mut Cursor) -> bool {
     let mut i = 0;
     while matches!(p.peek_at(i), Some(Token::Newline)) {
         i += 1;

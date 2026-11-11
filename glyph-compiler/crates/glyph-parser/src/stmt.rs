@@ -42,11 +42,13 @@ pub(crate) fn parse_one_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
 }
 
 fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
+    let const_destructure =
+        matches!(p.peek(), Token::Const) && matches!(p.peek_at(1), Some(Token::LBracket));
     match p.peek() {
         Token::Let => parse_let(p).map(Stmt::Let),
         // `const [a, b] = ...` in a body: name the rule rather than let `const`
         // demote to an identifier and the line fail as an index assignment.
-        Token::Const if matches!(p.peek_at(1), Some(Token::LBracket)) => {
+        Token::Const if const_destructure => {
             Err(const_destructure_error(p))
         }
         Token::Mut => parse_mut(p).map(Stmt::Mut),

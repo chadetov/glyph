@@ -265,7 +265,7 @@ fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {
 /// `=` or `-` after a leading name, and an object pattern opens `{` with a
 /// field name where a spread opens it with `...`, so neither test can take
 /// a pattern for an attribute.
-fn starts_case_pattern(p: &Cursor) -> bool {
+fn starts_case_pattern(p: &mut Cursor) -> bool {
     match p.peek() {
         Token::RAngle | Token::Slash => false,
         Token::LBrace => !matches!(p.peek_at(1), Some(Token::DotDotDot)),

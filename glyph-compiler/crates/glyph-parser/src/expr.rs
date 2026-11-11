@@ -176,27 +176,27 @@ fn parse_shift(p: &mut Cursor) -> Result<Expr, ParseError> {
 // Adjacency (each angle token abutting the next, no intervening whitespace) is
 // required, so `Foo<T> > x` never reads as a shift and `a > > b` is not
 // silently accepted. `>>>` is checked before `>>` so the three-token form wins.
-fn peek_shift_op(p: &Cursor) -> Option<BinOp> {
-    let adjacent = |a: usize, b: usize| match (p.peek_span_at(a), p.peek_span_at(b)) {
+fn peek_shift_op(p: &mut Cursor) -> Option<BinOp> {
+    let (l0, r0) = match p.peek() {
+        Token::LAngle => (true, false),
+        Token::RAngle => (false, true),
+        _ => return None,
+    };
+    let l1 = matches!(p.peek_at(1), Some(Token::LAngle));
+    let r1 = matches!(p.peek_at(1), Some(Token::RAngle));
+    let r2 = matches!(p.peek_at(2), Some(Token::RAngle));
+    let adjacent = |p: &mut Cursor, a: usize, b: usize| match (p.peek_span_at(a), p.peek_span_at(b)) {
         (Some(sa), Some(sb)) => sa.end == sb.start,
         _ => false,
     };
-    match p.peek() {
-        Token::LAngle if matches!(p.peek_at(1), Some(Token::LAngle)) && adjacent(0, 1) => {
-            Some(BinOp::Shl)
-        }
-        Token::RAngle
-            if matches!(p.peek_at(1), Some(Token::RAngle))
-                && matches!(p.peek_at(2), Some(Token::RAngle))
-                && adjacent(0, 1)
-                && adjacent(1, 2) =>
-        {
-            Some(BinOp::UShr)
-        }
-        Token::RAngle if matches!(p.peek_at(1), Some(Token::RAngle)) && adjacent(0, 1) => {
-            Some(BinOp::Shr)
-        }
-        _ => None,
+    if l0 && l1 && adjacent(p, 0, 1) {
+        Some(BinOp::Shl)
+    } else if r0 && r1 && r2 && adjacent(p, 0, 1) && adjacent(p, 1, 2) {
+        Some(BinOp::UShr)
+    } else if r0 && r1 && adjacent(p, 0, 1) {
+        Some(BinOp::Shr)
+    } else {
+        None
     }
 }
 
@@ -291,7 +291,10 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
             // comparison operator; see `looks_like_generic_call`. Cheap
             // receiver-shape filter runs first so the full scan only fires on
             // callable expressions.
-            Token::LAngle if is_callable_receiver(&expr) && looks_like_generic_call(p) => {
+            Token::LAngle => {
+                if !(is_callable_receiver(&expr) && looks_like_generic_call(p)) {
+                    break;
+                }
                 let type_args = parse_generic_call_type_args(p)?;
                 let open = p.peek_span();
                 p.advance(); // `(` (lookahead already confirmed)
@@ -649,7 +652,7 @@ fn is_statement_arm_body_starter(t: &Token) -> bool {
 /// key may be an identifier, a soft keyword (per `Token::as_field_name`), or a
 /// quoted string key (`{ "Content-Type": v }`) — no block can start with a
 /// string literal followed by `:`, so the string case is unambiguous.
-fn looks_like_object_literal(p: &Cursor) -> bool {
+fn looks_like_object_literal(p: &mut Cursor) -> bool {
     let is_keyish = matches!(p.peek_at(1), Some(Token::Identifier(_)))
         || matches!(p.peek_at(1), Some(Token::String(_)))
         || p.peek_at(1).is_some_and(|t| t.as_field_name().is_some());
@@ -912,7 +915,7 @@ fn is_callable_receiver(e: &Expr) -> bool {
 /// This is the standard "speculate at `<`" heuristic; TypeScript uses a
 /// similar approach. False positives are possible for code like `a < b > (c)`
 /// where the parens are unrelated — that's an accepted limitation.
-fn looks_like_generic_call(p: &Cursor) -> bool {
+fn looks_like_generic_call(p: &mut Cursor) -> bool {
     debug_assert!(matches!(p.peek(), Token::LAngle));
     // O(1) first-token filter — a type expression must begin with an
     // identifier, `void`, `fn`, or an inline record `{`. Anything else means
@@ -1007,7 +1010,7 @@ fn parse_generic_call_type_args(p: &mut Cursor) -> Result<Vec<glyph_ast::TypeExp
 /// by an identifier or a directive keyword (per D6). Anything else (`<` then
 /// number, paren, etc.) is a syntax error since `<` cannot start a non-JSX
 /// expression in Glyph (D7 reserves `<` for type position outside JSX).
-fn is_jsx_lookahead(p: &Cursor) -> bool {
+fn is_jsx_lookahead(p: &mut Cursor) -> bool {
     match p.peek_at(1) {
         Some(Token::Identifier(_)) => true,
         // `<>` opens a JSX fragment.

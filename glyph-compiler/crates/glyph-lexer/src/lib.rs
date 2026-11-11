@@ -27,7 +27,7 @@ mod lexer;
 mod token;
 
 pub use error::LexError;
-pub use lexer::{comments, tokenize, Lexer};
+pub use lexer::{comments, tokenize, LexState, Lexer};
 pub use token::{keywords, Spanned, Token};
 
 /// Internal escape marker in a lexed string's value, so a literal `${`
@@ -103,6 +103,67 @@ impl Span {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drive a fresh lexer to EOF, keeping the state after every token.
+    fn lex_with_states(src: &str) -> Vec<(Spanned<Token>, LexState)> {
+        let mut lexer = Lexer::new(src);
+        let mut out = Vec::new();
+        loop {
+            let t = lexer.next_token().expect("clean source");
+            let eof = matches!(t.token, Token::Eof);
+            out.push((t, lexer.state()));
+            if eof {
+                return out;
+            }
+        }
+    }
+
+    #[test]
+    fn lexer_at_resumes_mid_file_with_bracket_depth_carried() {
+        // A newline is a token only outside brackets, so resuming inside the
+        // call without its depth would emit Newline tokens the uninterrupted
+        // lexer does not.
+        let src = "fn f() {\n  g(\n    a,\n    b,\n  )\n}\n";
+        let full = tokenize(src).unwrap();
+        let states = lex_with_states(src);
+        let a = full
+            .iter()
+            .position(|t| matches!(&t.token, Token::Identifier(n) if n.as_ref() == "a"))
+            .unwrap();
+        assert_eq!(states[a].1, LexState { bracket_depth: 2 });
+        let mut resumed = Lexer::at(src, full[a].span.end as usize, states[a].1);
+        let mut rest = Vec::new();
+        loop {
+            let t = resumed.next_token().unwrap();
+            let eof = matches!(t.token, Token::Eof);
+            rest.push(t);
+            if eof {
+                break;
+            }
+        }
+        assert_eq!(rest, full[a + 1..]);
+
+        // The same offset with the depth dropped is a different stream.
+        let mut wrong = Lexer::at(src, full[a].span.end as usize, LexState::default());
+        let _comma = wrong.next_token().unwrap();
+        assert!(matches!(wrong.next_token().unwrap().token, Token::Newline));
+    }
+
+    #[test]
+    fn tokenize_is_the_next_token_loop() {
+        let src = "fn f(x: number) -> number {\n  // c\n  x + 1\n}\n";
+        let pulled: Vec<_> = lex_with_states(src).into_iter().map(|(t, _)| t).collect();
+        assert_eq!(pulled, tokenize(src).unwrap());
+    }
+
+    #[test]
+    fn next_token_keeps_returning_eof() {
+        let mut lexer = Lexer::new("x");
+        assert!(matches!(lexer.next_token().unwrap().token, Token::Identifier(_)));
+        for _ in 0..3 {
+            assert!(matches!(lexer.next_token().unwrap().token, Token::Eof));
+        }
+    }
 
     #[test]
     fn empty_source_yields_only_eof() {

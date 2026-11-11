@@ -560,10 +560,18 @@ pub enum TypeError {
     /// neither is a data property (`xs.length`): only a member the generated
     /// method table holds, outside a callee's position.
     #[error("method `{method}` of `{type_name}` is read without being called")]
+    ///
+    /// `.bind`, `.call` and `.apply` on the read are refused with it (record
+    /// 88): what they return is untyped in Glyph, and a lambda says the same
+    /// thing checked. `call` is the call as the help writes it back
+    /// (`s.toUpperCase()`), and `lambda` the lambda that wraps it, when the
+    /// method takes no argument and its result has a type.
     UncalledBuiltinMethod {
         method: String,
         type_name: String,
         builtin: BuiltinReceiver,
+        call: String,
+        lambda: Option<String>,
         span: Span,
     },
 
@@ -1207,11 +1215,18 @@ impl TypeError {
             )));
         }
         if let TypeError::UncalledBuiltinMethod {
-            method, builtin, ..
+            builtin,
+            call,
+            lambda,
+            ..
         } = self
         {
+            let wrap = match lambda {
+                Some(l) => format!("wrap the call in a lambda, `{l}`"),
+                None => format!("wrap the call in a lambda that calls `{call}`"),
+            };
             return Some(Cow::Owned(format!(
-                "Call the method where it is read, `{method}(...)`, or wrap the call in a lambda if it is handed on as a value. `{}` holds Glyph's own functions over {}, which can be passed as values.",
+                "Call the method where it is read, `{call}`. To hand it on as a value, {wrap}; `.bind` and `.call` are refused like the read itself, because what they return is untyped in Glyph. `{}` holds Glyph's own functions over {}, which can be passed as values.",
                 builtin.std_module(),
                 builtin.runtime_name(),
             )));

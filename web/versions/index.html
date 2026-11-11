@@ -61,8 +61,29 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.133</span>
+            <span class="rel-ver">0.1.134</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>This release changes how the parser reads a file and nothing about what a program means. It is the groundwork for reading JSX text as text in 0.1.135, which today goes through the ordinary token lexer: that is why <code>&lt;p&gt;don't stop&lt;/p&gt;</code> does not compile and <code>//</code> inside JSX text is read as a comment.</p>
+
+            <h3>The lexer runs on demand</h3>
+            <p>The whole file used to be split into tokens before parsing started. The parser now asks the lexer for each token as it needs one, and the lexer can resume from any point in the file. A lex error waits until the parser reaches it, so a lookahead that strays into one backs off without failing.</p>
+            <p>For every program that compiles, nothing changes. We checked that by running 0.1.133 and 0.1.134 on every <code>.glyph</code> file in the repository and on all 32 example apps: the emitted TypeScript and the <code>glyph fmt</code> output are byte for byte the same, and no exit code changes.</p>
+
+            <h3>Changed: which error you see first</h3>
+            <p>A file with two errors reports the first one the parser reaches. Before, a lex error (an unterminated string, a stray character) was always reported first, even when a parse error came earlier in the file. So <code>x = 1 # 2</code> in a function body used to report the <code>#</code> (E0001) and now reports the missing <code>mut</code> (E0008), which is the earlier mistake. The program fails either way; the message is what changed. One file in our test corpus changed this way, and it turned out to hold a second error the old order hid.</p>
+
+            <p>This release is not breaking: no program that compiled stops compiling, and no exit code changes.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.133</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

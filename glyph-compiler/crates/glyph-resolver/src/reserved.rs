@@ -552,14 +552,27 @@ mod tests {
     /// `Object.keys`, `new Error(`, `Promise<T>`. A whole-word match followed
     /// by `.`, `(`, or `<`, so prose like "non-exhaustive match" and Rust
     /// identifiers embedded in format strings do not trip it.
+    #[test]
+    fn a_name_quoted_in_diagnostic_prose_is_not_an_emitted_reference() {
+        assert!(!mentions_global("Take a `Schema<T>` and read with it", "Schema"));
+        assert!(mentions_global("const s: Schema<T> = x", "Schema"));
+        assert!(mentions_global("const __issues: Issue[] = []", "Issue"));
+    }
+
     fn mentions_global(literal: &str, global: &str) -> bool {
         let bytes = literal.as_bytes();
         let mut from = 0;
         while let Some(rel) = literal[from..].find(global) {
             let start = from + rel;
             let end = start + global.len();
+            // A name opening a Markdown code span (`` `Schema<T>` ``) is
+            // diagnostic prose quoting Glyph source, as in an E0304 help, not
+            // text the emitter writes into a module. Emitted TypeScript never
+            // puts a type reference straight after a backtick.
             let before_ok = start == 0
-                || !(bytes[start - 1].is_ascii_alphanumeric() || bytes[start - 1] == b'_');
+                || !(bytes[start - 1].is_ascii_alphanumeric()
+                    || bytes[start - 1] == b'_'
+                    || bytes[start - 1] == b'`');
             // `[` matters as much as the rest: `Issue[]` is how the descriptor
             // return type is written, and not seeing it is exactly how the
             // `Issue` shadow bug shipped.

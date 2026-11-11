@@ -1,0 +1,11 @@
+module neg
+
+// A parse error before the first lex error is the one reported (record 91).
+// `x = 1` reassigns without `mut` (E0008); the `#` after it is a separate lex
+// error the parser never reaches. Before 0.1.134 the whole file was lexed
+// first, so the `#` always won (E0001) and the earlier error stayed hidden.
+fn main() -> number {
+  let x = 0
+  x = 1 # 2
+  return x
+}

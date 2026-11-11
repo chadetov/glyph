@@ -1,6 +1,6 @@
 module neg
 
 fn main() -> number {
-  const s = "oops
+  let s = "oops
   return 0
 }

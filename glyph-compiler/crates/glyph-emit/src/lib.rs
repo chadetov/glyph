@@ -13156,7 +13156,9 @@ pub fn n() -> number {\n  return 1\n}
     }
 
     /// `parse<unknown>` claims nothing, so it stays the plain read in every
-    /// spelling, as does `parse(text)` with no type argument.
+    /// spelling, as does `parse(text)` with no type argument, which is written
+    /// out as `parse<unknown>(text)` so `tsc` cannot infer a `T` from where
+    /// the result goes (record 89). A written `<unknown>` is not doubled.
     #[test]
     fn json_parse_of_unknown_stays_a_plain_read() {
         for (imports, callee) in JSON_SPELLINGS {
@@ -13165,8 +13167,12 @@ pub fn n() -> number {\n  return 1\n}
                  pub fn a(s: string) -> Result<unknown, Array<Issue>> {{ return {callee}<unknown>(s) }}\n\
                  pub fn b(s: string) -> Result<unknown, Array<Issue>> {{ return {callee}(s) }}\n"
             ));
-            assert!(ts.contains(&format!("return {callee}<unknown>(s);")), "{ts}");
-            assert!(ts.contains(&format!("return {callee}(s);")), "{ts}");
+            assert_eq!(
+                ts.matches(&format!("return {callee}<unknown>(s);")).count(),
+                2,
+                "both the written and the bare form: {ts}"
+            );
+            assert!(!ts.contains("<unknown><unknown>"), "{ts}");
             assert!(!ts.contains("parse_with"), "{ts}");
         }
     }

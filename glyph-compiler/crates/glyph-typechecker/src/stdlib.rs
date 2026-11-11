@@ -105,10 +105,14 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     // `T` is written at the call or nowhere: the one argument is a `string`,
     // so there is nothing to infer it from. `explicit_type_params` names it,
     // and the call site binds it to the written type argument or, with none
-    // written, to `unknown`, which is what TypeScript infers for the same call
-    // with no contextual type. `json.parse<User>(body)` is therefore a
-    // `Result<User, Array<Issue>>`, and the bare call a
-    // `Result<unknown, Array<Issue>>` that no record annotation accepts.
+    // written, to `unknown`. The emitter writes that `unknown` out
+    // (`json.parse<unknown>(body)`), so the TypeScript binds the same type
+    // and a contextual one cannot rebind it: left out, `tsc` inferred `T`
+    // from where the result went, and `let a: Result<User, Array<Issue>> =
+    // json.parse(body)` was a cast with no `as` (record 89).
+    // `json.parse<User>(body)` is therefore a `Result<User, Array<Issue>>`,
+    // and the bare call a `Result<unknown, Array<Issue>>` that no record
+    // annotation accepts.
     if (module_key, field) == ("std/json", "parse") {
         let t = Ty::Param {
             name: Ident::from("T"),

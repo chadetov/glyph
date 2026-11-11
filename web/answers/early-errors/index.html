@@ -441,6 +441,33 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
+        <p class="block-label">And three that <code>tsc</code> lets through, since 0.1.133</p>
+        <p>
+          <code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when
+          <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses
+          it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a
+          lambda instead. The checker now knows what each array and string method returns,
+          from a table generated out of TypeScript's own declarations.
+        </p>
+        <p>
+          <code>r?.label</code> on a <code>Result</code> reads like "propagate the error, then read
+          the field". It is optional chaining, and a <code>Result</code> is never null, so it reads
+          the field off the <code>Result</code> object and propagates nothing. An agent wrote
+          exactly that while building a CSV query tool. It is <code>E0236</code> now, on an
+          <code>Option</code> as well, and the help says to bind with <code>?</code> first.
+        </p>
+        <p>
+          <code>json.parse(body)</code> with no type argument is the unchecked read, a
+          <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code>
+          was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and
+          the program crashed on its first field read. The emitter now writes the
+          <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>.
+          Glyph's own checker does not catch an <code>unknown</code> landing on a declared type
+          yet, so <code>--no-tsc</code> and the editor still miss this one until 0.1.144.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">And two more in 0.1.122</p>
         <p>
           <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the

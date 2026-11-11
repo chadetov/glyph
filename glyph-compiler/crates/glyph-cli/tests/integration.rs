@@ -16958,3 +16958,72 @@ fn json_parse_e0304_note_names_the_cause_of_an_imported_type() {
         assert!(!stderr.contains("a type parameter is erased"), "{dir}: {stderr}");
     }
 }
+
+/// `json.parse` with no type argument is emitted with the `unknown` the
+/// checker gave it, in both spellings, called or read as a value. Left out,
+/// `tsc` inferred `T` from where the result went, so the bare call became a
+/// cast with no `as` (record 89).
+#[test]
+fn json_parse_with_no_type_argument_is_emitted_as_unknown() {
+    let root = unique_tmp("json-parse-unknown-emit");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\nimport std/json\nimport std/json { parse }\n\
+         pub fn a(s: string) -> Result<unknown, Array<Issue>> {\n  return json.parse(s)\n}\n\
+         pub fn b(s: string) -> Result<unknown, Array<Issue>> {\n  return parse(s)\n}\n\
+         pub fn c(s: string) -> Result<unknown, Array<Issue>> {\n  let p = json.parse\n  let q = parse\n  return q(s)\n}\n\
+         pub fn d(s: string) -> Result<unknown, Array<Issue>> {\n  return json.parse<unknown>(s)\n}\n",
+    );
+    let out = root.join("out");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        "build".as_ref(),
+        root.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-tsc".as_ref(),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
+    for want in [
+        "return json.parse<unknown>(s);",
+        "return parse<unknown>(s);",
+        "let p = json.parse<unknown>;",
+        "let q = parse<unknown>;",
+    ] {
+        assert!(ts.contains(want), "missing `{want}` in:\n{ts}");
+    }
+    assert!(!ts.contains("<unknown><unknown>"), "a written `<unknown>` is not doubled:\n{ts}");
+}
+
+/// The casts the bare call used to make, each refused by the full check now
+/// that the emitted call says `unknown`: an annotation, an argument, a record
+/// field, a `json.parse` value, and a generic wrapper that laundered the call
+/// for any `T`. Each passed `glyph check` and `tsc --strict` in 0.1.132 and
+/// crashed at run time on the first field read.
+#[test]
+fn a_bare_json_parse_cast_is_refused_by_the_full_check() {
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let prelude = "module main\nimport std/json\ntype User = { name: string, }\n\
+                   type Box = { v: Result<User, Array<Issue>>, }\n\
+                   fn take(r: Result<User, Array<Issue>>) -> bool {\n  return true\n}\n";
+    let cases = [
+        ("let", "pub fn f(s: string) -> bool {\n  let a: Result<User, Array<Issue>> = json.parse(s)\n  return true\n}\n", "TS2322"),
+        ("argument", "pub fn f(s: string) -> bool {\n  return take(json.parse(s))\n}\n", "TS2345"),
+        ("field", "pub fn f(s: string) -> Box {\n  return { v: json.parse(s), }\n}\n", "TS2322"),
+        ("value", "pub fn f(s: string) -> Result<User, Array<Issue>> {\n  let p = json.parse\n  return p(s)\n}\n", "TS2322"),
+        ("generic", "pub fn read<T>(s: string) -> Result<T, Array<Issue>> {\n  return json.parse(s)\n}\n", "TS2322"),
+    ];
+    for (dir, body, code_name) in cases {
+        let root = unique_tmp(&format!("json-parse-cast-{dir}"));
+        write_file(&root, "main.glyph", &format!("{prelude}{body}"));
+        let path = root.join("main.glyph");
+        let (code, _stdout, stderr, _) =
+            spawn_glyph(&[std::ffi::OsStr::new("check"), path.as_os_str()]);
+        assert_eq!(code, 1, "{dir}: the cast must be refused:\n{stderr}");
+        assert!(stderr.contains(code_name), "{dir}: expected {code_name}:\n{stderr}");
+    }
+}

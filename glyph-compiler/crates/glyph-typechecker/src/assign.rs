@@ -18835,10 +18835,15 @@ fn f(a: Answer) -> number {
         );
     }
 
-    /// What `tsc` accepts stays accepted: the `Result` annotation (TypeScript
-    /// infers `T` from it), a `match` over the call, and an empty record, which
-    /// any object satisfies. With a type argument the `Ok` binding is the
-    /// written type, so a misspelled field on it is now a Glyph error.
+    /// What Glyph's checker does not refuse yet: the bare call where a
+    /// `Result<User, …>` is declared (line `a`), a `match` over the call, and
+    /// an empty record, which any object satisfies. Line `a` is not accepted
+    /// by the build: the emitter writes `json.parse<unknown>(body)`, so `tsc`
+    /// refuses it (TS2322) where it used to infer `T = User` from the
+    /// annotation and cast (record 89). Glyph refuses it itself once `unknown`
+    /// is assignable only to `unknown` (0.1.144), and this line flips to
+    /// E0204 then. With a type argument the `Ok` binding is the written type,
+    /// so a misspelled field on it is a Glyph error.
     #[test]
     fn json_parse_against_a_result_or_an_empty_record_stays_silent() {
         let errs = errors_of(

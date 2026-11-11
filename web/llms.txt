@@ -752,6 +752,8 @@ E0304 for now. `json.parse(text)` with no type argument, or
 check for, take a `Schema<T>` and call `json.parse_with(text, schema)`.
 `json.parse` validates only where it is called by name: a `json.parse` value
 (`let p = json.parse`) takes no type arguments (E0233) and returns `unknown`.
+The unchecked read is a `Result<unknown, Array<Issue>>` wherever it lands;
+annotating it as `Result<User, …>` does not make it one.
 
 ### Runtime validators (`T.parse` / `T.is` / `T.schema`)
 
@@ -768,7 +770,11 @@ T.schema                                              // a Schema<T> (e.g. T.sch
 Use `T.parse` on an already-decoded `unknown` (a request body, a config object);
 use `json.parse<T>(text)` when you have a raw JSON *string*. There is no `as`
 cast in Glyph, so `T.parse` (or a `match`/`is` narrowing) is the only way to go
-from `unknown` to `T`.
+from `unknown` to `T`. An annotation is not one: `let a: Result<User,
+Array<Issue>> = json.parse(body)` does not make the unchecked read a `User`,
+and `glyph check` refuses it through `tsc`. `glyph check --no-tsc` and the
+agent gate do not yet refuse an `unknown` value where another type is
+declared; that comes in 0.1.144.
 
 ```glyph
 module validate

@@ -6604,6 +6604,48 @@ impl<'a> Emitter<'a> {
     /// by a named import (`import std/json { parse }`). Read off the
     /// resolution of this use, so a local binding that shadows the import is
     /// not mistaken for it.
+    /// Whether `e` names `std/json`'s `parse` itself, in either import
+    /// spelling: `json.parse` (or `j.parse` under `import std/json as j`) or
+    /// the named-import `parse`.
+    fn is_json_parse_ref(&self, e: &Expr) -> bool {
+        match e {
+            Expr::Member { object, field, optional: false, .. } if field.as_ref() == "parse" => {
+                matches!(object.as_ref(), Expr::Ident { name, .. } if self.is_json_namespace(name))
+            }
+            Expr::Ident { name, span } => self.is_json_named_parse(name, *span),
+            _ => false,
+        }
+    }
+
+    /// `std/json`'s `parse` as a callee, written as the author wrote it. The
+    /// value-read rewrite in [`Self::expr_unmarked`] does not apply here: the
+    /// call supplies its own type argument.
+    fn json_parse_callee(&self, callee: &Expr) -> Result<String, EmitError> {
+        let s = match callee {
+            Expr::Member { object, .. } => format!("{}.parse", self.expr(object)?),
+            Expr::Ident { name, .. } => name.to_string(),
+            _ => return self.expr(callee),
+        };
+        Ok(self.wrap_mark(s, callee.span(), MappedKind::Expr))
+    }
+
+    /// The type argument a call of `std/json`'s `parse` takes when the author
+    /// wrote none: `unknown`, which is what the checker gave the call.
+    ///
+    /// Left out, `tsc` infers `T` from where the result goes, so `let a:
+    /// Result<User, Array<Issue>> = json.parse(body)` became a cast with no
+    /// `as`: it passed `glyph check` and `tsc`, and crashed on the first field
+    /// read at run time. Written out, `tsc` refuses every such site (record
+    /// 89). A value read gets the same argument as an instantiation
+    /// expression, `json.parse<unknown>`.
+    fn json_parse_default_type_arg(&self, callee: &Expr, type_args: &[TypeExpr]) -> &'static str {
+        if type_args.is_empty() && self.is_json_parse_ref(callee) {
+            "<unknown>"
+        } else {
+            ""
+        }
+    }
+
     fn is_json_named_parse(&self, name: &str, span: Span) -> bool {
         if name != "parse" {
             return false;
@@ -6971,8 +7013,16 @@ impl<'a> Emitter<'a> {
                 args,
                 ..
             } => {
-                let (callee_str, awaited) = self.emit_await_spine(callee)?;
-                let call = format!("{callee_str}{}", self.call_suffix(type_args, args)?);
+                let (callee_str, awaited) = if self.is_json_parse_ref(callee) {
+                    (self.json_parse_callee(callee)?, false)
+                } else {
+                    self.emit_await_spine(callee)?
+                };
+                let call = format!(
+                    "{callee_str}{}{}",
+                    self.json_parse_default_type_arg(callee, type_args),
+                    self.call_suffix(type_args, args)?
+                );
                 // If a deeper call already took the `await`, leave it; otherwise
                 // this call is the spine head — await it.
                 if awaited {
@@ -7019,6 +7069,9 @@ impl<'a> Emitter<'a> {
             Expr::TemplateString { parts, .. } => self.template(parts)?,
             Expr::Bool { value, .. } => value.to_string(),
             Expr::Void { .. } => "undefined".to_string(),
+            Expr::Ident { name, span } if self.is_json_named_parse(name, *span) => {
+                format!("{name}<unknown>")
+            }
             Expr::Ident { name, .. } => name.to_string(),
             Expr::Binary {
                 op, left, right, ..
@@ -7093,6 +7146,13 @@ impl<'a> Emitter<'a> {
                     self.try_generic_descriptor_parse(callee, type_args, args)?
                 {
                     rewritten
+                } else if self.is_json_parse_ref(callee) {
+                    format!(
+                        "{}{}{}",
+                        self.json_parse_callee(callee)?,
+                        self.json_parse_default_type_arg(callee, type_args),
+                        self.call_suffix(type_args, args)?
+                    )
                 } else {
                     format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?)
                 }
@@ -7123,6 +7183,9 @@ impl<'a> Emitter<'a> {
                     if let Some(err) = self.unverifiable_descriptor_use(e) {
                         return Err(err);
                     }
+                }
+                if self.is_json_parse_ref(e) {
+                    return Ok(format!("{}.parse<unknown>", self.expr(object)?));
                 }
                 let dot = if *optional { "?." } else { "." };
                 format!("{}{dot}{field}", self.expr(object)?)

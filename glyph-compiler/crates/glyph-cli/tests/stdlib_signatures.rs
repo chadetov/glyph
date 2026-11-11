@@ -69,7 +69,7 @@ type Point = {
 }
 
 fn decoded(body: string) -> number {
-  let raw: Result<Point, Array<Issue>> = json.parse(body)
+  let raw: Result<Point, Array<Issue>> = json.parse<Point>(body)
   let n = match raw {
     Ok(p) => p.x,
     Err(issues) => array.len(issues),

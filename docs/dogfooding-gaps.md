@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-327 entries, 279 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-28 are open. G144, the D28 boundary cast that never reached the returns a
+328 entries, 279 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+29 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11926,3 +11926,14 @@ and is the owner's to confirm.
 
   Planned for 0.1.140 (record 89): read the checker's coverage relation from
   the same build report and name the arm.
+- **G328. A `const` inside a function body says "assignment requires `mut`".**
+  `const s = "a"` in a body is E0008, ``assignment requires `mut` ``. The help
+  does say to write `let x = ...` for a new binding, but the headline describes a
+  reassignment, and someone who wrote a declaration reads it as the wrong
+  error. `const` is the TypeScript habit, and a module-level `const` is legal,
+  so the body-level one deserves its own message naming `let`. Found by record
+  91 while repairing the `unterminated_string` fixture, which held exactly
+  this second error.
+
+  *Reproduced against 0.1.133 (the release build): `[E0008] Error: parse:
+  assignment requires `mut``.*

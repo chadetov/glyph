@@ -5505,8 +5505,9 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **The D6 rules that come with it, as one change.** `'`, `\`, an unpaired `"` and `/*` are text (G317). `}` and `>` in text are refused with help to write `{"}"}` (G319). `//` in text is refused, stricter than TSX, because 0.1.132 read it as a comment and TSX reads it as text, and either reading would change a program that compiles in both (G318). A comment among children is written in a comment-only `{ // note }` child, which emits nothing; `{}` stays refused. G320 and G321 close with the scanner. Entity spelling (`&amp;`) is decided when it is picked up
 - **Breaking**, with the notes written as 0.1.132's were: every tightening, every loosening, and the programs that compile in both versions and now emit differently (top-level multi-line text, a `"` pair across tags) under a heading of their own
 
-**0.1.134 — Next · A cursor that lexes on demand** (record 85; no behaviour change)
-- **The parser pulls tokens from a resumable lexer** (`Lexer::at(src, offset, state)`), and a lex error is held until the parser peeks at or consumes the token, so lookahead that wanders into JSX text is harmless. `peek` takes `&mut self`. Verified by byte-identical emit and formatter output over the corpus and the seeds, and the full suite: nothing changes, which is the proof. The JSX-text scanner in 0.1.135 is built on it
+**0.1.134 — Next · A cursor that lexes on demand** (records 85 and 91)
+- **The parser pulls tokens from a resumable lexer** (`Lexer::at(src, offset, state)`, `next_token` public, `tokenize` the same loop), and a lex error is held until the parser reaches it, so lookahead that wanders into a lex error backs off without failing. `peek` takes `&mut self`. Programs that compile are unchanged: emitted TypeScript and `fmt` output are byte-identical against 0.1.133 over every tracked `.glyph` file in a directory of its own (318 of 318 clean files, 2795 emitted files) and the 32 apps, and no exit code changes. The JSX-text scanner in 0.1.135 is built on it
+- **Changed: diagnostic ordering** (record 91). The parser reports the first error it reaches. A parse error before the first lex error is now the one reported, where the eager lexer always reported the lex error: `x = 1 # 2` in a body goes from E0001 (`#`) to E0008 (`mut`). A lex error is reported only when the parser arrives at it, with the span and message `tokenize` gives; one met during lookahead is not reported. Measured: 1 of 449 corpus files changed, the `unterminated_string` fixture, which held a second error (a body-level `const`, G328) and is corrected to `let`; `parse_error_before_lex_error` pins the rule, and the `parse` fuzz target asserts that the reported error never starts after `tokenize`'s
 
 **0.1.133 — Shipped 2026-11-11 · What 0.1.132's decisions deferred** (decided in Linus records 79 to 81, 84 to 89; split by risk)
 - **Type parameters on a function value.** `Ty::Fn` carries its type-parameter list, so `let f = id` keeps it, `f<number>("x")` binds it as G292 does for a declaration, and written type arguments on a function value with none are E0233. About ninety construction sites, so it ships on its own
@@ -8260,6 +8261,10 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**G328, a body-level `const` is E0008 "assignment requires `mut`".** The
+headline describes a reassignment; the reader wrote a declaration. A `const`
+in a body should get a message of its own naming `let`. Found by record 91.
 
 **E0211 between two unnamed records names no field.** The record rule
 0.1.127 completed produces ``expected `record`, found `record` `` for a

@@ -16707,3 +16707,207 @@ fn json_parse_of_a_type_with_no_runtime_check_is_e0304_in_both_spellings() {
     let (code, stderr) = check_no_tsc(&root);
     assert_eq!(code, 0, "the unchecked read and a container of `unknown` are accepted:\n{stderr}");
 }
+
+/// A `main` that runs `json.parse<Rows>` on a document shaped like a
+/// `{ id }` record and on one shaped like a `{ name }` record, printing the
+/// arm each took. `extra` is spliced in after the imports.
+fn sibling_alias_main(extra: &str) -> String {
+    format!(
+        r#"module main
+import std/io {{ println }}
+import std/json
+import rows {{ Rows }}
+{extra}
+fn say(label: string, ok: bool) {{
+  println(label + match ok {{ true => " Ok", false => " Err", }})
+}}
+fn main() {{
+  say("id shape", match json.parse<Rows>("[{{\"id\": 1}}]") {{ Ok(_) => true, Err(_) => false, }})
+  say("name shape", match json.parse<Rows>("[{{\"name\": \"a\"}}]") {{ Ok(_) => true, Err(_) => false, }})
+}}
+"#
+    )
+}
+
+/// `rows` imports `User` from `model` and exports `Rows = Array<User>`. The
+/// name `User` in that body is `model`'s record, which `json.parse` does not
+/// yet reach (that takes a second hop). It used to be read in the importer's
+/// scope: against `main`'s own `{ id }` record when `main` declared one, so
+/// the wrong document came back `Ok`, and as a false "no runtime check"
+/// refusal when it did not. Both are now E0304 saying what is true.
+#[test]
+fn json_parse_of_a_sibling_alias_naming_an_imported_record_is_e0304_naming_the_import() {
+    for (dir, extra) in [("with-local", "type User = { id: number, }\n"), ("without-local", "")] {
+        let root = unique_tmp(&format!("g297-sibling-import-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
+        write_file(&src, "rows.glyph", "module rows\nimport model { User }\npub type Rows = Array<User>\n");
+        write_file(&src, "main.glyph", &sibling_alias_main(extra));
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: must not validate against another module's record:\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(
+            stderr.contains("`Rows`'s body names `User`, which `rows` imports; `json.parse` does not yet follow an alias across a second module"),
+            "{dir}: the message names the real cause: {stderr}"
+        );
+        assert!(
+            !stderr.contains("has no runtime check to run for it") && !stderr.contains("a type parameter is erased"),
+            "{dir}: the message and note must not claim `Rows` has no check: {stderr}"
+        );
+    }
+}
+
+/// The same through the sibling's namespace import: `rows` writes
+/// `Array<u.User>` with `import model as u`. `main` binds its own `u` to a
+/// different module, which the body's `u` used to be read against.
+#[test]
+fn json_parse_of_a_sibling_alias_naming_a_namespaced_record_is_e0304_naming_the_import() {
+    let root = unique_tmp("g297-sibling-ns");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
+    write_file(&src, "other.glyph", "module other\npub type User = { id: number, }\n");
+    write_file(&src, "rows.glyph", "module rows\nimport model as u\npub type Rows = Array<u.User>\n");
+    write_file(&src, "main.glyph", &sibling_alias_main("import other as u\nfn touch(x: u.User) -> number { return x.id }\n"));
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "must not validate against `main`'s `u`:\n{stderr}");
+    assert!(
+        stderr.contains("`Rows`'s body names `u.User`, which `rows` imports; `json.parse` does not yet follow an alias across a second module"),
+        "{stderr}"
+    );
+}
+
+/// A record the sibling declares without `pub` cannot be reached through the
+/// sibling's exports, so the alias over it is refused rather than read in
+/// `main`'s scope, where `main`'s own `User` answered for it.
+#[test]
+fn json_parse_of_a_sibling_alias_naming_a_private_record_is_e0304() {
+    let root = unique_tmp("g297-sibling-private");
+    let src = root.join("src");
+    write_file(&src, "rows.glyph", "module rows\ntype User = { name: string, }\npub type Rows = Array<User>\n");
+    write_file(&src, "main.glyph", &sibling_alias_main("type User = { id: number, }\n"));
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "must not validate against `main`'s `User`:\n{stderr}");
+    assert!(
+        stderr.contains("`Rows`'s body names `User`, which `rows` declares without `pub`"),
+        "{stderr}"
+    );
+}
+
+/// A generic record the sibling exports, applied in the sibling's alias
+/// body, was checked with `main`'s same-named generic record and `main`'s
+/// reading of the type argument. Refused until the sibling's generic is
+/// followed into its own module.
+#[test]
+fn json_parse_of_a_sibling_alias_applying_a_generic_record_is_e0304() {
+    let root = unique_tmp("g297-sibling-generic");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "rows.glyph",
+        "module rows\npub type User = { name: string, }\npub type Page<T> = { items: Array<T>, }\npub type Rows = Array<Page<User>>\n",
+    );
+    write_file(&src, "main.glyph", &sibling_alias_main("type Page<T> = { other: T, }\nfn touch(p: Page<number>) -> number { return p.other }\n"));
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "must not validate against `main`'s `Page`:\n{stderr}");
+    assert!(
+        stderr.contains("`Rows`'s body names the generic `Page`; `json.parse` does not yet follow a generic type through a sibling alias"),
+        "{stderr}"
+    );
+}
+
+/// A record field typed by such an alias is refused at `Doc.parse` with the
+/// same cause, instead of claiming the field's type has no runtime check.
+#[test]
+fn a_descriptor_over_a_sibling_alias_naming_an_imported_record_names_the_import() {
+    let root = unique_tmp("g297-sibling-descriptor");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
+    write_file(&src, "rows.glyph", "module rows\nimport model { User }\npub type Rows = Array<User>\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport rows { Rows }\ntype Doc = { rows: Rows, }\npub fn read(v: unknown) -> Result<Doc, Array<Issue>> {\n  return Doc.parse(v)\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(
+        stderr.contains("field `rows` has type `Rows`, and `Rows`'s body names `User`, which `rows` imports"),
+        "{stderr}"
+    );
+}
+
+/// E0304 on `json.parse<T>` names the reason `T` has no check. The note used
+/// to blame a type parameter, an `extern_ts` type or a package type for
+/// every refusal, which is false for a local interface, `Result`, a generic
+/// union, and a container of any of them.
+#[test]
+fn json_parse_e0304_note_names_the_cause_per_type() {
+    let cases = [
+        ("interface", "interface Shape { name: string, }\n", "Shape", "an interface has no descriptor"),
+        ("interface-opt", "interface Shape { name: string, }\n", "Option<Shape>", "an interface has no descriptor"),
+        ("result", "", "Result<number, string>", "`Result` has no runtime check"),
+        ("result-arr", "", "Array<Result<number, string>>", "`Result` has no runtime check"),
+        ("union", "type Box<T> = | Full(T) | Empty\n", "Box<string>", "a generic union has no descriptor"),
+        ("union-nullable", "type Box<T> = | Full(T) | Empty\n", "Nullable<Box<string>>", "a generic union has no descriptor"),
+    ];
+    for (dir, decls, ty, note) in cases {
+        let root = unique_tmp(&format!("g297-note-{dir}"));
+        write_file(
+            &root,
+            "main.glyph",
+            &format!(
+                "module main\nimport std/json\n{decls}pub fn read(body: string) -> Result<{ty}, Array<Issue>> {{\n  return json.parse<{ty}>(body)\n}}\n"
+            ),
+        );
+        let (code, stderr) = check_no_tsc(&root);
+        assert_ne!(code, 0, "{dir}: {stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(note), "{dir}: the note names the cause `{note}`: {stderr}");
+        assert!(
+            !stderr.contains("a type parameter is erased"),
+            "{dir}: the note must not blame a type parameter: {stderr}"
+        );
+    }
+    // The existing note stays for the causes it is true of.
+    let root = unique_tmp("g297-note-typeparam");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\nimport std/json\npub fn read<T>(body: string) -> Result<T, Array<Issue>> {\n  return json.parse<T>(body)\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&root);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(stderr.contains("a type parameter is erased"), "{stderr}");
+}
+
+/// The per-cause note holds for an interface and a generic union imported
+/// from a sibling, by name and through a namespace, where the cause is read
+/// off the declaring module rather than this one.
+#[test]
+fn json_parse_e0304_note_names_the_cause_of_an_imported_type() {
+    let cases = [
+        ("named-interface", "import model { Shape }\n", "Shape", "an interface has no descriptor"),
+        ("ns-interface", "import model\n", "model.Shape", "an interface has no descriptor"),
+        ("named-union", "import model { Box }\n", "Box<string>", "a generic union has no descriptor"),
+        ("ns-union", "import model\n", "model.Box<string>", "a generic union has no descriptor"),
+    ];
+    for (dir, import, ty, note) in cases {
+        let root = unique_tmp(&format!("g297-note-imported-{dir}"));
+        write_file(
+            &root,
+            "model.glyph",
+            "module model\npub interface Shape { name: string, }\npub type Box<T> = | Full(T) | Empty\n",
+        );
+        write_file(
+            &root,
+            "main.glyph",
+            &format!(
+                "module main\nimport std/json\n{import}pub fn read(body: string) -> Result<{ty}, Array<Issue>> {{\n  return json.parse<{ty}>(body)\n}}\n"
+            ),
+        );
+        let (code, stderr) = check_no_tsc(&root);
+        assert_ne!(code, 0, "{dir}: {stderr}");
+        assert!(stderr.contains(note), "{dir}: the note names the cause `{note}`: {stderr}");
+        assert!(!stderr.contains("a type parameter is erased"), "{dir}: {stderr}");
+    }
+}

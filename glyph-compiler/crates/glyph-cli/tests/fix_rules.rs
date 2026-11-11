@@ -700,3 +700,29 @@ fn e0210_renames_a_misspelled_jsx_attribute_whose_value_holds_a_dot() {
     let (code, output) = check(&dir);
     assert_eq!(code, 0, "{output}\n{after}");
 }
+
+/// A lowercase name is not always a catch-all: Glyph accepts a lowercase
+/// variant (G224), and `glyph fix` cannot tell which from the diagnostics.
+/// With a lowercase arm before the `_`, the decline used to say "its
+/// catch-all arm `blank` handles `Loaded` now" about a variant arm; it now
+/// names no arm. With a lowercase variant before a binding arm, the binding
+/// takes the case, so naming the variant was wrong the same way (record 89).
+#[test]
+fn a_lowercase_arm_is_not_named_as_the_catch_all() {
+    for (dir, last) in [("lc-wild", "_"), ("lc-binding", "other")] {
+        let src = format!(
+            "module main\n\
+             type Feed = | blank | Loaded(number) | Empty\n\
+             pub fn f(x: Feed) -> number {{\n  return match x {{\n    Loadd(n) => n,\n    Empty => 0,\n    blank => 1,\n    {last} => 2,\n  }}\n}}\n"
+        );
+        let dir = project(dir, &src);
+        let out = fix(&dir);
+        assert!(out.contains("declined E0220"), "{out}");
+        assert!(!out.contains("catch-all arm `blank`"), "a variant arm is not the catch-all: {out}");
+        assert!(
+            out.contains("cannot tell from the diagnostics which arm that is"),
+            "the decline names no arm: {out}"
+        );
+        assert_eq!(source_of(&dir), src, "nothing is rewritten");
+    }
+}

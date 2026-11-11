@@ -536,10 +536,18 @@ fn plan_e0220(
         // reader about an unreachable arm sends them looking for a duplicate
         // that is not there.
         None => {
-            if let Some(catch_all) = catch_all_arm(&owner.arms) {
-                return Err(format!(
-                    "this match is missing no case because its {catch_all} handles `{suggestion}` now, so renaming this head to `{suggestion}` would move that case out of it, and which arm should handle it is not something the compiler determines"
-                ));
+            match catch_all_arm(&owner.arms) {
+                Some(CatchAll::Named(catch_all)) => {
+                    return Err(format!(
+                        "this match is missing no case because its {catch_all} handles `{suggestion}` now, so renaming this head to `{suggestion}` would move that case out of it, and which arm should handle it is not something the compiler determines"
+                    ));
+                }
+                Some(CatchAll::Unnamed) => {
+                    return Err(format!(
+                        "this match is missing no case, so some arm that takes every remaining value handles `{suggestion}` now; renaming this head to `{suggestion}` would move that case out of it, and `glyph fix` cannot tell from the diagnostics which arm that is (a lowercase name may be a variant, G224)"
+                    ));
+                }
+                None => {}
             }
             return Err(format!(
                 "the other arms of this match already cover every case, so renaming this head to `{suggestion}` would write an arm that can never run (E0305)"
@@ -682,20 +690,30 @@ fn match_owning_arm(module: &glyph_ast::Module, pattern: (u32, u32)) -> Option<O
     found
 }
 
-/// The arm of a match that takes every value the others leave, described the
-/// way the decline names it, when the match has one.
-///
-/// The same three shapes the checker counts as a catch-all: `else`, `_`, and a
-/// lowercase name, which binds rather than naming a variant.
-fn catch_all_arm(arms: &[glyph_ast::MatchArm]) -> Option<String> {
+/// The arm of a match that takes every value the others leave, as the decline
+/// can describe it.
+enum CatchAll {
+    /// An `else` or `_` arm no lowercase-name arm comes before, so it is the
+    /// one that takes the remaining values.
+    Named(String),
+    /// A lowercase-name arm comes first. It binds every value if it is a
+    /// name, and takes one case if it names a lowercase variant (G224); the
+    /// diagnostics do not say which, so the decline names no arm (record 89).
+    Unnamed,
+}
+
+/// The arm that takes every value the others leave, when the match may have
+/// one: `else` and `_`, and a lowercase name, which is a catch-all unless it
+/// names a variant.
+fn catch_all_arm(arms: &[glyph_ast::MatchArm]) -> Option<CatchAll> {
     use glyph_ast::Pattern;
     arms.iter().find_map(|arm| match &arm.pattern {
-        Pattern::Else { .. } => Some("`else` arm".to_string()),
-        Pattern::Wildcard { .. } => Some("`_` arm".to_string()),
+        Pattern::Else { .. } => Some(CatchAll::Named("`else` arm".to_string())),
+        Pattern::Wildcard { .. } => Some(CatchAll::Named("`_` arm".to_string())),
         Pattern::Ident { name, .. }
             if !name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) =>
         {
-            Some(format!("catch-all arm `{name}`"))
+            Some(CatchAll::Unnamed)
         }
         _ => None,
     })

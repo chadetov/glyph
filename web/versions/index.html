@@ -70,10 +70,11 @@
 
             <h3>The lexer runs on demand</h3>
             <p>The whole file used to be split into tokens before parsing started. The parser now asks the lexer for each token as it needs one, and the lexer can resume from any point in the file. A lex error waits until the parser reaches it, so a lookahead that strays into one backs off without failing.</p>
-            <p>For every program that compiles, nothing changes. We checked that by running 0.1.133 and 0.1.134 on every <code>.glyph</code> file in the repository and on all 32 example apps: the emitted TypeScript and the <code>glyph fmt</code> output are byte for byte the same, and no exit code changes.</p>
+            <p>For every program that compiles, nothing changes. We checked that by running 0.1.133 and 0.1.134 on every <code>.glyph</code> file in the repository and on all 32 example apps, built as projects: the emitted TypeScript (2795 files for the single files, 616 for the apps) and the <code>glyph fmt</code> output are byte for byte the same, and no exit code changes.</p>
 
             <h3>Changed: which error you see first</h3>
             <p>A file with two errors reports the first one the parser reaches. Before, a lex error (an unterminated string, a stray character) was always reported first, even when a parse error came earlier in the file. So <code>x = 1 # 2</code> in a function body used to report the <code>#</code> (E0001) and now reports the missing <code>mut</code> (E0008), which is the earlier mistake. The program fails either way; the message is what changed. One file in our test corpus changed this way, and it turned out to hold a second error the old order hid.</p>
+            <p>One case reads worse than before. When the parser looks ahead to decide what it is reading and runs into a lex error, it backs off and tries the other reading, and that reading can fail on code that is fine. In <code>let x = f&lt;a, "\q"&gt;(x)</code> the invalid escape <code>\q</code> used to be reported; now the parser reports an unexpected <code>,</code>, because it read <code>f &lt; a</code> as a comparison. If an error points at code that looks correct, look for a bad string or character further along the line. It is filed as G329.</p>
 
             <p>This release is not breaking: no program that compiled stops compiling, and no exit code changes.</p>
           </div>

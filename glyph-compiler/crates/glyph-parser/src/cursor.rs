@@ -544,4 +544,21 @@ mod tests {
         let src = "fn g() {\n  let x = f(a < b, \"\\q\")\n}\n";
         assert_eq!(crate::parse(src).unwrap_err(), eager_lex_error(src));
     }
+
+    /// The case that reads worse than the eager lexer (G329, record 92). The
+    /// scan at `<` reaches the bad escape and backs off, and the comparison
+    /// reading `f < a` fails at the `,` before the parser arrives at the
+    /// escape, so the error points at valid code. Pinned so the documented
+    /// behaviour cannot change unnoticed; a fix for G329 flips this test.
+    #[test]
+    fn a_generic_call_scan_that_backs_off_can_fail_before_the_lex_error() {
+        let src = "fn g() -> number {\n  let x = f<a, \"\\q\">(x)\n}\n";
+        let err = crate::parse(src).unwrap_err();
+        let lex = eager_lex_error(src);
+        assert!(
+            matches!(&err, ParseError::Unexpected { found, .. } if found == "Comma"),
+            "{err:?}"
+        );
+        assert!(err.span().start < lex.span().start, "{err:?} before {lex:?}");
+    }
 }

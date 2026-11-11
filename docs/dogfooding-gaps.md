@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-328 entries, 279 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-29 are open. G144, the D28 boundary cast that never reached the returns a
+329 entries, 279 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+30 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11937,3 +11937,15 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.133 (the release build): `[E0008] Error: parse:
   assignment requires `mut``.*
+- **G329. A lex error inside a generic-call lookahead is replaced by an E0003
+  on valid code.** `let x = f<a, "\q">(x)` reports ``unexpected token: Comma``
+  at the `,`. The parser's lookahead for a generic call reaches the invalid
+  escape, backs off, and reads `f < a` as a comparison, which fails at the
+  comma before the parser arrives at the `\q`. An agent told the comma is
+  wrong edits correct code. The `parse` fuzz property holds (the error starts
+  before the lex error) and does not catch it. Introduced by the pull cursor in
+  0.1.134, which reports the first error the parser reaches (record 91); found
+  by the 0.1.134 release review (record 92).
+
+  *Reproduced against 0.1.134 (the dev-0.1.134 build): E0003 at the `,`; the
+  published 0.1.133 reports E0001 ``invalid escape sequence `\q` ``.*

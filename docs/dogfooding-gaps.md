@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-324 entries, 278 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-26 are open. G144, the D28 boundary cast that never reached the returns a
+327 entries, 279 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+28 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11196,7 +11196,7 @@ and is the owner's to confirm.
   other, `p.titel` on a `p: Page` passes the checker, and `Page.parse` is
   still TS2693. Whether D46 covers a qualified name is a decision, not part of
   this fix.
-- **G297. [HALF FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
+- **G297. [FIXED] `json.parse<T>` is never refused for a `T` it cannot validate.**
   `json.parse<Doc>(body)` where `Doc` has an `extern_ts` field passes `glyph
   check` with `tsc`, while `Doc.parse(v)` on the same record is E0304. The
   namespace form is documented as validating against `T.schema`, so it returns
@@ -11247,6 +11247,18 @@ and is the owner's to confirm.
   a record holding one (a type parameter, an `extern_ts` type, a package type)
   still casts; refusing it is the 0.1.133 half of the same decision, and is
   not this entry's case.
+
+  Fixed in 0.1.133: `json.parse<T>` never casts. A `T` with no runtime check
+  of its own is E0304 in both spellings, and the note names the cause: a type
+  parameter, an `extern_ts` or package type, an interface, `Result`, a generic
+  tagged union, or an `Option`, `Nullable` or `Record` of one. An alias from
+  another module validates when its body names only types that module
+  declares and exports, and is E0304 otherwise; it used to read those names in
+  the importer's scope and validate against the wrong record. A `json.parse`
+  value takes no type arguments (E0233), and a call with none is emitted as
+  `json.parse<unknown>`, so `tsc` refuses `let a: Result<User, Array<Issue>> =
+  json.parse(body)`, which was a cast with no `as` (records 88 and 89). What is
+  left is G325 and G326.
 - **G298. [HALF FIXED] `json.parse_with` is not in the checker's stdlib table.**
   `let u: User = json.parse_with(body, s)` with `s: Schema<User>` passes
   `glyph check --no-tsc`; `tsc` refuses it (TS2322: ``Type 'Result<User,
@@ -11632,7 +11644,7 @@ and is the owner's to confirm.
   (E0210 through D46), and the rename sent through `changes` with the call
   site's fix is accepted. A protocol test holds the gate's project lists
   equal to `glyph check --no-tsc --json` on the same tree.
-- **G311. `?.` on an `Option` or a `Result` is not checked.** The checker
+- **G311. [HALF FIXED] `?.` on an `Option` or a `Result` is not checked.** The checker
   reads the `optional` flag of a member only for a `Nullable` (G304); on an
   `Option<Note>`, `o?.nmae` passes `glyph check --no-tsc`, and `tsc` refuses
   it (``TS2339: Property 'nmae' does not exist on type 'Option<Note>'``). An
@@ -11644,6 +11656,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.131 (the dev-0.1.132 build, `glyph 0.1.131`):
   `return o?.nmae` is `glyph check: 1 module(s) checked, no diagnostics.`
   under `--no-tsc`, and TS2339 with `tsc`.*
+
+  Half fixed in 0.1.133 (record 87): `?.` on an `Option` or a `Result` is
+  E0236, once at the link where the chain starts, method calls included, the
+  receiver resolved through aliases so a user type named `Option` is not one.
+  An `Option` is never null, so `?.` reads off the tag object; on a `Result`,
+  `?.` is optional chaining and does not propagate an `Err`, which is how csvql
+  came to write `bind_agg(...)?.label`. The plain-dot member set (`o.nmae`,
+  `r.value`) is still unchecked and is 0.1.138.
 - **G312. [FIXED] A built-in method read without a call is accepted.** `let up =
   s.toUpperCase` then `up()` passes `glyph check` with `tsc` (``tsc --strict
   passed.``), and throws a `TypeError` at run time, because an ES module is
@@ -11864,3 +11884,41 @@ and is the owner's to confirm.
   comment sits in a construct with no layout to hold it, naming the line, rather
   than moving it. D14 is restated as that general guarantee when the refusal
   lands.
+
+- **G325. An `unknown` value passes where another type is declared.** `let s:
+  string = u` with `u: unknown` passes `glyph check --no-tsc` and the agent
+  gate; `tsc` refuses it (TS2322). Glyph's relation never refuses `unknown` on
+  the found side, so the same holds at an argument, a return and a field. It
+  is how `let a: Result<User, Array<Issue>> = json.parse(body)` stays silent
+  under `--no-tsc`, though 0.1.133 makes `tsc` refuse that one. Found by
+  record 89 while deciding the `json.parse` value.
+
+  *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
+  s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
+
+  Planned for 0.1.144 (record 89): `unknown` is assignable only to `unknown`,
+  after G315 and G314 step 2.
+- **G326. `json.parse` does not follow a sibling's alias into a third module.**
+  `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
+  with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
+  naming a private or a generic type. Before 0.1.133 the name was read in the
+  importer's scope and validated against whatever `User` that module had.
+  Found by the 0.1.133 review.
+
+  *Reproduced against 0.1.133 (the dev-0.1.133 build): ``[E0304] cannot
+  validate `Rows`: `Rows`'s body names `User`, which `rows` imports``.*
+
+  Planned for 0.1.139 (record 88): follow the name into its declaring module
+  through the hidden-namespace import.
+- **G327. `glyph fix` cannot name the arm that covers a case an E0220 head
+  would move.** With no E0200, some arm takes every remaining value, but a
+  lowercase arm may be a binding or a lowercase variant (G224), and the
+  diagnostics `glyph fix` reads do not say which. 0.1.132's decline named a
+  variant arm `blank` as the catch-all; 0.1.133's names no arm. Found by the
+  0.1.133 review.
+
+  *Reproduced against 0.1.132 (the release build): the decline reads "its
+  catch-all arm `blank` handles `Loaded` now" where `blank` is a variant.*
+
+  Planned for 0.1.140 (record 89): read the checker's coverage relation from
+  the same build report and name the arm.

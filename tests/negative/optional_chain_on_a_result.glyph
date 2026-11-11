@@ -1,0 +1,15 @@
+module neg
+
+// E0236. `?.` is optional chaining, not `?` followed by `.`. On a `Result` it
+// propagates nothing: a `Result` is never null, so the read lands on the
+// `Result` itself and the `Err` is never returned. csvql wrote this as
+// `bind_agg(...)?.label`; the fix there was to bind first, then read.
+type Spec = { label: string }
+
+fn spec() -> Result<Spec, string> {
+  return Ok({ label: "a" })
+}
+
+pub fn label() -> Result<string, string> {
+  return Ok(spec()?.label)
+}

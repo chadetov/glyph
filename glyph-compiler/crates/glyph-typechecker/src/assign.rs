@@ -2123,6 +2123,15 @@ impl Assigner<'_> {
                 // a `?.` over a `Nullable<R>` starts one and reads the field
                 // off `R`. The plain dot over one may read null: E0235.
                 let chain = self.null_chains.take(object.span());
+                // E0236. One refusal at the link the chain starts from, and
+                // the node is `Unknown`, so the links after it read nothing.
+                if *optional && self.refuse_optional_chain_on_tagged(object, &obj_ty, field, *span) {
+                    if let Some(c) = chain {
+                        self.null_chains.open(*span, c);
+                    }
+                    self.tm.insert(*span, Ty::Unknown);
+                    return;
+                }
                 let mut root = None;
                 if let Some(inner) = self.nullable_inner(&obj_ty) {
                     let through = ty_display(&obj_ty);
@@ -2702,13 +2711,23 @@ impl Assigner<'_> {
     /// arguments substituted into its body, so `Maybe<Note>` is
     /// `Nullable<Note>`.
     fn nullable_inner(&self, ty: &Ty) -> Option<Ty> {
-        self.nullable_inner_at(ty, 0)
+        match self.container_through_aliases(ty, 0)? {
+            ("Nullable", args) => args.first().cloned(),
+            _ => None,
+        }
     }
 
-    fn nullable_inner_at(&self, ty: &Ty, depth: usize) -> Option<Ty> {
+    /// The prelude container `ty` is (`Option`, `Result`, `Array`, `Record`
+    /// or `Nullable`) with its arguments, read through aliases the way
+    /// `nullable_inner` reads a `Nullable`: second names, a local or a
+    /// sibling's `type` whose body is one, and a generic one with the
+    /// application's arguments substituted. A user type that shadows a
+    /// prelude name is not the prelude's, since `prelude_container` checks
+    /// the resolved symbol and not the spelling.
+    fn container_through_aliases(&self, ty: &Ty, depth: usize) -> Option<(&'static str, Vec<Ty>)> {
         let canonical = self.canonicalize_aliases(ty);
-        if let Some(("Nullable", args)) = self.prelude_container(&canonical) {
-            return args.first().cloned();
+        if let Some((name, args)) = self.prelude_container(&canonical) {
+            return Some((name, args.to_vec()));
         }
         if depth >= 8 {
             return None;
@@ -2718,16 +2737,59 @@ impl Assigner<'_> {
             let (_, _, decl) =
                 imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
             let body = alias_body_applied(&decl.body, &decl.generics, args)?;
-            return self.nullable_inner_at(&body, depth + 1);
+            return self.container_through_aliases(&body, depth + 1);
         }
         match self.local_type_decl(&canonical) {
             Some(td) if td.refinement.is_none() => {
                 let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
                 let body = alias_body_applied(&self.lowerer.lower(&td.body), &generics, args)?;
-                self.nullable_inner_at(&body, depth + 1)
+                self.container_through_aliases(&body, depth + 1)
             }
             _ => None,
         }
+    }
+
+    /// E0236 (G311, record 87): `?.` written on a receiver that resolves to
+    /// the prelude `Option` or `Result`. Answers whether it was refused.
+    fn refuse_optional_chain_on_tagged(
+        &mut self,
+        object: &Expr,
+        obj_ty: &Ty,
+        field: &Ident,
+        span: Span,
+    ) -> bool {
+        let (container, args) = match self.container_through_aliases(obj_ty, 0) {
+            Some(("Option", args)) => (crate::TaggedContainer::Option, args),
+            Some(("Result", args)) => (crate::TaggedContainer::Result, args),
+            _ => return false,
+        };
+        let name = match container {
+            crate::TaggedContainer::Option => "Option",
+            crate::TaggedContainer::Result => "Result",
+        };
+        let shown: Vec<String> = args.iter().map(ty_display).collect();
+        let payload = shown.first().cloned().unwrap_or_else(|| "T".to_string());
+        let receiver = receiver_source(object);
+        // The help binds the payload to the first letter of its type's name
+        // (`Note` is `n`), unless that would shadow the receiver it opens.
+        let binding = payload
+            .chars()
+            .next()
+            .filter(|c| c.is_ascii_alphabetic())
+            .map(|c| c.to_ascii_lowercase().to_string())
+            .filter(|b| *b != receiver)
+            .unwrap_or_else(|| "v".to_string());
+        self.errors.push(TypeError::OptionalChainOnTagged {
+            container,
+            type_name: format!("{name}<{}>", shown.join(", ")),
+            field: field.to_string(),
+            method: self.call_callee == Some(span),
+            receiver,
+            binding,
+            payload,
+            span,
+        });
+        true
     }
 
     /// The type of `left ?? right` (G304, D45).
@@ -8863,6 +8925,24 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
 /// any form, a function type or `Nullable<{ name: string }>` included.
 /// The callee of a call as it is written, for a diagnostic that names it:
 /// `id`, `lib.id`, `json.parse`. Any other callee shape is shown as `callee`.
+/// A receiver as the help can write it back: a name, a member path, or a
+/// call (`load()`, with its arguments elided when it has any). Anything else
+/// is written as a placeholder.
+fn receiver_source(e: &Expr) -> String {
+    match e {
+        Expr::Ident { name, .. } => name.to_string(),
+        Expr::Member { object, field, optional, .. } => {
+            let dot = if *optional { "?." } else { "." };
+            format!("{}{dot}{field}", receiver_source(object))
+        }
+        Expr::Call { callee, args, .. } => {
+            let inner = if args.is_empty() { "" } else { "..." };
+            format!("{}({inner})", receiver_source(callee))
+        }
+        _ => "<value>".to_string(),
+    }
+}
+
 fn callee_source(callee: &Expr) -> String {
     match callee {
         Expr::Ident { name, .. } => name.to_string(),
@@ -16534,6 +16614,126 @@ fn f(a: Answer) -> number {
             let errs = g304_errors(body);
             assert!(errs.is_empty(), "expected no diagnostics for\n{body}\n{errs:?}");
         }
+    }
+
+    // ----- G311 / E0236: `?.` on an `Option` or a `Result` (record 87) -----
+
+    /// The E0236 diagnostics in `errs`, as (message, help).
+    fn e0236s(errs: &[TypeError]) -> Vec<(String, String)> {
+        errs.iter()
+            .filter(|e| e.code() == "E0236")
+            .map(|e| (e.to_string(), e.help().map(|h| h.into_owned()).unwrap_or_default()))
+            .collect()
+    }
+
+    /// An `Option` is never null, so `?.` never short-circuits on one: the
+    /// read lands on the tag object. One E0236, and the field is not also
+    /// checked against the payload (an E0210 would imply the read could be
+    /// legal). The help opens the value with `match`, and points a wire null
+    /// at `Nullable`, never at `nullable.from_option`.
+    #[test]
+    fn an_optional_chain_on_an_option_is_e0236() {
+        let errs = g304_errors(
+            "fn f(o: Option<Note>) -> string {\n  let x = o?.name\n  let y = o?.nmae\n  return \"a\"\n}\n",
+        );
+        assert_eq!(
+            e0236s(&errs),
+            vec![
+                (
+                    "`?.` on an `Option<Note>`: an `Option` is never null, so `?.` reads `name` off the `Option` itself, not off its `Some` value".to_string(),
+                    "Open it with `match o { Some(n) => n.name, None => <default> }`. If the absence is a JSON `null` from the wire, declare the type `Nullable<Note>` (D45).".to_string(),
+                ),
+                (
+                    "`?.` on an `Option<Note>`: an `Option` is never null, so `?.` reads `nmae` off the `Option` itself, not off its `Some` value".to_string(),
+                    "Open it with `match o { Some(n) => n.nmae, None => <default> }`. If the absence is a JSON `null` from the wire, declare the type `Nullable<Note>` (D45).".to_string(),
+                ),
+            ],
+            "{errs:?}"
+        );
+        assert_eq!(errs.len(), 2, "nothing but the two E0236: {errs:?}");
+        assert!(errs.iter().all(|e| !e.help().unwrap_or_default().contains("from_option")));
+    }
+
+    /// `?.` is optional chaining, not `?` followed by `.`: on a `Result` it
+    /// propagates nothing. A field read is told to propagate first and read
+    /// after (the csvql form), a method call to drop the `?`. A method call
+    /// through `?.` is refused too: `r?.map(f)` runs as `r.map(f)` but reads
+    /// as "skip on `Err`".
+    #[test]
+    fn an_optional_chain_on_a_result_is_e0236_for_a_field_and_a_method() {
+        let errs = g304_errors(
+            "fn load() -> Result<Note, string> { return Ok({ name: \"a\", kind: \"a\", inner: { name: \"b\" }, maybe: null, label: null }) }\n\
+             fn keep(n: Note) -> Note { return n }\n\
+             fn f(r: Result<Note, string>) -> string {\n  let a = load()?.name\n  let b = r?.map(keep)\n  let c = r?.label\n  return \"a\"\n}\n",
+        );
+        let message = "`?.` on a `Result<Note, string>`: `?.` is optional chaining, not `?` followed by `.`; it does not propagate an `Err`, and a `Result` is never null";
+        assert_eq!(
+            e0236s(&errs),
+            vec![
+                (
+                    message.to_string(),
+                    "Propagate first, then read: `let n = load()?` then `n.name`.".to_string(),
+                ),
+                (message.to_string(), "Drop the `?`: `r.map(...)`.".to_string()),
+                (
+                    message.to_string(),
+                    "Propagate first, then read: `let n = r?` then `n.label`.".to_string(),
+                ),
+            ],
+            "{errs:?}"
+        );
+        assert!(!errs.iter().any(|e| e.code() == "E0210"), "{errs:?}");
+    }
+
+    /// Reported once, at the link where the chain starts: `o?.a.b` and
+    /// `o?.a?.b` are one E0236 each, and nothing cascades from the node.
+    #[test]
+    fn an_optional_chain_on_an_option_is_reported_once_per_chain() {
+        let errs = g304_errors(
+            "fn f(o: Option<Note>, r: Result<Note, string>) -> string {\n  let a = o?.inner.name\n  let b = o?.inner?.name\n  let c = r?.inner.nmae.x\n  return \"a\"\n}\n",
+        );
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert_eq!(codes, vec!["E0236", "E0236", "E0236"], "{errs:?}");
+    }
+
+    /// The receiver counts as an `Option` or a `Result` through any alias,
+    /// generic ones included (D46). A user type that shadows the prelude
+    /// name is not one: the name is resolved, not matched by spelling.
+    #[test]
+    fn an_optional_chain_on_an_aliased_option_or_result_is_e0236() {
+        let errs = g304_errors(
+            "type MaybeNote = Option<Note>\n\
+             type Res<T> = Result<T, string>\n\
+             type Deeper = Res<Note>\n\
+             fn f(o: MaybeNote, r: Res<Note>, d: Deeper) -> string {\n  let a = o?.name\n  let b = r?.name\n  let c = d?.name\n  return \"a\"\n}\n",
+        );
+        let found: Vec<String> = e0236s(&errs).into_iter().map(|(m, _)| m).collect();
+        assert_eq!(found.len(), 3, "{errs:?}");
+        assert!(found[0].starts_with("`?.` on an `Option<Note>`"), "{found:?}");
+        assert!(found[1].starts_with("`?.` on a `Result<Note, string>`"), "{found:?}");
+        assert!(found[2].starts_with("`?.` on a `Result<Note, string>`"), "{found:?}");
+
+        let errs = errors_of(
+            "module x\n\
+             type Option<T> = { name: T, }\n\
+             fn f(o: Option<string>) -> string {\n  return o?.name\n}\n",
+        );
+        assert!(e0236s(&errs).is_empty(), "a user `Option` is not the prelude's: {errs:?}");
+    }
+
+    /// The `?.` over a `Nullable` is untouched (E0235's rules), and a plain
+    /// dot on an `Option` or a `Result` is unchanged in this release: the
+    /// member set on it is a later release (record 87, Q3).
+    #[test]
+    fn e0236_leaves_nullable_chains_and_the_plain_dot_alone() {
+        let errs = g304_errors(
+            "fn keep(n: Note) -> Note { return n }\n\
+             fn f(n: Nullable<Note>, o: Option<Note>, r: Result<Note, string>) -> string {\n  let a = n?.name ?? \"none\"\n  let b = o.tag\n  let c = r.map(keep)\n  return a\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+        let errs = g304_errors("fn f(n: Nullable<Note>) -> string {\n  let x = n?.name\n  return \"a\"\n}\n");
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert_eq!(codes, vec!["E0235"], "{errs:?}");
     }
 
     #[test]

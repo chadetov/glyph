@@ -15024,6 +15024,53 @@ fn a_nullable_read_through_an_imported_alias_is_checked_by_every_spelling() {
     }
 }
 
+/// G311, E0236 across the module boundary. A sibling's `pub type MaybeNote =
+/// Option<Note>` and `pub type Res<T> = Result<T, string>` are read as the
+/// `Option` and the `Result` they name under every import spelling, so `?.`
+/// on either is one E0236 each, reported at the link the chain starts from,
+/// and the `?.` over a `Nullable` beside them is unchanged. Without it the
+/// refusal would depend on where the alias lives.
+#[test]
+fn an_optional_chain_on_an_imported_option_or_result_alias_is_e0236_by_every_spelling() {
+    for (import, q) in [
+        ("import a { MaybeNote, Res, Note, Wire }", ""),
+        ("import a", "a."),
+        ("import a as aa", "aa."),
+    ] {
+        let root = unique_tmp("g311alias");
+        let src = root.join("src");
+        write_file(
+            &src,
+            "a.glyph",
+            "module a\n\npub type Note = { name: string, inner: { name: string } }\n\n\
+             pub type MaybeNote = Option<Note>\n\npub type Res<T> = Result<T, string>\n\n\
+             pub type Wire = Nullable<Note>\n",
+        );
+        write_file(
+            &src,
+            "b.glyph",
+            &format!(
+                "module b\n\n{import}\n\n\
+                 pub fn opt(o: {q}MaybeNote) -> string {{\n  let x = o?.inner.name\n  return \"a\"\n}}\n\n\
+                 pub fn res(r: {q}Res<{q}Note>) -> string {{\n  let x = r?.name\n  return \"a\"\n}}\n\n\
+                 pub fn wire(n: {q}Wire) -> string {{\n  return n?.name ?? \"\"\n}}\n"
+            ),
+        );
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let d = &report.diagnostics;
+        assert_eq!(d.iter().filter(|d| d.contains("[E0236]")).count(), 2, "`{import}`: {d:?}");
+        assert!(
+            d.iter().any(|d| d.contains("[E0236]") && d.contains("`?.` on an `Option<")),
+            "`{import}`: {d:?}"
+        );
+        assert!(
+            d.iter().any(|d| d.contains("[E0236]") && d.contains("`?.` on a `Result<")),
+            "`{import}`: {d:?}"
+        );
+        assert_eq!(d.len(), 2, "`{import}`: only the two refusals: {d:?}");
+    }
+}
+
 /// G304 with a generic alias. A sibling's `pub type Maybe<T> = Nullable<T>`
 /// applied to `Note` is read as `Nullable<Note>` under every import spelling:
 /// the plain dot and the interpolated chain are E0235, a typo through `?.` is

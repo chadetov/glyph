@@ -885,6 +885,37 @@ pub fn explain(code: &str) -> Option<&'static str> {
             To use the whole value instead, convert it with \
             `nullable.to_option(n)` and `match` on the `Option`. That call is the \
             greppable record of where null enters the program.",
+        "E0236" => "E0236: `?.` on an `Option` or a `Result`\n\n\
+            `?.` short-circuits on null, and an `Option` or a `Result` is never \
+            null: at run time each is a tagged object. So `?.` on one never \
+            skips anything. It reads the member off the tag object itself, \
+            which no program means.\n\n\
+            The case that motivated the rule is from the csvql example app \
+            (`examples/apps/csvql/bind.glyph`). The author wanted \
+            \"propagate the error, then read the field\" and wrote:\n\n\
+            Call({ func, arg, at }) => bind_agg(scope, func, arg, at)?.label\n\n\
+            `?.` lexes as optional chaining, not as `?` followed by `.`, so \
+            nothing propagated: an `Err` was never returned, and the read \
+            landed on the `Result`. The fix is to bind first, then read:\n\n\
+            let spec = bind_agg(scope, func, arg, at)?\n\
+            spec.label\n\n\
+            On an `Option`, open the value with `match`:\n\n\
+            match o { Some(n) => n.name, None => \"none\" }\n\n\
+            If the absence is a JSON `null` arriving from the wire, the type is \
+            `Nullable<T>` (D45), and `?.` with `??` is how a `Nullable` is read \
+            (E0235).\n\n\
+            A method called through `?.` is refused too. `r?.map(f)` runs as \
+            `r.map(f)` but reads as \"skip on `Err`\", which it does not do. \
+            Drop the `?`: `r.map(f)`.\n\n\
+            The receiver counts as an `Option` or a `Result` through any alias \
+            of one, generic aliases included. A type of your own that happens \
+            to be called `Option` is not the prelude's and is not refused. The \
+            error is reported once, where the chain starts (`o?.a.b` is one \
+            E0236), and the member is not also checked against the payload \
+            type. `tsc` refuses most of these (TS2339) but accepts `o?.tag`, \
+            `r?.tag`, `r?.value`, `r?.map(...)` and `r?.map_err(...)`; Glyph \
+            refuses all of them, under `--no-tsc` as well. A plain `.` on an \
+            `Option` or a `Result` is not covered by this code.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1849,6 +1880,12 @@ pub static CODES: &[CodeEntry] = &[
         meaning: "A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=` (a binding, an argument, a `return`, a field value, an interpolation, a JSX child or attribute, a `match` scrutinee): that value is `F` or `undefined`, and Glyph has no type for `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts (a JSX child among them) and Glyph does not",
         fix: "Give the absent case a value with `??` (`n?.name ?? \"none\"`), or convert the whole value with `nullable.to_option(n)` and `match` on it",
     },
+    CodeEntry {
+        code: "E0236",
+        phase: "typechecker",
+        meaning: "`?.` on a receiver that resolves to an `Option` or a `Result` (G311, D18), through any alias. Neither is ever null, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)`",
+        fix: "On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>`",
+    },
     // ----- emitter (E03xx) -----
     CodeEntry {
         code: "E0300",
@@ -2182,6 +2219,18 @@ mod tests {
         let answer = explain_json("E0234").expect("E0234 is documented");
         let example = answer.counter_example.expect("a negative case for E0234");
         assert_eq!(example.diagnostic.map(|d| d.code), Some("E0234".to_string()));
+    }
+
+    /// E0236 has a wrong program in `tests/negative/` (the csvql shape), so
+    /// `--explain E0236 --json` shows one, with the help for a field read.
+    #[test]
+    fn e0236_has_a_counter_example() {
+        let answer = explain_json("E0236").expect("E0236 is documented");
+        assert!(answer.explanation.contains("csvql"), "{}", answer.explanation);
+        let example = answer.counter_example.expect("a negative case for E0236");
+        assert_eq!(example.diagnostic.map(|d| d.code), Some("E0236".to_string()));
+        let help = answer.help.expect("the E0236 counter-example carries a help");
+        assert!(help.starts_with("Propagate first, then read"), "{help}");
     }
 
     /// E0233 has a wrong program in `tests/negative/`, so `--explain E0233

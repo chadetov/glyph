@@ -649,6 +649,33 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G311, record 87 (D18): `?.` on a receiver that resolves to the
+    /// prelude `Option<T>` or `Result<T, E>`, through any alias. Neither is
+    /// ever null at run time, so the chain never short-circuits: it reads
+    /// the member off the tag object. On a `Result` the form is also the
+    /// misreading of `?.` as `?` followed by `.` (csvql's
+    /// `bind_agg(...)?.label`), which propagates nothing. A method called
+    /// through `?.` (`r?.map(f)`) is the same refusal.
+    ///
+    /// Reported once, at the link where the chain starts, and the member is
+    /// not also checked against the payload type: an E0210 there would imply
+    /// the read could be legal. The node is `Unknown`, so nothing cascades.
+    ///
+    /// `type_name` is the container as resolved (`Option<Note>` for an alias
+    /// of it), `receiver` the receiver as written, `binding` the name the
+    /// help binds the payload to, and `payload` the payload type.
+    #[error("{}", optional_chain_on_tagged_message(*.container, .type_name, .field))]
+    OptionalChainOnTagged {
+        container: TaggedContainer,
+        type_name: String,
+        field: String,
+        method: bool,
+        receiver: String,
+        binding: String,
+        payload: String,
+        span: Span,
+    },
+
     /// G217. A type's name standing where a value is wanted. `return Order {
     /// id: "a", total: 1 }` is the TypeScript-adjacent guess for constructing a
     /// record, and Glyph has no such form: the value is the record literal on
@@ -956,6 +983,48 @@ pub enum NullableReadKind {
     ChainEscapes,
 }
 
+/// Which prelude tagged type a `?.` was written on (E0236).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TaggedContainer {
+    Option,
+    Result,
+}
+
+fn optional_chain_on_tagged_message(
+    container: TaggedContainer,
+    type_name: &str,
+    field: &str,
+) -> String {
+    match container {
+        TaggedContainer::Option => format!(
+            "`?.` on an `{type_name}`: an `Option` is never null, so `?.` reads `{field}` off the `Option` itself, not off its `Some` value"
+        ),
+        TaggedContainer::Result => format!(
+            "`?.` on a `{type_name}`: `?.` is optional chaining, not `?` followed by `.`; it does not propagate an `Err`, and a `Result` is never null"
+        ),
+    }
+}
+
+fn optional_chain_on_tagged_help(
+    container: TaggedContainer,
+    field: &str,
+    method: bool,
+    receiver: &str,
+    binding: &str,
+    payload: &str,
+) -> String {
+    let call = if method { "(...)" } else { "" };
+    match (container, method) {
+        (TaggedContainer::Option, _) => format!(
+            "Open it with `match {receiver} {{ Some({binding}) => {binding}.{field}{call}, None => <default> }}`. If the absence is a JSON `null` from the wire, declare the type `Nullable<{payload}>` (D45)."
+        ),
+        (TaggedContainer::Result, false) => format!(
+            "Propagate first, then read: `let {binding} = {receiver}?` then `{binding}.{field}`."
+        ),
+        (TaggedContainer::Result, true) => format!("Drop the `?`: `{receiver}.{field}(...)`."),
+    }
+}
+
 fn nullable_read_message(kind: NullableReadKind, field: &str, type_name: &str) -> String {
     match kind {
         NullableReadKind::Dot => format!(
@@ -1042,6 +1111,7 @@ impl TypeError {
             TypeError::NonExhaustiveFieldMatch { span } => *span,
             TypeError::NullableNested { span, .. } => *span,
             TypeError::NullableRead { span, .. } => *span,
+            TypeError::OptionalChainOnTagged { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
@@ -1087,6 +1157,7 @@ impl TypeError {
             TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
             TypeError::NullableNested { .. } => "E0227",
             TypeError::NullableRead { .. } => "E0235",
+            TypeError::OptionalChainOnTagged { .. } => "E0236",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
@@ -1143,6 +1214,20 @@ impl TypeError {
                 "Call the method where it is read, `{method}(...)`, or wrap the call in a lambda if it is handed on as a value. `{}` holds Glyph's own functions over {}, which can be passed as values.",
                 builtin.std_module(),
                 builtin.runtime_name(),
+            )));
+        }
+        if let TypeError::OptionalChainOnTagged {
+            container,
+            field,
+            method,
+            receiver,
+            binding,
+            payload,
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(optional_chain_on_tagged_help(
+                *container, field, *method, receiver, binding, payload,
             )));
         }
         if let TypeError::TypeArgumentCountMismatch {
@@ -1314,6 +1399,7 @@ impl TypeError {
             TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
+            TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
         }))
     }
 
@@ -1341,6 +1427,9 @@ impl TypeError {
             ),
             TypeError::UncalledBuiltinMethod { .. } => Some(
                 "A method reads its receiver from `this`, which a call through the member supplies. Read alone, the method is a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read.",
+            ),
+            TypeError::OptionalChainOnTagged { .. } => Some(
+                "`Option` and `Result` are tagged values at run time and never null, so `?.` never short-circuits on one: it reads the member off the tag object. `match` is the one place either is opened, and `?` is the one way a `Result` propagates.",
             ),
             TypeError::NullableRead { .. } => Some(
                 "`Nullable<T>` is `T | null` (D45), and `?.` over a null value gives JavaScript's `undefined`, which Glyph has no type for. The chain may stand only where the absence is handled on the spot: the left of `??`, or an operand of `==` or `!=`.",

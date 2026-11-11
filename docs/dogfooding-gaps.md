@@ -11257,8 +11257,12 @@ and is the owner's to confirm.
   the importer's scope and validate against the wrong record. A `json.parse`
   value takes no type arguments (E0233), and a call with none is emitted as
   `json.parse<unknown>`, so `tsc` refuses `let a: Result<User, Array<Issue>> =
-  json.parse(body)`, which was a cast with no `as` (records 88 and 89). What is
-  left is G325 and G326.
+  json.parse(body)`, which was a cast with no `as` (records 88 and 89). The
+  release review found one more cast before the release: a generic record
+  applied to a type with no check (`json.parse<Pair<Shape>>`,
+  `Pair.parse<Shape>(v)`) tested that field for presence only and returned
+  `Ok` with `5` in it; both are E0304 now, and `is Pair<Shape>` is refused
+  (record 90). What is left is G325 and G326.
 - **G298. [HALF FIXED] `json.parse_with` is not in the checker's stdlib table.**
   `let u: User = json.parse_with(body, s)` with `s: Schema<User>` passes
   `glyph check --no-tsc`; `tsc` refuses it (TS2322: ``Type 'Result<User,

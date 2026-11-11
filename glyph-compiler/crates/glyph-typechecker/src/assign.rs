@@ -10646,6 +10646,24 @@ pub fn f(xs: Array<string>, s: string, m: Mode, n: Name) -> number {
         }
     }
 
+    /// The callee is tracked by span, not by a flag: in `s.trim.bind(s)()`
+    /// the callee is `s.trim.bind(s)`, and the `s.trim` inside it is a read
+    /// that is not called, so it is E0234. A flag set for the whole callee
+    /// walk would take it for a call.
+    #[test]
+    fn an_uncalled_method_inside_a_callee_is_e0234() {
+        let errs = ty_errors_of(
+            "module m\npub fn f(s: string) -> string {\n  return s.trim.bind(s)()\n}\n",
+        );
+        let hits: Vec<String> =
+            errs.iter().filter(|e| e.code() == "E0234").map(|e| e.to_string()).collect();
+        assert_eq!(
+            hits,
+            vec!["method `trim` of `string` is read without being called".to_string()],
+            "{errs:?}"
+        );
+    }
+
     /// The other side of E0234: a method that is called is never refused for
     /// the form, as a call, a `mut` statement, a callee in a chain, an
     /// argument or a JSX child, and a data property read alone stays legal.
@@ -19284,6 +19302,61 @@ fn f(a: Answer) -> number {
         assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
         assert!(argument_mismatches(&errs).is_empty(), "{errs:?}");
         assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// A lambda has no `<...>` of its own, so a value holding one takes no
+    /// type arguments: `f<number>(1)` is E0233, as TS2558 refuses it. If a
+    /// lambda's list went from empty to unknown, the call would bind nothing
+    /// and pass `--no-tsc` silently.
+    #[test]
+    fn type_arguments_on_a_lambda_value_are_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             pub fn g() -> number {\n\
+             \x20 let f = fn(x: number) -> number { return x }\n\
+             \x20 return f<number>(1)\n\
+             }\n",
+        );
+        assert_eq!(type_arg_counts(&errs), vec![("f".to_string(), 0, 1)], "{errs:?}");
+    }
+
+    /// A function held in a record field, or declared as an interface method,
+    /// has a written function type, and a written function type takes no type
+    /// arguments either. Both are E0233.
+    #[test]
+    fn type_arguments_on_a_record_field_or_interface_method_are_e0233() {
+        let errs = errors_of(
+            "module m\n\
+             type Ops = { run: fn(number) -> number, }\n\
+             interface Svc {\n\
+             \x20 fn step(x: number) -> number\n\
+             }\n\
+             pub fn g(o: Ops, s: Svc) -> number {\n\
+             \x20 let a = o.run<number>(1)\n\
+             \x20 let b = s.step<number>(1)\n\
+             \x20 return a + b\n\
+             }\n",
+        );
+        assert_eq!(
+            type_arg_counts(&errs),
+            vec![("o.run".to_string(), 0, 1), ("s.step".to_string(), 0, 1)],
+            "{errs:?}"
+        );
+    }
+
+    /// A built-in method's type parameters are unknown, not absent: the
+    /// generated row does not carry `map`'s `U`, so `xs.map<string>(f)`,
+    /// which `tsc` accepts, is accepted. An empty list here would make it a
+    /// false E0233.
+    #[test]
+    fn type_arguments_on_a_builtin_method_are_not_counted() {
+        let errs = errors_of(
+            "module m\n\
+             pub fn g(xs: Array<number>) -> Array<string> {\n\
+             \x20 return xs.map<string>(fn(x: number) -> string { return \"a\" })\n\
+             }\n",
+        );
+        assert!(type_arg_counts(&errs).is_empty(), "{errs:?}");
     }
 
     /// The help on every E0233 in `errs`, in order.

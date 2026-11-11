@@ -2287,10 +2287,35 @@ impl Assigner<'_> {
                                     if self.call_callee != Some(*span)
                                         && matches!(access, FieldAccess::Read) =>
                                 {
+                                    // The help writes the call back, and the
+                                    // lambda that wraps it when the method
+                                    // takes no argument and has a type.
+                                    let recv = receiver_source(object);
+                                    let lambda = match builtin_method_ty(&m.sig, &elem, |t| {
+                                        self.array_ty(t)
+                                    }) {
+                                        Ty::Fn { params, return_ty, .. }
+                                            if params.is_empty()
+                                                && !return_ty.is_unknown() =>
+                                        {
+                                            Some(format!(
+                                                "fn() -> {} {{ return {recv}.{}() }}",
+                                                ty_display(&return_ty),
+                                                m.name
+                                            ))
+                                        }
+                                        _ => None,
+                                    };
+                                    let call = match lambda {
+                                        Some(_) => format!("{recv}.{}()", m.name),
+                                        None => format!("{recv}.{}(...)", m.name),
+                                    };
                                     self.errors.push(TypeError::UncalledBuiltinMethod {
                                         method: m.name.to_string(),
                                         type_name: ty_display(&obj_ty),
                                         builtin: receiver,
+                                        call,
+                                        lambda,
                                         span: *span,
                                     });
                                     Ty::Unknown
@@ -10644,6 +10669,28 @@ pub fn f(xs: Array<string>, s: string, m: Mode, n: Name) -> number {
             assert!(help.contains(&format!("{method}(")), "{help}");
             assert!(help.contains(module), "{help}");
         }
+    }
+
+    /// Record 88, 4c: `.bind`, `.call` and `.apply` stay refused, since what
+    /// they return is untyped in Glyph and a lambda already says the same
+    /// thing checked. The help names `.bind` and `.call` and writes the
+    /// lambda out when the method takes no argument; otherwise it names the
+    /// call the lambda wraps.
+    #[test]
+    fn the_e0234_help_names_bind_and_call_and_writes_the_lambda() {
+        let help_of = |src: &str| -> String {
+            let errs = ty_errors_of(src);
+            let e = errs.iter().find(|e| e.code() == "E0234").unwrap_or_else(|| panic!("{errs:?}"));
+            e.help().expect("help").into_owned()
+        };
+        assert_eq!(
+            help_of("module m\npub fn f(s: string) -> string {\n  let up = s.toUpperCase.bind(s)\n  return up()\n}\n"),
+            "Call the method where it is read, `s.toUpperCase()`. To hand it on as a value, wrap the call in a lambda, `fn() -> string { return s.toUpperCase() }`; `.bind` and `.call` are refused like the read itself, because what they return is untyped in Glyph. `std/string` holds Glyph's own functions over a JavaScript string, which can be passed as values."
+        );
+        assert_eq!(
+            help_of("module m\npub fn f(xs: Array<number>) -> number {\n  let find = xs.indexOf\n  return find(2)\n}\n"),
+            "Call the method where it is read, `xs.indexOf(...)`. To hand it on as a value, wrap the call in a lambda that calls `xs.indexOf(...)`; `.bind` and `.call` are refused like the read itself, because what they return is untyped in Glyph. `std/array` holds Glyph's own functions over a JavaScript array, which can be passed as values."
+        );
     }
 
     /// The callee is tracked by span, not by a flag: in `s.trim.bind(s)()`

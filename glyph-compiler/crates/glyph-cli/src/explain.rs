@@ -824,9 +824,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             type (`Result` and `Record` take 2; `Option`, `Nullable`, `Array` and \
             `Schema` take 1; the primitives take none), and a modeled stdlib \
             function whose type parameters a written argument fills \
-            (`json.parse`). Type arguments on a function value (`let f = id`, then \
-            `f<number>(x)`) are not counted yet; `tsc` still refuses a wrong count \
-            there. TypeScript reports these as TS2558, TS2314 and TS2315.",
+            (`json.parse`).\n\n\
+            A function value carries the list of the function it holds: `let f = \
+            id` then `f<number, bool>(x)` is counted against `id`'s one parameter. \
+            A lambda, a record field of a function type and an interface method \
+            take none, so any type argument on them is this error. A built-in \
+            method's list is not known, so `xs.map<string>(f)` is not counted.\n\n\
+            A `json.parse` value takes none either. `json.parse<User>(s)` written \
+            as a call validates `s` against `User`; through `let p = json.parse` \
+            the call `p<User>(s)` would validate nothing, so it is refused, and \
+            the value returns `Result<unknown, Array<Issue>>`. Write the call \
+            directly. TypeScript reports these as TS2558, TS2314 and TS2315; it \
+            accepts the `json.parse` value form.",
         "E0234" => "E0234: a built-in method read without being called\n\n\
             A method of a JavaScript array, string or number is read and not \
             called on the spot.\n\n\
@@ -842,8 +851,13 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Call the method where it is read:\n\n\
             let up = s.toUpperCase()\n\n\
             To pass it on as a value, wrap the call in a lambda, \
-            `fn(x: string) -> string { return x.toUpperCase() }`, or pass the \
+            `fn() -> string { return s.toUpperCase() }`, or pass the \
             function `std/string`, `std/array` or `std/math` has for it.\n\n\
+            `.bind` and `.call` are refused the same way: \
+            `s.toUpperCase.bind(s)` and `s.toUpperCase.call(s)` read the method \
+            without calling it, and what they return is untyped in Glyph. They \
+            run correctly, and `tsc` accepts them, but the lambda says the same \
+            thing and is checked. `.apply` is the same read.\n\n\
             A call is never refused for its form: `s.toUpperCase()`, \
             `mut xs.push(x)` and `xs.map(f)` are all legal, and so is a data \
             property (`xs.length`). The methods are read from a table generated \
@@ -1865,14 +1879,14 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0233",
         phase: "typechecker",
-        meaning: "Wrong number of type arguments: a call (`id<number, bool>(x)` on `fn id<T>`) or a type application (`Box<number, string>` on `type Box<T>`) writes more or fewer type arguments than the declaration has parameters. Raised for every declaration whose parameter list the checker reads: one of this module, a project sibling's, a prelude container, a modeled stdlib function. TypeScript's TS2558 and TS2314",
-        fix: "Write one type argument per type parameter, or none on a call and let the arguments infer them",
+        meaning: "Wrong number of type arguments: a call (`id<number, bool>(x)` on `fn id<T>`) or a type application (`Box<number, string>` on `type Box<T>`) writes more or fewer type arguments than the declaration has parameters. Raised for every declaration whose parameter list the checker reads: one of this module, a project sibling's, a prelude container, a modeled stdlib function, and a function value holding one of these, a lambda, a field of a function type or an interface method. A `json.parse` value takes none, so `let p = json.parse` then `p<User>(s)` is refused: only the direct call validates. TypeScript's TS2558 and TS2314; `tsc` accepts the `json.parse` value form",
+        fix: "Write one type argument per type parameter, or none on a call and let the arguments infer them; for `json.parse`, write the call directly, `json.parse<User>(s)`",
     },
     CodeEntry {
         code: "E0234",
         phase: "typechecker",
-        meaning: "A method of an `Array<T>`, a `string` or a `number` read without being called: `let up = s.toUpperCase`, or `xs.map(s.trim)`. The read hands on a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read. A call is never refused (`s.toUpperCase()`, `mut xs.push(x)`), and neither is a data property (`xs.length`). The methods are the ones in the table generated from TypeScript's library, which also types each call's arguments and result (G312)",
-        fix: "Call the method where it is read, `s.toUpperCase()`; to hand it on as a value, wrap the call in a lambda or pass the `std/array`, `std/string` or `std/math` function",
+        meaning: "A method of an `Array<T>`, a `string` or a `number` read without being called: `let up = s.toUpperCase`, or `xs.map(s.trim)`. The read hands on a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read. A call is never refused (`s.toUpperCase()`, `mut xs.push(x)`), and neither is a data property (`xs.length`). The methods are the ones in the table generated from TypeScript's library, which also types each call's arguments and result (G312). `.bind`, `.call` and `.apply` on the read are refused too: their results are untyped in Glyph, and `tsc` accepts them",
+        fix: "Call the method where it is read, `s.toUpperCase()`; to hand it on as a value, wrap the call in a lambda, `fn() -> string { return s.toUpperCase() }`, or pass the `std/array`, `std/string` or `std/math` function. Not `.bind` or `.call`",
     },
     CodeEntry {
         code: "E0235",
@@ -2231,6 +2245,18 @@ mod tests {
         assert_eq!(example.diagnostic.map(|d| d.code), Some("E0236".to_string()));
         let help = answer.help.expect("the E0236 counter-example carries a help");
         assert!(help.starts_with("Propagate first, then read"), "{help}");
+    }
+
+    /// Record 88, 4c: `--explain E0234` names `.bind` and `.call` as refused
+    /// and points to the lambda, and `--explain E0233` covers function values.
+    #[test]
+    fn e0234_explains_bind_and_call_and_e0233_function_values() {
+        let e0234 = explain("E0234").expect("E0234 is documented");
+        assert!(e0234.contains("`.bind` and `.call` are refused"), "{e0234}");
+        assert!(e0234.contains("fn() -> string { return s.toUpperCase() }"), "{e0234}");
+        let e0233 = explain("E0233").expect("E0233 is documented");
+        assert!(!e0233.contains("not counted yet"), "{e0233}");
+        assert!(e0233.contains("A `json.parse` value takes none"), "{e0233}");
     }
 
     /// E0233 has a wrong program in `tests/negative/`, so `--explain E0233

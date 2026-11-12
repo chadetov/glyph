@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-329 entries, 279 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-30 are open. G144, the D28 boundary cast that never reached the returns a
+329 entries, 284 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+25 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11768,7 +11768,7 @@ and is the owner's to confirm.
   stream counts JSX text as the text it renders, and a new nightly target,
   `format_preserves_emit`, asserts emitted-TypeScript equality on fuzzed input.
   The minimized input is `fuzz/seeds/fuzz-jsx-edge-space-run.glyph`.
-- **G317. Characters TSX reads as JSX text are lex errors.** `<p>don't
+- **G317. [FIXED] Characters TSX reads as JSX text are lex errors.** `<p>don't
   stop</p>` is E0001, ``unexpected character `'` ``, so any English contraction
   in JSX text fails to compile. The same holds for a backslash (`<p>a \
   b</p>`), an unpaired double quote (`<p>a "b</p>`, an unterminated string),
@@ -11783,7 +11783,11 @@ and is the owner's to confirm.
   error: unexpected character `'``, ``unexpected character `\` ``,
   `unterminated string literal`, `nested block comment not supported` and
   ``unexpected character `;` `` under `--no-tsc`, one program each.*
-- **G318. `//` in JSX text deletes the rest of the line.**
+  Fixed in 0.1.135: JSX text is scanned raw by a scanner the parser drives
+  (record 85). `'`, `\`, an unpaired `"`, `/*` and `;` are text, so `<p>don't
+  stop</p>` compiles. An entity (`&amp;`) is refused with E0012 rather than
+  read as written, since TSX decodes it (record 93); a lone `&` is text.
+- **G318. [FIXED] `//` in JSX text deletes the rest of the line.**
   `<div><p>x</p>\n    see http://example.com\n  </div>` emits `"see http:"`:
   the token lexer reads `//example.com` as a line comment, and the text after it
   leaves the program without a diagnostic. TSX renders the whole line. `glyph
@@ -11796,7 +11800,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): the program above emits
   `React.createElement("div", null, React.createElement("p", null, "x"), "see
   http:")`, and its `glyph fmt` output holds `//example.com` after `</div>`.*
-- **G319. `}` in JSX text is accepted, splits the text, and `glyph fmt` changes
+  Fixed in 0.1.135: `//` in JSX text is refused with E0012 instead of being
+  read as a comment, and comments come out of the parse, so text can never
+  yield one (record 85). A comment among children is a comment-only
+  `{ // note }` child.
+- **G319. [FIXED] `}` in JSX text is accepted, splits the text, and `glyph fmt` changes
   the program.** `<div>a }\nb</div>` emits `"a }", "b"`, two children with
   the line break's space lost; its formatted form `<div>a }b</div>` emits
   `"a }b"`. TSX refuses `}` in JSX text (TS1381). The `}` lowers the lexer's
@@ -11808,7 +11816,10 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): `React.createElement("div",
   null, "a }", "b")` before formatting and `React.createElement("div", null,
   "a }b")` after.*
-- **G320. A `"` in JSX text reads a string across tags and merges elements.**
+  Fixed in 0.1.135: `}` and `>` in JSX text are E0012, with help to write
+  `{"}"}` or `{">"}`, and a text run ends only at `{` or `<`, so a newline no
+  longer splits it (record 85).
+- **G320. [FIXED] A `"` in JSX text reads a string across tags and merges elements.**
   `<div>\n    <p>a "b</p>\n    <p>c" d</p>\n  </div>` compiles, and emits one
   `<p>` whose text is `a "b</p> <p>c" d`: the token lexer read `"b</p>\n
   <p>c"` as a string literal, so two elements became one with markup in its
@@ -11817,7 +11828,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.132 (the release build): `React.createElement("div",
   null, React.createElement("p", null, "a \"b</p> <p>c\" d"))`.*
-- **G321. Multi-line JSX text at the top level renders without its space.**
+  Fixed in 0.1.135: a `"` in JSX text is text, so the two elements stay two;
+  the string lexer never sees JSX text (record 85).
+- **G321. [FIXED] Multi-line JSX text at the top level renders without its space.**
   `pub const X: Component = <div>a\nb</div>` emits `"a", "b"`, which renders
   "ab"; the same text inside a function body emits `"a b"`. At bracket depth 0
   the newline is a token and ends the text run, so one run becomes one child per
@@ -11827,6 +11840,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.132 (the release build): `export const X:
   React.ReactNode = React.createElement("div", null, "a", "b")`.*
+  Fixed in 0.1.135: one text child per run, at any bracket depth, so the
+  top-level text emits `"a b"` as TSX renders it (record 85).
 - **G322. [FIXED] A `match` with no arms panics the emitter, which kills the
   playground.** The checker refuses `match x { }` (E0218), so `glyph build`
   never emits it, but the playground emits best-effort past a type error and

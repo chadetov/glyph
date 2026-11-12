@@ -33,14 +33,14 @@ fuzz_target!(|data: &[u8]| {
     let Ok(src) = std::str::from_utf8(data) else {
         return;
     };
-    let Ok(module) = glyph_parser::parse(src) else {
+    let (parsed, comments) = glyph_parser::parse_with_comments(src);
+    let Ok(module) = parsed else {
         return;
     };
     // A source the emitter declines has no TypeScript to preserve.
     let Some(before) = emit_ts(src) else {
         return;
     };
-    let comments = glyph_lexer::comments(src);
     let once = glyph_formatter::format_module(&module, &comments, src);
     let Some(after) = emit_ts(&once) else {
         panic!("the source emits and its formatted form does not:\n{once}");

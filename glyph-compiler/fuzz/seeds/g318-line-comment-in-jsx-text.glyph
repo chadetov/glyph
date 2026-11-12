@@ -1,0 +1,7 @@
+module m
+
+component A() -> Component {
+  return <div><p>x</p>
+    see http://example.com
+  </div>
+}

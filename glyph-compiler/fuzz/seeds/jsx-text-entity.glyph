@@ -1,0 +1,5 @@
+module m
+
+component A() -> Component {
+  return <p>Tom &amp; Jerry &#38; &nbsp; &#x1F600;</p>
+}

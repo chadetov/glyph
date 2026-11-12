@@ -232,6 +232,7 @@ impl<'a> Cursor<'a> {
                 self.exhausted = true;
                 Err(ParseError::JsxText {
                     refusal: e.refusal,
+                    text: self.source[e.span.start as usize..e.span.end as usize].to_string(),
                     span: e.span,
                 })
             }

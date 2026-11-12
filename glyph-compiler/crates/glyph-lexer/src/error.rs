@@ -43,6 +43,9 @@ pub enum JsxTextRefusal {
     CloseAngle,
     /// `//`: a comment everywhere else in Glyph and text in TSX.
     LineComment,
+    /// `&name;`, `&#38;`, `&#x26;`: an entity TSX would decode and Glyph
+    /// would emit as written.
+    Entity,
 }
 
 /// A refused character in a run of JSX text, with the span of the

@@ -78,12 +78,14 @@ impl<'a> Lexer<'a> {
     /// recorded and the bracket depth is untouched, so normal lexing resumes
     /// after it in the state it was in before. An empty run is `None`.
     ///
-    /// Three things are refused rather than read. `}` and `>` would end an
+    /// Four things are refused rather than read. `}` and `>` would end an
     /// `{expr}` or a tag that is not open, as TSX refuses them. `//` is read
     /// as a comment everywhere else in Glyph and as text by TSX, and was a
     /// comment in JSX text before 0.1.135, so either reading would change
     /// what some program means; refusing it means nobody has to know which
-    /// one applies. On a refusal the position is left at the refused bytes.
+    /// one applies. An entity shape (`&amp;`, `&#38;`) is decoded by TSX and
+    /// would be emitted as written here, so it is refused for the same reason
+    /// (record 93). On a refusal the position is left at the refused bytes.
     pub fn scan_jsx_text(&mut self) -> Result<Option<Spanned<Token>>, JsxTextError> {
         let start = self.pos;
         while let Some(c) = self.peek() {
@@ -92,6 +94,7 @@ impl<'a> Lexer<'a> {
                 b'}' => Some((JsxTextRefusal::CloseBrace, 1)),
                 b'>' => Some((JsxTextRefusal::CloseAngle, 1)),
                 b'/' if self.peek_at(1) == Some(b'/') => Some((JsxTextRefusal::LineComment, 2)),
+                b'&' => self.entity_len().map(|len| (JsxTextRefusal::Entity, len)),
                 _ => None,
             };
             if let Some((refusal, len)) = refusal {
@@ -107,6 +110,19 @@ impl<'a> Lexer<'a> {
         }
         let text = self.source[start..self.pos].to_string();
         Ok(Some(self.spanned(Token::JsxText(text), start, self.pos)))
+    }
+
+    /// At an `&`: the length of the entity shape it starts, `&` then one or
+    /// more of `[A-Za-z0-9_#]` then `;`, or `None` for an `&` that is text.
+    /// The shape is wider than the entities TSX decodes, unknown names
+    /// included, so no list of names decides what is refused (record 93).
+    fn entity_len(&self) -> Option<usize> {
+        let bytes = self.source.as_bytes();
+        let mut i = self.pos + 1;
+        while bytes.get(i).is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_' || *b == b'#') {
+            i += 1;
+        }
+        (i > self.pos + 1 && bytes.get(i) == Some(&b';')).then_some(i + 1 - self.pos)
     }
 
     pub fn tokenize_all(mut self) -> Result<Vec<Spanned<Token>>, LexError> {

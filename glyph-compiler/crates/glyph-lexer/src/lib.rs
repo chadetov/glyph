@@ -244,6 +244,17 @@ mod tests {
     }
 
     #[test]
+    fn jsx_text_refuses_an_entity_shape_and_keeps_every_other_ampersand() {
+        for (src, at, len) in [("a &amp; b", 2, 5), ("&#38;", 0, 5), ("x&#x1F;", 1, 6), ("&foo_1;", 0, 7)] {
+            let e = scan_at(src, 0).unwrap_err();
+            assert_eq!(e, JsxTextError { refusal: JsxTextRefusal::Entity, span: Span::new(at, at + len) }, "{src:?}");
+        }
+        for src in ["Tom & Jerry", "a&b", "& ;", "&;", "&-x;", "trailing &"] {
+            assert_eq!(scan_at(src, 0).unwrap().unwrap().span, Span::new(0, src.len() as u32), "{src:?}");
+        }
+    }
+
+    #[test]
     fn jsx_text_leaves_depth_and_comments_alone() {
         let src = "f( <p>a\n( [ // no\nb</p>\n)";
         let mut lexer = Lexer::new(src);

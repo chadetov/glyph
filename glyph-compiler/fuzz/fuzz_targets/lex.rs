@@ -10,8 +10,9 @@ use libfuzzer_sys::fuzz_target;
 fuzz_target!(|data: &[u8]| {
     if let Ok(src) = std::str::from_utf8(data) {
         let _ = glyph_lexer::tokenize(src);
-        // Comment recovery walks the source separately from tokenizing, so it
-        // has its own offset arithmetic and its own way to be wrong.
-        let _ = glyph_lexer::comments(src);
+        // The JSX text scanner has its own loop and its own offset
+        // arithmetic. The parser starts it only after `>` or `}`, but it must
+        // not panic from any offset, so it runs from the start here.
+        let _ = glyph_lexer::Lexer::new(src).scan_jsx_text();
     }
 });

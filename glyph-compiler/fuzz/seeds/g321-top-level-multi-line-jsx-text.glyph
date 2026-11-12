@@ -1,0 +1,4 @@
+module m
+
+pub const X: Component = <div>a
+b</div>

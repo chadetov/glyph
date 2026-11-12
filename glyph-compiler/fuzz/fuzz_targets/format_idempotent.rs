@@ -20,7 +20,9 @@
 //! stream of lexer tokens alone could not see a formatter that changed it,
 //! and saw a string child the formatter wrote in its place as a literal that
 //! had appeared from nowhere. Text and string children emit the same quoted
-//! string, so they compare the same here (record 84).
+//! string, so they compare the same here (record 84). The tokens and comments
+//! are the ones the parser read, not an eager lex of the file, which cannot
+//! read raw JSX text (record 85).
 //!
 //! Whether formatting changes the emitted TypeScript is the separate
 //! `format_preserves_emit` target. It runs the resolver and the checker on
@@ -40,17 +42,22 @@ enum StreamItem {
 /// Literal values and comment texts, in source order. Identifiers and
 /// punctuation are deliberately out: the formatter may add parentheses (G60) and
 /// reshuffles delimiters on every layout decision.
-fn stream(src: &str, module: &glyph_ast::Module) -> Option<Vec<StreamItem>> {
-    let tokens = glyph_lexer::tokenize(src).ok()?;
-    let texts = glyph_ast::jsx_texts(module);
-    // Inside JSX text the lexer still reads words, quotes and `//` as tokens
-    // and comments, but none of them is one: the text is the item.
-    let in_text = |at: u32| texts.iter().any(|(span, _)| span.start <= at && at < span.end);
+///
+/// The tokens are the ones the parser lexed: the source is lexed with every
+/// JSX text run blanked out, since the parser scans text raw and normal lexing
+/// of a contraction or a lone `"` there would fail or read a string across
+/// tags (record 85). The comments are the ones the parse consumed, the list
+/// `glyph fmt` hands the formatter, so text never yields one.
+fn stream(src: &str) -> Option<Vec<StreamItem>> {
+    let trace = glyph_parser::parse_traced(src);
+    let module = trace.result.ok()?;
+    let tokens = glyph_lexer::tokenize(&blank(src, &trace.jsx_text_spans)).ok()?;
+    let texts = glyph_ast::jsx_texts(&module);
     let mut items: Vec<(u32, StreamItem)> = texts
         .iter()
         .map(|(span, value)| (span.start, StreamItem::Str(blank_interpolations(value))))
         .collect();
-    for t in tokens.iter().filter(|t| !in_text(t.span.start)) {
+    for t in &tokens {
         let item = match &t.token {
             glyph_lexer::Token::Number(raw) => StreamItem::Number(raw.clone()),
             glyph_lexer::Token::String(value) => StreamItem::Str(blank_interpolations(value)),
@@ -60,11 +67,25 @@ fn stream(src: &str, module: &glyph_ast::Module) -> Option<Vec<StreamItem>> {
         };
         items.push((t.span.start, item));
     }
-    for c in glyph_lexer::comments(src).iter().filter(|c| !in_text(c.span.start)) {
+    for c in &trace.comments {
         items.push((c.span.start, StreamItem::Comment(c.text.clone())));
     }
     items.sort_by_key(|(start, _)| *start);
     Some(items.into_iter().map(|(_, item)| item).collect())
+}
+
+/// `src` with the bytes of every span replaced by spaces, newlines kept, so
+/// offsets are unchanged.
+fn blank(src: &str, spans: &[glyph_lexer::Span]) -> String {
+    let mut bytes = src.as_bytes().to_vec();
+    for s in spans {
+        for b in &mut bytes[s.start as usize..s.end as usize] {
+            if *b != b'\n' {
+                *b = b' ';
+            }
+        }
+    }
+    String::from_utf8(bytes).expect("a text run starts and ends at an ASCII byte")
 }
 
 /// The one exemption, and it is narrow: inside a `${...}` interpolation the
@@ -132,20 +153,21 @@ fuzz_target!(|data: &[u8]| {
     };
     // Only parseable input has a canonical form; the formatter is not asked
     // for one otherwise.
-    let Ok(module) = glyph_parser::parse(src) else {
+    let (parsed, comments) = glyph_parser::parse_with_comments(src);
+    let Ok(module) = parsed else {
         return;
     };
-    let comments = glyph_lexer::comments(src);
     let once = glyph_formatter::format_module(&module, &comments, src);
 
-    let Ok(reparsed) = glyph_parser::parse(&once) else {
+    let (reparsed, recomments) = glyph_parser::parse_with_comments(&once);
+    let Ok(reparsed) = reparsed else {
         panic!("formatter produced output that does not parse:\n{once}");
     };
 
-    // Parsing succeeded, so the input lexed; if the output does not, the
-    // formatter wrote something the lexer cannot read back.
-    let before = stream(src, &module).expect("input parsed, so it lexes");
-    let Some(after) = stream(&once, &reparsed) else {
+    // Parsing succeeded, so what the parser lexed lexes; if the output's does
+    // not, the formatter wrote something the lexer cannot read back.
+    let before = stream(src).expect("input parsed, so it lexes");
+    let Some(after) = stream(&once) else {
         panic!("formatter produced output that does not lex:\n{once}");
     };
     // Skipped rather than asserted when the input writes its annotations out of
@@ -159,7 +181,6 @@ fuzz_target!(|data: &[u8]| {
         );
     }
 
-    let recomments = glyph_lexer::comments(&once);
     let twice = glyph_formatter::format_module(&reparsed, &recomments, &once);
 
     assert_eq!(once, twice, "glyph fmt is not idempotent");

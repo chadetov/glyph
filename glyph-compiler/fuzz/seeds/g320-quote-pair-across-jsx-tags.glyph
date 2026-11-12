@@ -1,0 +1,8 @@
+module m
+
+component A() -> Component {
+  return <div>
+    <p>a "b</p>
+    <p>c" d</p>
+  </div>
+}

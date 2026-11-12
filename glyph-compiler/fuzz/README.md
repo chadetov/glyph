@@ -17,10 +17,16 @@ read-only input. `corpus/` is created on first run.
 
 ## The targets
 
-**`parse`** and **`lex`** assert only that the function returns. The parser is
-the one component reachable from bytes nobody wrote by hand, since an editor, an
-LSP client and an agent all hand it arbitrary text. A rejection is a value; a
-panic is a crashed language server.
+**`lex`** asserts only that the lexer returns, for the token loop and for the
+JSX text scanner. **`parse`** asserts that the parser returns, and two things
+about what it returns. The error it reports never starts after the first lex
+error of the lexer it drives: the source is lexed with every JSX text run the
+parser scanned blanked out, because text is scanned raw and an eager lex of the
+whole file would fail on a contraction the parser reads as text. And every JSX
+text child is exactly the source at its span. The parser is the one component
+reachable from bytes nobody wrote by hand, since an editor, an LSP client and an
+agent all hand it arbitrary text. A rejection is a value; a panic is a crashed
+language server.
 
 **`format_idempotent`** checks a property rather than the absence of a panic,
 and it is the one worth the most. Formatting twice must equal formatting once.
@@ -43,7 +49,7 @@ formatter check in `format_idempotent`.
 
 ## What is committed, and what is not
 
-`seeds/` holds 40 real programs from `examples/`, and it is committed. It is the
+`seeds/` holds real programs from `examples/` and the minimized reproductions of fuzz findings, and it is committed. It is the
 starting point, not the working set.
 
 `corpus/` is what the fuzzer grows, and it is not committed. It reached 11 MB

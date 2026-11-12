@@ -150,7 +150,29 @@ pub fn explain(code: &str) -> Option<&'static str> {
             levels, so a file that reaches 64 was generated rather than \
             written. Pull the inner levels out into `let` bindings, or into a \
             function that returns one of them.",
-
+        "E0012" => "E0012: a character JSX text cannot hold\n\n\
+            JSX text is everything between a tag or an `{expression}` child \
+            and the next `{` or `<`, across lines, read as written (D6). \
+            Apostrophes, quotes, backslashes, brackets and `/*` are text. \
+            Three things are refused instead:\n\n\
+            `}` and `>`, which would close an `{expression}` or a tag that is \
+            not open. TSX refuses them too. Write them as string children.\n\n\
+            Before:  <p>a -> b</p>\n\
+            After:   <p>a -{\">\"} b</p>\n\n\
+            `//`, which is a comment everywhere else in Glyph and text in TSX. \
+            Before 0.1.135 Glyph read it in JSX text as a comment and dropped \
+            the rest of the line, so `see http://example.com` rendered as \
+            `see http:`. Either reading would silently change what some \
+            program means, so neither is taken. For text, write a string \
+            child; for a comment, write a comment-only child, which renders \
+            nothing:\n\n\
+            Before:  <p>see http://example.com</p>\n\
+            After:   <p>{\"see http://example.com\"}</p>\n\n\
+            Before:  <div>\n           // note\n           <p>x</p>\n         </div>\n\
+            After:   <div>\n           {\n             // note\n           }\n           <p>x</p>\n         </div>\n\n\
+            `glyph fmt` writes a comment-only child in that form. A `{}` with \
+            nothing inside is still refused (E0003), and `{/* note */}` is a \
+            lex error (E0001), since Glyph has no block comments (D14).",
         // ----- resolver (E01xx) -----
         "E0100" => "E0100: duplicate name\n\n\
             Two top-level declarations share a name. Glyph requires one \
@@ -1601,6 +1623,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "parser",
         meaning: "A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything. A level is one construct the parser descends into, counted once however it is spelled: parentheses around an operand are that operand's level, not a second one, so `-(x)` nests as deep as `-x`",
         fix: "Pull the inner levels into `let` bindings",
+    },
+    CodeEntry {
+        code: "E0012",
+        phase: "parser",
+        meaning: "A character JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open, or `//`, which Glyph reads as a comment elsewhere and TSX reads as text (D6). Any other character between a tag and the next `{` or `<` is text",
+        fix: "A string child (`{\"}\"}`, `{\">\"}`, `{\"see http://x\"}`), or a comment-only child for a comment",
     },
     // ----- resolver (E01xx) -----
     CodeEntry {

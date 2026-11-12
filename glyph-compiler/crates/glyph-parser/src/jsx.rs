@@ -27,20 +27,38 @@ use crate::error::ParseError;
 use crate::expr;
 use crate::pat;
 
+/// Where an element sits, which decides what may follow its last `>`.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Placement {
+    /// In expression position: what follows its end is an expression
+    /// continuing, or nothing.
+    Outermost,
+    /// Among another element's children: a text run follows its end.
+    Child,
+}
+
 /// Parse a JSX element starting at `<`. Caller has verified that the next
 /// token is `LAngle` and the lookahead disambiguates JSX from comparison.
-pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError> {
+///
+/// A `>=` that ends a tag is split into the tag's `>` and an `=` only where a
+/// text run follows the `>` (record 93): after the opening tag, the opening
+/// `<>` of a fragment, and the last `>` of a child element. The outermost
+/// element's last `>` is never split, so `<p></p>== y` and `<br/>=x` stay
+/// refused as they were.
+pub(crate) fn parse_jsx_element(p: &mut Cursor, placement: Placement) -> Result<JsxElement, ParseError> {
     let open_span = p.expect(&Token::LAngle, "`<` (JSX)")?;
+    let split_end = placement == Placement::Child;
 
     // Fragment `<>...</>`: `<` immediately followed by `>`, no name or attrs.
     // Represented by an empty element name (a real JSX name can never be empty).
+    // `is_jsx_lookahead` admits `<>=` for this split.
     p.split_glued_tag_end();
     if matches!(p.peek(), Token::RAngle) {
         p.advance(); // `>`
         let children = p.nested("JSX fragment", open_span, parse_jsx_children)?;
         p.expect(&Token::LAngle, "`<` (open fragment closing `</>`)")?;
         p.expect(&Token::Slash, "`/` (fragment closing `</>`)")?;
-        let close = expect_tag_end(p, "`>` (end of fragment `</>`)")?;
+        let close = expect_tag_end(p, split_end, "`>` (end of fragment `</>`)")?;
         return Ok(JsxElement {
             name: Arc::from(""),
             attrs: Vec::new(),
@@ -74,7 +92,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     // Self-closing or has children?
     if matches!(p.peek(), Token::Slash) {
         p.advance();
-        let close = expect_tag_end(p, "`>` after `/` (self-closing JSX)")?;
+        let close = expect_tag_end(p, split_end, "`>` after `/` (self-closing JSX)")?;
         return Ok(JsxElement {
             name,
             attrs,
@@ -88,7 +106,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     }
 
     // Consume `>` of the opening tag.
-    expect_tag_end(p, "`>` (close JSX opening tag)")?;
+    expect_tag_end(p, true, "`>` (close JSX opening tag)")?;
 
     // Children until the matching closing tag `</name>`.
     let children = p.nested("JSX element", open_span, parse_jsx_children)?;
@@ -104,7 +122,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             span: close_name_span,
         });
     }
-    let close = expect_tag_end(p, "`>` (end of closing tag)")?;
+    let close = expect_tag_end(p, split_end, "`>` (end of closing tag)")?;
 
     Ok(JsxElement {
         name,
@@ -118,10 +136,13 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     })
 }
 
-/// The `>` that ends a tag. A `>=` there is the tag's `>` and an `=` after
-/// it (`<p>=</p>`), which normal lexing reads as one token.
-fn expect_tag_end(p: &mut Cursor, expected: &'static str) -> Result<Span, ParseError> {
-    p.split_glued_tag_end();
+/// The `>` that ends a tag. Where a text run follows it (`split`), a `>=`
+/// there is the tag's `>` and an `=` that begins the text (`<p>=</p>`),
+/// which normal lexing reads as one token.
+fn expect_tag_end(p: &mut Cursor, split: bool, expected: &'static str) -> Result<Span, ParseError> {
+    if split {
+        p.split_glued_tag_end();
+    }
     p.expect(&Token::RAngle, expected)
 }
 
@@ -155,7 +176,7 @@ fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
 
         // Nested JSX element.
         if matches!(p.peek(), Token::LAngle) {
-            let elem = parse_jsx_element(p)?;
+            let elem = parse_jsx_element(p, Placement::Child)?;
             children.push(JsxChild::Element(elem));
             continue;
         }

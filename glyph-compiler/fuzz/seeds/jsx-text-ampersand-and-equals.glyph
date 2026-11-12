@@ -1,0 +1,9 @@
+module m
+
+component A() -> Component {
+  return <div>
+    <p>Tom & Jerry, a&b, & ;</p>
+    <p>=x <br/>= y</p>
+    <>=z</>
+  </div>
+}

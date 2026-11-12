@@ -70,9 +70,15 @@ fn a_comment_only_child_emits_nothing() {
 }
 
 #[test]
-fn an_entity_is_emitted_as_written() {
-    // Entities are not decoded (record 85, Q2.5, a separate decision).
-    emits("<p>a &amp; b</p>", r#"React.createElement("p", null, "a &amp; b")"#);
+fn a_lone_ampersand_is_emitted_as_written() {
+    emits("<p>Tom & Jerry</p>", r#"React.createElement("p", null, "Tom & Jerry")"#);
+    emits("<p>a&b & ;</p>", r#"React.createElement("p", null, "a&b & ;")"#);
+}
+
+#[test]
+fn an_equals_sign_after_a_tag_is_emitted_as_text() {
+    emits("<p>=x</p>", r#"React.createElement("p", null, "=x")"#);
+    emits("<>=x</>", r#"React.createElement(React.Fragment, null, "=x")"#);
 }
 
 #[test]

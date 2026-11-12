@@ -84,19 +84,118 @@ fn characters_the_token_lexer_refused_are_text() {
     }
 }
 
+// Record 93, Q2: a `>=` is split only where a text run follows the `>`.
 #[test]
-fn an_equals_sign_after_a_tag_is_text() {
-    // `>=` is one token in normal lexing; the `>` that ends a tag is a tag
-    // end, and the `=` after it is text.
+fn an_equals_sign_that_starts_a_text_run_is_text() {
+    for body in [
+        "<p>=x</p>",
+        "<div><br/>=x</div>",
+        "<>=x</>",
+        "<p a=\"1\">=x</p>",
+        "<div><p>y</p>=x</div>",
+        "<div><>y</>=x</div>",
+    ] {
+        let el = returned(&component(body));
+        let mut got = texts(&el);
+        got.retain(|t| t.starts_with('='));
+        assert_eq!(got, vec!["=x"], "{body}");
+    }
     let el = returned(&component("<p>=x <b>y</b>= z <br />=</p>"));
     assert_eq!(texts(&el), vec!["=x ", "= z ", "="]);
 }
 
 #[test]
-fn an_entity_is_text_as_written() {
-    // Entities are not decoded; that is a separate decision (record 85, Q2.5).
-    let el = returned(&component("<p>a &amp; b</p>"));
-    assert_eq!(texts(&el), vec!["a &amp; b"]);
+fn an_equals_sign_after_a_case_pattern_is_text() {
+    let src = "module x\n\ntype S = | A | B\n\npub component C(props: { s: S }) {\n  return <match value={props.s}>\n    <case A>=a</case>\n    <case else>=b</case>\n  </match>\n}\n";
+    let el = returned(src);
+    let cases: Vec<Vec<String>> = el
+        .children
+        .iter()
+        .filter_map(|c| match c {
+            JsxChild::Element(e) => Some(texts(e)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(cases, vec![vec!["=a".to_string()], vec!["=b".to_string()]]);
+}
+
+#[test]
+fn the_outermost_element_end_does_not_split_a_glued_equals() {
+    for body in ["<p></p>== y", "<br/>=x", "<p>a</p>=> 1", "<>a</>=x", "<p a=\"1\"/>=x"] {
+        let e = err(&component(body));
+        assert_eq!(e.code(), "E0002", "{body}: {e:?}");
+    }
+}
+
+#[test]
+fn greater_or_equal_in_an_expression_inside_jsx_is_unchanged() {
+    let el = returned(&component("<p a={n >= 1}>{n >= 2}</p>"));
+    match &el.attrs[0] {
+        glyph_ast::JsxAttr::Expr { value: Expr::Binary { op, .. }, .. } => {
+            assert_eq!(*op, glyph_ast::BinOp::GtEq)
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(matches!(&el.children[0], JsxChild::Expr(Expr::Binary { op: glyph_ast::BinOp::GtEq, .. })));
+}
+
+// Record 93, Q1: entity-shaped text is refused; every other `&` is text.
+#[test]
+fn an_entity_is_refused_and_named() {
+    for (text, entity) in [
+        ("a &amp; b", "&amp;"),
+        ("&lt;tag", "&lt;"),
+        ("x&#38;y", "&#38;"),
+        ("&#x1F600;!", "&#x1F600;"),
+        ("&foo_1;", "&foo_1;"),
+        ("&#X41;", "&#X41;"),
+    ] {
+        let src = component(&format!("<p>{text}</p>"));
+        let e = err(&src);
+        assert_eq!(e.code(), "E0012", "{text}: {e:?}");
+        let at = src.find(entity).unwrap() as u32;
+        assert_eq!((e.span().start, e.span().end), (at, at + entity.len() as u32), "{text}");
+        assert_eq!(
+            e.to_string(),
+            format!("`{entity}` is an HTML entity; JSX text in Glyph is read as written and does not decode entities"),
+        );
+    }
+}
+
+#[test]
+fn an_entity_help_names_what_to_write() {
+    let help = |text: &str| err(&component(&format!("<p>{text}</p>"))).help().unwrap().to_string();
+    let amp = help("a &amp; b");
+    assert!(amp.contains("`a & b`") && amp.contains("{\"&\"}"), "{amp}");
+    assert!(help("a&nbsp;b").contains("{\"\\u{A0}\"}"), "{}", help("a&nbsp;b"));
+    assert!(help("&#38;").contains("{\"\\u{26}\"}"), "{}", help("&#38;"));
+    assert!(help("&#x1F600;").contains("{\"\\u{1F600}\"}"), "{}", help("&#x1F600;"));
+    assert!(help("&#X41;").contains("{\"\\u{41}\"}"), "{}", help("&#X41;"));
+}
+
+#[test]
+fn an_ampersand_that_is_not_an_entity_is_text() {
+    for text in ["Tom & Jerry", "a&b", "& ;", "trailing &", "&", "a &b c;", "&;", "&-x;"] {
+        let el = returned(&component(&format!("<p>{text}</p>")));
+        assert_eq!(texts(&el), vec![text.to_string()], "{text:?}");
+    }
+    // At the end of a run, before an expression child.
+    let el = returned(&component("<p>R&{n}</p>"));
+    assert_eq!(texts(&el), vec!["R&"]);
+}
+
+#[test]
+fn every_refusal_message_names_what_it_refused() {
+    for (body, named) in [
+        ("<p>a } b</p>", "`}`"),
+        ("<p>a > b</p>", "`>`"),
+        ("<p>a // b</p>", "`//`"),
+        ("<p>a &amp; b</p>", "`&amp;`"),
+    ] {
+        let e = err(&component(body));
+        assert_eq!(e.code(), "E0012");
+        assert!(e.to_string().contains(named), "{body}: {e}");
+    }
 }
 
 // G320: a quote pair across tags stays two elements.

@@ -1,0 +1,5 @@
+module neg
+
+pub component Credits(props: { n: number }) -> Component {
+  return <p>Tom &amp; Jerry</p>
+}

@@ -177,19 +177,27 @@ pub enum ParseError {
         span: Span,
     },
 
-    /// A character JSX text cannot hold (D6, record 85): `}`, `>`, or `//`.
-    /// Text is scanned raw up to the next `{` or `<`, and these three are
-    /// refused rather than read. `}` and `>` would close an `{expr}` or a tag
-    /// that is not open, which TSX refuses too (TS1381, TS1382). `//` is a
-    /// comment everywhere else in Glyph and text in TSX, and it was a comment
-    /// in JSX text before 0.1.135, so either reading would change what some
-    /// program means; the error means nobody has to know which one applies.
+    /// What JSX text cannot hold (D6, records 85 and 93): `}`, `>`, `//`, or
+    /// an entity shape. Text is scanned raw up to the next `{` or `<`, and
+    /// these are refused rather than read. `}` and `>` would close an
+    /// `{expr}` or a tag that is not open, which TSX refuses too (TS1381,
+    /// TS1382). `//` is a comment everywhere else in Glyph and text in TSX,
+    /// and it was a comment in JSX text before 0.1.135. An entity is decoded
+    /// by TSX and would be emitted as written here. Either reading of the last
+    /// two would change what some program means; the error means nobody has
+    /// to know which one applies. `text` is the source refused, so the message
+    /// names it.
     #[error("{}", match refusal {
-        JsxTextRefusal::CloseBrace => "`}` cannot appear in JSX text",
-        JsxTextRefusal::CloseAngle => "`>` cannot appear in JSX text",
-        JsxTextRefusal::LineComment => "`//` cannot appear in JSX text",
+        JsxTextRefusal::Entity => format!(
+            "`{text}` is an HTML entity; JSX text in Glyph is read as written and does not decode entities"
+        ),
+        _ => format!("`{text}` cannot appear in JSX text"),
     })]
-    JsxText { refusal: JsxTextRefusal, span: Span },
+    JsxText {
+        refusal: JsxTextRefusal,
+        text: String,
+        span: Span,
+    },
 
     /// `{}` among JSX children: braces with neither an expression nor a
     /// comment inside. A comment-only child (`{` newline `// note` newline
@@ -413,6 +421,9 @@ impl ParseError {
             ParseError::JsxText { refusal: JsxTextRefusal::LineComment, .. } => Cow::Borrowed(
                 "Glyph reads `//` in JSX text as neither text nor a comment. For text, write it as a string child: `{\"see http://example.com\"}`. For a comment, put it in a comment-only child: `{` on one line, `// note` on the next, `}` after it. That child renders nothing.",
             ),
+            ParseError::JsxText { refusal: JsxTextRefusal::Entity, text, .. } => {
+                Cow::Owned(entity_help(text))
+            }
             ParseError::EmptyJsxExpression { .. } => Cow::Borrowed(
                 "Put an expression between the braces, or remove them. To leave a note among children, write a comment-only child: `{` on one line, `// note` on the next, `}` after it.",
             ),
@@ -420,5 +431,31 @@ impl ParseError {
                 "Glyph has no block comments (D14). A comment among JSX children is a comment-only child: `{` on one line, `// note` on the next, `}` after it. It renders nothing.",
             ),
         })
+    }
+}
+
+/// The help for an entity refused in JSX text (record 93). `&nbsp;` and a
+/// numeric entity name a character that is invisible or hard to type, so the
+/// help writes it as a `\u{HEX}` string child; any other entity is written as
+/// the character itself.
+fn entity_help(text: &str) -> String {
+    const GENERAL: &str =
+        "Write the character itself (`a & b`), or a string child (`{\"&\"}`).";
+    let name = &text[1..text.len() - 1];
+    let code = if name == "nbsp" {
+        Some(0xA0)
+    } else if let Some(hex) = name.strip_prefix("#x").or_else(|| name.strip_prefix("#X")) {
+        u32::from_str_radix(hex, 16).ok()
+    } else if let Some(dec) = name.strip_prefix('#') {
+        dec.parse::<u32>().ok()
+    } else {
+        None
+    };
+    match code.and_then(char::from_u32) {
+        Some(c) => format!(
+            "Write it as a string child: `{{\"\\u{{{:X}}}\"}}`. A `\\u{{...}}` escape keeps a character that is invisible or hard to type visible in the source.",
+            c as u32
+        ),
+        None => GENERAL.to_string(),
     }
 }

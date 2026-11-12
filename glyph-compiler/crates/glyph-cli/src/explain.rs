@@ -154,7 +154,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             JSX text is everything between a tag or an `{expression}` child \
             and the next `{` or `<`, across lines, read as written (D6). \
             Apostrophes, quotes, backslashes, brackets and `/*` are text. \
-            Three things are refused instead:\n\n\
+            Four things are refused instead:\n\n\
             `}` and `>`, which would close an `{expression}` or a tag that is \
             not open. TSX refuses them too. Write them as string children.\n\n\
             Before:  <p>a -> b</p>\n\
@@ -170,7 +170,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             After:   <p>{\"see http://example.com\"}</p>\n\n\
             Before:  <div>\n           // note\n           <p>x</p>\n         </div>\n\
             After:   <div>\n           {\n             // note\n           }\n           <p>x</p>\n         </div>\n\n\
-            `glyph fmt` writes a comment-only child in that form. A `{}` with \
+            `glyph fmt` writes a comment-only child in that form.\n\n\
+            An HTML entity: `&` and a name or number ending in `;`. TSX \
+            decodes it and Glyph would emit it as written, so the page would \
+            show `&amp;` where TSX shows `&`. Any shape is refused, unknown \
+            names included, so no list of names decides it; any other `&` is \
+            text (`Tom & Jerry`). Write the character itself, or a `\\u{...}` \
+            string child for one that is invisible or hard to type:\n\n\
+            Before:  <p>a &amp; b</p>\n\
+            After:   <p>a & b</p>\n\n\
+            Before:  <p>a&nbsp;b</p>\n\
+            After:   <p>a{\"\\u{A0}\"}b</p>\n\n\
+            A `{}` with \
             nothing inside is still refused (E0003), and `{/* note */}` is a \
             lex error (E0001), since Glyph has no block comments (D14).",
         // ----- resolver (E01xx) -----
@@ -1627,8 +1638,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0012",
         phase: "parser",
-        meaning: "A character JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open, or `//`, which Glyph reads as a comment elsewhere and TSX reads as text (D6). Any other character between a tag and the next `{` or `<` is text",
-        fix: "A string child (`{\"}\"}`, `{\">\"}`, `{\"see http://x\"}`), or a comment-only child for a comment",
+        meaning: "What JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open; `//`, which Glyph reads as a comment elsewhere and TSX reads as text; or an HTML entity (`&amp;`, `&#38;`, any `&` name or number `;`), which TSX decodes and Glyph does not (D6). Any other character between a tag and the next `{` or `<` is text, a lone `&` included",
+        fix: "A string child (`{\"}\"}`, `{\">\"}`, `{\"see http://x\"}`, `{\"\\u{A0}\"}`), the character itself for an entity, or a comment-only child for a comment",
     },
     // ----- resolver (E01xx) -----
     CodeEntry {

@@ -491,7 +491,7 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
         Token::LBracket => parse_array_literal(p),
         Token::LBrace => parse_object_literal(p),
         Token::LAngle if is_jsx_lookahead(p) => {
-            let elem = jsx::parse_jsx_element(p)?;
+            let elem = jsx::parse_jsx_element(p, jsx::Placement::Outermost)?;
             Ok(Expr::Jsx(elem))
         }
         Token::Match => p.nested("`match` expression", span, |p| parse_match(p, span)),
@@ -1013,8 +1013,10 @@ fn parse_generic_call_type_args(p: &mut Cursor) -> Result<Vec<glyph_ast::TypeExp
 fn is_jsx_lookahead(p: &mut Cursor) -> bool {
     match p.peek_at(1) {
         Some(Token::Identifier(_)) => true,
-        // `<>` opens a JSX fragment.
-        Some(Token::RAngle) => true,
+        // `<>` opens a JSX fragment. `<>=` does too, its text starting with
+        // `=`: this is asked only in primary position, where `<` cannot be a
+        // comparison, so admitting `>=` takes no reading away (record 93).
+        Some(Token::RAngle | Token::GtEq) => true,
         Some(t) if t.as_field_name().is_some() => true,
         _ => false,
     }

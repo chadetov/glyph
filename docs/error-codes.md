@@ -43,6 +43,7 @@ below.
 | `E0009` | Retired. An object pattern's field takes any pattern, so `Full({ color: Black })` matches the field value; the code is no longer emitted |
 | `E0010` | A union variant given more than one positional payload field, in a declaration (`Node(Color, Tree, int)`) or in a match arm's pattern (`Node(c, k)`); a variant carries one payload, and a multi-field payload is a record (D8) |
 | `E0011` | A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything. A level is one construct the parser descends into, counted once however it is spelled: parentheses around an operand are that operand's level, not a second one, so `-(x)` nests as deep as `-x` |
+| `E0012` | What JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open; `//`, which Glyph reads as a comment elsewhere and TSX reads as text; or an HTML entity (`&amp;`, `&#38;`, any `&` name or number `;`), which TSX decodes and Glyph does not (D6). Any other character between a tag and the next `{` or `<` is text, a lone `&` included |
 
 ### Resolver — `E01xx`
 

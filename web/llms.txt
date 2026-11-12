@@ -519,6 +519,26 @@ pub component TodoList(props: { load: Load }) {
 }
 ```
 
+Text between tags is read as written, so `<p>don't stop</p>` and `<p>50% off; "quoted"</p>`
+are plain text, and text over several lines is one child joined with spaces. Four
+things cannot appear in it (E0012): `}` and `>` (write `{"}"}`, `{">"}`), `//`
+(write `{"see http://example.com"}`), and an HTML entity such as `&amp;` or
+`&nbsp;`, which TSX would decode (write `&` itself, or `{"\u{A0}"}`). A comment
+among children goes in a comment-only child:
+
+```glyph needs-react
+module notes
+
+pub component Notes() {
+  return <div>
+    {
+      // the heading comes from the route
+    }
+    <h1>Notes</h1>
+  </div>
+}
+```
+
 ### Template strings
 
 `"Hello, ${user.email}"` interpolates expressions, calls included:
@@ -1914,6 +1934,7 @@ machine-readably. The full catalogue:
 | E0009 | Retired. An object pattern's field takes any pattern, so `Full({ color: Black })` matches the field value; the code is no longer emitted | Nothing; `{ color: Black }` matches the field value |
 | E0010 | A union variant given more than one positional payload field, in a declaration (`Node(Color, Tree, int)`) or in a match arm's pattern (`Node(c, k)`); a variant carries one payload, and a multi-field payload is a record (D8) | One record payload: `Node({ left: A, right: B })` |
 | E0011 | A construct nested past the parser's 64-level limit. Recursive descent spends stack per level, so without the limit a deep enough file aborts the process with a stack overflow instead of reporting anything. A level is one construct the parser descends into, counted once however it is spelled: parentheses around an operand are that operand's level, not a second one, so `-(x)` nests as deep as `-x` | Pull the inner levels into `let` bindings |
+| E0012 | What JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open; `//`, which Glyph reads as a comment elsewhere and TSX reads as text; or an HTML entity (`&amp;`, `&#38;`, any `&` name or number `;`), which TSX decodes and Glyph does not (D6). Any other character between a tag and the next `{` or `<` is text, a lone `&` included | A string child (`{"}"}`, `{">"}`, `{"see http://x"}`, `{"\u{A0}"}`), the character itself for an entity, or a comment-only child for a comment |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
 | E0101 | Relative import (`./`, `../`; D15). A module is named from the source root, with no package prefix: `std/io` for the stdlib, `helper` for a sibling file, `queries/report` for a file in a subdirectory. Two stages raise it: the parser, at a leading `./` or `../`, under the `parse` stage tag, and the resolver, at a `.` or `..` segment deeper in a path, under `collect`. Both carry the same help | Use an absolute module path (`std/io`, `myapp/x`) |
 | E0102 | Barrel file: only imports, no declarations (D15) | Add a declaration or remove the file |

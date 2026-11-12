@@ -19,6 +19,12 @@ pub enum Token {
     /// `StringStart` / `StringText` / `StringInterp` / `StringEnd` tokens.
     String(String),
 
+    /// A run of JSX text, as written in the source: every byte between a tag
+    /// or an `{expr}` child and the next `{` or `<` (D6). Produced only by
+    /// `Lexer::scan_jsx_text`, which the parser calls where a run starts;
+    /// normal lexing never produces it.
+    JsxText(String),
+
     // Identifier (could be a keyword; matched by name).
     Identifier(Arc<str>),
 

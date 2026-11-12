@@ -802,10 +802,10 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         // Mirror `glyph fmt`: never format unparseable source.
-        let Ok(module) = glyph_parser::parse(&text) else {
+        let (parsed, comments) = glyph_parser::parse_with_comments(&text);
+        let Ok(module) = parsed else {
             return Ok(None);
         };
-        let comments = glyph_lexer::comments(&text);
         let formatted = glyph_formatter::format_module(&module, &comments, &text);
         if formatted == text {
             return Ok(Some(Vec::new()));

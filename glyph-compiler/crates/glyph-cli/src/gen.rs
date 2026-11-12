@@ -323,11 +323,11 @@ fn render_and_write(
         entities: generated_entities(&module, module_name),
     };
     let body = with_record(&body, &record.render())?;
-    let module = glyph_parser::parse(&body).map_err(|e| GenError::GeneratedInvalid {
+    let (parsed, comments) = glyph_parser::parse_with_comments(&body);
+    let module = parsed.map_err(|e| GenError::GeneratedInvalid {
         reason: format!("the generation record did not parse back ({e:?})"),
         source_text: body.clone(),
     })?;
-    let comments = glyph_lexer::comments(&body);
     let formatted = glyph_formatter::format_module(&module, &comments, &body);
 
     std::fs::create_dir_all(out_dir).map_err(|e| GenError::Write {
@@ -2316,8 +2316,8 @@ mod tests {
         let mut g = Generator::default();
         let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas, "", "");
         // Prove the generated source parses and formats.
-        let module = glyph_parser::parse(&body).expect("generated source parses");
-        let comments = glyph_lexer::comments(&body);
+        let (parsed, comments) = glyph_parser::parse_with_comments(&body);
+        let module = parsed.expect("generated source parses");
         let formatted = glyph_formatter::format_module(&module, &comments, &body);
         (formatted, g.notes)
     }
@@ -2338,8 +2338,8 @@ mod tests {
         }
         let (imports, trailer) = assemble_extras(&parts);
         let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas, &imports, &trailer);
-        let module = glyph_parser::parse(&body).expect("generated source parses");
-        let comments = glyph_lexer::comments(&body);
+        let (parsed, comments) = glyph_parser::parse_with_comments(&body);
+        let module = parsed.expect("generated source parses");
         let formatted = glyph_formatter::format_module(&module, &comments, &body);
         (formatted, g.notes)
     }

@@ -1,7 +1,7 @@
 //! Parser error type. Phase 0 / Phase 1 week 1 has minimal recovery; week 7
 //! is the Elm-quality error-message audit (Q6 resolution).
 
-use glyph_lexer::Span;
+use glyph_lexer::{JsxTextRefusal, Span};
 use std::borrow::Cow;
 
 /// The one copy of the help a relative import gets, wherever it is caught.
@@ -176,6 +176,33 @@ pub enum ParseError {
         namespace: std::sync::Arc<str>,
         span: Span,
     },
+
+    /// A character JSX text cannot hold (D6, record 85): `}`, `>`, or `//`.
+    /// Text is scanned raw up to the next `{` or `<`, and these three are
+    /// refused rather than read. `}` and `>` would close an `{expr}` or a tag
+    /// that is not open, which TSX refuses too (TS1381, TS1382). `//` is a
+    /// comment everywhere else in Glyph and text in TSX, and it was a comment
+    /// in JSX text before 0.1.135, so either reading would change what some
+    /// program means; the error means nobody has to know which one applies.
+    #[error("{}", match refusal {
+        JsxTextRefusal::CloseBrace => "`}` cannot appear in JSX text",
+        JsxTextRefusal::CloseAngle => "`>` cannot appear in JSX text",
+        JsxTextRefusal::LineComment => "`//` cannot appear in JSX text",
+    })]
+    JsxText { refusal: JsxTextRefusal, span: Span },
+
+    /// `{}` among JSX children: braces with neither an expression nor a
+    /// comment inside. A comment-only child (`{` newline `// note` newline
+    /// `}`) is the one empty form, and it holds a comment (record 85, Q2.4).
+    #[error("an empty `{{}}` among JSX children holds no expression")]
+    EmptyJsxExpression { span: Span },
+
+    /// A `/*` in an `{...}` JSX child. It is the lex error it is anywhere
+    /// else (D14 has no block comments), reported with help that names the
+    /// comment form JSX children take, since `{/* note */}` is how TSX
+    /// writes one.
+    #[error("lex error: {message}")]
+    JsxBlockComment { message: String, span: Span },
 }
 
 /// Whether a name position introduces a name or refers to one declared
@@ -260,6 +287,9 @@ impl ParseError {
             }
             ParseError::ReservedWordAsName { span, .. } => *span,
             ParseError::ReservedWordAsImportItem { span, .. } => *span,
+            ParseError::JsxText { span, .. }
+            | ParseError::EmptyJsxExpression { span }
+            | ParseError::JsxBlockComment { span, .. } => *span,
         }
     }
 
@@ -292,6 +322,12 @@ impl ParseError {
             ParseError::ObjectDestructuringLet { .. } => "E0005",
             ParseError::ReservedWordAsName { .. } => "E0002",
             ParseError::ReservedWordAsImportItem { .. } => "E0002",
+            ParseError::JsxText { .. } => "E0012",
+            // A `}` where an expression goes, as `{}` was before it had a
+            // message of its own.
+            ParseError::EmptyJsxExpression { .. } => "E0003",
+            // The lex error it is anywhere else, with JSX-specific help.
+            ParseError::JsxBlockComment { .. } => "E0001",
         }
     }
 
@@ -368,6 +404,21 @@ impl ParseError {
             ParseError::ReservedWordAsImportItem { word, namespace, .. } => Cow::Owned(format!(
                 "`{word}` is a Glyph keyword, so it cannot be an imported item, even when the export is spelled `{word}`. To reach it, import the module by namespace and read it as `{namespace}.{word}`: write `import {namespace}`, then `{namespace}.{word}` works in a value or a type. `glyph llms` lists every reserved word under \"Reserved words\"."
             )),
+            ParseError::JsxText { refusal: JsxTextRefusal::CloseBrace, .. } => Cow::Borrowed(
+                "JSX text holds any character but `{`, `<`, `}`, `>` and `//`. Write a `}` as a string child: `{\"}\"}`.",
+            ),
+            ParseError::JsxText { refusal: JsxTextRefusal::CloseAngle, .. } => Cow::Borrowed(
+                "JSX text holds any character but `{`, `<`, `}`, `>` and `//`. Write a `>` as a string child: `{\">\"}`.",
+            ),
+            ParseError::JsxText { refusal: JsxTextRefusal::LineComment, .. } => Cow::Borrowed(
+                "Glyph reads `//` in JSX text as neither text nor a comment. For text, write it as a string child: `{\"see http://example.com\"}`. For a comment, put it in a comment-only child: `{` on one line, `// note` on the next, `}` after it. That child renders nothing.",
+            ),
+            ParseError::EmptyJsxExpression { .. } => Cow::Borrowed(
+                "Put an expression between the braces, or remove them. To leave a note among children, write a comment-only child: `{` on one line, `// note` on the next, `}` after it.",
+            ),
+            ParseError::JsxBlockComment { .. } => Cow::Borrowed(
+                "Glyph has no block comments (D14). A comment among JSX children is a comment-only child: `{` on one line, `// note` on the next, `}` after it. It renders nothing.",
+            ),
         })
     }
 }

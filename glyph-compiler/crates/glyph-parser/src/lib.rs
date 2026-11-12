@@ -41,18 +41,52 @@ pub use cursor::MAX_NESTING_DEPTH;
 pub use error::{LetPatternRefusal, NameRole, ParseError, RELATIVE_IMPORT_HELP};
 
 use glyph_ast::Module;
-use glyph_lexer::Span;
+use glyph_lexer::{Comment, Span};
 
 /// Top-level entry point: source string → `Module` AST.
 ///
 /// The parser pulls tokens from the lexer as it goes. A lex error is reported
-/// when the parser reaches it, with the span and message `tokenize` gives it.
+/// when the parser reaches it, with the span and message the lexer gives it.
 pub fn parse(source: &str) -> Result<Module, ParseError> {
+    parse_traced(source).result
+}
+
+/// Parse `source` and return the `//` comments of the tokens the parser
+/// consumed, in source order. This is the comment list the formatter takes.
+///
+/// It comes from the parse rather than from a separate scan of the file,
+/// because only the parser knows where JSX text is: the same bytes are a
+/// comment in an expression and text between tags, and text yields no comment
+/// (record 85). On a failed parse the list stops where the parser did.
+pub fn parse_with_comments(source: &str) -> (Result<Module, ParseError>, Vec<Comment>) {
+    let trace = parse_traced(source);
+    (trace.result, trace.comments)
+}
+
+/// A parse, the comments of the tokens it consumed, and the span of every
+/// JSX text run it scanned (including the part of a refused run before the
+/// refused character). The spans say which bytes the parser read as text and
+/// not as tokens, which is what a check against the lexer needs: lexing the
+/// source with those bytes blanked is lexing what the parser lexed.
+#[derive(Debug)]
+pub struct ParseTrace {
+    pub result: Result<Module, ParseError>,
+    pub comments: Vec<Comment>,
+    pub jsx_text_spans: Vec<Span>,
+}
+
+/// `parse`, with the comments and JSX text spans it read. See [`ParseTrace`].
+pub fn parse_traced(source: &str) -> ParseTrace {
     let mut p = cursor::Cursor::new(source);
-    let result = parse_module_to_eof(&mut p);
-    match p.lex_error_here() {
+    let parsed = parse_module_to_eof(&mut p);
+    let result = match p.lex_error_here() {
         Some(lex) => Err(lex),
-        None => result,
+        None => parsed,
+    };
+    ParseTrace {
+        result,
+        comments: p.consumed_comments(),
+        jsx_text_spans: p.jsx_text_spans(),
     }
 }
 

@@ -9,8 +9,9 @@
 //! - Attributes: `name="literal"`, `name={expr}`, positional `<for x in={xs}>`,
 //!   and the pattern a `<case>` opens with (`<case Loaded(items)>`), which is
 //!   parsed as a `match` arm's pattern
-//! - Children: nested elements, `{expr}` blocks, raw text runs reconstructed
-//!   by slicing the source string between tag boundaries
+//! - Children: nested elements, `{expr}` blocks, comment-only `{ // note }`
+//!   blocks, and raw text runs the lexer scans on the parser's request
+//!   (`Cursor::rescan_jsx_text`, record 85)
 //!
 //! Per D6, directive element names are reserved at the typechecker level, not
 //! the parser. The parser treats `<if>`, `<for>`, `<match>`, `<case>`, `<else>`
@@ -33,12 +34,13 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
 
     // Fragment `<>...</>`: `<` immediately followed by `>`, no name or attrs.
     // Represented by an empty element name (a real JSX name can never be empty).
+    p.split_glued_tag_end();
     if matches!(p.peek(), Token::RAngle) {
         p.advance(); // `>`
         let children = p.nested("JSX fragment", open_span, parse_jsx_children)?;
         p.expect(&Token::LAngle, "`<` (open fragment closing `</>`)")?;
         p.expect(&Token::Slash, "`/` (fragment closing `</>`)")?;
-        let close = p.expect(&Token::RAngle, "`>` (end of fragment `</>`)")?;
+        let close = expect_tag_end(p, "`>` (end of fragment `</>`)")?;
         return Ok(JsxElement {
             name: Arc::from(""),
             attrs: Vec::new(),
@@ -63,14 +65,16 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             pattern,
         });
     }
+    p.split_glued_tag_end();
     while !matches!(p.peek(), Token::RAngle | Token::Slash) {
         attrs.push(parse_jsx_attr(p)?);
+        p.split_glued_tag_end();
     }
 
     // Self-closing or has children?
     if matches!(p.peek(), Token::Slash) {
         p.advance();
-        let close = p.expect(&Token::RAngle, "`>` after `/` (self-closing JSX)")?;
+        let close = expect_tag_end(p, "`>` after `/` (self-closing JSX)")?;
         return Ok(JsxElement {
             name,
             attrs,
@@ -84,7 +88,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     }
 
     // Consume `>` of the opening tag.
-    let _gt = p.expect(&Token::RAngle, "`>` (close JSX opening tag)")?;
+    expect_tag_end(p, "`>` (close JSX opening tag)")?;
 
     // Children until the matching closing tag `</name>`.
     let children = p.nested("JSX element", open_span, parse_jsx_children)?;
@@ -100,7 +104,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
             span: close_name_span,
         });
     }
-    let close = p.expect(&Token::RAngle, "`>` (end of closing tag)")?;
+    let close = expect_tag_end(p, "`>` (end of closing tag)")?;
 
     Ok(JsxElement {
         name,
@@ -114,18 +118,26 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     })
 }
 
+/// The `>` that ends a tag. A `>=` there is the tag's `>` and an `=` after
+/// it (`<p>=</p>`), which normal lexing reads as one token.
+fn expect_tag_end(p: &mut Cursor, expected: &'static str) -> Result<Span, ParseError> {
+    p.split_glued_tag_end();
+    p.expect(&Token::RAngle, expected)
+}
+
+/// The children of an element, up to its closing tag (D6).
+///
+/// A text run starts after the opening tag's `>`, after each child element and
+/// after each `{expr}`, and runs to the next `{` or `<`. The parser asks the
+/// lexer to scan it there (`rescan_jsx_text`): the run is raw source, across
+/// lines, so it is one child, its span is exactly its source range, and what
+/// it renders is `jsx_text_value`'s business (record 85, Q3). An empty run is
+/// no child.
 fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
     let mut children = Vec::new();
     loop {
-        // Skip newlines between children (they're not significant in JSX
-        // children flow; whitespace is preserved inside text runs). Remember
-        // whether we crossed a newline: a text run that follows one starts a
-        // fresh line, so its leading indentation is insignificant (JSX/Babel
-        // strip it); a run continuing the same line keeps its leading space.
-        let mut crossed_newline = false;
-        while matches!(p.peek(), Token::Newline) {
-            p.advance();
-            crossed_newline = true;
+        if let Some((content, span)) = p.rescan_jsx_text()? {
+            children.push(JsxChild::Text { content, span });
         }
 
         if matches!(p.peek(), Token::Eof) {
@@ -148,59 +160,58 @@ fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
             continue;
         }
 
-        // `{expr}` expression child.
-        if matches!(p.peek(), Token::LBrace) {
-            let open = p.peek_span();
-            p.advance();
-            let e = expr::parse_expr(p)?;
-            p.expect(&Token::RBrace, "`}` (closing JSX expression child)")?;
-            let _ = open; // Span tracked via the expression itself.
-            children.push(JsxChild::Expr(e));
-            continue;
-        }
-
-        // Text run: accumulate tokens until `<` or `{` (or newline/EOF).
-        let text_start = p.peek_span().start;
-        let mut text_end = text_start;
-        let mut consumed_any = false;
-        while !matches!(
-            p.peek(),
-            Token::LAngle | Token::LBrace | Token::Eof | Token::Newline
-        ) {
-            text_end = p.peek_span().end;
-            p.advance();
-            consumed_any = true;
-        }
-        if consumed_any {
-            // The token spans exclude same-line whitespace that abuts the run
-            // but produced no token: the space before a following `{expr}`/`<`
-            // and the space after a preceding `{expr}`/`>`. JSX keeps such a
-            // space significant (`Hello {name}` renders "Hello Alice"), so pull
-            // it back into the slice. Leading whitespace is only significant
-            // when the run continues the same line (not fresh after a newline);
-            // trailing whitespace only when the run abuts a same-line sibling
-            // (`{` or `<`), not a newline or EOF.
-            //
-            // A fresh line is read from the source rather than from
-            // `crossed_newline` alone: the previous child's parser can consume
-            // the newline after it, so a run on its own line below an element
-            // or an `{expr}` used to keep its indentation as text.
-            let extended = p.extend_left_over_inline_ws(text_start);
-            let starts_line = extended == 0 || matches!(p.slice(extended - 1, extended), "\n" | "\r");
-            let start = if crossed_newline || starts_line { text_start } else { extended };
-            let end = if matches!(p.peek(), Token::LBrace | Token::LAngle) {
-                p.extend_right_over_inline_ws(text_end)
-            } else {
-                text_end
-            };
-            let content = p.slice(start, end).to_string();
-            children.push(JsxChild::Text {
-                content,
-                span: Span::new(start, end),
-            });
+        // The run stops only at `{` or `<`, so this is an `{...}` child.
+        let open = p.expect(&Token::LBrace, "`{` (JSX expression child)")?;
+        if let Some(child) = parse_jsx_brace_child(p, open)? {
+            children.push(child);
         }
     }
     Ok(children)
+}
+
+/// The rest of an `{...}` child after its `{`: an expression child, or a
+/// comment-only child (Q2 rule 4), which is no child: the comment is in the
+/// comment list like any other, and the formatter writes it back as one.
+/// `{}` with no comment is refused, and so is a block comment, with help that
+/// names the comment-only form.
+fn parse_jsx_brace_child(p: &mut Cursor, open: Span) -> Result<Option<JsxChild>, ParseError> {
+    if matches!(p.peek(), Token::RBrace) {
+        let close = p.advance().span;
+        if p.previous_had_comments() {
+            return Ok(None);
+        }
+        return Err(ParseError::EmptyJsxExpression {
+            span: open.join(close),
+        });
+    }
+    let parsed = expr::parse_expr(p)
+        .and_then(|e| p.expect(&Token::RBrace, "`}` (closing JSX expression child)").map(|_| e));
+    match parsed {
+        Ok(e) => Ok(Some(JsxChild::Expr(e))),
+        Err(err) => Err(block_comment_hint(p).unwrap_or(err)),
+    }
+}
+
+/// A block comment the parser stopped at inside an `{...}` child, reported
+/// with the JSX hint instead of the bare lex error.
+fn block_comment_hint(p: &mut Cursor) -> Option<ParseError> {
+    if !matches!(p.peek(), Token::Eof) {
+        return None;
+    }
+    let span = p.peek_span();
+    match p.take_lex_error_here()? {
+        e @ glyph_lexer::LexError::NoBlockComments { .. } => Some(ParseError::JsxBlockComment {
+            message: e.to_string(),
+            span,
+        }),
+        other => {
+            // Not ours to rephrase: leave it to be reported as itself.
+            Some(ParseError::Lex {
+                message: other.to_string(),
+                span,
+            })
+        }
+    }
 }
 
 fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {

@@ -57,11 +57,11 @@ pub fn format_path(path: &Path, check: bool) -> Result<FmtReport, FmtError> {
             path: file.clone(),
             source: e,
         })?;
-        match glyph_parser::parse(&src) {
+        // The comments are the ones the parse consumed: the parser keeps them
+        // out of the AST, and only it knows which `//` is in JSX text.
+        let (parsed, comments) = glyph_parser::parse_with_comments(&src);
+        match parsed {
             Ok(module) => {
-                // Comments are recovered separately (the parser drops them) and
-                // re-emitted in place by the formatter.
-                let comments = glyph_lexer::comments(&src);
                 let formatted = format_module(&module, &comments, &src);
                 if formatted == src {
                     report.unchanged.push(file);

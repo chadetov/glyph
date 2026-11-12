@@ -26,8 +26,8 @@ mod error;
 mod lexer;
 mod token;
 
-pub use error::LexError;
-pub use lexer::{comments, tokenize, LexState, Lexer};
+pub use error::{JsxTextError, JsxTextRefusal, LexError};
+pub use lexer::{tokenize, LexState, Lexer};
 pub use token::{keywords, Spanned, Token};
 
 /// Internal escape marker in a lexed string's value, so a literal `${`
@@ -73,8 +73,10 @@ pub fn resolve_escaped_dollars(s: &str) -> std::borrow::Cow<'_, str> {
 }
 
 /// A `//` line comment recovered from the source. The lexer skips comments for
-/// the token stream (D14), but collects them here so the formatter can preserve
-/// them. `text` is the full comment including the leading `//`, trailing
+/// the token stream (D14), but collects them (`Lexer::take_comments`) so the
+/// formatter can preserve them. The whole file's list comes from the parser,
+/// `glyph_parser::parse_with_comments`, which keeps the comments of the tokens
+/// it consumed: only the parser knows where JSX text is, and text holds none. `text` is the full comment including the leading `//`, trailing
 /// whitespace trimmed; `span` is its byte range.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Comment {
@@ -172,6 +174,19 @@ mod tests {
         assert!(matches!(tokens[0].token, Token::Eof));
     }
 
+    /// Every comment the normal-mode lexer skips on its way to the end.
+    fn comments(src: &str) -> Vec<Comment> {
+        let mut lexer = Lexer::new(src);
+        let mut out = Vec::new();
+        loop {
+            let t = lexer.next_token().expect("clean source");
+            out.extend(lexer.take_comments());
+            if matches!(t.token, Token::Eof) {
+                return out;
+            }
+        }
+    }
+
     #[test]
     fn comments_are_collected_with_spans() {
         let src = "// header\nfn f() {}\n// trailing\n";
@@ -188,6 +203,71 @@ mod tests {
     fn slashes_inside_a_string_are_not_comments() {
         let cs = comments("const u = \"http://example.com\"\n");
         assert!(cs.is_empty(), "a // inside a string is not a comment: {cs:?}");
+    }
+
+    /// Scan one JSX text run from `offset` in a fresh lexer.
+    fn scan_at(src: &str, offset: usize) -> Result<Option<Spanned<Token>>, JsxTextError> {
+        Lexer::at(src, offset, LexState::default()).scan_jsx_text()
+    }
+
+    #[test]
+    fn jsx_text_runs_to_the_next_brace_or_tag_across_lines() {
+        let src = "<p>don't \\ \"stop\n  (now /* x [ ; </p>";
+        let t = scan_at(src, 3).unwrap().expect("a run");
+        assert_eq!(t.token, Token::JsxText("don't \\ \"stop\n  (now /* x [ ; ".to_string()));
+        assert_eq!(t.span, Span::new(3, src.find("</p>").unwrap() as u32));
+        let src = "<p>a {x}";
+        assert_eq!(scan_at(src, 3).unwrap().unwrap().token, Token::JsxText("a ".to_string()));
+        // Up to the end of the source when nothing stops it.
+        assert_eq!(scan_at("ab", 0).unwrap().unwrap().span, Span::new(0, 2));
+    }
+
+    #[test]
+    fn an_empty_jsx_text_run_is_none() {
+        assert_eq!(scan_at("<p></p>", 3).unwrap(), None);
+        assert_eq!(scan_at("<p>{x}</p>", 3).unwrap(), None);
+        assert_eq!(scan_at("<p>", 3).unwrap(), None);
+    }
+
+    #[test]
+    fn jsx_text_refuses_close_brace_close_angle_and_line_comment() {
+        for (src, refusal, at, len) in [
+            ("a } b", JsxTextRefusal::CloseBrace, 2, 1),
+            ("a > b", JsxTextRefusal::CloseAngle, 2, 1),
+            ("see http://x", JsxTextRefusal::LineComment, 9, 2),
+        ] {
+            let e = scan_at(src, 0).unwrap_err();
+            assert_eq!(e, JsxTextError { refusal, span: Span::new(at, at + len) }, "{src:?}");
+        }
+        // One slash is text.
+        assert!(scan_at("a/b", 0).unwrap().is_some());
+    }
+
+    #[test]
+    fn jsx_text_leaves_depth_and_comments_alone() {
+        let src = "f( <p>a\n( [ // no\nb</p>\n)";
+        let mut lexer = Lexer::new(src);
+        while !matches!(lexer.next_token().unwrap().token, Token::RAngle) {}
+        let before = lexer.state();
+        let err = lexer.scan_jsx_text().unwrap_err();
+        assert_eq!(err.refusal, JsxTextRefusal::LineComment);
+        assert_eq!(lexer.state(), before);
+        assert!(lexer.take_comments().is_empty());
+
+        let src = "f( <p>a\n( [\nb</p>\n)";
+        let mut lexer = Lexer::new(src);
+        while !matches!(lexer.next_token().unwrap().token, Token::RAngle) {}
+        let before = lexer.state();
+        lexer.scan_jsx_text().unwrap().expect("a run");
+        assert_eq!(lexer.state(), before, "text does not change the bracket depth");
+        // Normal lexing resumes at the `<`; the newline after `</p>` is
+        // inside the call's parentheses, so it is no token.
+        let rest: Vec<Token> = std::iter::from_fn(|| {
+            let t = lexer.next_token().unwrap().token;
+            (!matches!(t, Token::Eof)).then_some(t)
+        })
+        .collect();
+        assert_eq!(rest, vec![Token::LAngle, Token::Slash, Token::Identifier("p".into()), Token::RAngle, Token::RParen]);
     }
 
     #[test]

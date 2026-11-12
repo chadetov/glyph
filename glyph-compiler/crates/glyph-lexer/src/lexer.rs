@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::error::LexError;
+use crate::error::{JsxTextError, JsxTextRefusal, LexError};
 use crate::token::{Spanned, Token};
 use crate::{Comment, Span};
 
@@ -14,22 +14,6 @@ use crate::{Comment, Span};
 /// produce different streams.
 pub fn tokenize(source: &str) -> Result<Vec<Spanned<Token>>, LexError> {
     Lexer::new(source).tokenize_all()
-}
-
-/// Collect every `//` line comment in `source`, in source order. Drives the
-/// lexer to EOF (or the first lexical error) accumulating comments as they are
-/// skipped. Intended for sources that parse, where lexing is clean; on a source
-/// with a later lexical error this returns the comments found before it.
-pub fn comments(source: &str) -> Vec<Comment> {
-    let mut lexer = Lexer::new(source);
-    loop {
-        match lexer.next_token() {
-            Ok(s) if matches!(s.token, Token::Eof) => break,
-            Ok(_) => {}
-            Err(_) => break,
-        }
-    }
-    lexer.comments
 }
 
 /// Everything the lexer carries from one token to the next, apart from its
@@ -74,6 +58,55 @@ impl<'a> Lexer<'a> {
         LexState {
             bracket_depth: self.bracket_depth,
         }
+    }
+
+    /// The `//` comments skipped since the last call, in source order. The
+    /// parser's cursor takes them after each token, so every comment belongs
+    /// to the token it preceded, and a comment the parser later discards
+    /// with that token (a rescan as JSX text) is discarded with it.
+    pub fn take_comments(&mut self) -> Vec<Comment> {
+        std::mem::take(&mut self.comments)
+    }
+
+    /// Scan one run of JSX text from the current position (D6): every byte
+    /// up to the next `{` or `<`, or the end of the source, newlines
+    /// included. The parser calls this where its grammar says a text run
+    /// starts, after a tag or an `{expr}` child; the lexer never decides that
+    /// on its own (record 85).
+    ///
+    /// The run is raw source. No `Newline` token is produced, no comment is
+    /// recorded and the bracket depth is untouched, so normal lexing resumes
+    /// after it in the state it was in before. An empty run is `None`.
+    ///
+    /// Three things are refused rather than read. `}` and `>` would end an
+    /// `{expr}` or a tag that is not open, as TSX refuses them. `//` is read
+    /// as a comment everywhere else in Glyph and as text by TSX, and was a
+    /// comment in JSX text before 0.1.135, so either reading would change
+    /// what some program means; refusing it means nobody has to know which
+    /// one applies. On a refusal the position is left at the refused bytes.
+    pub fn scan_jsx_text(&mut self) -> Result<Option<Spanned<Token>>, JsxTextError> {
+        let start = self.pos;
+        while let Some(c) = self.peek() {
+            let refusal = match c {
+                b'{' | b'<' => break,
+                b'}' => Some((JsxTextRefusal::CloseBrace, 1)),
+                b'>' => Some((JsxTextRefusal::CloseAngle, 1)),
+                b'/' if self.peek_at(1) == Some(b'/') => Some((JsxTextRefusal::LineComment, 2)),
+                _ => None,
+            };
+            if let Some((refusal, len)) = refusal {
+                return Err(JsxTextError {
+                    refusal,
+                    span: Span::new(self.pos as u32, (self.pos + len) as u32),
+                });
+            }
+            self.advance();
+        }
+        if self.pos == start {
+            return Ok(None);
+        }
+        let text = self.source[start..self.pos].to_string();
+        Ok(Some(self.spanned(Token::JsxText(text), start, self.pos)))
     }
 
     pub fn tokenize_all(mut self) -> Result<Vec<Spanned<Token>>, LexError> {

@@ -357,16 +357,19 @@ fn parse_annotations(p: &mut Cursor) -> Result<Vec<Annotation>, ParseError> {
         // emits none at bracket depth, D1) and that newline still terminates it,
         // so the note is left exactly where its author put it.
         let raw_args = if args_end > args_start {
-            // Notes come from the lexer, never from a scan of the text: `//`
-            // inside a string literal is data, and searching the slice for the
-            // note's wording would cut it inside the literal and change what
-            // the literal says.
+            // Notes are the comments the lexer skipped between the tokens just
+            // consumed, never a scan of the text: `//` inside a string literal
+            // is data, and searching the slice for the note's wording would
+            // cut it inside the literal and change what the literal says. The
+            // argument tokens are consumed one by one above, never parsed, so
+            // no JSX text is scanned in them and every `//` here was lexed as
+            // a comment.
             let notes: Vec<Span> = if gaps.is_empty() {
                 Vec::new()
             } else {
-                glyph_lexer::comments(p.slice(args_start, args_end))
+                p.consumed_comments_in(args_start, args_end)
                     .into_iter()
-                    .map(|c| Span::new(args_start + c.span.start, args_start + c.span.end))
+                    .map(|c| c.span)
                     .collect()
             };
             let mut out = String::new();

@@ -44,7 +44,7 @@ use glyph_ast::{
 const PRINT_WIDTH: usize = 100;
 
 /// Format a whole module to canonical Glyph source. `comments` are the `//`
-/// line comments recovered from the source (via `glyph_lexer::comments`); they
+/// line comments the parse consumed (`glyph_parser::parse_with_comments`); they
 /// are re-emitted in source order, each immediately above the declaration or
 /// statement that follows it. Pass `&[]` to format without comments. `source` is
 /// the original program text — string literals are copied verbatim from it (by
@@ -1710,10 +1710,17 @@ impl Printer {
         // byte for byte, child count included. Splitting the edge space off as
         // its own `{" "}` child changed the child count, and it wrote a run of
         // spaces as one, which changed the rendered text (record 84).
+        //
+        // A comment among the children is a comment-only child (D6, record 85),
+        // written `{`, the comment, `}`, each on its own line, above the child
+        // it was written before. It needs lines of its own, so a child list
+        // holding one is laid out one per line too.
+        let children_end = j.close_name_segments.first().map_or(j.span.end, |s| s.start);
         let has_element = j.children.iter().any(|c| matches!(c, JsxChild::Element(_)));
-        if has_element {
+        if has_element || self.jsx_gap_has_comment(j, children_end) {
             self.indent += 1;
             for child in &j.children {
+                self.jsx_comment_child(jsx_child_span(child).start);
                 match child {
                     JsxChild::Text { content, .. } => {
                         let text = glyph_ast::jsx_text_value(content);
@@ -1735,6 +1742,7 @@ impl Printer {
                     }
                 }
             }
+            self.jsx_comment_child(children_end);
             self.indent -= 1;
             self.newline();
         } else {
@@ -1773,6 +1781,46 @@ impl Printer {
         }
     }
 
+    /// Whether a comment sits between two of `j`'s children, or between the
+    /// opening tag and the first or the last child and the closing tag: the
+    /// gaps a comment-only child fills. A comment inside a child (in a lambda
+    /// body in an `{expr}`, or in a nested element) is that child's.
+    fn jsx_gap_has_comment(&self, j: &JsxElement, children_end: u32) -> bool {
+        let mut from = j
+            .attrs
+            .iter()
+            .map(|a| jsx_attr_span(a).end)
+            .fold(j.name_span.end, u32::max);
+        for child in &j.children {
+            let span = jsx_child_span(child);
+            if self.has_comment_between(from, span.start) {
+                return true;
+            }
+            from = span.end;
+        }
+        self.has_comment_between(from, children_end)
+    }
+
+    /// Write every pending comment before `offset` as one comment-only child:
+    /// `{`, the comments one per line and indented, `}`. It renders nothing
+    /// and is no child in the AST, so the emitted TypeScript is unchanged.
+    fn jsx_comment_child(&mut self, offset: u32) {
+        let taken = self.take_comments_before(offset);
+        if taken.is_empty() {
+            return;
+        }
+        self.newline();
+        self.push("{");
+        self.indent += 1;
+        for c in &taken {
+            self.newline();
+            self.push(&c.text);
+        }
+        self.indent -= 1;
+        self.newline();
+        self.push("}");
+    }
+
     fn jsx_child(&mut self, child: &JsxChild) {
         match child {
             JsxChild::Element(e) => self.jsx(e),
@@ -1783,6 +1831,26 @@ impl Printer {
             }
             JsxChild::Text { content, .. } => self.push(&glyph_ast::jsx_text_value(content)),
         }
+    }
+}
+
+fn jsx_attr_span(a: &JsxAttr) -> Span {
+    match a {
+        JsxAttr::String { span, .. }
+        | JsxAttr::Expr { span, .. }
+        | JsxAttr::Positional { span, .. }
+        | JsxAttr::Pattern { span, .. }
+        | JsxAttr::Spread { span, .. } => *span,
+    }
+}
+
+/// Where a JSX child is in the source. An `{expr}` child's span is its
+/// expression's, inside the braces.
+fn jsx_child_span(child: &JsxChild) -> Span {
+    match child {
+        JsxChild::Element(e) => e.span,
+        JsxChild::Expr(e) => e.span(),
+        JsxChild::Text { span, .. } => *span,
     }
 }
 

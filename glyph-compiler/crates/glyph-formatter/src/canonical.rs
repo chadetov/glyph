@@ -45,9 +45,8 @@ impl std::error::Error for CanonicalError {}
 
 /// Render `source` as its canonical agent view (see module docs).
 pub fn canonical_view(source: &str) -> Result<String, CanonicalError> {
-    let module =
-        glyph_parser::parse(source).map_err(|e| CanonicalError::Parse(format!("{e:?}")))?;
-    let comments = glyph_lexer::comments(source);
+    let (parsed, comments) = glyph_parser::parse_with_comments(source);
+    let module = parsed.map_err(|e| CanonicalError::Parse(format!("{e:?}")))?;
     let canonical = format_module(&module, &comments, source);
 
     // Re-parse the canonical text so declaration spans are in *canonical*

@@ -59,8 +59,14 @@ fn type_error_codes(src: &str) -> Option<Vec<String>> {
 }
 
 fn fmt(src: &str) -> String {
-    let m = glyph_parser::parse(src).expect("parse");
-    format_module(&m, &glyph_lexer::comments(src), src)
+    let (m, comments) = glyph_parser::parse_with_comments(src);
+    format_module(&m.expect("parse"), &comments, src)
+}
+
+/// The comments the parser consumed, which is the list `glyph fmt` hands the
+/// formatter. A source that does not parse has none to give.
+fn comments(src: &str) -> Vec<glyph_lexer::Comment> {
+    glyph_parser::parse_with_comments(src).1
 }
 
 #[test]
@@ -77,15 +83,15 @@ fn examples_format_is_stable_and_semantics_preserving() {
 
         // Stable: format → reparse → format is a fixed point.
         let m = glyph_parser::parse(&src).unwrap_or_else(|e| panic!("{label}: parse: {e:?}"));
-        let once = format_module(&m, &glyph_lexer::comments(&src), &src);
+        let once = format_module(&m, &comments(&src), &src);
         let m2 = glyph_parser::parse(&once).unwrap_or_else(|e| {
             panic!("{label}: formatted output did not re-parse: {e:?}\n--- output ---\n{once}")
         });
-        let twice = format_module(&m2, &glyph_lexer::comments(&once), &once);
+        let twice = format_module(&m2, &comments(&once), &once);
         assert_eq!(once, twice, "{label}: formatting is not idempotent");
 
         // Comments are preserved: every comment's text survives.
-        for c in glyph_lexer::comments(&src) {
+        for c in comments(&src) {
             assert!(
                 once.contains(&c.text),
                 "{label}: dropped comment {:?}\n--- output ---\n{once}",
@@ -750,7 +756,7 @@ fn formatting_does_not_duplicate_a_comment_it_already_emitted() {
     let mut seen = Vec::new();
     for _ in 0..5 {
         let module = glyph_parser::parse(&current).expect("reproduction must parse");
-        let comments = glyph_lexer::comments(&current);
+        let comments = comments(&current);
         current = format_module(&module, &comments, &current);
         seen.push(current.matches("// c").count());
     }
@@ -961,21 +967,23 @@ enum StreamItem {
 ///
 /// JSX text is in the projection as the text it renders
 /// (`glyph_ast::jsx_texts`), the same item as a string child that renders it,
-/// since the two emit the same quoted string. The lexer still reads words,
-/// quotes and `//` inside the text as tokens and comments; those are dropped,
-/// because the text is the item (G316).
+/// since the two emit the same quoted string (G316). The tokens are the ones
+/// the parser lexed: the source is lexed with every JSX text run blanked out,
+/// because the parser scans text raw and normal lexing of a contraction or a
+/// lone `"` there would fail or read a string across tags (record 85). The
+/// comments are the ones the parse consumed, the list `glyph fmt` uses.
 fn literal_and_comment_stream(src: &str) -> Vec<StreamItem> {
-    let tokens = glyph_lexer::tokenize(src).unwrap_or_else(|e| panic!("lex: {e:?}"));
-    let comments = glyph_lexer::comments(src);
-    let module = glyph_parser::parse(src).unwrap_or_else(|e| panic!("parse: {e:?}"));
+    let trace = glyph_parser::parse_traced(src);
+    let module = trace.result.unwrap_or_else(|e| panic!("parse: {e:?}"));
+    let tokens = glyph_lexer::tokenize(&blank_spans(src, &trace.jsx_text_spans))
+        .unwrap_or_else(|e| panic!("lex outside JSX text: {e:?}"));
     let texts = glyph_ast::jsx_texts(&module);
-    let in_text = |at: u32| texts.iter().any(|(span, _)| span.start <= at && at < span.end);
 
     let mut items: Vec<(u32, StreamItem)> = texts
         .iter()
         .map(|(span, value)| (span.start, StreamItem::Str(blank_interpolations(value))))
         .collect();
-    for t in tokens.iter().filter(|t| !in_text(t.span.start)) {
+    for t in &tokens {
         let item = match &t.token {
             glyph_lexer::Token::Number(raw) => StreamItem::Number(raw.clone()),
             glyph_lexer::Token::String(value) => StreamItem::Str(blank_interpolations(value)),
@@ -985,11 +993,25 @@ fn literal_and_comment_stream(src: &str) -> Vec<StreamItem> {
         };
         items.push((t.span.start, item));
     }
-    for c in comments.iter().filter(|c| !in_text(c.span.start)) {
+    for c in &trace.comments {
         items.push((c.span.start, StreamItem::Comment(c.text.clone())));
     }
     items.sort_by_key(|(start, _)| *start);
     items.into_iter().map(|(_, item)| item).collect()
+}
+
+/// `src` with every byte inside `spans` replaced by a space, newlines kept,
+/// so offsets are unchanged and what is left lexes as the parser lexed it.
+fn blank_spans(src: &str, spans: &[glyph_lexer::Span]) -> String {
+    let mut bytes = src.as_bytes().to_vec();
+    for span in spans {
+        for b in &mut bytes[span.start as usize..span.end as usize] {
+            if *b != b'\n' {
+                *b = b' ';
+            }
+        }
+    }
+    String::from_utf8(bytes).expect("only whole runs of text are blanked")
 }
 
 /// The one exemption in the projection, and it is deliberately narrow. Inside a
@@ -1204,11 +1226,11 @@ fn fuzz_seeds_are_format_fixed_points() {
         let Ok(m) = glyph_parser::parse(&src) else {
             continue;
         };
-        let once = format_module(&m, &glyph_lexer::comments(&src), &src);
+        let once = format_module(&m, &comments(&src), &src);
         let m2 = glyph_parser::parse(&once).unwrap_or_else(|e| {
             panic!("{name}: formatted output did not re-parse: {e:?}\n--- output ---\n{once}")
         });
-        let twice = format_module(&m2, &glyph_lexer::comments(&once), &once);
+        let twice = format_module(&m2, &comments(&once), &once);
         assert_eq!(once, twice, "{name}: formatting is not idempotent");
     }
 }
@@ -1221,7 +1243,7 @@ fn formatting_preserves_the_literal_and_comment_stream_on_the_seeds() {
         let Ok(m) = glyph_parser::parse(&src) else {
             continue;
         };
-        let once = format_module(&m, &glyph_lexer::comments(&src), &src);
+        let once = format_module(&m, &comments(&src), &src);
         assert_stream_preserved(&name, &src, &once);
     }
 }
@@ -1238,7 +1260,7 @@ fn no_seed_or_corpus_file_formats_with_trailing_whitespace() {
         let Ok(m) = glyph_parser::parse(&src) else {
             continue;
         };
-        let out = format_module(&m, &glyph_lexer::comments(&src), &src);
+        let out = format_module(&m, &comments(&src), &src);
         for (n, line) in out.lines().enumerate() {
             assert!(
                 line.len() == line.trim_end().len(),
@@ -1671,5 +1693,75 @@ fn a_comment_nested_in_an_operand_does_not_break_the_operator_expression() {
     ];
     for src in fixed_points {
         assert_eq!(fmt(src), src, "an 0.1.132 fixed point is still one");
+    }
+}
+
+/// JSX text is scanned as text (record 85), so what it holds survives
+/// formatting byte for byte in the emitted TypeScript, whichever form the
+/// formatter writes it in: bare text, or a string child for an edge space.
+#[test]
+fn text_tsx_reads_as_text_survives_formatting() {
+    let bodies = [
+        "<p>don't stop</p>",
+        "<p>a \\ b \"c /* d ( e [ f ; g</p>",
+        "<p>{n} don't \"x\" \\ ${n} <b>y</b></p>",
+        "<div>\n    <p>a \"b</p>\n    <p>c\" d</p>\n  </div>",
+        "<p>=x <b>y</b>= z</p>",
+        "<div>\n    <p>x</p>\n    it's\n    two lines\n  </div>",
+    ];
+    for body in bodies {
+        let src = format!(
+            "module x\n\npub component C(props: {{ n: number }}) {{\n  let n = props.n\n  return {body}\n}}\n"
+        );
+        let before = emit_ts(&src).unwrap_or_else(|| panic!("emits: {src}"));
+        let out = fmt(&src);
+        let after = emit_ts(&out).unwrap_or_else(|| panic!("formatted source emits:\n{out}"));
+        assert_eq!(before, after, "formatting changed what `{body}` emits:\n{out}");
+        assert_eq!(fmt(&out), out, "format of `{body}` is not stable");
+        assert_stream_preserved(body, &src, &out);
+    }
+}
+
+/// G321: top-level text across lines is one child, and stays one through
+/// formatting.
+#[test]
+fn top_level_multi_line_text_formats_to_one_child() {
+    let src = "module x\n\npub const X: Component = <div>a\nb</div>\n";
+    let out = fmt(src);
+    assert_eq!(emit_ts(src), emit_ts(&out), "{out}");
+    assert_eq!(fmt(&out), out);
+}
+
+/// Q2 rule 4: a comment among JSX children is a comment-only child. Its
+/// canonical form is `{`, the comment, `}`, one per line; it emits nothing,
+/// and formatting keeps it where it was written, above the child after it.
+#[test]
+fn a_comment_only_child_round_trips() {
+    let canonical = "module x\n\npub component C(props: { n: number }) {\n  return <div>\n    {\n      // note\n    }\n    <p>x</p>\n    {\n      // trailing\n    }\n  </div>\n}\n";
+    assert_eq!(fmt(canonical), canonical);
+    assert_stream_preserved("comment child", canonical, canonical);
+
+    let cases = [
+        (
+            "module x\n\npub component C(props: { n: number }) {\n  return <div>{ // note\n  }<p>x</p></div>\n}\n",
+            "module x\n\npub component C(props: { n: number }) {\n  return <div>\n    {\n      // note\n    }\n    <p>x</p>\n  </div>\n}\n",
+        ),
+        // No element child: the comment still needs lines of its own.
+        (
+            "module x\n\npub component C(props: { n: number }) {\n  return <p>a{ // note\n  }b</p>\n}\n",
+            "module x\n\npub component C(props: { n: number }) {\n  return <p>\n    a\n    {\n      // note\n    }\n    b\n  </p>\n}\n",
+        ),
+        // Two comments in one child stay together, in order.
+        (
+            "module x\n\npub component C(props: { n: number }) {\n  return <div>\n    {\n    // one\n    // two\n    }\n    <p>x</p>\n  </div>\n}\n",
+            "module x\n\npub component C(props: { n: number }) {\n  return <div>\n    {\n      // one\n      // two\n    }\n    <p>x</p>\n  </div>\n}\n",
+        ),
+    ];
+    for (src, want) in cases {
+        let out = fmt(src);
+        assert_eq!(out, want, "layout of:\n{src}");
+        assert_stream_preserved("comment child", src, &out);
+        assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
+        assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
     }
 }

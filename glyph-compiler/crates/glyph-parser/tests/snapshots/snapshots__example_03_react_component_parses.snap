@@ -1075,6 +1075,13 @@ Module {
                                                 },
                                             ],
                                             children: [
+                                                Text {
+                                                    content: "\n    ",
+                                                    span: Span {
+                                                        start: 1868,
+                                                        end: 1873,
+                                                    },
+                                                },
                                                 Element(
                                                     JsxElement {
                                                         name: "input",
@@ -1240,6 +1247,13 @@ Module {
                                                         },
                                                     },
                                                 ),
+                                                Text {
+                                                    content: "\n    ",
+                                                    span: Span {
+                                                        start: 2037,
+                                                        end: 2042,
+                                                    },
+                                                },
                                                 Element(
                                                     JsxElement {
                                                         name: "ResultsList",
@@ -1300,6 +1314,13 @@ Module {
                                                         },
                                                     },
                                                 ),
+                                                Text {
+                                                    content: "\n  ",
+                                                    span: Span {
+                                                        start: 2099,
+                                                        end: 2102,
+                                                    },
+                                                },
                                             ],
                                             self_closing: false,
                                             name_span: Span {
@@ -1497,6 +1518,13 @@ Module {
                                                 },
                                             ],
                                             children: [
+                                                Text {
+                                                    content: "\n    ",
+                                                    span: Span {
+                                                        start: 2468,
+                                                        end: 2473,
+                                                    },
+                                                },
                                                 Element(
                                                     JsxElement {
                                                         name: "case",
@@ -1516,6 +1544,13 @@ Module {
                                                             },
                                                         ],
                                                         children: [
+                                                            Text {
+                                                                content: "\n      ",
+                                                                span: Span {
+                                                                    start: 2484,
+                                                                    end: 2491,
+                                                                },
+                                                            },
                                                             Element(
                                                                 JsxElement {
                                                                     name: "p",
@@ -1561,6 +1596,13 @@ Module {
                                                                     },
                                                                 },
                                                             ),
+                                                            Text {
+                                                                content: "\n    ",
+                                                                span: Span {
+                                                                    start: 2534,
+                                                                    end: 2539,
+                                                                },
+                                                            },
                                                         ],
                                                         self_closing: false,
                                                         name_span: Span {
@@ -1585,6 +1627,13 @@ Module {
                                                         },
                                                     },
                                                 ),
+                                                Text {
+                                                    content: "\n    ",
+                                                    span: Span {
+                                                        start: 2546,
+                                                        end: 2551,
+                                                    },
+                                                },
                                                 Element(
                                                     JsxElement {
                                                         name: "case",
@@ -1604,6 +1653,13 @@ Module {
                                                             },
                                                         ],
                                                         children: [
+                                                            Text {
+                                                                content: "\n      ",
+                                                                span: Span {
+                                                                    start: 2565,
+                                                                    end: 2572,
+                                                                },
+                                                            },
                                                             Element(
                                                                 JsxElement {
                                                                     name: "p",
@@ -1649,6 +1705,13 @@ Module {
                                                                     },
                                                                 },
                                                             ),
+                                                            Text {
+                                                                content: "\n    ",
+                                                                span: Span {
+                                                                    start: 2604,
+                                                                    end: 2609,
+                                                                },
+                                                            },
                                                         ],
                                                         self_closing: false,
                                                         name_span: Span {
@@ -1673,6 +1736,13 @@ Module {
                                                         },
                                                     },
                                                 ),
+                                                Text {
+                                                    content: "\n    ",
+                                                    span: Span {
+                                                        start: 2616,
+                                                        end: 2621,
+                                                    },
+                                                },
                                                 Element(
                                                     JsxElement {
                                                         name: "case",
@@ -1712,6 +1782,13 @@ Module {
                                                             },
                                                         ],
                                                         children: [
+                                                            Text {
+                                                                content: "\n      ",
+                                                                span: Span {
+                                                                    start: 2645,
+                                                                    end: 2652,
+                                                                },
+                                                            },
                                                             Element(
                                                                 JsxElement {
                                                                     name: "if",
@@ -1754,6 +1831,13 @@ Module {
                                                                         },
                                                                     ],
                                                                     children: [
+                                                                        Text {
+                                                                            content: "\n        ",
+                                                                            span: Span {
+                                                                                start: 2681,
+                                                                                end: 2690,
+                                                                            },
+                                                                        },
                                                                         Element(
                                                                             JsxElement {
                                                                                 name: "p",
@@ -1799,6 +1883,13 @@ Module {
                                                                                 },
                                                                             },
                                                                         ),
+                                                                        Text {
+                                                                            content: "\n      ",
+                                                                            span: Span {
+                                                                                start: 2725,
+                                                                                end: 2732,
+                                                                            },
+                                                                        },
                                                                     ],
                                                                     self_closing: false,
                                                                     name_span: Span {
@@ -1823,11 +1914,25 @@ Module {
                                                                     },
                                                                 },
                                                             ),
+                                                            Text {
+                                                                content: "\n      ",
+                                                                span: Span {
+                                                                    start: 2737,
+                                                                    end: 2744,
+                                                                },
+                                                            },
                                                             Element(
                                                                 JsxElement {
                                                                     name: "else",
                                                                     attrs: [],
                                                                     children: [
+                                                                        Text {
+                                                                            content: "\n        ",
+                                                                            span: Span {
+                                                                                start: 2750,
+                                                                                end: 2759,
+                                                                            },
+                                                                        },
                                                                         Element(
                                                                             JsxElement {
                                                                                 name: "ul",
@@ -1842,6 +1947,13 @@ Module {
                                                                                     },
                                                                                 ],
                                                                                 children: [
+                                                                                    Text {
+                                                                                        content: "\n          ",
+                                                                                        span: Span {
+                                                                                            start: 2779,
+                                                                                            end: 2790,
+                                                                                        },
+                                                                                    },
                                                                                     Element(
                                                                                         JsxElement {
                                                                                             name: "for",
@@ -1891,6 +2003,13 @@ Module {
                                                                                                 },
                                                                                             ],
                                                                                             children: [
+                                                                                                Text {
+                                                                                                    content: "\n            ",
+                                                                                                    span: Span {
+                                                                                                        start: 2825,
+                                                                                                        end: 2838,
+                                                                                                    },
+                                                                                                },
                                                                                                 Element(
                                                                                                     JsxElement {
                                                                                                         name: "li",
@@ -1954,6 +2073,13 @@ Module {
                                                                                                             },
                                                                                                         ],
                                                                                                         children: [
+                                                                                                            Text {
+                                                                                                                content: "\n              ",
+                                                                                                                span: Span {
+                                                                                                                    start: 2884,
+                                                                                                                    end: 2899,
+                                                                                                                },
+                                                                                                            },
                                                                                                             Element(
                                                                                                                 JsxElement {
                                                                                                                     name: "span",
@@ -2009,6 +2135,13 @@ Module {
                                                                                                                     },
                                                                                                                 },
                                                                                                             ),
+                                                                                                            Text {
+                                                                                                                content: "\n              ",
+                                                                                                                span: Span {
+                                                                                                                    start: 2936,
+                                                                                                                    end: 2951,
+                                                                                                                },
+                                                                                                            },
                                                                                                             Element(
                                                                                                                 JsxElement {
                                                                                                                     name: "span",
@@ -2064,6 +2197,13 @@ Module {
                                                                                                                     },
                                                                                                                 },
                                                                                                             ),
+                                                                                                            Text {
+                                                                                                                content: "\n            ",
+                                                                                                                span: Span {
+                                                                                                                    start: 2990,
+                                                                                                                    end: 3003,
+                                                                                                                },
+                                                                                                            },
                                                                                                         ],
                                                                                                         self_closing: false,
                                                                                                         name_span: Span {
@@ -2088,6 +2228,13 @@ Module {
                                                                                                         },
                                                                                                     },
                                                                                                 ),
+                                                                                                Text {
+                                                                                                    content: "\n          ",
+                                                                                                    span: Span {
+                                                                                                        start: 3008,
+                                                                                                        end: 3019,
+                                                                                                    },
+                                                                                                },
                                                                                             ],
                                                                                             self_closing: false,
                                                                                             name_span: Span {
@@ -2112,6 +2259,13 @@ Module {
                                                                                             },
                                                                                         },
                                                                                     ),
+                                                                                    Text {
+                                                                                        content: "\n        ",
+                                                                                        span: Span {
+                                                                                            start: 3025,
+                                                                                            end: 3034,
+                                                                                        },
+                                                                                    },
                                                                                 ],
                                                                                 self_closing: false,
                                                                                 name_span: Span {
@@ -2136,6 +2290,13 @@ Module {
                                                                                 },
                                                                             },
                                                                         ),
+                                                                        Text {
+                                                                            content: "\n      ",
+                                                                            span: Span {
+                                                                                start: 3039,
+                                                                                end: 3046,
+                                                                            },
+                                                                        },
                                                                     ],
                                                                     self_closing: false,
                                                                     name_span: Span {
@@ -2160,6 +2321,13 @@ Module {
                                                                     },
                                                                 },
                                                             ),
+                                                            Text {
+                                                                content: "\n    ",
+                                                                span: Span {
+                                                                    start: 3053,
+                                                                    end: 3058,
+                                                                },
+                                                            },
                                                         ],
                                                         self_closing: false,
                                                         name_span: Span {
@@ -2184,6 +2352,13 @@ Module {
                                                         },
                                                     },
                                                 ),
+                                                Text {
+                                                    content: "\n    ",
+                                                    span: Span {
+                                                        start: 3065,
+                                                        end: 3070,
+                                                    },
+                                                },
                                                 Element(
                                                     JsxElement {
                                                         name: "case",
@@ -2223,6 +2398,13 @@ Module {
                                                             },
                                                         ],
                                                         children: [
+                                                            Text {
+                                                                content: "\n      ",
+                                                                span: Span {
+                                                                    start: 3096,
+                                                                    end: 3103,
+                                                                },
+                                                            },
                                                             Element(
                                                                 JsxElement {
                                                                     name: "p",
@@ -2270,6 +2452,13 @@ Module {
                                                                     },
                                                                 },
                                                             ),
+                                                            Text {
+                                                                content: "\n    ",
+                                                                span: Span {
+                                                                    start: 3133,
+                                                                    end: 3138,
+                                                                },
+                                                            },
                                                         ],
                                                         self_closing: false,
                                                         name_span: Span {
@@ -2294,6 +2483,13 @@ Module {
                                                         },
                                                     },
                                                 ),
+                                                Text {
+                                                    content: "\n  ",
+                                                    span: Span {
+                                                        start: 3145,
+                                                        end: 3148,
+                                                    },
+                                                },
                                             ],
                                             self_closing: false,
                                             name_span: Span {

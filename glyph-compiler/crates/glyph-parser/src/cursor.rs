@@ -3,16 +3,22 @@
 //!
 //! The cursor does not lex the file up front. It asks the lexer for the next
 //! token only when the parser looks at it, and keeps every token it has
-//! pulled in a buffer along with the lexer state after it, so lookahead and
-//! a later resume of the lexer both have what they need.
+//! pulled in a buffer along with the lexer state after it and the comments
+//! skipped before it, so lookahead, a later resume of the lexer and the
+//! comment list all have what they need.
 //!
 //! A lexical error is held, not raised: it sits in the buffer as an entry the
 //! parser sees as end of input, at the error's span. Lookahead that reaches
 //! it backs off as it would at the end of the file. It becomes a
-//! `ParseError::Lex`, with the span and message `tokenize` reports, only when
+//! `ParseError::Lex`, with the span and message the lexer gave it, only when
 //! the parser arrives at it (see `Cursor::lex_error_here`).
+//!
+//! JSX text is scanned on the parser's request (`Cursor::rescan_jsx_text`,
+//! record 85). Lookahead may already have read the bytes of a text run as
+//! normal tokens, comments or a lex error; the rescan drops those entries,
+//! so none of them is ever consumed, reported or returned as a comment.
 
-use glyph_lexer::{LexState, Lexer, Span, Spanned, Token};
+use glyph_lexer::{Comment, LexError, LexState, Lexer, Span, Spanned, Token};
 
 use crate::error::{NameRole, ParseError};
 
@@ -51,23 +57,27 @@ use crate::error::{NameRole, ParseError};
 /// `examples/apps/watchrun/main.glyph`; a file that reaches 64 was generated.
 pub const MAX_NESTING_DEPTH: u32 = 64;
 
-/// One pulled token and the lexer state after it. A lex error is an entry
-/// whose token is `Eof` at the error's span, with the error's message; it is
-/// always the last entry, because the lexer is not asked for more after it.
+/// One pulled token, the lexer state after it, and the comments the lexer
+/// skipped on its way to it. A lex error is an entry whose token is `Eof` at
+/// the error's span, carrying the error; it is always the last entry, because
+/// the lexer is not asked for more after it. A refused JSX text run ends the
+/// buffer the same way, with no error held: the parser has already reported
+/// it.
 struct Entry {
     token: Spanned<Token>,
-    /// What `Lexer::at` needs to resume right after this token. Nothing reads
-    /// it yet; the JSX text scanner resumes from it.
-    #[allow(dead_code)]
+    /// What `Lexer::at` needs to resume right after this token. A JSX text
+    /// rescan resumes from the `>` or `}` before the run.
     after: LexState,
-    lex_error: Option<String>,
+    /// The `//` comments between the previous token and this one.
+    comments: Vec<Comment>,
+    lex_error: Option<LexError>,
 }
 
 pub(crate) struct Cursor<'a> {
     lexer: Lexer<'a>,
     /// Every token pulled so far, in order. It ends at `Eof` or at a lex
     /// error once the lexer has been driven that far, and `pos` never moves
-    /// past that last entry.
+    /// past that last entry. A rescan truncates it at `pos`.
     buf: Vec<Entry>,
     /// The lexer produced `Eof` or failed; nothing more will be pulled.
     exhausted: bool,
@@ -75,10 +85,10 @@ pub(crate) struct Cursor<'a> {
     /// Levels of nested construct currently open. Maintained by `nested`, which
     /// is the only thing that touches it, so it cannot leak on an error path.
     depth: u32,
-    /// Original source string. Used for JSX text-run reconstruction (D6) —
-    /// the parser slices `source[start..end]` between tags to recover the
-    /// raw text content that the tokenizer split into multiple tokens.
     source: &'a str,
+    /// The part of a JSX text run scanned before a refused character, so the
+    /// trace (`parse_traced`) covers every byte the parser read as text.
+    refused_text: Option<Span>,
 }
 
 impl<'a> Cursor<'a> {
@@ -90,6 +100,7 @@ impl<'a> Cursor<'a> {
             pos: 0,
             depth: 0,
             source,
+            refused_text: None,
         }
     }
 
@@ -97,12 +108,15 @@ impl<'a> Cursor<'a> {
     /// whether index `i` exists.
     fn fill(&mut self, i: usize) -> bool {
         while self.buf.len() <= i && !self.exhausted {
-            let entry = match self.lexer.next_token() {
+            let pulled = self.lexer.next_token();
+            let comments = self.lexer.take_comments();
+            let entry = match pulled {
                 Ok(token) => {
                     self.exhausted = matches!(token.token, Token::Eof);
                     Entry {
                         token,
                         after: self.lexer.state(),
+                        comments,
                         lex_error: None,
                     }
                 }
@@ -114,7 +128,8 @@ impl<'a> Cursor<'a> {
                             span: e.span(),
                         },
                         after: self.lexer.state(),
-                        lex_error: Some(e.to_string()),
+                        comments,
+                        lex_error: Some(e),
                     }
                 }
             };
@@ -132,46 +147,158 @@ impl<'a> Cursor<'a> {
     }
 
     /// The held lex error at the cursor's position, if the parser has arrived
-    /// at one, as the `ParseError` the eager lexer's failure produced. The
-    /// entry points check this whatever the parse returned: a parse stopped
-    /// at the error, or one that took it for the end of input, is reporting
-    /// the lex error.
+    /// at one, as the `ParseError` the lexer's failure produces. The entry
+    /// points check this whatever the parse returned: a parse stopped at the
+    /// error, or one that took it for the end of input, is reporting the lex
+    /// error.
     pub fn lex_error_here(&mut self) -> Option<ParseError> {
         let entry = self.current();
-        entry.lex_error.as_ref().map(|message| ParseError::Lex {
-            message: message.clone(),
+        entry.lex_error.as_ref().map(|e| ParseError::Lex {
+            message: e.to_string(),
             span: entry.token.span,
         })
     }
 
-    /// Slice the source between two byte offsets. Used by the JSX text-run
-    /// reconstructor to recover whitespace and punctuation that the token
-    /// stream alone doesn't preserve.
+    /// Take the held lex error at the cursor's position, for a caller that
+    /// reports it with more to say than `lex_error_here` can (a block comment
+    /// in a JSX child). Once taken it is not reported again.
+    pub fn take_lex_error_here(&mut self) -> Option<LexError> {
+        let pos = self.pos;
+        self.fill(pos);
+        self.buf[pos].lex_error.take()
+    }
+
+    /// Slice the source between two byte offsets.
     pub fn slice(&self, start: u32, end: u32) -> &str {
         &self.source[start as usize..end as usize]
     }
 
-    /// Walk `start` left over same-line whitespace (spaces/tabs, never a
-    /// newline). Used by the JSX text-run reconstructor to recover a
-    /// significant leading space that sits between a preceding `{expr}`/tag and
-    /// the first text token but produced no token of its own.
-    pub fn extend_left_over_inline_ws(&self, mut start: u32) -> u32 {
-        let bytes = self.source.as_bytes();
-        while start > 0 && matches!(bytes[start as usize - 1], b' ' | b'\t') {
-            start -= 1;
+    /// Scan the JSX text run that starts right after the token just consumed,
+    /// a tag's `>` or an `{expr}` child's `}` (D6, record 85).
+    ///
+    /// Every buffered entry from the current position on is dropped first,
+    /// with its comments and any held lex error: lookahead read those bytes in
+    /// normal mode, and they are text, or they come after it and will be
+    /// pulled again. The lexer resumes at the end of the token just consumed,
+    /// in the state saved with it, and scans the run raw. Normal lexing
+    /// continues after the run in that same state, since text changes no
+    /// bracket depth.
+    ///
+    /// Returns the run and its span, or `None` for an empty run. A refused
+    /// character (`}`, `>`, `//`) is `E0012`, and nothing after it is pulled.
+    pub fn rescan_jsx_text(&mut self) -> Result<Option<(String, Span)>, ParseError> {
+        let (offset, state) = {
+            let prev = &self.buf[self.pos - 1];
+            debug_assert!(
+                matches!(prev.token.token, Token::RAngle | Token::RBrace),
+                "a text run starts after `>` or `}}`, not after {:?}",
+                prev.token.token
+            );
+            (prev.token.span.end, prev.after)
+        };
+        self.buf.truncate(self.pos);
+        self.lexer = Lexer::at(self.source, offset as usize, state);
+        self.exhausted = false;
+        match self.lexer.scan_jsx_text() {
+            Ok(None) => Ok(None),
+            Ok(Some(token)) => {
+                let span = token.span;
+                let Token::JsxText(content) = &token.token else {
+                    unreachable!("scan_jsx_text yields JsxText")
+                };
+                let content = content.clone();
+                self.buf.push(Entry {
+                    token,
+                    after: state,
+                    comments: Vec::new(),
+                    lex_error: None,
+                });
+                self.pos += 1;
+                Ok(Some((content, span)))
+            }
+            Err(e) => {
+                if e.span.start > offset {
+                    self.refused_text = Some(Span::new(offset, e.span.start));
+                }
+                self.buf.push(Entry {
+                    token: Spanned {
+                        token: Token::Eof,
+                        span: e.span,
+                    },
+                    after: state,
+                    comments: Vec::new(),
+                    lex_error: None,
+                });
+                self.exhausted = true;
+                Err(ParseError::JsxText {
+                    refusal: e.refusal,
+                    span: e.span,
+                })
+            }
         }
-        start
     }
 
-    /// Walk `end` right over same-line whitespace (spaces/tabs, never a
-    /// newline). The dual of `extend_left_over_inline_ws`, for a significant
-    /// trailing space before a following `{expr}`/tag.
-    pub fn extend_right_over_inline_ws(&self, mut end: u32) -> u32 {
-        let bytes = self.source.as_bytes();
-        while (end as usize) < bytes.len() && matches!(bytes[end as usize], b' ' | b'\t') {
-            end += 1;
+    /// Read a `>=` at the cursor as the `>` that ends a JSX tag, followed by
+    /// whatever the `=` begins. Normal lexing glues the two, but in a tag's
+    /// closing position the `>` is the tag's and the `=` is the next thing:
+    /// text in `<p>=</p>`, or a token after an element. The entry is replaced
+    /// by a one-byte `>` and the lexer resumes after it; later entries are
+    /// dropped and pulled again.
+    pub fn split_glued_tag_end(&mut self) {
+        if !matches!(self.peek(), Token::GtEq) {
+            return;
         }
-        end
+        let pos = self.pos;
+        self.buf.truncate(pos + 1);
+        let mut entry = self.buf.pop().expect("peek filled the entry at the cursor");
+        let start = entry.token.span.start;
+        entry.token = Spanned {
+            token: Token::RAngle,
+            span: Span::new(start, start + 1),
+        };
+        let state = entry.after;
+        self.buf.push(entry);
+        self.lexer = Lexer::at(self.source, start as usize + 1, state);
+        self.exhausted = false;
+    }
+
+    /// The comments of every entry up to and including the cursor's, in
+    /// source order: the comments before each token the parser consumed, and
+    /// before the one it stopped at (at the end of a module, `Eof`, which
+    /// holds the comments after the last declaration). Entries dropped by a
+    /// rescan are gone, so a comment is never returned twice, and text yields
+    /// none.
+    pub fn consumed_comments(&self) -> Vec<Comment> {
+        let end = (self.pos + 1).min(self.buf.len());
+        self.buf[..end].iter().flat_map(|e| e.comments.iter().cloned()).collect()
+    }
+
+    /// The comments of the consumed entries whose span lies in `start..end`.
+    pub fn consumed_comments_in(&self, start: u32, end: u32) -> Vec<Comment> {
+        self.buf[..self.pos]
+            .iter()
+            .flat_map(|e| e.comments.iter())
+            .filter(|c| c.span.start >= start && c.span.end <= end)
+            .cloned()
+            .collect()
+    }
+
+    /// Whether the token just consumed had a comment before it.
+    pub fn previous_had_comments(&self) -> bool {
+        self.pos > 0 && !self.buf[self.pos - 1].comments.is_empty()
+    }
+
+    /// The span of every JSX text run scanned so far, the part before a
+    /// refused character included.
+    pub fn jsx_text_spans(&self) -> Vec<Span> {
+        let mut spans: Vec<Span> = self
+            .buf
+            .iter()
+            .filter(|e| matches!(e.token.token, Token::JsxText(_)))
+            .map(|e| e.token.span)
+            .collect();
+        spans.extend(self.refused_text);
+        spans
     }
 
     pub fn peek(&mut self) -> &Token {
@@ -560,5 +687,73 @@ mod tests {
             "{err:?}"
         );
         assert!(err.span().start < lex.span().start, "{err:?} before {lex:?}");
+    }
+
+    /// Record 91, as 0.1.135 applies it: lookahead that read a text run in
+    /// normal mode met a lex error there, and the rescan drops it, so it can
+    /// never be reported.
+    #[test]
+    fn a_rescan_drops_a_lex_error_lookahead_read_in_text() {
+        let src = "<p>it's</p>";
+        let mut p = Cursor::new(src);
+        p.advance();
+        p.advance();
+        assert!(matches!(p.peek(), Token::RAngle));
+        // `>` `it` and then the `'`, which normal lexing refuses.
+        assert_eq!(p.peek_at(2), Some(&Token::Eof));
+        p.advance();
+        let (text, span) = p.rescan_jsx_text().unwrap().expect("a run");
+        assert_eq!(text, "it's");
+        assert_eq!(p.slice(span.start, span.end), "it's");
+        assert!(p.lex_error_here().is_none());
+        assert!(matches!(p.peek(), Token::LAngle));
+    }
+
+    /// Comments lookahead pulled past a text run are dropped with their
+    /// entries and pulled again after it, so each is returned once.
+    #[test]
+    fn a_rescan_neither_loses_nor_duplicates_a_comment() {
+        let src = "<p>a b</p>\n// c\nx";
+        let mut p = Cursor::new(src);
+        p.advance();
+        p.advance();
+        // Far enough ahead to reach `x`, past the comment.
+        assert!(p.peek_at(8).is_some());
+        p.advance();
+        assert!(p.rescan_jsx_text().unwrap().is_some());
+        while !p.is_at_end() {
+            p.advance();
+        }
+        let texts: Vec<String> = p.consumed_comments().into_iter().map(|c| c.text).collect();
+        assert_eq!(texts, vec!["// c".to_string()]);
+    }
+
+    /// A refused run reports E0012 and holds no lex error behind it, even
+    /// when the bytes after the refusal would not lex.
+    #[test]
+    fn a_refused_run_is_the_error_reported() {
+        let src = "<p>see http://x it's</p>";
+        let mut p = Cursor::new(src);
+        p.advance();
+        p.advance();
+        p.advance();
+        let e = p.rescan_jsx_text().unwrap_err();
+        assert_eq!(e.code(), "E0012");
+        assert!(p.lex_error_here().is_none());
+        assert!(p.is_at_end());
+        assert_eq!(p.jsx_text_spans(), vec![Span::new(3, 12)]);
+    }
+
+    #[test]
+    fn a_glued_tag_end_splits_into_the_angle_and_what_follows() {
+        let src = "<p>=x";
+        let mut p = Cursor::new(src);
+        p.advance();
+        p.advance();
+        assert!(matches!(p.peek(), Token::GtEq));
+        p.split_glued_tag_end();
+        assert!(matches!(p.peek(), Token::RAngle));
+        assert_eq!(p.peek_span(), Span::new(2, 3));
+        assert!(matches!(p.peek_at(1), Some(Token::Equals)));
     }
 }

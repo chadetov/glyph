@@ -1,0 +1,7 @@
+module neg
+
+import react { Component }
+
+pub component Arrow(props: { n: number }) -> Component {
+  return <p>left -> right</p>
+}

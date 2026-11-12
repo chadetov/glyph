@@ -1,0 +1,10 @@
+module neg
+
+import react { Component }
+
+pub component Link(props: { n: number }) -> Component {
+  return <div>
+    <p>docs</p>
+    see https://example.com/docs
+  </div>
+}

@@ -1,0 +1,7 @@
+module neg
+
+import react { Component }
+
+pub component Braces(props: { n: number }) -> Component {
+  return <p>a set ends with }</p>
+}

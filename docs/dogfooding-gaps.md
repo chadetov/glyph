@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-337 entries, 285 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-31 are open. G144, the D28 boundary cast that never reached the returns a
+340 entries, 286 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+34 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11881,7 +11881,7 @@ and is the owner's to confirm.
   formatting the repo's 447 `.glyph` files with the published 0.1.132 and
   running this build's `glyph fmt --check` over the result: all 429 that parse
   are still fixed points.
-- **G324. [HALF FIXED] `glyph fmt` moves a comment out of a member chain, an index, a unary
+- **G324. [FIXED] `glyph fmt` moves a comment out of a member chain, an index, a unary
   or `await` operand, a type annotation or a pattern path.** `return s\n
   .trim()\n    // then count\n    .length` comes back as `return
   s.trim().length` with the comment below the statement; `xs[\n    // the
@@ -11920,6 +11920,18 @@ and is the owner's to confirm.
   printed as `??` (record 96). Those comments, and the index, unary, `await`,
   type-annotation and pattern-path cases, are still relocated, below the
   statement or into the next argument list, until the 0.1.137 refusal.
+
+  Fixed in 0.1.137. `glyph fmt` never moves a comment: one in a gap with no
+  one-per-line layout is refused with the line, the construct and one fix,
+  and the file is left unchanged. `fmt --check` fails on it, the LSP's format
+  request returns an error rather than edits, and the refusal is warning E0500
+  in the shared diagnostics, so `glyph check`, MCP and the editor report it
+  without running `fmt` (record 97). It is checked where comments are
+  flushed: each flush owns a gap with a lower bound, and a comment pending
+  from before it, or still pending when its statement, arm, item or
+  declaration ends, is refused. Every shape 0.1.136 still moved is a test.
+  Against the published 0.1.136, no tracked file is refused and none of the
+  461 files or 32 apps formats differently.
 
 - **G325. An `unknown` value passes where another type is declared.** `let s:
   string = u` with `u: unknown` passes `glyph check --no-tsc` and the agent
@@ -12079,3 +12091,34 @@ and is the owner's to confirm.
   the 0.1.136 release review (record 96).
 
   *Reproduced against 0.1.136: `.trim()} class="c">{props` on one line.*
+
+- **G338. `glyph fmt` deletes a `where` refinement on a tagged union.**
+  `pub type Salary = A | B where value >= 1` is E0300 (a refinement on a
+  union is not supported, D39), and `glyph fmt` prints it as `| A` / `| B`
+  with the `where` clause gone, after which `check` passes: the formatter
+  turns a refused program into an accepted one that says less. The union
+  branch of the type-declaration printer returns before it prints the
+  refinement; a record body or a string-literal union keeps its `where`.
+  Found by the `format_idempotent` fuzzer during the 0.1.137 work.
+
+  *Reproduced against 0.1.136: E0300 before `fmt`, no diagnostics after.*
+
+  Decided (record 97): print the refinement on its own line after the last
+  variant, at the variants' indent (`  | B` / `  where value >= 1`), which
+  parses and still draws E0300. Not `| B where …`, which reads as `B`'s own.
+
+- **G339. A comment between JSX attributes is refused.** `<div` / `// why` /
+  `class="c">` has no one-per-line attribute layout to sit in, so `glyph fmt`
+  refuses it (E0500) since 0.1.137. A comment above an attribute is a
+  plausible thing to write, so this wants a layout, one attribute per line
+  with the comment above its attribute, rather than a refusal. Found by
+  record 97.
+
+  *Reproduced against 0.1.137: refused, "comment inside the tag `<div>`".*
+
+- **G340. A comment between the fields of an object pattern is refused.**
+  `{ a,` / `// why` / `b }` in a `match` arm has no one-per-line layout, so
+  `glyph fmt` refuses it (E0500) since 0.1.137, where a record body or an
+  object literal of the same shape places it. Found by record 97.
+
+  *Reproduced against 0.1.137: refused.*

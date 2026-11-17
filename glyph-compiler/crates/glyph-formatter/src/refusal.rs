@@ -243,11 +243,15 @@ impl<'a> Walk<'a> {
                         return self.pattern(p);
                     }
                 }
-                if let Some(t) = l.ty.as_ref().filter(|t| contains(t.span(), at)) {
-                    return self.type_expr(t, &format!("the type annotation of {name}"));
-                }
                 if contains(l.value.span(), at) {
                     return self.expr_or(&l.value);
+                }
+                // From the `:` to the end of the type is the annotation's.
+                if let Some(t) = l.ty.as_ref().filter(|t| at < t.span().end) {
+                    if contains(t.span(), at) {
+                        return self.type_expr(t, &format!("the type annotation of {name}"));
+                    }
+                    return self.found(format!("comment in the type annotation of {name}"));
                 }
                 self.found(format!("comment between {name} and its value"))
             }
@@ -465,7 +469,9 @@ impl<'a> Walk<'a> {
             _ => unreachable!("a segment starts at a member link"),
         });
         let before = seg_start.map(|s| {
-            links[s + 1..i]
+            links
+                .get(s + 1..i)
+                .unwrap_or(&[])
                 .iter()
                 .rev()
                 .find(|l| matches!(l, Expr::Call { .. } | Expr::Index { .. } | Expr::Postfix { .. }))
@@ -644,7 +650,15 @@ impl<'a> Walk<'a> {
                 self.found(format!("comment inside {whole}"))
             }
             TypeExpr::Union { variants, .. } => {
+                let mut prev_end = t.span().start;
                 for v in variants {
+                    if prev_end <= at && at < v.span.start {
+                        // Between the `|` and the name: the variant line has
+                        // room above it, not inside it.
+                        self.anchor = format!("the variant `{}`", v.name);
+                        return self.found(format!("comment between `|` and the variant `{}`", v.name));
+                    }
+                    prev_end = v.span.end;
                     if contains(v.span, at) {
                         self.anchor = format!("the variant `{}`", v.name);
                         if let Some(p) = v.payload.as_ref().filter(|p| contains(p.span(), at)) {

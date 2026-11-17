@@ -13,7 +13,9 @@
 //! - `match` is always multi-line; a tagged union is always the multi-line
 //!   `| Variant` form;
 //! - annotations are emitted in canonical (sorted) order above their
-//!   declaration (D27).
+//!   declaration (D27);
+//! - a comment is never moved: one in a gap the layout has no place for is a
+//!   refusal (D14), and the file is left as it was.
 //!
 //! The output is designed to round-trip: re-parsing it yields the same AST
 //! (modulo spans), and re-formatting it is a fixed point (idempotent).
@@ -261,25 +263,31 @@ impl Printer {
     /// current column, and one-per-line (with a trailing comma) otherwise.
     /// `empty` is the rendering for zero elements.
     ///
-    /// `end` is the source offset just past the construct's closing delimiter and
-    /// `start_of` gives each item's source offset. Together they let the list keep
-    /// interior `//` comments where the author wrote them: an interior comment
-    /// forces the multi-line form (the inline form has nowhere to put a line
-    /// comment) and is re-emitted above the item that followed it in source.
-    /// Without this, a comment inside a list stayed pending until the next
-    /// declaration or statement and was re-attached there, documenting the wrong
-    /// thing.
+    /// `open` is the source offset of the opening delimiter, `end` the offset
+    /// just past the closing one, and `span_of` gives each item's source span,
+    /// from where a comment above it may sit to its end. Together they let
+    /// the list keep interior `//` comments where the author wrote them: an
+    /// interior comment forces the multi-line form (the inline form has
+    /// nowhere to put a line comment) and is re-emitted above the item that
+    /// followed it in source. Without this, a comment inside a list stayed
+    /// pending until the next declaration or statement and was re-attached
+    /// there, documenting the wrong thing.
+    ///
+    /// The list owns the gaps between `open`, its items and `end`. A comment
+    /// pending from before `open`, or still pending inside an item once the
+    /// item is printed, has no place here and is refused (record 86).
     #[allow(clippy::too_many_arguments)]
     fn delimited<T>(
         &mut self,
         items: &[T],
+        open: u32,
         end: u32,
         inline_open: &str,
         inline_close: &str,
         empty: &str,
         ml_open: &str,
         ml_close: &str,
-        start_of: impl Fn(&T) -> u32,
+        span_of: impl Fn(&Self, &T) -> (u32, u32),
         mut render: impl FnMut(&mut Self, &T),
     ) {
         // Decided from spans *before* any `capture` runs. `capture` swaps `out`
@@ -296,7 +304,7 @@ impl Printer {
             // An otherwise-empty list still has to hold its comments.
             self.push(ml_open);
             self.indent += 1;
-            self.drain_comments_before(end);
+            self.drain_gap(open, end);
             self.indent -= 1;
             self.newline();
             self.push(ml_close);
@@ -338,30 +346,31 @@ impl Printer {
         } else {
             self.push(ml_open);
             self.indent += 1;
+            let mut from = open;
             for it in items {
+                let (start, item_end) = span_of(self, it);
                 self.newline();
-                self.flush_comments_before(start_of(it));
+                self.flush_gap(from, start);
                 render(self, it);
+                from = self.close(item_end);
                 self.push(",");
             }
             // Comments after the last item, before the closing delimiter.
-            self.drain_comments_before(end);
+            self.drain_gap(from, end);
             self.indent -= 1;
             self.newline();
             self.push(ml_close);
         }
     }
 
-    /// Emit every pending comment before `offset` as its own line, each starting
-    /// on a fresh padded line. Unlike `flush_comments_before` this leaves the
+    /// Emit every pending comment in the gap `from..to` as its own line, each
+    /// starting on a fresh padded line. Unlike `flush_gap` this leaves the
     /// cursor at the end of the last comment rather than on a new line, so the
     /// caller controls what follows (a closing delimiter at the outer indent).
-    fn drain_comments_before(&mut self, offset: u32) {
-        while self.has_comment_before(offset) {
+    fn drain_gap(&mut self, from: u32, to: u32) {
+        for c in self.take_gap(from, to) {
             self.newline();
-            let text = self.comments[self.cidx].text.clone();
-            self.push(&text);
-            self.cidx += 1;
+            self.push(&c.text);
         }
     }
 
@@ -379,7 +388,7 @@ impl Printer {
     fn module(&mut self, m: &Module) {
         // Header comments sit above the `module` line.
         let module_start = m.module_path.as_ref().map_or(0, |mp| mp.span.start);
-        let header_end = self.flush_comments_before(module_start);
+        let header_end = self.flush_gap(0, module_start);
         // Preserve a blank line the author left between the header comment block
         // and the `module` line.
         if header_end.is_some_and(|end| self.blank_line_in_source(end, module_start)) {
@@ -391,6 +400,7 @@ impl Printer {
             self.end_line();
         }
         let mut prev_was_import = false;
+        let mut from = m.module_path.as_ref().map_or(0, |mp| mp.span.end);
         for decl in &m.items {
             // A blank line before every declaration (and after the module
             // line), except between two consecutive imports, which cluster.
@@ -403,7 +413,7 @@ impl Printer {
             if !self.out.is_empty() && !(is_import && prev_was_import) {
                 self.end_line();
             }
-            let last_comment_end = self.flush_comments_before(decl_start(decl));
+            let last_comment_end = self.flush_gap(from, decl_start(decl));
             // Preserve a blank line the author left between a section comment
             // block and the declaration it heads.
             if last_comment_end
@@ -412,6 +422,7 @@ impl Printer {
                 self.blank_line();
             }
             self.decl(decl);
+            from = self.close(decl.span().end);
             prev_was_import = is_import;
         }
         // Comments trailing after the last declaration.
@@ -419,36 +430,133 @@ impl Printer {
             if !self.out.is_empty() {
                 self.end_line();
             }
-            self.flush_comments_before(u32::MAX);
+            self.flush_gap(from, u32::MAX);
         }
     }
 
-    /// Emit every pending comment whose span begins before `offset`, each on its
-    /// own line at the current indentation. The caller positions the cursor
-    /// (already padded) before calling.
-    /// Emit pending comments before `offset`, each on its own line. Returns the
-    /// end offset of the last comment emitted (if any), so the caller can
-    /// preserve a blank line between a trailing comment block and the item it
-    /// precedes.
-    fn flush_comments_before(&mut self, offset: u32) -> Option<u32> {
-        let taken = self.take_comments_before(offset);
+    /// Emit the pending comments in the gap `from..to`, each on its own line
+    /// at the current indentation (the caller positions the cursor, already
+    /// padded). Returns the end offset of the last one emitted (if any), so
+    /// the caller can preserve a blank line between a trailing comment block
+    /// and the item it precedes. See `take_gap` for what `from` means.
+    fn flush_gap(&mut self, from: u32, to: u32) -> Option<u32> {
+        let taken = self.take_gap(from, to);
         self.emit_comments(&taken)
     }
 
-    /// Detach every pending comment whose span begins before `offset`, advancing
-    /// the cursor past them, and hand them back unemitted.
+    /// Detach every pending comment whose span begins before `to`, advancing
+    /// the cursor past them, and hand back the ones in the gap `from..to`
+    /// unemitted.
     ///
-    /// Splitting this out of `flush_comments_before` is what lets `annotations`
-    /// decide which annotation each comment belongs to before any of them is
+    /// `from` is where the gap this flush owns begins: the end of the previous
+    /// item, statement, arm or operand, or the opening delimiter. A pending
+    /// comment that starts before it was written inside an inner construct
+    /// that has no place for it, and emitting it here would move it past
+    /// whatever followed it there (D14, record 86). It is refused instead.
+    /// This is the check that catches a comment escaping into a later
+    /// argument list of the same statement, which a check at the end of the
+    /// statement would pass.
+    ///
+    /// Splitting this out of `flush_gap` is what lets `annotations` decide
+    /// which annotation each comment belongs to before any of them is
     /// printed. The cursor is monotone over source offsets, so a caller that
     /// visits nodes out of source order cannot use the flush directly.
-    fn take_comments_before(&mut self, offset: u32) -> Vec<Comment> {
+    fn take_gap(&mut self, from: u32, to: u32) -> Vec<Comment> {
         let mut taken = Vec::new();
-        while self.has_comment_before(offset) {
-            taken.push(self.comments[self.cidx].clone());
+        while self.has_comment_before(to) {
+            let c = self.comments[self.cidx].clone();
             self.cidx += 1;
+            if c.span.start < from {
+                self.refused.push(c);
+            } else {
+                taken.push(c);
+            }
         }
         taken
+    }
+
+    /// Close a statement, arm, list item or declaration whose span ends at
+    /// `end`, and return where its content ends, which is where the gap after
+    /// it begins. A comment still pending that starts before that was written
+    /// inside it and nothing in it had a place for the comment (record 86):
+    /// refused.
+    ///
+    /// A span can run past a comment at the end of its line: an import's
+    /// takes the line break, which comes after the comment. The content ends
+    /// at the last token, so that comment is in the gap after the element,
+    /// where it is placed above the next one.
+    fn close(&mut self, end: u32) -> u32 {
+        let end = self.content_end(end);
+        while self.has_comment_before(end) {
+            let c = self.comments[self.cidx].clone();
+            self.cidx += 1;
+            self.refused.push(c);
+        }
+        end
+    }
+
+    /// `end` moved back over whitespace and comments to the end of the last
+    /// token before it.
+    fn content_end(&self, end: u32) -> u32 {
+        let Some(src) = self.source.as_deref() else {
+            return end;
+        };
+        let bytes = src.as_bytes();
+        let mut i = (end as usize).min(bytes.len());
+        loop {
+            while i > 0 && bytes[i - 1].is_ascii_whitespace() {
+                i -= 1;
+            }
+            match self.comments.iter().find(|c| c.span.end as usize == i) {
+                Some(c) if i > 0 => i = c.span.start as usize,
+                _ => return i as u32,
+            }
+        }
+    }
+
+    /// The offset of the first `target` byte at or after `from`, skipping
+    /// `//` comments: the opening delimiter of a list whose position the AST
+    /// does not record. Only used over a declaration's or a lambda's header,
+    /// which holds no string literal. `from` when there is no source or no
+    /// such byte, which only makes the gap wider.
+    fn find_byte(&self, from: u32, target: u8) -> u32 {
+        let Some(src) = self.source.as_deref() else {
+            return from;
+        };
+        let bytes = src.as_bytes();
+        let mut i = from as usize;
+        while i < bytes.len() {
+            match bytes[i] {
+                b'/' if bytes.get(i + 1) == Some(&b'/') => {
+                    while i < bytes.len() && bytes[i] != b'\n' {
+                        i += 1;
+                    }
+                }
+                b if b == target => return i as u32,
+                _ => i += 1,
+            }
+        }
+        from
+    }
+
+    /// The offset of the `byte` token that ends just before `offset`, looking
+    /// back over whitespace and comments: the last `.` of a spread's `...`,
+    /// the `|` before a union variant. `None` when the token there is another.
+    fn token_before(&self, offset: u32, byte: u8) -> Option<u32> {
+        let src = self.source.as_deref()?;
+        let bytes = src.as_bytes();
+        let mut i = (offset as usize).min(bytes.len());
+        loop {
+            while i > 0 && bytes[i - 1].is_ascii_whitespace() {
+                i -= 1;
+            }
+            // Step back over a comment that ends here.
+            match self.comments.iter().find(|c| c.span.end as usize == i) {
+                Some(c) if i > 0 => i = c.span.start as usize,
+                _ => break,
+            }
+        }
+        (i > 0 && bytes[i - 1] == byte).then(|| i as u32 - 1)
     }
 
     /// Emit `cs`, each on its own line at the current indentation, preserving a
@@ -490,12 +598,14 @@ impl Printer {
             self.end_line();
             return;
         }
+        let header_from = i.generics.last().map_or(i.span.start, |g| g.span.end);
+        let mut from = self.find_byte(header_from, b'{');
         self.push(" {");
         self.indent += 1;
         for m in &i.members {
             self.newline();
             // A member's documentation comment stays above that member.
-            self.flush_comments_before(interface_member_start(m));
+            self.flush_gap(from, interface_member_start(m));
             match m {
                 glyph_ast::InterfaceMember::Method {
                     name,
@@ -505,7 +615,8 @@ impl Printer {
                 } => {
                     self.push("fn ");
                     self.push(name);
-                    self.params(params, params_end_before(return_ty.as_ref(), span.end));
+                    let open = self.find_byte(span.start, b'(');
+                    self.params(params, open, params_end_before(return_ty.as_ref(), span.end));
                     if let Some(rt) = return_ty {
                         self.push(" -> ");
                         self.type_expr(rt);
@@ -520,9 +631,10 @@ impl Printer {
                     self.type_expr(&f.ty);
                 }
             }
+            from = self.close(interface_member_end(m));
         }
         // Comments after the last member, before the closing brace.
-        self.drain_comments_before(i.span.end);
+        self.drain_gap(from, i.span.end);
         self.indent -= 1;
         self.newline();
         self.push("}");
@@ -565,13 +677,15 @@ impl Printer {
 
         let mut carried: Vec<(&Annotation, Vec<Comment>, Option<Comment>)> =
             Vec::with_capacity(anns.len());
+        let mut from = in_source_order.first().map_or(keyword_start, |a| a.span.start);
         for (i, &a) in in_source_order.iter().enumerate() {
             // A trailing note has to stop at the next annotation (or at the
             // declaration keyword) even when no line break separates them.
             let next = in_source_order
                 .get(i + 1)
                 .map_or(keyword_start, |b| b.span.start);
-            let leading = self.take_comments_before(a.span.start);
+            let leading = self.take_gap(from, a.span.start);
+            from = a.span.end;
             // `raw_args` is verbatim source, and when the argument text does not
             // close cleanly the parser's capture runs past it and swallows
             // whatever follows, a comment included. That comment is emitted as
@@ -632,7 +746,7 @@ impl Printer {
         }
         // A comment on its own line between the last annotation and the
         // declaration keyword documents the declaration, and stays there.
-        self.flush_comments_before(keyword_start);
+        self.flush_gap(from, keyword_start);
     }
 
     fn import(&mut self, im: &ImportDecl) {
@@ -678,8 +792,10 @@ impl Printer {
         self.push("fn ");
         self.push(&f.name);
         self.generics(&f.generics);
+        let open = self.params_open(&f.generics, f.span.start);
         self.params(
             &f.params,
+            open,
             params_end_before(f.return_ty.as_ref(), f.body.span.start),
         );
         if let Some(rt) = &f.return_ty {
@@ -697,8 +813,10 @@ impl Printer {
         self.push("component ");
         self.push(&c.name);
         self.generics(&c.generics);
+        let open = self.params_open(&c.generics, c.span.start);
         self.params(
             &c.params,
+            open,
             params_end_before(c.return_ty.as_ref(), c.body.span.start),
         );
         if let Some(rt) = &c.return_ty {
@@ -737,7 +855,9 @@ impl Printer {
         // ending the header line.
         if let TypeExpr::Union { variants, .. } = &t.body {
             self.push(" =");
-            self.union_multiline(variants);
+            let header_from = t.generics.last().map_or(t.span.start, |g| g.span.end);
+            let eq = self.find_byte(header_from, b'=');
+            self.union_multiline(variants, eq);
             self.end_line();
             return;
         }
@@ -776,18 +896,26 @@ impl Printer {
     /// start when there is one, else the body's `{`. Nothing but `)` and `->`
     /// lives between the last parameter and that offset, so it is a safe bound
     /// for "a comment inside this parameter list".
-    fn params(&mut self, params: &[Param], end: u32) {
+    fn params(&mut self, params: &[Param], open: u32, end: u32) {
         self.delimited(
             params,
+            open,
             end,
             "(",
             ")",
             "()",
             "(",
             ")",
-            |param: &Param| param.span.start,
+            |_, param: &Param| (param.span.start, param.span.end),
             |p, param| p.param(param),
         );
+    }
+
+    /// Where a declaration's parameter list opens: the first `(` after its
+    /// type parameters, or after its start when it has none.
+    fn params_open(&self, generics: &[GenericParam], start: u32) -> u32 {
+        let from = generics.last().map_or(start, |g| g.span.end);
+        self.find_byte(from, b'(')
     }
 
     fn param(&mut self, param: &Param) {
@@ -802,16 +930,17 @@ impl Printer {
     /// Lambda parameters. An un-annotated lambda parameter is recorded by the
     /// parser as type `unknown`; reprint it bare (`fn(x) { .. }`) rather than
     /// inventing a `: unknown` annotation. An explicit annotation is kept.
-    fn lambda_params(&mut self, params: &[Param], end: u32) {
+    fn lambda_params(&mut self, params: &[Param], open: u32, end: u32) {
         self.delimited(
             params,
+            open,
             end,
             "(",
             ")",
             "()",
             "(",
             ")",
-            |param: &Param| param.span.start,
+            |_, param: &Param| (param.span.start, param.span.end),
             |p, param| {
                 if param.owned {
                     p.push("owned ");
@@ -839,6 +968,8 @@ impl Printer {
         self.indent += 1;
         let outer_block = std::mem::replace(&mut self.in_block, true);
         let mut prev_end: Option<u32> = None;
+        // The block owns the gaps between its `{`, its statements and its `}`.
+        let mut from = b.span.start;
         for s in &b.stmts {
             self.newline();
             // Preserve a blank line the author left before this statement (or
@@ -849,22 +980,18 @@ impl Printer {
             if prev_end.is_some_and(|pe| self.blank_line_in_source(pe, lead)) {
                 self.blank_line();
             }
-            let last_comment_end = self.flush_comments_before(s.span().start);
+            let last_comment_end = self.flush_gap(from, s.span().start);
             if last_comment_end
                 .is_some_and(|end| self.blank_line_in_source(end, s.span().start))
             {
                 self.blank_line();
             }
             self.stmt(s);
+            from = self.close(s.span().end);
             prev_end = Some(s.span().end);
         }
         // Comments after the last statement, before the closing brace.
-        while self.has_comment_before(b.span.end) {
-            self.newline();
-            let text = self.comments[self.cidx].text.clone();
-            self.push(&text);
-            self.cidx += 1;
-        }
+        self.drain_gap(from, b.span.end);
         self.in_block = outer_block;
         self.indent -= 1;
         self.newline();
@@ -1027,15 +1154,17 @@ impl Printer {
                     }
                     self.push(">");
                 }
+                let open = self.args_open(callee, type_args);
                 self.delimited(
                     args,
+                    open,
                     span.end,
                     "(",
                     ")",
                     "()",
                     "(",
                     ")",
-                    |a: &Expr| a.span().start,
+                    |_, a: &Expr| (a.span().start, a.span().end),
                     |p, a| p.expr(a),
                 );
             }
@@ -1046,26 +1175,28 @@ impl Printer {
             Expr::Array { elements, span } => {
                 self.delimited(
                     elements,
+                    span.start,
                     span.end,
                     "[",
                     "]",
                     "[]",
                     "[",
                     "]",
-                    array_elem_start,
+                    |p, el| p.array_elem_span(el),
                     |p, el| p.array_elem(el),
                 );
             }
             Expr::Object { fields, span } => {
                 self.delimited(
                     fields,
+                    span.start,
                     span.end,
                     "{ ",
                     " }",
                     "{}",
                     "{",
                     "}",
-                    object_field_start,
+                    |_, f| object_field_span(f),
                     |p, f| p.object_field(f),
                 );
             }
@@ -1079,6 +1210,8 @@ impl Printer {
                 self.push(" {");
                 self.indent += 1;
                 let mut prev_end: Option<u32> = None;
+                // The arms own the gaps after the `{`, not the scrutinee's.
+                let mut from = self.find_byte(scrutinee.span().end, b'{');
                 for arm in arms {
                     self.newline();
                     // Preserve a blank line the author left to group arms — the
@@ -1092,18 +1225,19 @@ impl Printer {
                     }
                     // An arm's documentation comment stays above that arm (D14
                     // makes `//` the only way to write it), mirroring `block`.
-                    let last_comment_end = self.flush_comments_before(arm.span.start);
+                    let last_comment_end = self.flush_gap(from, arm.span.start);
                     if last_comment_end
                         .is_some_and(|end| self.blank_line_in_source(end, arm.span.start))
                     {
                         self.blank_line();
                     }
                     self.match_arm(arm);
+                    from = self.close(arm.span.end);
                     self.push(",");
                     prev_end = Some(arm.span.end);
                 }
                 // Comments after the last arm, before the closing brace.
-                self.drain_comments_before(span.end);
+                self.drain_gap(from, span.end);
                 self.indent -= 1;
                 self.newline();
                 self.push("}");
@@ -1119,7 +1253,12 @@ impl Printer {
                     self.push("async ");
                 }
                 self.push("fn");
-                self.lambda_params(params, params_end_before(return_ty.as_ref(), body.span.start));
+                let open = self.find_byte(e.span().start, b'(');
+                self.lambda_params(
+                    params,
+                    open,
+                    params_end_before(return_ty.as_ref(), body.span.start),
+                );
                 if let Some(rt) = return_ty {
                     self.push(" -> ");
                     self.type_expr(rt);
@@ -1144,11 +1283,12 @@ impl Printer {
                 PostfixOp::Try => self.push("?"),
             },
             Expr::Call {
+                callee,
                 type_args,
                 args,
                 span,
-                ..
             } => {
+                let open = self.args_open(callee, type_args);
                 if !type_args.is_empty() {
                     self.push("<");
                     for (i, t) in type_args.iter().enumerate() {
@@ -1161,13 +1301,14 @@ impl Printer {
                 }
                 self.delimited(
                     args,
+                    open,
                     span.end,
                     "(",
                     ")",
                     "()",
                     "(",
                     ")",
-                    |a: &Expr| a.span().start,
+                    |_, a: &Expr| (a.span().start, a.span().end),
                     |p, a| p.expr(a),
                 );
             }
@@ -1219,7 +1360,8 @@ impl Printer {
     /// list (`.f(x) // c` then `[0]`, `.parse<T> // c` then `(s)`), where
     /// above the segment the comment would precede what it was written after.
     /// A comment in one of them keeps the whole chain in its one-line layout,
-    /// even when another comment in the chain could be placed (record 95).
+    /// even when another comment in the chain could be placed (record 95),
+    /// and no flush owns its gap, so the file is refused (record 86).
     fn member_chain(&mut self, e: &Expr) -> bool {
         // `flat` is a `${...}` interpolation, where a line break comes back as
         // a literal `\n`; `in_block` is the D1 bracket-depth guard. The span
@@ -1295,7 +1437,8 @@ impl Printer {
         self.indent += 1;
         for (i, end, gaps_end) in segments {
             self.newline();
-            self.flush_comments_before(gaps_end);
+            // The segment owns its gaps from the end of the link before it.
+            self.flush_gap(inner_of(links[i]).span().end, gaps_end);
             for link in &links[i..end] {
                 self.postfix_link(link);
             }
@@ -1308,17 +1451,26 @@ impl Printer {
     /// end of the call. `None` for any other link.
     fn call_args_region(&self, link: &Expr) -> Option<(u32, u32)> {
         let Expr::Call {
-            type_args, span, ..
+            callee,
+            type_args,
+            span,
+            ..
         } = link
         else {
             return None;
         };
+        Some((self.args_open(callee, type_args), span.end))
+    }
+
+    /// Where a call's argument list opens: the `(` after its callee and any
+    /// type arguments.
+    fn args_open(&self, callee: &Expr, type_args: &[TypeExpr]) -> u32 {
         let after = match type_args.last() {
             // Past the closing `>`.
             Some(last) => self.next_token_at(last.span().end) + 1,
-            None => inner_of(link).span().end,
+            None => callee.span().end,
         };
-        Some((self.next_token_at(after), span.end))
+        self.next_token_at(after)
     }
 
     /// The pending comments that start in `from..to`.
@@ -1347,6 +1499,21 @@ impl Printer {
         match self.source.as_deref() {
             Some(src) => next_token_in(src, from),
             None => from,
+        }
+    }
+
+    /// An array element's span. `ArrayElem` carries none of its own; a
+    /// spread's starts at its `...`, which the source holds before the
+    /// expression, so a comment between the two is inside the element.
+    fn array_elem_span(&self, el: &ArrayElem) -> (u32, u32) {
+        match el {
+            ArrayElem::Expr(e) => (e.span().start, e.span().end),
+            ArrayElem::Spread(e) => {
+                let start = self
+                    .token_before(e.span().start, b'.')
+                    .map_or(e.span().start, |dot| dot.saturating_sub(2));
+                (start, e.span().end)
+            }
         }
     }
 
@@ -1453,6 +1620,7 @@ impl Printer {
         // keeps. Both branches below re-render from scratch, so rewinding the
         // cursor after the measurement is always correct.
         let saved_cidx = self.cidx;
+        let saved_refused = self.refused.len();
         let prec = bin_prec(op);
         let candidate = self.capture(|p| {
             for (i, operand) in operands.iter().enumerate() {
@@ -1465,16 +1633,17 @@ impl Printer {
             }
         });
         self.cidx = saved_cidx;
+        self.refused.truncate(saved_refused);
         if !holds_comment && !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH {
             return false;
         }
         self.bin_operand(operands[0], prec, false);
         self.indent += 1;
-        for operand in &operands[1..] {
+        for (prev, operand) in operands.iter().zip(&operands[1..]) {
             self.newline();
             // A comment between two operands goes above the line that starts
             // with the operator, which is where the next operand begins.
-            self.flush_comments_before(operand.span().start);
+            self.flush_gap(prev.span().end, operand.span().start);
             self.push(bin_sym(op));
             self.push(" ");
             self.bin_operand(operand, prec, true);
@@ -1792,13 +1961,14 @@ impl Printer {
             TypeExpr::Record { fields, span } => {
                 self.delimited(
                     fields,
+                    span.start,
                     span.end,
                     "{ ",
                     " }",
                     "{}",
                     "{",
                     "}",
-                    |f: &RecordTypeField| f.span.start,
+                    |_, f: &RecordTypeField| (f.span.start, f.span.end),
                     |p, f| p.record_field(f),
                 );
             }
@@ -1864,15 +2034,19 @@ impl Printer {
     }
 
     /// The multi-line `| Variant` form used for a `type X =` union body.
-    fn union_multiline(&mut self, variants: &[UnionVariant]) {
+    /// `from` is the `=` the body follows.
+    fn union_multiline(&mut self, variants: &[UnionVariant], mut from: u32) {
         self.indent += 1;
         for v in variants {
             self.newline();
             // A variant's documentation comment stays above that variant; it does
-            // not route through `delimited`, so flush it here.
-            self.flush_comments_before(v.span.start);
+            // not route through `delimited`, so flush it here. Its gap ends at
+            // the `|` before it, when the author wrote one.
+            let to = self.token_before(v.span.start, b'|').unwrap_or(v.span.start);
+            self.flush_gap(from, to.max(from));
             self.push("| ");
             self.union_variant(v);
+            from = self.close(v.span.end);
         }
         self.indent -= 1;
     }
@@ -1921,8 +2095,12 @@ impl Printer {
         let has_element = j.children.iter().any(|c| matches!(c, JsxChild::Element(_)));
         if has_element || self.jsx_gap_has_comment(j, children_end) {
             self.indent += 1;
+            // The children own the gaps after the opening tag's `>`.
+            let mut from = self.next_token_at(jsx_attrs_end(j));
             for child in &j.children {
-                self.jsx_comment_child(jsx_child_span(child).start);
+                let span = jsx_child_span(child);
+                self.jsx_comment_child(from, span.start);
+                from = span.end;
                 match child {
                     JsxChild::Text { content, .. } => {
                         let text = glyph_ast::jsx_text_value(content);
@@ -1944,7 +2122,7 @@ impl Printer {
                     }
                 }
             }
-            self.jsx_comment_child(children_end);
+            self.jsx_comment_child(from, children_end);
             self.indent -= 1;
             self.newline();
         } else {
@@ -1988,11 +2166,7 @@ impl Printer {
     /// gaps a comment-only child fills. A comment inside a child (in a lambda
     /// body in an `{expr}`, or in a nested element) is that child's.
     fn jsx_gap_has_comment(&self, j: &JsxElement, children_end: u32) -> bool {
-        let mut from = j
-            .attrs
-            .iter()
-            .map(|a| jsx_attr_span(a).end)
-            .fold(j.name_span.end, u32::max);
+        let mut from = jsx_attrs_end(j);
         for child in &j.children {
             let span = jsx_child_span(child);
             if self.has_comment_between(from, span.start) {
@@ -2006,8 +2180,8 @@ impl Printer {
     /// Write every pending comment before `offset` as one comment-only child:
     /// `{`, the comments one per line and indented, `}`. It renders nothing
     /// and is no child in the AST, so the emitted TypeScript is unchanged.
-    fn jsx_comment_child(&mut self, offset: u32) {
-        let taken = self.take_comments_before(offset);
+    fn jsx_comment_child(&mut self, from: u32, offset: u32) {
+        let taken = self.take_gap(from, offset);
         if taken.is_empty() {
             return;
         }
@@ -2034,6 +2208,14 @@ impl Printer {
             JsxChild::Text { content, .. } => self.push(&glyph_ast::jsx_text_value(content)),
         }
     }
+}
+
+/// The end of a JSX element's name and attributes, before its `>`.
+fn jsx_attrs_end(j: &JsxElement) -> u32 {
+    j.attrs
+        .iter()
+        .map(|a| jsx_attr_span(a).end)
+        .fold(j.name_span.end, u32::max)
 }
 
 fn jsx_attr_span(a: &JsxAttr) -> Span {
@@ -2064,18 +2246,18 @@ fn params_end_before(return_ty: Option<&TypeExpr>, fallback: u32) -> u32 {
     return_ty.map_or(fallback, |rt| rt.span().start)
 }
 
-/// The source offset an array element begins at. `ArrayElem` carries no span of
-/// its own; a spread's `...` immediately precedes its expression, so the inner
-/// expression's start is a sound upper bound for a comment above the element.
-fn array_elem_start(el: &ArrayElem) -> u32 {
-    match el {
-        ArrayElem::Expr(e) | ArrayElem::Spread(e) => e.span().start,
+fn object_field_span(f: &ObjectField) -> (u32, u32) {
+    match f {
+        ObjectField::KeyValue { span, .. } | ObjectField::Spread { span, .. } => {
+            (span.start, span.end)
+        }
     }
 }
 
-fn object_field_start(f: &ObjectField) -> u32 {
-    match f {
-        ObjectField::KeyValue { span, .. } | ObjectField::Spread { span, .. } => span.start,
+fn interface_member_end(m: &glyph_ast::InterfaceMember) -> u32 {
+    match m {
+        glyph_ast::InterfaceMember::Method { span, .. } => span.end,
+        glyph_ast::InterfaceMember::Field(f) => f.span.end,
     }
 }
 

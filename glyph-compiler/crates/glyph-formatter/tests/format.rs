@@ -1873,106 +1873,250 @@ fn a_commented_chain_nested_in_an_argument_breaks_alone() {
     );
 }
 
-/// A chain with a comment in a gap the layout cannot place keeps the 0.1.135
-/// layout whole, even when another of its comments could be placed (record
-/// 95). Those gaps are the ones after a segment's first argument list, index
-/// or type-argument list, and the head's own links. Breaking the chain around
-/// such a comment turned it into a well-formed comment on a different segment,
-/// a fixed point the 0.1.137 refusal could not see. Each expected output is
-/// what the published 0.1.135 prints; the literal/comment stream behaves as
-/// it does there, so `// first field` in p04 still ends after the `0`, which
-/// is the case the refusal is for.
-#[test]
-fn a_chain_with_an_unplaceable_comment_keeps_its_earlier_layout() {
-    let cases = [
-        // p04_mixed_after_args_and_seg, Linus record 95.
-        (
-            "module m\n\npub fn f(s: string) -> number {\n  let a = s\n    .split(\",\")\n    // first field\n    [0]\n    // then count\n    .length\n  return a\n}\n",
-            "module m\n\npub fn f(s: string) -> number {\n  let a = s.split(\",\")[0].length\n  // first field\n\n  // then count\n\n  return a\n}\n",
-            false,
-        ),
-        // p05_mixed_head_and_seg, Linus record 95.
-        (
-            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g // call it\n    (\"x\")\n    // then count\n    .length\n  return a\n}\n",
-            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g(\n    // call it\n    \"x\",\n  ).length\n  // then count\n\n  return a\n}\n",
-            true,
-        ),
-        // p13_typeargs_gap, Linus record 95.
-        (
-            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number> // read it\n    (s)\n}\n",
-            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number>(\n    // read it\n    s,\n  )\n}\n",
-            true,
-        ),
-        // p13 with a placeable comment before `.parse` as well: the one after
-        // `>` still makes the chain fall back.
-        (
-            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json // the codec\n    .parse<number> // read it\n    (s)\n}\n",
-            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number>(\n    // the codec\n    // read it\n    s,\n  )\n}\n",
-            true,
-        ),
-    ];
-    for (src, want, stream_kept) in cases {
-        let out = fmt(src);
-        assert_eq!(out, want, "0.1.135 layout of:\n{src}");
-        assert_eq!(
-            literal_and_comment_stream(src) == literal_and_comment_stream(&out),
-            stream_kept,
-            "literal/comment stream of:\n{src}"
-        );
-        assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
-        assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+/// What `format_module` refuses `src` with. Panics when it formats.
+fn refusal(src: &str) -> glyph_formatter::Refusal {
+    let (m, comments) = glyph_parser::parse_with_comments(src);
+    match format_module(&m.expect("parse"), &comments, src) {
+        Ok(out) => panic!("glyph fmt formatted it instead of refusing:\n{src}\n--- output ---\n{out}"),
+        Err(r) => r,
     }
 }
 
-/// Two shapes the chain layout broke in the first 0.1.136 build, each
-/// checked against what the published 0.1.135 prints (record 96). Two `?`
-/// links in a row came out as `??`, the nullish operator, so the output no
-/// longer parsed (B1). A comment inside an index or a parenthesized head
-/// operand has no printer that places it, and breaking the chain for another
-/// comment flushed it above the next segment, after the literal it was
-/// written before (B2). Each chain now keeps its 0.1.135 layout, and the
-/// formatted output is asserted to parse, because a second `fmt` pass skips
-/// a file that does not and reads as idempotent.
+/// `src` with every comment blanked to spaces, newlines kept.
+fn without_comments(src: &str) -> String {
+    let spans: Vec<glyph_lexer::Span> = comments(src).iter().map(|c| c.span).collect();
+    blank_spans(src, &spans)
+}
+
+/// `src` is refused for the comment on `line` with `message`, and formats
+/// once its comments are removed: the refusal is about a comment's place and
+/// nothing else (record 86).
+fn assert_refused(src: &str, line: u32, message: &str) {
+    let r = refusal(src);
+    assert_eq!(r.message, message, "message for:\n{src}");
+    assert_eq!(r.line, line, "line for:\n{src}");
+    assert_eq!(r.to_string(), format!("line {line}: {message}"));
+    let bare = without_comments(src);
+    let (m, cs) = glyph_parser::parse_with_comments(&bare);
+    assert!(cs.is_empty());
+    if let Err(r) = format_module(&m.expect("parse without comments"), &cs, &bare) {
+        panic!("refused with no comment in it: {r}\n{bare}");
+    }
+}
+
+/// A comment where the canonical layout has no place is refused, not moved
+/// (D14, G324, records 86 and 95). Each shape here was moved by 0.1.136:
+/// below the statement, or into the next argument list, after a literal it
+/// was written before. The refusal comes from one rule, checked where
+/// comments are flushed: a pending comment that starts before the gap a flush
+/// owns escaped an inner construct, and one still pending when its statement,
+/// arm, item or declaration ends had no gap at all.
 #[test]
-fn a_chain_the_layout_cannot_hold_keeps_its_earlier_layout() {
+fn a_comment_with_no_canonical_place_is_refused() {
+    let after_split = "comment after the arguments of `.split` in a member chain has no canonical place; move it above the line of `.split`";
+    let cases: &[(&str, u32, &str)] = &[
+        // p01: after a segment's first argument list, before a later `[`.
+        (
+            "module m\n\npub fn f(s: string) -> string {\n  let a = s\n    .split(\",\")\n    // first field\n    [0]\n  return a\n}\n",
+            6,
+            after_split,
+        ),
+        // p02: the same, at the end of the line.
+        (
+            "module m\n\npub fn f(s: string) -> string {\n  let a = s.split(\",\") // first field\n    [0]\n  return a\n}\n",
+            4,
+            after_split,
+        ),
+        // After a segment's first argument list, before a later `(`.
+        (
+            "module m\n\npub fn f(s: { g: fn() -> fn(n: number) -> number }) -> number {\n  return s\n    .g() // then call\n    (1)\n}\n",
+            5,
+            "comment after the arguments of `.g` in a member chain has no canonical place; move it above the line of `.g`",
+        ),
+        // p09: after a segment's first argument list, before a later `?`.
+        // The comment on line 8 is before a segment, which the layout
+        // places; the one on line 10 is refused.
+        (
+            "module m\n\nfn g(s: string) -> Result<string, string> {\n  return Ok(s)\n}\n\npub fn f(s: { v: string }) -> Result<number, string> {\n  let n = g(s.v)? // then try\n    .length\n  let m = s.v.trim() // then try\n    ?\n    .length\n  return Ok(n + m)\n}\n",
+            10,
+            "comment after the arguments of `.trim` in a member chain has no canonical place; move it above the line of `.trim`",
+        ),
+        // After a segment's index, before a later `[`.
+        (
+            "module m\n\npub fn f(t: { rows: Array<Array<number>> }) -> number {\n  return t\n    .rows[0] // the first row\n    [1]\n}\n",
+            5,
+            "comment after the index of `.rows` in a member chain has no canonical place; move it above the line of `.rows`",
+        ),
+        // p03: in the head's own links.
+        (
+            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g // call it\n    (\"x\").length\n  return a\n}\n",
+            8,
+            "comment between `g` and its argument list has no canonical place; move it above the statement",
+        ),
+        // p13: between a call's type arguments and its `(`.
+        (
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number> // read it\n    (s)\n}\n",
+            4,
+            "comment between the type arguments of `.parse` and its argument list has no canonical place; move it above the line of `.parse`",
+        ),
+        // p04: mixed with a placeable comment; the unplaceable one is named.
+        (
+            "module m\n\npub fn f(s: string) -> number {\n  let a = s\n    .split(\",\")\n    // first field\n    [0]\n    // then count\n    .length\n  return a\n}\n",
+            6,
+            after_split,
+        ),
+        // The placeable comment first: still the unplaceable one is named.
+        (
+            "module m\n\npub fn f(s: string) -> number {\n  let a = s\n    // split it\n    .split(\",\")\n    // first field\n    [0]\n  return a.length\n}\n",
+            7,
+            after_split,
+        ),
+        // p05: mixed, with the unplaceable comment in the head's links.
+        (
+            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g // call it\n    (\"x\")\n    // then count\n    .length\n  return a\n}\n",
+            8,
+            "comment between `g` and its argument list has no canonical place; move it above the statement",
+        ),
+        // p08: inside an index.
+        (
+            "module m\n\npub fn f(xs: Array<number>) -> number {\n  return xs[\n    // first\n    0\n  ].toFixed(1).length\n}\n",
+            5,
+            "comment inside an index expression has no canonical place; move it above the statement",
+        ),
+        // head_idx_mixed (record 96): inside an index, mixed with a
+        // placeable comment.
+        (
+            "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs[\n    // first\n    0\n  ]\n    // then\n    .length\n}\n",
+            5,
+            "comment inside an index expression has no canonical place; move it above the statement",
+        ),
+        // Inside a unary operand.
+        (
+            "module m\n\npub fn f(b: bool) -> bool {\n  return ! // negate\n    b\n}\n",
+            4,
+            "comment between `!` and its operand has no canonical place; move it above the statement",
+        ),
+        // head_paren_unary (record 96): a unary operand in a chain's head.
+        (
+            "module m\n\npub fn f(b: bool) -> string {\n  return (! // negate\n    b)\n    // then\n    .toString()\n}\n",
+            4,
+            "comment between `!` and its operand has no canonical place; move it above the statement",
+        ),
+        // Inside an `await` operand.
+        (
+            "module m\n\nasync fn load() -> number {\n  return 1\n}\n\npub async fn f() -> number {\n  let n = await // the load\n    load()\n  return n\n}\n",
+            8,
+            "comment between `await` and its operand has no canonical place; move it above the statement",
+        ),
+        // In a type annotation.
+        (
+            "module m\n\npub fn f() -> number {\n  let n: // a count\n    number = 1\n  return n\n}\n",
+            4,
+            "comment in the type annotation of `let n` has no canonical place; move it above the statement",
+        ),
+        // In a parameter's type annotation.
+        (
+            "module m\n\npub fn f(\n  n: // a count\n    number,\n) -> number {\n  return n\n}\n",
+            4,
+            "comment inside the type of parameter `n` has no canonical place; move it above the parameter `n`",
+        ),
+        // In a generic type argument.
+        (
+            "module m\n\npub fn f() -> number {\n  let xs: Array<\n    // of counts\n    number\n  > = []\n  return xs.length\n}\n",
+            5,
+            "comment inside the type arguments of `Array` has no canonical place; move it above the statement",
+        ),
+        // In a qualified pattern path.
+        (
+            "module m\n\npub fn f(c: number) -> number {\n  return match c {\n    C.\n      // c\n      Red => 1,\n    else => 2,\n  }\n}\n",
+            6,
+            "comment inside the pattern `C.Red` has no canonical place; move it above the match arm",
+        ),
+    ];
+    for &(src, line, message) in cases {
+        assert_refused(src, line, message);
+    }
+}
+
+/// The refusal replaces 0.1.136's fallback, which printed these chains on
+/// one line and moved their comments (records 95 and 96). Each is refused
+/// now, and what 0.1.136 printed for it is a fixed point still: a comment it
+/// placed somewhere legal stays where it is, so no 0.1.136 fixed point is
+/// refused.
+#[test]
+fn what_the_earlier_fallback_printed_is_still_a_fixed_point() {
     let cases = [
-        // qq_seg, Linus record 96.
+        // p04.
+        (
+            "module m\n\npub fn f(s: string) -> number {\n  let a = s\n    .split(\",\")\n    // first field\n    [0]\n    // then count\n    .length\n  return a\n}\n",
+            "module m\n\npub fn f(s: string) -> number {\n  let a = s.split(\",\")[0].length\n  // first field\n\n  // then count\n\n  return a\n}\n",
+        ),
+        // p05.
+        (
+            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g // call it\n    (\"x\")\n    // then count\n    .length\n  return a\n}\n",
+            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g(\n    // call it\n    \"x\",\n  ).length\n  // then count\n\n  return a\n}\n",
+        ),
+        // p13.
+        (
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number> // read it\n    (s)\n}\n",
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number>(\n    // read it\n    s,\n  )\n}\n",
+        ),
+        // qq_seg (record 96): a placeable comment in a chain holding `? ?`,
+        // which the layout cannot spell until G335 (0.1.138).
         (
             "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(b\n    // c\n    .f()?\n    ?\n    .length)\n}\n",
             "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(\n    ((b.f(\n      // c\n    )?)?).length,\n  )\n}\n",
         ),
-        // qq_head, Linus record 96.
+        // qq_head (record 96).
         (
             "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\npub fn f() -> Result<number, string> {\n  return Ok(g()?\n    ?\n    // c\n    .length)\n}\n",
             "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\npub fn f() -> Result<number, string> {\n  return Ok(\n    ((g()?)?).length,\n    // c\n  )\n}\n",
         ),
-        // head_idx_mixed, Linus record 96.
+        // head_idx_mixed (record 96).
         (
             "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs[\n    // first\n    0\n  ]\n    // then\n    .length\n}\n",
             "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs[0].length\n  // first\n  // then\n}\n",
         ),
-        // idx_mixed, Linus record 96.
+        // idx_mixed (record 96).
         (
             "module m\n\npub fn f(s: string) -> string {\n  return s\n    // a\n    .split(\",\")[\n      // inside index\n      0\n    ]\n    .trim()\n}\n",
             "module m\n\npub fn f(s: string) -> string {\n  return s.split(\n    // a\n    \",\",\n  )[0].trim(\n    // inside index\n  )\n}\n",
         ),
-        // head_paren_unary, Linus record 96.
+        // head_paren_unary (record 96).
         (
             "module m\n\npub fn f(b: boolean) -> string {\n  return (! // negate\n    b)\n    // then\n    .toString()\n}\n",
             "module m\n\npub fn f(b: boolean) -> string {\n  return (!b).toString(\n    // negate\n    // then\n  )\n}\n",
         ),
     ];
-    for (src, want) in cases {
-        let out = fmt(src);
-        glyph_parser::parse(&out)
-            .unwrap_or_else(|e| panic!("formatted output does not parse: {e:?}\n{out}"));
-        assert_eq!(out, want, "0.1.135 layout of:\n{src}");
-        assert_eq!(
-            literal_and_comment_stream(src) == literal_and_comment_stream(&out),
-            literal_and_comment_stream(src) == literal_and_comment_stream(want),
-            "literal/comment stream of:\n{src}"
-        );
-        assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
-        assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+    for (src, earlier) in cases {
+        refusal(src);
+        assert_eq!(fmt(earlier), earlier, "0.1.136's output is no longer a fixed point");
     }
+}
+
+/// `examples/`, `catches/` and the fuzz seeds never refuse (record 86 Q1,
+/// rule 3). They are the files a reader copies a style from, so a refusal in
+/// one of them is either a comment the layout should place or a refusal that
+/// is wrong, and either is a finding.
+#[test]
+fn no_example_catch_or_seed_is_refused() {
+    let catches: PathBuf = [env!("CARGO_MANIFEST_DIR"), "..", "..", "..", "catches"]
+        .iter()
+        .collect();
+    let mut files = seed_files();
+    glyph_files(&examples_dir(), &mut files);
+    glyph_files(&catches, &mut files);
+    let mut checked = 0;
+    for f in &files {
+        let src = fs::read_to_string(f).unwrap();
+        let (m, cs) = glyph_parser::parse_with_comments(&src);
+        let Ok(m) = m else {
+            continue;
+        };
+        if let Err(r) = format_module(&m, &cs, &src) {
+            panic!("{}: glyph fmt refuses it: {r}", f.display());
+        }
+        checked += 1;
+    }
+    assert!(checked > 200, "only {checked} files were checked");
 }

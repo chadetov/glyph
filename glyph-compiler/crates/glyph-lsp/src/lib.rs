@@ -801,26 +801,7 @@ impl LanguageServer for Backend {
         let Some(text) = self.buffer(&uri) else {
             return Ok(None);
         };
-        // Mirror `glyph fmt`: never format unparseable source.
-        let (parsed, comments) = glyph_parser::parse_with_comments(&text);
-        let Ok(module) = parsed else {
-            return Ok(None);
-        };
-        // A comment the canonical layout has no place for: no edits, and the
-        // refusal as an error the editor shows, the way a refused rename is
-        // (`rename_error`). `glyph fmt` leaves the file unchanged the same way.
-        let formatted = glyph_formatter::format_module(&module, &comments, &text)
-            .map_err(format_refusal)?;
-        if formatted == text {
-            return Ok(Some(Vec::new()));
-        }
-        // Replace the whole document with the canonical layout.
-        let index = LineIndex::new(&text);
-        let (end_line, end_char) = index.position(&text, text.len());
-        Ok(Some(vec![TextEdit {
-            range: Range::new(Position::new(0, 0), Position::new(end_line, end_char)),
-            new_text: formatted,
-        }]))
+        format_document(&text)
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
@@ -1194,6 +1175,33 @@ fn rename_error(e: RenameError) -> tower_lsp::jsonrpc::Error {
         message: message.into(),
         data: None,
     }
+}
+
+/// The answer to a formatting request for `text`: one edit replacing the
+/// document with its canonical layout, none when it is already canonical, and
+/// `None` when it does not parse, mirroring `glyph fmt`, which never formats
+/// unparseable source.
+///
+/// A comment the canonical layout has no place for (D14) gives no edits and
+/// the refusal as an error the editor shows, the way a refused rename is
+/// (`rename_error`). `glyph fmt` leaves the file unchanged the same way.
+fn format_document(text: &str) -> Result<Option<Vec<TextEdit>>> {
+    let (parsed, comments) = glyph_parser::parse_with_comments(text);
+    let Ok(module) = parsed else {
+        return Ok(None);
+    };
+    let formatted =
+        glyph_formatter::format_module(&module, &comments, text).map_err(format_refusal)?;
+    if formatted == text {
+        return Ok(Some(Vec::new()));
+    }
+    // Replace the whole document with the canonical layout.
+    let index = LineIndex::new(text);
+    let (end_line, end_char) = index.position(text, text.len());
+    Ok(Some(vec![TextEdit {
+        range: Range::new(Position::new(0, 0), Position::new(end_line, end_char)),
+        new_text: formatted,
+    }]))
 }
 
 /// A refused format (D14) as a JSON-RPC error: LSP's `RequestFailed`, the
@@ -2084,6 +2092,24 @@ pub fn run_stdio() {
 mod tests {
     use super::*;
     use analysis::analyze;
+
+    /// A comment the canonical layout has no place for gives no edits and an
+    /// error naming the line and the fix (D14); the same file without the
+    /// comment formats as usual.
+    #[test]
+    fn formatting_a_file_with_a_refused_comment_gives_no_edits_and_an_error() {
+        let refused = "module m\n\npub fn f(xs: Array<number>) -> number {\n  return xs[\n    // first\n    0\n  ].toFixed(1).length\n}\n";
+        let err = format_document(refused).expect_err("refused");
+        assert_eq!(err.code, tower_lsp::jsonrpc::ErrorCode::ServerError(-32803));
+        assert_eq!(
+            err.message,
+            "glyph fmt: line 5: comment inside an index expression has no canonical place; move it above the statement"
+        );
+        let bare = refused.replace("    // first\n", "");
+        let edits = format_document(&bare).expect("formats").expect("parses");
+        assert_eq!(edits.len(), 1);
+        assert!(edits[0].new_text.contains("return xs[0].toFixed(1).length"));
+    }
 
     /// A publisher whose publishes land in the returned list.
     fn recording() -> (Publisher, PublishLog) {

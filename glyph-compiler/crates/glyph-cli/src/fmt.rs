@@ -170,4 +170,27 @@ mod tests {
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// A file holding a comment the canonical layout has no place for is
+    /// refused and left byte for byte as it was, with or without `--check`,
+    /// and the refusal names the comment's line (D14).
+    #[test]
+    fn a_refused_file_is_reported_and_left_unchanged() {
+        let dir = std::env::temp_dir().join(format!("glyph_fmt_refused_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let src = "module main\n\npub fn f(xs: Array<number>) -> number {\n  return xs[\n    // first\n    0\n  ].toFixed(1).length\n}\n";
+        let file = dir.join("main.glyph");
+        std::fs::write(&file, src).expect("write");
+        for check in [true, false] {
+            let report = format_path(&dir, check).expect("run fmt");
+            assert!(report.formatted.is_empty() && report.unchanged.is_empty());
+            assert_eq!(report.refused.len(), 1, "the file is refused");
+            let (path, refusal) = &report.refused[0];
+            assert_eq!(path, &file);
+            assert_eq!((refusal.line, refusal.column), (5, 5));
+            assert_eq!(std::fs::read_to_string(&file).expect("read"), src, "left unchanged");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

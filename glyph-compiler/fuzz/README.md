@@ -40,6 +40,13 @@ It also holds the ordered literals and comments to what the source wrote. JSX
 text counts there as the text it renders, the same item as a string child that
 renders it, so a formatter that changes what a page says fails it.
 
+Both properties are asked of a file `glyph fmt` formats. Since 0.1.137 it can
+refuse one instead, when a comment sits where the canonical layout has no
+place for it (D14), and a refusal has a property of its own: the input holds a
+comment, and the same input with every comment blanked out formats. That is
+what keeps a refusal from being a way out of the other two (record 86). The
+formatter's own output is never refused.
+
 **`format_preserves_emit`** asserts that formatting leaves the emitted
 TypeScript unchanged, byte for byte. G316 needed it: `glyph fmt` wrote JSX text
 ending in four spaces as the text and a one-space `{" "}`, a fixed point that

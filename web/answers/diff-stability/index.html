@@ -229,14 +229,16 @@ type Cell = {
           a missing feature, because it damages code that already worked.
         </p>
         <p>
-          The open one is G335. A statement that has to start with a parenthesis, such as
-          <code>(g()?)?</code> (written <code>g()??</code> it would read as the <code>??</code>
-          operator), is printed on its own line, and the line before it can read that
-          <code>(</code> as a call: after <code>let a = 1</code>, a second <code>glyph fmt</code>
-          writes <code>let a = 1(g()?)?</code>. The fuzzer found it while we worked on chain
-          comments, and it is still present in 0.1.136. Until it is fixed, keep a statement that
-          starts with <code>(</code> away from a line ending in a name or a value, or bind it with
-          <code>let</code>.
+          The open one is G335. Inside a block, a line that starts with <code>(</code> continues
+          the line above. The formatter prints <code>load()?</code> followed by
+          <code>.run()</code> as <code>(load()?).run()</code>, because <code>load()?.run()</code>
+          would read <code>?.</code> as optional chaining, and after a line like
+          <code>let a = 1</code> that parenthesis turns into a call: the formatted file means
+          <code>let a = 1(…).run()</code>. <code>tsc</code> catches this one in a full build (TS2349),
+          but not when the line above ends in something callable, and <code>glyph check --no-tsc</code>
+          catches neither. The fuzzer found it while we worked on
+          chain comments, and it is still present in 0.1.136. Until it is fixed, bind the result
+          first: <code>let job = load()?</code>, then <code>job.run()</code>.
         </p>
       </div>
 
@@ -248,7 +250,7 @@ type Cell = {
         </div>
         <div class="status-card next">
           <p class="h">The edge, and what's next</p>
-          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment inside an index, after a call's arguments in a chain, or before a <code>!</code> or <code>await</code> operand is still moved below the statement; the next release makes <code>glyph fmt</code> refuse such a file and name the line instead. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
+          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment inside an index, after a call's arguments in a chain, or before a <code>!</code> or <code>await</code> operand is still moved, below the statement or into the next argument list; the next release makes <code>glyph fmt</code> refuse such a file and name the line instead. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
         </div>
       </div>
 

@@ -28,8 +28,13 @@ pub struct Refusal {
     pub column: u32,
     /// What has no place, and the one move that gives it one: "comment after
     /// the arguments of `.split` in a member chain has no canonical place;
-    /// move it above the line of `.split`".
+    /// move it above the line of `.split`". It is `problem` and `fix` joined.
     pub message: String,
+    /// The first half of `message`: "comment after the arguments of `.split`
+    /// in a member chain has no canonical place". E0500's message.
+    pub problem: String,
+    /// The second half: "move it above the line of `.split`". E0500's help.
+    pub fix: String,
 }
 
 impl fmt::Display for Refusal {
@@ -60,11 +65,15 @@ pub(crate) fn describe(m: &Module, source: &str, refused: &[Comment]) -> Refusal
         .or(described.first())
         .expect("a refusal has at least one comment");
     let (line, column) = line_col(source, comment.span.start);
+    let problem = format!("{} has no canonical place", found.what);
+    let fix = format!("move it {}", found.fix);
     Refusal {
         span: comment.span,
         line,
         column,
-        message: format!("{} has no canonical place; move it {}", found.what, found.fix),
+        message: format!("{problem}; {fix}"),
+        problem,
+        fix,
     }
 }
 
@@ -480,13 +489,24 @@ impl<'a> Walk<'a> {
                 .copied()
         });
         let head_name = quoted(self.text(inner_of(link).span()), "the head of the chain");
+        // Why a gap the chain layout places was refused anyway: the chain
+        // holds two `?` in a row, which the segment layout cannot spell yet
+        // (record 97 Q4), or it sits where D1 allows no line break.
+        let why = if links
+            .windows(2)
+            .any(|w| matches!((w[0], w[1]), (Expr::Postfix { .. }, Expr::Postfix { .. })))
+        {
+            "until a chain can spell two `?` in a row"
+        } else {
+            "outside a block, where a line break would end the statement (D1)"
+        };
         match link {
             Expr::Member { field, optional, .. } => {
                 let dot = if *optional { "?." } else { "." };
                 Found {
                     placeable: true,
                     ..self.found(format!(
-                        "comment before `{dot}{field}` in a member chain that cannot break here"
+                        "comment before `{dot}{field}` in a member chain that cannot break {why}"
                     ))
                 }
             }
@@ -532,7 +552,7 @@ impl<'a> Walk<'a> {
                     (Some(s), Some(None)) => Found {
                         placeable: true,
                         ..self.found(format!(
-                            "comment before the {what_next} of {s} in a member chain that cannot break here"
+                            "comment before the {what_next} of {s} in a member chain that cannot break {why}"
                         ))
                     },
                     // After a segment's first argument list, index or `?`.

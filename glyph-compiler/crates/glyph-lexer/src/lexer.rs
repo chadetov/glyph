@@ -277,9 +277,16 @@ impl<'a> Lexer<'a> {
                             })?;
                             crate::push_literal(&mut content, c);
                         }
-                        other => {
+                        _ => {
+                            // The whole escaped character, not its first
+                            // byte: `"\é"` names `é`, where a byte cast
+                            // named `Ã` (G330, record 94).
+                            let ch = self.source[escape_offset as usize + 1..]
+                                .chars()
+                                .next()
+                                .unwrap_or('\u{FFFD}');
                             return Err(LexError::InvalidEscape {
-                                ch: other as char,
+                                ch,
                                 offset: escape_offset,
                             });
                         }
@@ -491,9 +498,13 @@ impl<'a> Lexer<'a> {
             b'=' => Token::Equals,
             b'@' => Token::At,
             b'$' => Token::Dollar,
-            other => {
+            _ => {
+                // The whole character, not its first byte: `é` is one
+                // character of two bytes, and a byte cast would name it `Ã`
+                // and end the span inside it (G330).
+                let ch = self.source[start..].chars().next().unwrap_or('\u{FFFD}');
                 return Err(LexError::UnexpectedChar {
-                    ch: other as char,
+                    ch,
                     offset: start as u32,
                 });
             }

@@ -22,6 +22,11 @@ pub enum LexError {
 
 impl LexError {
     pub fn span(&self) -> Span {
+        // A span ends on a character boundary: a renderer slicing the source
+        // at `start + 1` inside a multibyte character panics (G330).
+        if let LexError::UnexpectedChar { ch, offset } = self {
+            return Span::new(*offset, *offset + ch.len_utf8() as u32);
+        }
         let start = match self {
             LexError::UnexpectedChar { offset, .. } => *offset,
             LexError::UnterminatedString { offset } => *offset,

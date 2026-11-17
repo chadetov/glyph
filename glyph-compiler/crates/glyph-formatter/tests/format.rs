@@ -1871,3 +1871,54 @@ fn a_commented_chain_nested_in_an_argument_breaks_alone() {
         "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs.map(\n    fn(x) {\n      return x\n        .trim()\n        // count it\n        .length\n    },\n  ).length\n}\n",
     );
 }
+
+/// A chain with a comment in a gap the layout cannot place keeps the 0.1.135
+/// layout whole, even when another of its comments could be placed (record
+/// 95). Those gaps are the ones after a segment's first argument list, index
+/// or type-argument list, and the head's own links. Breaking the chain around
+/// such a comment turned it into a well-formed comment on a different segment,
+/// a fixed point the 0.1.137 refusal could not see. Each expected output is
+/// what the published 0.1.135 prints; the literal/comment stream behaves as
+/// it does there, so `// first field` in p04 still ends after the `0`, which
+/// is the case the refusal is for.
+#[test]
+fn a_chain_with_an_unplaceable_comment_keeps_its_earlier_layout() {
+    let cases = [
+        // p04_mixed_after_args_and_seg, Linus record 95.
+        (
+            "module m\n\npub fn f(s: string) -> number {\n  let a = s\n    .split(\",\")\n    // first field\n    [0]\n    // then count\n    .length\n  return a\n}\n",
+            "module m\n\npub fn f(s: string) -> number {\n  let a = s.split(\",\")[0].length\n  // first field\n\n  // then count\n\n  return a\n}\n",
+            false,
+        ),
+        // p05_mixed_head_and_seg, Linus record 95.
+        (
+            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g // call it\n    (\"x\")\n    // then count\n    .length\n  return a\n}\n",
+            "module m\n\nfn g(x: string) -> string {\n  return x\n}\n\npub fn f(s: string) -> number {\n  let a = g(\n    // call it\n    \"x\",\n  ).length\n  // then count\n\n  return a\n}\n",
+            true,
+        ),
+        // p13_typeargs_gap, Linus record 95.
+        (
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number> // read it\n    (s)\n}\n",
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number>(\n    // read it\n    s,\n  )\n}\n",
+            true,
+        ),
+        // p13 with a placeable comment before `.parse` as well: the one after
+        // `>` still makes the chain fall back.
+        (
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json // the codec\n    .parse<number> // read it\n    (s)\n}\n",
+            "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number>(\n    // the codec\n    // read it\n    s,\n  )\n}\n",
+            true,
+        ),
+    ];
+    for (src, want, stream_kept) in cases {
+        let out = fmt(src);
+        assert_eq!(out, want, "0.1.135 layout of:\n{src}");
+        assert_eq!(
+            literal_and_comment_stream(src) == literal_and_comment_stream(&out),
+            stream_kept,
+            "literal/comment stream of:\n{src}"
+        );
+        assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
+        assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+    }
+}

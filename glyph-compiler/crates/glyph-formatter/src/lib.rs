@@ -23,6 +23,8 @@
 mod canonical;
 pub use canonical::{canonical_view, CanonicalError};
 
+use std::collections::HashSet;
+
 use glyph_ast::{
     Annotation, ArrayElem, BinOp, Block, Comment, ComponentDecl, ConstDecl, Decl, Expr, FnDecl,
     FnTypeParam, GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern,
@@ -63,6 +65,7 @@ pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> String {
         cidx: 0,
         source: Some(source.to_string()),
         in_block: false,
+        unbroken_links: HashSet::new(),
     };
     p.module(m);
     p.out
@@ -83,6 +86,7 @@ pub fn format_expr(e: &Expr) -> String {
         cidx: 0,
         source: None,
         in_block: false,
+        unbroken_links: HashSet::new(),
     };
     p.expr(e);
     p.out
@@ -129,6 +133,12 @@ struct Printer {
     /// never takes one it would not. `self.indent > 0` is not a usable proxy: a
     /// multi-line union body is indented with no enclosing bracket at all.
     in_block: bool,
+    /// The spans of chain links that belong to a chain `member_chain` decided
+    /// to keep on one line. Its inner chains are printed by the ordinary path
+    /// and reach `member_chain` again; this keeps them from breaking for a
+    /// placeable comment of their own when the whole chain holds one that
+    /// cannot be placed (record 95).
+    unbroken_links: HashSet<(u32, u32)>,
 }
 
 impl Printer {
@@ -1184,17 +1194,23 @@ impl Printer {
     /// as it did before and no file the earlier formatter left alone changes
     /// (record 86).
     ///
-    /// Two shapes stay outside the layout and do not break the chain: a
-    /// comment in a gap of the head's own links (`f // c` then `(x).g`), which
-    /// has no segment line to sit above, and one after a segment's first
-    /// argument list or index (`.f(x) // c` then `[0]`), which above the
-    /// segment would precede the `x` it was written after.
+    /// The chain's other gaps have no layout: those of the head's own links
+    /// (`f // c` then `(x).g`), which have no segment line to sit above, and
+    /// those after a segment's first argument list, index or type-argument
+    /// list (`.f(x) // c` then `[0]`, `.parse<T> // c` then `(s)`), where
+    /// above the segment the comment would precede what it was written after.
+    /// A comment in one of them keeps the whole chain in its one-line layout,
+    /// even when another comment in the chain could be placed (record 95).
     fn member_chain(&mut self, e: &Expr) -> bool {
         // `flat` is a `${...}` interpolation, where a line break comes back as
         // a literal `\n`; `in_block` is the D1 bracket-depth guard. The span
         // test is the cheap reject before any gap is measured.
         if self.flat || !self.in_block || !self.has_comment_between(e.span().start, e.span().end)
         {
+            return false;
+        }
+        let span = e.span();
+        if self.unbroken_links.contains(&(span.start, span.end)) {
             return false;
         }
         let (head, links) = flatten_postfix(e);
@@ -1217,10 +1233,33 @@ impl Printer {
                 (i, end, self.segment_gaps_end(&links[i..end]))
             })
             .collect();
-        let holds_comment = segments.iter().any(|&(i, _, gaps_end)| {
-            self.has_comment_between(inner_of(links[i]).span().end, gaps_end)
-        });
-        if !holds_comment {
+        let placeable: Vec<(u32, u32)> = segments
+            .iter()
+            .map(|&(i, _, gaps_end)| (inner_of(links[i]).span().end, gaps_end))
+            .collect();
+        if !placeable
+            .iter()
+            .any(|&(from, to)| self.has_comment_between(from, to))
+        {
+            return false;
+        }
+        // A comment in any other gap of the chain has no line to sit above,
+        // and breaking the chain around it would turn it into a well-formed
+        // comment on a different segment, a fixed point nothing could tell
+        // from intent (record 95). The chain then prints as it did before.
+        let unplaceable = links
+            .iter()
+            .flat_map(|l| self.link_gaps(l))
+            .any(|(from, to)| {
+                self.pending_comments_between(from, to).any(|c| {
+                    !placeable
+                        .iter()
+                        .any(|&(pf, pt)| c.span.start >= pf && c.span.start < pt)
+                })
+            });
+        if unplaceable {
+            self.unbroken_links
+                .extend(links.iter().map(|l| (l.span().start, l.span().end)));
             return false;
         }
         self.atom(head);
@@ -1237,6 +1276,35 @@ impl Printer {
         }
         self.indent -= 1;
         true
+    }
+
+    /// Every gap of one chain link, placeable or not: the source between the
+    /// link's base and its own tokens, outside any argument list, type-argument
+    /// list or index.
+    fn link_gaps(&self, link: &Expr) -> Vec<(u32, u32)> {
+        let from = inner_of(link).span().end;
+        match link {
+            Expr::Member { span, .. } | Expr::Postfix { span, .. } => vec![(from, span.end)],
+            Expr::Index { .. } => vec![(from, self.next_token_at(from))],
+            Expr::Call { type_args, .. } => {
+                let mut gaps = vec![(from, self.next_token_at(from))];
+                if let Some(last) = type_args.last() {
+                    // Past the closing `>`, up to the `(`.
+                    let close = self.next_token_at(last.span().end) + 1;
+                    gaps.push((close, self.next_token_at(close)));
+                }
+                gaps
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// The pending comments that start in `from..to`.
+    fn pending_comments_between(&self, from: u32, to: u32) -> impl Iterator<Item = &Comment> {
+        self.comments[self.cidx.min(self.comments.len())..]
+            .iter()
+            .take_while(move |c| c.span.start < to)
+            .filter(move |c| c.span.start >= from)
     }
 
     /// Where a chain segment's gaps end: at the opening `<`, `(` or `[` of its

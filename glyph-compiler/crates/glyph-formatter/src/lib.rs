@@ -857,7 +857,24 @@ impl Printer {
             self.push(" =");
             let header_from = t.generics.last().map_or(t.span.start, |g| g.span.end);
             let eq = self.find_byte(header_from, b'=');
-            self.union_multiline(variants, eq);
+            let from = self.union_multiline(variants, eq);
+            // D39: a refinement goes on its own line after the last variant,
+            // at the variants' indent, where it reads as the whole union's.
+            // `| B where ...` would read as `B`'s, and adding a variant after
+            // `B` would rewrite that line. A union refinement is E0300, and
+            // printing it keeps it one: dropping it made `fmt` turn a refused
+            // program into an accepted one (G338, record 97).
+            if let Some(pred) = &t.refinement {
+                self.indent += 1;
+                self.newline();
+                // A comment above the `where` sits above its line, as one
+                // above a variant does.
+                let kw = self.next_token_at(from);
+                self.flush_gap(from, kw.min(pred.span().start));
+                self.push("where ");
+                self.expr(pred);
+                self.indent -= 1;
+            }
             self.end_line();
             return;
         }
@@ -2035,7 +2052,9 @@ impl Printer {
 
     /// The multi-line `| Variant` form used for a `type X =` union body.
     /// `from` is the `=` the body follows.
-    fn union_multiline(&mut self, variants: &[UnionVariant], mut from: u32) {
+    /// Returns the offset the last variant's gaps end at, where whatever
+    /// follows the variants owns the source.
+    fn union_multiline(&mut self, variants: &[UnionVariant], mut from: u32) -> u32 {
         self.indent += 1;
         for v in variants {
             self.newline();
@@ -2049,6 +2068,7 @@ impl Printer {
             from = self.close(v.span.end);
         }
         self.indent -= 1;
+        from
     }
 
     fn union_variant(&mut self, v: &UnionVariant) {

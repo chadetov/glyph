@@ -14,6 +14,9 @@ use std::path::{Path, PathBuf};
 
 use glyph_formatter::format_module;
 
+#[path = "common/ast_shape.rs"]
+mod ast_shape;
+
 fn examples_dir() -> PathBuf {
     [env!("CARGO_MANIFEST_DIR"), "..", "..", "..", "examples"]
         .iter()
@@ -2133,4 +2136,93 @@ fn no_example_catch_or_seed_is_refused() {
         checked += 1;
     }
     assert!(checked > 200, "only {checked} files were checked");
+}
+
+/// `parse(fmt(src))` is `parse(src)` on every seed, example and catch: the
+/// formatter changes layout, never the program (record 96 (b)). Text
+/// idempotence is blind to a first pass that changes the program into one
+/// that is itself a fixed point; G335 and G338 were both that.
+#[test]
+fn formatting_never_changes_the_ast_of_the_corpus() {
+    let catches: PathBuf = [env!("CARGO_MANIFEST_DIR"), "..", "..", "..", "catches"]
+        .iter()
+        .collect();
+    let mut files = seed_files();
+    glyph_files(&examples_dir(), &mut files);
+    glyph_files(&catches, &mut files);
+    let mut checked = 0;
+    for f in &files {
+        let src = fs::read_to_string(f).unwrap();
+        let Ok(m) = glyph_parser::parse(&src) else {
+            continue;
+        };
+        assert_same_program(&f.display().to_string(), &m, &src);
+        checked += 1;
+    }
+    assert!(checked > 200, "only {checked} files were checked");
+}
+
+/// The formatted `src` parses to the module `m` does, spans and the layout
+/// choices in `ast_shape` aside.
+fn assert_same_program(label: &str, m: &glyph_ast::Module, src: &str) {
+    let once = format_module(m, &comments(src), src)
+        .unwrap_or_else(|r| panic!("{label}: glyph fmt refused it: {r}"));
+    let reparsed = glyph_parser::parse(&once)
+        .unwrap_or_else(|e| panic!("{label}: formatted output does not parse: {e:?}\n{once}"));
+    assert_eq!(
+        ast_shape::shape(m),
+        ast_shape::shape(&reparsed),
+        "{label}: glyph fmt changed the program\n--- source ---\n{src}\n--- output ---\n{once}"
+    );
+}
+
+/// `src` formats to `want`, which is a fixed point, parses to the same
+/// program, emits the same TypeScript and keeps the literal/comment stream.
+fn assert_formats_to(src: &str, want: &str) {
+    let out = fmt(src);
+    assert_eq!(out, want, "layout of:\n{src}");
+    let m = glyph_parser::parse(src).expect("source parses");
+    assert_same_program("case", &m, src);
+    assert_stream_preserved("case", src, &out);
+    // A source the emitter refuses stays refused, for the same reason.
+    assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
+    assert_eq!(emit_code(src), emit_code(&out), "emit error changed for:\n{src}");
+    assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+}
+
+/// The emitter's error code for `src`, `None` when it emits.
+fn emit_code(src: &str) -> Option<String> {
+    let m = glyph_parser::parse(src).ok()?;
+    let syms = glyph_resolver::collect_module_symbols(&m).ok()?;
+    let prelude = glyph_resolver::build_prelude();
+    let (resolved, _re) = glyph_resolver::resolve_module(&m, syms, &prelude);
+    let (tm, _te) = glyph_typechecker::assign_types(&m, &resolved, &prelude);
+    glyph_emit::emit_module(&m, &resolved, &tm, &prelude, glyph_emit::EmitContext::single())
+        .err()
+        .map(|e| e.code().to_string())
+}
+
+/// A tagged union's `where` refinement is printed on its own line after the
+/// last variant, at the variants' indent, and still draws E0300 (G338,
+/// record 97). The printer used to return before the refinement, so `fmt`
+/// turned a refused program into one that checked clean.
+#[test]
+fn a_union_keeps_its_where_refinement() {
+    let canonical = "module m\n\npub type Salary =\n  | A\n  | B\n  where value >= 1\n";
+    assert_formats_to("module m\n\npub type Salary = A | B where value >= 1\n", canonical);
+    assert_formats_to(canonical, canonical);
+    assert_eq!(emit_code(canonical).as_deref(), Some("E0300"));
+    // Generic, with a payload, and with a comment above a variant.
+    let generic = "module m\n\npub type Box<T> =\n  // the empty one\n  | Empty\n  | Full(T)\n  where value != null\n";
+    assert_formats_to(generic, generic);
+}
+
+/// The AST oracle on G338's first input. 0.1.137 printed the union without
+/// its refinement, a fixed point that checked clean where the source drew
+/// E0300; only comparing the parses could see it (record 97).
+#[test]
+fn the_ast_oracle_sees_g338_change_the_program() {
+    let src = "module m\n\npub type Salary = A | B where value >= 1\n";
+    let m = glyph_parser::parse(src).expect("parses");
+    assert_same_program("G338", &m, src);
 }

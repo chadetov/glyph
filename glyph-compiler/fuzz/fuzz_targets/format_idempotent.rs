@@ -1,6 +1,15 @@
 //! Formatting twice must equal formatting once, and must not change what the
 //! file says.
 //!
+//! What the file says is checked first, on the AST: the formatted output
+//! parses to the program the input did, spans and the layout choices
+//! `ast_shape` lists aside (record 96 (b)). A first pass that changes the
+//! program can be a fixed point, so idempotence alone found G335 only by
+//! luck and never saw G338, which deleted a union's `where` refinement. The
+//! comparison catches both on the first pass, and an output that does not
+//! parse as well. The same check runs over the corpus and the seeds in
+//! `glyph-formatter/tests/format.rs`, from the one copy of `ast_shape`.
+//!
 //! A file `glyph fmt` refuses (D14) has no formatted form, so the properties
 //! below are asked of `Ok` only. A refusal has a property of its own: the
 //! input holds a comment, and blanking every comment out makes it `Ok`, so a
@@ -34,6 +43,9 @@
 //! arbitrary input, and a panic there would hide every formatter check here.
 #![no_main]
 use libfuzzer_sys::fuzz_target;
+
+#[path = "../../crates/glyph-formatter/tests/common/ast_shape.rs"]
+mod ast_shape;
 
 /// One entry in the projection the formatter must preserve.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -189,6 +201,11 @@ fuzz_target!(|data: &[u8]| {
     let Ok(reparsed) = reparsed else {
         panic!("formatter produced output that does not parse:\n{once}");
     };
+    assert_eq!(
+        ast_shape::shape(&module),
+        ast_shape::shape(&reparsed),
+        "glyph fmt changed the program:\n{once}"
+    );
 
     // Parsing succeeded, so what the parser lexed lexes; if the output's does
     // not, the formatter wrote something the lexer cannot read back.

@@ -36,6 +36,17 @@ passes on one of them and fails on the other. G23 was exactly this shape: the
 formatter moved comments out of the construct they documented, and the mangled
 output was itself a fixed point, so nothing downstream noticed.
 
+Before either, it checks that the output says what the input did: the
+formatted text parses to the same AST as the source, spans aside, along with
+the few things the layout changes by design (annotation order, the whitespace
+of JSX text). A first pass that changes the program can be a fixed point.
+G335 printed `(load()?).run()` after `let a = 1`, which reads as a call on
+`1`, and G338 deleted a union's `where` refinement; text idempotence found the
+first by luck and never saw the second. The comparison lives in
+`glyph-formatter/tests/common/ast_shape.rs`, which the target includes by
+path and the corpus test in `tests/format.rs` runs over every seed, example
+and catch.
+
 It also holds the ordered literals and comments to what the source wrote. JSX
 text counts there as the text it renders, the same item as a string child that
 renders it, so a formatter that changes what a page says fails it.

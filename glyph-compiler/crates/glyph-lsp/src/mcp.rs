@@ -10967,6 +10967,45 @@ mod tests {
         assert!(codes.contains(&"E0210"), "{codes:?}");
     }
 
+    /// Record 97 Q1: `glyph_diagnostics` reports a comment `glyph fmt`
+    /// refuses as E0500, a warning on the comment with the fix as help, and
+    /// nothing for the same file with the comment placed. E0500 is a warning,
+    /// so it hides nothing after it: a type error and an emitter refusal in
+    /// the same file are both still reported beside it.
+    #[test]
+    fn diagnostics_tool_reports_e0500_and_hides_nothing_behind_it() {
+        let refused = "module a\n\npub fn first(xs: Array<number>) -> number {\n  return xs[\n    // the oldest\n    0\n  ]\n}\n";
+        let placed = "module a\n\npub fn first(xs: Array<number>) -> number {\n  // the oldest\n  return xs[0]\n}\n";
+        let typed = format!("{refused}\ntype U = {{ name: string }}\n\npub fn g(u: U) -> string {{\n  return u.naem\n}}\n");
+        let emitted = format!(
+            "{refused}\nfn h(b: string) -> Result<string, string> {{\n  return Ok(b)\n}}\n\n\
+             pub fn k(n: number, b: string) -> Result<string, string> {{\n  \
+             return Ok(match n {{\n    1 => h(b)?,\n    else => b,\n  }})\n}}\n"
+        );
+        let cases: [(&str, &[&str]); 4] = [
+            (refused, &["E0500"]),
+            (placed, &[]),
+            (&typed, &["E0500", "E0210"]),
+            (&emitted, &["E0500", "E0302"]),
+        ];
+        for (text, want) in cases {
+            let root = tmp_root();
+            write(&root, "a.glyph", text);
+            let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
+            assert!(!is_error, "{value}");
+            let items = reported(&value);
+            let codes: Vec<&str> = items.iter().map(|d| d["code"].as_str().unwrap()).collect();
+            assert_eq!(codes, want, "{text}\n{value}");
+            if let Some(d) = items.first().filter(|d| d["code"] == "E0500") {
+                assert_eq!(d["severity"], "warning", "{value}");
+                assert_eq!(d["stage"], "format", "{value}");
+                assert_eq!(d["message"], "comment inside an index expression has no canonical place");
+                assert_eq!(d["help"], "move it above the statement");
+                assert_eq!(d["range"]["start"]["line"], 5, "{value}");
+            }
+        }
+    }
+
     /// An agent acting on a batch of `--json`-shaped diagnostics needs to get
     /// from an error straight into the declaration it lives in, without
     /// re-deriving "which function is this" from a line number — a line

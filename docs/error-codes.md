@@ -20,6 +20,7 @@ compiler phase:
 | `E02xx` | Typechecker | `glyph-typechecker` |
 | `E03xx` | Emitter | `glyph-emit` |
 | `E04xx` | `@example` and `@doc @run` tests | `glyph-cli` |
+| `E05xx` | Formatter | `glyph-formatter` |
 
 A code, once allocated, is never reused for a different meaning. When a new
 error path is added, allocate the next free code in its phase range, give the
@@ -207,6 +208,12 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0403` | The copy of the project carrying the `@example` and `@doc @run` tests did not compile, so no test ran |
 | `E0404` | The tests could not all run: `tsx` is not on `PATH`, the harness could not start, or it exited without a result for every test (`N example(s) not run`) |
 
+### Formatter — `E05xx`
+
+| Code | Meaning |
+|------|---------|
+| `E0500` | A comment sits where the canonical layout has no place for it (inside an index, a unary or `await` operand, a type annotation, a pattern, or after a call in the middle of a member chain), so `glyph fmt` refuses the file and leaves it unchanged (warning; D14) |
+
 ## The structured shape
 
 `glyph check --json`, `glyph build --json` and the `glyph_diagnostics` MCP tool
@@ -219,7 +226,7 @@ spelling on every code.
 |-------|-----------|
 | `code` | The stable code in the catalogue above |
 | `severity` | `error` or `warning` |
-| `stage` | `parse`, `collect`, `resolve`, `import`, `lint`, `typecheck`, `emit` or `tsc` |
+| `stage` | `parse`, `format`, `collect`, `resolve`, `import`, `lint`, `typecheck`, `emit` or `tsc` |
 | `message` | The sentence the compiler wrote, with nothing appended |
 | `help` | The one-line fix |
 | `note` | The background, when the code has one |

@@ -14,6 +14,6 @@
 //! serialize what the MCP server serializes.
 
 pub use glyph_lsp::diagnostic::{
-    entity_id, from_emit_error, from_parse_error, from_resolve_error, from_type_error, pos_of,
+    entity_id, from_emit_error, from_format_refusal, from_parse_error, from_resolve_error, from_type_error, pos_of,
     stage_label_for, Diagnostic, Pos, Range, UnionEntity,
 };

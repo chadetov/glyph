@@ -1,0 +1,10 @@
+module main
+
+// A comment inside an index has no line of its own to sit on, so `glyph fmt`
+// refuses the file rather than move it past the `0` (D14).
+pub fn first(xs: Array<number>) -> number {
+  return xs[
+    // the oldest
+    0
+  ]
+}

@@ -1452,6 +1452,21 @@ pub fn parse_module(db: &dyn Db, file: SourceFile) -> ParsedModule {
     }
 }
 
+/// Whether `glyph fmt` refuses the file, and why: a comment where the
+/// canonical layout has no place for one (D14), reported as `E0500`.
+///
+/// Its own query because `parse_module` reads no comments: the refusal is a
+/// fact about where the comments are, so this parses with them and asks the
+/// formatter. `None` when the file formats, and when it does not parse, which
+/// `parse_module` reports.
+#[salsa::tracked(returns(clone))]
+pub fn format_refusal(db: &dyn Db, file: SourceFile) -> Option<glyph_formatter::Refusal> {
+    let text = file.text(db);
+    let (parsed, comments) = glyph_parser::parse_with_comments(text);
+    let module = parsed.ok()?;
+    glyph_formatter::format_module(&module, &comments, text).err()
+}
+
 /// Top-level symbol table for a file. Empty (`Symbols::err`) if parsing
 /// failed or collection itself reported errors.
 #[salsa::tracked(returns(clone))]

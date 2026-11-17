@@ -1096,6 +1096,31 @@ pub fn explain(code: &str) -> Option<&'static str> {
             emits the TypeScript) and import it from a module that does have a \
             `main`.",
 
+        // ----- formatter (E05xx) -----
+        "E0500" => "E0500: a comment has no canonical place (warning)\n\n\
+            `glyph fmt` never moves a comment (D14). A comment belongs to the \
+            construct whose gap it is written in, and `fmt` puts it on its own \
+            line above the item, statement, arm, operand or chain segment that \
+            followed it there. Some gaps have no such line: inside an index, \
+            between `!` or `await` and its operand, in a type annotation or a \
+            generic type argument, inside a pattern, between a function and its \
+            argument list, and after a call or an index in the middle of a member \
+            chain. A comment in one of them would have to move past the code it \
+            was written before, where it reads as a note about something else. \
+            So `glyph fmt` leaves the file as it is and exits 1, and `glyph \
+            check` reports this warning. It is a warning because where a comment \
+            sits does not change what the program does; `check` still exits 0, \
+            and `glyph fmt --check` is the gate on layout.\n\n\
+            Before:  let first = xs[\n\
+             \x20          // the oldest\n\
+             \x20          0\n\
+             \x20        ]\n\n\
+            After:   // the oldest\n\
+             \x20        let first = xs[0]\n\n\
+            The help names the place, usually above the statement, or above the \
+            line of a chain segment (`.split`). `glyph fix` does not move it for \
+            you: where the note belongs is the author's call.",
+
         // ----- examples (E04xx) -----
         "E0400" => "E0400: an `@example` failed\n\n\
             An `@example` is a test that runs on every `glyph build`, `glyph \
@@ -1561,7 +1586,8 @@ fn counter_example(case: &NegativeCase) -> CounterExample {
 pub struct CodeEntry {
     pub code: &'static str,
     /// The compiler phase that raises it: `parser`, `resolver`, `typechecker`,
-    /// `emitter`, or `examples` for the `@example` gate the CLI runs. The
+    /// `emitter`, `examples` for the `@example` gate the CLI runs, or
+    /// `formatter` for a file `glyph fmt` refuses. The
     /// code's own range says the same thing, and this says it without asking
     /// the reader to know the ranges.
     pub phase: &'static str,
@@ -2028,6 +2054,13 @@ pub static CODES: &[CodeEntry] = &[
         meaning: "The tests could not all run: `tsx` is not on `PATH`, the harness could not start, or it exited without a result for every test (`N example(s) not run`)",
         fix: "Install `tsx`, or fix what stopped the harness (often a module it could not load); `--no-test` skips the tests",
     },
+    // ----- formatter (E05xx) -----
+    CodeEntry {
+        code: "E0500",
+        phase: "formatter",
+        meaning: "A comment sits where the canonical layout has no place for it (inside an index, a unary or `await` operand, a type annotation, a pattern, or after a call in the middle of a member chain), so `glyph fmt` refuses the file and leaves it unchanged (warning; D14)",
+        fix: "Move the comment where the help says, usually above the statement",
+    },
 ];
 
 /// The phases, in the order the catalogue lists them, each with the range it
@@ -2039,6 +2072,7 @@ pub const PHASES: &[(&str, &str, &str)] = &[
     ("typechecker", "Typechecker", "E02xx"),
     ("emitter", "Emitter", "E03xx"),
     ("examples", "Examples", "E04xx"),
+    ("formatter", "Formatter", "E05xx"),
 ];
 
 /// Every code that `explain` documents, for the catalogue test and tooling.

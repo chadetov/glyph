@@ -623,6 +623,21 @@ fn build_project_inner_with(
         // for `entity` (0.1.107) without re-checking.
         let ast = parsed.module().expect("no parse error: checked above");
 
+        // `glyph fmt` would refuse this file (E0500, D14): a warning, right
+        // after the parse, so it reaches `check`, `check --json` and `build`
+        // the way it reaches the editor, and blocks nothing below it.
+        if let Some(r) = glyph_db::format_refusal(&db, *sf) {
+            report
+                .diagnostics
+                .push(crate::render::render_format_refusal(module_path, &source, &r, with_color));
+            report.structured.push(crate::diagnostic::from_format_refusal(
+                module_path,
+                &source,
+                &r,
+                ast,
+            ));
+        }
+
         let syms = module_symbols(&db, *sf);
         for e in syms.errors() {
             report

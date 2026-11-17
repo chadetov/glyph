@@ -702,27 +702,50 @@ fn e0210_renames_a_misspelled_jsx_attribute_whose_value_holds_a_dot() {
 }
 
 /// A lowercase name is not always a catch-all: Glyph accepts a lowercase
-/// variant (G224), and `glyph fix` cannot tell which from the diagnostics.
-/// With a lowercase arm before the `_`, the decline used to say "its
-/// catch-all arm `blank` handles `Loaded` now" about a variant arm; it now
-/// names no arm. With a lowercase variant before a binding arm, the binding
-/// takes the case, so naming the variant was wrong the same way (record 89).
+/// variant (G224). 0.1.132 named the variant arm `blank` as the catch-all,
+/// and 0.1.133 to 0.1.141 named no arm because the diagnostics do not say
+/// which arm takes the remaining values. The checker's coverage relation,
+/// carried in the same build report, does: `glyph fix` names the first arm
+/// it recorded as a catch-all of this match, at the match's own level
+/// (G327, record 89). Nothing is rewritten either way.
 #[test]
-fn a_lowercase_arm_is_not_named_as_the_catch_all() {
-    for (dir, last) in [("lc-wild", "_"), ("lc-binding", "other")] {
+fn e0220_names_the_catch_all_arm_from_the_coverage_relation() {
+    for (dir, variants, last, named) in [
+        // `blank` is a variant, so the `_` after it takes `Loaded`.
+        ("lc-wild", "| blank | Loaded(number) | Empty", "_", "`_` arm"),
+        // `blank` is a variant, so the binding `other` takes `Loaded`.
+        ("lc-binding", "| blank | Loaded(number) | Empty", "other", "arm `other`"),
+        // No lowercase variant: `blank` is itself a binding and comes first.
+        ("lc-two-bindings", "| Blank | Loaded(number) | Empty", "other", "arm `blank`"),
+    ] {
         let src = format!(
             "module main\n\
-             type Feed = | blank | Loaded(number) | Empty\n\
+             type Feed = {variants}\n\
              pub fn f(x: Feed) -> number {{\n  return match x {{\n    Loadd(n) => n,\n    Empty => 0,\n    blank => 1,\n    {last} => 2,\n  }}\n}}\n"
         );
         let dir = project(dir, &src);
         let out = fix(&dir);
-        assert!(out.contains("declined E0220"), "{out}");
-        assert!(!out.contains("catch-all arm `blank`"), "a variant arm is not the catch-all: {out}");
+        assert!(out.contains("declined E0220"), "{dir:?}: {out}");
         assert!(
-            out.contains("cannot tell from the diagnostics which arm that is"),
-            "the decline names no arm: {out}"
+            out.contains(&format!("its {named} handles `Loaded` now")),
+            "{dir:?}: the decline names the arm the checker recorded: {out}"
         );
+        assert!(!out.contains("cannot tell"), "{dir:?}: {out}");
         assert_eq!(source_of(&dir), src, "nothing is rewritten");
     }
+}
+
+/// A catch-all inside a payload is not the match's own: with `Ok(x)` over a
+/// `Result<Option<number>, string>` the `x` absorbs the inner union, and the
+/// arm that takes `Err` is the `e` binding at the top level.
+#[test]
+fn e0220_names_a_top_level_catch_all_not_one_inside_a_payload() {
+    let src = "module main\n\
+               type Feed = | Loaded(Option<number>) | Empty | Gone\n\
+               pub fn f(x: Feed) -> number {\n  return match x {\n    Loaded(o) => 1,\n    Emty => 0,\n    rest => 2,\n  }\n}\n";
+    let dir = project("e0220-depth", src);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0220"), "{out}");
+    assert!(out.contains("its arm `rest` handles `Empty` now"), "{out}");
+    assert_eq!(source_of(&dir), src, "nothing is rewritten");
 }

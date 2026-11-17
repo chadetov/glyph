@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-329 entries, 284 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-25 are open. G144, the D28 boundary cast that never reached the returns a
+334 entries, 285 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+29 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11964,3 +11964,52 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.134 (the dev-0.1.134 build): E0003 at the `,`; the
   published 0.1.133 reports E0001 ``invalid escape sequence `\q` ``.*
+
+- **G330. [FIXED] A non-ASCII character in code crashes `glyph check`.**
+  `let s = 1 é` exits 101 with a panic in the diagnostic renderer ("end byte
+  index 13 is not a char boundary"). The lexer turned the first byte of a
+  character it does not accept into a `char` (`é` became `Ã`) and gave the
+  error a one-byte span, which ended inside the character. Fixed in 0.1.135:
+  the error carries the whole character and its span covers it. Present in
+  0.1.134 as well; found by the 0.1.135 release review (record 94).
+
+  *Reproduced against 0.1.134 and the first 0.1.135 build: exit 101 on
+  `let s = 1 é`; 0.1.135 reports E0001 at the `é`.*
+
+- **G331. An unclosed JSX element reports the enclosing `}` as JSX text.**
+  `return <p>abc` followed by the function's closing `}` reports E0012
+  "`}` cannot appear in JSX text" at that brace, with help to write `{"}"}`.
+  0.1.134 said "expected closing JSX tag (reached EOF)" (E0002). Following the
+  new help makes the file worse. When text runs into a `}` and no closing tag
+  follows anywhere, the error should name the element left open. Found by the
+  0.1.135 release review (record 94).
+
+  *Reproduced against 0.1.135: E0012 at the function's `}`.*
+
+- **G332. An entity in a JSX attribute string is emitted as written.**
+  `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
+  where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
+  reason and left attribute strings alone; the divergence there is the same.
+  Unchanged since before 0.1.134. Found by the 0.1.135 release review
+  (record 94).
+
+  *Reproduced against 0.1.134 and 0.1.135: both exit 0.*
+
+- **G333. A `<` in JSX text is E0002 "expected JSX element or attribute name".**
+  `<p>a < b</p>` reads the `<` as the start of an element. The four E0012
+  refusals each give the spelling to use, and this one gives none: it should
+  say that text cannot hold `<` and offer `{"<"}`. Pre-existing. Found by the
+  0.1.135 release review (record 94).
+
+  *Reproduced against 0.1.135: E0002.*
+
+- **G334. An invisible character outside a string is named raw, and a BOM is
+  refused.** `unexpected character` prints a no-break space, U+200B, a lone
+  combining mark or a byte-order mark between backticks as it is, so the
+  message reads as if it named nothing; it should print `U+XXXX` for a
+  character that does not show. A BOM at the start of a file is E0001 (it
+  crashed with exit 101 before G330), while `tsc` and most editors accept and
+  skip it; whether Glyph skips it too needs deciding. Found by the 0.1.135
+  release review (record 94).
+
+  *Reproduced against 0.1.135: E0001 with the character printed raw.*

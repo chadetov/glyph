@@ -61,8 +61,58 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.134</span>
+            <span class="rel-ver">0.1.135</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>JSX text is read as text. Until now it went through the same lexer as code, so an apostrophe started a string, <code>//</code> started a comment, and a <code>"</code> could swallow markup up to the next one. The parser now asks the lexer to read text raw, from a tag up to the next <code>{</code> or <code>&lt;</code>, the way TypeScript does.</p>
+
+            <div class="code">
+              <span class="cap">notes.glyph</span>
+<pre>pub component Notes() {
+  return &lt;div&gt;
+    {
+      // the heading comes from the route
+    }
+    &lt;h1&gt;Notes&lt;/h1&gt;
+    &lt;p&gt;Don't stop; 50% off "today"&lt;/p&gt;
+  &lt;/div&gt;
+}</pre>
+            </div>
+
+            <h3>What text can hold</h3>
+            <p>Anything except <code>{</code> and <code>&lt;</code>, with four refusals, all reported as E0012 with the character named:</p>
+            <ul>
+              <li><code>}</code> and <code>&gt;</code>, which TSX refuses too. Write <code>{"}"}</code> or <code>{"&gt;"}</code>.</li>
+              <li><code>//</code>. TSX reads it as text and Glyph used to read it as a comment, so either reading would silently change some program. Write a string child, <code>{"see http://example.com"}</code>, or put a comment in a child of its own as above.</li>
+              <li>An HTML entity such as <code>&amp;amp;</code> or <code>&amp;nbsp;</code>. TSX decodes entities and Glyph emits text as written, so the same characters would render differently. Write the character itself, or <code>{"\u{A0}"}</code> for an invisible one; the error names the character the entity stands for and how to write it. An <code>&amp;</code> that does not start an entity, as in <code>Tom &amp; Jerry</code>, is text.</li>
+            </ul>
+            <p>A <code>&gt;=</code> glued to a tag is split where text follows it, so <code>&lt;p&gt;=x&lt;/p&gt;</code> is the text <code>=x</code>. After the outermost element it is still an error.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran the published 0.1.134 and this build on the same programs. These compiled before and are refused now (E0012): <code>}</code> or <code>&gt;</code> in text, <code>//</code> in text when the closing tag is on a later line, and <code>//</code> inside quotes in text, as in <code>see "http://x.com" now</code>. These were refused and compile now: an apostrophe, an unpaired <code>"</code>, <code>\</code>, <code>/*</code>, <code>;</code>, <code>#</code> or a backtick in text, and <code>=</code> right after a tag. Any non-ASCII character in JSX text (<code>é</code>, <code>’</code>, <code>—</code>, an emoji) crashed 0.1.134 with exit code 101 and compiles now. An entity was E0001 and is E0012.</p>
+
+            <h3>Same program, different output</h3>
+            <p>Some programs compile under both versions and emit different TypeScript. In each case the new output is what Babel's JSX whitespace rule gives:</p>
+            <ul>
+              <li>Whitespace on one line between or around children is kept as a child. <code>&lt;p&gt;{first} {last}&lt;/p&gt;</code> renders <code>John Doe</code>; 0.1.134 dropped the space and rendered <code>JohnDoe</code>. The same goes for <code>&lt;b&gt;x&lt;/b&gt; &lt;i&gt;y&lt;/i&gt;</code>, a space before <code>&lt;/p&gt;</code>, and <code>&lt;p&gt; &lt;/p&gt;</code>. Whitespace that contains a line break, like the indentation between tags, is still dropped.</li>
+              <li>Text over several lines in a module-level <code>const</code> is one child, <code>"a b"</code>. It was two, <code>"a", "b"</code>, which rendered as <code>ab</code>. Inside a function it was already right.</li>
+              <li>A pair of <code>"</code> across tags, as in <code>say "&lt;b&gt;hi&lt;/b&gt;" now</code>, gives the <code>&lt;b&gt;</code> element. It used to be one string with the markup inside it.</li>
+            </ul>
+            <p>None of these shapes occurs in the repository: every <code>.glyph</code> file in it and all 32 example apps emit byte for byte what 0.1.134 emitted. Our release review found the whitespace case, so before upgrading look in your own components for spaces that sit on one line between a <code>}</code> or <code>&gt;</code> and the next <code>{</code> or <code>&lt;</code>, and between a tag and an <code>{expression}</code> it holds.</p>
+
+            <h3>Also fixed</h3>
+            <p>A character the lexer does not accept, such as <code>é</code> in code outside a string, crashed <code>glyph check</code> with exit code 101 in 0.1.134. It is reported as an error at that character now.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.134</span>
             <span class="rel-date">November 2026</span>
           </div>
           <div class="rel-body">

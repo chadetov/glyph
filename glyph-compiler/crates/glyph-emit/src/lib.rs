@@ -166,37 +166,34 @@ pub struct SiblingAliasName {
 }
 
 /// What the name in a sibling alias's body is, in the sibling's own scope,
-/// when it is not a type the sibling declares and exports.
+/// when no check reaches it from there. A name the sibling imports from
+/// another project module is followed into that module (G326), so it is
+/// not one of these.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SiblingReach {
-    /// The sibling imports it from a third module.
-    Imported,
+    /// The sibling imports it from outside the project: a `std/*` module or
+    /// a package, whose types have no runtime check.
+    Outside,
     /// The sibling declares it without `pub`.
     Private,
-    /// A generic type the sibling declares and applies in the body.
-    Generic,
 }
 
 impl NoCheckCause {
-    /// For a sibling alias: what its body names, and what the compiler does
-    /// not do with it yet, as two halves of one sentence.
+    /// For a sibling alias: what its body names, and why no check reaches
+    /// it, as two halves of one sentence.
     fn sibling_clause(&self) -> Option<(String, &'static str)> {
         let NoCheckCause::SiblingAlias(sibling) = self else {
             return None;
         };
         let SiblingAliasName { alias, module, name, reach } = sibling.as_ref();
         Some(match reach {
-            SiblingReach::Imported => (
-                format!("`{alias}`'s body names `{name}`, which `{module}` imports"),
-                "does not yet follow an alias across a second module",
+            SiblingReach::Outside => (
+                format!("`{alias}`'s body names `{name}`, which `{module}` imports from outside the project"),
+                "has no runtime check for a `std` or package type",
             ),
             SiblingReach::Private => (
                 format!("`{alias}`'s body names `{name}`, which `{module}` declares without `pub`"),
                 "reads a sibling alias only through the types its module exports",
-            ),
-            SiblingReach::Generic => (
-                format!("`{alias}`'s body names the generic `{name}`"),
-                "does not yet follow a generic type through a sibling alias",
             ),
         })
     }
@@ -262,7 +259,7 @@ macro_rules! generic_union_note {
 }
 macro_rules! sibling_alias_note {
     () => {
-        "An alias imported from another module is read in the module that declares it, and its body is followed only through the types that module declares and exports. A name that module imports, a type it keeps private, and a generic type it applies are not followed yet. Parse a type written in this module that names the record directly, imported from the module that declares it, or export the private type."
+        "An alias imported from another module is read in the module that declares it: each name in its body is that module's, and a name it imports from another module of the project is followed there. A type that module keeps private cannot be reached from outside it, and a `std` or package type has no runtime check. Export the private type, or parse a type the project declares."
     };
 }
 
@@ -761,10 +758,10 @@ pub struct EmitContext<'a> {
 
 /// What a project module binds a name to, for the names
 /// [`EmitContext::sibling_names`] records.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SiblingName {
-    /// A named, namespace or aliased import.
-    Imported,
+    /// A named, namespace or aliased import, with the module it reads.
+    Imported(SiblingImport),
     /// A `type` declared without `pub`.
     Private,
     /// An exported generic record.
@@ -773,6 +770,16 @@ pub enum SiblingName {
     GenericUnion,
     /// An interface, exported or not.
     Interface,
+}
+
+/// Where an import binding of a project module leads: the module path it
+/// names, and for a named import the name it imports there (the binding's
+/// own name, since a named import is never renamed). `None` for a namespace
+/// or aliased import, whose binding stands for the whole module.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SiblingImport {
+    pub module: String,
+    pub original: Option<String>,
 }
 
 /// Where a module-local chain of second names (D46) ends when it leaves the
@@ -1031,17 +1038,29 @@ impl ProjectTables {
                     // something reaches for it (G124).
                     self.imported_module_paths
                         .insert(glyph_resolver::path_key(&imp.path));
-                    let bound: Vec<String> = match &imp.kind {
-                        ImportKind::Named(names) => names.iter().map(|n| n.to_string()).collect(),
-                        ImportKind::Namespace => {
-                            imp.path.segments.last().map(|s| s.to_string()).into_iter().collect()
+                    let target = glyph_resolver::path_key(&imp.path);
+                    let bound: Vec<(String, Option<String>)> = match &imp.kind {
+                        ImportKind::Named(names) => {
+                            names.iter().map(|n| (n.to_string(), Some(n.to_string()))).collect()
                         }
-                        ImportKind::Aliased(alias) => vec![alias.to_string()],
+                        ImportKind::Namespace => imp
+                            .path
+                            .segments
+                            .last()
+                            .map(|s| (s.to_string(), None))
+                            .into_iter()
+                            .collect(),
+                        ImportKind::Aliased(alias) => vec![(alias.to_string(), None)],
                         ImportKind::Default(_) => Vec::new(),
                     };
-                    for name in bound {
-                        self.sibling_names
-                            .insert((module_path.to_string(), name), SiblingName::Imported);
+                    for (name, original) in bound {
+                        self.sibling_names.insert(
+                            (module_path.to_string(), name),
+                            SiblingName::Imported(SiblingImport {
+                                module: target.clone(),
+                                original,
+                            }),
+                        );
                     }
                 }
                 Decl::Interface(i) => {
@@ -1274,6 +1293,7 @@ impl<'a> Emitter<'a> {
             synth_bindings: Rc::new(RefCell::new(HashSet::new())),
             delegations: RefCell::new(None),
             expanding_sibling_aliases: RefCell::new(Vec::new()),
+            following_sibling_imports: RefCell::new(Vec::new()),
             marks: mapped.then(|| Rc::new(RefCell::new(Vec::new()))),
             ctx,
         }
@@ -1558,6 +1578,10 @@ struct Emitter<'a> {
     /// recursive one (`pub type L = Array<L>`) ends as unverifiable rather
     /// than expanding forever.
     expanding_sibling_aliases: RefCell<Vec<(String, String)>>,
+    /// The `(module, name)` hops from a sibling's import binding into the
+    /// module it imports from, being followed while a sibling alias's body
+    /// is read ([`Self::follow_sibling_import`]).
+    following_sibling_imports: RefCell<Vec<(String, String)>>,
     /// The span table the source-map markers index (see "Source-map markers"
     /// above `strip_marks`). Shared with every sub-emitter, so a statement in
     /// a lambda body gets a marker that survives the splice into the parent.
@@ -1639,6 +1663,7 @@ impl<'a> Emitter<'a> {
             synth_bindings: Rc::clone(&self.synth_bindings),
             delegations: RefCell::new(None),
             expanding_sibling_aliases: RefCell::new(Vec::new()),
+            following_sibling_imports: RefCell::new(Vec::new()),
             // The same table: a sub-emitter's markers travel inside its
             // output when it is spliced into the parent, and the final strip
             // pass places them in the finished file.
@@ -5164,26 +5189,154 @@ impl<'a> Emitter<'a> {
     /// The check for the bare name `name` written in the body of an alias
     /// exported by the sibling `module`, read in that module's scope: its
     /// record by its descriptor, reached through the hidden namespace import,
-    /// and its descriptorless alias by that alias's own body.
+    /// its descriptorless alias by that alias's own body, and a name it
+    /// imports from another project module by that module's declaration of
+    /// it (G326), as many modules on as the chain runs.
     ///
-    /// Any other name is unverifiable, with the reason (E0304): a name the
-    /// sibling imports, a type it keeps private, an interface. Such a name
-    /// was read in this module's scope until 0.1.133, which refused an
-    /// imported `Rows = Array<User>` where this module had no `User`, and
-    /// checked it against the wrong record where this module declared a
-    /// `User` of its own. Following an imported name into the module that
-    /// declares it is a second hop this does not make.
+    /// Any other name is unverifiable, with the reason (E0304): a type the
+    /// sibling keeps private, an interface, a `std` or package type. A
+    /// sibling's name was read in this module's scope until 0.1.133, and
+    /// checked against the wrong record where this module declared a `User`
+    /// of its own; it is never read here.
     fn sibling_name_check(&self, module: &str, name: &str, access: &str) -> FieldCheck {
         let key = (module.to_string(), name.to_string());
         if self.ctx.plain_descriptors.contains(&key) {
-            let ns = self.sibling_namespace(module);
+            let check = format!("{}.is({access})", self.sibling_ref(module, name));
             self.note_delegation(Some(key));
-            return FieldCheck::Deep(format!("{ns}.{name}.is({access})"));
+            return FieldCheck::Deep(check);
         }
-        match self.resolve_imported_alias_leaf(module, name) {
-            Some((owner, leaf)) => self.expand_sibling_alias(module, &owner, &leaf, access),
-            None => FieldCheck::Unverifiable(self.sibling_miss(module, name, name)),
+        if let Some((owner, leaf)) = self.resolve_imported_alias_leaf(module, name) {
+            return self.expand_sibling_alias(module, &owner, &leaf, access);
         }
+        match self.sibling_import(module, name) {
+            Some(SiblingImport { module: home, original: Some(original) }) => {
+                self.follow_sibling_import(&home, &original, |e| e.sibling_name_check(&home, &original, access))
+                    .unwrap_or(FieldCheck::Unverifiable(NoCheckCause::Opaque))
+            }
+            _ => FieldCheck::Unverifiable(self.sibling_miss(module, name, name)),
+        }
+    }
+
+    /// The import `binding` is in the project module `module`, when it
+    /// imports from another module of the project. `None` for any other
+    /// binding, an import from `std` or a package included.
+    fn sibling_import(&self, module: &str, binding: &str) -> Option<SiblingImport> {
+        match self
+            .ctx
+            .sibling_names
+            .get(&(module.to_string(), binding.to_string()))?
+        {
+            SiblingName::Imported(target) if self.ctx.project_modules.contains(&target.module) => {
+                Some(target.clone())
+            }
+            _ => None,
+        }
+    }
+
+    /// Run `f` with `(module, name)` held on `following_sibling_imports`,
+    /// the hop from a sibling's import binding to the module it imports
+    /// from. `None` when the hop is already being followed: two modules
+    /// each importing the name from the other declare it nowhere, which the
+    /// resolver reports, and this keeps the walk from spinning on it.
+    fn follow_sibling_import<T>(
+        &self,
+        module: &str,
+        name: &str,
+        f: impl FnOnce(&Self) -> T,
+    ) -> Option<T> {
+        let key = (module.to_string(), name.to_string());
+        if self.following_sibling_imports.borrow().contains(&key) {
+            return None;
+        }
+        self.following_sibling_imports.borrow_mut().push(key);
+        let out = f(self);
+        self.following_sibling_imports.borrow_mut().pop();
+        Some(out)
+    }
+
+    /// The expression naming the descriptor `name` that the project module
+    /// `module` exports: through the hidden namespace import of `module`, or
+    /// by its own name when a chain of hops has led back into this module,
+    /// which needs no import of itself.
+    fn sibling_ref(&self, module: &str, name: &str) -> String {
+        if module == self.ctx.module_path {
+            name.to_string()
+        } else {
+            format!("{}.{name}", self.sibling_namespace(module))
+        }
+    }
+
+    /// The `(module path, type name)` of the generic record that `base`, the
+    /// base of an application in the body of an alias of the sibling
+    /// `module`, names in that module's scope: one the sibling exports, one
+    /// it imports by name, or one reached through its namespace import.
+    /// `None` for any other base, which [`Self::sibling_generic_cause`]
+    /// explains.
+    fn sibling_generic_home(&self, module: &str, base: &TypeExpr) -> Option<(String, String)> {
+        let TypeExpr::Path { segments, .. } = base else {
+            return None;
+        };
+        let (mut home, mut name) = match segments.as_slice() {
+            [name] => (module.to_string(), name.to_string()),
+            [ns, name] => match self.sibling_import(module, ns.as_ref())? {
+                SiblingImport { module: home, original: None } => (home, name.to_string()),
+                _ => return None,
+            },
+            _ => return None,
+        };
+        let mut seen = std::collections::HashSet::new();
+        loop {
+            if !seen.insert((home.clone(), name.clone())) {
+                return None;
+            }
+            match self.ctx.sibling_names.get(&(home.clone(), name.clone())) {
+                Some(SiblingName::GenericRecord) => return Some((home, name)),
+                Some(SiblingName::Imported(_)) => match self.sibling_import(&home, &name)? {
+                    SiblingImport { module: next, original: Some(original) } => {
+                        home = next;
+                        name = original;
+                    }
+                    _ => return None,
+                },
+                _ => return None,
+            }
+        }
+    }
+
+    /// The check for the application `base<args>` in the body of an alias
+    /// of the sibling `module`: the generic record's descriptor in the
+    /// module that declares it, with one checker per argument, each argument
+    /// read in `module`'s scope, where it was written. The local twin is the
+    /// generic-record arm of [`Self::field_check_in`]: an argument with no
+    /// check makes the application unverifiable, for the same reason.
+    fn sibling_generic_check(
+        &self,
+        module: &str,
+        base: &TypeExpr,
+        args: &[TypeExpr],
+        access: &str,
+    ) -> FieldCheck {
+        let Some((home, gname)) = self.sibling_generic_home(module, base) else {
+            return FieldCheck::Unverifiable(self.sibling_generic_cause(module, base));
+        };
+        let arity = self.imported_generic_descriptor_arity(&home, &gname);
+        if arity == 0 || arity != args.len() {
+            return FieldCheck::Unverifiable(self.sibling_generic_cause(module, base));
+        }
+        let mut checkers = Vec::with_capacity(args.len());
+        for a in args {
+            let check = match self.field_check_in(a, "__cv", Origin::Sibling(module)) {
+                FieldCheck::Deep(c) => c,
+                FieldCheck::PresenceOnly => "__cv !== undefined".to_string(),
+                FieldCheck::Unverifiable(cause) => return FieldCheck::Unverifiable(cause),
+            };
+            checkers.push(format!("(__cv: unknown) => {check}"));
+        }
+        FieldCheck::Deep(format!(
+            "{}.is({access}, {})",
+            self.sibling_ref(&home, &gname),
+            checkers.join(", ")
+        ))
     }
 
     /// The check for `leaf`, the body of the alias `owner` the sibling
@@ -5220,15 +5373,17 @@ impl<'a> Emitter<'a> {
         let entry = self
             .ctx
             .sibling_names
-            .get(&(module.to_string(), binding.to_string()))
-            .copied();
+            .get(&(module.to_string(), binding.to_string()));
         let reach = match entry {
-            Some(SiblingName::Imported) => SiblingReach::Imported,
+            // An import from another project module is followed, so one that
+            // reaches here is from `std` or a package.
+            Some(SiblingName::Imported(_)) => SiblingReach::Outside,
             Some(SiblingName::Private) => SiblingReach::Private,
-            Some(SiblingName::GenericRecord) => SiblingReach::Generic,
             Some(SiblingName::Interface) => return NoCheckCause::Interface,
             Some(SiblingName::GenericUnion) => return NoCheckCause::GenericUnion,
-            None => return NoCheckCause::Opaque,
+            // A generic record named bare, with no arguments, is a type
+            // error the checker reports first.
+            Some(SiblingName::GenericRecord) | None => return NoCheckCause::Opaque,
         };
         let Some(alias) = alias else {
             return NoCheckCause::Opaque;
@@ -5253,8 +5408,25 @@ impl<'a> Emitter<'a> {
             [name] if self.prelude_kind_by_spelling(name.as_ref()) == Some(PreludeKind::Result) => {
                 NoCheckCause::Result
             }
-            [name] => self.sibling_miss(module, name.as_ref(), name.as_ref()),
-            [ns, name] => self.sibling_miss(module, &format!("{ns}.{name}"), ns.as_ref()),
+            // Imported from another project module: the cause is what that
+            // module declares under the name (a generic union, an interface).
+            [name] => match self.sibling_import(module, name.as_ref()) {
+                Some(SiblingImport { module: home, original: Some(original) }) => self
+                    .follow_sibling_import(&home, &original, |e| {
+                        e.sibling_generic_cause(&home, &TypeExpr::Path {
+                            segments: vec![Ident::from(original.as_str())],
+                            span: base.span(),
+                        })
+                    })
+                    .unwrap_or(NoCheckCause::Opaque),
+                _ => self.sibling_miss(module, name.as_ref(), name.as_ref()),
+            },
+            [ns, name] => match self.sibling_import(module, ns.as_ref()) {
+                Some(SiblingImport { module: home, original: None }) => {
+                    self.exported_name_cause(&home, name.as_ref())
+                }
+                _ => self.sibling_miss(module, &format!("{ns}.{name}"), ns.as_ref()),
+            },
             _ => NoCheckCause::Opaque,
         }
     }
@@ -5868,9 +6040,16 @@ impl<'a> Emitter<'a> {
                 // In a sibling's body, `ns` is the sibling's namespace import,
                 // not this module's binding of the same name.
                 if let Origin::Sibling(module) = origin {
-                    return FieldCheck::Unverifiable(
-                        self.sibling_miss(module, &format!("{ns}.{name}"), ns),
-                    );
+                    return match self.sibling_import(module, ns) {
+                        Some(SiblingImport { module: home, original: None }) => self
+                            .follow_sibling_import(&home, name, |e| {
+                                e.sibling_name_check(&home, name, access)
+                            })
+                            .unwrap_or(FieldCheck::Unverifiable(NoCheckCause::Opaque)),
+                        _ => FieldCheck::Unverifiable(
+                            self.sibling_miss(module, &format!("{ns}.{name}"), ns),
+                        ),
+                    };
                 }
                 if self.has_namespaced_descriptor(ns, name) {
                     self.note_delegation(
@@ -5984,10 +6163,15 @@ impl<'a> Emitter<'a> {
                             .join(", ");
                         FieldCheck::Deep(format!("{gname}.is({access}, {checkers})"))
                     }
-                    _ => FieldCheck::Unverifiable(match origin {
-                        Origin::Local => self.local_generic_cause(base),
-                        Origin::Sibling(module) => self.sibling_generic_cause(module, base),
-                    }),
+                    // A sibling's application is read in the sibling's scope,
+                    // and checked by the generic record of the module that
+                    // declares it.
+                    _ => match origin {
+                        Origin::Local => FieldCheck::Unverifiable(self.local_generic_cause(base)),
+                        Origin::Sibling(module) => {
+                            self.sibling_generic_check(module, base, args, access)
+                        }
+                    },
                 }
             }
             // A function-typed field (`run: fn(x: number) -> number`) is
@@ -6777,35 +6961,54 @@ impl<'a> Emitter<'a> {
         if self.type_shape(&body, Origin::Sibling(module)) != TypeShape::Array {
             return None;
         }
-        self.sibling_schema(module, &body, &mut vec![name.to_string()])
+        self.sibling_schema(module, &body, &mut vec![(module.to_string(), name.to_string())])
     }
 
     /// [`Self::imported_array_alias_schema`]'s walk over `ty`, a type written
     /// in the sibling `module`: one of its records, an `Array` of one, or an
-    /// alias of either. `seen` holds the aliases being expanded, so a
-    /// recursive one ends rather than spinning.
+    /// alias of either, followed into the project module the sibling imports
+    /// it from, by name or through a namespace (G326). `seen` holds the
+    /// `(module, name)` pairs being expanded, so a recursive alias or a
+    /// circular import ends rather than spinning.
     fn sibling_schema(
         &self,
         module: &str,
         ty: &TypeExpr,
-        seen: &mut Vec<String>,
+        seen: &mut Vec<(String, String)>,
     ) -> Option<(String, (String, String))> {
         match ty {
             TypeExpr::Path { segments, .. } => {
-                let [name] = segments.as_slice() else {
-                    return None;
+                let (home, name) = match segments.as_slice() {
+                    [name] => (module.to_string(), name.to_string()),
+                    [ns, name] => match self.sibling_import(module, ns.as_ref())? {
+                        SiblingImport { module: home, original: None } => (home, name.to_string()),
+                        _ => return None,
+                    },
+                    _ => return None,
                 };
-                let key = (module.to_string(), name.to_string());
+                let key = (home, name);
                 if self.ctx.plain_descriptors.contains(&key) {
-                    let ns = self.sibling_namespace(module);
-                    return Some((format!("{ns}.{name}.schema"), key));
+                    let schema = format!("{}.schema", self.sibling_ref(&key.0, &key.1));
+                    return Some((schema, key));
                 }
-                if seen.contains(&key.1) {
+                if seen.contains(&key) {
                     return None;
                 }
-                let (_, body) = self.resolve_imported_alias_leaf(module, name.as_ref())?;
-                seen.push(key.1);
-                self.sibling_schema(module, &body, seen)
+                seen.push(key.clone());
+                let (home, name) = key;
+                if let Some((_, body)) = self.resolve_imported_alias_leaf(&home, &name) {
+                    return self.sibling_schema(&home, &body, seen);
+                }
+                match self.sibling_import(&home, &name)? {
+                    SiblingImport { module: next, original: Some(original) } => {
+                        let path = TypeExpr::Path {
+                            segments: vec![Ident::from(original.as_str())],
+                            span: ty.span(),
+                        };
+                        self.sibling_schema(&next, &path, seen)
+                    }
+                    _ => None,
+                }
             }
             TypeExpr::Generic { args, .. }
                 if self.type_shape(ty, Origin::Sibling(module)) == TypeShape::Array =>

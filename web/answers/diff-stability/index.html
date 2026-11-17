@@ -229,16 +229,16 @@ type Cell = {
           a missing feature, because it damages code that already worked.
         </p>
         <p>
-          The open one is G335. Inside a block, a line that starts with <code>(</code> continues
-          the line above. The formatter prints <code>load()?</code> followed by
-          <code>.run()</code> as <code>(load()?).run()</code>, because <code>load()?.run()</code>
-          would read <code>?.</code> as optional chaining, and after a line like
-          <code>let a = 1</code> that parenthesis turns into a call: the formatted file means
-          <code>let a = 1(…).run()</code>. <code>tsc</code> catches this one in a full build (TS2349),
-          but not when the line above ends in something callable, and <code>glyph check --no-tsc</code>
-          catches neither. The fuzzer found it while we worked on
-          chain comments, and it is still present in 0.1.136. Until it is fixed, bind the result
-          first: <code>let job = load()?</code>, then <code>job.run()</code>.
+          Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code>
+          continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code>
+          followed by <code>.run()</code> as <code>(load()?).run()</code>, so after
+          <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now
+          keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes
+          <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other
+          was a union's <code>where</code> refinement, which the formatter dropped, turning a program
+          <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file
+          and compares the tree with the original's, so a layout that changes what a file means
+          fails on the first pass instead of waiting for someone to notice.
         </p>
       </div>
 

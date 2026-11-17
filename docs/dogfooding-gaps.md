@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-343 entries, 288 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+343 entries, 289 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 35 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -11706,7 +11706,7 @@ and is the owner's to confirm.
   (E0210 through D46), and the rename sent through `changes` with the call
   site's fix is accepted. A protocol test holds the gate's project lists
   equal to `glyph check --no-tsc --json` on the same tree.
-- **G311. [HALF FIXED] `?.` on an `Option` or a `Result` is not checked.** The checker
+- **G311. [FIXED] `?.` on an `Option` or a `Result` is not checked.** The checker
   reads the `optional` flag of a member only for a `Nullable` (G304); on an
   `Option<Note>`, `o?.nmae` passes `glyph check --no-tsc`, and `tsc` refuses
   it (``TS2339: Property 'nmae' does not exist on type 'Option<Note>'``). An
@@ -11726,6 +11726,17 @@ and is the owner's to confirm.
   `?.` is optional chaining and does not propagate an `Err`, which is how csvql
   came to write `bind_agg(...)?.label`. The plain-dot member set (`o.nmae`,
   `r.value`) is still unchecked and is 0.1.139.
+
+  Fixed in 0.1.139 (record 87, Q3). A plain-dot member on an `Option`, or on
+  a `Result` naming anything but `map` or `map_err`, is E0210. The message
+  names the member set (none for an `Option`) and the help opens the value
+  with `match`, or for a `Result` binds it with `?` first. The receiver is
+  resolved by the same function as E0236, so aliases count and a user type
+  named `Option` does not. `o.tag`, `r.tag` and `r.value` are the runtime
+  encoding (D49) and are refused with a help that says so; `tsc` accepted all
+  three. `.map_err(f)?` is unchanged: `glyph check` gave the same result as
+  0.1.137 on all 464 tracked files and 32 apps. Typing what `map` and
+  `map_err` return is still a separate item.
 - **G312. [FIXED] A built-in method read without a call is accepted.** `let up =
   s.toUpperCase` then `up()` passes `glyph check` with `tsc` (``tsc --strict
   passed.``), and throws a `TypeError` at run time, because an ES module is

@@ -41,15 +41,17 @@ impl fmt::Display for Refusal {
 impl std::error::Error for Refusal {}
 
 /// Describe the refusal of `refused`, the comments the printer found outside
-/// every gap that could hold them, in the order it found them.
+/// every gap that could hold them.
 ///
-/// The first one with no place at all is the one named. A comment in a gap
+/// The first one in the source with no place at all is the one named. A comment in a gap
 /// the chain layout places can be refused too, when the chain it is in falls
 /// back for another comment; naming it would send the author to fix the
 /// wrong one, so it is named only when nothing else was refused.
 pub(crate) fn describe(m: &Module, source: &str, refused: &[Comment]) -> Refusal {
-    let described: Vec<(&Comment, Found)> = refused
-        .iter()
+    let mut in_source_order: Vec<&Comment> = refused.iter().collect();
+    in_source_order.sort_by_key(|c| c.span.start);
+    let described: Vec<(&Comment, Found)> = in_source_order
+        .into_iter()
         .map(|c| (c, Walk::new(source, c.span.start).module(m)))
         .collect();
     let (comment, found) = described

@@ -166,11 +166,28 @@ fn an_entity_is_refused_and_named() {
 fn an_entity_help_names_what_to_write() {
     let help = |text: &str| err(&component(&format!("<p>{text}</p>"))).help().unwrap().to_string();
     let amp = help("a &amp; b");
-    assert!(amp.contains("`a & b`") && amp.contains("{\"&\"}"), "{amp}");
+    assert!(amp.contains("Write `&` itself") && amp.contains("{\"&\"}"), "{amp}");
     assert!(help("a&nbsp;b").contains("{\"\\u{A0}\"}"), "{}", help("a&nbsp;b"));
     assert!(help("&#38;").contains("{\"\\u{26}\"}"), "{}", help("&#38;"));
     assert!(help("&#x1F600;").contains("{\"\\u{1F600}\"}"), "{}", help("&#x1F600;"));
     assert!(help("&#X41;").contains("{\"\\u{41}\"}"), "{}", help("&#X41;"));
+    // Record 94: the help names the character, and never offers a spelling
+    // that is itself refused.
+    let lt = help("a &lt; b");
+    assert!(lt.contains("`<`") && lt.contains("{\"<\"}") && !lt.contains("Write `<` itself"), "{lt}");
+    let gt = help("a &gt; b");
+    assert!(gt.contains("{\">\"}") && !gt.contains("Write `>` itself"), "{gt}");
+    let copy = help("&copy; 2026");
+    assert!(copy.contains("Write `\u{A9}` itself") && !copy.contains("{\"&\"}"), "{copy}");
+    assert!(help("a&mdash;b").contains("`\u{2014}`"), "{}", help("a&mdash;b"));
+    assert!(help("a&zwj;b").contains("{\"\\u{200D}\"}"), "{}", help("a&zwj;b"));
+    let unknown = help("&foo;");
+    assert!(unknown.contains("stands for") && unknown.contains("{\"&foo;\"}"), "{unknown}");
+    // `{"""}` opens a triple-quoted string; the help escapes the quote.
+    let quot = help("x &quot; y");
+    assert!(quot.contains("{\"\\\"\"}") && !quot.contains("{\"\"\"}"), "{quot}");
+    let bad = help("&#xD800;");
+    assert!(bad.contains("not a character's number"), "{bad}");
 }
 
 #[test]

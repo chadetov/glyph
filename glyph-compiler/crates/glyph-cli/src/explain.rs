@@ -176,9 +176,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             show `&amp;` where TSX shows `&`. Any shape is refused, unknown \
             names included, so no list of names decides it; any other `&` is \
             text (`Tom & Jerry`). Write the character itself, or a `\\u{...}` \
-            string child for one that is invisible or hard to type:\n\n\
+            string child for one that is invisible or hard to type. `&lt;` \
+            and `&gt;` stand for characters text cannot hold, so they become \
+            `{\"<\"}` and `{\">\"}`. The help names the character for the \
+            common entities:\n\n\
             Before:  <p>a &amp; b</p>\n\
             After:   <p>a & b</p>\n\n\
+            Before:  <p>a &lt; b</p>\n\
+            After:   <p>a {\"<\"} b</p>\n\n\
             Before:  <p>a&nbsp;b</p>\n\
             After:   <p>a{\"\\u{A0}\"}b</p>\n\n\
             A `{}` with \

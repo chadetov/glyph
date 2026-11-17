@@ -413,10 +413,10 @@ impl ParseError {
                 "`{word}` is a Glyph keyword, so it cannot be an imported item, even when the export is spelled `{word}`. To reach it, import the module by namespace and read it as `{namespace}.{word}`: write `import {namespace}`, then `{namespace}.{word}` works in a value or a type. `glyph llms` lists every reserved word under \"Reserved words\"."
             )),
             ParseError::JsxText { refusal: JsxTextRefusal::CloseBrace, .. } => Cow::Borrowed(
-                "JSX text holds any character but `{`, `<`, `}`, `>` and `//`. Write a `}` as a string child: `{\"}\"}`.",
+                "JSX text holds any character but `{`, `<`, `}`, `>`, `//` and an HTML entity. Write a `}` as a string child: `{\"}\"}`.",
             ),
             ParseError::JsxText { refusal: JsxTextRefusal::CloseAngle, .. } => Cow::Borrowed(
-                "JSX text holds any character but `{`, `<`, `}`, `>` and `//`. Write a `>` as a string child: `{\">\"}`.",
+                "JSX text holds any character but `{`, `<`, `}`, `>`, `//` and an HTML entity. Write a `>` as a string child: `{\">\"}`.",
             ),
             ParseError::JsxText { refusal: JsxTextRefusal::LineComment, .. } => Cow::Borrowed(
                 "Glyph reads `//` in JSX text as neither text nor a comment. For text, write it as a string child: `{\"see http://example.com\"}`. For a comment, put it in a comment-only child: `{` on one line, `// note` on the next, `}` after it. That child renders nothing.",
@@ -434,28 +434,95 @@ impl ParseError {
     }
 }
 
-/// The help for an entity refused in JSX text (record 93). `&nbsp;` and a
-/// numeric entity name a character that is invisible or hard to type, so the
-/// help writes it as a `\u{HEX}` string child; any other entity is written as
-/// the character itself.
+/// The help for an entity refused in JSX text (record 93, record 94).
+///
+/// The help names the character the entity stands for and the spelling that
+/// compiles. A printable character is written as itself, unless JSX text
+/// cannot hold it (`<`, `>`, `{`, `}`), when it becomes a string child. An
+/// invisible or hard-to-type one (`&nbsp;`, any numeric entity) becomes a
+/// `\u{HEX}` string child. A name outside the table gets the general rule.
 fn entity_help(text: &str) -> String {
-    const GENERAL: &str =
-        "Write the character itself (`a & b`), or a string child (`{\"&\"}`).";
     let name = &text[1..text.len() - 1];
-    let code = if name == "nbsp" {
-        Some(0xA0)
-    } else if let Some(hex) = name.strip_prefix("#x").or_else(|| name.strip_prefix("#X")) {
+    let numeric = name.starts_with('#');
+    let code = if let Some(hex) = name.strip_prefix("#x").or_else(|| name.strip_prefix("#X")) {
         u32::from_str_radix(hex, 16).ok()
     } else if let Some(dec) = name.strip_prefix('#') {
         dec.parse::<u32>().ok()
     } else {
-        None
+        named_entity(name).map(|c| c as u32)
     };
-    match code.and_then(char::from_u32) {
-        Some(c) => format!(
+    let Some(c) = code.and_then(char::from_u32) else {
+        return if numeric {
+            format!("`{text}` is not a character's number. Write the character itself, or a string child with its code point: `{{\"\\u{{2014}}\"}}`.")
+        } else {
+            format!("If `{text}` stands for a character, write that character itself, or a string child holding its code point (`{{\"\\u{{A9}}\"}}` for `&copy;`). To keep the characters as written, write a string child: `{{\"{text}\"}}`.")
+        };
+    };
+    // The spelling inside a string child: `"` and `\` are escaped, so the
+    // child the help offers compiles (`&quot;` is `{"\""}`, record 94).
+    let quoted = match c {
+        '"' => "\\\"".to_string(),
+        '\\' => "\\\\".to_string(),
+        c => c.to_string(),
+    };
+    let invisible = c.is_whitespace() || c.is_control() || matches!(c, '\u{AD}' | '\u{200B}'..='\u{200F}' | '\u{2060}' | '\u{FEFF}');
+    if invisible || numeric {
+        format!(
             "Write it as a string child: `{{\"\\u{{{:X}}}\"}}`. A `\\u{{...}}` escape keeps a character that is invisible or hard to type visible in the source.",
             c as u32
-        ),
-        None => GENERAL.to_string(),
+        )
+    } else if matches!(c, '<' | '>' | '{' | '}') {
+        format!("`{text}` is `{c}`, which JSX text cannot hold. Write it as a string child: `{{\"{quoted}\"}}`.")
+    } else {
+        format!("`{text}` is `{c}`. Write `{c}` itself, or a string child: `{{\"{quoted}\"}}`.")
     }
+}
+
+/// The named entities the help can spell out. Not a decoder: an entity is
+/// refused whether or not it is listed here.
+fn named_entity(name: &str) -> Option<char> {
+    Some(match name {
+        "amp" => '&',
+        "lt" => '<',
+        "gt" => '>',
+        "quot" => '"',
+        "apos" => '\'',
+        "nbsp" => '\u{A0}',
+        "ensp" => '\u{2002}',
+        "emsp" => '\u{2003}',
+        "thinsp" => '\u{2009}',
+        "shy" => '\u{AD}',
+        "zwj" => '\u{200D}',
+        "zwnj" => '\u{200C}',
+        "copy" => '©',
+        "reg" => '®',
+        "trade" => '™',
+        "mdash" => '—',
+        "ndash" => '–',
+        "hellip" => '…',
+        "lsquo" => '‘',
+        "rsquo" => '’',
+        "ldquo" => '“',
+        "rdquo" => '”',
+        "laquo" => '«',
+        "raquo" => '»',
+        "middot" => '·',
+        "bull" => '•',
+        "times" => '×',
+        "divide" => '÷',
+        "deg" => '°',
+        "plusmn" => '±',
+        "euro" => '€',
+        "pound" => '£',
+        "yen" => '¥',
+        "cent" => '¢',
+        "sect" => '§',
+        "para" => '¶',
+        "larr" => '←',
+        "rarr" => '→',
+        "uarr" => '↑',
+        "darr" => '↓',
+        "harr" => '↔',
+        _ => return None,
+    })
 }

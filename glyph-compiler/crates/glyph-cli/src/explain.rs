@@ -477,7 +477,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `toUpperCase`, `toFixed`, ...), so `xs.lenght` on an `Array<string>` \
             is this error naming `Array<string>`, listing the members and \
             suggesting `length`. There is no declaration to add a member to; fix \
-            the name, or use the `std/array`, `std/string` or `std/math` function.",
+            the name, or use the `std/array`, `std/string` or `std/math` function.\n\n\
+            The prelude `Option` and `Result` have a fixed member set, checked \
+            through any alias (a type of your own named `Option` is not one). A \
+            `Result`'s only members are `map` and `map_err`, and an `Option` has \
+            none: `o.name` on an `Option<Note>` reads off the `Option`, not off \
+            its `Some` value, and is this error with help toward `match o { \
+            Some(n) => n.name, None => ... }`. On a `Result`, bind with `?` first \
+            (`let n = r?` then `n.name`) or open it with `match`. `tag` and \
+            `value` are how the emitted TypeScript encodes the two types (D49), \
+            not members of them, so `o.tag == \"Some\"` and `r.value` are refused \
+            although `tsc` accepts both; `match` is the one place an `Option` or a \
+            `Result` is opened. `?.` on either is E0236.",
         "E0211" => "E0211: argument type mismatch\n\n\
             A call argument's type is incompatible with the parameter it is passed \
             to. v1 reports this only when both types are fully known and provably \
@@ -967,7 +978,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
             type. `tsc` refuses most of these (TS2339) but accepts `o?.tag`, \
             `r?.tag`, `r?.value`, `r?.map(...)` and `r?.map_err(...)`; Glyph \
             refuses all of them, under `--no-tsc` as well. A plain `.` on an \
-            `Option` or a `Result` is not covered by this code.",
+            `Option`, or on a `Result` naming anything but `map` or `map_err`, \
+            is E0210.",
 
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -1821,7 +1833,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {

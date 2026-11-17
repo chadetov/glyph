@@ -766,9 +766,17 @@ mod import_tests {
     /// The `as` is legal only after `default`. General named-import renaming
     /// stays closed, because a local name that differs from the source name is
     /// what makes an import ungreppable.
+    ///
+    /// The emitter relies on it too: `SiblingImport::original` in
+    /// `glyph-emit` takes a named import's binding as the name it imports,
+    /// to follow a sibling alias's body into the module that declares a
+    /// name (G326). Opening renaming would make that follow the wrong name,
+    /// so this test fails first.
     #[test]
     fn as_after_an_ordinary_imported_name_is_still_an_error() {
         assert!(crate::parse("module x\nimport pkg { thing as other }\n").is_err());
+        assert!(crate::parse("module x\nimport model { User as U }\n").is_err());
+        assert!(crate::parse("module x\nimport model { Page, User as U }\n").is_err());
     }
 
     /// `default` is not a keyword, so it stays usable as an ordinary imported

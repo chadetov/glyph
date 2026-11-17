@@ -17017,6 +17017,124 @@ fn main() {
     assert_eq!(run_main_lines(&src), vec!["id shape Err", "name shape Ok"]);
 }
 
+/// A `main` that runs `json.parse<Rows>` on one document and prints the arm.
+fn sibling_generic_main(doc: &str) -> String {
+    format!(
+        r#"module main
+import std/io {{ println }}
+import std/json
+import rows {{ Rows }}
+fn main() {{
+  println(match json.parse<Rows>("{doc}") {{ Ok(_) => "Ok", Err(_) => "Err", }})
+}}
+"#
+    )
+}
+
+/// The generic hop judges the generic record's own fields in the module
+/// that declares it, its type parameters checked by the arguments. A field
+/// with no runtime check (`h: H`, an `extern_ts` type) makes the hop E0304
+/// naming that field: the descriptor's `is` would test `h` for presence
+/// only, and `{"items": [], "h": 5}` came back `Ok` (record 101, probes p3
+/// and p4). The same field reached through a nested generic, and through a
+/// generic field of the generic, is refused the same way.
+#[test]
+fn json_parse_refuses_a_sibling_generic_with_an_unchecked_field_of_its_own() {
+    let model = "module model\npub type H = extern_ts(\"{ k: string }\")\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, h: H, }\n";
+    let page_h = "`Rows`'s body applies `Page`, whose field `h` has type `H`, which has no runtime check";
+    let cases = [
+        ("p3-imported", Some(model), "module rows\nimport model { Page, User }\npub type Rows = Page<User>\n", page_h),
+        (
+            "p4-declared",
+            None,
+            "module rows\npub type H = extern_ts(\"{ k: string }\")\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, h: H, }\npub type Rows = Page<User>\n",
+            page_h,
+        ),
+        ("namespaced", Some(model), "module rows\nimport model as m\npub type Rows = Array<m.Page<m.User>>\n", page_h),
+        ("nested", Some(model), "module rows\nimport model { Page, User }\npub type Rows = Page<Page<User>>\n", page_h),
+        (
+            "generic-field",
+            Some("module model\npub type H = extern_ts(\"{ k: string }\")\npub type User = { id: number, }\npub type Meta<T> = { v: T, h: H, }\npub type Page<T> = { items: Array<T>, meta: Meta<T>, }\n"),
+            "module rows\nimport model { Page, User }\npub type Rows = Page<User>\n",
+            "`Rows`'s body applies `Meta`, whose field `h` has type `H`, which has no runtime check",
+        ),
+        (
+            "interface-field",
+            Some("module model\npub interface Shape { k: string, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, s: Shape, }\n"),
+            "module rows\nimport model { Page, User }\npub type Rows = Page<User>\n",
+            "`Rows`'s body applies `Page`, whose field `s` has type `Shape`, which is an interface and has no descriptor",
+        ),
+    ];
+    for (dir, model, rows, expected) in cases {
+        let root = unique_tmp(&format!("g326-generic-field-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", model);
+        }
+        write_file(&src, "rows.glyph", rows);
+        write_file(&src, "main.glyph", &sibling_generic_main("{\\\"items\\\": [], \\\"h\\\": 5}"));
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: a generic with an unchecked field must be refused:\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(expected), "{dir}: the message names `{expected}`: {stderr}");
+    }
+
+    // A record field typed by such an alias names the same cause.
+    let root = unique_tmp("g326-generic-field-descriptor");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", model);
+    write_file(&src, "rows.glyph", "module rows\nimport model { Page, User }\npub type Rows = Page<User>\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport rows { Rows }\ntype Doc = { rows: Rows, }\npub fn read(v: unknown) -> Result<Doc, Array<Issue>> {\n  return Doc.parse(v)\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(
+        stderr.contains("field `rows` has type `Rows`, and `Rows`'s body applies `Page`, whose field `h` has type `H`, which has no runtime check"),
+        "{stderr}"
+    );
+}
+
+/// The generic hop with every field checkable, nested: `Page<Page<User>>`
+/// and a generic whose field is another generic of the same module. Run so
+/// the arm taken is the evidence each level is checked.
+#[test]
+fn json_parse_follows_a_nested_sibling_generic_whose_fields_are_all_checked() {
+    let model = "module model\npub type User = { name: string, }\npub type Meta<T> = { v: T, n: int, }\npub type Page<T> = { items: Array<T>, meta: Meta<T>, }\n";
+    let cases = [
+        (
+            "nested",
+            "module rows\nimport model { Page, User }\npub type Rows = Page<Page<User>>\n",
+            [
+                ("{\\\"items\\\": [{\\\"items\\\": [{\\\"name\\\": \\\"a\\\"}], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"b\\\"}, \\\"n\\\": 1}}], \\\"meta\\\": {\\\"v\\\": {\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"c\\\"}, \\\"n\\\": 2}}, \\\"n\\\": 3}}", "Ok"),
+                ("{\\\"items\\\": [{\\\"items\\\": [{\\\"id\\\": 1}], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"b\\\"}, \\\"n\\\": 1}}], \\\"meta\\\": {\\\"v\\\": {\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"c\\\"}, \\\"n\\\": 2}}, \\\"n\\\": 3}}", "Err"),
+                ("{\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"c\\\"}, \\\"n\\\": 2.5}}, \\\"n\\\": 3}}", "Err"),
+            ],
+        ),
+        (
+            "namespaced",
+            "module rows\nimport model as m\npub type Rows = m.Page<m.User>\n",
+            [
+                ("{\\\"items\\\": [{\\\"name\\\": \\\"a\\\"}], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"b\\\"}, \\\"n\\\": 1}}", "Ok"),
+                ("{\\\"items\\\": [{\\\"name\\\": \\\"a\\\"}], \\\"meta\\\": {\\\"v\\\": {\\\"id\\\": 1}, \\\"n\\\": 1}}", "Err"),
+                ("{\\\"items\\\": [{\\\"name\\\": \\\"a\\\"}], \\\"meta\\\": {\\\"v\\\": {\\\"name\\\": \\\"b\\\"}, \\\"n\\\": 1.5}}", "Err"),
+            ],
+        ),
+    ];
+    for (dir, rows, docs) in cases {
+        for (i, (doc, want)) in docs.iter().enumerate() {
+            let root = unique_tmp(&format!("g326-generic-nested-{dir}-{i}"));
+            let src = root.join("src");
+            write_file(&src, "model.glyph", model);
+            write_file(&src, "rows.glyph", rows);
+            write_file(&src, "main.glyph", &sibling_generic_main(doc));
+            assert_eq!(run_main_lines(&src), vec![want.to_string()], "{dir} document {i}");
+        }
+    }
+}
+
 /// What the hop reaches is judged where it is declared: an interface, a
 /// generic union and an `extern_ts` type in the module `rows` imports from
 /// are still E0304, each with its own cause, and a type from outside the

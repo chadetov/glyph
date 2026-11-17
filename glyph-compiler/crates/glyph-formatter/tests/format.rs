@@ -2035,14 +2035,6 @@ fn a_comment_with_no_canonical_place_is_refused() {
             6,
             "comment inside the pattern `C.Red` has no canonical place; move it above the match arm",
         ),
-        // qq_seg (record 96): a gap the chain layout places, refused because
-        // the chain holds `? ?`, which it cannot spell until G335 (record 97
-        // Q4). The message says why.
-        (
-            "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(b\n    // c\n    .f()?\n    ?\n    .length)\n}\n",
-            7,
-            "comment before `.f` in a member chain that cannot break until a chain can spell two `?` in a row has no canonical place; move it above the statement",
-        ),
         // A placeable gap outside a block, where D1 allows no line break.
         (
             "module m\n\nfn g(s: string) -> string {\n  return s\n}\n\nconst n = g(\n  \"a\"\n    // trim it\n    .trim(),\n)\n",
@@ -2077,17 +2069,6 @@ fn what_the_earlier_fallback_printed_is_still_a_fixed_point() {
         (
             "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number> // read it\n    (s)\n}\n",
             "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse<number>(\n    // read it\n    s,\n  )\n}\n",
-        ),
-        // qq_seg (record 96): a placeable comment in a chain holding `? ?`,
-        // which the layout cannot spell until G335 (0.1.138).
-        (
-            "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(b\n    // c\n    .f()?\n    ?\n    .length)\n}\n",
-            "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(\n    ((b.f(\n      // c\n    )?)?).length,\n  )\n}\n",
-        ),
-        // qq_head (record 96).
-        (
-            "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\npub fn f() -> Result<number, string> {\n  return Ok(g()?\n    ?\n    // c\n    .length)\n}\n",
-            "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\npub fn f() -> Result<number, string> {\n  return Ok(\n    ((g()?)?).length,\n    // c\n  )\n}\n",
         ),
         // head_idx_mixed (record 96).
         (
@@ -2176,6 +2157,15 @@ fn assert_same_program(label: &str, m: &glyph_ast::Module, src: &str) {
     );
 }
 
+/// The declarations the `?` cases below share: a `Result` of a record with a
+/// method, of an array, of a function and of another `Result`.
+const TRY_PRELUDE: &str = "module m\n\ntype Job = { run: fn() -> number }\n\nfn load() -> Result<Job, string> {\n  return Ok({ run: fn() { return 1 } })\n}\n\nfn g() -> Result<Array<number>, string> {\n  return Ok([1])\n}\n\nfn h() -> Result<fn(n: number) -> number, string> {\n  return Ok(fn(n) { return n })\n}\n\nfn k() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\n";
+
+/// `pub fn f` around `body`, after the shared declarations.
+fn try_program(body: &str) -> String {
+    format!("{TRY_PRELUDE}pub fn f() -> Result<number, string> {{\n{body}}}\n")
+}
+
 /// `src` formats to `want`, which is a fixed point, parses to the same
 /// program, emits the same TypeScript and keeps the literal/comment stream.
 fn assert_formats_to(src: &str, want: &str) {
@@ -2202,6 +2192,50 @@ fn emit_code(src: &str) -> Option<String> {
         .map(|e| e.code().to_string())
 }
 
+/// `glyph fmt` never writes a `(` around `e?` that the source did not need
+/// (G335, record 96). Inside braces a line opening with `(` continues the one
+/// above, so `let a = 1` then `(load()?).run()` reads as `1(load()?).run()`.
+#[test]
+fn a_try_at_the_start_of_a_statement_keeps_its_chain_layout() {
+    let canonical = try_program("  let a = 1\n  load()?\n    .run()\n  return Ok(a)\n");
+    assert_formats_to(&canonical, &canonical);
+    // `?.` leads its line the same way.
+    let optional = try_program("  let a = 1\n  load()?\n    ?.run()\n  return Ok(a)\n");
+    assert_formats_to(&optional, &optional);
+    // Every segment takes a line once the chain breaks, as G324's layout does.
+    let longer = try_program("  let a = 1\n  load()?\n    .run()\n    .toFixed(1)\n  return Ok(a)\n");
+    assert_formats_to(&longer, &longer);
+    // A source that spelled the parentheses, first in its block, gets the
+    // chain layout too: the parenthesized spelling is what moves meaning
+    // when a line is added above it.
+    assert_formats_to(
+        &try_program("  (load()?).run()\n  return Ok(1)\n"),
+        &try_program("  load()?\n    .run()\n  return Ok(1)\n"),
+    );
+    // A `?` deeper in the chain: the whole chain breaks.
+    assert_formats_to(
+        &format!("{TRY_PRELUDE}pub fn f(o: {{ load: fn() -> Result<Job, string> }}) -> Result<number, string> {{\n  (o.load()?).run()\n  return Ok(1)\n}}\n"),
+        &format!("{TRY_PRELUDE}pub fn f(o: {{ load: fn() -> Result<Job, string> }}) -> Result<number, string> {{\n  o\n    .load()?\n    .run()\n  return Ok(1)\n}}\n"),
+    );
+}
+
+/// Before `(`, `[` or `?` the `?` needs no parentheses at all: `e?(x)`,
+/// `e?[0]`, and `e? ?`, two postfix `?` a space apart, since `??` always
+/// takes a right operand (record 96). Before `.` away from the start of a
+/// statement the parentheses stay: `e?.f` is optional chaining.
+#[test]
+fn a_try_before_a_call_an_index_or_a_try_is_written_bare() {
+    assert_formats_to(
+        &try_program("  let b = (g()?)[0]\n  let c = (h()?)(2)\n  let d = (k()?)?\n  return Ok(b + c + d.length)\n"),
+        &try_program("  let b = g()?[0]\n  let c = h()?(2)\n  let d = k()? ?\n  return Ok(b + c + d.length)\n"),
+    );
+    let kept = try_program("  let x = (load()?).run()\n  let y = (k()? ?).length\n  return Ok(x + y)\n");
+    assert_formats_to(&kept, &kept);
+    // The bare spellings are fixed points, statement start included.
+    let bare = try_program("  let a = 1\n  let b = g()?[0]\n  h()?(2)\n  return Ok(a + b)\n");
+    assert_formats_to(&bare, &bare);
+}
+
 /// A tagged union's `where` refinement is printed on its own line after the
 /// last variant, at the variants' indent, and still draws E0300 (G338,
 /// record 97). The printer used to return before the refinement, so `fmt`
@@ -2225,4 +2259,45 @@ fn the_ast_oracle_sees_g338_change_the_program() {
     let src = "module m\n\npub type Salary = A | B where value >= 1\n";
     let m = glyph_parser::parse(src).expect("parses");
     assert_same_program("G338", &m, src);
+}
+
+/// The AST oracle on G335's first input. 0.1.137 printed `(load()?).run()`
+/// after `let a = 1`, a fixed point that reads as `1(load()?).run()`
+/// (record 96).
+#[test]
+fn the_ast_oracle_sees_g335_change_the_program() {
+    let src = try_program("  let a = 1\n  load()?\n    .run()\n  return Ok(a)\n");
+    let m = glyph_parser::parse(&src).expect("parses");
+    assert_same_program("G335", &m, &src);
+}
+
+/// A chain with two `?` in a row places its comments with the segment
+/// layout, now that `? ?` is spellable (record 97 Q4). 0.1.137 refused both
+/// shapes, and 0.1.136 moved each comment into an argument list or below it.
+/// What 0.1.136 printed, a fixed point of 0.1.137 too, is reprinted with
+/// `? ?` in place of `((e?)?)`; its comment stays where 0.1.136 put it.
+#[test]
+fn a_chain_with_two_tries_in_a_row_places_its_comments() {
+    let boxed = "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\n";
+    let returning = "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\n";
+    // qq_seg (record 96): the comment above the segment holding `? ?`.
+    assert_formats_to(
+        &format!("{boxed}pub fn f(b: Box) -> Result<number, string> {{\n  return Ok(b\n    // c\n    .f()?\n    ?\n    .length)\n}}\n"),
+        &format!("{boxed}pub fn f(b: Box) -> Result<number, string> {{\n  return Ok(\n    b\n      // c\n      .f()? ?\n      .length,\n  )\n}}\n"),
+    );
+    // qq_head (record 96): `? ?` in the head's links, the comment above the
+    // segment after it.
+    assert_formats_to(
+        &format!("{returning}pub fn f() -> Result<number, string> {{\n  return Ok(g()?\n    ?\n    // c\n    .length)\n}}\n"),
+        &format!("{returning}pub fn f() -> Result<number, string> {{\n  return Ok(\n    g()? ?\n      // c\n      .length,\n  )\n}}\n"),
+    );
+    // What 0.1.136 printed for each.
+    assert_formats_to(
+        &format!("{boxed}pub fn f(b: Box) -> Result<number, string> {{\n  return Ok(\n    ((b.f(\n      // c\n    )?)?).length,\n  )\n}}\n"),
+        &format!("{boxed}pub fn f(b: Box) -> Result<number, string> {{\n  return Ok(\n    (b.f(\n      // c\n    )? ?).length,\n  )\n}}\n"),
+    );
+    assert_formats_to(
+        &format!("{returning}pub fn f() -> Result<number, string> {{\n  return Ok(\n    ((g()?)?).length,\n    // c\n  )\n}}\n"),
+        &format!("{returning}pub fn f() -> Result<number, string> {{\n  return Ok(\n    (g()? ?).length,\n    // c\n  )\n}}\n"),
+    );
 }

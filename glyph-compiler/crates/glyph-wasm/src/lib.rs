@@ -147,6 +147,10 @@ fn compile_inner(source: &str) -> CompileOutput {
         diagnostics.push(resolve_diag(&index, source, e));
     }
 
+    // Every error so far is the front end's (imports, resolution). Those stop
+    // the lint tier below; a type error does not.
+    let front_failed = diagnostics.iter().any(|d| d.severity == "error");
+
     let (types, type_errors) = assign_types(&module, &resolved, &prelude);
     for e in &type_errors {
         let severity = match e.severity() {
@@ -157,16 +161,18 @@ fn compile_inner(source: &str) -> CompileOutput {
     }
 
     // Advisory lints (unused import, unused binding, unreachable code), which
-    // `glyph check` and `glyph build` both report. They are computed only when
-    // nothing errored, exactly as `glyph build` computes them: on a module that
-    // did not resolve cleanly the resolution map is incomplete, and a binding
-    // that is used would be reported as dead.
+    // `glyph check` and `glyph build` both report. They are computed when the
+    // front end produced no error, exactly as `glyph build` computes them: on
+    // a module that did not resolve cleanly the resolution map is incomplete,
+    // and a binding that is used would be reported as dead. A type error does
+    // not stop them, since they read the resolution map and nothing the
+    // checker decides (G313, record 88).
     //
     // The one lint deliberately not run here is G124's reachability warning. It
     // asks whether any *other* module in the project imports this one, and this
     // surface has no other module. Answering it either way would be a guess, so
     // it is absent.
-    if !diagnostics.iter().any(|d| d.severity == "error") {
+    if !front_failed {
         for e in module_lints(&module, &resolved) {
             diagnostics.push(resolve_diag(&index, source, &e));
         }
@@ -401,6 +407,29 @@ mod tests {
         }
         // A warning never blocks emission, here as in `glyph build`.
         assert!(v["ts"].is_string(), "warnings still emit TS");
+    }
+
+    /// G313 (record 88): the lint tier runs on a module whose only errors are
+    /// type errors, as it does in `glyph check`, so the unused binding is
+    /// reported beside the E0204 instead of after it is fixed. A resolve
+    /// error still stops it.
+    #[test]
+    fn advisory_lints_run_past_a_type_error_and_stop_at_a_resolve_error() {
+        let codes = |src: &str| -> Vec<String> {
+            let v: serde_json::Value = serde_json::from_str(&compile(src)).unwrap();
+            v["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|d| d["code"].as_str().unwrap().to_string())
+                .collect()
+        };
+        let typed = codes("pub fn main() -> number {\n  let unused = 1\n  return \"oops\"\n}\n");
+        assert!(typed.iter().any(|c| c.starts_with("E02")), "the type error: {typed:?}");
+        assert!(typed.contains(&"E0107".to_string()), "the lint runs: {typed:?}");
+
+        let unresolved = codes("pub fn main() -> number {\n  let unused = 1\n  return nope\n}\n");
+        assert!(!unresolved.contains(&"E0107".to_string()), "no lint past a resolve error: {unresolved:?}");
     }
 
     #[test]

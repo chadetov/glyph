@@ -11025,7 +11025,10 @@ mod tests {
         let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "a.glyph" }));
         assert!(!is_error);
         let items = reported(&value);
-        assert_eq!(items.len(), 1, "{value}");
+        // The E0210, then the lint tier, which runs past a type error (G313):
+        // nothing in `a` is reachable, so E0112 follows.
+        let codes: Vec<&str> = items.iter().filter_map(|d| d["code"].as_str()).collect();
+        assert_eq!(codes, ["E0210", "E0112"], "{value}");
         assert_eq!(items[0]["entity"], "a::f", "{value}");
     }
 
@@ -11051,7 +11054,11 @@ mod tests {
     /// from `main.glyph` alone. The single-file front end answered `[]` here,
     /// and worse: with the error invisible the advisory lint tier ran and
     /// reported the two variants the missing arms would have named as unused
-    /// imports. Two of the three answers were wrong and the third was missing.
+    /// imports, with nothing saying why they were unused.
+    ///
+    /// The lint tier runs past a type error since 0.1.142 (G313, record 88),
+    /// so those two warnings are back, now after the E0200 that explains
+    /// them: the imports are unused until the missing arms are written.
     #[test]
     fn a_match_over_an_imported_union_is_reported() {
         let root = tmp_root();
@@ -11080,7 +11087,15 @@ import orders { OrderStatus, Pending, Paid, Cancelled }
         let (value, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "main.glyph" }));
         assert!(!is_error, "{value}");
         let items = reported(&value);
-        assert_eq!(items.len(), 1, "{value}");
+        let codes: Vec<(&str, &str)> = items
+            .iter()
+            .filter_map(|d| Some((d["code"].as_str()?, d["severity"].as_str()?)))
+            .collect();
+        assert_eq!(
+            codes,
+            [("E0200", "error"), ("E0106", "warning"), ("E0106", "warning")],
+            "{value}"
+        );
         let d = &items[0];
         assert_eq!(d["code"], "E0200", "{value}");
         assert_eq!(d["entity"], "main::describe", "{value}");

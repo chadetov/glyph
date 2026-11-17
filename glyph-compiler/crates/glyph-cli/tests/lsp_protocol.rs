@@ -1458,3 +1458,88 @@ fn apply_edit_refuses_an_edit_that_introduces_e0500() {
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A file with an E0200 (`f` misses `C`) and a clean function `g`, the
+/// G313 fixture.
+const G313_E0200: &str = "module main\n\npub type S =\n  | A\n  | B\n  | C\n\n\
+    pub fn f(s: S) -> number {\n  return match s {\n    A => 1,\n    B => 2,\n  }\n}\n\n\
+    pub fn g() -> number {\n  return 1\n}\n";
+
+/// The `stages` list of an applyEdit answer or verdict.
+fn stages_of(v: &Value) -> Vec<String> {
+    v["stages"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no `stages` list in {v}"))
+        .iter()
+        .map(|s| s.as_str().unwrap_or_default().to_string())
+        .collect()
+}
+
+/// G313 (record 88): the lint tier runs on a file whose only errors are type
+/// errors, so an edit that adds an unused binding to it is refused with
+/// E0107, as it is on a clean file. It used to be answered `ok: true`,
+/// because the list stopped after the checker on both sides, and the E0107
+/// then refused the edit that fixed the E0200. The emitter still does not
+/// run on a file with an error, and `stages` says so.
+#[test]
+fn apply_edit_refuses_an_unused_let_in_a_file_with_a_type_error() {
+    let (dir, path, mut lsp) = gate_project("g313_lints", &[("main.glyph", G313_E0200)], "main.glyph");
+    let answer = lsp.apply(
+        &path,
+        json!([replace_first(G313_E0200, "  return 1\n", "  let x = 1\n  return 1\n")]),
+    );
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(answer_codes(&answer, "diagnostics"), ["E0107"], "{answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), ["E0200"], "{answer}");
+    assert_eq!(stages_of(&answer), ["front", "lints"], "the emitter does not run: {answer}");
+
+    // Fixing the E0200 is accepted and nothing was hidden behind it.
+    let answer = lsp.apply(&path, json!([replace_first(G313_E0200, "    B => 2,\n", "    B => 2,\n    C => 3,\n")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(answer_codes(&answer, "preexisting"), Vec::<String>::new(), "{answer}");
+    assert_eq!(stages_of(&answer), ["front", "lints", "emit"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// `stages` names what ran on the candidate: everything on a clean file,
+/// only the front end on a file that does not parse, and the same field on
+/// every `elsewhere` verdict of the `changes` form.
+#[test]
+fn apply_edit_reports_the_stages_that_ran_on_the_candidate() {
+    let clean = "module main\n\npub fn g() -> number {\n  return 1\n}\n";
+    let (dir, path, mut lsp) = gate_project("g313_stages", &[("main.glyph", clean)], "main.glyph");
+    let answer = lsp.apply(&path, json!([replace_first(clean, "return 1", "return 2")]));
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    assert_eq!(stages_of(&answer), ["front", "lints", "emit"], "{answer}");
+
+    let answer = lsp.apply(&path, json!([replace_first(clean, "return 1", "return (")]));
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    assert_eq!(stages_of(&answer), ["front"], "{answer}");
+
+    let answer = lsp.apply_changes(&[(&path, json!([replace_first(clean, "return 1", "return 3")]))]);
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    let verdict = elsewhere_for(&answer, &path).expect("the edited document's verdict");
+    assert_eq!(stages_of(verdict), ["front", "lints", "emit"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// G313: `glyph check` and the editor report the lint tier on a file with a
+/// type error, and the same list: the E0200 first, then the E0107 warning.
+#[test]
+fn check_and_the_editor_lint_a_file_with_a_type_error() {
+    let text = G313_E0200.replace("  return 1\n", "  let x = 1\n  return 1\n");
+    let (dir, path, mut lsp) = gate_project("g313_check", &[("main.glyph", &text)], "main.glyph");
+    let cli: Vec<(String, String)> = check_codes(&dir).into_iter().map(|(c, s, ..)| (c, s)).collect();
+    assert_eq!(
+        cli,
+        [("E0200".to_string(), "error".to_string()), ("E0107".to_string(), "warning".to_string())],
+        "glyph check"
+    );
+    let published = lsp.publishes_until_quiet(&path);
+    let (_, last) = published.last().expect("a publish");
+    assert_eq!(codes_of(last), ["E0200", "E0107"], "the editor: {published:?}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}

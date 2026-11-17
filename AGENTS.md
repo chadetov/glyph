@@ -1949,7 +1949,10 @@ pub fn ready(flag: boolean) -> boolean {
 
 Every error and warning carries a stable code and a one-line fix. `glyph
 --explain <code>` prints the long form; `glyph build --json` emits them
-machine-readably. The full catalogue:
+machine-readably. The lint warnings (E0106 to E0108, E0112) are reported on a
+file with a type error too, once parse, imports and resolution are clean; an
+import a missing `match` arm would use reads as unused until that arm is
+written. The full catalogue:
 
 | Code | Meaning | Fix |
 |---|---|---|

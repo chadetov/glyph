@@ -132,7 +132,7 @@ renaming (`$0`, `$1`, …) and the bidirectional text↔canonical *position* map
 
 The custom LSP request `glyph/applyEdit` (`{ uri, edits: [TextEdit] }` or
 `{ changes: { <uri>: [TextEdit] } }` → `{ ok, content, contents, rejected,
-uri, diagnostics, preexisting, elsewhere }`) applies a set of standard LSP
+uri, diagnostics, preexisting, stages, elsewhere }`) applies a set of standard LSP
 text edits to one or more open documents and accepts them only if the edit
 introduces no diagnostic anywhere in the project. On success it returns the verified new text (the
 caller applies it and syncs through the normal `didChange`); on rejection it
@@ -157,7 +157,7 @@ sibling calls is E0105 in the sibling, a field rename is E0210 in a module that
 reaches the record through another (D46), and deleting the last `import util`
 makes `util` draw E0112. Until 0.1.133 the gate compared the edited file's list
 only and accepted all three. Each other file's new and pre-existing diagnostics
-come back under `elsewhere: [{ uri, diagnostics, preexisting }]`, sorted by
+come back under `elsewhere: [{ uri, diagnostics, preexisting, stages }]`, sorted by
 URI, in that file's own coordinates, for every file whose list after the edit
 is not empty. `ok` is true exactly when no file has a non-empty `diagnostics`.
 
@@ -197,13 +197,24 @@ the `2` in an existing `hello(2)` arity error leaves it preexisting, while the
 same result sent as an edit that reaches the diagnostic's edge is refused with
 it. That errs toward refusing, so an agent sending whole-line edits should
 expect the stricter answer. `ok: true` therefore means "this edit introduced nothing";
-the file is clean only when `preexisting` is empty as well. "Warnings
-included" holds only while the file has no error: the file's list stops after
-the type checker when it has one, so the lint tier and the emitter run on
-neither side of the comparison. An edit to a file that already has an error
-can add a warning, or an E0302 to E0305 emitter refusal, and still get
-`ok: true`; the diagnostic then surfaces on the edit that fixes the last
-error, and that edit is refused for it (G313). Before 0.1.132 the
+the file is clean only when `preexisting` is empty as well.
+
+Since 0.1.142 the lint tier runs on a file whose only errors are type errors
+(G313, record 88): it reads the resolution map and nothing the checker
+decides, so it waits only for parse, symbols, imports and resolution to
+produce no error. An edit that adds an unused binding to a file with an E0200
+is refused with E0107, as it is on a clean file. The emitter still runs only
+on a file with no error, because it is not hardened for an ill-typed program
+(G322), so an edit to a file that already has an error can add an E0302 to
+E0305 emitter refusal and still get `ok: true`; the refusal surfaces on the
+edit that fixes the last error, and that edit is refused for it. Every verdict
+says which stages ran on the candidate: `stages` on the single-form answer and
+on each `elsewhere` entry is `["front", "lints", "emit"]` or a prefix of it
+(`front` is parse through the type checker). `ok: true` claims nothing about
+a stage the list leaves out. `stages` is empty in the `changes` form's
+top-level answer and on a structural refusal, where nothing ran. `glyph check`
+and `glyph build` follow the same rule, so they report more warnings on a file
+with a type error than 0.1.141 did, with no change to any exit code. Before 0.1.132 the
 result had to have no diagnostics at all, so an edit to a file that already
 had one was always refused. Running the `@example`/property tests as part of the gate is
 a v1.1 enhancement; it needs the `glyph build`/test pipeline factored into a

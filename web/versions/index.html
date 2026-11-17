@@ -61,8 +61,38 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.138</span>
+            <span class="rel-ver">0.1.139</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>Reading a member off an <code>Option</code> or a <code>Result</code> is now checked. An <code>Option</code> has no members, and a <code>Result</code> has two, <code>map</code> and <code>map_err</code>. Anything else is E0210, and the message says which members exist:</p>
+
+<pre>type `Result&lt;Note, string&gt;` has no field `value`: a `Result`'s only members are `map` and `map_err`</pre>
+
+            <p>Before, <code>r.value</code>, <code>r.tag</code> and <code>o.tag</code> passed <code>glyph check</code> and the full build, because they are how the emitted TypeScript stores the value and <code>tsc</code> could see them. They are not part of the language: reading <code>r.value</code> on an <code>Err</code> gives you the error where you expected the success value, and nothing warns you. Open the value with <code>match</code>, or bind a <code>Result</code> with <code>?</code> first and read the field after:</p>
+
+            <div class="code">
+              <span class="cap">note.glyph</span>
+<pre>let note = load()?
+return Ok(note.name)</pre>
+            </div>
+
+            <p>A misspelled method gets a suggestion (<code>r.mapp(f)</code> points at <code>map</code>). <code>.map_err(f)?</code>, the most common way to use a <code>Result</code>, is unchanged.</p>
+
+            <p>The check needs to know the value is an <code>Option</code> or a <code>Result</code>. A value built with <code>Ok(x)</code> or <code>Some(x)</code> and never annotated is not typed that way yet, so <code>let r = Ok(x)</code> followed by <code>r.value</code> still passes, and so does <code>r["value"]</code>. Both are on the list.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran the published 0.1.137 and this build on the same programs. <code>o.tag</code>, <code>r.tag</code> and <code>r.value</code> passed <code>glyph check</code> with <code>tsc</code> and now fail. Other reads, such as <code>o.name</code> or <code>r.unwrap()</code>, were already refused by <code>tsc</code> in a full check and are now also caught under <code>--no-tsc</code>, in the editor and over MCP. On every <code>.glyph</code> file in the repository except the two test files added to be refused, and on all 32 example apps, <code>glyph check</code> gives the same result as before, and the emitted TypeScript is identical.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.138</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

@@ -1069,7 +1069,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
             where a type of the same name would be the wrong one. A body \
             naming a type its module keeps private is refused, since nothing \
             outside the module can reach it, and so is one naming a `std` or \
-            package type, which has no runtime check.\n\n\
+            package type, which has no runtime check. A generic record \
+            applied in such a body is judged field by field in the module \
+            that declares it, its type parameters checked by the arguments: \
+            a field of its own with no runtime check, such as `h: H` with \
+            `H` an `extern_ts` type, refuses the application, since its \
+            descriptor would test `h` for presence only.\n\n\
             For a `T` with no check of its own, take a \
             `Schema<T>` and read with `json.parse_with(text, schema)`, or read \
             `json.parse(text)` with no type argument and check the `unknown` \
@@ -2023,7 +2028,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0304",
         phase: "emitter",
-        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too. Also `json.parse<T>` for any `T` with no runtime check: a type parameter, an `extern_ts` type, a package type, an interface, `Result`, a generic tagged union, or an `Option`, `Nullable` or `Record` of one; and an alias from another module whose body names a type that module keeps private, or a `std` or package type (a name it imports from another project module is followed there). The note names the cause. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error; `json.parse(text)` with no type argument is the unchecked read",
+        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too. Also `json.parse<T>` for any `T` with no runtime check: a type parameter, an `extern_ts` type, a package type, an interface, `Result`, a generic tagged union, or an `Option`, `Nullable` or `Record` of one; and an alias from another module whose body names a type that module keeps private, or a `std` or package type (a name it imports from another project module is followed there), or a generic record with a field of its own that has no runtime check. The note names the cause. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error; `json.parse(text)` with no type argument is the unchecked read",
         fix: "Split the wire type from the domain type: parse the checkable fields, then build the record. For a `T` with no check of its own, take a `Schema<T>` and read with `json.parse_with(text, schema)`",
     },
     CodeEntry {

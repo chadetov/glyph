@@ -464,4 +464,31 @@ mod tests {
             other => panic!("expected Identifier, got {other:?}"),
         }
     }
+
+    /// G330: a character the lexer does not accept is reported whole. Its
+    /// first byte alone named `é` as `Ã`, and the one-byte span ended inside
+    /// it, which panicked the diagnostic renderer (exit 101).
+    #[test]
+    fn an_unexpected_non_ascii_character_is_reported_whole() {
+        for (src, ch) in [("let s = 1 \u{e9}", '\u{e9}'), ("x \u{2014} y", '\u{2014}'), ("\u{1F600}", '\u{1F600}')] {
+            let err = tokenize(src).unwrap_err();
+            let LexError::UnexpectedChar { ch: got, .. } = err else {
+                panic!("expected UnexpectedChar for {src:?}, got {err:?}");
+            };
+            assert_eq!(got, ch, "{src:?}");
+            let span = err.span();
+            assert_eq!(&src[span.start as usize..span.end as usize], ch.to_string(), "{src:?}");
+        }
+    }
+
+    /// The same byte cast named the character after a `\` in a string.
+    #[test]
+    fn an_invalid_non_ascii_escape_names_the_whole_character() {
+        for (src, ch) in [("\"\\\u{e9}\"", '\u{e9}'), ("\"a\\\u{1F389}\"", '\u{1F389}')] {
+            match tokenize(src).unwrap_err() {
+                LexError::InvalidEscape { ch: got, .. } => assert_eq!(got, ch, "{src:?}"),
+                other => panic!("expected InvalidEscape for {src:?}, got {other:?}"),
+            }
+        }
+    }
 }

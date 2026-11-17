@@ -420,7 +420,13 @@ pub enum TypeError {
     /// A record's field typo carries the nearest declared field in
     /// `suggestion` the same way: `o.totl` on `{ total: number }` says "did
     /// you mean `total`?".
-    #[error("type `{type_name}`{} has no field `{field}`{}", .second_name_for.as_deref().map(|t| format!(" (a second name for `{t}`)")).unwrap_or_default(), .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
+    ///
+    /// A prelude `Option` or `Result` is checked against its member set
+    /// (G311, record 87): a `Result`'s members are `map` and `map_err`, an
+    /// `Option` has none, and `tag` and `value` are the runtime encoding
+    /// (D49), not members. `tagged` is set, the message names the
+    /// member set, and `fields` holds it.
+    #[error("type `{type_name}`{} has no field `{field}`{}{}", .second_name_for.as_deref().map(|t| format!(" (a second name for `{t}`)")).unwrap_or_default(), .tagged.as_ref().map(|t| tagged_member_set_tail(t.container)).unwrap_or_default(), .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
     UnknownField {
         field: String,
         type_name: String,
@@ -447,6 +453,9 @@ pub enum TypeError {
         /// record: there is no declaration to add a field to, and the help
         /// says what the value is instead.
         builtin: Option<BuiltinReceiver>,
+        /// Set when the receiver is the prelude `Option` or `Result`, whose
+        /// member set is fixed by the language rather than declared.
+        tagged: Option<TaggedMember>,
         /// The nearest declared name by edit distance, when one is close
         /// enough to be a plausible typo: a record's field or a built-in
         /// receiver's member, by the same threshold either way.
@@ -998,6 +1007,78 @@ pub enum TaggedContainer {
     Result,
 }
 
+/// A plain-dot member read on a prelude `Option` or `Result` that is not one
+/// of its members (E0210, G311). What the help needs to write the `match` or
+/// the `?` back in the program's own names.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaggedMember {
+    pub container: TaggedContainer,
+    /// The receiver as written (`r`, `load()`).
+    pub receiver: String,
+    /// The name the help binds the payload to.
+    pub binding: String,
+    /// The payload type, shown (`Note`).
+    pub payload: String,
+    /// The member is the callee of a call (`r.unwrap()`).
+    pub method: bool,
+}
+
+impl TaggedContainer {
+    /// The members a plain dot may name on this prelude type: `map` and
+    /// `map_err` on a `Result`, nothing on an `Option` (record 87, Q3).
+    pub fn members(self) -> &'static [&'static str] {
+        match self {
+            TaggedContainer::Option => &[],
+            TaggedContainer::Result => &["map", "map_err"],
+        }
+    }
+}
+
+/// The names the runtime encoding of an `Option` or a `Result` puts on the
+/// object (D49). Not members: the help says so rather than suggesting one.
+pub(crate) fn is_tagged_encoding_name(field: &str) -> bool {
+    matches!(field, "tag" | "value")
+}
+
+fn tagged_member_set_tail(container: TaggedContainer) -> &'static str {
+    match container {
+        TaggedContainer::Option => ": an `Option` has no members",
+        TaggedContainer::Result => ": a `Result`'s only members are `map` and `map_err`",
+    }
+}
+
+fn tagged_member_help(field: &str, t: &TaggedMember) -> String {
+    let TaggedMember { container, receiver, binding, payload, method } = t;
+    let open = match container {
+        TaggedContainer::Option => format!("match {receiver} {{ Some({binding}) => ..., None => ... }}"),
+        TaggedContainer::Result => format!("match {receiver} {{ Ok({binding}) => ..., Err(e) => ... }}"),
+    };
+    if is_tagged_encoding_name(field) {
+        let (article, name) = match container {
+            TaggedContainer::Option => ("an", "Option"),
+            TaggedContainer::Result => ("a", "Result"),
+        };
+        let propagate = match container {
+            TaggedContainer::Option => String::new(),
+            TaggedContainer::Result => format!(", or propagate the `Err` with `?`: `let {binding} = {receiver}?`"),
+        };
+        return format!(
+            "`{field}` is part of how the emitted TypeScript encodes {article} `{name}`, not a member of it (D49). Open it with `{open}`{propagate}."
+        );
+    }
+    match (container, method) {
+        (TaggedContainer::Option, _) => {
+            optional_chain_on_tagged_help(*container, field, *method, receiver, binding, payload)
+        }
+        (TaggedContainer::Result, true) => format!(
+            "Open it with `{open}`, propagate the `Err` with `?`, or transform it with `map` or `map_err`."
+        ),
+        (TaggedContainer::Result, false) => format!(
+            "Propagate first, then read: `let {binding} = {receiver}?` then `{binding}.{field}`. Or open it with `match {receiver} {{ Ok({binding}) => {binding}.{field}, Err(e) => ... }}`."
+        ),
+    }
+}
+
 fn optional_chain_on_tagged_message(
     container: TaggedContainer,
     type_name: &str,
@@ -1201,6 +1282,9 @@ impl TypeError {
         } = self
         {
             return Some(Cow::Owned(case_bind_help(variant, name, *shape)));
+        }
+        if let TypeError::UnknownField { tagged: Some(t), field, .. } = self {
+            return Some(Cow::Owned(tagged_member_help(field, t)));
         }
         if let TypeError::UnknownField {
             builtin: Some(receiver),
@@ -1641,9 +1725,13 @@ impl TypeError {
     /// both bare identifiers on the wire.
     pub fn alternatives_kind(&self) -> Option<AlternativesKind> {
         match self {
-            // A built-in receiver's list is its members, which no declaration
-            // holds; a record's is its fields, which one does.
-            TypeError::UnknownField { fields, builtin: Some(_), .. } if !fields.is_empty() => {
+            // A built-in receiver's list is its members, and so is a prelude
+            // `Option`'s or `Result`'s; no declaration holds either. A
+            // record's is its fields, which one does.
+            TypeError::UnknownField { fields, builtin: Some(_), .. }
+            | TypeError::UnknownField { fields, tagged: Some(_), .. }
+                if !fields.is_empty() =>
+            {
                 Some(AlternativesKind::Members)
             }
             TypeError::UnknownField { fields, .. } if !fields.is_empty() => {

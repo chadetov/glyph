@@ -15071,6 +15071,57 @@ fn an_optional_chain_on_an_imported_option_or_result_alias_is_e0236_by_every_spe
     }
 }
 
+/// G311, the member set across the module boundary (record 87, Q3). A
+/// sibling's `Option` and `Result` aliases are the prelude's under every
+/// import spelling, so a plain-dot read of `tag`, `value` or a misspelled
+/// field off either is E0210 naming the member set, and `map_err(f)?` on the
+/// imported `Result` alias still checks.
+#[test]
+fn a_plain_dot_member_on_an_imported_option_or_result_alias_is_e0210_by_every_spelling() {
+    for (import, q) in [
+        ("import a { MaybeNote, Res, Note }", ""),
+        ("import a", "a."),
+        ("import a as aa", "aa."),
+    ] {
+        let root = unique_tmp("g311members");
+        let src = root.join("src");
+        write_file(
+            &src,
+            "a.glyph",
+            "module a\n\npub type Note = { name: string }\n\n\
+             pub type MaybeNote = Option<Note>\n\npub type Res<T> = Result<T, string>\n",
+        );
+        write_file(
+            &src,
+            "b.glyph",
+            &format!(
+                "module b\n\n{import}\n\n\
+                 pub fn opt(o: {q}MaybeNote) -> string {{\n  let x = o.tag\n  return \"a\"\n}}\n\n\
+                 pub fn res(r: {q}Res<{q}Note>) -> string {{\n  let x = r.value\n  let y = r.nmae\n  return \"a\"\n}}\n\n\
+                 pub fn ok(r: {q}Res<{q}Note>) -> Result<{q}Note, string> {{\n  let n = r.map_err(fn(e: string) -> string {{ return e }})?\n  return Ok(n)\n}}\n"
+            ),
+        );
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let d = &report.diagnostics;
+        assert!(
+            d.iter().any(|d| d.contains("[E0210]")
+                && d.contains("type `Option<")
+                && d.contains("has no field `tag`: an `Option` has no members")),
+            "`{import}`: {d:?}"
+        );
+        assert!(
+            d.iter().any(|d| d.contains("[E0210]")
+                && d.contains("has no field `value`: a `Result`'s only members are `map` and `map_err`")),
+            "`{import}`: {d:?}"
+        );
+        assert!(
+            d.iter().any(|d| d.contains("[E0210]") && d.contains("has no field `nmae`: a `Result`'s")),
+            "`{import}`: {d:?}"
+        );
+        assert_eq!(d.len(), 3, "`{import}`: only the three refusals: {d:?}");
+    }
+}
+
 /// G304 with a generic alias. A sibling's `pub type Maybe<T> = Nullable<T>`
 /// applied to `Note` is read as `Nullable<Note>` under every import spelling:
 /// the plain dot and the interpolated chain are E0235, a typo through `?.` is

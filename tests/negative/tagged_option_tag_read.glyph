@@ -1,0 +1,9 @@
+module neg
+
+// E0210. An `Option` has no members. `o.tag` reads the runtime encoding
+// (D49), which `tsc` accepts; open the value with `match` instead.
+type Spec = { label: string }
+
+pub fn present(o: Option<Spec>) -> bool {
+  return o.tag == "Some"
+}

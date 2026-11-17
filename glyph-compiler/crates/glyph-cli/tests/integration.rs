@@ -9677,10 +9677,12 @@ fn check_reports_a_sibling_error_when_checking_one_file() {
 #[test]
 fn check_json_uses_the_same_keys_as_build_json() {
     let root = unique_tmp("check_json");
+    // `pub`, so the reachability lint (E0112), which runs past a type error
+    // since G313, has nothing to say and the warning count is zero.
     write_file(
         &root,
         "broken.glyph",
-        "module broken\nfn f() -> number {\n  return \"nope\"\n}\n",
+        "module broken\npub fn f() -> number {\n  return \"nope\"\n}\n",
     );
     let path = root.join("broken.glyph");
     let (code, stdout, stderr, _) = spawn_glyph(&[
@@ -15067,7 +15069,10 @@ fn an_optional_chain_on_an_imported_option_or_result_alias_is_e0236_by_every_spe
             d.iter().any(|d| d.contains("[E0236]") && d.contains("`?.` on a `Result<")),
             "`{import}`: {d:?}"
         );
-        assert_eq!(d.len(), 2, "`{import}`: only the two refusals: {d:?}");
+        // The unused `let`s draw E0107 warnings since G313; the errors are
+        // the two refusals.
+        let errors = d.iter().filter(|d| !d.contains("Warning:")).count();
+        assert_eq!(errors, 2, "`{import}`: only the two refusals: {d:?}");
     }
 }
 
@@ -15118,7 +15123,10 @@ fn a_plain_dot_member_on_an_imported_option_or_result_alias_is_e0210_by_every_sp
             d.iter().any(|d| d.contains("[E0210]") && d.contains("has no field `nmae`: a `Result`'s")),
             "`{import}`: {d:?}"
         );
-        assert_eq!(d.len(), 3, "`{import}`: only the three refusals: {d:?}");
+        // The unused `let`s draw E0107 warnings since G313; the errors are
+        // the three refusals.
+        let errors = d.iter().filter(|d| !d.contains("Warning:")).count();
+        assert_eq!(errors, 3, "`{import}`: only the three refusals: {d:?}");
     }
 }
 
@@ -17897,4 +17905,44 @@ fn a_generic_descriptor_call_with_a_checked_type_argument_still_validates() {
         write_file(&src, "main.glyph", &main);
         assert_eq!(run_main_lines(&src), vec!["Ok", "Err"], "{dir}:\n{main}");
     }
+}
+/// G313 (record 88): `glyph build` runs the lint tier on a module whose only
+/// errors are type errors, so the unused binding is reported beside the
+/// E0200 rather than after the E0200 is fixed. The emitter still does not
+/// run on a module with an error: nothing is written for it.
+#[test]
+fn build_lints_a_module_with_a_type_error_and_does_not_emit_it() {
+    let root = unique_tmp("g313build");
+    let src = root.join("src");
+    let out = root.join("out");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\npub type S =\n  | A\n  | B\n  | C\n\n\
+         pub fn f(s: S) -> number {\n  return match s {\n    A => 1,\n    B => 2,\n  }\n}\n\n\
+         pub fn g() -> number {\n  let x = 1\n  return 1\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build");
+    let codes: Vec<(&str, &str)> = report
+        .structured
+        .iter()
+        .map(|d| (d.code.as_str(), d.severity.as_str()))
+        .collect();
+    assert_eq!(codes, [("E0200", "error"), ("E0107", "warning")], "{:?}", report.diagnostics);
+    assert_eq!(report.error_count, 1, "a lint is not an error");
+    assert!(report.emitted.is_empty(), "a module with an error is not emitted");
+
+    // A resolve error still stops the lint tier: the resolution map is not
+    // complete, and a used binding could read as dead.
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\npub fn g() -> number {\n  let x = 1\n  return y\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build");
+    assert!(
+        report.structured.iter().all(|d| d.code != "E0107"),
+        "no lint past a resolve error: {:?}",
+        report.diagnostics
+    );
 }

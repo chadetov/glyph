@@ -97,7 +97,7 @@ use glyph_resolver::{build_prelude, ModuleGraph, StdlibStubs};
 use tower_lsp::lsp_types::Url;
 
 use crate::analysis::{analysis_in, hover_in, module_outline, Analysis};
-use crate::diagnostic::{project_file_diagnostics_through, project_tables, Diagnostic, Stages};
+use crate::diagnostic::{project_file_diagnostics_staged, project_tables, Diagnostic, Stages, StagesRan};
 use crate::{collect_glyph_files, module_path_of};
 
 /// How many project databases stay live at once, least-recently-used evicted.
@@ -459,6 +459,17 @@ impl Workspace {
         uri: &Url,
         stages: Stages,
     ) -> Option<(&str, Vec<Diagnostic>)> {
+        self.diagnostics_staged(root, uri, stages)
+            .map(|(text, list, _)| (text, list))
+    }
+
+    /// [`Workspace::diagnostics`], and which stages ran on the file.
+    pub(crate) fn diagnostics_staged(
+        &mut self,
+        root: &Path,
+        uri: &Url,
+        stages: Stages,
+    ) -> Option<(&str, Vec<Diagnostic>, StagesRan)> {
         let i = self.project(root);
         let open = &self.open;
         let project = &mut self.projects[i];
@@ -487,9 +498,9 @@ impl Workspace {
             entries.push((module_path.as_str(), file));
         }
         let tables = project_tables(&project.db, &entries);
-        let diagnostics =
-            project_file_diagnostics_through(&project.db, file, &module_path, &tables, stages);
-        Some((file.source_text(&project.db).as_str(), diagnostics))
+        let (diagnostics, ran) =
+            project_file_diagnostics_staged(&project.db, file, &module_path, &tables, stages);
+        Some((file.source_text(&project.db).as_str(), diagnostics, ran))
     }
 
     /// The full list of every module of the project at `root`, each with its
@@ -497,7 +508,8 @@ impl Workspace {
     /// what `glyph check --no-tsc` reports over the project, file by file.
     /// Each of `also` that is not a member (an open document outside the
     /// root) is added with its own list, the one [`Workspace::diagnostics`]
-    /// gives it. Sorted by URI.
+    /// gives it. Each entry carries the stages that ran on the file. Sorted
+    /// by URI.
     ///
     /// The `glyph/applyEdit` gate reads this before and after swapping its
     /// candidates in, because a file's list depends on its siblings: an
@@ -513,7 +525,7 @@ impl Workspace {
         &mut self,
         root: &Path,
         also: &[Url],
-    ) -> Vec<(Url, Vec<Diagnostic>, Option<String>)> {
+    ) -> Vec<(Url, Vec<Diagnostic>, Option<String>, StagesRan)> {
         let i = self.project(root);
         let open = &self.open;
         let project = &mut self.projects[i];
@@ -537,10 +549,10 @@ impl Workspace {
             .map(|(m, f)| (m.as_str(), *f))
             .collect();
         let tables = project_tables(&project.db, &entries);
-        let mut out: Vec<(Url, Vec<Diagnostic>, Option<String>)> = members
+        let mut out: Vec<(Url, Vec<Diagnostic>, Option<String>, StagesRan)> = members
             .iter()
             .map(|(uri, file, module_path)| {
-                let list = project_file_diagnostics_through(
+                let (list, ran) = project_file_diagnostics_staged(
                     &project.db,
                     *file,
                     module_path,
@@ -548,16 +560,16 @@ impl Workspace {
                     Stages::All,
                 );
                 let text = (!list.is_empty()).then(|| file.source_text(&project.db).clone());
-                (uri.clone(), list, text)
+                (uri.clone(), list, text, ran)
             })
             .collect();
         for uri in also {
             if out.iter().any(|(u, ..)| u == uri) {
                 continue;
             }
-            if let Some((text, list)) = self.diagnostics(root, uri, Stages::All) {
+            if let Some((text, list, ran)) = self.diagnostics_staged(root, uri, Stages::All) {
                 let text = (!list.is_empty()).then(|| text.to_string());
-                out.push((uri.clone(), list, text));
+                out.push((uri.clone(), list, text, ran));
             }
         }
         out.sort_by(|a, b| a.0.cmp(&b.0));
@@ -1075,7 +1087,7 @@ mod tests {
     fn project_codes(ws: &mut Workspace, root: &Path, also: &[Url]) -> Vec<(String, Vec<String>)> {
         ws.project_diagnostics(root, also)
             .into_iter()
-            .map(|(uri, list, _)| {
+            .map(|(uri, list, ..)| {
                 let name = uri.path().rsplit('/').next().unwrap_or_default().to_string();
                 (name, list.into_iter().map(|d| d.code).collect())
             })

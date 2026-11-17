@@ -348,7 +348,9 @@ fn initialize_carries_instructions_that_name_the_update_commands() {
 fn a_tools_call_over_stdio_answers_from_the_project_on_disk() {
     let root = unique_tmp("tools_call");
     let file = root.join("broken.glyph");
-    std::fs::write(&file, "module broken\nfn f() -> number {\n  return \"nope\"\n}\n")
+    // `pub`, so the reachability lint (E0112), which runs past a type error
+    // since G313, has nothing to say and the list is the one error.
+    std::fs::write(&file, "module broken\npub fn f() -> number {\n  return \"nope\"\n}\n")
         .expect("write the fixture");
 
     let mut mcp = McpProcess::start(&root);

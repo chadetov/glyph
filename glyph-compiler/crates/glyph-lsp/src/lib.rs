@@ -1481,13 +1481,15 @@ struct ApplyEditParams {
 }
 
 /// One file's part of a `glyph/applyEdit` answer, in that file's own
-/// coordinates: the diagnostics the edit introduced in it and the ones it
-/// already had.
+/// coordinates: the diagnostics the edit introduced in it, the ones it
+/// already had, and the stages of the pipeline that ran on it after the
+/// edit (`["front", "lints", "emit"]` or a prefix of it).
 #[derive(Debug, serde::Serialize)]
 struct FileVerdict {
     uri: Url,
     diagnostics: Vec<Diagnostic>,
     preexisting: Vec<Diagnostic>,
+    stages: Vec<&'static str>,
 }
 
 /// Response to `glyph/applyEdit` (review 81, decisions 1 and 2).
@@ -1508,6 +1510,17 @@ struct FileVerdict {
 /// rejection both are absent and `rejected` names the reason, every list
 /// empty for a structural one like overlapping edits. `uri` names the
 /// document a `document_not_open` refusal is about.
+///
+/// `stages` lists the stages of the pipeline that ran on the edited
+/// document's candidate, in order: `front` (parse through the type checker),
+/// `lints` and `emit`, and every `elsewhere` verdict carries the same field
+/// for its file. The lint tier runs when the front end found no error other
+/// than a type error, and the emitter only on a file with no error (G313,
+/// record 88). So `ok: true` claims nothing about a stage the list leaves
+/// out: on a file with a type error, an edit that would draw an emitter
+/// refusal is accepted, and the refusal surfaces on the edit that fixes the
+/// last error. `stages` is empty in the `changes` form and on a structural
+/// refusal, where nothing ran.
 #[derive(Debug, serde::Serialize)]
 struct ApplyEditResponse {
     ok: bool,
@@ -1517,6 +1530,7 @@ struct ApplyEditResponse {
     uri: Option<Url>,
     diagnostics: Vec<Diagnostic>,
     preexisting: Vec<Diagnostic>,
+    stages: Vec<&'static str>,
     elsewhere: Vec<FileVerdict>,
 }
 
@@ -1605,13 +1619,16 @@ impl Backend {
     /// changed) keeps its start, stretches its end, and is preexisting when
     /// its message is unchanged (review 82, item 3(b)).
     ///
-    /// "The warning tier included" holds only while the file has no error.
-    /// The file's list stops after the type checker when it has one
-    /// (`project_file_diagnostics`), so the lint tier and the emitter never
-    /// run on either side of the comparison: an edit to a file that already
-    /// has an error can add a warning or an E0302 to E0305 refusal and is
-    /// still answered `ok: true`. The diagnostic surfaces on the edit that
-    /// fixes the last error, which is then refused for it (G313).
+    /// The warning tier counts on a file with a type error too: the lint tier
+    /// runs whenever the front end (parse, symbols, imports, resolution)
+    /// found no error (G313, record 88). The emitter does not run on a file
+    /// with any error, on either side of the comparison, so an edit to such
+    /// a file can add an E0302 to E0305 refusal and still be answered `ok:
+    /// true`; the refusal surfaces on the edit that fixes the last error,
+    /// which is then refused for it. `stages` on every verdict names the
+    /// stages that ran, so that partial claim is stated rather than implied.
+    /// Before 0.1.142 the lint tier stopped at a type error as well, and an
+    /// edit adding an unused binding to such a file was accepted.
     /// Running the `@example`/property tests as part of the gate is a v1.1
     /// enhancement (it needs the build pipeline factored into a library the
     /// server can call without the current cli→lsp dependency cycle).
@@ -1684,8 +1701,8 @@ impl Backend {
         let mut own = None;
         let mut elsewhere = Vec::new();
         for uri in files {
-            let (list, text) = after.remove(&uri).unwrap_or_default();
-            let before = before.remove(&uri).map(|(b, _)| b).unwrap_or_default();
+            let (list, text, ran) = after.remove(&uri).unwrap_or_default();
+            let before = before.remove(&uri).map(|(b, ..)| b).unwrap_or_default();
             let doc = docs.iter().find(|d| d.uri == uri);
             let regions = doc.map(|d| d.regions.as_slice()).unwrap_or_default();
             let (introduced, preexisting) = split_introduced(&before, regions, list);
@@ -1698,6 +1715,7 @@ impl Backend {
                 uri,
                 diagnostics: to_lsp_diagnostics(text, introduced),
                 preexisting: to_lsp_diagnostics(text, preexisting),
+                stages: ran.map(|r| r.names()).unwrap_or_default(),
             };
             if single && doc.is_some() {
                 own = Some(verdict);
@@ -1708,8 +1726,8 @@ impl Backend {
                 elsewhere.push(verdict);
             }
         }
-        let (diagnostics, preexisting) = own
-            .map(|v| (v.diagnostics, v.preexisting))
+        let (diagnostics, preexisting, stages) = own
+            .map(|v| (v.diagnostics, v.preexisting, v.stages))
             .unwrap_or_default();
         Ok(ApplyEditResponse {
             ok,
@@ -1720,6 +1738,7 @@ impl Backend {
             uri: None,
             diagnostics,
             preexisting,
+            stages,
             elsewhere,
         })
     }
@@ -1764,6 +1783,7 @@ fn reject(
         uri: None,
         diagnostics,
         preexisting,
+        stages: Vec::new(),
         elsewhere: Vec::new(),
     }
 }
@@ -1794,9 +1814,13 @@ fn prepare_edits(
 }
 
 /// Every file's compiler list, by URI, over the projects `docs` live in, with
-/// the text of each non-empty one. A file two of those projects both hold
-/// gets both lists, so a diagnostic either project reports is judged.
-type ProjectLists = std::collections::BTreeMap<Url, (Vec<diagnostic::Diagnostic>, Option<String>)>;
+/// the text of each non-empty one and the stages that ran on it. A file two
+/// of those projects both hold gets both lists, so a diagnostic either
+/// project reports is judged, and only the stages that ran in all of them.
+type ProjectLists = std::collections::BTreeMap<
+    Url,
+    (Vec<diagnostic::Diagnostic>, Option<String>, Option<diagnostic::StagesRan>),
+>;
 
 /// [`Workspace::project_diagnostics`] for every distinct project root among
 /// `docs`, merged by URI. Called with the workspace lock held.
@@ -1811,12 +1835,21 @@ fn project_lists(ws: &mut Workspace, docs: &[EditedDoc]) -> ProjectLists {
             .filter(|d| &d.root == root)
             .map(|d| d.uri.clone())
             .collect();
-        for (uri, list, text) in ws.project_diagnostics(root, &also) {
+        for (uri, list, text, ran) in ws.project_diagnostics(root, &also) {
             let slot = out.entry(uri).or_default();
             slot.0.extend(list);
             if slot.1.is_none() {
                 slot.1 = text;
             }
+            // A stage counts only when it ran in every project that read
+            // the file, since each project's list is judged.
+            slot.2 = Some(match slot.2 {
+                Some(prev) => diagnostic::StagesRan {
+                    lints: prev.lints && ran.lints,
+                    emit: prev.emit && ran.emit,
+                },
+                None => ran,
+            });
         }
     }
     out

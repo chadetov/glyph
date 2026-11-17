@@ -743,6 +743,10 @@ fn build_project_inner_with(
             report.error_count += 1;
         }
 
+        // Every error so far is the front end's (parse, symbols, imports,
+        // resolution). Those stop the lint tier below; a type error does not.
+        let front_failed = report.error_count != err_start;
+
         // Typecheck diagnostics carry a severity: errors fail the build, the
         // `Result` must-use lint (E0217) is a warning that is surfaced but does
         // not block emission.
@@ -762,9 +766,7 @@ fn build_project_inner_with(
             }
         }
 
-        // Emit TS only for a module that produced no *errors* — never write
-        // code derived from a rejected program. Warnings do not block emission.
-        if report.error_count != err_start {
+        if front_failed {
             continue;
         }
         let Some(ast) = parsed.module() else { continue };
@@ -773,9 +775,12 @@ fn build_project_inner_with(
         };
 
         // Advisory lints (unused import/binding, unreachable code): warnings
-        // that surface but never block emission. Computed only here, on a
-        // module that resolved with no errors, so the resolution map is
-        // complete and a used binding can't be mistaken for a dead one.
+        // that surface but never block emission. Computed on a module whose
+        // front end produced no errors, so the resolution map is complete and
+        // a used binding can't be mistaken for a dead one. A type error does
+        // not stop them: they read the resolution map and nothing the checker
+        // decides (G313, record 88). The language server's list follows the
+        // same rule (`project_file_diagnostics`).
         for e in glyph_resolver::module_lints(ast, resolved) {
             report
                 .diagnostics
@@ -812,6 +817,14 @@ fn build_project_inner_with(
                     &e,
                     ast,
                 ));
+        }
+
+        // Emit TS only for a module that produced no *errors*: never write
+        // code derived from a rejected program, and never hand the emitter an
+        // ill-typed one, which it is not hardened for (G322). Warnings do not
+        // block emission.
+        if report.error_count != err_start {
+            continue;
         }
 
         // The emitter reads sibling declarations through the resolver the

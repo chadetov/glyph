@@ -761,11 +761,14 @@ pub fn project_tables(db: &dyn Db, entries: &[(&str, SourceFile)]) -> ProjectTab
 /// same file set.
 ///
 /// The order is the compiler's: parse, then the symbol table, then imports,
-/// then resolution, then types, and the advisory lints and the emitter only on
-/// a file that produced no errors, because there is no point linting or
-/// emitting a program that does not check. That is `glyph build`'s rule, and
-/// this list is held to it by a gate that runs both surfaces on one project
-/// (`crates/glyph-cli/tests/agent_loop.rs`).
+/// then resolution, then types, then the advisory lints, then the emitter.
+/// The lints run when the front end (parse, symbols, imports, resolution)
+/// produced no error, whatever the type errors: they read the resolution map
+/// and nothing the checker decides, so a complete resolution is all they
+/// need (G313, record 88). The emitter runs only on a file with no error at
+/// all, because it is not hardened for an ill-typed program (G322). That is
+/// `glyph build`'s rule, and this list is held to it by a gate that runs both
+/// surfaces on one project (`crates/glyph-cli/tests/agent_loop.rs`).
 ///
 /// Two things `glyph check` does are not done here, both because they need
 /// something outside the compiler:
@@ -810,6 +813,46 @@ pub fn project_file_diagnostics_through(
     tables: &ProjectTables,
     stages: Stages,
 ) -> Vec<Diagnostic> {
+    project_file_diagnostics_staged(db, file, module_path, tables, stages).0
+}
+
+/// The stages of the pipeline that ran on one file, in pipeline order, as the
+/// `glyph/applyEdit` verdicts spell them: `front` (parse, symbols, imports,
+/// resolution and types, which always run as far as the parse lets them),
+/// `lints` and `emit`.
+///
+/// A list that stops short says what a clean answer did not cover: on a file
+/// with a type error the emitter did not run, so an edit there cannot be
+/// shown to introduce no emitter refusal (G313, record 88).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StagesRan {
+    pub lints: bool,
+    pub emit: bool,
+}
+
+impl StagesRan {
+    /// The stage names, in pipeline order.
+    pub fn names(self) -> Vec<&'static str> {
+        let mut out = vec!["front"];
+        if self.lints {
+            out.push("lints");
+        }
+        if self.emit {
+            out.push("emit");
+        }
+        out
+    }
+}
+
+/// [`project_file_diagnostics_through`], and which stages ran.
+pub fn project_file_diagnostics_staged(
+    db: &dyn Db,
+    file: SourceFile,
+    module_path: &str,
+    tables: &ProjectTables,
+    stages: Stages,
+) -> (Vec<Diagnostic>, StagesRan) {
+    let mut ran = StagesRan::default();
     let source = file.source_text(db).clone();
     let mut out = Vec::new();
 
@@ -820,7 +863,7 @@ pub fn project_file_diagnostics_through(
         if let Some(err) = parsed.error() {
             out.push(from_parse_error(module_path, &source, err));
         }
-        return out;
+        return (out, ran);
     };
 
     // Right after the parse, so it is in the front end's list on every
@@ -849,23 +892,28 @@ pub fn project_file_diagnostics_through(
         }
     }
 
+    // Warnings do not block the tiers below; errors do. Which errors block
+    // which tier is settled here, before the checker's are added.
+    let front_failed = out.iter().any(|d| d.severity == "error");
+
     let types = glyph_db::type_map(db, file);
     for e in types.errors() {
         out.push(from_type_error(module_path, &source, e, ast));
     }
 
-    // Warnings do not block the tiers below; errors do.
-    if out.iter().any(|d| d.severity == "error") {
-        return out;
+    if front_failed {
+        return (out, ran);
     }
     let Some(resolution) = resolved.resolved() else {
-        return out;
+        return (out, ran);
     };
 
     // The advisory tier: warnings that surface but never block emission.
-    // Computed only on a module that resolved with no errors, so the
+    // Computed on a module whose front end produced no error, so the
     // resolution map is complete and a used binding cannot be mistaken for a
-    // dead one.
+    // dead one. A type error does not stop it: the lints read the resolution
+    // map and nothing the checker decides (G313, record 88).
+    ran.lints = true;
     for e in glyph_resolver::module_lints(ast, resolution) {
         out.push(from_resolve_error(module_path, &source, &e, ast));
     }
@@ -875,8 +923,13 @@ pub fn project_file_diagnostics_through(
         out.push(from_resolve_error(module_path, &source, &e, ast));
     }
 
-    if stages == Stages::FrontEnd {
-        return out;
+    // The emitter runs only on a file with no error at all: it is not
+    // hardened for an ill-typed program, and running it on one turns a type
+    // error into cascades and crashes (G322).
+    if stages == Stages::FrontEnd
+        || out.iter().any(|d| d.severity == "error")
+    {
+        return (out, ran);
     }
 
     // The emitter refuses some programs the checker accepts (a `?` in a
@@ -885,6 +938,7 @@ pub fn project_file_diagnostics_through(
     // emitted TypeScript itself is thrown away.
     let decls = glyph_db::SalsaDeclTy::new(db, file);
     let ctx = tables.emit_context(module_path, &decls);
+    ran.emit = true;
     if let Err(e) = glyph_emit::emit_module_mapped(
         ast,
         resolution,
@@ -895,7 +949,7 @@ pub fn project_file_diagnostics_through(
         out.push(from_emit_error(module_path, &source, &e, ast));
     }
 
-    out
+    (out, ran)
 }
 
 #[cfg(test)]

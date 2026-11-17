@@ -66,7 +66,11 @@ below.
 | `E0113` | A `module` line starting with `std` or `extern`: both prefixes are the compiler's own (D15), so nothing can import this file |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
-build output but never fail the build or block emission. `E0107` exempts names
+build output but never fail the build or block emission. They run when parse,
+symbols, imports and resolution produced no error, whatever the type errors,
+so a file with an E0200 still reports its unused binding (since 0.1.142,
+G313). A resolve error stops them, because a binding the resolver could not
+place would read as unused. `E0107` exempts names
 led by `_` (the conventional "intentionally unused" marker). `E0112` is the
 same tier, computed project-wide rather than per module: a module written for
 a host TypeScript project (the hybrid embedding shape, `glyph build` output

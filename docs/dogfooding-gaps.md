@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-335 entries, 285 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-29 are open. G144, the D28 boundary cast that never reached the returns a
+337 entries, 285 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+31 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7240,7 +7240,7 @@ and is the owner's to confirm.
   wearing an exclusion's colour, which is a mistake this project has made once
   already and corrected.
 
-  *Reproduced against 0.1.130, on the release-branch build (`glyph 0.1.130`), with the same coarse proxy over `tests/negative`, the `catches/` cases and all 32 `examples/apps`: 8,772 diagnostics, 5,967 of them (68.0%) starting on a line indented two or more spaces. The count grew with the corpus and the share stayed within two points, so the conclusion below stands. Previously, against 0.1.124, on a release-branch build, with the same coarse proxy: `glyph check --no-tsc --no-test --json` over `tests/negative` (files and directories), the `catches/` cases and all 31 `examples/apps` gives 5,005 diagnostics, 3,315 of them (66.2%) starting on a line indented two or more spaces. The number has not moved in the direction that would reopen the question; the conclusion below stands. Previously, against 0.1.118: re-measured with a coarser proxy, to refresh stale evidence rather than repeat the original study. `glyph check --no-tsc --json` over `tests/negative` (41 files), the 7 `catches/` cases and all 31 `examples/apps` gives 1,892 diagnostics; classifying each by indentation on its start line (>=2 leading spaces, a fast stand-in for "inside a function body" rather than the original's scanned body ranges cross-checked by hand) puts 1,274 inside a body: 67.3% overall, 70.4% of the 1,810 errors alone. Both are within a few points of the original 71.7%/75.0% and the conclusion is unchanged: diagnostics still land inside bodies close to the rate the corpus is bodies, so the exclusion still stands on the same argument. This did not repeat the original's two independent cross-checks; a full re-run of those is unscheduled. Previously, against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
+  *Reproduced against 0.1.136, on the release-branch build, with the same coarse proxy over `tests/negative` (files and directories), the 5 `catches/` cases and all 32 `examples/apps`: 10,640 diagnostics, 7,444 of them (70.0%) starting on a line indented two or more spaces. The share stays within two points of every earlier run, so the conclusion below stands. Previously, against 0.1.130, on the release-branch build (`glyph 0.1.130`), with the same coarse proxy over `tests/negative`, the `catches/` cases and all 32 `examples/apps`: 8,772 diagnostics, 5,967 of them (68.0%) starting on a line indented two or more spaces. The count grew with the corpus and the share stayed within two points, so the conclusion below stands. Previously, against 0.1.124, on a release-branch build, with the same coarse proxy: `glyph check --no-tsc --no-test --json` over `tests/negative` (files and directories), the `catches/` cases and all 31 `examples/apps` gives 5,005 diagnostics, 3,315 of them (66.2%) starting on a line indented two or more spaces. The number has not moved in the direction that would reopen the question; the conclusion below stands. Previously, against 0.1.118: re-measured with a coarser proxy, to refresh stale evidence rather than repeat the original study. `glyph check --no-tsc --json` over `tests/negative` (41 files), the 7 `catches/` cases and all 31 `examples/apps` gives 1,892 diagnostics; classifying each by indentation on its start line (>=2 leading spaces, a fast stand-in for "inside a function body" rather than the original's scanned body ranges cross-checked by hand) puts 1,274 inside a body: 67.3% overall, 70.4% of the 1,810 errors alone. Both are within a few points of the original 71.7%/75.0% and the conclusion is unchanged: diagnostics still land inside bodies close to the rate the corpus is bodies, so the exclusion still stands on the same argument. This did not repeat the original's two independent cross-checks; a full re-run of those is unscheduled. Previously, against 0.1.112: measured, with the numbers and the corrected argument in the paragraphs that follow this line. Previously, against 0.1.110: still unmeasured. The roadmap named the measurement in two places and no run had produced a number, which was the entry's whole point. Against 0.1.104: `glyph_references` on a local takes the
   `SymbolTarget::Local` arm and answers file-scoped occurrences rather than a
   project-wide identity, confirmed by reading the arm and by the tool's own
   behaviour. What is not measured, and is the whole question, is the fraction of
@@ -7300,7 +7300,7 @@ and is the owner's to confirm.
   and a disagreeing header is a diagnostic. Picking silently is what produced
   two spellings in the first place.
 
-  *Reproduced against 0.1.130, on the release-branch build: `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement. Previously, against 0.1.124, on a release-branch build: the identical two-file project (`src/models.glyph` headed `module app/models`, imported from `main` as `models`) is `glyph check --no-tsc --no-test` with two unused warnings and exit 0, nothing naming the disagreement. Previously, against 0.1.118: the identical two-file project (a file whose header reads `module app/models` while sitting at a path the project keys as `models`) still compiles with no diagnostic naming the disagreement. Previously, against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
+  *Reproduced against 0.1.136, on the release-branch build: `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement. Previously, against 0.1.130, on the release-branch build: `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement. Previously, against 0.1.124, on a release-branch build: the identical two-file project (`src/models.glyph` headed `module app/models`, imported from `main` as `models`) is `glyph check --no-tsc --no-test` with two unused warnings and exit 0, nothing naming the disagreement. Previously, against 0.1.118: the identical two-file project (a file whose header reads `module app/models` while sitting at a path the project keys as `models`) still compiles with no diagnostic naming the disagreement. Previously, against 0.1.112: a file whose header reads `module app/models` while sitting at a path the project keys as `models` still compiles with no diagnostic. Previously, against 0.1.106:  by the fold's own `Unkeyed` case, which fires on
   this configuration and is covered by a test naming it.*
 
   **This is worse than a silent gap. It is a silent wrong answer, and it breaks
@@ -10195,7 +10195,7 @@ and is the owner's to confirm.
   Rendering a structural record by its fields touches every diagnostic that
   displays a record, so it is its own change.
 
-  *Reproduced against 0.1.130, on the release-branch build: the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` ``. Previously, against 0.1.124, the version the release-branch binary reports before the bump. `<Card title="x" />` against an inline
+  *Reproduced against 0.1.136, on the release-branch build: the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211). Previously, against 0.1.130, on the release-branch build: the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` ``. Previously, against 0.1.124, the version the release-branch binary reports before the bump. `<Card title="x" />` against an inline
   `props: { title: string, count: number }` draws ``argument type mismatch:
   expected `record`, found `record`: missing field `count` ``. The display is
   unchanged from the published 0.1.124, where the same element drew nothing.*
@@ -11667,7 +11667,7 @@ and is the owner's to confirm.
   An `Option` is never null, so `?.` reads off the tag object; on a `Result`,
   `?.` is optional chaining and does not propagate an `Err`, which is how csvql
   came to write `bind_agg(...)?.label`. The plain-dot member set (`o.nmae`,
-  `r.value`) is still unchecked and is 0.1.138.
+  `r.value`) is still unchecked and is 0.1.139.
 - **G312. [FIXED] A built-in method read without a call is accepted.** `let up =
   s.toUpperCase` then `up()` passes `glyph check` with `tsc` (``tsc --strict
   passed.``), and throws a `TypeError` at run time, because an ES module is
@@ -11909,15 +11909,17 @@ and is the owner's to confirm.
   comment above its segment: `return s` / `.trim()` / `// then count` /
   `.length`. A segment's placeable gaps are before `.` or `?.`, between it and
   the name, before `?`, and before the segment's first `<`, `(` or `[`. A
-  comment inside an argument list, a lambda body or an index breaks nothing,
-  so every 0.1.135 fixed point is still one. A chain holding a comment the
-  layout cannot place (in the head's own links, after a segment's first
-  argument list, index or type-argument list, including between `>` and `(`)
-  keeps its 0.1.135 layout whole, even when another of its comments could be
-  placed (record 95), because breaking it would give the stray comment a
-  position that looks intentional. Those comments, and the index, unary,
-  `await`, type-annotation and pattern-path cases, are still relocated until
-  the 0.1.137 refusal.
+  comment inside an argument list or a lambda body stays with it and breaks
+  nothing, so every 0.1.135 fixed point is still one. A chain holding a
+  comment the layout cannot place (in the head or its links; in an index or a
+  type-argument list; after a segment's first argument list or index,
+  including between `>` and `(`) keeps its 0.1.135 layout
+  whole, even when another of its comments could be placed (records 95 and
+  96), because breaking it would give the stray comment a position that looks
+  intentional. So does a chain with two adjacent `?`, which the segment layout
+  printed as `??` (record 96). Those comments, and the index, unary, `await`,
+  type-annotation and pattern-path cases, are still relocated, below the
+  statement or into the next argument list, until the 0.1.137 refusal.
 
 - **G325. An `unknown` value passes where another type is declared.** `let s:
   string = u` with `u: unknown` passes `glyph check --no-tsc` and the agent
@@ -11930,7 +11932,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.144 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.145 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 - **G326. `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
@@ -11942,7 +11944,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build): ``[E0304] cannot
   validate `Rows`: `Rows`'s body names `User`, which `rows` imports``.*
 
-  Planned for 0.1.139 (record 88): follow the name into its declaring module
+  Planned for 0.1.140 (record 88): follow the name into its declaring module
   through the hidden-namespace import.
 - **G327. `glyph fix` cannot name the arm that covers a case an E0220 head
   would move.** With no E0200, some arm takes every remaining value, but a
@@ -11954,7 +11956,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): the decline reads "its
   catch-all arm `blank` handles `Loaded` now" where `blank` is a variant.*
 
-  Planned for 0.1.140 (record 89): read the checker's coverage relation from
+  Planned for 0.1.141 (record 89): read the checker's coverage relation from
   the same build report and name the arm.
 - **G328. A `const` inside a function body says "assignment requires `mut`".**
   `const s = "a"` in a body is E0008, ``assignment requires `mut` ``. The help
@@ -12030,16 +12032,50 @@ and is the owner's to confirm.
   *Reproduced against 0.1.135: E0001 with the character printed raw.*
 
 - **G335. `glyph fmt` writes a statement starting with `(` after one that
-  absorbs it as a call.** In a block, `g()?` on one line and `?` on the next
-  parses as `(g()?)?`. The formatter prints that statement with its
-  parentheses, because `g()??` would lex as `??`, and the line before it,
-  `let a = 1`, then reads the `(` as a call: a second `glyph fmt` gives
-  `let a = 1(g()?)?`, a different program. The first pass's output is
-  well-formed and looks canonical, so nothing flags it. G162 was the same
-  hazard and closed by dropping one construct's needless parentheses; the
-  general case is still open, since the formatter never checks what a
-  statement starting with `(` follows. Found by the `format_idempotent`
-  fuzzer during the 0.1.136 work.
+  absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
+  indented `.run()` is printed as `let a = 1` and `(load()?).run()`: the
+  formatter wraps a `?` operand in parentheses before a member link, because
+  `load()?.run()` would lex `?.` as optional chaining. Inside braces a line
+  starting with `(` continues the line above, so the first pass's output is
+  already another program: the source emits `let a = 1;` and
+  `__r0.value.run();`, the formatted file emits `let a = 1(__r0.value).run();`.
+  Nothing flags it except `tsc` (TS2349, the expression is not callable). G162
+  was the same hazard and closed by dropping one construct's needless
+  parentheses; the general case is open, since the formatter never checks what
+  a statement starting with `(` follows. Found by the `format_idempotent`
+  fuzzer during the 0.1.136 work; widened by record 96, which also lists the
+  source shapes (`(x ?? y).trim()`, `[y].forEach(...)`) that carry the same
+  hazard when a line is inserted above them.
 
-  *Reproduced against 0.1.135: the first `fmt` prints `(g()?)?` on its own
-  line, the second joins it to `let a = 1`.*
+  *Reproduced against 0.1.136 and 0.1.135: one `glyph fmt` turns `let a = 1;
+  __r0.value.run();` into `let a = 1(__r0.value).run();` in the emitted
+  TypeScript.*
+
+  Decided (record 96): `glyph fmt` never invents a `(` around `e?`. Before `(`
+  or `[` it prints `e?` bare; before `?` it prints `e? ?`, which the lexer
+  reads as two `?` because `??` always needs a right operand; before `.` or
+  `?.` at the start of an expression statement it prints the chain layout,
+  `load()?` then an indented `.run()`, since a line starting with `.` cannot
+  start a statement. `e? .f` and a `?`-leading line are refused spellings. The
+  `format_idempotent` fuzz oracle compares the reparsed AST with the source's,
+  not only the text. A parser rule refusing a `(`, `[` or `?` that continues
+  the line above is a separate item, measured against the corpus first.
+
+- **G336. A module-qualified call is laid out as a chain step.** With a
+  comment in the chain, `json.stringify<number>(1).length` prints as `json` /
+  `.stringify<number>(1)` / `// generic head` / `.length`. `json` is a module,
+  not a value, so `.stringify` is part of the callee's name rather than a
+  step, and splitting it puts one name on two lines, which `grep` for
+  `json.stringify` no longer finds. The head of a chain should take the whole
+  qualified name. Found by the 0.1.136 release review (record 96).
+
+  *Reproduced against 0.1.136: the layout above is a fixed point.*
+
+- **G337. A chain broken inside a JSX attribute value glues the closing `}`
+  onto its last step.** `title={props` / `.title` / `// attr` / `.trim()}
+  class="c">` keeps the brace, the next attribute and the element's `>` on
+  the step's line. It parses and emits the same TypeScript; the layout is the
+  problem, since the attribute's end is hidden at the end of a step. Found by
+  the 0.1.136 release review (record 96).
+
+  *Reproduced against 0.1.136: `.trim()} class="c">{props` on one line.*

@@ -319,7 +319,7 @@ json.discriminant(value: unknown, field: string) -> Option<string>  // read a st
   module validates when its body names only types that module declares and
   exports. A body that names a type the module imports, keeps private or
   applies as a generic is E0304 for now; following it into the declaring module
-  is planned for 0.1.139. Those names are never read in your module's scope,
+  is planned for 0.1.140. Those names are never read in your module's scope,
   where a type of the same name would be the wrong one.
 - Any other `T` (`number`, `int`, a string-literal union, `Option<User>`,
   `Nullable<User>`, `Record<string, int>`) gets the check a record field of that

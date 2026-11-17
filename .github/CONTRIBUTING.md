@@ -1,7 +1,7 @@
 # Contributing to Glyph
 
 Thanks for looking. Glyph is an early-preview language that transpiles to
-TypeScript, built so AI agents can read, write, and modify code safely. It's
+TypeScript, built so code an AI agent writes can be read, checked and changed without guessing. It's
 moving fast and pre-1.0, so this guide is short and honest about what's useful
 right now.
 

@@ -1,6 +1,6 @@
 # Glyph
 
-A statically typed, transpile-to-TypeScript language designed so AI agents can read, write, and modify code safely.
+A statically typed, transpile-to-TypeScript language built so code an AI agent writes can be read, checked and changed without guessing.
 
 [![npm](https://img.shields.io/npm/v/@glyphlang/glyph.svg)](https://www.npmjs.com/package/@glyphlang/glyph)
 [![downloads](https://img.shields.io/npm/dm/@glyphlang/glyph.svg)](https://www.npmjs.com/package/@glyphlang/glyph)

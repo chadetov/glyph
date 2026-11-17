@@ -19,8 +19,8 @@ produced it:
 npm audit signatures
 ```
 
-Glyph is a statically typed language that transpiles to TypeScript, designed so
-AI agents can read, write, and modify code safely. See
+Glyph is a statically typed language that transpiles to TypeScript, built so
+code an AI agent writes can be read, checked and changed without guessing. See
 [glyphlang.io](https://glyphlang.io).
 
 Licensed MIT OR Apache-2.0.

@@ -970,40 +970,15 @@ impl Printer {
                 self.push(unary_sym(*op));
                 self.atom(operand);
             }
-            Expr::Postfix { op, operand, .. } => {
-                self.atom(operand);
-                match op {
-                    PostfixOp::Try => self.push("?"),
+            Expr::Postfix { operand: inner, .. }
+            | Expr::Call { callee: inner, .. }
+            | Expr::Member { object: inner, .. }
+            | Expr::Index { object: inner, .. } => {
+                if self.member_chain(e) {
+                    return;
                 }
-            }
-            Expr::Call {
-                callee,
-                type_args,
-                args,
-                span,
-            } => {
-                self.atom(callee);
-                if !type_args.is_empty() {
-                    self.push("<");
-                    for (i, t) in type_args.iter().enumerate() {
-                        if i > 0 {
-                            self.push(", ");
-                        }
-                        self.type_expr(t);
-                    }
-                    self.push(">");
-                }
-                self.delimited(
-                    args,
-                    span.end,
-                    "(",
-                    ")",
-                    "()",
-                    "(",
-                    ")",
-                    |a: &Expr| a.span().start,
-                    |p, a| p.expr(a),
-                );
+                self.atom(inner);
+                self.postfix_link(e);
             }
             Expr::New {
                 callee,
@@ -1034,22 +1009,6 @@ impl Printer {
                     |a: &Expr| a.span().start,
                     |p, a| p.expr(a),
                 );
-            }
-            Expr::Member {
-                object,
-                field,
-                optional,
-                ..
-            } => {
-                self.atom(object);
-                self.push(if *optional { "?." } else { "." });
-                self.push(field);
-            }
-            Expr::Index { object, index, .. } => {
-                self.atom(object);
-                self.push("[");
-                self.expr(index);
-                self.push("]");
             }
             Expr::Await { expr, .. } => {
                 self.push("await ");
@@ -1146,6 +1105,172 @@ impl Printer {
                 self.push("\")");
             }
         }
+    }
+
+    /// Print one postfix link of a member/call chain without its base: `.f`,
+    /// `?.f`, a call's type arguments and argument list, `[i]`, or `?`.
+    fn postfix_link(&mut self, link: &Expr) {
+        match link {
+            Expr::Postfix { op, .. } => match op {
+                PostfixOp::Try => self.push("?"),
+            },
+            Expr::Call {
+                type_args,
+                args,
+                span,
+                ..
+            } => {
+                if !type_args.is_empty() {
+                    self.push("<");
+                    for (i, t) in type_args.iter().enumerate() {
+                        if i > 0 {
+                            self.push(", ");
+                        }
+                        self.type_expr(t);
+                    }
+                    self.push(">");
+                }
+                self.delimited(
+                    args,
+                    span.end,
+                    "(",
+                    ")",
+                    "()",
+                    "(",
+                    ")",
+                    |a: &Expr| a.span().start,
+                    |p, a| p.expr(a),
+                );
+            }
+            Expr::Member {
+                field, optional, ..
+            } => {
+                self.push(if *optional { "?." } else { "." });
+                self.push(field);
+            }
+            Expr::Index { index, .. } => {
+                self.push("[");
+                self.expr(index);
+                self.push("]");
+            }
+            _ => unreachable!("postfix_link takes a postfix expression"),
+        }
+    }
+
+    /// A member/call chain with a comment in one of its own gaps breaks one
+    /// segment per line, the dot leading and indented one level, with each
+    /// comment above the line of the segment it falls in (D14, G324):
+    ///
+    /// ```text
+    /// return s
+    ///   .trim()
+    ///   // then count
+    ///   .length
+    /// ```
+    ///
+    /// Returns true when it printed the chain. A segment starts at a `.` or
+    /// `?.` and takes every call, index and `?` that follows it; the head is
+    /// the base expression with the links before the first `.` or `?.`. When
+    /// the chain breaks, every segment takes a line, so adding one touches
+    /// one line, and the leading dot matches the leading operator of G323.
+    ///
+    /// A segment's gaps are the source before its first argument list or
+    /// index: before the `.` or `?.`, between it and the name, before a `?`,
+    /// and before the first `<`, `(` or `[`. A comment there goes above the
+    /// segment's line, which keeps it ahead of every literal and comment that
+    /// follows it in the segment, so the literal/comment stream keeps its
+    /// order. One inside an argument list, a lambda body or an index belongs
+    /// to that construct, so a chain with no comment in a gap prints exactly
+    /// as it did before and no file the earlier formatter left alone changes
+    /// (record 86).
+    ///
+    /// Two shapes stay outside the layout and do not break the chain: a
+    /// comment in a gap of the head's own links (`f // c` then `(x).g`), which
+    /// has no segment line to sit above, and one after a segment's first
+    /// argument list or index (`.f(x) // c` then `[0]`), which above the
+    /// segment would precede the `x` it was written after.
+    fn member_chain(&mut self, e: &Expr) -> bool {
+        // `flat` is a `${...}` interpolation, where a line break comes back as
+        // a literal `\n`; `in_block` is the D1 bracket-depth guard. The span
+        // test is the cheap reject before any gap is measured.
+        if self.flat || !self.in_block || !self.has_comment_between(e.span().start, e.span().end)
+        {
+            return false;
+        }
+        let (head, links) = flatten_postfix(e);
+        let starts: Vec<usize> = links
+            .iter()
+            .enumerate()
+            .filter(|(_, l)| matches!(l, Expr::Member { .. }))
+            .map(|(i, _)| i)
+            .collect();
+        let Some(&first_seg) = starts.first() else {
+            return false;
+        };
+        // Each segment as (first link, one past its last link, the offset its
+        // gaps end at).
+        let segments: Vec<(usize, usize, u32)> = starts
+            .iter()
+            .enumerate()
+            .map(|(n, &i)| {
+                let end = starts.get(n + 1).copied().unwrap_or(links.len());
+                (i, end, self.segment_gaps_end(&links[i..end]))
+            })
+            .collect();
+        let holds_comment = segments.iter().any(|&(i, _, gaps_end)| {
+            self.has_comment_between(inner_of(links[i]).span().end, gaps_end)
+        });
+        if !holds_comment {
+            return false;
+        }
+        self.atom(head);
+        for link in &links[..first_seg] {
+            self.postfix_link(link);
+        }
+        self.indent += 1;
+        for (i, end, gaps_end) in segments {
+            self.newline();
+            self.flush_comments_before(gaps_end);
+            for link in &links[i..end] {
+                self.postfix_link(link);
+            }
+        }
+        self.indent -= 1;
+        true
+    }
+
+    /// Where a chain segment's gaps end: at the opening `<`, `(` or `[` of its
+    /// first call or index, or at the segment's end when it has neither.
+    fn segment_gaps_end(&self, seg: &[&Expr]) -> u32 {
+        seg.iter()
+            .find(|l| matches!(l, Expr::Call { .. } | Expr::Index { .. }))
+            .map_or_else(
+                || seg[seg.len() - 1].span().end,
+                |l| self.next_token_at(inner_of(l).span().end),
+            )
+    }
+
+    /// The offset of the first source byte at or after `from` that is neither
+    /// whitespace nor inside a `//` comment: the start of the next token.
+    /// `from` itself when there is no source, which has no comments either.
+    fn next_token_at(&self, from: u32) -> u32 {
+        let Some(src) = self.source.as_deref() else {
+            return from;
+        };
+        let bytes = src.as_bytes();
+        let mut i = from as usize;
+        while i < bytes.len() {
+            match bytes[i] {
+                b' ' | b'\t' | b'\r' | b'\n' => i += 1,
+                b'/' if bytes.get(i + 1) == Some(&b'/') => {
+                    while i < bytes.len() && bytes[i] != b'\n' {
+                        i += 1;
+                    }
+                }
+                _ => break,
+            }
+        }
+        i as u32
     }
 
     fn array_elem(&mut self, el: &ArrayElem) {
@@ -1972,6 +2097,33 @@ fn is_atom(e: &Expr) -> bool {
             // delimiter, so the hazard has nothing to attach to.
             | Expr::Match { .. }
     )
+}
+
+/// The base a postfix link applies to.
+fn inner_of(link: &Expr) -> &Expr {
+    match link {
+        Expr::Postfix { operand: inner, .. }
+        | Expr::Call { callee: inner, .. }
+        | Expr::Member { object: inner, .. }
+        | Expr::Index { object: inner, .. } => inner,
+        other => other,
+    }
+}
+
+/// Split a member/call chain into its head and its postfix links, innermost
+/// first: `s.trim().length` is `s` with `.trim`, `()` and `.length`.
+fn flatten_postfix(e: &Expr) -> (&Expr, Vec<&Expr>) {
+    let mut links = Vec::new();
+    let mut cur = e;
+    while matches!(
+        cur,
+        Expr::Postfix { .. } | Expr::Call { .. } | Expr::Member { .. } | Expr::Index { .. }
+    ) {
+        links.push(cur);
+        cur = inner_of(cur);
+    }
+    links.reverse();
+    (cur, links)
 }
 
 /// Flatten the left spine of one operator into its operands, in source order.

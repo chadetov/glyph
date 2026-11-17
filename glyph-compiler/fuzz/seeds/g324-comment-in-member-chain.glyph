@@ -1,0 +1,39 @@
+module m
+
+fn g(n: number) -> number {
+  return n
+}
+
+pub fn count(s: string) -> number {
+  return s.trim() // then count
+    .length
+}
+
+pub fn head(s: string) -> string {
+  return s
+    // trim it
+    .trim()
+}
+
+pub fn dot(s: string) -> string {
+  return s.
+    // between the dot and the name
+    trim()
+}
+
+pub fn optional(o: { a: { b: string } }) -> number {
+  return o?.a // then b
+    ?.b.length
+}
+
+pub fn nested(s: string) -> number {
+  return g(s.trim() // inner
+    .length).toFixed(1).length
+}
+
+pub fn args(s: string) -> number {
+  return s.split(
+    // on commas
+    ",",
+  ).length
+}

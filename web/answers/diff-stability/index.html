@@ -210,7 +210,7 @@ type Cell = {
 
         <p class="block-label">Can <code>glyph fmt</code> break a program that builds?</p>
         <p>
-          It could, in exactly one shape, and that is fixed. An arm meaning &ldquo;the empty
+          It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty
           record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place
           in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by
           requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has
@@ -228,17 +228,27 @@ type Cell = {
           the emitted TypeScript is unchanged. A formatter your program has to survive is worse than
           a missing feature, because it damages code that already worked.
         </p>
+        <p>
+          The open one is G335. A statement that has to start with a parenthesis, such as
+          <code>(g()?)?</code> (written <code>g()??</code> it would read as the <code>??</code>
+          operator), is printed on its own line, and the line before it can read that
+          <code>(</code> as a call: after <code>let a = 1</code>, a second <code>glyph fmt</code>
+          writes <code>let a = 1(g()?)?</code>. The fuzzer found it while we worked on chain
+          comments, and it is still present in 0.1.136. Until it is fixed, keep a statement that
+          starts with <code>(</code> away from a line ending in a name or a value, or bind it with
+          <code>let</code>.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, and a <code>match</code>.</p>
+          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.</p>
         </div>
         <div class="status-card next">
           <p class="h">The edge, and what's next</p>
-          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
+          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment inside an index, after a call's arguments in a chain, or before a <code>!</code> or <code>await</code> operand is still moved below the statement; the next release makes <code>glyph fmt</code> refuse such a file and name the line instead. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
         </div>
       </div>
 

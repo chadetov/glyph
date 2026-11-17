@@ -299,7 +299,14 @@ fn apply_diagnostic_rules(
     }
 
     for (path, diags) in by_file {
-        fix_one_file(&path, &diags, report)?;
+        // The checker's coverage relation for this file, from the same check
+        // that produced its diagnostics: one load of the tree, one view of it.
+        let coverage = check
+            .coverage
+            .iter()
+            .find(|c| same_file(&c.file, &path))
+            .map(|c| &c.coverage);
+        fix_one_file(&path, &diags, coverage, report)?;
     }
     Ok(())
 }
@@ -344,6 +351,7 @@ fn same_file(a: &Path, b: &Path) -> bool {
 fn fix_one_file(
     path: &Path,
     diags: &[Diagnostic],
+    coverage: Option<&glyph_db::MatchCoverage>,
     report: &mut FixReport,
 ) -> Result<(), String> {
     let source =
@@ -359,7 +367,7 @@ fn fix_one_file(
 
     for d in diags {
         match d.code.as_str() {
-            "E0220" => match plan_e0220(&source, &module, d, diags) {
+            "E0220" => match plan_e0220(&source, &module, d, diags, coverage) {
                 Ok(edit) => {
                     applied.push(Applied {
                         code: d.code.clone(),
@@ -464,6 +472,12 @@ fn e0200_decline(d: &Diagnostic) -> String {
 /// match's own `E0200`: a variant the match is missing is free, and a match
 /// with no `E0200` at all has every variant spoken for.
 ///
+/// When it has every variant spoken for, the decline says by which arm, and
+/// that is read from the checker's coverage relation for the match
+/// (`coverage`), not from the arms' spelling: a lowercase arm may be a
+/// binding or a lowercase variant (G224), and only the checker knows which
+/// (G327, record 89).
+///
 /// A string-literal union (D30) takes the same repair with a different head:
 /// the arm is a literal (`"of"`), the suggestion is the value unquoted (`off`),
 /// and what is written is that value as a string literal again. Which of the
@@ -475,6 +489,7 @@ fn plan_e0220(
     module: &glyph_ast::Module,
     d: &Diagnostic,
     siblings: &[Diagnostic],
+    coverage: Option<&glyph_db::MatchCoverage>,
 ) -> Result<(u32, u32, String), String> {
     let alts = d
         .alternatives
@@ -536,22 +551,17 @@ fn plan_e0220(
         // reader about an unreachable arm sends them looking for a duplicate
         // that is not there.
         None => {
-            match catch_all_arm(&owner.arms) {
-                Some(CatchAll::Named(catch_all)) => {
-                    return Err(format!(
-                        "this match is missing no case because its {catch_all} handles `{suggestion}` now, so renaming this head to `{suggestion}` would move that case out of it, and which arm should handle it is not something the compiler determines"
-                    ));
-                }
-                Some(CatchAll::Unnamed) => {
-                    return Err(format!(
-                        "this match is missing no case, so some arm that takes every remaining value handles `{suggestion}` now; renaming this head to `{suggestion}` would move that case out of it, and `glyph fix` cannot tell from the diagnostics which arm that is (a lowercase name may be a variant, G224)"
-                    ));
-                }
-                None => {}
-            }
-            return Err(format!(
-                "the other arms of this match already cover every case, so renaming this head to `{suggestion}` would write an arm that can never run (E0305)"
-            ));
+            return Err(match catch_all_arm(source, &owner, coverage) {
+                CatchAll::Arm(catch_all) => format!(
+                    "this match is missing no case because its {catch_all} handles `{suggestion}` now, so renaming this head to `{suggestion}` would move that case out of it, and which arm should handle it is not something the compiler determines"
+                ),
+                CatchAll::Unknown => format!(
+                    "this match is missing no case, so some arm handles `{suggestion}` now; renaming this head to `{suggestion}` would move that case out of it, and the checker did not conclude this match's coverage, so `glyph fix` cannot say which arm that is"
+                ),
+                CatchAll::None => format!(
+                    "the other arms of this match already cover every case, so renaming this head to `{suggestion}` would write an arm that can never run (E0305)"
+                ),
+            });
         }
         Some(m) => {
             let missing = m.missing_variants.as_deref().unwrap_or(&[]);
@@ -690,33 +700,76 @@ fn match_owning_arm(module: &glyph_ast::Module, pattern: (u32, u32)) -> Option<O
     found
 }
 
-/// The arm of a match that takes every value the others leave, as the decline
-/// can describe it.
+/// What the checker recorded about the arm of a match that takes every value
+/// the others leave.
 enum CatchAll {
-    /// An `else` or `_` arm no lowercase-name arm comes before, so it is the
-    /// one that takes the remaining values.
-    Named(String),
-    /// A lowercase-name arm comes first. It binds every value if it is a
-    /// name, and takes one case if it names a lowercase variant (G224); the
-    /// diagnostics do not say which, so the decline names no arm (record 89).
-    Unnamed,
+    /// The first arm the checker recorded as absorbing the rest at the
+    /// match's own level, described for the decline (`` `_` arm ``,
+    /// ``arm `other` ``).
+    Arm(String),
+    /// The checker counted every case against the full variant set and no
+    /// arm absorbs the rest, so the other arms name every case.
+    None,
+    /// The checker did not conclude this match's coverage (an arm it
+    /// declined to read, a scrutinee it did not resolve, or no site at all),
+    /// so which arm takes the rest is not known.
+    Unknown,
 }
 
-/// The arm that takes every value the others leave, when the match may have
-/// one: `else` and `_`, and a lowercase name, which is a catch-all unless it
-/// names a variant.
-fn catch_all_arm(arms: &[glyph_ast::MatchArm]) -> Option<CatchAll> {
+/// The arm that takes every value the others leave in `owner`, read from the
+/// checker's coverage relation: the depth-0 catch-all with the lowest arm
+/// number at the site whose `match` span is `owner`'s (record 89).
+///
+/// A catch-all at greater depth is inside a payload (`Ok(x)`) and absorbs
+/// only that payload's union, so it is not the match's own. The arm's
+/// spelling is never consulted: a lowercase name is a catch-all when it binds
+/// and a single case when it names a lowercase variant (G224), and only the
+/// checker has decided which.
+fn catch_all_arm(
+    source: &str,
+    owner: &OwningMatch,
+    coverage: Option<&glyph_db::MatchCoverage>,
+) -> CatchAll {
+    use glyph_typechecker::CoverageState;
+    let Some(site) = coverage.and_then(|c| {
+        c.sites().iter().find(|s| {
+            let span = s.match_span();
+            (span.start, span.end) == owner.span
+        })
+    }) else {
+        return CatchAll::Unknown;
+    };
+    let first = site
+        .catch_alls()
+        .iter()
+        .filter(|c| c.depth == 0)
+        .map(|c| c.arm)
+        .min();
+    match first {
+        Some(arm) => match owner.arms.get(usize::from(arm)) {
+            Some(arm) => CatchAll::Arm(describe_arm(source, &arm.pattern)),
+            None => CatchAll::Unknown,
+        },
+        None if site.state() == CoverageState::Exhaustive => CatchAll::None,
+        None => CatchAll::Unknown,
+    }
+}
+
+/// How a decline names a catch-all arm: by its keyword for `else` and `_`,
+/// by its pattern as written otherwise.
+fn describe_arm(source: &str, pattern: &glyph_ast::Pattern) -> String {
     use glyph_ast::Pattern;
-    arms.iter().find_map(|arm| match &arm.pattern {
-        Pattern::Else { .. } => Some(CatchAll::Named("`else` arm".to_string())),
-        Pattern::Wildcard { .. } => Some(CatchAll::Named("`_` arm".to_string())),
-        Pattern::Ident { name, .. }
-            if !name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) =>
-        {
-            Some(CatchAll::Unnamed)
+    match pattern {
+        Pattern::Else { .. } => "`else` arm".to_string(),
+        Pattern::Wildcard { .. } => "`_` arm".to_string(),
+        other => {
+            let span = other.span();
+            let text = source
+                .get(span.start as usize..span.end as usize)
+                .unwrap_or_default();
+            format!("arm `{text}`")
         }
-        _ => None,
-    })
+    }
 }
 
 /// The byte span of the string-literal arm pattern at exactly `pattern`, when

@@ -87,6 +87,9 @@ pub struct CheckReport {
     /// Problems with the tree rather than with any source file: a `package.json`
     /// that would not parse, so its directory is not a project root (D41).
     pub notices: Vec<String>,
+    /// The checker's match-coverage relation for each module, from the same
+    /// build as `structured` (G327, record 89).
+    pub coverage: Vec<crate::build::ModuleCoverage>,
 }
 
 impl CheckReport {
@@ -232,5 +235,6 @@ fn check_in(
         tsc,
         tsc_ran,
         notices: tree.notices,
+        coverage: report.coverage,
     })
 }

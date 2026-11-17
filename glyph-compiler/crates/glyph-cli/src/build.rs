@@ -42,6 +42,20 @@ pub struct BuildReport {
     /// Per-module source maps, so `tsc` diagnostics can be remapped onto Glyph
     /// source (see `tscmap`). One entry per emitted module.
     pub module_maps: Vec<crate::tscmap::ModuleMap>,
+    /// The checker's match-coverage relation for every module that parsed,
+    /// read from the same database the diagnostics came from. `glyph fix`
+    /// reads it to name the arm that takes a match's remaining values, which
+    /// no diagnostic says (G327, record 89).
+    pub coverage: Vec<ModuleCoverage>,
+}
+
+/// One module's match-coverage relation, keyed by the source file it is
+/// about: the project root joined with the module path, the path a
+/// diagnostic's `file` names under that root.
+#[derive(Debug, Clone)]
+pub struct ModuleCoverage {
+    pub file: PathBuf,
+    pub coverage: glyph_db::MatchCoverage,
 }
 
 impl BuildReport {
@@ -315,6 +329,7 @@ impl TreeReport {
             flat.error_count += p.report.error_count;
             flat.modules.extend(p.report.modules.iter().cloned());
             flat.emitted.extend(p.report.emitted.iter().cloned());
+            flat.coverage.extend(p.report.coverage.iter().cloned());
             let out_rel = p
                 .project
                 .out_rel
@@ -746,6 +761,11 @@ fn build_project_inner_with(
         // Every error so far is the front end's (parse, symbols, imports,
         // resolution). Those stop the lint tier below; a type error does not.
         let front_failed = report.error_count != err_start;
+
+        report.coverage.push(ModuleCoverage {
+            file: src.join(format!("{module_path}.glyph")),
+            coverage: glyph_db::match_coverage(&db, *sf),
+        });
 
         // Typecheck diagnostics carry a severity: errors fail the build, the
         // `Result` must-use lint (E0217) is a warning that is surfaced but does

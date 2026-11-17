@@ -2163,7 +2163,10 @@ the tool refuses is listed in `symbols_absent` with the tool's own reason, so
 Nothing here guesses. A rule that cannot settle the answer says so and why, on
 the same output as what it applied: a union no project declares has no payload
 shapes to write patterns from, two fields a character away from the typo are
-two, not one. A non-exhaustive match (`E0200`) is reported and never
+two, not one. An arm head whose suggested variant is already handled by a
+catch-all arm is left alone, and the decline names that arm as the checker
+recorded it (`_`, `else`, or a lowercase binding, never a lowercase variant).
+A non-exhaustive match (`E0200`) is reported and never
 repaired: the compiler knows the missing cases and their patterns, not what the
 program should do in them. Write the arms from `missing_variants` and the
 variants' `construct` in `glyph check --agent`.

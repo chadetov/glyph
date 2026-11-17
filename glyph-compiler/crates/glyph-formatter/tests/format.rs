@@ -2032,6 +2032,20 @@ fn a_comment_with_no_canonical_place_is_refused() {
             6,
             "comment inside the pattern `C.Red` has no canonical place; move it above the match arm",
         ),
+        // qq_seg (record 96): a gap the chain layout places, refused because
+        // the chain holds `? ?`, which it cannot spell until G335 (record 97
+        // Q4). The message says why.
+        (
+            "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(b\n    // c\n    .f()?\n    ?\n    .length)\n}\n",
+            7,
+            "comment before `.f` in a member chain that cannot break until a chain can spell two `?` in a row has no canonical place; move it above the statement",
+        ),
+        // A placeable gap outside a block, where D1 allows no line break.
+        (
+            "module m\n\nfn g(s: string) -> string {\n  return s\n}\n\nconst n = g(\n  \"a\"\n    // trim it\n    .trim(),\n)\n",
+            9,
+            "comment before `.trim` in a member chain that cannot break outside a block, where a line break would end the statement (D1) has no canonical place; move it above the declaration of `n`",
+        ),
     ];
     for &(src, line, message) in cases {
         assert_refused(src, line, message);

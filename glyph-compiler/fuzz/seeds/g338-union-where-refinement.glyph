@@ -1,0 +1,6 @@
+module m
+
+pub type Salary =
+  | A
+  | B
+  where value >= 1

@@ -1922,3 +1922,56 @@ fn a_chain_with_an_unplaceable_comment_keeps_its_earlier_layout() {
         assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
     }
 }
+
+/// Two shapes the chain layout broke in the first 0.1.136 build, each
+/// checked against what the published 0.1.135 prints (record 96). Two `?`
+/// links in a row came out as `??`, the nullish operator, so the output no
+/// longer parsed (B1). A comment inside an index or a parenthesized head
+/// operand has no printer that places it, and breaking the chain for another
+/// comment flushed it above the next segment, after the literal it was
+/// written before (B2). Each chain now keeps its 0.1.135 layout, and the
+/// formatted output is asserted to parse, because a second `fmt` pass skips
+/// a file that does not and reads as idempotent.
+#[test]
+fn a_chain_the_layout_cannot_hold_keeps_its_earlier_layout() {
+    let cases = [
+        // qq_seg, Linus record 96.
+        (
+            "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(b\n    // c\n    .f()?\n    ?\n    .length)\n}\n",
+            "module m\n\ntype Box = { f: fn() -> Result<Result<string, string>, string> }\n\npub fn f(b: Box) -> Result<number, string> {\n  return Ok(\n    ((b.f(\n      // c\n    )?)?).length,\n  )\n}\n",
+        ),
+        // qq_head, Linus record 96.
+        (
+            "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\npub fn f() -> Result<number, string> {\n  return Ok(g()?\n    ?\n    // c\n    .length)\n}\n",
+            "module m\n\nfn g() -> Result<Result<string, string>, string> {\n  return Ok(Ok(\"a\"))\n}\n\npub fn f() -> Result<number, string> {\n  return Ok(\n    ((g()?)?).length,\n    // c\n  )\n}\n",
+        ),
+        // head_idx_mixed, Linus record 96.
+        (
+            "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs[\n    // first\n    0\n  ]\n    // then\n    .length\n}\n",
+            "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs[0].length\n  // first\n  // then\n}\n",
+        ),
+        // idx_mixed, Linus record 96.
+        (
+            "module m\n\npub fn f(s: string) -> string {\n  return s\n    // a\n    .split(\",\")[\n      // inside index\n      0\n    ]\n    .trim()\n}\n",
+            "module m\n\npub fn f(s: string) -> string {\n  return s.split(\n    // a\n    \",\",\n  )[0].trim(\n    // inside index\n  )\n}\n",
+        ),
+        // head_paren_unary, Linus record 96.
+        (
+            "module m\n\npub fn f(b: boolean) -> string {\n  return (! // negate\n    b)\n    // then\n    .toString()\n}\n",
+            "module m\n\npub fn f(b: boolean) -> string {\n  return (!b).toString(\n    // negate\n    // then\n  )\n}\n",
+        ),
+    ];
+    for (src, want) in cases {
+        let out = fmt(src);
+        glyph_parser::parse(&out)
+            .unwrap_or_else(|e| panic!("formatted output does not parse: {e:?}\n{out}"));
+        assert_eq!(out, want, "0.1.135 layout of:\n{src}");
+        assert_eq!(
+            literal_and_comment_stream(src) == literal_and_comment_stream(&out),
+            literal_and_comment_stream(src) == literal_and_comment_stream(want),
+            "literal/comment stream of:\n{src}"
+        );
+        assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed for:\n{src}");
+        assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+    }
+}

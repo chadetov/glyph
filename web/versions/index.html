@@ -61,8 +61,49 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.136</span>
+            <span class="rel-ver">0.1.137</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p><code>glyph fmt</code> no longer moves a comment. When a comment sits somewhere the canonical layout has no line for, the formatter refuses the file, leaves it exactly as it was, and tells you where to put the comment:</p>
+
+            <div class="code">
+              <span class="cap">first.glyph</span>
+<pre>module first
+
+pub fn first(xs: Array&lt;number&gt;) -&gt; number {
+  return xs[
+    // the oldest entry
+    0
+  ]
+}</pre>
+            </div>
+
+<pre>first.glyph:5:5: comment inside an index expression has no canonical place; move it above the statement</pre>
+
+            <p>Before, the formatter printed <code>xs[0]</code> and put the comment below the statement, or inside the next argument list, where it described something else, and the result looked deliberate. A comment you write is a claim about the line it sits on, and a formatter that moves it makes the file say something false about itself.</p>
+
+            <p>Places with no line for a comment include an index, a <code>!</code> or <code>await</code> operand, a type annotation or a generic argument, a pattern, the inside of a JSX tag, an import list, the middle of a method chain after a call's arguments, and the space between <code>let x =</code> or <code>return</code> and the value, which is the one people write most. Where the formatter has a one-per-line layout (a block, a <code>match</code>, a record or union body, a literal, an argument list, an operator chain, a method chain between steps), comments are placed exactly as in 0.1.136. Only the first refused comment in a file is reported; fix it and run again to see the next.</p>
+
+            <h3>The editor and <code>glyph check</code> see it too</h3>
+            <p>The same message is warning E0500, in a new formatter range of error codes. <code>glyph check</code>, <code>check --json</code>, the MCP diagnostics tool and the editor all report it, so an agent finds the comment without running <code>fmt</code>. It is a warning because where a comment sits does not change what the program does: <code>glyph check</code> still exits 0. <code>glyph/applyEdit</code> refuses an edit that introduces one.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran the published 0.1.136 and this build on the same files. On a file whose comment the formatter used to move, <code>glyph fmt</code> now exits 1 and leaves the file alone, where 0.1.136 exited 0 and rewrote it. The editor's format command returns an error instead of edits on such a file. A pre-commit hook that runs <code>glyph fmt</code> will stop on it until the comment is moved. <code>glyph canonical</code>, and the canonical view the editor and agents read, now fail on such a file instead of printing it. <code>glyph fmt --check</code> exits as before, but its output changes: it prints the refusal and <code>refused first.glyph (left unchanged)</code> where it printed <code>would reformat first.glyph</code>, and the summary gains a <code>refused</code> count.</p>
+            <p>What does not change: <code>glyph fmt --check</code> exits as it did, since 0.1.136 already failed a file it would have rewritten; a file 0.1.136 had already formatted is never refused; and <code>glyph check</code>, <code>glyph build</code> and the emitted TypeScript are the same apart from the new warning. Apart from the test case written to be refused, no file in the repository or its 32 example apps is.</p>
+
+            <h3>Known issues</h3>
+            <p>The fuzzer found that <code>glyph fmt</code> deletes a <code>where</code> refinement on a union type (G338). Glyph refuses that refinement (E0300), and the formatted file drops it and compiles. G335, described under 0.1.136, is still open. Both are fixed in 0.1.138.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.136</span>
             <span class="rel-date">November 2026</span>
           </div>
           <div class="rel-body">

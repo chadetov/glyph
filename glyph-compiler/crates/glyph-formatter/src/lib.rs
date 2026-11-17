@@ -1243,21 +1243,28 @@ impl Printer {
         {
             return false;
         }
-        // A comment in any other gap of the chain has no line to sit above,
-        // and breaking the chain around it would turn it into a well-formed
-        // comment on a different segment, a fixed point nothing could tell
-        // from intent (record 95). The chain then prints as it did before.
-        let unplaceable = links
-            .iter()
-            .flat_map(|l| self.link_gaps(l))
-            .any(|(from, to)| {
-                self.pending_comments_between(from, to).any(|c| {
-                    !placeable
-                        .iter()
-                        .any(|&(pf, pt)| c.span.start >= pf && c.span.start < pt)
-                })
-            });
-        if unplaceable {
+        // Every other comment in the chain has to be one an argument list
+        // places, between a call's `(` and `)`, where `delimited` flushes it.
+        // Any other has no line to sit above: one in the head's links, after
+        // a segment's first argument list, index or type-argument list, inside
+        // an index, or inside the head. Breaking the chain around it turned it
+        // into a well-formed comment on a different segment, after the literal
+        // it was written before, a fixed point nothing could tell from intent
+        // (records 95 and 96).
+        let args: Vec<(u32, u32)> = links.iter().filter_map(|l| self.call_args_region(l)).collect();
+        let within = |ranges: &[(u32, u32)], at: u32| ranges.iter().any(|&(f, t)| at >= f && at < t);
+        let unplaceable = self
+            .pending_comments_between(span.start, span.end)
+            .any(|c| !within(&placeable, c.span.start) && !within(&args, c.span.start));
+        // Two `?` links in a row have no spelling here: printed together they
+        // are `??`, the nullish operator, and the output stops parsing
+        // (record 96). The earlier layout parenthesizes the inner one.
+        let double_try = links
+            .windows(2)
+            .any(|w| matches!((w[0], w[1]), (Expr::Postfix { .. }, Expr::Postfix { .. })));
+        if unplaceable || double_try {
+            // The chain prints as it did before, and so do the chains inside
+            // it, which the ordinary path reaches again.
             self.unbroken_links
                 .extend(links.iter().map(|l| (l.span().start, l.span().end)));
             return false;
@@ -1278,25 +1285,21 @@ impl Printer {
         true
     }
 
-    /// Every gap of one chain link, placeable or not: the source between the
-    /// link's base and its own tokens, outside any argument list, type-argument
-    /// list or index.
-    fn link_gaps(&self, link: &Expr) -> Vec<(u32, u32)> {
-        let from = inner_of(link).span().end;
-        match link {
-            Expr::Member { span, .. } | Expr::Postfix { span, .. } => vec![(from, span.end)],
-            Expr::Index { .. } => vec![(from, self.next_token_at(from))],
-            Expr::Call { type_args, .. } => {
-                let mut gaps = vec![(from, self.next_token_at(from))];
-                if let Some(last) = type_args.last() {
-                    // Past the closing `>`, up to the `(`.
-                    let close = self.next_token_at(last.span().end) + 1;
-                    gaps.push((close, self.next_token_at(close)));
-                }
-                gaps
-            }
-            _ => Vec::new(),
-        }
+    /// The source a call link's argument list covers, from its `(` to the
+    /// end of the call. `None` for any other link.
+    fn call_args_region(&self, link: &Expr) -> Option<(u32, u32)> {
+        let Expr::Call {
+            type_args, span, ..
+        } = link
+        else {
+            return None;
+        };
+        let after = match type_args.last() {
+            // Past the closing `>`.
+            Some(last) => self.next_token_at(last.span().end) + 1,
+            None => inner_of(link).span().end,
+        };
+        Some((self.next_token_at(after), span.end))
     }
 
     /// The pending comments that start in `from..to`.

@@ -1,0 +1,14 @@
+module m
+
+type Job = { run: fn() -> number }
+
+fn load() -> Result<Job, string> {
+  return Ok({ run: fn() { return 1 } })
+}
+
+pub fn f() -> Result<number, string> {
+  let a = 1
+  load()?
+    .run()
+  return Ok(a)
+}

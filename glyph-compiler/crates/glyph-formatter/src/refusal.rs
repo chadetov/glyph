@@ -489,17 +489,10 @@ impl<'a> Walk<'a> {
                 .copied()
         });
         let head_name = quoted(self.text(inner_of(link).span()), "the head of the chain");
-        // Why a gap the chain layout places was refused anyway: the chain
-        // holds two `?` in a row, which the segment layout cannot spell yet
-        // (record 97 Q4), or it sits where D1 allows no line break.
-        let why = if links
-            .windows(2)
-            .any(|w| matches!((w[0], w[1]), (Expr::Postfix { .. }, Expr::Postfix { .. })))
-        {
-            "until a chain can spell two `?` in a row"
-        } else {
-            "outside a block, where a line break would end the statement (D1)"
-        };
+        // Why a gap the chain layout places was refused anyway: it sits where
+        // D1 allows no line break. A chain holding two `?` in a row was the
+        // other reason until `? ?` could be spelled (record 97 Q4).
+        let why = "outside a block, where a line break would end the statement (D1)";
         match link {
             Expr::Member { field, optional, .. } => {
                 let dot = if *optional { "?." } else { "." };

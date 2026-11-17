@@ -15,10 +15,15 @@
 //! - annotations are emitted in canonical (sorted) order above their
 //!   declaration (D27);
 //! - a comment is never moved: one in a gap the layout has no place for is a
-//!   refusal (D14), and the file is left as it was.
+//!   refusal (D14), and the file is left as it was;
+//! - no `(` is written around `e?` that could continue the line above: `e?`
+//!   is bare before `(`, `[` and `?` (`e? ?`), and a statement whose chain
+//!   would open with `(e?).` takes the segment layout (G335).
 //!
 //! The output is designed to round-trip: re-parsing it yields the same AST
-//! (modulo spans), and re-formatting it is a fixed point (idempotent).
+//! (modulo spans), and re-formatting it is a fixed point (idempotent). The
+//! `format_idempotent` fuzz target and the corpus tests check the first by
+//! comparing the two parses.
 
 #![forbid(unsafe_code)]
 
@@ -78,6 +83,7 @@ pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> Result<S
         in_block: false,
         unbroken_links: HashSet::new(),
         refused: Vec::new(),
+        stmt_head: false,
     };
     p.module(m);
     if p.refused.is_empty() {
@@ -104,6 +110,7 @@ pub fn format_expr(e: &Expr) -> String {
         in_block: false,
         unbroken_links: HashSet::new(),
         refused: Vec::new(),
+        stmt_head: false,
     };
     p.expr(e);
     p.out
@@ -160,12 +167,21 @@ struct Printer {
     /// in the order it found them. Any entry makes `format_module` refuse
     /// the file (D14, record 86).
     refused: Vec<Comment>,
+    /// True from the start of an expression statement until its first
+    /// character is printed. A `(` written there continues the line above,
+    /// since inside braces the lexer emits no newline (D1), so `let a = 1`
+    /// then `(load()?).run()` reads as `1(load()?).run()` (G335). A chain
+    /// that would open with that `(` takes its segment layout instead.
+    stmt_head: bool,
 }
 
 impl Printer {
     // ----- low-level output -----
 
     fn push(&mut self, s: &str) {
+        if !s.is_empty() {
+            self.stmt_head = false;
+        }
         self.out.push_str(s);
     }
 
@@ -253,7 +269,11 @@ impl Printer {
         let base = self.current_column();
         let saved_base = std::mem::replace(&mut self.col_base, base);
         let saved = std::mem::take(&mut self.out);
+        // A trial render starts where the real one will, so it sees the
+        // same statement start, and leaves it for the real one.
+        let head = self.stmt_head;
         f(self);
+        self.stmt_head = head;
         self.col_base = saved_base;
         std::mem::replace(&mut self.out, saved)
     }
@@ -1099,7 +1119,11 @@ impl Printer {
                 self.push("defer ");
                 self.expr(&d.expr);
             }
-            Stmt::Expr(e) => self.expr(e),
+            Stmt::Expr(e) => {
+                self.stmt_head = true;
+                self.expr(e);
+                self.stmt_head = false;
+            }
         }
     }
 
@@ -1147,10 +1171,10 @@ impl Printer {
             | Expr::Call { callee: inner, .. }
             | Expr::Member { object: inner, .. }
             | Expr::Index { object: inner, .. } => {
-                if self.member_chain(e) {
+                if self.member_chain(e) || self.chain_at_stmt_head(e) {
                     return;
                 }
-                self.atom(inner);
+                self.link_base(inner, e);
                 self.postfix_link(e);
             }
             Expr::New {
@@ -1296,7 +1320,11 @@ impl Printer {
     /// `?.f`, a call's type arguments and argument list, `[i]`, or `?`.
     fn postfix_link(&mut self, link: &Expr) {
         match link {
-            Expr::Postfix { op, .. } => match op {
+            // A `?` after a `?` is written `? ?`: printed together they lex
+            // as `??`, the nullish operator, which always takes a right
+            // operand, so the space cannot be misread (record 96).
+            Expr::Postfix { op, operand, .. } => match op {
+                PostfixOp::Try if matches!(**operand, Expr::Postfix { .. }) => self.push(" ?"),
                 PostfixOp::Try => self.push("?"),
             },
             Expr::Call {
@@ -1391,26 +1419,11 @@ impl Printer {
         if self.unbroken_links.contains(&(span.start, span.end)) {
             return false;
         }
-        let (head, links) = flatten_postfix(e);
-        let starts: Vec<usize> = links
-            .iter()
-            .enumerate()
-            .filter(|(_, l)| matches!(l, Expr::Member { .. }))
-            .map(|(i, _)| i)
-            .collect();
-        let Some(&first_seg) = starts.first() else {
+        let (_, links) = flatten_postfix(e);
+        let segments = self.chain_segments(&links);
+        if segments.is_empty() {
             return false;
-        };
-        // Each segment as (first link, one past its last link, the offset its
-        // gaps end at).
-        let segments: Vec<(usize, usize, u32)> = starts
-            .iter()
-            .enumerate()
-            .map(|(n, &i)| {
-                let end = starts.get(n + 1).copied().unwrap_or(links.len());
-                (i, end, self.segment_gaps_end(&links[i..end]))
-            })
-            .collect();
+        }
         let placeable: Vec<(u32, u32)> = segments
             .iter()
             .map(|&(i, _, gaps_end)| (inner_of(links[i]).span().end, gaps_end))
@@ -1434,21 +1447,45 @@ impl Printer {
         let unplaceable = self
             .pending_comments_between(span.start, span.end)
             .any(|c| !within(&placeable, c.span.start) && !within(&args, c.span.start));
-        // Two `?` links in a row have no spelling here: printed together they
-        // are `??`, the nullish operator, and the output stops parsing
-        // (record 96). The earlier layout parenthesizes the inner one.
-        let double_try = links
-            .windows(2)
-            .any(|w| matches!((w[0], w[1]), (Expr::Postfix { .. }, Expr::Postfix { .. })));
-        if unplaceable || double_try {
+        if unplaceable {
             // The chain prints as it did before, and so do the chains inside
             // it, which the ordinary path reaches again.
             self.unbroken_links
                 .extend(links.iter().map(|l| (l.span().start, l.span().end)));
             return false;
         }
+        self.segment_layout(e);
+        true
+    }
+
+    /// The segments of a chain's links, each as (its first link, one past
+    /// its last link, the offset its gaps end at). Empty when no link is a
+    /// `.` or `?.`, and the chain has no segment to break at.
+    fn chain_segments(&self, links: &[&Expr]) -> Vec<(usize, usize, u32)> {
+        let starts: Vec<usize> = links
+            .iter()
+            .enumerate()
+            .filter(|(_, l)| matches!(l, Expr::Member { .. }))
+            .map(|(i, _)| i)
+            .collect();
+        starts
+            .iter()
+            .enumerate()
+            .map(|(n, &i)| {
+                let end = starts.get(n + 1).copied().unwrap_or(links.len());
+                (i, end, self.segment_gaps_end(&links[i..end]))
+            })
+            .collect()
+    }
+
+    /// Print a chain one segment per line (G324): the head and its links,
+    /// then each segment on its own line, indented, with the comments in its
+    /// gaps above it. The chain has at least one segment.
+    fn segment_layout(&mut self, e: &Expr) {
+        let (head, links) = flatten_postfix(e);
+        let segments = self.chain_segments(&links);
         self.atom(head);
-        for link in &links[..first_seg] {
+        for link in &links[..segments[0].0] {
             self.postfix_link(link);
         }
         self.indent += 1;
@@ -1461,7 +1498,59 @@ impl Printer {
             }
         }
         self.indent -= 1;
+    }
+
+    /// A chain at the start of an expression statement in which a `?` comes
+    /// before a `.` or `?.` takes the segment layout, `load()?` then an
+    /// indented `.run()`, and this returns true (G335, record 96).
+    ///
+    /// Anywhere else that `?` is written `(load()?).run()`, because
+    /// `load()?.run()` lexes `?.` as optional chaining. At a statement's
+    /// start the `(` would continue the line above: inside braces the lexer
+    /// emits no newline (D1), so `let a = 1` then `(load()?).run()` is
+    /// `1(load()?).run()`, and the first pass of `glyph fmt` wrote another
+    /// program. A line opening with `.` or `?.` cannot start a statement, so
+    /// it only ever continues the one above, which is what it means here.
+    ///
+    /// `load()? .run()` is not used: it is one space from `load()?.run()`,
+    /// which means something else.
+    fn chain_at_stmt_head(&mut self, e: &Expr) -> bool {
+        // `flat` is a `${...}` interpolation, where a line break comes back as
+        // a literal `\n`; `in_block` is the D1 bracket-depth guard. A
+        // statement is always inside a block, so the second holds there.
+        if !self.stmt_head || self.flat || !self.in_block {
+            return false;
+        }
+        let (_, links) = flatten_postfix(e);
+        let try_before_member = links
+            .windows(2)
+            .any(|w| matches!((w[0], w[1]), (Expr::Postfix { .. }, Expr::Member { .. })));
+        if !try_before_member {
+            return false;
+        }
+        self.segment_layout(e);
         true
+    }
+
+    /// Print the base `inner` of the postfix link `link`. A `?` before a
+    /// call, an index or another `?` is written bare: `h()?(2)`, `g()?[0]`
+    /// and `k()? ?` (the space is `postfix_link`'s) each lex back to the
+    /// same links, so no `(` is invented that could continue the line above
+    /// (G335, record 96). A call with type arguments keeps the parentheses:
+    /// the parser reads `<` after a `?` as a comparison. Every other base
+    /// goes through `atom`.
+    fn link_base(&mut self, inner: &Expr, link: &Expr) {
+        let bare = matches!(inner, Expr::Postfix { .. })
+            && match link {
+                Expr::Call { type_args, .. } => type_args.is_empty(),
+                Expr::Index { .. } | Expr::Postfix { .. } => true,
+                _ => false,
+            };
+        if bare {
+            self.expr(inner);
+        } else {
+            self.atom(inner);
+        }
     }
 
     /// The source a call link's argument list covers, from its `(` to the

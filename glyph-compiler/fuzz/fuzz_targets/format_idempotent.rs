@@ -1,6 +1,11 @@
 //! Formatting twice must equal formatting once, and must not change what the
 //! file says.
 //!
+//! A file `glyph fmt` refuses (D14) has no formatted form, so the properties
+//! below are asked of `Ok` only. A refusal has a property of its own: the
+//! input holds a comment, and blanking every comment out makes it `Ok`, so a
+//! refusal can only ever be about a comment's place (record 86).
+//!
 //! Two properties, both worth the fuzz budget. Diff stability is a pillar: if
 //! `glyph fmt` is not idempotent then a file oscillates between two spellings,
 //! every save produces a diff, and `glyph fmt --check` in CI passes on one of
@@ -157,7 +162,28 @@ fuzz_target!(|data: &[u8]| {
     let Ok(module) = parsed else {
         return;
     };
-    let once = glyph_formatter::format_module(&module, &comments, src);
+    // A refusal is not a relocation (record 86): it is allowed only when the
+    // input holds a comment, and only because of one, so the same file with
+    // every comment blanked out has to format.
+    let once = match glyph_formatter::format_module(&module, &comments, src) {
+        Ok(once) => once,
+        Err(refusal) => {
+            assert!(
+                !comments.is_empty(),
+                "glyph fmt refused a file with no comment: {refusal}"
+            );
+            let spans: Vec<glyph_lexer::Span> = comments.iter().map(|c| c.span).collect();
+            let bare = blank(src, &spans);
+            let (bare_parsed, bare_comments) = glyph_parser::parse_with_comments(&bare);
+            let bare_module = bare_parsed
+                .unwrap_or_else(|e| panic!("blanking the comments broke the parse: {e:?}\n{bare}"));
+            assert!(bare_comments.is_empty(), "comments left after blanking:\n{bare}");
+            if let Err(r) = glyph_formatter::format_module(&bare_module, &[], &bare) {
+                panic!("glyph fmt refused a file with no comment: {r}\n{bare}");
+            }
+            return;
+        }
+    };
 
     let (reparsed, recomments) = glyph_parser::parse_with_comments(&once);
     let Ok(reparsed) = reparsed else {
@@ -181,7 +207,9 @@ fuzz_target!(|data: &[u8]| {
         );
     }
 
-    let twice = glyph_formatter::format_module(&reparsed, &recomments, &once);
+    // The formatter's own output is canonical, so it is never refused.
+    let twice = glyph_formatter::format_module(&reparsed, &recomments, &once)
+        .unwrap_or_else(|r| panic!("glyph fmt refused its own output: {r}\n{once}"));
 
     assert_eq!(once, twice, "glyph fmt is not idempotent");
 });

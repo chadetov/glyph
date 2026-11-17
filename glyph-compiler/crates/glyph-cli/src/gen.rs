@@ -328,7 +328,14 @@ fn render_and_write(
         reason: format!("the generation record did not parse back ({e:?})"),
         source_text: body.clone(),
     })?;
-    let formatted = glyph_formatter::format_module(&module, &comments, &body);
+    // The generator writes its comments where the layout places them, so a
+    // refusal here is the generator's bug, reported with the text it wrote.
+    let formatted = glyph_formatter::format_module(&module, &comments, &body).map_err(|r| {
+        GenError::GeneratedInvalid {
+            reason: format!("glyph fmt refuses the generated module ({r})"),
+            source_text: body.clone(),
+        }
+    })?;
 
     std::fs::create_dir_all(out_dir).map_err(|e| GenError::Write {
         path: out_dir.to_path_buf(),
@@ -2318,7 +2325,8 @@ mod tests {
         // Prove the generated source parses and formats.
         let (parsed, comments) = glyph_parser::parse_with_comments(&body);
         let module = parsed.expect("generated source parses");
-        let formatted = glyph_formatter::format_module(&module, &comments, &body);
+        let formatted = glyph_formatter::format_module(&module, &comments, &body)
+            .expect("generated source formats");
         (formatted, g.notes)
     }
 
@@ -2340,7 +2348,8 @@ mod tests {
         let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas, &imports, &trailer);
         let (parsed, comments) = glyph_parser::parse_with_comments(&body);
         let module = parsed.expect("generated source parses");
-        let formatted = glyph_formatter::format_module(&module, &comments, &body);
+        let formatted = glyph_formatter::format_module(&module, &comments, &body)
+            .expect("generated source formats");
         (formatted, g.notes)
     }
 

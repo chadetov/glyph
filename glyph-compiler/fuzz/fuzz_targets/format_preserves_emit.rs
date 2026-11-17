@@ -41,7 +41,11 @@ fuzz_target!(|data: &[u8]| {
     let Some(before) = emit_ts(src) else {
         return;
     };
-    let once = glyph_formatter::format_module(&module, &comments, src);
+    // A refused file has no formatted form; `format_idempotent` checks that
+    // a refusal is one.
+    let Ok(once) = glyph_formatter::format_module(&module, &comments, src) else {
+        return;
+    };
     let Some(after) = emit_ts(&once) else {
         panic!("the source emits and its formatted form does not:\n{once}");
     };

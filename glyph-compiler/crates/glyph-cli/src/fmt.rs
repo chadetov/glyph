@@ -6,13 +6,17 @@
 //! already match is left untouched. A file that fails to parse is reported and
 //! skipped — formatting never writes output derived from unparseable source.
 //!
+//! A file holding a comment the canonical layout has no place for is refused
+//! and left unchanged (D14): the formatter never moves a comment, so it names
+//! the line and the fix instead of writing a layout that would.
+//!
 //! In `--check` mode nothing is written: a file whose layout would change is
 //! still recorded in `formatted` (read it as "would be formatted"), so the CLI
 //! can exit non-zero for CI without touching the tree.
 
 use std::path::{Path, PathBuf};
 
-use glyph_formatter::format_module;
+use glyph_formatter::{format_module, Refusal};
 
 #[derive(Debug, thiserror::Error)]
 pub enum FmtError {
@@ -35,6 +39,9 @@ pub struct FmtReport {
     pub unchanged: Vec<PathBuf>,
     /// Files skipped because they did not parse, with the rendered reason.
     pub failed: Vec<(PathBuf, String)>,
+    /// Files left unchanged because a comment in them has no place in the
+    /// canonical layout (D14), with the refusal naming the line and the fix.
+    pub refused: Vec<(PathBuf, Refusal)>,
 }
 
 /// Format `path` (a file or directory tree) in place. With `check`, no file is
@@ -62,7 +69,13 @@ pub fn format_path(path: &Path, check: bool) -> Result<FmtReport, FmtError> {
         let (parsed, comments) = glyph_parser::parse_with_comments(&src);
         match parsed {
             Ok(module) => {
-                let formatted = format_module(&module, &comments, &src);
+                let formatted = match format_module(&module, &comments, &src) {
+                    Ok(formatted) => formatted,
+                    Err(refusal) => {
+                        report.refused.push((file, refusal));
+                        continue;
+                    }
+                };
                 if formatted == src {
                     report.unchanged.push(file);
                 } else {

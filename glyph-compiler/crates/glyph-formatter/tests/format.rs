@@ -1765,3 +1765,109 @@ fn a_comment_only_child_round_trips() {
         assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
     }
 }
+
+/// Every G324 member-chain case below goes through the same four checks: the
+/// layout is the one written down, the literal/comment stream is unchanged,
+/// the emitted TypeScript is byte-identical, and the output is a fixed point.
+fn assert_chain_layout(src: &str, want: &str) {
+    let out = fmt(src);
+    assert_eq!(out, want, "layout of:\n{src}");
+    assert_stream_preserved("member chain", src, &out);
+    let before = emit_ts(src).unwrap_or_else(|| panic!("source emits:\n{src}"));
+    let after = emit_ts(&out).unwrap_or_else(|| panic!("formatted source emits:\n{out}"));
+    assert_eq!(before, after, "emitted TypeScript changed for:\n{src}");
+    assert_eq!(fmt(&out), out, "not a fixed point:\n{out}");
+}
+
+/// A comment in a gap of a member/call chain breaks the chain one segment per
+/// line, the dot leading and indented one level, with the comment above the
+/// line of the segment it falls in (G324, record 86). The formatter used to
+/// print the chain on one line and put the comment below the statement, or
+/// inside the next argument list, and either result was a fixed point.
+#[test]
+fn a_comment_in_a_member_chain_stays_above_its_segment() {
+    let canonical = "module m\n\npub fn f(s: string) -> number {\n  return s\n    .trim()\n    // then count\n    .length\n}\n";
+    // Already canonical: a fixed point.
+    assert_chain_layout(canonical, canonical);
+    // The comment at the end of a line moves above the segment that follows.
+    assert_chain_layout(
+        "module m\n\npub fn f(s: string) -> number {\n  return s.trim() // then count\n    .length\n}\n",
+        canonical,
+    );
+    // Between the head and the first segment: above `.trim()`, never inside
+    // its empty argument list.
+    let head = "module m\n\npub fn f(s: string) -> string {\n  return s\n    // trim it\n    .trim()\n}\n";
+    assert_chain_layout(head, head);
+    // Between `.` and the name: above that segment.
+    assert_chain_layout(
+        "module m\n\npub fn f(s: string) -> string {\n  return s.\n    // trim it\n    trim()\n}\n",
+        head,
+    );
+    // Between the name and `(`: above that segment too.
+    assert_chain_layout(
+        "module m\n\npub fn f(s: string) -> string {\n  return s.trim\n    // trim it\n    ()\n}\n",
+        head,
+    );
+    // A call with type arguments: the gap before `<` is the segment's.
+    assert_chain_layout(
+        "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json.parse // read it\n    <number>(s)\n}\n",
+        "module m\n\npub fn f(s: string) -> Result<number, string> {\n  return json\n    // read it\n    .parse<number>(s)\n}\n",
+    );
+    // When the chain breaks, every segment takes a line, not only the one
+    // with the comment.
+    assert_chain_layout(
+        "module m\n\npub fn f(s: string) -> number {\n  let n = s.trim().toUpperCase() // count it\n    .length\n  return n\n}\n",
+        "module m\n\npub fn f(s: string) -> number {\n  let n = s\n    .trim()\n    .toUpperCase()\n    // count it\n    .length\n  return n\n}\n",
+    );
+}
+
+/// `?.` leads its segment as `.` does, and a `?` stays on the line of the
+/// segment it follows. A comment before the `?` goes above that segment.
+#[test]
+fn a_commented_chain_keeps_optional_and_try_segments() {
+    let optional = "module m\n\npub fn f(o: { a: { b: string } }) -> number {\n  return o\n    ?.a\n    // then b\n    ?.b\n    .length\n}\n";
+    assert_chain_layout(optional, optional);
+    assert_chain_layout(
+        "module m\n\npub fn f(o: { a: { b: string } }) -> number {\n  return o?.a // then b\n    ?.b.length\n}\n",
+        optional,
+    );
+
+    let tried = "module m\n\nfn g(s: string) -> Result<string, string> {\n  return Ok(s)\n}\n\npub fn f(s: { v: string }) -> Result<number, string> {\n  let n = s\n    .v\n    // checked\n    .trim()?\n    .length\n  return Ok(n)\n}\n";
+    assert_chain_layout(tried, tried);
+    // A comment before a `?` that comes before the segment's first call goes
+    // above that segment.
+    assert_chain_layout(
+        "module m\n\npub fn f(s: { v: Result<string, string> }) -> Result<number, string> {\n  let n = s.v // checked\n    ?\n    .trim().length\n  return Ok(n)\n}\n",
+        "module m\n\npub fn f(s: { v: Result<string, string> }) -> Result<number, string> {\n  let n = s\n    // checked\n    .v?\n    .trim()\n    .length\n  return Ok(n)\n}\n",
+    );
+}
+
+/// A comment inside an argument list or a lambda body belongs to that list or
+/// body, which places it already; the chain around it stays on one line. Each
+/// source below is a fixed point of the 0.1.135 formatter and stays one.
+#[test]
+fn a_comment_inside_a_chain_argument_does_not_break_the_chain() {
+    let fixed_points = [
+        "module m\n\npub fn f(s: string) -> number {\n  return s.split(\n    // on commas\n    \",\",\n  ).length\n}\n",
+        "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs.filter(\n    fn(x) {\n      // keep the long ones\n      return x.length > 2\n    },\n  ).length\n}\n",
+        "module m\n\npub fn f(s: string) -> string {\n  return s.slice(\n    0,\n    // up to here\n    2,\n  ).trim()\n}\n",
+    ];
+    for src in fixed_points {
+        assert_eq!(fmt(src), src, "a 0.1.135 fixed point is still one");
+    }
+}
+
+/// A chain inside an argument breaks on its own; the chain whose argument list
+/// holds it does not.
+#[test]
+fn a_commented_chain_nested_in_an_argument_breaks_alone() {
+    assert_chain_layout(
+        "module m\n\nfn g(n: number) -> number {\n  return n\n}\n\npub fn f(s: string) -> number {\n  return g(s.trim() // then count\n    .length).toFixed(1).length\n}\n",
+        "module m\n\nfn g(n: number) -> number {\n  return n\n}\n\npub fn f(s: string) -> number {\n  return g(\n    s\n      .trim()\n      // then count\n      .length,\n  ).toFixed(1).length\n}\n",
+    );
+    // Inside a lambda body that is itself an argument of a chain.
+    assert_chain_layout(
+        "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs.map(fn(x) {\n    return x.trim() // count it\n      .length\n  }).length\n}\n",
+        "module m\n\npub fn f(xs: Array<string>) -> number {\n  return xs.map(\n    fn(x) {\n      return x\n        .trim()\n        // count it\n        .length\n    },\n  ).length\n}\n",
+    );
+}

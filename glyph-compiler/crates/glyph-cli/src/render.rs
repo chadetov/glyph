@@ -43,6 +43,28 @@ pub fn render_parse_error(
     )
 }
 
+/// Render an `E0500` format refusal (D14) as an ariadne warning under the
+/// `format` stage tag: the comment's span, what holds it, and the fix as help.
+pub fn render_format_refusal(
+    path: &str,
+    source: &str,
+    refusal: &glyph_formatter::Refusal,
+    with_color: bool,
+) -> String {
+    build_report(
+        path,
+        source,
+        refusal.span,
+        "format",
+        &refusal.problem,
+        "E0500",
+        Some(&refusal.fix),
+        None,
+        with_color,
+        Severity::Warning,
+    )
+}
+
 /// Render a `ResolveError` (covers DuplicateName, RelativeImport,
 /// UnresolvedName, UnresolvedModule, UnknownExportedName) as an ariadne
 /// report.

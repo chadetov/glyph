@@ -1,5 +1,6 @@
 //! Negative-example suite: every `tests/negative/*.glyph` must fail to compile
-//! with the error code named in its sibling `*.expected_error` file.
+//! with the error code named in its sibling `*.expected_error` file, or, for a
+//! warning-tier code such as E0500, draw that warning.
 //!
 //! A case that needs a second module is a directory instead: every `*.glyph`
 //! in `tests/negative/<case>/` is one module of the project and the code is
@@ -92,8 +93,14 @@ fn every_negative_case_fails_with_its_expected_code() {
         let report = build_project_inner(&root.join("src"), &root.join("out"), false)
             .unwrap_or_else(|e| panic!("{name}: build did not run: {e}"));
 
+        // A warning-tier code (E0500, a comment `glyph fmt` refuses) draws
+        // its diagnostic without failing the build; every other case fails.
+        let warning = report
+            .structured
+            .iter()
+            .any(|d| d.code == code && d.severity == "warning");
         assert!(
-            report.has_errors(),
+            warning || report.has_errors(),
             "{name}: expected to fail with {code}, but it compiled clean"
         );
         let tag = format!("[{code}]");

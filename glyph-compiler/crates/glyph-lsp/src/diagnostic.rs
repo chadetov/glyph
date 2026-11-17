@@ -56,8 +56,8 @@ pub struct Diagnostic {
     #[serde(default)]
     pub module: Option<String>,
     pub range: Range,
-    /// The compiler stage (`parse`/`collect`/`resolve`/`import`/`lint`/
-    /// `typecheck`/`emit`/`tsc`).
+    /// The compiler stage (`parse`/`format`/`collect`/`resolve`/`import`/
+    /// `lint`/`typecheck`/`emit`/`tsc`).
     pub stage: String,
     /// The `module::name` identity of the top-level declaration this
     /// diagnostic belongs to, when one is known: the name the checker carried
@@ -418,6 +418,32 @@ pub fn from_parse_error(module: &str, source: &str, err: &ParseError) -> Diagnos
         err.help().as_deref(),
         None,
         None,
+    )
+}
+
+/// `E0500`: `glyph fmt` refuses the file, because a comment sits where the
+/// canonical layout has no place for one (D14, record 97). A warning: where a
+/// comment sits does not change what the program means, so it never blocks a
+/// later stage, and `glyph check` still exits 0; `glyph fmt --check` is the
+/// gate on layout. The span is the comment's, the message says which
+/// construct holds it, and the help is the one move that gives it a place.
+pub fn from_format_refusal(
+    module_path: &str,
+    source: &str,
+    refusal: &glyph_formatter::Refusal,
+    module: &glyph_ast::Module,
+) -> Diagnostic {
+    Diagnostic::new(
+        module_path,
+        source,
+        refusal.span,
+        "E0500",
+        "warning",
+        "format",
+        refusal.problem.clone(),
+        Some(&refusal.fix),
+        None,
+        entity_id(module_path, module, refusal.span.start),
     )
 }
 
@@ -796,6 +822,13 @@ pub fn project_file_diagnostics_through(
         }
         return out;
     };
+
+    // Right after the parse, so it is in the front end's list on every
+    // keystroke and does not wait on the checker. A warning, so it hides
+    // nothing below it.
+    if let Some(r) = glyph_db::format_refusal(db, file) {
+        out.push(from_format_refusal(module_path, &source, &r, ast));
+    }
 
     let symbols = glyph_db::module_symbols(db, file);
     for e in symbols.errors() {

@@ -1392,3 +1392,69 @@ fn apply_edit_reports_the_project_glyph_check_reports() {
     let _ = std::fs::remove_dir_all(&dir);
     let _ = std::fs::remove_dir_all(&tree);
 }
+
+/// A `main` whose comment inside an index `glyph fmt` refuses (E0500, D14).
+const REFUSED_MAIN: &str = "module main\n\npub fn first(xs: Array<number>) -> number {\n  return xs[\n    // the oldest\n    0\n  ]\n}\n";
+/// The same program with the comment where the layout places it.
+const PLACED_MAIN: &str = "module main\n\npub fn first(xs: Array<number>) -> number {\n  // the oldest\n  return xs[0]\n}\n";
+
+/// Record 97 Q1: a file `glyph fmt` refuses draws E0500, a warning, from
+/// `glyph check --json` and from the editor's published list alike, on the
+/// comment's line, and `glyph check` still exits 0. The same program with
+/// the comment above the statement draws nothing on either surface.
+#[test]
+fn a_refused_comment_is_e0500_in_check_and_in_the_editor() {
+    for (text, refused) in [(REFUSED_MAIN, true), (PLACED_MAIN, false)] {
+        let dir = tmp_dir("e0500");
+        let main_path = dir.join("main.glyph");
+        std::fs::write(&main_path, text).expect("write main");
+
+        let codes = check_codes(&dir);
+        let status = Command::new(env!("CARGO_BIN_EXE_glyph"))
+            .arg("check")
+            .arg(&dir)
+            .arg("--no-tsc")
+            .arg("--no-test")
+            .status()
+            .expect("spawn `glyph check`");
+        assert!(status.success(), "`glyph check` failed on a warning: {codes:?}");
+
+        let mut lsp = Lsp::start(&dir);
+        lsp.open(&main_path);
+        let published = lsp.diagnostics_for(&main_path);
+        if refused {
+            assert_eq!(codes, [("E0500".to_string(), "warning".to_string(), 4, 4)]);
+            assert_eq!(codes_of(&published), ["E0500"], "{published:?}");
+            assert_eq!(published[0]["severity"], json!(2), "a warning: {published:?}");
+            assert_eq!(published[0]["range"]["start"], json!({ "line": 4, "character": 4 }));
+        } else {
+            assert!(codes.is_empty(), "{codes:?}");
+            assert!(published.is_empty(), "{published:?}");
+        }
+        drop(lsp);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+/// Record 97 Q1: `glyph/applyEdit` refuses an edit that introduces E0500,
+/// the way it refuses any new warning, and accepts the same edit with the
+/// comment where the layout places it.
+#[test]
+fn apply_edit_refuses_an_edit_that_introduces_e0500() {
+    let dir = tmp_dir("apply_e0500");
+    let main_path = dir.join("main.glyph");
+    let clean = "module main\n\npub fn first(xs: Array<number>) -> number {\n  return xs[0]\n}\n";
+    std::fs::write(&main_path, clean).expect("write main");
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&main_path);
+
+    let answer = lsp.apply_whole(&main_path, clean, REFUSED_MAIN);
+    assert_eq!(answer["ok"], json!(false), "the gate accepted it: {answer}");
+    let codes = codes_of(answer["diagnostics"].as_array().expect("diagnostics"));
+    assert_eq!(codes, ["E0500"], "{answer}");
+
+    let answer = lsp.apply_whole(&main_path, clean, PLACED_MAIN);
+    assert_eq!(answer["ok"], json!(true), "a placed comment was refused: {answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-334 entries, 285 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+335 entries, 285 are fixed, 10 are partly fixed, 11 are decided or resolved, and
 29 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -11881,7 +11881,7 @@ and is the owner's to confirm.
   formatting the repo's 447 `.glyph` files with the published 0.1.132 and
   running this build's `glyph fmt --check` over the result: all 429 that parse
   are still fixed points.
-- **G324. `glyph fmt` moves a comment out of a member chain, an index, a unary
+- **G324. [HALF FIXED] `glyph fmt` moves a comment out of a member chain, an index, a unary
   or `await` operand, a type annotation or a pattern path.** `return s\n
   .trim()\n    // then count\n    .length` comes back as `return
   s.trim().length` with the comment below the statement; `xs[\n    // the
@@ -11903,6 +11903,21 @@ and is the owner's to confirm.
   comment sits in a construct with no layout to hold it, naming the line, rather
   than moving it. D14 is restated as that general guarantee when the refusal
   lands.
+
+  Half fixed in 0.1.136. A comment in a gap of a member/call chain breaks the
+  chain one segment per line, the dot leading and indented one level, with the
+  comment above its segment: `return s` / `.trim()` / `// then count` /
+  `.length`. A segment's placeable gaps are before `.` or `?.`, between it and
+  the name, before `?`, and before the segment's first `<`, `(` or `[`. A
+  comment inside an argument list, a lambda body or an index breaks nothing,
+  so every 0.1.135 fixed point is still one. A chain holding a comment the
+  layout cannot place (in the head's own links, after a segment's first
+  argument list, index or type-argument list, including between `>` and `(`)
+  keeps its 0.1.135 layout whole, even when another of its comments could be
+  placed (record 95), because breaking it would give the stray comment a
+  position that looks intentional. Those comments, and the index, unary,
+  `await`, type-annotation and pattern-path cases, are still relocated until
+  the 0.1.137 refusal.
 
 - **G325. An `unknown` value passes where another type is declared.** `let s:
   string = u` with `u: unknown` passes `glyph check --no-tsc` and the agent
@@ -12013,3 +12028,18 @@ and is the owner's to confirm.
   release review (record 94).
 
   *Reproduced against 0.1.135: E0001 with the character printed raw.*
+
+- **G335. `glyph fmt` writes a statement starting with `(` after one that
+  absorbs it as a call.** In a block, `g()?` on one line and `?` on the next
+  parses as `(g()?)?`. The formatter prints that statement with its
+  parentheses, because `g()??` would lex as `??`, and the line before it,
+  `let a = 1`, then reads the `(` as a call: a second `glyph fmt` gives
+  `let a = 1(g()?)?`, a different program. The first pass's output is
+  well-formed and looks canonical, so nothing flags it. G162 was the same
+  hazard and closed by dropping one construct's needless parentheses; the
+  general case is still open, since the formatter never checks what a
+  statement starting with `(` follows. Found by the `format_idempotent`
+  fuzzer during the 0.1.136 work.
+
+  *Reproduced against 0.1.135: the first `fmt` prints `(g()?)?` on its own
+  line, the second joins it to `let a = 1`.*

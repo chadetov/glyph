@@ -2154,6 +2154,14 @@ impl Assigner<'_> {
                 if let Some(c) = chain.or(root) {
                     self.null_chains.open(*span, c);
                 }
+                // E0210, the member set of an `Option` and a `Result`. A `?.`
+                // on one returned above, so this is the plain dot, or a `?.`
+                // through a `Nullable<Option<T>>` that reads off the `Option`.
+                // The node is `Unknown`, so a chain after it reads nothing.
+                if self.refuse_member_on_tagged(object, &obj_ty, field, *span) {
+                    self.tm.insert(*span, Ty::Unknown);
+                    return;
+                }
                 let access = if self.assign_target == Some(*span) {
                     FieldAccess::Write
                 } else {
@@ -2197,6 +2205,7 @@ impl Assigner<'_> {
                                     .collect(),
                                 record,
                                 builtin: None,
+                                tagged: None,
                                 suggestion: nearest_name(
                                     field.as_ref(),
                                     shape.fields.iter().map(|f| f.name.as_ref()),
@@ -2275,6 +2284,7 @@ impl Assigner<'_> {
                                     fields: members.clone().map(str::to_string).collect(),
                                     record: None,
                                     builtin: Some(receiver),
+                                    tagged: None,
                                     suggestion: nearest_name(field.as_ref(), members),
                                     span: *span,
                                 });
@@ -2774,19 +2784,15 @@ impl Assigner<'_> {
         }
     }
 
-    /// E0236 (G311, record 87): `?.` written on a receiver that resolves to
-    /// the prelude `Option` or `Result`. Answers whether it was refused.
-    fn refuse_optional_chain_on_tagged(
-        &mut self,
-        object: &Expr,
-        obj_ty: &Ty,
-        field: &Ident,
-        span: Span,
-    ) -> bool {
+    /// The prelude `Option` or `Result` a member's receiver resolves to,
+    /// through aliases (a user type named `Option` is not one), with what a
+    /// help needs to open it in the program's own names. `None` for any
+    /// other receiver. Shared by E0236 (`?.`) and the member set (E0210).
+    fn tagged_receiver(&self, object: &Expr, obj_ty: &Ty) -> Option<TaggedReceiver> {
         let (container, args) = match self.container_through_aliases(obj_ty, 0) {
             Some(("Option", args)) => (crate::TaggedContainer::Option, args),
             Some(("Result", args)) => (crate::TaggedContainer::Result, args),
-            _ => return false,
+            _ => return None,
         };
         let name = match container {
             crate::TaggedContainer::Option => "Option",
@@ -2804,14 +2810,79 @@ impl Assigner<'_> {
             .map(|c| c.to_ascii_lowercase().to_string())
             .filter(|b| *b != receiver)
             .unwrap_or_else(|| "v".to_string());
-        self.errors.push(TypeError::OptionalChainOnTagged {
+        Some(TaggedReceiver {
             container,
             type_name: format!("{name}<{}>", shown.join(", ")),
-            field: field.to_string(),
-            method: self.call_callee == Some(span),
+            payload,
             receiver,
             binding,
-            payload,
+        })
+    }
+
+    /// E0236 (G311, record 87): `?.` written on a receiver that resolves to
+    /// the prelude `Option` or `Result`. Answers whether it was refused.
+    fn refuse_optional_chain_on_tagged(
+        &mut self,
+        object: &Expr,
+        obj_ty: &Ty,
+        field: &Ident,
+        span: Span,
+    ) -> bool {
+        let Some(t) = self.tagged_receiver(object, obj_ty) else {
+            return false;
+        };
+        self.errors.push(TypeError::OptionalChainOnTagged {
+            container: t.container,
+            type_name: t.type_name,
+            field: field.to_string(),
+            method: self.call_callee == Some(span),
+            receiver: t.receiver,
+            binding: t.binding,
+            payload: t.payload,
+            span,
+        });
+        true
+    }
+
+    /// E0210 (G311, record 87, Q3): a plain-dot member on a receiver that
+    /// resolves to the prelude `Option` or `Result` and is not one of its
+    /// members. A `Result`'s are `map` and `map_err`; an `Option` has none.
+    /// `tag` and `value` are the runtime encoding (D49), so they are
+    /// refused like any other name and never suggested toward. Answers
+    /// whether it was refused; a member in the set is left to the path it
+    /// took before (what `map` and `map_err` return is not typed here).
+    fn refuse_member_on_tagged(&mut self, object: &Expr, obj_ty: &Ty, field: &Ident, span: Span) -> bool {
+        let Some(t) = self.tagged_receiver(object, obj_ty) else {
+            return false;
+        };
+        let members = t.container.members();
+        if members.contains(&field.as_ref()) {
+            return false;
+        }
+        // `map` and `map_err` are only ever called, so only a called name is
+        // a near miss of one. A field read (`r.nmae`) means the payload's
+        // field, and `did you mean `map`?` would send it the wrong way.
+        let method = self.call_callee == Some(span);
+        let suggestion = if method && !crate::is_tagged_encoding_name(field.as_ref()) {
+            nearest_name(field.as_ref(), members.iter().copied())
+        } else {
+            None
+        };
+        self.errors.push(TypeError::UnknownField {
+            field: field.to_string(),
+            type_name: t.type_name,
+            second_name_for: None,
+            fields: members.iter().map(|m| m.to_string()).collect(),
+            record: None,
+            builtin: None,
+            tagged: Some(crate::TaggedMember {
+                container: t.container,
+                receiver: t.receiver,
+                binding: t.binding,
+                payload: t.payload,
+                method,
+            }),
+            suggestion,
             span,
         });
         true
@@ -3066,6 +3137,7 @@ impl Assigner<'_> {
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     builtin: None,
+                    tagged: None,
                     suggestion: nearest_name(name.as_ref(), shape.fields.iter().map(|f| f.name.as_ref())),
                     span: attr_span,
                 });
@@ -7782,6 +7854,7 @@ impl Assigner<'_> {
                     fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
                     record: self.field_owner_decl(&shape.owner),
                     builtin: None,
+                    tagged: None,
                     suggestion: nearest_name(pf.key.as_ref(), shape.fields.iter().map(|f| f.name.as_ref())),
                     span: key_span,
                 });
@@ -9386,6 +9459,17 @@ fn nearest_name<'c>(name: &str, candidates: impl Iterator<Item = &'c str>) -> Op
         .filter(|(d, _)| *d <= threshold)
         .min_by_key(|(d, _)| *d)
         .map(|(_, v)| v.to_string())
+}
+
+/// A member's receiver resolved to the prelude `Option` or `Result`, with
+/// the names a help writes the `match` in. See `tagged_receiver`.
+struct TaggedReceiver {
+    container: crate::TaggedContainer,
+    /// `Option<Note>`, `Result<Note, string>`: the resolved type, shown.
+    type_name: String,
+    payload: String,
+    receiver: String,
+    binding: String,
 }
 
 /// Classic two-row Levenshtein edit distance over Unicode scalar values.
@@ -16787,18 +16871,161 @@ fn f(a: Answer) -> number {
     }
 
     /// The `?.` over a `Nullable` is untouched (E0235's rules), and a plain
-    /// dot on an `Option` or a `Result` is unchanged in this release: the
-    /// member set on it is a later release (record 87, Q3).
+    /// dot on a `Result` naming one of its members is not an E0236.
     #[test]
     fn e0236_leaves_nullable_chains_and_the_plain_dot_alone() {
         let errs = g304_errors(
             "fn keep(n: Note) -> Note { return n }\n\
-             fn f(n: Nullable<Note>, o: Option<Note>, r: Result<Note, string>) -> string {\n  let a = n?.name ?? \"none\"\n  let b = o.tag\n  let c = r.map(keep)\n  return a\n}\n",
+             fn f(n: Nullable<Note>, r: Result<Note, string>) -> string {\n  let a = n?.name ?? \"none\"\n  let c = r.map(keep)\n  return a\n}\n",
         );
         assert!(errs.is_empty(), "{errs:?}");
         let errs = g304_errors("fn f(n: Nullable<Note>) -> string {\n  let x = n?.name\n  return \"a\"\n}\n");
         let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
         assert_eq!(codes, vec!["E0235"], "{errs:?}");
+    }
+
+    // ----- G311 / E0210: the member set of an `Option` and a `Result` -----
+    // (record 87, Q3 (i)). A `Result`'s members are `map` and `map_err`; an
+    // `Option` has none. `tag` and `value` are the runtime encoding (D49),
+    // not members.
+
+    /// The E0210 diagnostics in `errs`, as (message, help).
+    fn e0210s(errs: &[TypeError]) -> Vec<(String, String)> {
+        errs.iter()
+            .filter(|e| e.code() == "E0210")
+            .map(|e| (e.to_string(), e.help().map(|h| h.into_owned()).unwrap_or_default()))
+            .collect()
+    }
+
+    /// An `Option` has no members. A field read off the payload is helped
+    /// toward `match`; a read of the encoding (`tag`, `value`) is told it is
+    /// the encoding. Each is one E0210, and the read is `Unknown` so nothing
+    /// cascades from `o.tag.x`.
+    #[test]
+    fn a_plain_dot_member_on_an_option_is_e0210() {
+        let errs = g304_errors(
+            "fn f(o: Option<Note>) -> string {\n  let a = o.nmae\n  let b = o.tag\n  let c = o.value\n  let d = o.tag.length\n  return \"a\"\n}\n",
+        );
+        let found = e0210s(&errs);
+        assert_eq!(errs.len(), 4, "one E0210 per read and nothing else: {errs:?}");
+        assert_eq!(found.len(), 4, "{errs:?}");
+        assert_eq!(
+            found[0],
+            (
+                "type `Option<Note>` has no field `nmae`: an `Option` has no members".to_string(),
+                "Open it with `match o { Some(n) => n.nmae, None => <default> }`. If the absence is a JSON `null` from the wire, declare the type `Nullable<Note>` (D45).".to_string(),
+            ),
+        );
+        assert_eq!(
+            found[1],
+            (
+                "type `Option<Note>` has no field `tag`: an `Option` has no members".to_string(),
+                "`tag` is part of how the emitted TypeScript encodes an `Option`, not a member of it (D49). Open it with `match o { Some(n) => ..., None => ... }`.".to_string(),
+            ),
+        );
+        assert!(found[2].0.contains("has no field `value`"), "{found:?}");
+        assert!(found[2].1.starts_with("`value` is part of how"), "{found:?}");
+        assert!(found[3].0.contains("has no field `tag`"), "{found:?}");
+    }
+
+    /// A `Result`'s members are `map` and `map_err`. Anything else is E0210
+    /// listing them. A called near miss (`r.mapp(f)`) is suggested; a field
+    /// read (`r.nmae`, two edits from `map`) and the encoding (`r.tag`) never
+    /// are, since they mean the payload or the tag, not a combinator.
+    #[test]
+    fn a_plain_dot_member_on_a_result_other_than_map_or_map_err_is_e0210() {
+        let errs = g304_errors(
+            "fn f(r: Result<Note, string>) -> string {\n  let a = r.value\n  let b = r.tag\n  let c = r.nmae\n  let d = r.mapp(fn(n: Note) -> Note { return n })\n  let e = r.unwrap()\n  let g = r.error\n  return \"a\"\n}\n",
+        );
+        let found = e0210s(&errs);
+        assert_eq!(found.len(), 6, "{errs:?}");
+        let tail = ": a `Result`'s only members are `map` and `map_err`";
+        assert_eq!(
+            found[0],
+            (
+                format!("type `Result<Note, string>` has no field `value`{tail}"),
+                "`value` is part of how the emitted TypeScript encodes a `Result`, not a member of it (D49). Open it with `match r { Ok(n) => ..., Err(e) => ... }`, or propagate the `Err` with `?`: `let n = r?`.".to_string(),
+            ),
+        );
+        assert_eq!(found[1].0, format!("type `Result<Note, string>` has no field `tag`{tail}"));
+        assert_eq!(
+            found[2],
+            (
+                format!("type `Result<Note, string>` has no field `nmae`{tail}"),
+                "Propagate first, then read: `let n = r?` then `n.nmae`. Or open it with `match r { Ok(n) => n.nmae, Err(e) => ... }`.".to_string(),
+            ),
+        );
+        assert_eq!(
+            found[3].0,
+            format!("type `Result<Note, string>` has no field `mapp`{tail}; did you mean `map`?")
+        );
+        assert_eq!(
+            found[4],
+            (
+                format!("type `Result<Note, string>` has no field `unwrap`{tail}"),
+                "Open it with `match r { Ok(n) => ..., Err(e) => ... }`, propagate the `Err` with `?`, or transform it with `map` or `map_err`.".to_string(),
+            ),
+        );
+        // `error` is not the encoding (an `Err` holds its payload under
+        // `value`), so it is helped like any other name.
+        assert!(found[5].1.starts_with("Propagate first"), "{found:?}");
+        let alternatives: Vec<_> = errs.iter().map(|e| e.alternatives()).collect();
+        assert!(
+            alternatives.iter().all(|a| a.as_deref() == Some(&["map".to_string(), "map_err".to_string()][..])),
+            "{alternatives:?}"
+        );
+        assert!(
+            errs.iter().all(|e| e.alternatives_kind() == Some(crate::AlternativesKind::Members)),
+            "{errs:?}"
+        );
+    }
+
+    /// The idioms the member set must not touch: `map`, `map_err`, and
+    /// `.map_err(f)?`, the most used `Result` idiom in the corpus. What they
+    /// return stays as it is typed today.
+    #[test]
+    fn map_and_map_err_on_a_result_still_check() {
+        let errs = g304_errors(
+            "type E2 = | Bad\n\
+             fn keep(n: Note) -> Note { return n }\n\
+             fn load() -> Result<Note, string> { return Ok({ name: \"a\", kind: \"a\", inner: { name: \"b\" }, maybe: null, label: null }) }\n\
+             fn f(r: Result<Note, string>) -> Result<Note, E2> {\n  let a = r.map(keep)\n  let b = r.map_err(fn(e: string) -> E2 { return Bad })\n  let n = load().map_err(fn(e: string) -> E2 { return Bad })?\n  return Ok(n)\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// Through an alias, a generic one, and an alias of one: the same rule.
+    /// A user type that shadows the prelude `Option` is not one; its field
+    /// reads stay field reads.
+    #[test]
+    fn a_plain_dot_member_on_an_aliased_option_or_result_is_e0210() {
+        let errs = g304_errors(
+            "type MaybeNote = Option<Note>\n\
+             type Res<T> = Result<T, string>\n\
+             type Deeper = Res<Note>\n\
+             fn f(o: MaybeNote, r: Res<Note>, d: Deeper) -> string {\n  let a = o.tag\n  let b = r.value\n  let c = d.nmae\n  let e = d.map_err(fn(s: string) -> number { return 1 })\n  return \"a\"\n}\n",
+        );
+        let found: Vec<String> = e0210s(&errs).into_iter().map(|(m, _)| m).collect();
+        assert_eq!(found.len(), 3, "{errs:?}");
+        assert!(found[0].starts_with("type `Option<Note>` has no field `tag`"), "{found:?}");
+        assert!(found[1].starts_with("type `Result<Note, string>` has no field `value`"), "{found:?}");
+        assert!(found[2].starts_with("type `Result<Note, string>` has no field `nmae`"), "{found:?}");
+        assert_eq!(errs.len(), 3, "{errs:?}");
+
+        let errs = errors_of(
+            "module x\n\
+             type Option<T> = { name: T, tag: string, }\n\
+             fn f(o: Option<string>) -> string {\n  let t = o.tag\n  return o.name\n}\n",
+        );
+        assert!(errs.is_empty(), "a user `Option` is not the prelude's: {errs:?}");
+        let errs = errors_of(
+            "module x\n\
+             type Option<T> = { name: T, }\n\
+             fn f(o: Option<string>) -> string {\n  return o.nmae\n}\n",
+        );
+        let found: Vec<String> = e0210s(&errs).into_iter().map(|(m, _)| m).collect();
+        assert_eq!(found.len(), 1, "{errs:?}");
+        assert!(!found[0].contains("members"), "a user `Option` gets the record message: {found:?}");
     }
 
     #[test]

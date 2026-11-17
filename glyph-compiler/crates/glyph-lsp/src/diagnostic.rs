@@ -1595,6 +1595,7 @@ mod tests {
                     fields: vec!["name".into()],
                     record: None,
                     builtin: None,
+                    tagged: None,
                     suggestion: suggestion.map(str::to_string),
                     span,
                 },

@@ -1,0 +1,16 @@
+module neg
+
+// E0210. A `Result`'s only members are `map` and `map_err`. `tag` and `value`
+// are how the emitted TypeScript encodes it (D49), not members: `tsc` accepts
+// `r.value`, and it is the `Ok` payload or the `Err` payload depending on a
+// tag nothing here checked. Open it with `match`, or propagate with `?`.
+type Spec = { label: string }
+
+fn spec() -> Result<Spec, string> {
+  return Ok({ label: "a" })
+}
+
+pub fn label() -> Spec {
+  let r = spec()
+  return r.value
+}

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-342 entries, 288 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-34 are open. G144, the D28 boundary cast that never reached the returns a
+343 entries, 288 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+35 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10677,6 +10677,12 @@ and is the owner's to confirm.
   `--no-tsc`, and ``[TS2353] Error: tsc: Object literal may only specify
   known properties, and 'extra' does not exist in type 'Opt'.`` with `tsc`.*
 
+  *Reproduced against 0.1.138 (the release build): the same program is
+  `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`
+  (exit 0), and ``[TS2353] Error: tsc: Object literal may only specify
+  known properties, and 'extra' does not exist in type 'Opt'.`` with `tsc`
+  6.0.3 (exit 1).*
+
 - **G274. [FIXED] Four more positions compared loosely: an optional field, a
   declared record against a structural one, a function's return, and an
   interface member.** Found checking G270's premise, all the same hole: each
@@ -11773,6 +11779,14 @@ and is the owner's to confirm.
   file answered `ok: true` with empty `diagnostics` and E0200 under
   `preexisting`; the same edit on the clean file answered `ok: false` with
   E0107; the `C => 3` edit afterwards answered `ok: false` with E0107.*
+
+  *Reproduced against 0.1.138 (the release build) over JSON-RPC: the
+  `let x = 1` edit on the E0200 file answered `ok: true` with empty
+  `diagnostics` and E0200 under `preexisting`; the same edit on the clean
+  file answered `ok: false` with E0107 (``unused variable `x` ``); the
+  `C => 3` edit afterwards, sent after a `didChange` to the accepted text,
+  answered `ok: false` with E0107 and empty `preexisting`.*
+
 - **G314. A type parameter nested in a type is not compared.**
   `fn g<T>(x: Array<T>) -> Array<string> { return x }` passes Glyph's checker,
   and `tsc` refuses it (``TS2322: Type 'T[]' is not assignable to type
@@ -11783,6 +11797,13 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.132 (the release build): `no diagnostics` under
   `--no-tsc`, TS2322 with `tsc`, for both programs.*
+
+  *Reproduced against 0.1.138 (the release build): `no diagnostics` under
+  `--no-tsc` and ``TS2322: Type 'T[]' is not assignable to type
+  'string[]'`` with `tsc`, for both `fn g<T>(x: Array<T>) ->
+  Array<string>` and a `{ items: { a: x } }` returned where
+  `Record<string, Array<string>>` is the declared field type.*
+
 - **G315. A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
   `Box<T>` where `Record<string, Any>` is declared is E0204, and the same
@@ -11795,6 +11816,13 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): ``[E0204] Error:
   typecheck: type mismatch: expected `Record<string, Any>` `` and ``expected
   `Nullable<Note>` `` under `--no-tsc`.*
+
+  *Reproduced against 0.1.138 (the release build): ``[E0204] Error:
+  typecheck: type mismatch: expected `Record<string, Any>`, found
+  `Box<?>` `` and ``expected `Nullable<Note>`, found `Maybe<Note>` ``
+  (and the reverse) under `--no-tsc`; the `Record<string, unknown>` and
+  non-generic `MaybeNote` spellings check clean.*
+
 - **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
   In a child list that holds an element, a text child goes on a line of its
   own, and the formatter wrote a space at either end of it as a separate
@@ -12023,6 +12051,13 @@ and is the owner's to confirm.
 
   Planned for 0.1.141 (record 89): read the checker's coverage relation from
   the same build report and name the arm.
+
+  *Reproduced against 0.1.138 (the release build): the decline names no
+  arm ("`glyph fix` cannot tell from the diagnostics which arm that is (a
+  lowercase name may be a variant, G224)") with `blank` before `_` and
+  before `other`, and also when every variant is capitalized and the only
+  lowercase arm, `other`, can only be a binding; nothing is rewritten.*
+
 - **G328. A `const` inside a function body says "assignment requires `mut`".**
   `const s = "a"` in a body is E0008, ``assignment requires `mut` ``. The help
   does say to write `let x = ...` for a new binding, but the headline describes a
@@ -12207,3 +12242,16 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.137: no reference to the formatter in
   `crates/glyph-wasm`.*
+
+- **G343. `glyph fmt` starts a statement with `(` around a lambda call.**
+  `let a = 1` then `fn() { return 1 }()` is printed with the second line as
+  `(fn() { return 1 })()`, and a second `glyph fmt` reads that line as a call
+  on `1` and prints `let a = 1(fn() { return 1 })()`. So the first pass is not
+  a fixed point and the second changes the program. The emitted TypeScript of
+  the source (`() => {...}()`) is already refused by `tsc` (TS1005), so no
+  program that builds changes meaning, but `glyph check --no-tsc` accepts both.
+  The same hazard as G335 on a lambda head; `fn() {...}.length` does it too.
+  Present in 0.1.137. Found by the 0.1.138 release review (record 99).
+
+  *Reproduced against 0.1.138: the first pass prints
+  `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*

@@ -419,6 +419,13 @@ value, on `Err` it returns that error from the enclosing function. The error typ
 `E` must match the enclosing function's `E` **exactly** (there is no `From`
 conversion in v1).
 
+`f()?.name` is optional chaining, not `?` then `.` (E0236). To read a member of
+what `?` unwraps, bind it first (`let r = f()?`, then `r.name`). `glyph fmt`
+writes `f()?(x)`, `f()?[0]` and `f()? ?` without parentheses (two `?` a space
+apart, because `??` is the nullish operator). A statement that would start with
+`(f()?).run()` comes out as `f()?` with `.run()` indented on the next line,
+because a line starting with `(` continues the line above.
+
 ### Record literals and sum types
 
 ```glyph

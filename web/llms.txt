@@ -1828,8 +1828,17 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
   keeps a comment above the same item, including inside a record, a union variant
   list, an array or object literal, an argument list, and a `match` (a construct
   holding an interior comment stays one-element-per-line so the comment has an
-  item to sit above). A comment always lands on its own line, so one written at
-  the end of a code line moves to the line above the next item.
+  item to sit above), between the operands of an operator, and between the
+  steps of a method chain (one step per line, dot leading). A comment always
+  lands on its own line, so one written at the end of a code line moves to the
+  line above the next item.
+- **When `glyph fmt` refuses a file, move the comment where it says.** A
+  comment inside an index, a unary or `await` operand, a type annotation, a
+  pattern, a JSX tag, or after a call in the middle of a chain has no place in
+  the canonical layout. `glyph fmt` does not move it for you: it leaves the
+  file as it was, prints `file:line:col: comment ... has no canonical place;
+  move it above ...`, and exits 1. `glyph check` reports the same thing as
+  warning E0500. Move the comment where the message says and run it again.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).
 
 ### Reserved words
@@ -2000,6 +2009,7 @@ machine-readably. The full catalogue:
 | E0402 | The text after `@example` does not parse as a Glyph expression | Write it as one expression, usually `call(args) == expected` |
 | E0403 | The copy of the project carrying the `@example` and `@doc @run` tests did not compile, so no test ran | Read the diagnostics that follow against the test text; the two sides of an example usually disagree on type |
 | E0404 | The tests could not all run: `tsx` is not on `PATH`, the harness could not start, or it exited without a result for every test (`N example(s) not run`) | Install `tsx`, or fix what stopped the harness (often a module it could not load); `--no-test` skips the tests |
+| E0500 | A comment sits where the canonical layout has no place for it (inside an index, a unary or `await` operand, a type annotation, a pattern, or after a call in the middle of a member chain), so `glyph fmt` refuses the file and leaves it unchanged (warning; D14) | Move the comment where the help says, usually above the statement |
 
 ### A diagnostic in the self-correction loop
 

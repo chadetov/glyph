@@ -777,29 +777,54 @@ fn main() {
                         eprint!("{reason}");
                         eprintln!("glyph fmt: skipped {} (it does not parse)", file.display());
                     }
+                    for (file, refusal) in &report.refused {
+                        // The file is left as it is: a comment in it has no
+                        // place in the canonical layout, and `fmt` never moves
+                        // one (D14).
+                        eprintln!(
+                            "{}:{}:{}: {}",
+                            file.display(),
+                            refusal.line,
+                            refusal.column,
+                            refusal.message
+                        );
+                        eprintln!("glyph fmt: refused {} (left unchanged)", file.display());
+                    }
                     for file in &report.formatted {
                         let verb = if check { "would reformat" } else { "formatted" };
                         eprintln!("{verb} {}", file.display());
                     }
+                    // Named only when there is one, so a run that refuses
+                    // nothing reads exactly as it did before refusals existed.
+                    let refused = if report.refused.is_empty() {
+                        String::new()
+                    } else {
+                        format!(", {} refused", report.refused.len())
+                    };
                     if check {
                         eprintln!(
-                            "glyph fmt --check: {} would reformat, {} already formatted, {} failed",
+                            "glyph fmt --check: {} would reformat, {} already formatted, {} failed{refused}",
                             report.formatted.len(),
                             report.unchanged.len(),
                             report.failed.len()
                         );
-                        // Non-zero if anything is unformatted or unparseable.
-                        let clean = report.formatted.is_empty() && report.failed.is_empty();
+                        // Non-zero if anything is unformatted, unparseable or
+                        // refused.
+                        let clean = report.formatted.is_empty()
+                            && report.failed.is_empty()
+                            && report.refused.is_empty();
                         std::process::exit(if clean { 0 } else { 1 });
                     }
                     eprintln!(
-                        "glyph fmt: {} formatted, {} already formatted, {} failed",
+                        "glyph fmt: {} formatted, {} already formatted, {} failed{refused}",
                         report.formatted.len(),
                         report.unchanged.len(),
                         report.failed.len()
                     );
-                    // A parse failure is a real problem; surface it as non-zero.
-                    std::process::exit(if report.failed.is_empty() { 0 } else { 1 });
+                    // A parse failure or a refusal is a real problem; surface
+                    // it as non-zero.
+                    let ok = report.failed.is_empty() && report.refused.is_empty();
+                    std::process::exit(if ok { 0 } else { 1 });
                 }
                 Err(e) => {
                     eprintln!("glyph fmt: {e}");
@@ -1179,8 +1204,12 @@ fn main() {
                     print!("{view}");
                     std::process::exit(0);
                 }
-                Err(e) => {
+                Err(e @ glyph_formatter::CanonicalError::Parse(_)) => {
                     eprintln!("glyph canonical: {} did not parse ({e})", file.display());
+                    std::process::exit(1);
+                }
+                Err(e) => {
+                    eprintln!("glyph canonical: {}: {e}", file.display());
                     std::process::exit(1);
                 }
             }

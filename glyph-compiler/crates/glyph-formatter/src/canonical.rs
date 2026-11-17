@@ -31,12 +31,16 @@ pub enum CanonicalError {
     /// The source did not parse; the canonical view is only defined for source
     /// the formatter can lay out. Carries the rendered parse error.
     Parse(String),
+    /// `glyph fmt` refuses the file: a comment in it has no place in the
+    /// canonical layout (D14), so there is no canonical text to number.
+    Refused(crate::Refusal),
 }
 
 impl std::fmt::Display for CanonicalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CanonicalError::Parse(reason) => write!(f, "parse error: {reason}"),
+            CanonicalError::Refused(r) => write!(f, "glyph fmt refuses this file: {r}"),
         }
     }
 }
@@ -47,7 +51,7 @@ impl std::error::Error for CanonicalError {}
 pub fn canonical_view(source: &str) -> Result<String, CanonicalError> {
     let (parsed, comments) = glyph_parser::parse_with_comments(source);
     let module = parsed.map_err(|e| CanonicalError::Parse(format!("{e:?}")))?;
-    let canonical = format_module(&module, &comments, source);
+    let canonical = format_module(&module, &comments, source).map_err(CanonicalError::Refused)?;
 
     // Re-parse the canonical text so declaration spans are in *canonical*
     // coordinates (the formatter's output always parses; should that ever fail,

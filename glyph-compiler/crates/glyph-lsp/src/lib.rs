@@ -806,7 +806,11 @@ impl LanguageServer for Backend {
         let Ok(module) = parsed else {
             return Ok(None);
         };
-        let formatted = glyph_formatter::format_module(&module, &comments, &text);
+        // A comment the canonical layout has no place for: no edits, and the
+        // refusal as an error the editor shows, the way a refused rename is
+        // (`rename_error`). `glyph fmt` leaves the file unchanged the same way.
+        let formatted = glyph_formatter::format_module(&module, &comments, &text)
+            .map_err(format_refusal)?;
         if formatted == text {
             return Ok(Some(Vec::new()));
         }
@@ -1188,6 +1192,17 @@ fn rename_error(e: RenameError) -> tower_lsp::jsonrpc::Error {
     tower_lsp::jsonrpc::Error {
         code: tower_lsp::jsonrpc::ErrorCode::InvalidParams,
         message: message.into(),
+        data: None,
+    }
+}
+
+/// A refused format (D14) as a JSON-RPC error: LSP's `RequestFailed`, the
+/// code for a request the server understood and could not carry out. The
+/// message names the line and the fix, as `glyph fmt` prints it.
+fn format_refusal(r: glyph_formatter::Refusal) -> tower_lsp::jsonrpc::Error {
+    tower_lsp::jsonrpc::Error {
+        code: tower_lsp::jsonrpc::ErrorCode::ServerError(-32803),
+        message: format!("glyph fmt: {r}").into(),
         data: None,
     }
 }

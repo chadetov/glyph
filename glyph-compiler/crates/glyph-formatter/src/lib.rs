@@ -21,7 +21,9 @@
 #![forbid(unsafe_code)]
 
 mod canonical;
+mod refusal;
 pub use canonical::{canonical_view, CanonicalError};
+pub use refusal::Refusal;
 
 use std::collections::HashSet;
 
@@ -53,7 +55,14 @@ const PRINT_WIDTH: usize = 100;
 /// span) so escapes and D12 multi-line strings round-trip exactly rather than
 /// being reconstructed from the lexer's decoded value. The result ends in a
 /// single trailing newline.
-pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> String {
+///
+/// `Err` when a comment sits where the canonical layout has no place for it
+/// (D14): in the gap of a construct with no one-per-line form, such as an
+/// index, a unary or `await` operand, a type annotation or a pattern path, or
+/// where D1 allows no line break. The formatter never moves such a comment, so
+/// it refuses the file instead; the [`Refusal`] names the line, the construct
+/// and one fix. A refusal needs a comment: with `&[]` this is always `Ok`.
+pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> Result<String, Refusal> {
     let mut sorted = comments.to_vec();
     sorted.sort_by_key(|c| c.span.start);
     let mut p = Printer {
@@ -66,9 +75,14 @@ pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> String {
         source: Some(source.to_string()),
         in_block: false,
         unbroken_links: HashSet::new(),
+        refused: Vec::new(),
     };
     p.module(m);
-    p.out
+    if p.refused.is_empty() {
+        Ok(p.out)
+    } else {
+        Err(refusal::describe(m, source, &p.refused))
+    }
 }
 
 /// Format a single expression to canonical one-line-ish Glyph text (no trailing
@@ -87,6 +101,7 @@ pub fn format_expr(e: &Expr) -> String {
         source: None,
         in_block: false,
         unbroken_links: HashSet::new(),
+        refused: Vec::new(),
     };
     p.expr(e);
     p.out
@@ -139,6 +154,10 @@ struct Printer {
     /// placeable comment of their own when the whole chain holds one that
     /// cannot be placed (record 95).
     unbroken_links: HashSet<(u32, u32)>,
+    /// The comments the walk found outside every gap that could hold them,
+    /// in the order it found them. Any entry makes `format_module` refuse
+    /// the file (D14, record 86).
+    refused: Vec<Comment>,
 }
 
 impl Printer {
@@ -1325,23 +1344,10 @@ impl Printer {
     /// whitespace nor inside a `//` comment: the start of the next token.
     /// `from` itself when there is no source, which has no comments either.
     fn next_token_at(&self, from: u32) -> u32 {
-        let Some(src) = self.source.as_deref() else {
-            return from;
-        };
-        let bytes = src.as_bytes();
-        let mut i = from as usize;
-        while i < bytes.len() {
-            match bytes[i] {
-                b' ' | b'\t' | b'\r' | b'\n' => i += 1,
-                b'/' if bytes.get(i + 1) == Some(&b'/') => {
-                    while i < bytes.len() && bytes[i] != b'\n' {
-                        i += 1;
-                    }
-                }
-                _ => break,
-            }
+        match self.source.as_deref() {
+            Some(src) => next_token_in(src, from),
+            None => from,
         }
-        i as u32
     }
 
     fn array_elem(&mut self, el: &ArrayElem) {
@@ -2168,6 +2174,25 @@ fn is_atom(e: &Expr) -> bool {
             // delimiter, so the hazard has nothing to attach to.
             | Expr::Match { .. }
     )
+}
+
+/// The offset of the first byte of `src` at or after `from` that is neither
+/// whitespace nor inside a `//` comment: the start of the next token.
+fn next_token_in(src: &str, from: u32) -> u32 {
+    let bytes = src.as_bytes();
+    let mut i = from as usize;
+    while i < bytes.len() {
+        match bytes[i] {
+            b' ' | b'\t' | b'\r' | b'\n' => i += 1,
+            b'/' if bytes.get(i + 1) == Some(&b'/') => {
+                while i < bytes.len() && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            _ => break,
+        }
+    }
+    i as u32
 }
 
 /// The base a postfix link applies to.

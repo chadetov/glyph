@@ -61,6 +61,7 @@ fn type_error_codes(src: &str) -> Option<Vec<String>> {
 fn fmt(src: &str) -> String {
     let (m, comments) = glyph_parser::parse_with_comments(src);
     format_module(&m.expect("parse"), &comments, src)
+        .unwrap_or_else(|r| panic!("glyph fmt refused it: {r}\n--- source ---\n{src}"))
 }
 
 /// The comments the parser consumed, which is the list `glyph fmt` hands the
@@ -83,11 +84,11 @@ fn examples_format_is_stable_and_semantics_preserving() {
 
         // Stable: format → reparse → format is a fixed point.
         let m = glyph_parser::parse(&src).unwrap_or_else(|e| panic!("{label}: parse: {e:?}"));
-        let once = format_module(&m, &comments(&src), &src);
+        let once = format_module(&m, &comments(&src), &src).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         let m2 = glyph_parser::parse(&once).unwrap_or_else(|e| {
             panic!("{label}: formatted output did not re-parse: {e:?}\n--- output ---\n{once}")
         });
-        let twice = format_module(&m2, &comments(&once), &once);
+        let twice = format_module(&m2, &comments(&once), &once).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         assert_eq!(once, twice, "{label}: formatting is not idempotent");
 
         // Comments are preserved: every comment's text survives.
@@ -757,7 +758,7 @@ fn formatting_does_not_duplicate_a_comment_it_already_emitted() {
     for _ in 0..5 {
         let module = glyph_parser::parse(&current).expect("reproduction must parse");
         let comments = comments(&current);
-        current = format_module(&module, &comments, &current);
+        current = format_module(&module, &comments, &current).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         seen.push(current.matches("// c").count());
     }
 
@@ -1226,11 +1227,11 @@ fn fuzz_seeds_are_format_fixed_points() {
         let Ok(m) = glyph_parser::parse(&src) else {
             continue;
         };
-        let once = format_module(&m, &comments(&src), &src);
+        let once = format_module(&m, &comments(&src), &src).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         let m2 = glyph_parser::parse(&once).unwrap_or_else(|e| {
             panic!("{name}: formatted output did not re-parse: {e:?}\n--- output ---\n{once}")
         });
-        let twice = format_module(&m2, &comments(&once), &once);
+        let twice = format_module(&m2, &comments(&once), &once).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         assert_eq!(once, twice, "{name}: formatting is not idempotent");
     }
 }
@@ -1243,7 +1244,7 @@ fn formatting_preserves_the_literal_and_comment_stream_on_the_seeds() {
         let Ok(m) = glyph_parser::parse(&src) else {
             continue;
         };
-        let once = format_module(&m, &comments(&src), &src);
+        let once = format_module(&m, &comments(&src), &src).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         assert_stream_preserved(&name, &src, &once);
     }
 }
@@ -1260,7 +1261,7 @@ fn no_seed_or_corpus_file_formats_with_trailing_whitespace() {
         let Ok(m) = glyph_parser::parse(&src) else {
             continue;
         };
-        let out = format_module(&m, &comments(&src), &src);
+        let out = format_module(&m, &comments(&src), &src).unwrap_or_else(|r| panic!("glyph fmt refused it: {r}"));
         for (n, line) in out.lines().enumerate() {
             assert!(
                 line.len() == line.trim_end().len(),

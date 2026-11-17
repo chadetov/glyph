@@ -61,8 +61,39 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.135</span>
+            <span class="rel-ver">0.1.136</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p><code>glyph fmt</code> keeps a comment written between the steps of a method chain. It used to print the chain on one line and move the comment below the statement, where it described nothing.</p>
+
+            <div class="code">
+              <span class="cap">count.glyph</span>
+<pre>fn count(s: string) -&gt; number {
+  return s
+    .trim()
+    // then count what is left
+    .length
+}</pre>
+            </div>
+
+            <p>A comment between two steps, or between a dot and the name after it, breaks the chain one step per line, with the dot leading and the comment above its step. A step is a dot with the calls, indexes and <code>?</code> that follow it. A comment inside an argument list or a lambda stays where it was and breaks nothing, so files that were already formatted stay as they are.</p>
+
+            <p>Some comments in a chain have no step line to sit above: one after a call's arguments and before an index (<code>.split(",") // first</code> then <code>[0]</code>), one between the function name at the head of a chain and its arguments, or one inside an index. A chain holding one of those keeps its old one-line layout, even if another comment in it could be placed, because breaking it would put the stray comment somewhere that looks deliberate. Those comments are still moved, below the statement or into the next argument list. The next release makes <code>glyph fmt</code> refuse the file and name the line instead.</p>
+
+            <h3>Known issue</h3>
+            <p>While testing this, the fuzzer found a way for <code>glyph fmt</code> to change a program. Inside a block, a line that starts with <code>(</code> continues the line above, and the formatter prints <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>. After a line such as <code>let a = 1</code>, the formatted file means <code>let a = 1(…).run()</code>. A full build catches it here (<code>tsc</code> reports TS2349, since a number cannot be called), but not when the line above ends in something callable; <code>glyph check --no-tsc</code> catches neither. This was already in 0.1.135. Until it is fixed (G335), bind the result first: <code>let job = load()?</code>, then <code>job.run()</code>.</p>
+
+            <p>This release is not breaking. We ran the published 0.1.135 and this build on every <code>.glyph</code> file in the repository and on all 32 example apps: <code>glyph check</code> and the emitted TypeScript are the same everywhere, and <code>glyph fmt</code> output differs only on the new test file written to exercise the layout.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.135</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>
@@ -150,11 +181,11 @@
 
 let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
             </div>
-            <p>That program passed <code>glyph check</code> and <code>tsc</code> in 0.1.132 and crashed on the first field read. The emitter wrote <code>json.parse(s)</code> with no type argument, and <code>tsc</code> inferred <code>T</code> from the return type, which made the unchecked read a cast with no <code>as</code> anywhere. A call with no type argument is now emitted as <code>json.parse&lt;unknown&gt;(s)</code>, so <code>tsc</code> refuses it there, at a <code>let</code> annotated <code>Result&lt;User, ...&gt;</code>, at an argument and in a record field. <code>glyph check --no-tsc</code> does not refuse an <code>unknown</code> value where another type is declared yet; that is 0.1.144.</p>
+            <p>That program passed <code>glyph check</code> and <code>tsc</code> in 0.1.132 and crashed on the first field read. The emitter wrote <code>json.parse(s)</code> with no type argument, and <code>tsc</code> inferred <code>T</code> from the return type, which made the unchecked read a cast with no <code>as</code> anywhere. A call with no type argument is now emitted as <code>json.parse&lt;unknown&gt;(s)</code>, so <code>tsc</code> refuses it there, at a <code>let</code> annotated <code>Result&lt;User, ...&gt;</code>, at an argument and in a record field. <code>glyph check --no-tsc</code> does not refuse an <code>unknown</code> value where another type is declared yet; that is 0.1.145.</p>
             <p><code>json.parse&lt;T&gt;</code> with a <code>T</code> nothing can check at run time is E0304: a type parameter, an <code>extern_ts</code> or package type, an interface, <code>Result</code>, a generic union, an <code>Option</code>, <code>Nullable</code> or <code>Record</code> of one, or a generic record applied to one (<code>Pair&lt;Shape&gt;</code>, whose check tested <code>a</code> only for being there). The note says which. A container of <code>unknown</code> is checked by its shape, so <code>json.parse&lt;Array&lt;unknown&gt;&gt;("{}")</code> is an <code>Err</code>. An <code>Array</code> alias imported from another module validates when its body names types that module declares. If it names one the module imports, that is E0304 for now. It used to look the name up in your module, and validate against your own <code>User</code> if you had one. Assigning <code>json.parse</code> to a variable gives you the unchecked read: <code>let p = json.parse</code> takes no type arguments.</p>
 
             <h3><code>?.</code> on an <code>Option</code> or a <code>Result</code></h3>
-            <p>An <code>Option</code> and a <code>Result</code> are never null, so <code>?.</code> on one never skips anything; it reads off the wrapper. An agent writing csvql wrote <code>bind_agg(...)?.label</code> meaning "propagate the error, then read the field", and the error was not propagated. That is E0236 now, with help that says to bind first (<code>let a = bind_agg(...)?</code>) or to <code>match</code>. A plain <code>.</code> on them is still unchecked; that is 0.1.138.</p>
+            <p>An <code>Option</code> and a <code>Result</code> are never null, so <code>?.</code> on one never skips anything; it reads off the wrapper. An agent writing csvql wrote <code>bind_agg(...)?.label</code> meaning "propagate the error, then read the field", and the error was not propagated. That is E0236 now, with help that says to bind first (<code>let a = bind_agg(...)?</code>) or to <code>match</code>. A plain <code>.</code> on them is still unchecked; that is 0.1.139.</p>
 
             <h3>Methods of arrays and strings</h3>
             <p>The checker knows what <code>xs.indexOf(2)</code> and <code>s.trim()</code> return, from a table generated out of TypeScript's own declarations and checked for drift in CI. A method read without calling it, <code>let up = s.toUpperCase</code>, is E0234: the read loses its receiver and throws when called. <code>.bind(s)</code> is refused the same way; write <code>fn() -&gt; string { return s.toUpperCase() }</code>. Type arguments on a function you stored in a variable are read now: <code>let g = id</code> then <code>g&lt;number&gt;("x")</code> is an error, as it is on <code>id</code> itself.</p>

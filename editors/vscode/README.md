@@ -3,7 +3,7 @@
 Syntax highlighting and the Glyph language server for `.glyph` files.
 
 [Glyph](https://glyphlang.io) is a statically typed language that compiles to
-TypeScript, designed so AI agents can read, write, and modify code safely.
+TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.
 
 ## Setup
 

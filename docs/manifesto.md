@@ -1,6 +1,6 @@
 # Glyph manifesto
 
-A statically typed, transpile-to-TypeScript language for production systems where AI agents are first-class collaborators on the codebase.
+A statically typed, transpile-to-TypeScript language built so code an AI agent writes can be read, checked and changed without guessing, for production systems where agents work on the codebase alongside people.
 
 Full original text: `archive/MANIFESTO.md`.
 

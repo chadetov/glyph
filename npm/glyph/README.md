@@ -10,7 +10,7 @@
 [![Socket Badge](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.137)](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.137)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadetov/glyph/badge)](https://scorecard.dev/viewer/?uri=github.com/chadetov/glyph)
 
-Glyph is a statically typed language that **transpiles to TypeScript**, built so AI agents can read, write, and modify code safely. It looks almost like TypeScript, so you read it on day one with no tutorial. Where it differs, each difference closes a hole an agent falls through and `tsc --strict` waves past.
+Glyph is a statically typed language that **transpiles to TypeScript**, built so code an AI agent writes can be read, checked and changed without guessing. It looks almost like TypeScript, so you read it on day one with no tutorial. Where it differs, each difference closes a hole an agent falls through and `tsc --strict` waves past.
 
 ## Try it without installing anything
 

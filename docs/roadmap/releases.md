@@ -5497,13 +5497,15 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 **0.1.137 · `glyph fmt` refuses rather than moves a comment** (record 86)
 - **G324, the general half.** A comment belongs to the innermost construct whose gap holds it. Where that construct has no one-per-line layout (an index, a unary or `await` operand, a type annotation, a pattern path) or D1 allows no line break, `glyph fmt` refuses the file with an error naming the line and leaves it unchanged; the LSP reports it as a diagnostic. Checked where comments are flushed, with a lower bound on `take_comments_before`, not per statement, which would pass a comment moved into a later argument list. `format_module` returns a `Result`, which reaches the CLI, the LSP, the playground and `canonical.rs`, so it ships alone. The fuzz property becomes: `Ok` preserves the stream and is idempotent; `Err` only when the input holds a comment, and removing every comment makes it `Ok`. D14 is restated as the general guarantee here and not before. Not breaking: no 0.1.132 fixed point holds a comment in such a gap
 
-**0.1.136 · A member chain holds its comments** (record 86)
+**0.1.136 — Next · A member chain holds its comments** (record 86)
 - **G324, the common half.** A comment in a gap of a member/call chain breaks it one segment per line, dot leading and indented, with the comment above its segment: `s` / `.trim()` / `// then count` / `.length`. Keyed on the gap test G323 uses, so a comment inside an argument list stays with the list and no 0.1.132 fixed point changes. Before 0.1.137, so the refusal never meets the most common shape
 
-**0.1.135 — Next · JSX text is scanned as text** (record 85; breaking)
-- **A JSX-text scanner the parser drives**, after the model of TypeScript's `reScanJsxToken`. The parser asks for a text run after an opening tag, a child element or an `{expr}`, and the lexer reads raw source up to the next `{` or `<`, newlines included. One text child per run across lines, emitted by `jsx_text_value`'s rule. Comments become a by-product of parsing (`parse_with_comments`), so text can never yield one, and `glyph_lexer::comments` leaves the public API so a missed caller is a compile error
-- **The D6 rules that come with it, as one change.** `'`, `\`, an unpaired `"` and `/*` are text (G317). `}` and `>` in text are refused with help to write `{"}"}` (G319). `//` in text is refused, stricter than TSX, because 0.1.132 read it as a comment and TSX reads it as text, and either reading would change a program that compiles in both (G318). A comment among children is written in a comment-only `{ // note }` child, which emits nothing; `{}` stays refused. G320 and G321 close with the scanner. Entity spelling (`&amp;`) is decided when it is picked up
-- **Breaking**, with the notes written as 0.1.132's were: every tightening, every loosening, and the programs that compile in both versions and now emit differently (top-level multi-line text, a `"` pair across tags) under a heading of their own
+**0.1.135 — Shipped 2026-11-17 · JSX text is scanned as text** (records 85 and 93; breaking)
+- **A JSX-text scanner the parser drives**, after the model of TypeScript's `reScanJsxToken`. The parser asks for a text run after an opening tag, a child element or an `{expr}`, and the lexer reads raw source up to the next `{` or `<`, newlines included. One text child per run across lines, emitted by `jsx_text_value`'s rule. Comments are a by-product of parsing (`parse_with_comments`), so text can never yield one, and `glyph_lexer::comments` left the public API so a missed caller is a compile error
+- **The D6 rules that come with it** (record 93). `'`, `"`, `\`, `/*`, `;`, `#`, a backtick and a lone `&` are text (G317). Four things are refused as `E0012`, each message naming what it refused: `}` and `>`, with help to write `{"}"}` (G319); `//`, stricter than TSX, because 0.1.134 read it as a comment and TSX reads it as text (G318); and an HTML entity, `&` then letters, digits, `_` or `#` then `;`, which TSX decodes and Glyph would emit as written, with a help that names the character the entity stands for and a spelling that compiles: the character itself, a string child for `<`, `>`, `{` and `}`, and a `\u{…}` string child for an invisible one or a numeric entity (record 94). A comment among children is a comment-only child (`{`, `// note` on its own line, `}`), which emits nothing; `{}` stays refused. A `>=` glued to a tag's `>` is split where text follows, so `<p>=x</p>` is the text `=x`; after the outermost element's closing `>` it is still E0002. G320 and G321 close with the scanner. D6 and D14 are amended
+- **G330, a non-ASCII character in code crashed `glyph check`** (exit 101). The lexer reported the first byte of a character it does not accept as a `char` of its own (`é` as `Ã`) with a one-byte span that ended inside the character, and the diagnostic renderer panicked slicing there. The whole character is reported now. Found by the release review (record 94), present in 0.1.134 too
+- **The fuzzer checks text spans.** The `parse` target asserts that a JSX text child is exactly the source at its span, and that `tokenize` over the source with every text run blanked fails where the parser's lexer does; the G318 to G321 reproductions and two entity cases are seeds, which the formatter tests also read. Measured against the published 0.1.134 over every tracked `.glyph` file in a directory of its own (460 files, 2837 emitted files) and the 32 apps (763 emitted files): no difference on any file that predates the release
+- **Breaking**, established by running the published 0.1.134 and this build on the same programs. Exit 0 to 1 under `check --no-tsc`: `}` or `>` in text, `//` in text with the closing tag on a later line, and `//` inside a `"` pair in text (`see "http://x.com" now`), all E0012. Exit 1 to 0: `'`, an unpaired `"`, `\`, `/*`, `;`, `#` or a backtick in text (E0001 before), and `=` right after a tag's `>` (E0002 before, E0003 in a fragment). Exit 101 to 0: any non-ASCII character in JSX text (`é`, `’`, `—`, `日本`), which panicked the diagnostic renderer. An entity was E0001 and is E0012. Programs that compile in both and now emit differently: a whitespace-only run on one line among children (`{first} {last}`, `<b>x</b> <i>y</i>`, `{a} </p>`, `<p> </p>`) is a child holding that whitespace, where it was dropped, so `{first} {last}` renders `John Doe` where it rendered `JohnDoe`; text over several lines in a module-level `const` is one child `"a b"` where it was `"a", "b"`; and a `"` pair across tags gives the elements it spells, where it merged them into one text child. None of these shapes is in the corpus, which is why the sweep above found no difference; the release review found the whitespace class (record 94)
 
 **0.1.134 — Shipped 2026-11-11 · A cursor that lexes on demand** (records 85 and 91)
 - **The parser pulls tokens from a resumable lexer** (`Lexer::at(src, offset, state)`, `next_token` public, `tokenize` the same loop), and a lex error is held until the parser reaches it, so lookahead that wanders into a lex error backs off without failing. `peek` takes `&mut self`. Programs that compile are unchanged: emitted TypeScript and `fmt` output are byte-identical against 0.1.133 over every tracked `.glyph` file in a directory of its own (318 of 318 clean files, 2795 emitted files), and the 32 apps check identically and build as projects to identical output (616 emitted files); no exit code changes. The JSX-text scanner in 0.1.135 is built on it
@@ -8261,6 +8263,23 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**G331, an unclosed JSX element reports the enclosing `}` as JSX text** (E0012
+with help to write `{"}"}`), where 0.1.134 said the closing tag was missing.
+The error should name the element left open. Found by record 94.
+
+**G332, an entity in a JSX attribute string is emitted as written** where TSX
+decodes it. The same divergence record 93 refused in text; deciding it needs a
+record of its own (refuse, as in text, or decode). Found by record 94.
+
+**G334, an invisible character outside a string is named raw, and a BOM is
+refused.** The message should print `U+XXXX` for a character that does not
+show; whether a leading BOM is skipped, as `tsc` does, needs deciding. Found by
+record 94.
+
+**G333, a `<` in JSX text is E0002 with no spelling offered.** It should be
+refused as text that cannot hold `<`, with `{"<"}` as the help. Found by
+record 94.
 
 **G329, a lex error inside a generic-call lookahead becomes an E0003 on valid
 code.** `let x = f<a, "\q">(x)` reports an unexpected `,` since 0.1.134, where

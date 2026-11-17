@@ -520,10 +520,12 @@ pub component TodoList(props: { load: Load }) {
 ```
 
 Text between tags is read as written, so `<p>don't stop</p>` and `<p>50% off; "quoted"</p>`
-are plain text, and text over several lines is one child joined with spaces. Four
+are plain text, and text over several lines is one child joined with spaces.
+Spaces on one line are kept, so `{first} {last}` renders with the space. Four
 things cannot appear in it (E0012): `}` and `>` (write `{"}"}`, `{">"}`), `//`
 (write `{"see http://example.com"}`), and an HTML entity such as `&amp;` or
-`&nbsp;`, which TSX would decode (write `&` itself, or `{"\u{A0}"}`). A comment
+`&nbsp;`, which TSX would decode (write the character itself, `{"<"}` for
+`&lt;`, or `{"\u{A0}"}` for `&nbsp;`; the error names the character). A comment
 among children goes in a comment-only child:
 
 ```glyph needs-react

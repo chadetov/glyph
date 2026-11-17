@@ -17346,3 +17346,424 @@ fn a_bare_json_parse_cast_is_refused_by_the_full_check() {
         assert!(stderr.contains(code_name), "{dir}: expected {code_name}:\n{stderr}");
     }
 }
+
+/// The declarations every G347 case shares: an `extern_ts` type, a record,
+/// and a generic record whose own field `h` has no runtime check.
+const G347_PAGE: &str = "type H = extern_ts(\"{ k: string }\")\ntype User = { id: number, }\ntype Page<T> = { items: Array<T>, h: H, }\n";
+
+/// A generic record's own fields are judged on every path that trusts its
+/// descriptor, its type parameters counted as checked by the arguments
+/// (G347). `Page<T> = { items: Array<T>, h: H }` with `H` an `extern_ts`
+/// type: the descriptor's `is` tests `h` for presence only, and through
+/// 0.1.140 `json.parse<Page<User>>`, `Page.parse<User>(v)` and a record
+/// field typed `Page<User>` all returned `Ok` for `{"items": [], "h": 5}`
+/// (record 101, probes p1, p5 and p6). Each is E0304 naming the field, in
+/// the shape the sibling-alias hop has used since 0.1.140.
+#[test]
+fn a_generic_record_with_an_unchecked_field_of_its_own_is_refused_on_every_path() {
+    let page_h = "`Page`'s field `h` has type `H`, which has no runtime check";
+    let read = |t: &str| {
+        format!(
+            "pub fn read(s: string) -> bool {{\n  return match json.parse<{t}>(s) {{ Ok(_) => true, Err(_) => false, }}\n}}\n"
+        )
+    };
+    let local = |extra: &str, body: &str| format!("module main\nimport std/json\n{G347_PAGE}{extra}{body}");
+    let cases: Vec<(&str, String, String)> = vec![
+        ("json-parse", local("", &read("Page<User>")), format!("cannot validate `Page<User>`: {page_h}")),
+        (
+            "descriptor-parse",
+            local("", "pub fn read(v: unknown) -> bool {\n  return match Page.parse<User>(v) { Ok(_) => true, Err(_) => false, }\n}\n"),
+            format!("cannot validate `Page<User>`: {page_h}"),
+        ),
+        (
+            "record-field",
+            local("type Doc = { p: Page<User>, }\n", &read("Doc")),
+            format!("cannot validate `Doc`: field `p` has type `Page<User>`, and {page_h}"),
+        ),
+        (
+            "record-field-parse",
+            local(
+                "type Doc = { p: Page<User>, }\n",
+                "pub fn read(v: unknown) -> bool {\n  return match Doc.parse(v) { Ok(_) => true, Err(_) => false, }\n}\n",
+            ),
+            format!("cannot validate `Doc`: field `p` has type `Page<User>`, and {page_h}"),
+        ),
+        (
+            "record-field-deep",
+            local("type Doc = { p: Page<User>, }\ntype Outer = { d: Doc, }\n", &read("Outer")),
+            format!("cannot validate `Outer`: field `d.p` has type `Page<User>`, and {page_h}"),
+        ),
+        (
+            "record-field-array",
+            local("type Doc = { ps: Array<Page<User>>, }\n", &read("Doc")),
+            format!("cannot validate `Doc`: field `ps` has type `Array<Page<User>>`, and {page_h}"),
+        ),
+        ("option", local("", &read("Option<Page<User>>")), format!("cannot validate `Option<Page<User>>`: {page_h}")),
+        ("array", local("", &read("Array<Page<User>>")), format!("cannot validate `Array<Page<User>>`: {page_h}")),
+        ("nullable", local("", &read("Nullable<Page<User>>")), format!("cannot validate `Nullable<Page<User>>`: {page_h}")),
+        (
+            "record",
+            local("", &read("Record<string, Page<User>>")),
+            format!("cannot validate `Record<string, Page<User>>`: {page_h}"),
+        ),
+        (
+            "type-argument",
+            local("type Box<T> = { v: T, }\n", &read("Box<Page<User>>")),
+            format!("cannot validate `Box<Page<User>>`: {page_h}"),
+        ),
+        (
+            "type-argument-parse",
+            local(
+                "type Box<T> = { v: T, }\n",
+                "pub fn read(v: unknown) -> bool {\n  return match Box.parse<Page<User>>(v) { Ok(_) => true, Err(_) => false, }\n}\n",
+            ),
+            "cannot validate `Box<Page<User>>`: its type argument `Page<User>` has no runtime check".to_string(),
+        ),
+        (
+            "nested-generic",
+            format!(
+                "module main\nimport std/json\ntype H = extern_ts(\"{{ k: string }}\")\ntype User = {{ id: number, }}\ntype Meta<T> = {{ v: T, h: H, }}\ntype Page<T> = {{ items: Array<T>, meta: Meta<T>, }}\n{}",
+                read("Page<User>")
+            ),
+            "cannot validate `Page<User>`: `Meta`'s field `h` has type `H`, which has no runtime check".to_string(),
+        ),
+        (
+            "record-in-generic",
+            format!(
+                "module main\nimport std/json\ntype H = extern_ts(\"{{ k: string }}\")\ntype User = {{ id: number, }}\ntype Inner = {{ h: H, }}\ntype Page<T> = {{ items: Array<T>, u: Inner, }}\n{}",
+                read("Page<User>")
+            ),
+            "cannot validate `Page<User>`: `Page`'s field `u.h` has type `H`, which has no runtime check".to_string(),
+        ),
+    ];
+    for (dir, main, expected) in cases {
+        let root = unique_tmp(&format!("g347-local-{dir}"));
+        write_file(&root, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&root);
+        assert_ne!(code, 0, "{dir}: a generic with an unchecked field must be refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(&expected), "{dir}: the message names `{expected}`:\n{stderr}");
+    }
+}
+
+/// The same refusal across a module boundary: `Page` imported by name, or
+/// reached through a namespace, and a record that holds a `Page<User>`
+/// declared in `model` and imported whole. The generic is judged where it
+/// is declared.
+#[test]
+fn an_imported_generic_record_with_an_unchecked_field_of_its_own_is_refused() {
+    let model = format!(
+        "module model\n{}pub type Doc = {{ p: Page<User>, }}\n",
+        G347_PAGE.replace("type ", "pub type ")
+    );
+    let page_h = "`Page`'s field `h` has type `H`, which has no runtime check";
+    let cases = [
+        (
+            "named-json-parse",
+            "module main\nimport std/json\nimport model { Page, User }\npub fn read(s: string) -> bool {\n  return match json.parse<Page<User>>(s) { Ok(_) => true, Err(_) => false, }\n}\n",
+            format!("cannot validate `Page<User>`: {page_h}"),
+        ),
+        (
+            "named-descriptor-parse",
+            "module main\nimport model { Page, User }\npub fn read(v: unknown) -> bool {\n  return match Page.parse<User>(v) { Ok(_) => true, Err(_) => false, }\n}\n",
+            format!("cannot validate `Page<User>`: {page_h}"),
+        ),
+        (
+            "namespaced-descriptor-parse",
+            "module main\nimport model as m\npub fn read(v: unknown) -> bool {\n  return match m.Page.parse<m.User>(v) { Ok(_) => true, Err(_) => false, }\n}\n",
+            format!("cannot validate `m.Page<m.User>`: {page_h}"),
+        ),
+        (
+            "imported-record",
+            "module main\nimport std/json\nimport model { Doc }\npub fn read(s: string) -> bool {\n  return match json.parse<Doc>(s) { Ok(_) => true, Err(_) => false, }\n}\n",
+            format!("cannot validate `Doc`: field `p` has type `Page<User>`, and {page_h}"),
+        ),
+        (
+            "local-record",
+            "module main\nimport std/json\nimport model { Page, User }\ntype Mine = { p: Page<User>, }\npub fn read(s: string) -> bool {\n  return match json.parse<Mine>(s) { Ok(_) => true, Err(_) => false, }\n}\n",
+            format!("cannot validate `Mine`: field `p` has type `Page<User>`, and {page_h}"),
+        ),
+    ];
+    for (dir, main, expected) in cases {
+        let root = unique_tmp(&format!("g347-imported-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "model.glyph", &model);
+        write_file(&src, "main.glyph", main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: a generic with an unchecked field must be refused:\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(&expected), "{dir}: the message names `{expected}`:\n{stderr}");
+    }
+}
+
+/// An imported generic is judged through the declarations its module
+/// exports, so a field typed by a record that module keeps private is
+/// refused, though `Page.is` in `model` could check it. This pins the
+/// conservative reading the 0.1.140 hop already makes; a generic declared
+/// in the module that applies it reads its private records and validates.
+#[test]
+fn an_imported_generic_with_a_private_record_field_is_refused_where_a_local_one_validates() {
+    let root = unique_tmp("g347-private-imported");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "model.glyph",
+        "module model\ntype Meta = { n: int, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/json\nimport model { Page, User }\npub fn read(s: string) -> bool {\n  return match json.parse<Page<User>>(s) { Ok(_) => true, Err(_) => false, }\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(
+        stderr.contains("`Page`'s field `meta` has type `Meta`, and `Meta` is declared in `model` without `pub`"),
+        "{stderr}"
+    );
+
+    let root = unique_tmp("g347-private-local");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/io { println }\nimport std/json\ntype Meta = { n: int, }\ntype User = { id: number, }\ntype Page<T> = { items: Array<T>, meta: Meta, }\nfn main() {\n  println(match json.parse<Page<User>>(\"{\\\"items\\\": [{\\\"id\\\": 1}], \\\"meta\\\": {\\\"n\\\": 1}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", })\n  println(match json.parse<Page<User>>(\"{\\\"items\\\": [], \\\"meta\\\": {\\\"n\\\": 1.5}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", })\n}\n",
+    );
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err"]);
+}
+
+/// A generic whose every field has a check still validates on each path the
+/// refusal now covers, run so the arm taken is the evidence: a good
+/// document is `Ok` and one that breaks the generic's own field (`n: 1.5`
+/// for an `int`) or the argument's (`{"name": 1}`) is `Err`.
+#[test]
+fn a_generic_record_whose_fields_are_all_checked_still_validates_on_every_path() {
+    let decls = "type User = { name: string, }\ntype Page<T> = { items: Array<T>, n: int, }\ntype Doc = { p: Page<User>, }\n";
+    let good = "{\\\"items\\\": [{\\\"name\\\": \\\"a\\\"}], \\\"n\\\": 1}";
+    let bad_own = "{\\\"items\\\": [{\\\"name\\\": \\\"a\\\"}], \\\"n\\\": 1.5}";
+    let bad_arg = "{\\\"items\\\": [{\\\"name\\\": 1}], \\\"n\\\": 1}";
+    let lines = |head: &str, call: &dyn Fn(&str) -> String| {
+        let mut body = format!("{head}fn main() {{\n");
+        for doc in [good, bad_own, bad_arg] {
+            body.push_str(&format!("  println({})\n", call(doc)));
+        }
+        body.push_str("}\n");
+        body
+    };
+    let json_parse = |t: &'static str| {
+        move |doc: &str| format!("match json.parse<{t}>(\"{doc}\") {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }}")
+    };
+    let wrap = |t: &'static str, pre: &'static str, post: &'static str| {
+        move |doc: &str| {
+            format!("match json.parse<{t}>(\"{pre}{doc}{post}\") {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }}")
+        }
+    };
+    let descriptor = |recv: &'static str, arg: &'static str| {
+        move |doc: &str| {
+            format!(
+                "match json.parse(\"{doc}\") {{ Ok(v) => match {recv}.parse<{arg}>(v) {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }}, Err(_) => \"Err\", }}"
+            )
+        }
+    };
+    let local_head = format!("module main\nimport std/io {{ println }}\nimport std/json\n{decls}");
+    let named_head = "module main\nimport std/io { println }\nimport std/json\nimport model { Page, User, Doc }\n";
+    let ns_head = "module main\nimport std/io { println }\nimport std/json\nimport model as m\n";
+    let cases: Vec<(&str, String)> = vec![
+        ("local-json-parse", lines(&local_head, &json_parse("Page<User>"))),
+        ("local-descriptor", lines(&local_head, &descriptor("Page", "User"))),
+        ("local-record-field", lines(&local_head, &wrap("Doc", "{\\\"p\\\": ", "}"))),
+        ("local-option", lines(&local_head, &wrap("Option<Page<User>>", "{\\\"tag\\\": \\\"Some\\\", \\\"value\\\": ", "}"))),
+        ("local-array", lines(&local_head, &wrap("Array<Page<User>>", "[", "]"))),
+        ("local-record", lines(&local_head, &wrap("Record<string, Page<User>>", "{\\\"k\\\": ", "}"))),
+        ("named-json-parse", lines(named_head, &json_parse("Page<User>"))),
+        ("named-descriptor", lines(named_head, &descriptor("Page", "User"))),
+        ("named-record", lines(named_head, &wrap("Doc", "{\\\"p\\\": ", "}"))),
+        ("namespaced-descriptor", lines(ns_head, &descriptor("m.Page", "m.User"))),
+    ];
+    for (dir, main) in cases {
+        let root = unique_tmp(&format!("g347-control-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "model.glyph", &format!("module model\n{}", decls.replace("type ", "pub type ")));
+        write_file(&src, "main.glyph", &main);
+        assert_eq!(run_main_lines(&src), vec!["Ok", "Err", "Err"], "{dir}:\n{main}");
+    }
+}
+
+/// Declaring a record that holds an unchecked generic is fine, and its
+/// descriptor is emitted as before: `Doc.is` still calls `Page.is` on the
+/// field, which tests everything `Page` can check. Only a use that reports
+/// the whole value checked is refused, so the refusal must not weaken the
+/// emitted check to a presence test.
+#[test]
+fn declaring_a_record_over_an_unchecked_generic_emits_its_descriptor_unchanged() {
+    let root = unique_tmp("g347-emit");
+    write_file(&root, "main.glyph", &format!("module main\n{G347_PAGE}pub type Doc = {{ p: Page<User>, }}\n"));
+    let out = root.join("out");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        "build".as_ref(),
+        root.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-tsc".as_ref(),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
+    assert!(
+        ts.contains("&& Page.is((value as Record<string, unknown>).p, (__cv: unknown) => User.is(__cv))"),
+        "{ts}"
+    );
+    assert!(
+        ts.contains("} else if (!(Page.is((value as Record<string, unknown>).p, (__cv: unknown) => User.is(__cv)))) {"),
+        "{ts}"
+    );
+}
+
+/// One G348 refusal case: its directory, the `model` and `rows` modules it
+/// needs, `main`, and the message expected.
+type G348Case = (&'static str, Option<String>, Option<String>, String, String);
+
+/// A tagged union's variant payload is walked like a record's fields, on
+/// every path that trusts the union's descriptor (G348). `U = A({ h: H }) |
+/// B` with `H` an `extern_ts` type: the union's `is` checks the tag and
+/// tests `h` for presence only, and through 0.1.140 `json.parse<U>`, a
+/// record field `{ u: U }`, an imported `Array<U>`, a sibling alias `Rows =
+/// Array<U>` and a generic's field `h: U` reached through a hop all returned
+/// `Ok` for `{"tag":"A","h":5}` (record 102, probes u1 to u4 and g7). Each is
+/// E0304 naming the variant and the field, the rule G347 uses for a generic
+/// record's own fields.
+#[test]
+fn a_union_whose_variant_payload_has_an_unchecked_field_is_refused_on_every_path() {
+    let union = "pub type H = extern_ts(\"{ k: string }\")\npub type U = A({ h: H }) | B\n";
+    let u_h = "field `h` of variant `A` has type `H`, which has no runtime check";
+    let read = |t: &str| {
+        format!(
+            "pub fn read(s: string) -> bool {{\n  return match json.parse<{t}>(s) {{ Ok(_) => true, Err(_) => false, }}\n}}\n"
+        )
+    };
+    let local = |extra: &str, body: &str| format!("module main\nimport std/json\n{union}{extra}{body}");
+    let cases: Vec<G348Case> = vec![
+        ("local", None, None, local("", &read("U")), format!("cannot validate `U`: {u_h}")),
+        (
+            "local-descriptor",
+            None,
+            None,
+            local("", "pub fn read(v: unknown) -> bool {\n  return match U.parse(v) { Ok(_) => true, Err(_) => false, }\n}\n"),
+            format!("cannot validate `U`: {u_h}"),
+        ),
+        (
+            "record-field",
+            None,
+            None,
+            local("type W = { u: U, }\n", &read("W")),
+            "cannot validate `W`: field `u.h` of variant `A` has type `H`, which has no runtime check".to_string(),
+        ),
+        ("array", None, None, local("", &read("Array<U>")), format!("cannot validate `U`: {u_h}")),
+        ("option", None, None, local("", &read("Option<U>")), format!("cannot validate `U`: {u_h}")),
+        (
+            "value-payload",
+            None,
+            None,
+            "module main\nimport std/json\ntype H = extern_ts(\"{ k: string }\")\ntype V = A(H) | B\n".to_string() + &read("V"),
+            "cannot validate `V`: field `value` of variant `A` has type `H`, which has no runtime check".to_string(),
+        ),
+        (
+            "local-generic-field",
+            None,
+            None,
+            local("type Page<T> = { items: Array<T>, h: U, }\n", &read("Page<number>")),
+            "cannot validate `Page<number>`: `Page`'s field `h.h` of variant `A` has type `H`, which has no runtime check".to_string(),
+        ),
+        (
+            "u4-imported",
+            Some(format!("module model\n{union}")),
+            None,
+            "module main\nimport std/json\nimport model { U }\n".to_string() + &read("Array<U>"),
+            format!("cannot validate `U`: {u_h}"),
+        ),
+        (
+            "u2-hop-imported",
+            Some(format!("module model\n{union}")),
+            Some("module rows\nimport model { U }\npub type Rows = Array<U>\n".to_string()),
+            "module main\nimport std/json\nimport rows { Rows }\n".to_string() + &read("Rows"),
+            format!("cannot validate `U`: {u_h}"),
+        ),
+        (
+            "u3-hop-declared",
+            None,
+            Some(format!("module rows\n{union}pub type Rows = Array<U>\n")),
+            "module main\nimport std/json\nimport rows { Rows }\n".to_string() + &read("Rows"),
+            format!("cannot validate `U`: {u_h}"),
+        ),
+        (
+            "g7-generic-hop",
+            Some(format!("module model\n{union}pub type User = {{ id: number, }}\npub type Page<T> = {{ items: Array<T>, h: U, }}\n")),
+            Some("module rows\nimport model { Page, User }\npub type Rows = Page<User>\n".to_string()),
+            "module main\nimport std/json\nimport rows { Rows }\n".to_string() + &read("Rows"),
+            "`Rows`'s body applies `Page`, whose field `h.h` of variant `A` has type `H`, which has no runtime check".to_string(),
+        ),
+    ];
+    for (dir, model, rows, main, expected) in cases {
+        let root = unique_tmp(&format!("g348-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", &model);
+        }
+        if let Some(rows) = rows {
+            write_file(&src, "rows.glyph", &rows);
+        }
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: a union with an unchecked payload field must be refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(&expected), "{dir}: the message names `{expected}`:\n{stderr}");
+    }
+}
+
+/// A union whose every payload has a check still validates on each path,
+/// run so the arm taken is the evidence: a good `A` and a `B` are `Ok`, an
+/// `A` whose payload breaks its field (`n: 1.5` for an `int`) and an
+/// unknown tag are `Err`.
+#[test]
+fn a_union_whose_payloads_are_all_checked_still_validates_on_every_path() {
+    let union = "pub type U = A({ n: int }) | B\n";
+    let docs = [
+        ("[{\\\"tag\\\": \\\"A\\\", \\\"n\\\": 1}]", "Ok"),
+        ("[{\\\"tag\\\": \\\"B\\\"}]", "Ok"),
+        ("[{\\\"tag\\\": \\\"A\\\", \\\"n\\\": 1.5}]", "Err"),
+        ("[{\\\"tag\\\": \\\"C\\\"}]", "Err"),
+    ];
+    let main = |head: &str, t: &str| {
+        let mut body = format!("module main\nimport std/io {{ println }}\nimport std/json\n{head}fn main() {{\n");
+        for (doc, _) in docs {
+            body.push_str(&format!(
+                "  println(match json.parse<{t}>(\"{doc}\") {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }})\n"
+            ));
+        }
+        body.push_str("}\n");
+        body
+    };
+    let cases = [
+        ("local", None, None, main(union, "Array<U>")),
+        ("record", None, None, main(&format!("{union}type W = {{ us: Array<U>, }}\n"), "W").replace("[{", "{\\\"us\\\": [{").replace("}]", "}]}")),
+        ("imported", Some(format!("module model\n{union}")), None, main("import model { U }\n", "Array<U>")),
+        (
+            "hop",
+            Some(format!("module model\n{union}")),
+            Some("module rows\nimport model { U }\npub type Rows = Array<U>\n"),
+            main("import rows { Rows }\n", "Rows"),
+        ),
+    ];
+    for (dir, model, rows, main) in cases {
+        let root = unique_tmp(&format!("g348-control-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", &model);
+        }
+        if let Some(rows) = rows {
+            write_file(&src, "rows.glyph", rows);
+        }
+        write_file(&src, "main.glyph", &main);
+        let want: Vec<String> = docs.iter().map(|(_, w)| w.to_string()).collect();
+        assert_eq!(run_main_lines(&src), want, "{dir}:\n{main}");
+    }
+}

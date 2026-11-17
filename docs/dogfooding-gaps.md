@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-347 entries, 290 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-38 are open. G144, the D28 boundary cast that never reached the returns a
+348 entries, 290 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+39 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12120,6 +12120,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.134 (the dev-0.1.134 build): E0003 at the `,`; the
   published 0.1.133 reports E0001 ``invalid escape sequence `\q` ``.*
 
+  *Reproduced against 0.1.140 (the release build): `let x = f<a,
+  "\q">(1)` is ``[E0003] Error: parse: unexpected token: Comma``.*
+
 - **G330. [FIXED] A non-ASCII character in code crashes `glyph check`.**
   `let s = 1 é` exits 101 with a panic in the diagnostic renderer ("end byte
   index 13 is not a char boundary"). The lexer turned the first byte of a
@@ -12149,6 +12152,10 @@ and is the owner's to confirm.
   (record 94).
 
   *Reproduced against 0.1.134 and 0.1.135: both exit 0.*
+
+  *Reproduced against 0.1.140 (the release build): `<p
+  title="&amp;">x</p>` is `no diagnostics`, and the emitted TypeScript
+  holds `title: "&amp;"`.*
 
 - **G333. A `<` in JSX text is E0002 "expected JSX element or attribute name".**
   `<p>a < b</p>` reads the `<` as the start of an element. The four E0012
@@ -12341,3 +12348,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.140 (the dev build) and 0.1.138 by record 101's
   probes p1, p5 and p6 (`/private/tmp/claude-501/linus101/`): exit 0, and the
   document above comes back `Ok`.*
+
+- **G348. A tagged union's variant payload with no runtime check is tested
+  for presence only.** With `pub type U = A({ h: H }) | B` and `H =
+  extern_ts("{ k: string }")`, `json.parse<U>`, a record field `{ u: U }`,
+  `json.parse<Array<U>>` on an imported `U`, a sibling alias `Rows =
+  Array<U>` whether `rows` declares `U` or imports it (followed since
+  0.1.140), and a generic record field `h: U` reached through a sibling hop
+  all return `Ok` for `{"tag":"A","h":5}`. The union descriptor's `is` checks
+  the tag and only that `h` is present, while a non-generic record `{ h: H }`
+  is refused with E0304. The fix walks each variant's payload fields like a
+  record's, on every path, and refuses with E0304 naming the variant and the
+  field, the rule G347 uses for a generic record's own fields. Breaking: such
+  programs go from exit 0 to 1, and `tsc` accepts them. Found by record 102.
+
+  *Reproduced against 0.1.139 and 0.1.140 (the release build) by record
+  102's probes (`/private/tmp/claude-501/linus102/`): on both, `local U Ok`,
+  `hop Array<U> Ok` with `rows` declaring `U`, and `imported U Ok`; on
+  0.1.140 only, where 0.1.139 gives E0304, the hop through an imported `U`
+  and the generic field `h: U`.*
+
+  Planned for 0.1.141 (record 102), together with G347.

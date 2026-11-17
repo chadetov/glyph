@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-342 entries, 286 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-36 are open. G144, the D28 boundary cast that never reached the returns a
+342 entries, 288 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+34 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12096,7 +12096,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.135: E0001 with the character printed raw.*
 
-- **G335. `glyph fmt` writes a statement starting with `(` after one that
+- **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
   indented `.run()` is printed as `let a = 1` and `(load()?).run()`: the
   formatter wraps a `?` operand in parentheses before a member link, because
@@ -12126,6 +12126,15 @@ and is the owner's to confirm.
   not only the text. A parser rule refusing a `(`, `[` or `?` that continues
   the line above is a separate item, measured against the corpus first.
 
+  Fixed in 0.1.138. `glyph fmt` no longer writes a `(` around `e?` that the
+  source did not need. Before `(` or `[` it prints `e?` bare, before `?` it
+  prints `e? ?`, and at the start of an expression statement a chain with a
+  `?` before `.` or `?.` takes the segment layout (`load()?` then an indented
+  `.run()`); elsewhere `(e?).f` stays. The `format_idempotent` fuzz oracle and
+  a corpus test compare the reparsed AST with the source's, and fail on the
+  0.1.137 output of the seed `g335-try-before-a-member-at-statement-start`.
+  The parser rule above is still open as its own item.
+
 - **G336. A module-qualified call is laid out as a chain step.** With a
   comment in the chain, `json.stringify<number>(1).length` prints as `json` /
   `.stringify<number>(1)` / `// generic head` / `.length`. `json` is a module,
@@ -12145,7 +12154,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.136: `.trim()} class="c">{props` on one line.*
 
-- **G338. `glyph fmt` deletes a `where` refinement on a tagged union.**
+- **G338. [FIXED] `glyph fmt` deletes a `where` refinement on a tagged union.**
   `pub type Salary = A | B where value >= 1` is E0300 (a refinement on a
   union is not supported, D39), and `glyph fmt` prints it as `| A` / `| B`
   with the `where` clause gone, after which `check` passes: the formatter
@@ -12159,6 +12168,11 @@ and is the owner's to confirm.
   Decided (record 97): print the refinement on its own line after the last
   variant, at the variants' indent (`  | B` / `  where value >= 1`), which
   parses and still draws E0300. Not `| B where …`, which reads as `B`'s own.
+
+  Fixed in 0.1.138. The refinement prints on its own line after the last
+  variant, at the variants' indent, and the formatted file still draws E0300.
+  The AST oracle fails on the 0.1.137 output of the seed
+  `g338-union-where-refinement`.
 
 - **G339. A comment between JSX attributes is refused.** `<div` / `// why` /
   `class="c">` has no one-per-line attribute layout to sit in, so `glyph fmt`

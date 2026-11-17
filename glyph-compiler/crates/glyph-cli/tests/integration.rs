@@ -16827,51 +16827,244 @@ fn main() {{
     )
 }
 
+/// Run `src/main.glyph` and return its stdout lines, failing on a non-zero
+/// exit. `glyph run` builds through `tsc --strict` first, so a passing run
+/// also says the emitted hidden imports type-check.
+fn run_main_lines(src: &Path) -> Vec<String> {
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    stdout.lines().map(str::to_string).collect()
+}
+
 /// `rows` imports `User` from `model` and exports `Rows = Array<User>`. The
-/// name `User` in that body is `model`'s record, which `json.parse` does not
-/// yet reach (that takes a second hop). It used to be read in the importer's
-/// scope: against `main`'s own `{ id }` record when `main` declared one, so
-/// the wrong document came back `Ok`, and as a false "no runtime check"
-/// refusal when it did not. Both are now E0304 saying what is true.
+/// name `User` in that body is `model`'s record, and `json.parse<Rows>`
+/// follows it there through the hidden namespace import (G326). Until
+/// 0.1.133 it was read in the importer's scope: against `main`'s own `{ id }`
+/// record when `main` declared one, so the wrong document came back `Ok`;
+/// 0.1.133 to 0.1.139 refused it with E0304. The `{ id }` document fits
+/// `main`'s `User` and not `model`'s, so `id shape Err` is the evidence the
+/// check is `model`'s.
 #[test]
-fn json_parse_of_a_sibling_alias_naming_an_imported_record_is_e0304_naming_the_import() {
+fn json_parse_follows_a_sibling_alias_into_the_module_it_imports_a_record_from() {
     for (dir, extra) in [("with-local", "type User = { id: number, }\n"), ("without-local", "")] {
-        let root = unique_tmp(&format!("g297-sibling-import-{dir}"));
+        let root = unique_tmp(&format!("g326-import-{dir}"));
         let src = root.join("src");
         write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
         write_file(&src, "rows.glyph", "module rows\nimport model { User }\npub type Rows = Array<User>\n");
         write_file(&src, "main.glyph", &sibling_alias_main(extra));
-        let (code, stderr) = check_no_tsc(&src);
-        assert_ne!(code, 0, "{dir}: must not validate against another module's record:\n{stderr}");
-        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
-        assert!(
-            stderr.contains("`Rows`'s body names `User`, which `rows` imports; `json.parse` does not yet follow an alias across a second module"),
-            "{dir}: the message names the real cause: {stderr}"
-        );
-        assert!(
-            !stderr.contains("has no runtime check to run for it") && !stderr.contains("a type parameter is erased"),
-            "{dir}: the message and note must not claim `Rows` has no check: {stderr}"
+        assert_eq!(
+            run_main_lines(&src),
+            vec!["id shape Err", "name shape Ok"],
+            "{dir}: `Rows` validates against `model`'s `User`"
         );
     }
 }
 
 /// The same through the sibling's namespace import: `rows` writes
 /// `Array<u.User>` with `import model as u`. `main` binds its own `u` to a
-/// different module, which the body's `u` used to be read against.
+/// different module, whose `User` is the `{ id }` record; the body's `u` is
+/// `rows`'s, so the check is `model`'s.
 #[test]
-fn json_parse_of_a_sibling_alias_naming_a_namespaced_record_is_e0304_naming_the_import() {
-    let root = unique_tmp("g297-sibling-ns");
+fn json_parse_follows_a_sibling_alias_through_its_namespace_import() {
+    let root = unique_tmp("g326-ns");
     let src = root.join("src");
     write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
     write_file(&src, "other.glyph", "module other\npub type User = { id: number, }\n");
     write_file(&src, "rows.glyph", "module rows\nimport model as u\npub type Rows = Array<u.User>\n");
     write_file(&src, "main.glyph", &sibling_alias_main("import other as u\nfn touch(x: u.User) -> number { return x.id }\n"));
-    let (code, stderr) = check_no_tsc(&src);
-    assert_ne!(code, 0, "must not validate against `main`'s `u`:\n{stderr}");
-    assert!(
-        stderr.contains("`Rows`'s body names `u.User`, which `rows` imports; `json.parse` does not yet follow an alias across a second module"),
-        "{stderr}"
+    assert_eq!(run_main_lines(&src), vec!["id shape Err", "name shape Ok"]);
+}
+
+/// A hop that leads back into the importer: `rows` imports `User` from
+/// `main`, which imports `Rows` from `rows`. The check names `main`'s own
+/// descriptor by its name, with no import of `main` from itself.
+#[test]
+fn json_parse_follows_a_sibling_alias_back_into_the_importing_module() {
+    let root = unique_tmp("g326-loop");
+    let src = root.join("src");
+    write_file(&src, "rows.glyph", "module rows\nimport main { User }\npub type Rows = Array<User>\n");
+    write_file(&src, "main.glyph", &sibling_alias_main("pub type User = { name: string, }\n"));
+    assert_eq!(run_main_lines(&src), vec!["id shape Err", "name shape Ok"]);
+    let out = root.join("out");
+    let (code, _, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        src.as_os_str(),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    let main_ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
+    assert!(main_ts.contains("User.schema.array()"), "{main_ts}");
+    assert!(!main_ts.contains("__glyph_mod_main"), "no import of a module from itself: {main_ts}");
+}
+
+/// A chain of hops: `rows` names `mid`'s `Items`, an alias whose body names
+/// `item`'s `Item`. Each name is read in the module whose body holds it.
+#[test]
+fn json_parse_follows_a_sibling_alias_through_two_modules() {
+    let root = unique_tmp("g326-chain");
+    let src = root.join("src");
+    write_file(&src, "item.glyph", "module item\npub type User = { name: string, }\n");
+    write_file(&src, "mid.glyph", "module mid\nimport item { User }\npub type Users = Array<User>\n");
+    write_file(&src, "rows.glyph", "module rows\nimport mid { Users }\npub type Rows = Array<Users>\n");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+import std/io { println }
+import std/json
+import rows { Rows }
+type User = { id: number, }
+fn say(label: string, ok: bool) {
+  println(label + match ok { true => " Ok", false => " Err", })
+}
+fn main() {
+  say("id shape", match json.parse<Rows>("[[{\"id\": 1}]]") { Ok(_) => true, Err(_) => false, })
+  say("flat", match json.parse<Rows>("[{\"name\": \"a\"}]") { Ok(_) => true, Err(_) => false, })
+  say("name shape", match json.parse<Rows>("[[{\"name\": \"a\"}], []]") { Ok(_) => true, Err(_) => false, })
+}
+"#,
     );
+    assert_eq!(run_main_lines(&src), vec!["id shape Err", "flat Err", "name shape Ok"]);
+}
+
+/// A generic record applied in a sibling's alias body is the sibling's
+/// generic, applied to the sibling's argument: declared there, imported there
+/// by name, or reached there through a namespace. `main` declares a `Page`
+/// and a `User` of its own, with other fields, so a document shaped like
+/// `main`'s types is the evidence each check is the sibling's.
+#[test]
+fn json_parse_follows_a_generic_in_a_sibling_alias_into_its_declaring_module() {
+    let bodies = [
+        (
+            "declared",
+            None,
+            "module rows\npub type User = { name: string, }\npub type Page<T> = { items: Array<T>, }\npub type Rows = Array<Page<User>>\n",
+        ),
+        (
+            "imported",
+            Some("module model\npub type User = { name: string, }\npub type Page<T> = { items: Array<T>, }\n"),
+            "module rows\nimport model { Page, User }\npub type Rows = Array<Page<User>>\n",
+        ),
+        (
+            "namespaced",
+            Some("module model\npub type User = { name: string, }\npub type Page<T> = { items: Array<T>, }\n"),
+            "module rows\nimport model as m\npub type Rows = Array<m.Page<m.User>>\n",
+        ),
+    ];
+    for (dir, model, rows) in bodies {
+        let root = unique_tmp(&format!("g326-generic-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", model);
+        }
+        write_file(&src, "rows.glyph", rows);
+        write_file(
+            &src,
+            "main.glyph",
+            r#"module main
+import std/io { println }
+import std/json
+import rows { Rows }
+type User = { id: number, }
+type Page<T> = { other: T, }
+fn touch(p: Page<User>) -> number { return p.other.id }
+fn say(label: string, ok: bool) {
+  println(label + match ok { true => " Ok", false => " Err", })
+}
+fn main() {
+  say("main page", match json.parse<Rows>("[{\"other\": {\"id\": 1}}]") { Ok(_) => true, Err(_) => false, })
+  say("main user", match json.parse<Rows>("[{\"items\": [{\"id\": 1}]}]") { Ok(_) => true, Err(_) => false, })
+  say("sibling", match json.parse<Rows>("[{\"items\": [{\"name\": \"a\"}]}]") { Ok(_) => true, Err(_) => false, })
+}
+"#,
+        );
+        assert_eq!(
+            run_main_lines(&src),
+            vec!["main page Err", "main user Err", "sibling Ok"],
+            "{dir}: the generic and its argument are the sibling's"
+        );
+    }
+}
+
+/// A record field typed by such an alias: `Doc.parse` checks the field
+/// against `model`'s `User`, where it was refused (E0304) from 0.1.133.
+#[test]
+fn a_descriptor_over_a_sibling_alias_naming_an_imported_record_checks_it() {
+    let root = unique_tmp("g326-descriptor");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
+    write_file(&src, "rows.glyph", "module rows\nimport model { User }\npub type Rows = Array<User>\n");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+import std/io { println }
+import std/json
+import rows { Rows }
+type User = { id: number, }
+type Doc = { rows: Rows, }
+fn say(label: string, ok: bool) {
+  println(label + match ok { true => " Ok", false => " Err", })
+}
+fn main() {
+  say("id shape", match json.parse<Doc>("{\"rows\": [{\"id\": 1}]}") { Ok(_) => true, Err(_) => false, })
+  say("name shape", match json.parse<Doc>("{\"rows\": [{\"name\": \"a\"}]}") { Ok(_) => true, Err(_) => false, })
+}
+"#,
+    );
+    assert_eq!(run_main_lines(&src), vec!["id shape Err", "name shape Ok"]);
+}
+
+/// What the hop reaches is judged where it is declared: an interface, a
+/// generic union and an `extern_ts` type in the module `rows` imports from
+/// are still E0304, each with its own cause, and a type from outside the
+/// project (`std/url`) is E0304 naming that. None of them is ever read in
+/// `main`'s scope, where `main` declares a checkable `User` of each name.
+#[test]
+fn json_parse_refuses_what_a_sibling_alias_hop_reaches_with_no_check() {
+    let cases = [
+        (
+            "interface",
+            "module model\npub interface User { name: string, }\n",
+            "module rows\nimport model { User }\npub type Rows = Array<User>\n",
+            "an interface has no descriptor",
+        ),
+        (
+            "generic-union",
+            "module model\npub type Box<T> = | Full(T) | Empty\n",
+            "module rows\nimport model { Box }\npub type Rows = Array<Box<string>>\n",
+            "a generic union has no descriptor",
+        ),
+        (
+            "extern",
+            "module model\npub type User = extern_ts(\"{ name: string }\")\n",
+            "module rows\nimport model { User }\npub type Rows = Array<User>\n",
+            "cannot validate `Rows`: `json.parse<Rows>` has no runtime check to run for it",
+        ),
+        (
+            "outside",
+            "module model\npub type Unused = { a: number, }\n",
+            "module rows\nimport std/url\npub type Rows = Array<url.Url>\n",
+            "`Rows`'s body names `url.Url`, which `rows` imports from outside the project",
+        ),
+    ];
+    for (dir, model, rows, expected) in cases {
+        let root = unique_tmp(&format!("g326-refuse-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "model.glyph", model);
+        write_file(&src, "rows.glyph", rows);
+        write_file(&src, "main.glyph", &sibling_alias_main("type User = { id: number, }\ntype Box<T> = { v: T, }\nfn touch(b: Box<User>) -> number { return b.v.id }\n"));
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: must be refused:\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(expected), "{dir}: the message names `{expected}`: {stderr}");
+        assert!(
+            !stderr.contains("does not yet follow"),
+            "{dir}: the hop is made, so nothing may say it is not: {stderr}"
+        );
+    }
 }
 
 /// A record the sibling declares without `pub` cannot be reached through the
@@ -16887,49 +17080,6 @@ fn json_parse_of_a_sibling_alias_naming_a_private_record_is_e0304() {
     assert_ne!(code, 0, "must not validate against `main`'s `User`:\n{stderr}");
     assert!(
         stderr.contains("`Rows`'s body names `User`, which `rows` declares without `pub`"),
-        "{stderr}"
-    );
-}
-
-/// A generic record the sibling exports, applied in the sibling's alias
-/// body, was checked with `main`'s same-named generic record and `main`'s
-/// reading of the type argument. Refused until the sibling's generic is
-/// followed into its own module.
-#[test]
-fn json_parse_of_a_sibling_alias_applying_a_generic_record_is_e0304() {
-    let root = unique_tmp("g297-sibling-generic");
-    let src = root.join("src");
-    write_file(
-        &src,
-        "rows.glyph",
-        "module rows\npub type User = { name: string, }\npub type Page<T> = { items: Array<T>, }\npub type Rows = Array<Page<User>>\n",
-    );
-    write_file(&src, "main.glyph", &sibling_alias_main("type Page<T> = { other: T, }\nfn touch(p: Page<number>) -> number { return p.other }\n"));
-    let (code, stderr) = check_no_tsc(&src);
-    assert_ne!(code, 0, "must not validate against `main`'s `Page`:\n{stderr}");
-    assert!(
-        stderr.contains("`Rows`'s body names the generic `Page`; `json.parse` does not yet follow a generic type through a sibling alias"),
-        "{stderr}"
-    );
-}
-
-/// A record field typed by such an alias is refused at `Doc.parse` with the
-/// same cause, instead of claiming the field's type has no runtime check.
-#[test]
-fn a_descriptor_over_a_sibling_alias_naming_an_imported_record_names_the_import() {
-    let root = unique_tmp("g297-sibling-descriptor");
-    let src = root.join("src");
-    write_file(&src, "model.glyph", "module model\npub type User = { name: string, }\n");
-    write_file(&src, "rows.glyph", "module rows\nimport model { User }\npub type Rows = Array<User>\n");
-    write_file(
-        &src,
-        "main.glyph",
-        "module main\nimport rows { Rows }\ntype Doc = { rows: Rows, }\npub fn read(v: unknown) -> Result<Doc, Array<Issue>> {\n  return Doc.parse(v)\n}\n",
-    );
-    let (code, stderr) = check_no_tsc(&src);
-    assert_ne!(code, 0, "{stderr}");
-    assert!(
-        stderr.contains("field `rows` has type `Rows`, and `Rows`'s body names `User`, which `rows` imports"),
         "{stderr}"
     );
 }

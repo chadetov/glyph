@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-343 entries, 289 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-35 are open. G144, the D28 boundary cast that never reached the returns a
+346 entries, 289 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+38 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12038,6 +12038,11 @@ and is the owner's to confirm.
 
   Planned for 0.1.145 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
+
+  *Reproduced against 0.1.139 (the release build): `let s: string = u`
+  with `u: unknown` is `glyph check: 1 module(s) checked, no
+  diagnostics.` under `--no-tsc`; the `tsc` half was not re-run.*
+
 - **G326. `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
   with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
@@ -12050,6 +12055,13 @@ and is the owner's to confirm.
 
   Planned for 0.1.140 (record 88): follow the name into its declaring module
   through the hidden-namespace import.
+
+  *Reproduced against 0.1.139 (the release build): `json.parse<Rows>(s)`
+  in `main`, with `Rows = Array<User>` in `rows` importing `User` from
+  `user`, is ``[E0304] Error: emit: cannot validate `Rows`: `Rows`'s body
+  names `User`, which `rows` imports; `json.parse` does not yet follow an
+  alias across a second module``.*
+
 - **G327. `glyph fix` cannot name the arm that covers a case an E0220 head
   would move.** With no E0200, some arm takes every remaining value, but a
   lowercase arm may be a binding or a lowercase variant (G224), and the
@@ -12080,6 +12092,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.133 (the release build): `[E0008] Error: parse:
   assignment requires `mut``.*
+
+  *Reproduced against 0.1.139 (the release build): `const s = "a"` in a
+  function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
+
 - **G329. A lex error inside a generic-call lookahead is replaced by an E0003
   on valid code.** `let x = f<a, "\q">(x)` reports ``unexpected token: Comma``
   at the `,`. The parser's lookahead for a generic call reaches the invalid
@@ -12266,3 +12282,36 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.138: the first pass prints
   `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
+
+- **G344. A value built with `Some(x)` or `Ok(x)` is not typed as an
+  `Option` or a `Result`, so its members are not checked.** `let r = Ok(x)`
+  then `r.value`, and inline `Ok(x).value` or `Some(x).tag`, pass `glyph
+  check --no-tsc` and, inline, `tsc` too; with `let o: Option<Note> =
+  Some(x)` the same read is E0210. The constructor's result reaches the
+  member check without its tagged type. Found by the 0.1.139 release review
+  (record 100).
+
+  *Reproduced against 0.1.139: `let r = Ok(x)` then `let v = r.value`, and
+  `[Ok(x)][0].value`, draw only E0107 (unused) under `--no-tsc`.*
+
+- **G345. An `Option` or a `Result` read through an index, a spread, an array
+  element or an untyped lambda parameter is not checked.** `r["value"]`,
+  `o["tag"]` and `{ ...r }` pass with `tsc` as well; `rs[0].value` on an
+  `Array<Result<..>>` and `fn(r) { r.value }` pass `--no-tsc`. 0.1.139
+  covers the plain dot on a receiver whose type is known at that point. Found
+  by the 0.1.139 release review (record 100).
+
+  *Reproduced against 0.1.139 by record 100's probes
+  (`/private/tmp/claude-501/linus100/idx/`): exit 0 under both binaries.*
+
+- **G346. E0210's help on an `Option` and its catalogue fix are wrong for the
+  member set.** For `o.map(f)` the help suggests `match o { Some(n) =>
+  n.map(...), ... }`, which is E0210 again on the payload, and it mentions
+  `Nullable` (D45), which a plain dot has nothing to do with. For a call
+  receiver it suggests `let n = parse(...)?`, which cannot be pasted back.
+  The E0210 catalogue row's fix still says "add it to the type". A type
+  parameter prints as `?` (`Option<?>`), as E0236's message already did.
+  Found by the 0.1.139 release review (record 100).
+
+  *Reproduced against 0.1.139: the `o.map(keep)` help names `n.map(...)`,
+  and following it is ``E0210 type `Note` has no field `map` ``.*

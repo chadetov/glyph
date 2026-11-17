@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-346 entries, 289 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+347 entries, 290 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 38 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12036,14 +12036,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.145 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.146 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
   with `u: unknown` is `glyph check: 1 module(s) checked, no
   diagnostics.` under `--no-tsc`; the `tsc` half was not re-run.*
 
-- **G326. `json.parse` does not follow a sibling's alias into a third module.**
+- **G326. [FIXED] `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
   with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
   naming a private or a generic type. Before 0.1.133 the name was read in the
@@ -12062,6 +12062,17 @@ and is the owner's to confirm.
   names `User`, which `rows` imports; `json.parse` does not yet follow an
   alias across a second module``.*
 
+  Fixed in 0.1.140 (records 88 and 101). A name in a sibling alias's body is
+  read in that module's scope and followed into the project module it imports
+  from, by name or through a namespace, through as many modules as the chain
+  runs. A generic record applied there is checked by its declaring module's
+  descriptor, with the arguments read where they were written, after its own
+  fields are judged in that module: a field with no runtime check (`h: H`
+  with `H` an `extern_ts` type) makes it E0304 naming the field. Nothing is
+  read in the importer's scope; a document shaped like the importer's
+  same-named `User` comes back `Err`. The same presence-only hole on the
+  local and imported-by-name generic paths is G347.
+
 - **G327. `glyph fix` cannot name the arm that covers a case an E0220 head
   would move.** With no E0200, some arm takes every remaining value, but a
   lowercase arm may be a binding or a lowercase variant (G224), and the
@@ -12072,7 +12083,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.132 (the release build): the decline reads "its
   catch-all arm `blank` handles `Loaded` now" where `blank` is a variant.*
 
-  Planned for 0.1.141 (record 89): read the checker's coverage relation from
+  Planned for 0.1.142 (record 89): read the checker's coverage relation from
   the same build report and name the arm.
 
   *Reproduced against 0.1.138 (the release build): the decline names no
@@ -12315,3 +12326,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.139: the `o.map(keep)` help names `n.map(...)`,
   and following it is ``E0210 type `Note` has no field `map` ``.*
+
+- **G347. A generic record's own fields get no runtime check.** With `type
+  Page<T> = { items: Array<T>, h: H }` and `H = extern_ts(...)`,
+  `json.parse<Page<User>>`, `Page.parse<User>(v)`, a record field typed
+  `Page<User>`, and `json.parse<Page<User>>` on an imported `Page` all return
+  `Ok` for `{ "items": [], "h": 5 }`. The generic descriptor's `is` checks
+  only that `h` is present, and the E0304 field walk skips generic records,
+  while a non-generic `{ h: H }` is refused with E0304. The fix walks a
+  generic record's own fields, type parameters counted as checked, on every
+  path, with the cause the 0.1.140 hop path uses. Breaking: such programs go
+  from exit 0 to 1, and `tsc` accepts them. Found by record 101.
+
+  *Reproduced against 0.1.140 (the dev build) and 0.1.138 by record 101's
+  probes p1, p5 and p6 (`/private/tmp/claude-501/linus101/`): exit 0, and the
+  document above comes back `Ok`.*

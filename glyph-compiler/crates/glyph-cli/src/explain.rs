@@ -189,6 +189,27 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A `{}` with \
             nothing inside is still refused (E0003), and `{/* note */}` is a \
             lex error (E0001), since Glyph has no block comments (D14).",
+        "E0013" => "E0013: a `{` on the line where a statement ended\n\n\
+            Statements end at newlines only outside brackets (D1), so inside \
+            a block the parser ends a statement where its expression stops. \
+            `return h() { k: 2 }` stops at `h()`, and the braces after it \
+            would be a second statement: an object literal that never runs, \
+            and not part of the value. Before 0.1.146 that compiled, with \
+            only an unreachable-code warning, and the function returned \
+            `h()`. A `{` that would begin a statement on the line where the \
+            previous one ended is refused instead.\n\n\
+            The usual way to get here is the TypeScript-adjacent \
+            `TypeName { ... }`. Glyph has no such form: the value is the \
+            literal on its own, and the annotation on the `let`, the \
+            parameter or the return type says what type it is.\n\n\
+            Before:  return Order { id: \"a\", total: 1 }\n\
+            After:   return { id: \"a\", total: 1 }\n\n\
+            Before:  let o = Order { id: \"a\", total: 1 }\n\
+            After:   let o: Order = { id: \"a\", total: 1 }\n\n\
+            Braces meant as a statement of their own go on their own line. \
+            Nothing else changes: `let o = { k: 1 }` and `return { k: 1 }` \
+            are one statement, and the `{` after `match x`, `for x in xs`, \
+            `loop` or a function's signature opens that construct's body.",
         // ----- resolver (E01xx) -----
         "E0100" => "E0100: duplicate name\n\n\
             Two top-level declarations share a name. Glyph requires one \
@@ -744,7 +765,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             construction the declaration actually has, so a tagged union says \
             which variants it has and a string-literal union says which \
             literals.\n\n\
-            Before:  return Order { id: \"a\", total: 1 }\n\
+            Before:  return Order\n\
             After:   return { id: \"a\", total: 1 }\n\n\
             The one expression position a type name belongs in is its own \
             descriptor: `Order.parse(raw)` validates an unknown value into a \
@@ -753,7 +774,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Until 0.1.121 the compiler said nothing about the mistake. \
             `return Order { ... }` parsed as a `return` followed by an object \
             literal, so the only diagnostic was `E0108 unreachable code` on the \
-            literal, and the build exited 0.",
+            literal, and the build exited 0. Since 0.1.146 that spelling, with \
+            the braces on the same line, is E0013 at parse, which carries the \
+            same guidance and covers a name that is not a type \
+            (`return h() { ... }`) too.",
         "E0229" => "E0229: a component's parameter is not a record\n\n\
             A `component` lowers to a React function component, and React calls \
             it with the one props object its element builds. The emitter has no \
@@ -1730,6 +1754,12 @@ pub static CODES: &[CodeEntry] = &[
         meaning: "What JSX text cannot hold: `}` or `>`, which would close an `{expression}` or a tag that is not open; `//`, which Glyph reads as a comment elsewhere and TSX reads as text; or an HTML entity (`&amp;`, `&#38;`, any `&` name or number `;`), which TSX decodes and Glyph does not (D6). Any other character between a tag and the next `{` or `<` is text, a lone `&` included",
         fix: "A string child (`{\"}\"}`, `{\">\"}`, `{\"see http://x\"}`, `{\"\\u{A0}\"}`), the character itself for an entity, or a comment-only child for a comment",
     },
+    CodeEntry {
+        code: "E0013",
+        phase: "parser",
+        meaning: "A `{` that would begin a statement on the line where the statement before it ended (`return h() { k: 2 }`, `let o = Order { id: \"a\" }`). Inside a block a statement ends where its expression stops (D1), so the braces would be a separate statement and not part of the value. Glyph has no `TypeName { ... }` construction form",
+        fix: "Write the literal alone and put the type on the annotation (`let o: Order = { id: \"a\" }`); braces meant as their own statement start a new line",
+    },
     // ----- resolver (E01xx) -----
     CodeEntry {
         code: "E0100",
@@ -1987,7 +2017,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0228",
         phase: "typechecker",
-        meaning: "A type's name where a value is expected (`return Order { id: \"a\" }`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error",
+        meaning: "A type's name where a value is expected (`return Order`, `f(Order)`). Glyph has no `TypeName { ... }` construction form: the value is written on its own and the annotation carries the type. The message names the construction the declaration has, so a record lists its fields, a tagged union its variants, a string-literal union its literals. The receiver of a type's own descriptor (`Order.parse`, `Order.is`) is not this error, and `Order { ... }` written on one line is E0013, at parse",
         fix: "Write the value on its own (`return { id: \"a\" }`) and let the annotation carry the type. `Order.parse(raw)` and `Order.is(v)`, the descriptor forms, are not this error",
     },
     CodeEntry {

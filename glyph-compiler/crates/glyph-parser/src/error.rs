@@ -14,6 +14,10 @@ use std::borrow::Cow;
 /// that can be improved in one place and not the other (G223).
 pub const RELATIVE_IMPORT_HELP: &str = "Name the module from the source root, not from this file: a stdlib module by its `std/` path (`import std/io`), a sibling file by its bare name (`import helper`), a file in a subdirectory by its path from the root (`import queries/report`). Relative paths (`./`, `../`) are not allowed (D15).";
 
+/// The help for E0013 (G351). It carries G217's guidance, because the most
+/// common way to reach it is the TypeScript-adjacent `Order { ... }`.
+const BRACE_AFTER_STATEMENT_HELP: &str = "The braces are not part of the value before them: read as written, they would be a separate statement after it. Glyph has no `TypeName { ... }` construction form. Write the literal alone and put the type on the annotation: `let o: Order = { id: \"a\" }`, or `return { id: \"a\" }` in a function declared `-> Order`. If the braces are meant to be a statement of their own, start them on a new line.";
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {
     #[error("lex error: {message}")]
@@ -211,6 +215,24 @@ pub enum ParseError {
     /// writes one.
     #[error("lex error: {message}")]
     JsxBlockComment { message: String, span: Span },
+
+    /// A `{` on the line where the statement before it ended (G351, record
+    /// 104). Statement boundaries inside a block come from greedy parsing
+    /// (D1), so `return h() { k: 2 }` used to end at `h()` and read the
+    /// braces as a second statement that never ran: the program compiled,
+    /// with an unreachable-code warning, and the value the author wrote was
+    /// gone. `return Order { ... }` split the same way, and E0228 caught only
+    /// that spelling, because only there was the name a type. A brace that
+    /// opens a statement starts its own line.
+    ///
+    /// `before` is the statement the brace follows, as the author wrote it,
+    /// when it is one short line; otherwise the message names it without
+    /// reprinting it.
+    #[error("{}", match before {
+        Some(text) => format!("`{{` cannot begin a new statement on the line where `{text}` ends"),
+        None => "`{` cannot begin a new statement on the line where the statement before it ends".to_string(),
+    })]
+    BraceAfterStatement { before: Option<String>, span: Span },
 }
 
 /// Whether a name position introduces a name or refers to one declared
@@ -298,6 +320,7 @@ impl ParseError {
             ParseError::JsxText { span, .. }
             | ParseError::EmptyJsxExpression { span }
             | ParseError::JsxBlockComment { span, .. } => *span,
+            ParseError::BraceAfterStatement { span, .. } => *span,
         }
     }
 
@@ -336,6 +359,7 @@ impl ParseError {
             ParseError::EmptyJsxExpression { .. } => "E0003",
             // The lex error it is anywhere else, with JSX-specific help.
             ParseError::JsxBlockComment { .. } => "E0001",
+            ParseError::BraceAfterStatement { .. } => "E0013",
         }
     }
 
@@ -430,6 +454,7 @@ impl ParseError {
             ParseError::JsxBlockComment { .. } => Cow::Borrowed(
                 "Glyph has no block comments (D14). A comment among JSX children is a comment-only child: `{` on one line, `// note` on the next, `}` after it. It renders nothing.",
             ),
+            ParseError::BraceAfterStatement { .. } => Cow::Borrowed(BRACE_AFTER_STATEMENT_HELP),
         })
     }
 }

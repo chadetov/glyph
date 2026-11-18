@@ -22,6 +22,22 @@ pub(crate) fn parse_block(p: &mut Cursor) -> Result<Block, ParseError> {
                 break;
             }
             let s = parse_stmt(p)?;
+            // G351: `{` on the line where a statement ended does not begin a
+            // statement. Greedy parsing (D1) would end `return h()` before the
+            // brace and read `{ k: 2 }` as a separate statement that never
+            // runs, so the value the author wrote is lost without an error.
+            if matches!(p.peek(), Token::LBrace) && !p.line_break_before_current() {
+                let stmt = s.span();
+                let text = p.slice(stmt.start, stmt.end);
+                // Quoted only when it reads as one short line; a statement
+                // that spans lines is named, not reprinted.
+                let before = (!text.contains('\n') && text.chars().count() <= 60)
+                    .then(|| text.to_string());
+                return Err(ParseError::BraceAfterStatement {
+                    before,
+                    span: p.peek_span(),
+                });
+            }
             stmts.push(s);
             p.skip_newlines();
         }

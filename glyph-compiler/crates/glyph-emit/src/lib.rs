@@ -312,6 +312,19 @@ fn descriptor_use_message(
     }
 }
 
+/// The E0304 message for an `is` pattern naming a type parameter, bare or
+/// as a part of the pattern's type (G362).
+fn type_parameter_message(container: Option<&str>, param: &str, owner: &str) -> String {
+    match container {
+        Some(c) => format!(
+            "cannot validate `{c}`: its type argument `{param}` is a type parameter of `{owner}`, which has no runtime check"
+        ),
+        None => format!(
+            "cannot validate `{param}`: `{param}` is a type parameter of `{owner}`, which has no runtime check"
+        ),
+    }
+}
+
 /// Whether `ty` applies a generic named through a namespace (`w.Box<int>`).
 fn is_namespaced_generic(ty: &TypeExpr) -> bool {
     matches!(ty, TypeExpr::Generic { base, .. }
@@ -482,6 +495,17 @@ pub enum EmitError {
     /// `type_name` is the innermost container, `arg` its part type.
     #[error("{}", type_argument_message(type_name, arg, cause))]
     UnverifiablePatternPart { type_name: String, arg: String, cause: NoCheckCause, span: Span },
+    /// An `is` pattern whose type, or a part of it at any depth, is a type
+    /// parameter of the enclosing `fn` or `component`: `match v { is T => …
+    /// }` or `is Array<T>` inside `fn f<T>`. A type parameter is erased at
+    /// run time, so there is nothing to check. The name is read by scope, so
+    /// a module-level type of the same name, which the parameter hides, is
+    /// not what the pattern means; through 0.1.145 the pattern lowered to
+    /// that type's check while the checker narrowed to the parameter (G362).
+    /// `container` is the innermost generic application holding the
+    /// parameter, `None` when the pattern is the parameter itself.
+    #[error("{}", type_parameter_message(container.as_deref(), param, owner))]
+    UnverifiableTypeParameter { container: Option<String>, param: String, owner: String, span: Span },
     /// Two arms of one `match` lowered to the same `case` label. JavaScript
     /// accepts that switch and runs the first label for every value, so the
     /// later arm is dead code and the earlier one silently answers in its
@@ -505,6 +529,7 @@ impl EmitError {
             EmitError::UnverifiableTypeArgument { span, .. } => *span,
             EmitError::UnverifiableGenericUse { span, .. } => *span,
             EmitError::UnverifiablePatternPart { span, .. } => *span,
+            EmitError::UnverifiableTypeParameter { span, .. } => *span,
             EmitError::DuplicateMatchCase { span, .. } => *span,
         }
     }
@@ -524,6 +549,7 @@ impl EmitError {
             EmitError::UnverifiableTypeArgument { arg, .. } => Some(arg),
             EmitError::UnverifiableGenericUse { type_name, .. } => Some(type_name),
             EmitError::UnverifiablePatternPart { arg, .. } => Some(arg),
+            EmitError::UnverifiableTypeParameter { param, .. } => Some(param),
             _ => None,
         }
     }
@@ -539,6 +565,7 @@ impl EmitError {
             EmitError::UnverifiableTypeArgument { .. } => "E0304",
             EmitError::UnverifiableGenericUse { .. } => "E0304",
             EmitError::UnverifiablePatternPart { .. } => "E0304",
+            EmitError::UnverifiableTypeParameter { .. } => "E0304",
             EmitError::DuplicateMatchCase { .. } => "E0305",
         }
     }
@@ -572,6 +599,9 @@ impl EmitError {
             ),
             EmitError::UnverifiablePatternPart { .. } => Some(
                 "Match a container of a type with a runtime check (a record, a primitive, a container of one), or match `is Array<unknown>` or `is Record<string, unknown>` and check each part where you read it.",
+            ),
+            EmitError::UnverifiableTypeParameter { .. } => Some(
+                "Match a type that has a runtime check, or take a `Schema<T>` argument and match on `schema.parse(v)`. If the pattern meant a type declared with the same name, rename the type parameter: inside its function the parameter hides that type.",
             ),
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
@@ -627,6 +657,9 @@ impl EmitError {
                 NoCheckCause::SiblingAlias(_) => concat!(is_part_note_lead!(), sibling_alias_note!()),
                 NoCheckCause::GenericField(_) => concat!(is_part_note_lead!(), generic_field_note!()),
             }),
+            EmitError::UnverifiableTypeParameter { .. } => Some(
+                "An `is` pattern narrows the value to its type on the answer of that type's runtime check, and a type parameter is erased at run time, so there is no check to run, as there is none for `json.parse<T>`. The same holds for a part: `is Array<T>`, `is Record<string, T>` and `is Box<T>` check each element, value or field with `T`'s check. A name is read by scope, so inside `fn f<Doc>` the pattern `is Doc` names the parameter even when the module declares a `type Doc`.",
+            ),
             EmitError::UnverifiableTypeArgument { cause, .. } => Some(match cause {
                 NoCheckCause::Opaque => "A generic record checks each type argument wherever its parameter appears, so an argument with no runtime check (a type parameter, which is erased at run time, an `extern_ts` or package type) would leave those fields tested for presence only, and `parse` would return `Ok` on a value it did not check.",
                 NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
@@ -7921,6 +7954,11 @@ impl<'a> Emitter<'a> {
     /// refuses its type, so the reason given is the field with no check
     /// rather than a missing lowering.
     fn unverifiable_is_pattern(&self, ty: &TypeExpr, span: Span) -> Option<EmitError> {
+        // A type parameter has no check, whatever else shares its name, and
+        // is found by scope before any name is looked up (G362).
+        if let Some((container, param, owner)) = self.type_parameter_in(ty, None) {
+            return Some(EmitError::UnverifiableTypeParameter { container, param, owner, span });
+        }
         match ty {
             TypeExpr::Path { segments, .. } => {
                 let (module, name) = match segments.as_slice() {
@@ -7978,6 +8016,55 @@ impl<'a> Emitter<'a> {
             }
             _ => None,
         }
+    }
+
+    /// The first type parameter of the enclosing `fn` or `component` that
+    /// `ty` names, at any depth, as the innermost generic application holding
+    /// it (`None` when `ty` is the parameter), its name and the callable's
+    /// name. The resolver binds a callable's type parameters in its scope,
+    /// so a path that resolves to one is the parameter even where the module
+    /// declares a type of the same name, and a lambda inside the callable
+    /// sees them too (G362). A function type's parameter and return types
+    /// are not walked: no check looks inside a function.
+    fn type_parameter_in(&self, ty: &TypeExpr, container: Option<&TypeExpr>) -> Option<(Option<String>, String, String)> {
+        match ty {
+            TypeExpr::Path { segments, span } => {
+                let [name] = segments.as_slice() else {
+                    return None;
+                };
+                let owner = self.type_parameter_owner(*span)?;
+                Some((container.map(type_label), name.to_string(), owner))
+            }
+            TypeExpr::Generic { base, args, .. } => self
+                .type_parameter_in(base, container)
+                .or_else(|| args.iter().find_map(|a| self.type_parameter_in(a, Some(ty)))),
+            TypeExpr::Record { fields, .. } => {
+                fields.iter().find_map(|f| self.type_parameter_in(&f.ty, container))
+            }
+            TypeExpr::Union { variants, .. } => variants
+                .iter()
+                .filter_map(|v| v.payload.as_ref())
+                .find_map(|p| self.type_parameter_in(p, container)),
+            _ => None,
+        }
+    }
+
+    /// The name of the `fn` or `component` whose type parameter the type path
+    /// at `span` resolves to, or `None` for any other name. The resolver
+    /// records a type parameter as a local bound at its declaration, so the
+    /// binding's start is matched against each callable's own.
+    fn type_parameter_owner(&self, span: Span) -> Option<String> {
+        let Some(ResolvedRef::Local(start)) = self.resolved.resolutions.get(span) else {
+            return None;
+        };
+        self.module.items.iter().find_map(|d| {
+            let (name, generics) = match d {
+                Decl::Fn(f) => (&f.name, &f.generics),
+                Decl::Component(c) => (&c.name, &c.generics),
+                _ => return None,
+            };
+            generics.iter().any(|g| g.span.start == start).then(|| name.to_string())
+        })
     }
 
     /// The E0304 an `is Array<X>` or `is Record<K, V>` pattern draws, or

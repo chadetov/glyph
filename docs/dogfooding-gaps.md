@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-371 entries, 300 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-52 are open. G144, the D28 boundary cast that never reached the returns a
+372 entries, 300 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+53 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12278,6 +12278,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 (the release build): `return <p>abc` then the
   function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text``.*
 
+  *Reproduced against 0.1.147 (the release build): `return <p>abc` then the
+  function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text``.*
+
 - **G332. An entity in a JSX attribute string is emitted as written.**
   `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
   where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
@@ -12307,6 +12310,10 @@ and is the owner's to confirm.
   ``[E0002] Error: parse: expected JSX element or attribute name, found
   LAngle``.*
 
+  *Reproduced against 0.1.147 (the release build): `<p>a < b</p>` is
+  ``[E0002] Error: parse: expected JSX element or attribute name, found
+  LAngle``.*
+
 - **G334. An invisible character outside a string is named raw, and a BOM is
   refused.** `unexpected character` prints a no-break space, U+200B, a lone
   combining mark or a byte-order mark between backticks as it is, so the
@@ -12322,6 +12329,10 @@ and is the owner's to confirm.
   ``[E0001] Error: parse: lex error: unexpected character`` with the BOM
   printed raw between backticks, and a no-break space inside `let a = 1` is
   the same E0001 with the character printed raw.*
+
+  *Reproduced against 0.1.147 (the release build): a BOM at offset 0 is
+  ``[E0001] Error: parse: lex error: unexpected character`` with the BOM
+  printed raw.*
 
 - **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
@@ -12647,7 +12658,10 @@ and is the owner's to confirm.
   also a hole under `--no-tsc`: with a field the walk refuses elsewhere,
   `Page.is<User>(v)` passes `check --no-tsc` and `run --no-tsc` returns true
   for a value that violates that field (record 109, probes `n_p2_is`,
-  `v_local_is`). Found by the 0.1.141 release review (record 105).
+  `v_local_is`). When the fix makes `G.is<X>(v)` lower, it needs 0.1.147's
+  type-parameter guard too: inside `fn h<Doc>`, `Box.is<Doc>(v)` is not refused
+  today because the guard sits on the `.parse` path only (record 114). Found by
+  the 0.1.141 release review (record 105).
 
   *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
   probe `a12e`: `--no-tsc` exits 0, full `check` reports TS2554.*
@@ -12735,6 +12749,10 @@ and is the owner's to confirm.
 
   Planned for 0.1.150 (record 106).
 
+  *Reproduced against 0.1.147 (the release build) by record 106's probe
+  `k/`: `glyph fix` prints "removed 2 unused import(s)" and then declines the
+  E0200, listing `Paid` and `Cancelled`.*
+
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
   => n`, the decline says "its arm `other` handles `Loaded` now, so renaming
@@ -12761,6 +12779,10 @@ and is the owner's to confirm.
 
   Planned for 0.1.150 (record 106).
 
+  *Reproduced against 0.1.147 (the release build) by record 106's probe
+  `g/h1_lcvariant`: `glyph fix` applies the E0220 rename and still declines
+  the E0200 it read before the rename.*
+
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
   unsupported type"), while `w.P.is(v)` compiles and `import w { P }` with
@@ -12780,6 +12802,10 @@ and is the owner's to confirm.
   Array<Nullable<m.Page<int>>>` compiles and checks, through the G366
   bare-name rule. A refusal, not a wrong answer; the lowering should treat
   both the same.
+
+  *Reproduced against 0.1.147 (the release build): `is w.P` with `import w`
+  and a checkable `w.P` is ``[E0300] Error: emit: TS emission for an `is`
+  check on an unsupported type is not implemented``.*
 
 - **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
@@ -12958,3 +12984,13 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.145 and 0.1.146 (the release build) by record
   112's probes `q/a_nextline_let` and `q/a_bare`.*
+
+- **G376. A lambda parameter annotated `unknown` is emitted without its
+  type.** `let f = fn(w: unknown) -> string { return "x" }` emits `let f =
+  (w): string => {`, which `tsc --strict` refuses (TS7006, implicit `any`), so
+  full `check` fails on a valid program while `check --no-tsc` exits 0. `w:
+  int` emits `(w: number)` correctly. It fails safe: the default build goes
+  red, nothing wrong runs. Found by the 0.1.147 release review (record 114).
+
+  *Reproduced against 0.1.145 and 0.1.147 (the release build) by record
+  114's probe (`/private/tmp/claude-501/linus114/`).*

@@ -6786,8 +6786,15 @@ impl<'a> Emitter<'a> {
                     // Only for a local application: the arity and the checkers
                     // are read in this module's scope, so a sibling's
                     // `Page<User>` would be checked with this module's `Page`.
+                    // Only for a bare name, too: the arity and the descriptor
+                    // are looked up by `gname`, the last segment, so
+                    // `w.Box<int>` would be checked with a local `Box` (G366).
+                    // A namespaced application falls to the refusal below,
+                    // the one it gets with no local `Box` (G354).
                     (_, Some(gname), _)
-                        if origin == Origin::Local && self.generic_descriptor_arity(gname) > 0 =>
+                        if origin == Origin::Local
+                            && !is_namespaced_generic(ty)
+                            && self.generic_descriptor_arity(gname) > 0 =>
                     {
                         // An argument with no check of its own makes the
                         // application unverifiable, as a container's part

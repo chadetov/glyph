@@ -18516,3 +18516,63 @@ fn an_is_container_pattern_whose_part_has_no_check_is_e0304() {
         "jsx:\n{headline}"
     );
 }
+
+/// G366: a namespaced generic application is never checked with a local
+/// generic of the same name. Through 0.1.144 the field check looked the
+/// generic up by the last segment of its path, so with `type Box<T> = { q:
+/// T }` declared here and `w.Box<T> = { v: T }` imported, `json.parse<
+/// w.Box<int>>` returned `Err` for `{"v":1}` and `Ok` for `{"q":1}`, and so
+/// did the same type inside an `Array`, a record field typed `w.Box<int>`,
+/// and (from G357's part checks) a wrapped part of an `is` container
+/// pattern. Each is E0304 now, the refusal the same spellings already got
+/// without a local `Box` (G354), which stays as it was. A namespaced type
+/// as the argument of a local generic is not a namespaced application and
+/// still validates.
+#[test]
+fn a_namespaced_generic_is_never_checked_with_a_local_generic_of_the_same_name() {
+    let w = "module w\npub type Box<T> = { v: T, }\npub type P = { n: int, }\n";
+    let header = "module main\nimport std/console\nimport std/json\nimport w\n";
+    let jp = |ty: &str| {
+        format!("pub fn g(t: string) -> bool {{ return match json.parse<{ty}>(t) {{ Ok(_) => true, Err(_) => false, }} }}\n")
+    };
+    let is = |ty: &str| {
+        format!("pub fn f(v: unknown) -> bool {{ return match v {{ is {ty} => true, _ => false, }} }}\n")
+    };
+    let local = "type Box<T> = { q: T, }\n";
+    let cases: Vec<(&str, String)> = vec![
+        ("json-parse", format!("{local}{}", jp("w.Box<int>"))),
+        ("json-parse-array", format!("{local}{}", jp("Array<w.Box<int>>"))),
+        ("record-field", format!("{local}type Doc = {{ b: w.Box<int>, }}\n{}", jp("Doc"))),
+        ("is-array-part", format!("{local}{}", is("Array<Nullable<w.Box<int>>>"))),
+        ("is-record-part", format!("{local}{}", is("Record<string, Nullable<w.Box<int>>>"))),
+        ("no-shadow", jp("w.Box<int>")),
+    ];
+    for (dir, body) in cases {
+        let root = unique_tmp(&format!("g366-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "w.glyph", w);
+        let main = format!("{header}{body}");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: E0304:\n{stderr}");
+    }
+
+    // A local generic applied to a namespaced record still validates.
+    let root = unique_tmp("g366-local-box-of-ns");
+    let src = root.join("src");
+    write_file(&src, "w.glyph", w);
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            "{header}type Box<T> = {{ q: T, }}\n{}\
+             pub fn main() -> void {{\n\
+             \x20 console.log(match g(\"{{\\\"q\\\":{{\\\"n\\\":1}}}}\") {{ true => \"Ok\", false => \"Err\", }})\n\
+             \x20 console.log(match g(\"{{\\\"q\\\":{{\\\"n\\\":\\\"x\\\"}}}}\") {{ true => \"Ok\", false => \"Err\", }})\n\
+             }}\n",
+            jp("Box<w.P>")
+        ),
+    );
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err"]);
+}

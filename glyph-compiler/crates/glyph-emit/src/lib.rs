@@ -57,7 +57,8 @@
 //! A type-guard `match` (`is TypeName` arms) lowers to an `if`/`else if` chain:
 //! `is string` → `typeof __m === "string"`, `is User` → `User.is(__m)` (the Q8
 //! record descriptor), `is Record<...>`/`is Array<...>` → an object /
-//! `Array.isArray` check; a missing `else` throws.
+//! `Array.isArray` check with every value or element checked by its type's
+//! check; a missing `else` throws.
 //!
 //! An array `match` (`[]`, `["add", ...rest]`, `[a, b]`) also lowers to an
 //! `if`/`else if` chain: each arm is a length check (`=== n`, or `>= n` with a
@@ -311,6 +312,12 @@ fn descriptor_use_message(
     }
 }
 
+/// Whether `ty` applies a generic named through a namespace (`w.Box<int>`).
+fn is_namespaced_generic(ty: &TypeExpr) -> bool {
+    matches!(ty, TypeExpr::Generic { base, .. }
+        if matches!(base.as_ref(), TypeExpr::Path { segments, .. } if segments.len() > 1))
+}
+
 /// The words naming the variant a field is in, for a field of a tagged
 /// union's payload, or nothing for a record's.
 fn of_variant(variant: Option<&str>) -> String {
@@ -365,6 +372,11 @@ macro_rules! json_parse_note_lead {
 macro_rules! descriptor_use_note_lead {
     () => {
         "`parse`/`is`/`schema` on a record, an `is` pattern naming one, and `json.parse<T>` of one, report every field checked, so each field's type needs a runtime check. "
+    };
+}
+macro_rules! is_part_note_lead {
+    () => {
+        "An `is Array<X>` or `is Record<K, V>` pattern checks every element or value with `X`'s or `V`'s check, so the part type needs a runtime check. "
     };
 }
 macro_rules! interface_note {
@@ -462,6 +474,14 @@ pub enum EmitError {
     /// [`EmitError::UnverifiableJsonParse`] with the same cause.
     #[error("{}", json_parse_message(type_name, cause))]
     UnverifiableGenericUse { type_name: String, cause: NoCheckCause, span: Span },
+    /// An `is Array<X>` or `is Record<K, V>` pattern whose element or value
+    /// type has no runtime check: `match v { is Array<H> => … }` with `H` an
+    /// `extern_ts` type. The pattern narrows the scrutinee to the container
+    /// with its parts typed, so it checks each part with the part type's
+    /// check, and with none to run the arm took any array (G357).
+    /// `type_name` is the innermost container, `arg` its part type.
+    #[error("{}", type_argument_message(type_name, arg, cause))]
+    UnverifiablePatternPart { type_name: String, arg: String, cause: NoCheckCause, span: Span },
     /// Two arms of one `match` lowered to the same `case` label. JavaScript
     /// accepts that switch and runs the first label for every value, so the
     /// later arm is dead code and the earlier one silently answers in its
@@ -484,6 +504,7 @@ impl EmitError {
             EmitError::UnverifiableJsonParse { span, .. } => *span,
             EmitError::UnverifiableTypeArgument { span, .. } => *span,
             EmitError::UnverifiableGenericUse { span, .. } => *span,
+            EmitError::UnverifiablePatternPart { span, .. } => *span,
             EmitError::DuplicateMatchCase { span, .. } => *span,
         }
     }
@@ -502,6 +523,7 @@ impl EmitError {
             EmitError::UnverifiableJsonParse { type_name, .. } => Some(type_name),
             EmitError::UnverifiableTypeArgument { arg, .. } => Some(arg),
             EmitError::UnverifiableGenericUse { type_name, .. } => Some(type_name),
+            EmitError::UnverifiablePatternPart { arg, .. } => Some(arg),
             _ => None,
         }
     }
@@ -516,6 +538,7 @@ impl EmitError {
             EmitError::UnverifiableJsonParse { .. } => "E0304",
             EmitError::UnverifiableTypeArgument { .. } => "E0304",
             EmitError::UnverifiableGenericUse { .. } => "E0304",
+            EmitError::UnverifiablePatternPart { .. } => "E0304",
             EmitError::DuplicateMatchCase { .. } => "E0305",
         }
     }
@@ -546,6 +569,9 @@ impl EmitError {
             ),
             EmitError::UnverifiableGenericUse { .. } => Some(
                 "Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.",
+            ),
+            EmitError::UnverifiablePatternPart { .. } => Some(
+                "Match a container of a type with a runtime check (a record, a primitive, a container of one), or match `is Array<unknown>` or `is Record<string, unknown>` and check each part where you read it.",
             ),
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
@@ -592,6 +618,14 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
+            }),
+            EmitError::UnverifiablePatternPart { cause, .. } => Some(match cause {
+                NoCheckCause::Opaque => "An `is Array<X>` or `is Record<K, V>` pattern narrows the value to the container with its parts typed, so it checks every element or value with `X`'s or `V`'s check. A part type with no runtime check (a type parameter, which is erased at run time, an `extern_ts` or package type) would leave the parts unchecked while the arm reads them as checked. A container of `unknown` is checked by its shape and is not this error.",
+                NoCheckCause::Interface => concat!(is_part_note_lead!(), interface_note!()),
+                NoCheckCause::Result => concat!(is_part_note_lead!(), result_note!()),
+                NoCheckCause::GenericUnion => concat!(is_part_note_lead!(), generic_union_note!()),
+                NoCheckCause::SiblingAlias(_) => concat!(is_part_note_lead!(), sibling_alias_note!()),
+                NoCheckCause::GenericField(_) => concat!(is_part_note_lead!(), generic_field_note!()),
             }),
             EmitError::UnverifiableTypeArgument { cause, .. } => Some(match cause {
                 NoCheckCause::Opaque => "A generic record checks each type argument wherever its parameter appears, so an argument with no runtime check (a type parameter, which is erased at run time, an `extern_ts` or package type) would leave those fields tested for presence only, and `parse` would return `Ok` on a value it did not check.",
@@ -4688,7 +4722,8 @@ impl<'a> Emitter<'a> {
     /// Lower a type-guard `match` (`is TypeName` arms) to an `if`/`else if`
     /// chain. Each `is T` becomes a runtime check: `typeof __m === "..."` for a
     /// primitive, `T.is(__m)` for a record type (the Q8 descriptor), an object
-    /// check for `Record<...>`, `Array.isArray` for `Array<...>`. The chain is
+    /// check for `Record<...>`, `Array.isArray` for `Array<...>`, each with
+    /// every value or element checked (G357). The chain is
     /// exclusive, so no `break` is needed; a missing `else` throws.
     fn emit_is_chain(
         &mut self,
@@ -5234,32 +5269,9 @@ impl<'a> Emitter<'a> {
             }
             TypeExpr::Generic { base, args, .. } => match base.as_ref() {
                 TypeExpr::Path { segments, .. } => match (shape, segments.last().map(|s| s.as_ref())) {
-                    // A Glyph record is a plain object, not an array; exclude
-                    // arrays so an `is Array<...>` arm after `is Record<...>`
-                    // isn't dead. Emit the check as a type-predicate IIFE so it
-                    // narrows the scrutinee to the record type (indexable), not
-                    // just to `{}` — a bare `typeof x === "object"` would leave
-                    // `x[key]` an implicit-any index error.
-                    (TypeShape::Record, _) => {
-                        let rec = self.ty(ty).ok()?;
-                        Some(format!(
-                            "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{}.isArray(__x))({m})",
-                            self.g("Array")
-                        ))
-                    }
-                    // Element-check the array so `is Array<E>` is as sound as the
-                    // descriptor's `Array<E>` check; fall back to a shallow
-                    // `Array.isArray` when the element type has no checkable form.
-                    (TypeShape::Array, _) => match args.as_slice() {
-                        [elem] => match self.is_check(elem, "__e") {
-                            Some(ec) => Some(format!(
-                                "{}.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {ec})",
-                                self.g("Array")
-                            )),
-                            None => Some(format!("{}.isArray({m})", self.g("Array"))),
-                        },
-                        _ => Some(format!("{}.isArray({m})", self.g("Array"))),
-                    },
+                    // `is Record<K, V>` and `is Array<X>` check every value or
+                    // element with its type's check (G357).
+                    (TypeShape::Record | TypeShape::Array, _) => self.is_container_check(ty, m),
                     // `is Paginated<User>` on a generic descriptor: call its `is`
                     // with the type arguments (to narrow) and a synthesized checker
                     // per argument. The descriptor may be module-local or imported
@@ -5303,6 +5315,84 @@ impl<'a> Emitter<'a> {
                 _ => None,
             },
             _ => None,
+        }
+    }
+
+    /// The check for an `is Record<K, V>` or `is Array<X>` pattern against
+    /// `m`, or `None` when a part has no lowering (G357).
+    ///
+    /// A record is a plain object, not an array, so `Record` excludes arrays
+    /// and an `is Array<...>` arm after `is Record<...>` is not dead. It is a
+    /// type-predicate IIFE so the scrutinee narrows to the record type
+    /// (indexable), not to `{}`. Each value of a `Record` and each element of
+    /// an `Array` is checked with its type's check, the check a record field
+    /// of that type gets; a part of type `unknown` claims nothing, so a
+    /// container of `unknown` is checked by its shape alone, as it was
+    /// before parts were checked. A `Record`'s keys are not checked, as
+    /// `json.parse<Record<K, V>>` does not check them.
+    ///
+    /// [`Self::unverifiable_is_container`] judges the same parts first, so a
+    /// part this answers `None` for is E0304 when its type has no check.
+    fn is_container_check(&self, ty: &TypeExpr, m: &str) -> Option<String> {
+        let TypeExpr::Generic { args, .. } = ty else {
+            return None;
+        };
+        let arr = self.g("Array");
+        match (self.type_shape(ty, Origin::Local), args.as_slice()) {
+            (TypeShape::Array, [elem]) => Some(match self.is_part_check(elem, "__e")? {
+                None => format!("{arr}.isArray({m})"),
+                Some(c) => format!(
+                    "{arr}.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {c})"
+                ),
+            }),
+            (TypeShape::Array, _) => Some(format!("{arr}.isArray({m})")),
+            (TypeShape::Record, args) => {
+                let rec = self.ty(ty).ok()?;
+                let values = match args {
+                    [_key, value] => self.is_part_check(value, "__v")?,
+                    _ => None,
+                };
+                let every = values.map_or_else(String::new, |c| {
+                    format!(
+                        " && {}.values(__x as Record<string, unknown>).every((__v: unknown) => {c})",
+                        self.g("Object")
+                    )
+                });
+                Some(format!(
+                    "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{arr}.isArray(__x){every})({m})"
+                ))
+            }
+            _ => None,
+        }
+    }
+
+    /// The check for one part of a container `is` pattern at `access`:
+    /// `Some(None)` for a part that needs none (`unknown`), `Some(Some(c))`
+    /// for a part checked by `c`, and `None` for one with no lowering. A
+    /// nested container is checked the way the pattern itself is; any other
+    /// part by the check its own `is` pattern lowers to, or failing that by
+    /// the check a record field of its type gets (`int`, a literal union,
+    /// `Option<T>`, an alias), so no part a field could check is left
+    /// unchecked. A namespaced generic has no lowering in an `is` pattern
+    /// (G356), and has none as a part either.
+    fn is_part_check(&self, ty: &TypeExpr, access: &str) -> Option<Option<String>> {
+        match self.type_shape(ty, Origin::Local) {
+            TypeShape::UnknownTop => return Some(None),
+            TypeShape::Array | TypeShape::Record => {
+                return self.is_container_check(ty, access).map(Some)
+            }
+            _ => {}
+        }
+        if let Some(c) = self.is_check(ty, access) {
+            return Some(Some(c));
+        }
+        if is_namespaced_generic(ty) {
+            return None;
+        }
+        match self.field_check(ty, access) {
+            FieldCheck::Deep(c) => Some(Some(c)),
+            FieldCheck::PresenceOnly => Some(None),
+            FieldCheck::Unverifiable(_) => None,
         }
     }
 
@@ -7793,7 +7883,8 @@ impl<'a> Emitter<'a> {
     /// name, a named import, a namespace), by [`Self::first_unverifiable_in`];
     /// a generic record, applied or bare, by
     /// [`Self::unverifiable_generic_application`], as `Page.parse<U>(v)` is;
-    /// and `Array<T>`, whose check runs `T`'s on every element, by `T`'s.
+    /// and `Array<X>` and `Record<K, V>`, whose checks run the part type's on
+    /// every element or value, by [`Self::unverifiable_is_container`].
     ///
     /// The cases follow [`Self::is_check`], so what is judged is what runs.
     /// A pattern that check has no lowering for answers here when the walk
@@ -7849,20 +7940,67 @@ impl<'a> Emitter<'a> {
                         }
                         (format!("{ns}.{name}"), Some((module, name.to_string())))
                     }
-                    _ => {
-                        // `Array<T>` checks each element with `T`'s check; a
-                        // `Record<K, V>` pattern checks only that the value is
-                        // an object, and calls no descriptor.
-                        return match (self.type_shape(ty, Origin::Local), args.as_slice()) {
-                            (TypeShape::Array, [elem]) => self.unverifiable_is_pattern(elem, span),
-                            _ => None,
-                        };
-                    }
+                    // `Array<X>` and `Record<K, V>` check each part with its
+                    // type's check (G357).
+                    _ => return self.unverifiable_is_container(ty, span),
                 };
                 self.unverifiable_generic_application(&receiver, target, args, span)
             }
             _ => None,
         }
+    }
+
+    /// The E0304 an `is Array<X>` or `is Record<K, V>` pattern draws, or
+    /// `None` when every part's check is complete (G357). The parts are the
+    /// ones [`Self::is_container_check`] checks: a part of type `unknown`
+    /// needs no check, a nested container is judged the same way, and any
+    /// other part first as an `is` pattern of its own (so a record with an
+    /// unchecked field is refused in the words `Doc.is(v)` gets), then by the
+    /// walk `json.parse<X>` makes of it: the check a record field of its type
+    /// gets, and every descriptor that check calls. A part with no check is
+    /// refused naming the innermost container and the part.
+    fn unverifiable_is_container(&self, ty: &TypeExpr, span: Span) -> Option<EmitError> {
+        let TypeExpr::Generic { args, .. } = ty else {
+            return None;
+        };
+        let part = match (self.type_shape(ty, Origin::Local), args.as_slice()) {
+            (TypeShape::Array, [elem]) => elem,
+            (TypeShape::Record, [_key, value]) => value,
+            _ => return None,
+        };
+        match self.type_shape(part, Origin::Local) {
+            TypeShape::UnknownTop => return None,
+            TypeShape::Array | TypeShape::Record => return self.unverifiable_is_container(part, span),
+            _ => {}
+        }
+        if let Some(err) = self.unverifiable_is_pattern(part, span) {
+            return Some(err);
+        }
+        // A namespaced generic has no lowering (G356); the judgment above is
+        // all it gets, and the lowering's E0300 follows.
+        if is_namespaced_generic(part) {
+            return None;
+        }
+        let (check, called) = self.field_check_delegations(part);
+        if let FieldCheck::Unverifiable(cause) = check {
+            return Some(EmitError::UnverifiablePatternPart {
+                type_name: type_label(ty),
+                arg: type_label(part),
+                cause,
+                span,
+            });
+        }
+        called.into_iter().find_map(|(module, name)| {
+            let found = self.first_unverifiable_in(&module, &name, &mut HashSet::new())?;
+            Some(EmitError::UnverifiableDescriptorUse {
+                type_name: name,
+                field: found.path,
+                field_ty: found.field_ty,
+                cause: found.cause,
+                variant: found.variant,
+                span,
+            })
+        })
     }
 
     /// The imported module path for a namespace/aliased import binding
@@ -11970,6 +12108,40 @@ mod tests {
             ts.contains(
                 "} else if (((__x: unknown): __x is Record<string, unknown> => typeof __x === \"object\" && __x !== null && !Array.isArray(__x))(v)) {"
             ),
+            "{ts}"
+        );
+    }
+
+    /// G357: a container of `unknown` keeps the shape check it always had,
+    /// word for word, at the top and in element position, and a `Record`
+    /// pattern checks every value with the value type's check.
+    #[test]
+    fn is_container_checks_its_parts_and_keeps_the_shape_check_for_unknown() {
+        let arm = |pat: &str| {
+            emit(&format!(
+                "module x\npub fn f(v: unknown) -> string {{\n  return match v {{\n    is {pat} => \"a\",\n    else => \"x\",\n  }}\n}}\n"
+            ))
+        };
+        let ts = arm("Array<unknown>");
+        assert!(ts.contains("if (Array.isArray(v)) {"), "{ts}");
+        let ts = arm("Array<Array<unknown>>");
+        assert!(
+            ts.contains("if (Array.isArray(v) && (v as ReadonlyArray<unknown>).every((__e: unknown) => Array.isArray(__e))) {"),
+            "{ts}"
+        );
+        let ts = arm("Array<Record<string, unknown>>");
+        assert!(
+            ts.contains("if (Array.isArray(v) && (v as ReadonlyArray<unknown>).every((__e: unknown) => ((__x: unknown): __x is Record<string, unknown> => typeof __x === \"object\" && __x !== null && !Array.isArray(__x))(__e))) {"),
+            "{ts}"
+        );
+        let ts = arm("Record<string, int>");
+        assert!(
+            ts.contains("if (((__x: unknown): __x is Record<string, number> => typeof __x === \"object\" && __x !== null && !Array.isArray(__x) && Object.values(__x as Record<string, unknown>).every((__v: unknown) => (typeof __v === \"number\" && Number.isInteger(__v))))(v)) {"),
+            "{ts}"
+        );
+        let ts = arm("Array<int>");
+        assert!(
+            ts.contains("if (Array.isArray(v) && (v as ReadonlyArray<unknown>).every((__e: unknown) => (typeof __e === \"number\" && Number.isInteger(__e)))) {"),
             "{ts}"
         );
     }

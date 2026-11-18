@@ -18399,3 +18399,120 @@ fn a_namespaced_generic_is_pattern_has_no_lowering() {
         assert!(stderr.contains("[E0300]"), "{dir}: E0300:\n{stderr}");
     }
 }
+
+/// The program G357's runtime tests run: `u` reads a JSON text into an
+/// `unknown`, so the bad value is one a boundary could hand the pattern,
+/// and `f` matches it against `pat`, printing which arm ran for the good
+/// text and then the bad one.
+fn g357_program(decls: &str, pat: &str, good: &str, bad: &str) -> String {
+    let lit = |s: &str| s.replace('\\', "\\\\").replace('"', "\\\"");
+    format!(
+        "module main\nimport std/console\nimport std/json\n\
+         fn u(t: string) -> unknown {{ return match json.parse(t) {{ Ok(x) => x, Err(e) => \"PARSEERR\", }} }}\n\
+         type H = extern_ts(\"{{ k: string }}\")\n{decls}\
+         fn f(v: unknown) -> string {{ return match v {{ is {pat} => \"arm\", _ => \"other\", }} }}\n\
+         pub fn main() -> void {{\n\
+         \x20 console.log(f(u(\"{}\")))\n\
+         \x20 console.log(f(u(\"{}\")))\n\
+         }}\n",
+        lit(good),
+        lit(bad)
+    )
+}
+
+/// G357: `is Record<K, V>` and `is Array<X>` narrow the scrutinee to the
+/// container with its parts typed, so each part is checked with `V`'s or
+/// `X`'s check, at any depth and inside a generic's argument. Through
+/// 0.1.144 `is Record<string, int>` tested only "an object, not an array"
+/// and took its arm for `{"a": "x"}`, and `is Array<int>` (with any element
+/// type `is` had no lowering for of its own) was `Array.isArray` alone. A
+/// container of `unknown` is checked by its shape, which is all its type
+/// says, and the bad value for those two is one of the wrong shape.
+#[test]
+fn an_is_container_pattern_checks_every_part_at_run_time() {
+    let doc = "type Doc = { n: int, }\n";
+    let bx = "type Box<T> = { v: T, k: string, }\n";
+    let cases: Vec<(&str, &str, &str, &str, &str)> = vec![
+        ("rec-int", "", "Record<string, int>", r#"{"a":1}"#, r#"{"a":"x"}"#),
+        ("rec-int-float", "", "Record<string, int>", r#"{"a":1}"#, r#"{"a":1.5}"#),
+        ("rec-doc", doc, "Record<string, Doc>", r#"{"a":{"n":1}}"#, r#"{"a":{"n":"x"}}"#),
+        ("rec-arr-int", "", "Record<string, Array<int>>", r#"{"a":[1]}"#, r#"{"a":["x"]}"#),
+        ("rec-lit", "", "Record<string, \"x\" | \"y\">", r#"{"a":"x"}"#, r#"{"a":"q"}"#),
+        ("rec-unknown", "", "Record<string, unknown>", r#"{"a":1}"#, "[1]"),
+        ("arr-int", "", "Array<int>", "[1]", r#"["x"]"#),
+        ("arr-string", "", "Array<string>", r#"["a"]"#, "[1]"),
+        ("arr-lit", "", "Array<\"x\" | \"y\">", r#"["x"]"#, r#"["q"]"#),
+        ("arr-nullable", "", "Array<Nullable<int>>", "[null,1]", r#"["x"]"#),
+        ("arr-doc", doc, "Array<Doc>", r#"[{"n":1}]"#, r#"[{"n":"x"}]"#),
+        ("arr-arr-doc", doc, "Array<Array<Doc>>", r#"[[{"n":1}]]"#, r#"[[{"n":"x"}]]"#),
+        ("arr-rec-int", "", "Array<Record<string, int>>", r#"[{"a":1}]"#, r#"[{"a":"x"}]"#),
+        ("arr-unknown", "", "Array<unknown>", "[1]", "{}"),
+        ("arr-arr-unknown", "", "Array<Array<unknown>>", "[[1]]", "[1]"),
+        ("box-rec-int", bx, "Box<Record<string, int>>", r#"{"v":{"a":1},"k":"s"}"#, r#"{"v":{"a":"x"},"k":"s"}"#),
+        ("box-arr-int", bx, "Box<Array<int>>", r#"{"v":[1],"k":"s"}"#, r#"{"v":["x"],"k":"s"}"#),
+    ];
+    for (dir, decls, pat, good, bad) in cases {
+        let root = unique_tmp(&format!("g357-run-{dir}"));
+        let src = root.join("src");
+        let main = g357_program(decls, pat, good, bad);
+        write_file(&src, "main.glyph", &main);
+        assert_eq!(run_main_lines(&src), vec!["arm", "other"], "{dir}:\n{main}");
+    }
+}
+
+/// G357: a container pattern whose part type has no runtime check is
+/// E0304, as `json.parse<T>` of the same type is, at the top, in element
+/// position, inside a generic's argument and in a `<case>`. A part that is
+/// a record with an unchecked field is refused in the words `Doc.is(v)`
+/// gets. Through 0.1.144 every one of these exited 0 and took its arm for
+/// the bad value (records 107 and 108's probes).
+#[test]
+fn an_is_container_pattern_whose_part_has_no_check_is_e0304() {
+    let doc_u = "type Doc = { h: H, }\n";
+    let bx = "type Box<T> = { v: T, k: string, }\n";
+    let doc_h = "cannot validate `Doc`: field `h` has type `H`, which has no runtime check";
+    let box_doc = format!("{bx}{doc_u}");
+    let cases: Vec<(&str, &str, &str, &str)> = vec![
+        ("arr-h", "", "Array<H>", "cannot validate `Array<H>`: its type argument `H` has no runtime check"),
+        ("rec-h", "", "Record<string, H>", "cannot validate `Record<string, H>`: its type argument `H` has no runtime check"),
+        ("arr-arr-h", "", "Array<Array<H>>", "cannot validate `Array<H>`: its type argument `H` has no runtime check"),
+        ("rec-arr-h", "", "Record<string, Array<H>>", "cannot validate `Array<H>`: its type argument `H` has no runtime check"),
+        ("rec-doc", doc_u, "Record<string, Doc>", doc_h),
+        ("arr-rec-doc", doc_u, "Array<Record<string, Doc>>", doc_h),
+        ("arr-arr-doc", doc_u, "Array<Array<Doc>>", doc_h),
+        ("box-rec-doc", &box_doc, "Box<Record<string, Doc>>", doc_h),
+        ("box-arr-h", bx, "Box<Array<H>>", "its type argument `Array<H>` has no runtime check"),
+    ];
+    for (dir, decls, pat, expected) in cases {
+        let root = unique_tmp(&format!("g357-refuse-{dir}"));
+        let src = root.join("src");
+        let main = g357_program(decls, pat, "[]", "[]");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("{dir}: E0304:\n{stderr}"));
+        assert!(headline.contains(expected), "{dir}: `{expected}` in:\n{headline}");
+    }
+
+    // The same judgment in a `<case is …>`, which lowers through the same
+    // type-guard chain.
+    let root = unique_tmp("g357-refuse-jsx");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\ntype H = extern_ts(\"{ k: string }\")\ntype Props = { v: unknown, }\n\
+         pub component C(props: Props) -> Component {\n\
+         \x20 return <match value={props.v}>\n\
+         \x20\x20\x20 <case is Record<string, H>><p>a</p></case>\n\
+         \x20\x20\x20 <case else><p>b</p></case>\n\
+         \x20 </match>\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&src);
+    assert_eq!(code, 1, "jsx: refused:\n{stderr}");
+    let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("jsx: E0304:\n{stderr}"));
+    assert!(
+        headline.contains("cannot validate `Record<string, H>`: its type argument `H` has no runtime check"),
+        "jsx:\n{headline}"
+    );
+}

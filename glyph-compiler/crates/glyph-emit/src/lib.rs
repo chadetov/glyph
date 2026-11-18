@@ -375,7 +375,7 @@ macro_rules! json_parse_note_lead {
 }
 macro_rules! descriptor_use_note_lead {
     () => {
-        "`parse`/`is`/`schema` on a record, and `json.parse<T>` of one, report every field checked, so each field's type needs a runtime check. "
+        "`parse`/`is`/`schema` on a record, an `is` pattern naming one, and `json.parse<T>` of one, report every field checked, so each field's type needs a runtime check. "
     };
 }
 macro_rules! interface_note {
@@ -598,7 +598,7 @@ impl EmitError {
                 "Two arms testing the same tag lower to two `case` labels in one `switch`, which JavaScript runs as first-one-wins. The compiler refuses to emit that rather than shipping a switch whose second label is unreachable.",
             ),
             EmitError::UnverifiableDescriptorUse { cause, .. } => Some(match cause {
-                NoCheckCause::Opaque => "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is`/`schema` on it, and `json.parse<T>` with it as `T`, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
+                NoCheckCause::Opaque => "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is`/`schema` on it, an `is` pattern naming it, and `json.parse<T>` with it as `T`, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
                 NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
@@ -4751,6 +4751,9 @@ impl<'a> Emitter<'a> {
         for arm in arms {
             match &arm.pattern {
                 Pattern::IsType { ty, span } => {
+                    if let Some(err) = self.unverifiable_is_pattern(ty, *span) {
+                        return Err(err);
+                    }
                     let check = self.is_check(ty, &m).ok_or(EmitError::Unsupported {
                         construct: "an `is` check on an unsupported type",
                         span: *span,
@@ -7578,46 +7581,10 @@ impl<'a> Emitter<'a> {
         if arity == 0 || type_args.len() != arity {
             return Ok(None);
         }
-        // `parse` reports the generic's own fields checked as well as the
-        // arguments, so one it can only test for presence refuses the call,
-        // named the way `Doc.parse` names a record's field (G347).
-        if let Some(cause) = target
-            .and_then(|(module, name)| self.generic_record_unchecked_field(&module, &name))
+        if let Some(err) =
+            self.unverifiable_generic_application(&receiver, target, type_args, callee.span())
         {
-            let applied: Vec<String> = type_args.iter().map(type_label).collect();
-            return Err(EmitError::UnverifiableGenericUse {
-                type_name: format!("{receiver}<{}>", applied.join(", ")),
-                cause,
-                span: callee.span(),
-            });
-        }
-        for ta in type_args {
-            let (check, called) = self.field_check_delegations(ta);
-            if let FieldCheck::Unverifiable(cause) = check {
-                let applied: Vec<String> = type_args.iter().map(type_label).collect();
-                return Err(EmitError::UnverifiableTypeArgument {
-                    type_name: format!("{receiver}<{}>", applied.join(", ")),
-                    arg: type_label(ta),
-                    cause,
-                    span: ta.span(),
-                });
-            }
-            // The checker for an argument calls the descriptors of the
-            // records and unions it names, and `parse` reports their fields
-            // checked too, so each is walked the way `U.parse` and
-            // `json.parse<Page<U>>` walk it, and refused with their words.
-            for (module, name) in called {
-                if let Some(found) = self.first_unverifiable_in(&module, &name, &mut HashSet::new()) {
-                    return Err(EmitError::UnverifiableDescriptorUse {
-                        type_name: name,
-                        field: found.path,
-                        field_ty: found.field_ty,
-                        cause: found.cause,
-                        variant: found.variant,
-                        span: ta.span(),
-                    });
-                }
-            }
+            return Err(err);
         }
         let mut targ_strs = Vec::with_capacity(type_args.len());
         for ta in type_args {
@@ -7632,6 +7599,145 @@ impl<'a> Emitter<'a> {
             call_args.push(self.checker_lambda(ta));
         }
         Ok(Some(format!("{receiver}.parse{targs}({})", call_args.join(", "))))
+    }
+
+    /// The E0304 an application `receiver<type_args>` of the generic record
+    /// `target` draws when its descriptor's check would test something for
+    /// presence only, or `None` when every part of it is checked. One
+    /// judgment for every use that runs that check: `Page.parse<U>(v)` and
+    /// an `is Page<U>` pattern (G349).
+    ///
+    /// The descriptor checks the generic's own fields as well as the
+    /// arguments, so a field it can only test for presence refuses the
+    /// application, named the way `Doc.parse` names a record's field
+    /// (G347), at `span`. Each argument's checker calls the descriptors of
+    /// the records and unions it names, so an argument with no check, or one
+    /// whose descriptor has a field with none, refuses it at the argument,
+    /// in the words `U.parse` and `json.parse<Page<U>>` use.
+    fn unverifiable_generic_application(
+        &self,
+        receiver: &str,
+        target: Option<(String, String)>,
+        type_args: &[TypeExpr],
+        span: Span,
+    ) -> Option<EmitError> {
+        // A bare `is Box` names the generic with no arguments.
+        let applied = || match type_args {
+            [] => receiver.to_string(),
+            _ => {
+                let args: Vec<String> = type_args.iter().map(type_label).collect();
+                format!("{receiver}<{}>", args.join(", "))
+            }
+        };
+        if let Some(cause) = target
+            .and_then(|(module, name)| self.generic_record_unchecked_field(&module, &name))
+        {
+            return Some(EmitError::UnverifiableGenericUse { type_name: applied(), cause, span });
+        }
+        for ta in type_args {
+            let (check, called) = self.field_check_delegations(ta);
+            if let FieldCheck::Unverifiable(cause) = check {
+                return Some(EmitError::UnverifiableTypeArgument {
+                    type_name: applied(),
+                    arg: type_label(ta),
+                    cause,
+                    span: ta.span(),
+                });
+            }
+            for (module, name) in called {
+                if let Some(found) = self.first_unverifiable_in(&module, &name, &mut HashSet::new()) {
+                    return Some(EmitError::UnverifiableDescriptorUse {
+                        type_name: name,
+                        field: found.path,
+                        field_ty: found.field_ty,
+                        cause: found.cause,
+                        variant: found.variant,
+                        span: ta.span(),
+                    });
+                }
+            }
+        }
+        None
+    }
+
+    /// The E0304 an `is T` pattern draws, or `None` when the check it runs
+    /// is complete (G349). The pattern narrows the scrutinee to `T` on the
+    /// strength of the same descriptor `T.is(v)` calls, so it is judged by
+    /// the same walk and refused in the same words, at `span`: a record or
+    /// tagged union, however this module names it (declared here, a second
+    /// name, a named import, a namespace), by [`Self::first_unverifiable_in`];
+    /// a generic record, applied or bare, by
+    /// [`Self::unverifiable_generic_application`], as `Page.parse<U>(v)` is;
+    /// and `Array<T>`, whose check runs `T`'s on every element, by `T`'s.
+    ///
+    /// The cases follow [`Self::is_check`], so what is judged is what runs.
+    /// A pattern that check has no lowering for answers here when the walk
+    /// refuses its type, so the reason given is the field with no check
+    /// rather than a missing lowering.
+    fn unverifiable_is_pattern(&self, ty: &TypeExpr, span: Span) -> Option<EmitError> {
+        match ty {
+            TypeExpr::Path { segments, .. } => {
+                let (module, name) = match segments.as_slice() {
+                    [name] => {
+                        if self.generic_descriptor_arity(name.as_ref()) > 0 {
+                            let target = self.generic_record_target(name.as_ref());
+                            return self.unverifiable_generic_application(name.as_ref(), target, &[], span);
+                        }
+                        let target = self.descriptor_target(name.as_ref())?;
+                        if target.0 == self.ctx.module_path && !self.has_descriptor(name.as_ref()) {
+                            return None;
+                        }
+                        target
+                    }
+                    [ns, name] => {
+                        let module = self.namespace_module_path(ns.as_ref())?;
+                        if self.imported_generic_descriptor_arity(&module, name.as_ref()) > 0 {
+                            let target = Some((module, name.to_string()));
+                            return self.unverifiable_generic_application(&format!("{ns}.{name}"), target, &[], span);
+                        }
+                        (module, name.to_string())
+                    }
+                    _ => return None,
+                };
+                let found = self.first_unverifiable_in(&module, &name, &mut HashSet::new())?;
+                Some(EmitError::UnverifiableDescriptorUse {
+                    type_name: name,
+                    field: found.path,
+                    field_ty: found.field_ty,
+                    cause: found.cause,
+                    variant: found.variant,
+                    span,
+                })
+            }
+            TypeExpr::Generic { base, args, .. } => {
+                let TypeExpr::Path { segments, .. } = base.as_ref() else {
+                    return None;
+                };
+                let (receiver, target) = match segments.as_slice() {
+                    [name] if self.generic_descriptor_arity(name.as_ref()) > 0 => {
+                        (name.to_string(), self.generic_record_target(name.as_ref()))
+                    }
+                    [ns, name] => {
+                        let module = self.namespace_module_path(ns.as_ref())?;
+                        if self.imported_generic_descriptor_arity(&module, name.as_ref()) == 0 {
+                            return None;
+                        }
+                        (format!("{ns}.{name}"), Some((module, name.to_string())))
+                    }
+                    _ => {
+                        // `Array<T>` checks each element with `T`'s check; a
+                        // `Record<K, V>` pattern checks only that the value is
+                        // an object, and calls no descriptor.
+                        return match (self.type_shape(ty, Origin::Local), args.as_slice()) {
+                            (TypeShape::Array, [elem]) => self.unverifiable_is_pattern(elem, span),
+                            _ => None,
+                        };
+                    }
+                };
+                self.unverifiable_generic_application(&receiver, target, args, span)
+            }
+            _ => None,
+        }
     }
 
     /// The imported module path for a namespace/aliased import binding
@@ -13981,7 +14087,12 @@ pub fn n() -> number {\n  return 1\n}
         let err = emit_err(&format!(
             "{head}pub fn f(v: unknown) -> bool {{\n return match v {{\n is Pair<Shape> => true,\n else => false,\n }}\n}}\n"
         ));
-        assert!(matches!(&err, EmitError::Unsupported { .. }), "an `is` over it is refused: {err:?}");
+        // Refused as `Pair.parse<Shape>` is, naming the argument (G349);
+        // through 0.1.141 it was E0300, a lowering the `is` chain lacked.
+        assert!(
+            matches!(&err, EmitError::UnverifiableTypeArgument { arg, .. } if arg == "Shape"),
+            "an `is` over it is refused: {err:?}"
+        );
         for body in [
             "pub fn f(s: string) -> bool { let r = json.parse<Pair<User>>(s)\n return true }",
             "pub fn f(s: string) -> bool { let r = json.parse<Pair<unknown>>(s)\n return true }",
@@ -14492,5 +14603,30 @@ pub fn n() -> number {\n  return 1\n}
             ts.contains("let [u, v] = (__r0.value) satisfies readonly [unknown, unknown];"),
             "{ts}"
         );
+    }
+
+    /// G349 through D6: a `<case is T>` is a `match` arm, lowered by the
+    /// same type-guard chain, so it is judged by the same walk. A record
+    /// with a field no check covers is refused; one whose fields are all
+    /// checked still narrows through its descriptor.
+    #[test]
+    fn a_jsx_case_is_pattern_is_judged_by_the_descriptor_walk() {
+        let src = |field: &str| {
+            format!(
+                "module x\ntype H = extern_ts(\"{{ k: string }}\")\ntype Doc = {{ {field}, }}\ntype Props = {{ v: unknown, }}\n\
+                 pub component C(props: Props) -> Component {{\n\
+                 \x20 return <match value={{props.v}}>\n\
+                 \x20\x20\x20 <case is Doc><p>a</p></case>\n\
+                 \x20\x20\x20 <case else><p>b</p></case>\n\
+                 \x20 </match>\n}}\n"
+            )
+        };
+        let err = emit_err(&src("h: H"));
+        assert!(
+            matches!(&err, EmitError::UnverifiableDescriptorUse { type_name, field, .. } if type_name == "Doc" && field == "h"),
+            "{err:?}"
+        );
+        let ts = emit(&src("n: int"));
+        assert!(ts.contains("Doc.is("), "{ts}");
     }
 }

@@ -17954,3 +17954,226 @@ fn build_lints_a_module_with_a_type_error_and_does_not_emit_it() {
         report.diagnostics
     );
 }
+
+/// The `[E0304]` headline of a `check --no-tsc` run: the diagnostic line
+/// itself, without the source excerpt, so two spellings of one claim can be
+/// compared word for word.
+fn e0304_headline(stderr: &str) -> Option<String> {
+    stderr
+        .lines()
+        .find(|l| l.contains("[E0304]"))
+        .map(|l| l.trim().to_string())
+}
+
+/// G349: an `is T` pattern is judged by the walk `T.is` uses. The pattern
+/// lowers to the same descriptor call `T.is(v)` makes and narrows the
+/// scrutinee on its answer, but through the 0.1.141 build only `T.is(v)`
+/// and `json.parse<T>` were refused for a field with no runtime check:
+/// `match v { is Doc => … }` took the `Doc` arm for `{"h": 5}`. Each shape
+/// here is now E0304, and where the same claim has a call spelling
+/// (`T.is(v)`, or `G.parse<X>(v)` for a generic) the headline is that
+/// call's, word for word, whether the type is declared here, imported by
+/// name or reached through a namespace.
+#[test]
+fn an_is_pattern_is_judged_by_the_walk_its_descriptor_uses() {
+    let decls = "pub type H = extern_ts(\"{ k: string }\")\n\
+        pub type Doc = { h: H, }\n\
+        pub type D2 = Doc\n\
+        pub type U = A({ h: H, }) | B\n\
+        pub type Outer = { d: Doc, }\n\
+        pub type Box<T> = { v: T, h: H, }\n\
+        pub type Page<T> = { items: Array<T>, }\n\
+        type Priv = { n: int, }\n\
+        pub type Gp<T> = { v: T, p: Priv, }\n";
+    let pattern = |pat: &str| {
+        format!("pub fn read(v: unknown) -> bool {{\n  return match v {{ is {pat} => true, _ => false, }}\n}}\n")
+    };
+    let is_call = |recv: &str| format!("pub fn read(v: unknown) -> bool {{\n  return {recv}.is(v)\n}}\n");
+    let parse_call = |recv: &str, arg: &str| {
+        format!(
+            "pub fn read(v: unknown) -> bool {{\n  return match {recv}.parse<{arg}>(v) {{ Ok(_) => true, Err(_) => false, }}\n}}\n"
+        )
+    };
+    let doc_h = "cannot validate `Doc`: field `h` has type `H`, which has no runtime check";
+    let u_h = "cannot validate `U`: field `h` of variant `A` has type `H`, which has no runtime check";
+    // (dir, imports, the pattern's program body, the call spelling of the
+    // same claim if it has one, the message).
+    let cases: Vec<(&str, &str, String, Option<String>, &str)> = vec![
+        ("record", "", pattern("Doc"), Some(is_call("Doc")), doc_h),
+        (
+            "alias",
+            "",
+            pattern("D2"),
+            Some(is_call("D2")),
+            "cannot validate `D2`: field `h` has type `H`, which has no runtime check",
+        ),
+        ("union", "", pattern("U"), Some(is_call("U")), u_h),
+        (
+            "nested",
+            "",
+            pattern("Outer"),
+            Some(is_call("Outer")),
+            "cannot validate `Outer`: field `d.h` has type `H`, which has no runtime check",
+        ),
+        ("array", "", pattern("Array<Doc>"), Some(is_call("Doc")), doc_h),
+        (
+            "generic",
+            "",
+            pattern("Box<int>"),
+            Some(parse_call("Box", "int")),
+            "cannot validate `Box<int>`: `Box`'s field `h` has type `H`, which has no runtime check",
+        ),
+        (
+            "bare-generic",
+            "",
+            pattern("Box"),
+            None,
+            "cannot validate `Box`: `Box`'s field `h` has type `H`, which has no runtime check",
+        ),
+        ("generic-union-arg", "", pattern("Page<U>"), Some(parse_call("Page", "U")), u_h),
+        ("generic-record-arg", "", pattern("Page<Doc>"), Some(parse_call("Page", "Doc")), doc_h),
+        ("generic-array-arg", "", pattern("Page<Array<U>>"), Some(parse_call("Page", "Array<U>")), u_h),
+        ("named", "import model { Doc }\n", pattern("Doc"), Some(is_call("Doc")), doc_h),
+        ("named-union", "import model { U }\n", pattern("U"), Some(is_call("U")), u_h),
+        (
+            "named-generic",
+            "import model { Page, U }\n",
+            pattern("Page<U>"),
+            Some(parse_call("Page", "U")),
+            u_h,
+        ),
+        ("namespace", "import model as m\n", pattern("m.Doc"), Some(is_call("m.Doc")), doc_h),
+        (
+            "namespace-generic",
+            "import model as m\n",
+            pattern("m.Box<int>"),
+            Some(parse_call("m.Box", "int")),
+            "cannot validate `m.Box<int>`: `Box`'s field `h` has type `H`, which has no runtime check",
+        ),
+        (
+            "namespace-generic-arg",
+            "import model as m\n",
+            pattern("m.Page<m.U>"),
+            Some(parse_call("m.Page", "m.U")),
+            u_h,
+        ),
+        // 0.1.141's refusal of an imported generic with a field typed by a
+        // record its module keeps private, here a checkable one: the same
+        // words `Gp.parse<int>(v)` gets, until G350 lifts both.
+        (
+            "imported-generic-private-field",
+            "import model { Gp }\n",
+            pattern("Gp<int>"),
+            Some(parse_call("Gp", "int")),
+            "and `Priv` is private to `model`",
+        ),
+    ];
+    for (dir, imports, body, call, expected) in cases {
+        let run = |tag: &str, body: &str| {
+            let root = unique_tmp(&format!("g349-{dir}-{tag}"));
+            let src = root.join("src");
+            let main = if imports.is_empty() {
+                format!("module main\n{decls}{body}")
+            } else {
+                write_file(&src, "model.glyph", &format!("module model\n{decls}"));
+                format!("module main\n{imports}{body}")
+            };
+            write_file(&src, "main.glyph", &main);
+            let (code, stderr) = check_no_tsc(&src);
+            (code, stderr, main)
+        };
+        let (code, stderr, main) = run("pattern", &body);
+        assert_ne!(code, 0, "{dir}: the pattern must be refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(expected), "{dir}: the message names `{expected}`:\n{stderr}");
+        if let Some(call) = call {
+            let (call_code, call_stderr, call_main) = run("call", &call);
+            assert_ne!(call_code, 0, "{dir}: the call spelling is refused too:\n{call_main}\n{call_stderr}");
+            assert_eq!(
+                e0304_headline(&stderr),
+                e0304_headline(&call_stderr),
+                "{dir}: the pattern and the call are refused in the same words"
+            );
+        }
+    }
+}
+
+/// G349's own reproduction, run: `{"h": 5}` took the `Doc` arm. With the
+/// pattern refused, the program does not build at all, and the same
+/// program over a record whose fields are all checked still narrows.
+#[test]
+fn an_is_pattern_on_a_record_with_an_unchecked_field_does_not_build() {
+    let root = unique_tmp("g349-ledger");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/json\nimport std/console\n\
+         type H = extern_ts(\"{ k: string }\")\ntype Doc = { h: H, }\n\
+         fn f(v: unknown) -> string {\n  return match v { is Doc => \"is Doc\", _ => \"other\", }\n}\n\
+         pub fn main() -> void {\n  match json.parse(\"{\\\"h\\\":5}\") {\n    Ok(v) => console.log(f(v)),\n    Err(_) => console.log(\"bad json\"),\n  }\n}\n",
+    );
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(
+        stderr.contains("[E0304]")
+            && stderr.contains("cannot validate `Doc`: field `h` has type `H`, which has no runtime check"),
+        "{stderr}"
+    );
+}
+
+/// The controls for G349: an `is T` pattern whose descriptor checks every
+/// field still compiles and narrows at run time, taking the arm for a value
+/// that fits and the fallback for one that breaks a field: a record, a second
+/// name, a union, a nested record, an array, and a generic applied to a
+/// primitive and to a union, local and imported by name. A bare generic and
+/// a namespaced type have no `is` lowering (E0300), so they have no control.
+#[test]
+fn an_is_pattern_whose_descriptor_checks_every_field_still_narrows() {
+    let decls = "pub type Doc = { n: int, }\n\
+        pub type D2 = Doc\n\
+        pub type V = A({ n: int, }) | B\n\
+        pub type Outer = { d: Doc, }\n\
+        pub type Box<T> = { v: T, k: string, }\n\
+        pub type Page<T> = { items: Array<T>, }\n";
+    let main = |head: &str, pat: &str, good: &str, bad: &str| {
+        format!(
+            "module main\nimport std/io {{ println }}\n{head}\
+             fn pick(v: unknown) -> string {{\n  return match v {{ is {pat} => \"yes\", _ => \"no\", }}\n}}\n\
+             fn main() {{\n  let good: unknown = {good}\n  let bad: unknown = {bad}\n  println(pick(good))\n  println(pick(bad))\n}}\n"
+        )
+    };
+    let local = |pat: &str, good: &str, bad: &str| main(decls, pat, good, bad);
+    let cases: Vec<(&str, Option<String>, String)> = vec![
+        ("record", None, local("Doc", "{ n: 1 }", "{ n: 1.5 }")),
+        ("alias", None, local("D2", "{ n: 1 }", "{ n: \"x\" }")),
+        ("union", None, local("V", "{ tag: \"A\", n: 1 }", "{ tag: \"A\", n: 1.5 }")),
+        ("nested", None, local("Outer", "{ d: { n: 1 } }", "{ d: { n: \"x\" } }")),
+        ("array", None, local("Array<Doc>", "[{ n: 1 }, { n: 2 }]", "[{ n: 1 }, { n: 1.5 }]")),
+        ("generic", None, local("Box<int>", "{ v: 1, k: \"a\" }", "{ v: 1.5, k: \"a\" }")),
+        (
+            "generic-union-arg",
+            None,
+            local("Page<V>", "{ items: [{ tag: \"A\", n: 1 }, { tag: \"B\" }] }", "{ items: [{ tag: \"A\", n: 1.5 }] }"),
+        ),
+        (
+            "named",
+            Some(format!("module model\n{decls}")),
+            main("import model { Doc }\n", "Doc", "{ n: 1 }", "{ n: 1.5 }"),
+        ),
+        (
+            "named-generic",
+            Some(format!("module model\n{decls}")),
+            main("import model { Page, V }\n", "Page<V>", "{ items: [{ tag: \"B\" }] }", "{ items: [{ tag: \"A\" }] }"),
+        ),
+    ];
+    for (dir, model, main) in cases {
+        let root = unique_tmp(&format!("g349-control-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", &model);
+        }
+        write_file(&src, "main.glyph", &main);
+        assert_eq!(run_main_lines(&src), vec!["yes", "no"], "{dir}:\n{main}");
+    }
+}

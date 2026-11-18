@@ -18576,3 +18576,41 @@ fn a_namespaced_generic_is_never_checked_with_a_local_generic_of_the_same_name()
     );
     assert_eq!(run_main_lines(&src), vec!["Ok", "Err"]);
 }
+
+/// G366 with its bare name in scope: a namespaced generic application is
+/// checked when its bare name resolves to the same declaration, so
+/// `json.parse<m.Page<m.User>>` beside `import model { Page, User }`
+/// validates, a good document `Ok` and a bad one `Err` (0.1.144's G350
+/// paths). When the bare name is a different generic, `Page` imported from
+/// another module, the application is E0304 rather than checked with that
+/// other `Page`.
+#[test]
+fn a_namespaced_generic_is_checked_only_when_its_bare_name_is_the_same_generic() {
+    let model = "module model\npub type User = { id: int, }\npub type Page<T> = { items: Array<T>, }\n";
+    let root = unique_tmp("g366-same-bare-name");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", model);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/console\nimport std/json\nimport model { Page, User }\nimport model as m\n\
+         pub fn g(t: string) -> string { return match json.parse<m.Page<m.User>>(t) { Ok(_) => \"Ok\", Err(_) => \"Err\", } }\n\
+         pub fn main() -> void {\n\
+         \x20 console.log(g(\"{\\\"items\\\":[{\\\"id\\\":1}]}\"))\n\
+         \x20 console.log(g(\"{\\\"items\\\":[{\\\"id\\\":\\\"x\\\"}]}\"))\n\
+         }\n",
+    );
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err"]);
+
+    let root = unique_tmp("g366-other-bare-name");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", model);
+    write_file(&src, "other.glyph", "module other\npub type Page<T> = { rows: Array<T>, }\n");
+    let main = "module main\nimport std/json\nimport model as m\nimport other { Page }\n\
+         pub fn g(t: string) -> bool { return match json.parse<m.Page<int>>(t) { Ok(_) => true, Err(_) => false, } }\n\
+         pub fn h(p: Page<int>) -> int { return 0 }\n";
+    write_file(&src, "main.glyph", main);
+    let (code, stderr) = check_no_tsc(&src);
+    assert_eq!(code, 1, "refused, not checked with `other`'s `Page`:\n{main}\n{stderr}");
+    assert!(stderr.contains("[E0304]"), "{stderr}");
+}

@@ -783,8 +783,9 @@ covers `json.parse<Page<User>>`, `Page.parse<User>(v)` and a field typed
 `Page<User>`. A `Page` imported from another module is read only through what
 that module exports, so a field typed by a record it keeps private is E0304
 too, though `Page`'s own check may cover it: mark that record `pub`, or use
-`json.parse_with` and a `Schema`. A `match … is T` pattern is not judged this
-way yet.
+`json.parse_with` and a `Schema`. A `match … is T` or `<case is T>` pattern is
+judged the same way, except `is Record<K, V>` and `is Array<X>`, which test only
+the container's shape (G357).
 A tagged union's variant payloads are checked like a record's fields: with
 `U = A({ h: H }) | B`, `json.parse<U>`, `U.parse(v)` and a field typed `U` are
 E0304 naming `h` of variant `A`.

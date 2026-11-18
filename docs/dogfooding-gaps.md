@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-363 entries, 296 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-48 are open. G144, the D28 boundary cast that never reached the returns a
+365 entries, 296 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+50 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10762,6 +10762,10 @@ and is the owner's to confirm.
   known properties, and 'extra' does not exist in type 'Opt'.`` with `tsc`
   6.0.3 (exit 1).*
 
+  *Reproduced against 0.1.144 (the release build): `let b: Opt = { name:
+  "b", extra: 1 }` is `glyph check: 1 module(s) checked, no diagnostics.`
+  under `--no-tsc`; the `tsc` half was not re-run.*
+
 - **G274. [FIXED] Four more positions compared loosely: an optional field, a
   declared record against a structural one, a function's return, and an
   interface member.** Found checking G270's premise, all the same hole: each
@@ -11917,6 +11921,10 @@ and is the owner's to confirm.
   Array<string>` and a `{ items: { a: x } }` returned where
   `Record<string, Array<string>>` is the declared field type.*
 
+  *Reproduced against 0.1.144 (the release build): `fn g<T>(x: Array<T>) ->
+  Array<string> { return x }` is `no diagnostics` under `--no-tsc`; the
+  `tsc` half was not re-run.*
+
 - **G315. A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
   `Box<T>` where `Record<string, Any>` is declared is E0204, and the same
@@ -11935,6 +11943,10 @@ and is the owner's to confirm.
   `Box<?>` `` and ``expected `Nullable<Note>`, found `Maybe<Note>` ``
   (and the reverse) under `--no-tsc`; the `Record<string, unknown>` and
   non-generic `MaybeNote` spellings check clean.*
+
+  *Reproduced against 0.1.144 (the release build): ``[E0204] Error:
+  typecheck: type mismatch: expected `Record<string, Any>`, found
+  `Box<?>` `` under `--no-tsc`.*
 
 - **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
   In a child list that holds an element, a text child goes on a line of its
@@ -12441,6 +12453,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.138: the first pass prints
   `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
 
+  *Reproduced against 0.1.144 (the release build): the first pass prints
+  `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
+
 - **G344. A value built with `Some(x)` or `Ok(x)` is not typed as an
   `Option` or a `Result`, so its members are not checked.** `let r = Ok(x)`
   then `r.value`, and inline `Ok(x).value` or `Some(x).tag`, pass `glyph
@@ -12600,8 +12615,11 @@ and is the owner's to confirm.
   emitted call is refused by `tsc` with TS2554 (wrong number of arguments).
   Either the checker refuses the spelling or the emitter threads the checker
   the way `Page.parse<U>(v)` does. The same holds through a function value:
-  `let p = Page.parse` then `p<U>(v)` passes the checker and is TS2554. Found
-  by the 0.1.141 release review (record 105).
+  `let p = Page.parse` then `p<U>(v)` passes the checker and is TS2554. It is
+  also a hole under `--no-tsc`: with a field the walk refuses elsewhere,
+  `Page.is<User>(v)` passes `check --no-tsc` and `run --no-tsc` returns true
+  for a value that violates that field (record 109, probes `n_p2_is`,
+  `v_local_is`). Found by the 0.1.141 release review (record 105).
 
   *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
   probe `a12e`: `--no-tsc` exits 0, full `check` reports TS2554.*
@@ -12755,3 +12773,24 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.142 and 0.1.143 (the release build) by record 108's
   probes `fa-twoerr` and `twoerr-is`.*
+
+- **G364. E0304 names a nested generic application instead of the field
+  inside it that has no check.** With a private `Box<T> = { v: T, h: H }`
+  inside `Meta`, the message reads ``field `meta.b` has type `Box<number>`,
+  which has no runtime check``; `Box<number>` has a check, and the hole is
+  `Box`'s own `h`. A record nested the same way names the full path
+  (`meta.x.m.h`). Found by the 0.1.144 release review (record 109).
+
+  *Reproduced against 0.1.143 and 0.1.144 (the release build) by record
+  109's probes `b_secondgen`, `j_tree_hole`, `h_third_genhole`
+  (`/private/tmp/claude-501/linus109/`).*
+
+- **G365. A sibling alias over a private generic is refused where a record
+  field of the same type is accepted.** `pub type Rows = Box<int>` with `Box`
+  private to its module is E0304 ("declares without `pub`"), while `pub type
+  R = { b: Box<int> }` is accepted and validates. The same split G350 closed
+  for an imported generic's fields, on the alias path. Found by the 0.1.144
+  release review (record 109).
+
+  *Reproduced against 0.1.143 and 0.1.144 (the release build) by record
+  109's probes `s_alias_privgen` and `s_rec_privgen`.*

@@ -61,8 +61,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.143</span>
+            <span class="rel-ver">0.1.144</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>A generic record imported from another module is now judged by the module that declares it, the way an imported record already was. If <code>Page&lt;T&gt;</code> has a field typed by a record its module keeps private, <code>json.parse&lt;Page&lt;User&gt;&gt;</code>, <code>Page.parse&lt;User&gt;</code>, <code>is Page&lt;User&gt;</code> and the other uses of <code>Page</code> now compile and check that field at run time. 0.1.141 to 0.1.143 refused them with E0304 and suggested marking the record <code>pub</code>; that is no longer needed.</p>
+
+            <p>A private record that holds a field nothing can check at run time is still refused, and the message now names that field instead of the record's privacy.</p>
+
+            <p>This release is not breaking: nothing that compiled before stops compiling. We ran 0.1.143 and this build on every <code>.glyph</code> file in the repository and on all 32 example apps, and found no differences.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.143</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

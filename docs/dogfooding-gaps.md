@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-350 entries, 292 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-39 are open. G144, the D28 boundary cast that never reached the returns a
+352 entries, 292 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+41 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12144,6 +12144,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.135: E0012 at the function's `}`.*
 
+  *Reproduced against 0.1.141 (the release build): `return <p>abc` then the
+  function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text``.*
+
 - **G332. An entity in a JSX attribute string is emitted as written.**
   `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
   where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
@@ -12165,6 +12168,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.135: E0002.*
 
+  *Reproduced against 0.1.141 (the release build): `<p>a < b</p>` is
+  ``[E0002] Error: parse: expected JSX element or attribute name, found
+  LAngle``.*
+
 - **G334. An invisible character outside a string is named raw, and a BOM is
   refused.** `unexpected character` prints a no-break space, U+200B, a lone
   combining mark or a byte-order mark between backticks as it is, so the
@@ -12175,6 +12182,11 @@ and is the owner's to confirm.
   release review (record 94).
 
   *Reproduced against 0.1.135: E0001 with the character printed raw.*
+
+  *Reproduced against 0.1.141 (the release build): a BOM at offset 0 is
+  ``[E0001] Error: parse: lex error: unexpected character`` with the BOM
+  printed raw between backticks, and a no-break space inside `let a = 1` is
+  the same E0001 with the character printed raw.*
 
 - **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
@@ -12392,7 +12404,9 @@ and is the owner's to confirm.
   `type Doc = { h: H }`, `match v { is Doc => … }` takes the `Doc` arm for
   `{"h": 5}`, while `Doc.is(v)` and `json.parse<Doc>` refuse the same type
   with E0304: one check, two answers, depending on the spelling. The generic
-  form `is Box`, with `Box<T> = { v: T, h: H }`, compiles too. The fix judges
+  form `is Box`, with `Box<T> = { v: T, h: H }`, compiles too, and so does
+  `is Page<U>` where the type argument `U` is a union with such a payload
+  (found while closing record 105's B1). The fix judges
   an `is T` pattern with the walk `T.is` uses, records and union payloads
   included, and refuses with E0304 naming the field. Breaking: such programs
   go from exit 0 to 1, and `tsc` accepts them. Found by the 0.1.141 work,
@@ -12419,3 +12433,24 @@ and is the owner's to confirm.
   control, exits 0 on both.*
 
   Planned for 0.1.144 (record 103).
+
+- **G354. A generic type argument through a namespace is refused though every
+  field can be checked.** `json.parse<m.Box<int>>` with `import model as m`,
+  where `Box<T>` has only checkable fields, is E0304 ("has no runtime check to
+  run for it"), while `json.parse<Box<int>>` with `Box` imported by name
+  validates. A false refusal that depends on the import's spelling. Found by
+  the 0.1.141 release review (record 105).
+
+  *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
+  probes (`/private/tmp/claude-501/linus105/`): E0304 on both.*
+
+- **G355. `Page.is<U>(v)` passes Glyph's checker and fails `tsc`.** A type
+  argument on a generic descriptor's `is` is accepted by the checker, and the
+  emitted call is refused by `tsc` with TS2554 (wrong number of arguments).
+  Either the checker refuses the spelling or the emitter threads the checker
+  the way `Page.parse<U>(v)` does. The same holds through a function value:
+  `let p = Page.parse` then `p<U>(v)` passes the checker and is TS2554. Found
+  by the 0.1.141 release review (record 105).
+
+  *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
+  probe `a12e`: `--no-tsc` exits 0, full `check` reports TS2554.*

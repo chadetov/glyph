@@ -1080,14 +1080,13 @@ pub fn explain(code: &str) -> Option<&'static str> {
             from another module that applies it. A field of its own with no \
             runtime check, such as `h: H` with `H` an `extern_ts` type, \
             refuses the application, since its descriptor would test `h` for \
-            presence only. A generic this module declares is read with this \
-            module's view of its fields, private records included. One \
-            imported from another module is read only through what that \
-            module exports, so a field typed by a record it keeps private \
-            cannot be judged from here and is refused, though the generic's \
-            own check in its module may check it. Mark that record `pub`, or \
-            take a `Schema<T>` and read with `json.parse_with(text, schema)`; \
-            judging it through the declaring module's own walk is G350.\n\n\
+            presence only. The fields are judged in the module that declares \
+            the generic, with that module's view of them, private records \
+            included, whether the generic is applied there or imported: an \
+            imported generic is judged by the walk its own module recorded, \
+            as an imported record is. So a field typed by a record that \
+            module keeps private is followed into that record, and refuses \
+            the application only for a field the record cannot check.\n\n\
             A tagged union's `is` checks the tag and then the variant's \
             payload, so each variant's payload fields are walked like a \
             record's: with `U = A({ h: H }) | B`, `json.parse<U>`, \
@@ -2059,7 +2058,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0304",
         phase: "emitter",
-        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too. Also `json.parse<T>` for any `T` with no runtime check: a type parameter, an `extern_ts` type, a package type, an interface, `Result`, a generic tagged union, or an `Option`, `Nullable` or `Record` of one; and an alias from another module whose body names a type that module keeps private, or a `std` or package type (a name it imports from another project module is followed there), and any use of a generic record (`json.parse<Page<User>>`, `Page.parse<User>(v)`, a field typed `Page<User>`, an alias applying it) with a field of its own that has no runtime check, its type parameters counted as checked (a generic imported from another module is read through what that module exports, so a field naming a type it keeps private is refused too: mark it `pub` or use `json.parse_with`). A tagged union's variant payloads are walked like a record's fields, so `parse`/`is`/`schema` on `U = A({ h: H }) | B`, `json.parse<U>` and a field typed `U` are refused naming the variant and the field. The type argument of a generic descriptor call is walked the same way, so `Page.parse<U>(v)` and `Page.parse<Doc>(v)` are refused naming the argument's field, however `Page` and the argument are imported. An `is T` pattern in a `match` arm or a `<case>` is judged by the walk `T.is` uses, so `is Doc`, `is U`, `is Array<Doc>`, `is Box<int>` and `is Page<U>` are refused where `Doc.is(v)` or `Page.parse<U>(v)` is. The note names the cause. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error; `json.parse(text)` with no type argument is the unchecked read",
+        meaning: "`parse`/`is`/`schema` on a record holding a field whose type has no runtime check (a host handle, an `extern_ts` type, a generic tagged union), and `json.parse<T>` for such a `T`, which validates through `T.schema`; declaring the record is fine. Judged by the declaring module, so the use is refused from a module that imports the record too. Also `json.parse<T>` for any `T` with no runtime check: a type parameter, an `extern_ts` type, a package type, an interface, `Result`, a generic tagged union, or an `Option`, `Nullable` or `Record` of one; and an alias from another module whose body names a type that module keeps private, or a `std` or package type (a name it imports from another project module is followed there), and any use of a generic record (`json.parse<Page<User>>`, `Page.parse<User>(v)`, a field typed `Page<User>`, an alias applying it) with a field of its own that has no runtime check, its type parameters counted as checked (a generic imported from another module is judged by its declaring module's own walk, as an imported record is, so a field typed by a record that module keeps private is followed into that record and refused only for a field it cannot check). A tagged union's variant payloads are walked like a record's fields, so `parse`/`is`/`schema` on `U = A({ h: H }) | B`, `json.parse<U>` and a field typed `U` are refused naming the variant and the field. The type argument of a generic descriptor call is walked the same way, so `Page.parse<U>(v)` and `Page.parse<Doc>(v)` are refused naming the argument's field, however `Page` and the argument are imported. An `is T` pattern in a `match` arm or a `<case>` is judged by the walk `T.is` uses, so `is Doc`, `is U`, `is Array<Doc>`, `is Box<int>` and `is Page<U>` are refused where `Doc.is(v)` or `Page.parse<U>(v)` is. The note names the cause. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error; `json.parse(text)` with no type argument is the unchecked read",
         fix: "Split the wire type from the domain type: parse the checkable fields, then build the record. For a `T` with no check of its own, take a `Schema<T>` and read with `json.parse_with(text, schema)`",
     },
     CodeEntry {

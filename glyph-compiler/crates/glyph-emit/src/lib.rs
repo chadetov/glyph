@@ -5866,6 +5866,26 @@ impl<'a> Emitter<'a> {
         Some((glyph_resolver::path_key(path), original.to_string()))
     }
 
+    /// Whether the namespaced generic `base` (`m.Page`) is the declaration
+    /// the bare name `gname` (`Page`) resolves to in this module, as it is
+    /// under `import model { Page }` beside `import model as m`. The field
+    /// check looks a generic up by its bare name, so a namespaced
+    /// application is checked only when that name is the same generic;
+    /// otherwise (a local `Box` beside `w.Box`, or no bare `Box` at all) it
+    /// is refused rather than checked against another type (G366).
+    fn namespaced_generic_is_bare_name(&self, base: &TypeExpr, gname: &str) -> bool {
+        let TypeExpr::Path { segments, .. } = base else {
+            return false;
+        };
+        let [ns, name] = segments.as_slice() else {
+            return false;
+        };
+        match (self.namespace_module_path(ns.as_ref()), self.generic_record_target(gname)) {
+            (Some(module), Some(target)) => target == (module, name.to_string()),
+            _ => false,
+        }
+    }
+
     /// Record that the check being built calls the descriptor of the generic
     /// record `target`, applied in the body of the sibling alias `alias` when
     /// that is where it was written, when a judged check is collecting (see
@@ -6786,15 +6806,18 @@ impl<'a> Emitter<'a> {
                     // Only for a local application: the arity and the checkers
                     // are read in this module's scope, so a sibling's
                     // `Page<User>` would be checked with this module's `Page`.
-                    // Only for a bare name, too: the arity and the descriptor
-                    // are looked up by `gname`, the last segment, so
-                    // `w.Box<int>` would be checked with a local `Box` (G366).
-                    // A namespaced application falls to the refusal below,
-                    // the one it gets with no local `Box` (G354).
+                    // The arity and the descriptor are looked up by `gname`,
+                    // the last segment, so `w.Box<int>` would be checked with
+                    // a local `Box` (G366). A namespaced application is
+                    // checked only when that bare name is the same generic
+                    // (`import model { Page }` beside `import model as m`);
+                    // otherwise it falls to the refusal below, the one it
+                    // gets with no bare name at all (G354).
                     (_, Some(gname), _)
                         if origin == Origin::Local
-                            && !is_namespaced_generic(ty)
-                            && self.generic_descriptor_arity(gname) > 0 =>
+                            && self.generic_descriptor_arity(gname) > 0
+                            && (!is_namespaced_generic(ty)
+                                || self.namespaced_generic_is_bare_name(base, gname)) =>
                     {
                         // An argument with no check of its own makes the
                         // application unverifiable, as a container's part

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-367 entries, 298 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-50 are open. G144, the D28 boundary cast that never reached the returns a
+369 entries, 298 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+52 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12157,6 +12157,10 @@ and is the owner's to confirm.
   with `u: unknown` is `glyph check: 1 module(s) checked, no
   diagnostics.` under `--no-tsc`; the `tsc` half was not re-run.*
 
+  *Reproduced against 0.1.145 (the release build): `let s: string = u` with
+  `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under
+  `--no-tsc`.*
+
 - **G326. [FIXED] `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
   with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
@@ -12226,6 +12230,9 @@ and is the owner's to confirm.
   assignment requires `mut``.*
 
   *Reproduced against 0.1.139 (the release build): `const s = "a"` in a
+  function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
+
+  *Reproduced against 0.1.145 (the release build): `const s = "a"` in a
   function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
 
 - **G329. A lex error inside a generic-call lookahead is replaced by an E0003
@@ -12467,6 +12474,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.139: `let r = Ok(x)` then `let v = r.value`, and
   `[Ok(x)][0].value`, draw only E0107 (unused) under `--no-tsc`.*
 
+  *Reproduced against 0.1.145 (the release build): `let r = Ok(x)` then `let
+  v = r.value` draws only E0107 (unused) under `--no-tsc`.*
+
 - **G345. An `Option` or a `Result` read through an index, a spread, an array
   element or an untyped lambda parameter is not checked.** `r["value"]`,
   `o["tag"]` and `{ ...r }` pass with `tsc` as well; `rs[0].value` on an
@@ -12476,6 +12486,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.139 by record 100's probes
   (`/private/tmp/claude-501/linus100/idx/`): exit 0 under both binaries.*
+
+  *Reproduced against 0.1.145 (the release build): `r["value"]` on a
+  `Result<Note, string>` draws only E0107 (unused) under `--no-tsc`.*
 
 - **G346. E0210's help on an `Option` and its catalogue fix are wrong for the
   member set.** For `o.map(f)` the help suggests `match o { Some(n) =>
@@ -12488,6 +12501,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.139: the `o.map(keep)` help names `n.map(...)`,
   and following it is ``E0210 type `Note` has no field `map` ``.*
+
+  *Reproduced against 0.1.145 (the release build): the `o.map(keep)` help
+  still reads ``Open it with `match o { Some(n) => n.map(...), None =>
+  <default> }` `` and mentions `Nullable<Note>`.*
 
 - **G347. [FIXED] A generic record's own fields get no runtime check.** With `type
   Page<T> = { items: Array<T>, h: H }` and `H = extern_ts(...)`,
@@ -12731,13 +12748,19 @@ and is the owner's to confirm.
   (`/private/tmp/claude-501/linus107/a`, `b`, `d`): `a` prints `wbox` on
   0.1.141; `b` and `d` are E0300 on both.*
 
+  A wrapped part behaves differently from a bare one (record 111, probe
+  `g/K`): `is Array<m.Page<int>>` is E0300 while `is
+  Array<Nullable<m.Page<int>>>` compiles and checks, through the G366
+  bare-name rule. A refusal, not a wrong answer; the lowering should treat
+  both the same.
+
 - **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
   "x" }`: the lowering tests only "an object, not an array". `is Array<H>`,
   with `H` an `extern_ts` type, takes the arm for `[5]`, lowered to
   `Array.isArray(v)`, while 0.1.143 refuses `is Array<Doc>` when `Doc` has a
-  field with no check. The fix checks every value (and every refined key) with `V`'s check, the
-  way `json.parse<Record<K, V>>` does, and refuses with E0304 when `V` or `X` has
+  field with no check. The fix checks every value with `V`'s check, the way
+  `json.parse<Record<K, V>>` does, and refuses with E0304 when `V` or `X` has
   no check; a container of `unknown` keeps its shape check, which is complete
   for it, and the same check applies in element position (`is Array<Array<H>>`,
   `is Array<Record<string, Doc>>`, record 108). Breaking: such programs go
@@ -12774,6 +12797,11 @@ and is the owner's to confirm.
   probe `fa-typeparam2` (`/private/tmp/claude-501/linus108/`).*
 
   Planned for 0.1.147 (record 108).
+
+  Also in part position (record 111, probe `q/t2`): with `type T = { n: int,
+  }` at module level, `fn f<T>` with `is Array<T>` passes full `check` (no
+  TS2719) on 0.1.144 and 0.1.145 and checks elements against the record `T`,
+  so the default build does not catch every case. The fix covers parts.
 
 - **G363. Only the first E0304 in a module is reported.** Two refused `is`
   patterns, or two refused `Doc.is(v)` calls, in two functions of one module
@@ -12839,3 +12867,28 @@ and is the owner's to confirm.
   110's probes: `{"zzz":1}` comes back `Ok` on every path.*
 
   Planned for 0.1.148 (record 110).
+
+- **G368. The bare import that lets a namespaced generic validate is reported
+  unused, and `glyph fix` deletes it.** With `import model { Page }` and
+  `import model as m`, `json.parse<m.Page<int>>` validates (G366 checks it
+  because the bare name is the same declaration), but `Page` draws E0106
+  ("unused import") and `glyph fix` removes it, after which the program is
+  E0304. Whether a program validates depends on an import the tooling tells
+  an agent to delete. Either the lint counts a namespaced application that
+  leans on the bare name as a use, or G354 removes the need for the bare
+  import. Found by the 0.1.145 release review (record 111).
+
+  *Reproduced against 0.1.144 and 0.1.145 (the release build) by record
+  111's probes `g/A` and `g/Afix` (`/private/tmp/claude-501/linus111/`).*
+
+- **G369. A descriptor check recurses without bound, so a deeply nested value
+  overflows the stack.** A `Tree` nested 20000 deep throws `RangeError:
+  Maximum call stack size exceeded` in `is Tree` (0.1.144 and 0.1.145) and,
+  since 0.1.145 checks contents, in `is Record<string, Tree>` too, where
+  0.1.144 took the arm without looking inside. The same recursion is in
+  `T.is` and `json.parse`. A crash on hostile input at a boundary that
+  exists to validate untrusted data. Found by the 0.1.145 release review
+  (record 111).
+
+  *Reproduced against 0.1.145 (the release build) by record 111's probe
+  `q/deep`.*

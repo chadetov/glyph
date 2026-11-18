@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-352 entries, 292 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-41 are open. G144, the D28 boundary cast that never reached the returns a
+355 entries, 294 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+42 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11758,7 +11758,7 @@ and is the owner's to confirm.
   predicate or a rest parameter is left untyped with the reason in its row.
   So `let n: string = xs.indexOf(2)` is E0204 and `xs.indexOf("a")` on an
   `Array<number>` is E0211 without `tsc`.
-- **G313. `glyph/applyEdit` lets an edit add a warning to a file that has an
+- **G313. [FIXED] `glyph/applyEdit` lets an edit add a warning to a file that has an
   error.** The gate's rule counts the warning tier, but the list it compares
   is the one `glyph check --no-tsc --no-test` prints, and that list stops
   after the type checker when the file has an error
@@ -11797,6 +11797,17 @@ and is the owner's to confirm.
   file answered `ok: false` with E0107 (``unused variable `x` ``); the
   `C => 3` edit afterwards, sent after a `didChange` to the accepted text,
   answered `ok: false` with E0107 and empty `preexisting`.*
+
+  Fixed in 0.1.142 (records 88 and 104). The lint tier runs when parse,
+  symbols, imports and resolution produced no error and resolution completed,
+  whatever the type errors, in `project_file_diagnostics`, `glyph build` and
+  the playground; the emitter still runs only on a file with no error (G322).
+  Every applyEdit verdict and the single-form answer carry `stages`, the
+  stages that ran on the candidate, and a file read by two projects reports
+  only the stages that ran in both. Over JSON-RPC, the `let x = 1` edit on the
+  E0200 file now answers `ok: false` with E0107, E0200 under `preexisting`
+  and `stages: ["front", "lints"]`; the `C => 3` edit answers `ok: true` with
+  `stages: ["front", "lints", "emit"]`.
 
 - **G314. A type parameter nested in a type is not compared.**
   `fn g<T>(x: Array<T>) -> Array<string> { return x }` passes Glyph's checker,
@@ -12073,7 +12084,7 @@ and is the owner's to confirm.
   same-named `User` comes back `Err`. The same presence-only hole on the
   local and imported-by-name generic paths is G347.
 
-- **G327. `glyph fix` cannot name the arm that covers a case an E0220 head
+- **G327. [FIXED] `glyph fix` cannot name the arm that covers a case an E0220 head
   would move.** With no E0200, some arm takes every remaining value, but a
   lowercase arm may be a binding or a lowercase variant (G224), and the
   diagnostics `glyph fix` reads do not say which. 0.1.132's decline named a
@@ -12091,6 +12102,13 @@ and is the owner's to confirm.
   lowercase name may be a variant, G224)") with `blank` before `_` and
   before `other`, and also when every variant is capitalized and the only
   lowercase arm, `other`, can only be a binding; nothing is rewritten.*
+
+  Fixed in 0.1.142 (record 89). `glyph check`'s report carries the checker's
+  match-coverage relation from the same build, and `glyph fix` names the
+  catch-all it recorded at the match's site: "its `_` arm" with `blank` (a
+  variant) before `_`, "its arm `other`" with `blank` before `other`. A match
+  counted in full with no catch-all keeps the E0305 explanation; one whose
+  coverage the checker did not conclude names no arm. Nothing is rewritten.
 
 - **G328. A `const` inside a function body says "assignment requires `mut`".**
   `const s = "a"` in a body is E0008, ``assignment requires `mut` ``. The help
@@ -12454,3 +12472,41 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
   probe `a12e`: `--no-tsc` exits 0, full `check` reports TS2554.*
+
+- **G351. An expression followed by `{` on the same line is split into a
+  value and an unreachable block.** `return h() { k: 2 }` parses as `return
+  h()` and a separate `{ k: 2 }` statement that never runs: the program exits
+  0 with only an E0108 warning, and the value the author meant is lost.
+  `return Order { … }` and `let o = Order { … }` split the same way and draw
+  E0228 because `Order` is a type; G217 fixed only that case. The fix makes a
+  statement starting with `{` on the line where the previous statement ended
+  a parse error carrying G217's guidance (no `TypeName { … }` form; write the
+  literal and put the type on the annotation). Breaking where the name is not
+  a type. Found by record 104.
+
+  *Reproduced against 0.1.142 (the release build): `return h() { k: 2 }` in
+  a function returning `R` is `[E0108] Warning` and exit 0.*
+
+- **G352. The playground runs the emitter past type errors.** `glyph-wasm`
+  emits best-effort when the file has errors, which contradicts record 88's
+  rule that the emitter runs only on a file with no error, shows TypeScript
+  `glyph build` would never write, and exposes the browser to the emitter
+  panics G322 found. The fix holds back emit on any error, as `build.rs`
+  does, so `ts` is `null` (the page already says "fix the errors on the
+  left"), and reworks `a_match_with_no_arms_is_reported_not_a_panic` to
+  assert no emit. Found by record 104.
+
+  *Reproduced against 0.1.142 (the release build) by reading `glyph-wasm`:
+  the emitter is called whatever the error count, unlike `build.rs`.*
+
+- **G353. An applyEdit that writes one of an E0200's missing arms is refused
+  as introducing an E0200.** An E0200's identity includes its list of missing
+  variants (record 88 §4b), so adding one arm of two leaves an E0200 with a
+  shorter list, which the gate counts as new. Agents are pushed to write every
+  arm in one edit. The fix counts an E0200 at the same match range whose
+  missing set is a strict subset of the one before as already there; a longer
+  list (a variant added to the union) stays refused. Found by record 104.
+
+  *Reproduced against 0.1.140 and 0.1.142 (the release build) by record 104's
+  LSP client (`/private/tmp/claude-501/linus104/`): adding one of two missing
+  arms is refused with the E0200 counted as introduced on both.*

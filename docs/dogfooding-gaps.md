@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-355 entries, 294 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-42 are open. G144, the D28 boundary cast that never reached the returns a
+359 entries, 294 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+46 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -7277,6 +7277,15 @@ and is the owner's to confirm.
   and an independent indentation-based classification that differs on exactly
   one case, in the expected direction.*
 
+  *Reproduced against 0.1.142 (the release build), with the same coarse
+  proxy over `tests/negative`, the 5 `catches/` cases and all 32
+  `examples/apps`: 14,181 diagnostics, 8,555 of them (60.3%) on a line
+  indented two or more spaces; errors alone, 7,875 of 10,979 (71.7%). The
+  overall share fell ten points because 0.1.142 runs the lint tier on files
+  with type errors, and most of what it adds is module-level (E0112 on the
+  first line); 0.1.141 gives 70.7% overall and the same 71.7% for errors.
+  The conclusion below stands.*
+
 - **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
   `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
   key a file by where it sits. The typechecker keys a locally declared type by
@@ -7327,6 +7336,11 @@ and is the owner's to confirm.
   header agrees with its path and another claiming the same name.
 
   *Reproduced against 0.1.114.*
+
+  *Reproduced against 0.1.142 (the release build): `src/models.glyph` headed
+  `module app/models` and imported from `main` as `models` is `glyph check
+  --no-tsc --no-test` with one unused-import warning and exit 0, nothing
+  naming the disagreement.*
 
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
   reported success.** Pruning some names out of an `import M { a, b }` spliced
@@ -10200,6 +10214,10 @@ and is the owner's to confirm.
   expected `record`, found `record`: missing field `count` ``. The display is
   unchanged from the published 0.1.124, where the same element drew nothing.*
 
+  *Reproduced against 0.1.142 (the release build): the same element draws
+  ``argument type mismatch: expected `record`, found `record`: missing field
+  `count` ``.*
+
 - **G246. [FIXED] A component whose one parameter is `unknown` or a bare generic
   passes Glyph and fails `tsc` once it is given attributes.**
   `component Greeting(p: unknown)` with `<Greeting name="x" />`, and
@@ -12255,6 +12273,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.136: the layout above is a fixed point.*
 
+  *Reproduced against 0.1.142 (the release build): `json` / `// generic
+  head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph
+  fmt`.*
+
 - **G337. A chain broken inside a JSX attribute value glues the closing `}`
   onto its last step.** `title={props` / `.title` / `// attr` / `.trim()}
   class="c">` keeps the brace, the next attribute and the element's `>` on
@@ -12263,6 +12285,9 @@ and is the owner's to confirm.
   the 0.1.136 release review (record 96).
 
   *Reproduced against 0.1.136: `.trim()} class="c">{props` on one line.*
+
+  *Reproduced against 0.1.142 (the release build): `.trim()} class="c">` stays
+  on the step's line after `glyph fmt`.*
 
 - **G338. [FIXED] `glyph fmt` deletes a `where` refinement on a tagged union.**
   `pub type Salary = A | B where value >= 1` is E0300 (a refinement on a
@@ -12510,3 +12535,50 @@ and is the owner's to confirm.
   *Reproduced against 0.1.140 and 0.1.142 (the release build) by record 104's
   LSP client (`/private/tmp/claude-501/linus104/`): adding one of two missing
   arms is refused with the E0200 counted as introduced on both.*
+
+- **G358. `glyph fmt` does not sort imports, though the manifesto said it
+  did.** Two `import` lines in the wrong order are left as they are, and
+  `glyph fmt --check` passes the file. The manifesto listed "Sorted imports"
+  under diff stability; nothing in the spec decided it and nothing implements
+  it. Sorting matters for the pillar: two agents that each add an import at a
+  different place produce two layouts of the same import block. The manifesto
+  now says imports are not sorted yet. Found while rewriting the pillars.
+
+  *Reproduced against 0.1.142 (the release build): `import std/string` above
+  `import std/array` is left in that order by `glyph fmt`, and `fmt --check`
+  exits 0.*
+
+- **G359. `glyph fix` removes the imports an E0200 in the same file needs.**
+  With a `match` that has only `Pending` and `import orders { OrderStatus,
+  Pending, Paid, Cancelled }`, `glyph fix` prints "removed 2 unused
+  import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then
+  declines the E0200 listing `Paid` and `Cancelled`, which now need the
+  imports it just deleted. 0.1.142's E0106 text says to write the arm rather
+  than remove the import; `fix` does the opposite. The fix skips an E0106
+  whose name an E0200 in the same file lists as missing. Found by the 0.1.142
+  release review (record 106).
+
+  *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
+  probe `k/`: both remove `Paid` and `Cancelled`.*
+
+- **G360. `glyph fix`'s decline names a catch-all that comes before the head
+  as the arm a rename would take from.** With `other => 2` before `Loadd(n)
+  => n`, the decline says "its arm `other` handles `Loaded` now, so renaming
+  this head to `Loaded` would move that case out of it". Arms match first,
+  so nothing would move: the head is already unreachable (E0216), and the
+  rename keeps it so. Declining is right; the reason is wrong. The fix uses
+  the E0216 wording when the catch-all precedes the head. Found by the 0.1.142
+  release review (record 106).
+
+  *Reproduced against 0.1.142 (the release build) by record 106's probe
+  `g5_first`.*
+
+- **G361. After `glyph fix` applies a rename that completes a match, it still
+  declines the E0200 the rename fixed.** With a lowercase variant, `fix`
+  renames `Loadd` to `Loaded` and then reports "add an arm for each of
+  `Loaded`" from the diagnostics it read before the rename. The decline list
+  should be recomputed, or the E0200 dropped, once an applied edit covers it.
+  Found by the 0.1.142 release review (record 106).
+
+  *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
+  probe `h1_lcvariant`.*

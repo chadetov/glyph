@@ -277,6 +277,19 @@ type User = { name: string; age: number };
           already decoded as an <code>unknown</code>, so there you reach for
           <code>T.parse(value)</code> instead: same guarantee, no cast.
         </p>
+        <p class="block-label">Does a map keyed by an enum check its keys?</p>
+        <p>
+          Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with
+          <code>type Tier = "free" | "pro"</code> parses only an object whose keys are exactly
+          <code>free</code> and <code>pro</code>: a stray key and a missing one are both an
+          <code>Err</code>, which is also what <code>tsc</code> says about the same object written
+          as a literal. A <code>where</code>-refined key type runs its predicate on every key, and
+          an <code>int</code> key has to be the plain spelling of a whole number, so
+          <code>"01"</code> and <code>"1.5"</code> are refused. A <code>Record&lt;string, V&gt;</code>
+          is checked exactly as before. Glyph's own checker still leaves the keys of a value you
+          write in code to <code>tsc</code>, and a generic record keyed by its own type parameter
+          is refused unless that parameter is <code>string</code>.
+        </p>
         <p>
           The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code>
           and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a

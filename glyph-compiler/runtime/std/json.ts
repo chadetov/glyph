@@ -12,7 +12,9 @@
 // which calls it through a hidden aliased import). The schema is `T.schema`
 // for a record or union, `T.schema.array()` for an `Array` of one, and for any
 // other `T` (a primitive, `Option`, `Nullable`, `Record`, a literal union) a
-// schema built from the check a record field of type `T` gets.
+// schema built from the check a record field of type `T` gets. A `Record`'s
+// check covers its keys as well as its values: each key is checked against
+// the key type, and a string-literal union key type needs every member.
 //
 // A record holding a field with no runtime check is refused (E0304), and so
 // is a `T` the emitter has no check for at all (a type parameter, an

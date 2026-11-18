@@ -213,6 +213,25 @@ The same resolution backs `json.parse<T>`, `T.is`, and `is T` narrowing inside a
 both used to fall back to checking that the key was present, which validates
 nothing about the value under it.
 
+A `Record` checks its keys against its key type on every one of those paths
+(0.1.148). Keyed by a string-literal union, it needs exactly the members:
+
+```glyph
+type Tier = "free" | "pro"
+
+// json.parse<Record<Tier, int>>("{\"free\":1,\"pro\":2}")   => Ok
+// json.parse<Record<Tier, int>>("{\"free\":1}")              => Err, `pro` is missing
+// json.parse<Record<Tier, int>>("{\"free\":1,\"pro\":2,\"x\":3}") => Err, `x` is not a Tier
+```
+
+A `where`-refined key type runs its predicate on each key, and an `int` or
+`number` key must be the plain spelling of a number (`"1"`, not `"01"`).
+`Record<string, V>` checks no key. A generic record whose `Record` field is
+keyed by one of its type parameters is E0304 unless the argument is `string`,
+because the checker passed for the parameter cannot see that every member is
+present. When the map may hold only some members, declare a record with
+optional fields instead.
+
 A field typed by a `.d.ts` type has no runtime check, so `parse`/`is`/`schema`
 on its record, an `is` pattern naming it, and `json.parse<T>` are E0304. Run
 `glyph gen dts <package>` to materialize it, and the field is validated.

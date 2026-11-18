@@ -1519,8 +1519,10 @@ struct FileVerdict {
 /// record 88). So `ok: true` claims nothing about a stage the list leaves
 /// out: on a file with a type error, an edit that would draw an emitter
 /// refusal is accepted, and the refusal surfaces on the edit that fixes the
-/// last error. `stages` is empty in the `changes` form and on a structural
-/// refusal, where nothing ran.
+/// last error. On a structural refusal nothing ran, and `stages` is empty.
+/// In the `changes` form the top-level `stages` is empty too, because that
+/// answer is about no one document; each edited document's stages are on its
+/// `elsewhere` entry.
 #[derive(Debug, serde::Serialize)]
 struct ApplyEditResponse {
     ok: bool,

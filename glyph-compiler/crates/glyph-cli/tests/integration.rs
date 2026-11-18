@@ -403,15 +403,17 @@ fn regen_reports_when_nothing_is_generated() {
 }
 
 #[test]
-fn a_type_name_as_a_value_is_e0228_with_no_unreachable_code_warning() {
+fn a_type_name_as_a_value_is_e0228_then_the_split_literal_is_e0108() {
     // G217, end to end. `Order { ... }` parses as a `return Order` followed by
     // an object literal, so before E0228 the only thing the compiler said about
     // this program was that the literal was unreachable, and it exited 0.
     //
-    // The second assertion is the other half of the finding: an unreachable-code
-    // warning about a statement that follows a refused one is noise, and the
-    // lint tier is computed only for a module that produced no errors, so
-    // raising E0228 is what keeps E0108 off it.
+    // The list is pinned whole. Since 0.1.142 the lint tier runs past a type
+    // error (G313, record 88), so the literal's E0108 comes back after the
+    // E0228. It is true: the parse really does split the braces into a
+    // statement that never runs. That parse is the defect, and G351 makes it a
+    // parse error (record 104); when it lands, this list changes and this test
+    // has to be updated with it.
     let root = unique_tmp("type_name_as_value");
     let src = root.join("src");
     let out = root.join("dist");
@@ -438,9 +440,15 @@ fn a_type_name_as_a_value_is_e0228_with_no_unreachable_code_warning() {
         "{:?}",
         report.diagnostics
     );
-    assert!(
-        !report.diagnostics.iter().any(|d| d.contains("[E0108]")),
-        "an unreachable-code warning about a refused statement is noise: {:?}",
+    let codes: Vec<(&str, &str)> = report
+        .structured
+        .iter()
+        .map(|d| (d.code.as_str(), d.severity.as_str()))
+        .collect();
+    assert_eq!(
+        codes,
+        [("E0228", "error"), ("E0108", "warning")],
+        "{:?}",
         report.diagnostics
     );
 }

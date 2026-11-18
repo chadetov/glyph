@@ -211,8 +211,11 @@ edit that fixes the last error, and that edit is refused for it. Every verdict
 says which stages ran on the candidate: `stages` on the single-form answer and
 on each `elsewhere` entry is `["front", "lints", "emit"]` or a prefix of it
 (`front` is parse through the type checker). `ok: true` claims nothing about
-a stage the list leaves out. `stages` is empty in the `changes` form's
-top-level answer and on a structural refusal, where nothing ran. `glyph check`
+a stage the list leaves out. On a structural refusal nothing ran, and
+`stages` is empty. In the `changes` form the top-level `stages` is empty too,
+because that answer is about no one document; each edited document's stages
+are on its `elsewhere` entry. When a file belongs to two projects, a stage
+counts only if it ran in both. `glyph check`
 and `glyph build` follow the same rule, so they report more warnings on a file
 with a type error than 0.1.141 did, with no change to any exit code. Before 0.1.132 the
 result had to have no diagnostics at all, so an edit to a file that already

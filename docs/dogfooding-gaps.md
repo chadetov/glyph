@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-359 entries, 294 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-46 are open. G144, the D28 boundary cast that never reached the returns a
+361 entries, 295 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+47 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12065,7 +12065,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.148 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.149 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12442,7 +12442,7 @@ and is the owner's to confirm.
   with no runtime check is E0304 naming the variant and the field (``field
   `h` of variant `A` has type `H` ``). Probes u1 to u4 and g7 exit 1.
 
-- **G349. `match v { is T => … }` narrows to a record whose descriptor tests a
+- **G349. [FIXED] `match v { is T => … }` narrows to a record whose descriptor tests a
   field for presence only.** With `type H = extern_ts("{ k: string }")` and
   `type Doc = { h: H }`, `match v { is Doc => … }` takes the `Doc` arm for
   `{"h": 5}`, while `Doc.is(v)` and `json.parse<Doc>` refuse the same type
@@ -12460,6 +12460,20 @@ and is the owner's to confirm.
   `{"h":5}` on both; `Doc.is(v)` is E0304 and `is Box` compiles.*
 
   Planned for 0.1.143 (record 103).
+
+  Correction (record 107): bare `is Box` was E0300 on 0.1.141, not accepted;
+  `m2` stopped at the earlier `Doc.is` E0304 and never reached it.
+
+  Fixed in 0.1.143 (records 103 and 107). Every `is T` pattern, in a `match`
+  arm or a `<case>`, is judged by the walk `T.is` uses before it is lowered,
+  and refused with E0304 in the words the call spelling gets: records,
+  unions, second names, named imports, namespaces, nested records,
+  `Array<T>` where `T` has a check, and generics applied or bare, judged as
+  `G.parse<X>(v)` judges them. Bare `is Box` goes from E0300 to E0304 naming
+  `h`. A namespaced generic `is w.Box<X>` in a module that also declares its
+  own `Box` lowered to the local `Box.is` and passed `check` and `tsc`; it is
+  now E0300, and its lowering is G356. `is Array<X>` with `X` unchecked and
+  `is Record<K, V>` are G357.
 
 - **G350. An imported generic record is judged through its module's exports,
   not its declaring module's recorded walk.** A field typed by a record its
@@ -12582,3 +12596,33 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
+
+- **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
+  `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
+  unsupported type"), while `w.P.is(v)` compiles and `import w { P }` with
+  `is P` narrows: the same check, answered by the import's spelling. Through
+  0.1.142 a namespaced generic `is w.Box<int>` in a module that also declared
+  its own `Box` lowered to the local `Box.is` and passed `check` and `tsc`;
+  0.1.143 refuses it with E0300. The fix lowers both forms through the
+  namespace's module to that module's descriptor, judged by the walk the
+  pattern already gets. Not breaking. Found by the 0.1.143 work (record 107).
+
+  *Reproduced against 0.1.141 and the 0.1.143 build by record 107's probes
+  (`/private/tmp/claude-501/linus107/a`, `b`, `d`): `a` prints `wbox` on
+  0.1.141; `b` and `d` are E0300 on both.*
+
+- **G357. `is Record<K, V>` and `is Array<X>` narrow on the container's shape
+  alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
+  "x" }`: the lowering tests only "an object, not an array". `is Array<H>`,
+  with `H` an `extern_ts` type, takes the arm for `[5]`, lowered to
+  `Array.isArray(v)`, while 0.1.143 refuses `is Array<Doc>` when `Doc` has a
+  field with no check. The fix checks every value with `V`'s check, the way
+  `json.parse<Record<K, V>>` does, and refuses with E0304 when `V` or `X` has
+  no check; a container of `unknown` keeps its shape check, which is complete
+  for it. Breaking: such programs go from exit 0 to 1. Found by the 0.1.143
+  work (record 107).
+
+  *Reproduced against 0.1.141 and the 0.1.143 build by record 107's probe
+  `c`: `rec-int` and `arr-h` take their arms on both.*
+
+  Planned for 0.1.145 (record 107).

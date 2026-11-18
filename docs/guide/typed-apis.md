@@ -213,10 +213,9 @@ The same resolution backs `json.parse<T>`, `T.is`, and `is T` narrowing inside a
 both used to fall back to checking that the key was present, which validates
 nothing about the value under it.
 
-One case still falls back: a type imported from a plain `.d.ts` has no
-descriptor to call, so a field typed by one is checked for presence only. Run
-`glyph gen dts <package>` to materialize it as a real Glyph type and the field is
-validated like any other.
+A field typed by a `.d.ts` type has no runtime check, so `parse`/`is`/`schema`
+on its record, an `is` pattern naming it, and `json.parse<T>` are E0304. Run
+`glyph gen dts <package>` to materialize it, and the field is validated.
 
 ## A field that may be null
 

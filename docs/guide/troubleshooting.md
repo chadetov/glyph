@@ -186,9 +186,10 @@ tests too, the same gate `glyph build` uses, so it cannot report a clean tree
 that `build` would fail. Pass `--no-test` when you want the answer without
 executing anything.
 
-**`T.parse` accepts a value I expected it to reject.** A field typed by an
-imported `.d.ts` type is checked for presence only until you materialize that
-type with `glyph gen dts`. Materialize it to get deep, leaf-level validation.
+**`T.parse` accepts a value I expected it to reject.** A field typed by a
+`.d.ts` type has no runtime check, so `parse`/`is`/`schema` on its record, an
+`is` pattern naming it, and `json.parse<T>` are E0304. Run `glyph gen dts
+<package>` to materialize it, and the field is validated.
 
 Still stuck? Open an issue at
 <https://github.com/chadetov/glyph/issues> with the smallest program that

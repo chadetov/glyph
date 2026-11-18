@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-348 entries, 290 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+350 entries, 292 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 39 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12036,7 +12036,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.146 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.148 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12334,7 +12334,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.139: the `o.map(keep)` help names `n.map(...)`,
   and following it is ``E0210 type `Note` has no field `map` ``.*
 
-- **G347. A generic record's own fields get no runtime check.** With `type
+- **G347. [FIXED] A generic record's own fields get no runtime check.** With `type
   Page<T> = { items: Array<T>, h: H }` and `H = extern_ts(...)`,
   `json.parse<Page<User>>`, `Page.parse<User>(v)`, a record field typed
   `Page<User>`, and `json.parse<Page<User>>` on an imported `Page` all return
@@ -12349,7 +12349,18 @@ and is the owner's to confirm.
   probes p1, p5 and p6 (`/private/tmp/claude-501/linus101/`): exit 0, and the
   document above comes back `Ok`.*
 
-- **G348. A tagged union's variant payload with no runtime check is tested
+  Fixed in 0.1.141 (records 101 and 103). A generic record's own fields are
+  walked, type parameters counted as checked, on `json.parse<T>`, `T.parse`,
+  record fields at any depth (inside `Option`, `Nullable`, `Array` or
+  `Record` too) and the sibling hop, and a field with no runtime check is
+  E0304 naming it. A generic declared in the module that applies it is read
+  with that module's resolution, private records included; an imported one is
+  read through its module's exports, so a field typed by a record that module
+  keeps private is refused, though the generic's own check may cover it
+  (G350). Probes p1, p5 and p6 exit 1, and the emitted TypeScript of every
+  program that still compiles is unchanged.
+
+- **G348. [FIXED] A tagged union's variant payload with no runtime check is tested
   for presence only.** With `pub type U = A({ h: H }) | B` and `H =
   extern_ts("{ k: string }")`, `json.parse<U>`, a record field `{ u: U }`,
   `json.parse<Array<U>>` on an imported `U`, a sibling alias `Rows =
@@ -12369,3 +12380,42 @@ and is the owner's to confirm.
   and the generic field `h: U`.*
 
   Planned for 0.1.141 (record 102), together with G347.
+
+  Fixed in 0.1.141 (record 102). A tagged union's variant payload fields are
+  walked like a record's, by the same walk, on `json.parse<T>`,
+  `T.parse`/`T.is`, record fields and the sibling hop, and a payload field
+  with no runtime check is E0304 naming the variant and the field (``field
+  `h` of variant `A` has type `H` ``). Probes u1 to u4 and g7 exit 1.
+
+- **G349. `match v { is T => … }` narrows to a record whose descriptor tests a
+  field for presence only.** With `type H = extern_ts("{ k: string }")` and
+  `type Doc = { h: H }`, `match v { is Doc => … }` takes the `Doc` arm for
+  `{"h": 5}`, while `Doc.is(v)` and `json.parse<Doc>` refuse the same type
+  with E0304: one check, two answers, depending on the spelling. The generic
+  form `is Box`, with `Box<T> = { v: T, h: H }`, compiles too. The fix judges
+  an `is T` pattern with the walk `T.is` uses, records and union payloads
+  included, and refuses with E0304 naming the field. Breaking: such programs
+  go from exit 0 to 1, and `tsc` accepts them. Found by the 0.1.141 work,
+  confirmed by record 103.
+
+  *Reproduced against 0.1.140 and the 0.1.141 build by record 103's probes
+  (`/private/tmp/claude-501/linus103/m1/`, `m2/`): `is Doc` matches
+  `{"h":5}` on both; `Doc.is(v)` is E0304 and `is Box` compiles.*
+
+  Planned for 0.1.143 (record 103).
+
+- **G350. An imported generic record is judged through its module's exports,
+  not its declaring module's recorded walk.** A field typed by a record its
+  module keeps private is refused (E0304, since 0.1.141), though `Page.is`
+  in that module checks it at run time; an imported non-generic record is
+  already judged by the declaring module's recorded walk (`descriptor_walks`)
+  and accepted. The fix records each generic's walk in the project tables,
+  follows it lazily at use time, and makes the sibling hop delegate the same
+  way. Not breaking; the hop's message wording changes. Found by the 0.1.141
+  work (record 103).
+
+  *Reproduced against 0.1.141 (the dev build): record 103's `priv/` is E0304, and
+  0.1.140 runs it correctly (`1.5 Err`, `1 Ok`); `p3/`, the non-generic
+  control, exits 0 on both.*
+
+  Planned for 0.1.144 (record 103).

@@ -61,8 +61,30 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.141</span>
+            <span class="rel-ver">0.1.142</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p>Lint warnings (unused import, unused binding, unreachable code, unreachable module) now show up on a file that has a type error, as long as it parses and its names resolve. Before, they appeared only after the last type error was fixed, so an edit could add an unused binding to a broken file and nothing said so until later. This applies in <code>glyph check</code>, <code>glyph build</code>, the editor and the playground. No exit code changes.</p>
+
+            <p><code>glyph/applyEdit</code> follows the same rule. It now refuses an edit that adds one of those warnings to a file with a type error, and every answer carries <code>stages</code>, the stages that ran on the edited file, so an agent can see when the emitter did not run. An edit that adds a <code>_ =&gt;</code> arm is no longer refused because of import warnings the file already had.</p>
+
+            <p>If an import is unused only because a missing <code>match</code> arm would use it, <code>glyph --explain E0106</code> now says to write the arm rather than delete the import. And when <code>glyph fix</code> declines to rename an arm head, it now names the arm that already handles the case.</p>
+
+            <h3>Breaking</h3>
+            <p>For the applyEdit protocol, as above, and for anything that counts warnings: a file that already fails <code>glyph check</code> can now print more of them. We compared the published 0.1.141 with this build on every <code>.glyph</code> file in the repository and on all 32 example apps: the only differences are 32 added warnings on 27 files that already had a type error. Formatting, builds and the emitted TypeScript are identical.</p>
+
+            <p>Still open: <code>return h() { k: 2 }</code> is read as <code>return h()</code> followed by a block that never runs, and only warns (G351); the playground still shows emitted TypeScript for a file with a type error (G352); and applyEdit refuses an edit that writes one of several missing <code>match</code> arms (G353).</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.141</span>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">November 2026</span>
           </div>

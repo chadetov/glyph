@@ -17462,7 +17462,7 @@ fn f(a: Answer) -> number {
     #[test]
     fn a_record_type_name_in_expression_position_names_the_literal() {
         let errs = ty_errors_of(
-            "module x\ntype Order = {\n  id: string,\n  total: int,\n}\nfn make() -> Order {\n  return Order { id: \"a\", total: 1 }\n}\n",
+            "module x\ntype Order = {\n  id: string,\n  total: int,\n}\nfn make() -> Order {\n  return Order\n}\n",
         );
         let construction =
             has_type_name_as_value(&errs, "Order").unwrap_or_else(|| panic!("errs: {errs:?}"));
@@ -17562,7 +17562,7 @@ fn f(a: Answer) -> number {
         // from `imported_type_decl`, so it does not depend on which file the
         // record was declared in.
         let errs = lib_errors_of(
-            "module x\nimport lib { Point }\nfn make() -> Point {\n  return Point { x: 1 }\n}\n",
+            "module x\nimport lib { Point }\nfn make() -> Point {\n  return Point\n}\n",
         );
         let construction =
             has_type_name_as_value(&errs, "Point").unwrap_or_else(|| panic!("errs: {errs:?}"));

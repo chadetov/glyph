@@ -4,6 +4,8 @@ import lib { Order }
 // The same mistake with the record declared in a sibling. A named import binds
 // one name to whatever the sibling declares, so the diagnostic has to come
 // from the declaration rather than from which file the name was written in.
+// The name is returned on its own: `Order { ... }` on one line is E0013 at
+// parse (G351), before the checker sees the name.
 pub fn make() -> Order {
-  return Order { id: "a", total: 1 }
+  return Order
 }

@@ -1,0 +1,18 @@
+module neg
+
+// G351. Inside a block a statement ends where its expression stops (D1), so
+// `return h() { k: 2 }` was `return h()` followed by an object literal that
+// never ran: exit 0 with an unreachable-code warning, and the function
+// returned `h()`. `h` is not a type, so E0228 never saw it. The `{` is now
+// E0013 at parse.
+type R = {
+  k: int,
+}
+
+fn h() -> R {
+  return { k: 1 }
+}
+
+pub fn make() -> R {
+  return h() { k: 2 }
+}

@@ -403,17 +403,15 @@ fn regen_reports_when_nothing_is_generated() {
 }
 
 #[test]
-fn a_type_name_as_a_value_is_e0228_then_the_split_literal_is_e0108() {
-    // G217, end to end. `Order { ... }` parses as a `return Order` followed by
-    // an object literal, so before E0228 the only thing the compiler said about
-    // this program was that the literal was unreachable, and it exited 0.
-    //
-    // The list is pinned whole. Since 0.1.142 the lint tier runs past a type
-    // error (G313, record 88), so the literal's E0108 comes back after the
-    // E0228. It is true: the parse really does split the braces into a
-    // statement that never runs. That parse is the defect, and G351 makes it a
-    // parse error (record 104); when it lands, this list changes and this test
-    // has to be updated with it.
+fn a_type_name_with_braces_on_its_line_is_e0013_and_nothing_else() {
+    // G217 and G351, end to end. `Order { ... }` used to parse as `return
+    // Order` followed by an object literal: before E0228 the only thing the
+    // compiler said was that the literal was unreachable, and it exited 0.
+    // From 0.1.142 to 0.1.145 it said E0228 and then E0108 on the literal,
+    // both true of that parse (record 104). The parse was the defect, and
+    // since 0.1.146 a `{` on the line where a statement ended is E0013. A
+    // parse error stops the file before the checker and the lints, so the
+    // list is that one error, carrying E0228's guidance.
     let root = unique_tmp("type_name_as_value");
     let src = root.join("src");
     let out = root.join("dist");
@@ -434,9 +432,9 @@ fn a_type_name_as_a_value_is_e0228_then_the_split_literal_is_e0108() {
     let report = build_project_inner(&src, &out, false).expect("build ran");
     assert!(report.has_errors(), "{:?}", report.diagnostics);
     assert!(
-        report.diagnostics.iter().any(|d| d.contains("[E0228]")
-            && d.contains("`Order` is a type, not a value")
-            && d.contains("{ id: ..., total: ... }")),
+        report.diagnostics.iter().any(|d| d.contains("[E0013]")
+            && d.contains("`return Order` ends")
+            && d.contains("no `TypeName { ... }` construction form")),
         "{:?}",
         report.diagnostics
     );
@@ -445,12 +443,7 @@ fn a_type_name_as_a_value_is_e0228_then_the_split_literal_is_e0108() {
         .iter()
         .map(|d| (d.code.as_str(), d.severity.as_str()))
         .collect();
-    assert_eq!(
-        codes,
-        [("E0228", "error"), ("E0108", "warning")],
-        "{:?}",
-        report.diagnostics
-    );
+    assert_eq!(codes, [("E0013", "error")], "{:?}", report.diagnostics);
 }
 
 #[test]

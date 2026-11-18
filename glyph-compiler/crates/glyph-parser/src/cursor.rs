@@ -173,6 +173,23 @@ impl<'a> Cursor<'a> {
         &self.source[start as usize..end as usize]
     }
 
+    /// Whether a line break lies between the token just consumed and the
+    /// current one. The lexer drops newlines inside brackets (D1), so a block
+    /// carries no `Newline` tokens between its statements and the source is
+    /// the only record of where one line ended. A `//` comment in the gap
+    /// runs to the end of its line, so it always comes with a break. At the
+    /// start of the file there is no token before, which counts as a break.
+    pub fn line_break_before_current(&mut self) -> bool {
+        let start = self.peek_span().start;
+        match self.pos.checked_sub(1) {
+            Some(prev) => {
+                let end = self.buf[prev].token.span.end;
+                self.slice(end, start).contains('\n')
+            }
+            None => true,
+        }
+    }
+
     /// Scan the JSX text run that starts right after the token just consumed,
     /// a tag's `>` or an `{expr}` child's `}` (D6, record 85).
     ///

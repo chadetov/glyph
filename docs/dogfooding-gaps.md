@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-363 entries, 295 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-49 are open. G144, the D28 boundary cast that never reached the returns a
+363 entries, 296 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+48 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12560,7 +12560,7 @@ and is the owner's to confirm.
   now E0300, and its lowering is G356. `is Array<X>` with `X` unchecked and
   `is Record<K, V>` are G357.
 
-- **G350. An imported generic record is judged through its module's exports,
+- **G350. [FIXED] An imported generic record is judged through its module's exports,
   not its declaring module's recorded walk.** A field typed by a record its
   module keeps private is refused (E0304, since 0.1.141), though `Page.is`
   in that module checks it at run time; an imported non-generic record is
@@ -12575,6 +12575,15 @@ and is the owner's to confirm.
   control, exits 0 on both.*
 
   Planned for 0.1.144 (record 103).
+
+  Fixed in 0.1.144 (record 103). Each module records the walk of every
+  generic record it declares, private ones included, in the project tables
+  beside the record walks, type parameters counted as checked, and an
+  application (the sibling hop included) is followed by that walk when a use
+  is judged. Record 103's `priv` is accepted and validates (`1.5 Err`, `1
+  Ok`, `meta5 Err`); `p2` is still E0304, now naming `` `Page`'s field
+  `meta.h` has type `H` `` instead of `Meta`'s privacy. Measured against
+  0.1.143: no differences over the tracked corpus and the 32 apps.
 
 - **G354. A generic type argument through a namespace is refused though every
   field can be checked.** `json.parse<m.Box<int>>` with `import model as m`,

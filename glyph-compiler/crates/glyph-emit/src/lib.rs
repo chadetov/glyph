@@ -165,8 +165,9 @@ pub struct GenericFieldName {
     /// that is where the application was reached; `None` for one written
     /// in this module or reached through a record's field.
     pub alias: Option<String>,
-    /// The generic record whose field it is.
+    /// The generic record whose field it is, and the module that declares it.
     pub generic: String,
+    pub module: String,
     /// The field, and its type as the declaring module spells it.
     pub field: String,
     pub field_ty: String,
@@ -225,15 +226,37 @@ impl NoCheckCause {
 }
 
 impl NoCheckCause {
+    /// Whether this is a field of an imported generic whose type names
+    /// something the generic's own module keeps private: the field is not
+    /// shown to have no check, only not judged from outside that module,
+    /// which reads the generic through its exports (G350).
+    fn is_private_in_generic_home(&self) -> bool {
+        let NoCheckCause::GenericField(g) = self else {
+            return false;
+        };
+        matches!(&g.cause, NoCheckCause::SiblingAlias(s)
+            if s.reach == SiblingReach::Private && s.module == g.module)
+    }
+
     /// For a generic's field: the clause naming the alias, the generic, the
     /// field and why the field has no check.
     fn generic_field_clause(&self) -> Option<String> {
         let NoCheckCause::GenericField(g) = self else {
             return None;
         };
-        let GenericFieldName { alias, generic, field, field_ty, cause, variant } = g.as_ref();
+        let GenericFieldName { alias, generic, module, field, field_ty, cause, variant } = g.as_ref();
         let field = format!("`{field}`{}", of_variant(variant.as_deref()));
         let why = match cause {
+            // Read through the generic's module's exports, a name it keeps
+            // private cannot be judged here, though the generic's own check
+            // in that module may cover it (G350).
+            _ if self.is_private_in_generic_home() => {
+                let NoCheckCause::SiblingAlias(s) = cause else { unreachable!() };
+                format!(
+                    "and `{name}` is private to `{module}`: an imported generic is read only through what `{module}` exports, so the field cannot be judged here, though `{generic}`'s own check in `{module}` may check it",
+                    name = s.name
+                )
+            }
             NoCheckCause::Interface => "which is an interface and has no descriptor".to_string(),
             NoCheckCause::Result => "which is a `Result` and has no runtime check".to_string(),
             NoCheckCause::GenericUnion => "which is a generic union and has no descriptor".to_string(),
@@ -372,7 +395,12 @@ macro_rules! generic_union_note {
 }
 macro_rules! generic_field_note {
     () => {
-        "Here a generic record is judged field by field in the module that declares it, its type parameters checked by the type arguments. Its descriptor would test a field whose own type has no runtime check for presence only, so the application is refused. Give the field a type with a check, or parse a type without it."
+        "Here a generic record is judged field by field, its type parameters checked by the type arguments: one this module declares through this module's own reading of its fields, one imported from another module through what that module exports. Its descriptor would test a field whose own type has no runtime check for presence only, so the application is refused. Give the field a type with a check, or parse a type without it."
+    };
+}
+macro_rules! private_generic_field_note {
+    () => {
+        "Here the generic record is imported, and this module reads it only through what its module exports. A field whose type that module keeps private cannot be judged from here, though the generic's own check in its module may check it, so the application is refused rather than trusted. Mark that type `pub` in the generic's module, or take a `Schema<T>` and read with `json.parse_with(text, schema)`. Judging the field through the declaring module's own walk is G350."
     };
 }
 macro_rules! sibling_alias_note {
@@ -511,6 +539,18 @@ impl EmitError {
     /// A one-line, actionable fix.
     pub fn help(&self) -> Option<&'static str> {
         match self {
+            // A field of an imported generic naming a type its module keeps
+            // private: the field may well be checked there, and the fix is
+            // to let this module read it, not to split the type (G350).
+            EmitError::UnverifiableDescriptorUse { cause, .. }
+            | EmitError::UnverifiableJsonParse { cause, .. }
+            | EmitError::UnverifiableGenericUse { cause, .. }
+                if cause.is_private_in_generic_home() =>
+            {
+                Some(
+                    "Mark the private type `pub` in the module that declares the generic, or take a `Schema<T>` and read with `json.parse_with(text, schema)`.",
+                )
+            }
             EmitError::Unsupported { .. } => {
                 Some("Rewrite using a construct the v1 emitter supports; see the spec for the supported forms.")
             }
@@ -563,6 +603,9 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
+                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
+                    concat!(descriptor_use_note_lead!(), private_generic_field_note!())
+                }
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
             }),
             EmitError::UnverifiableJsonParse { cause, .. } => Some(match cause {
@@ -571,9 +614,15 @@ impl EmitError {
                 NoCheckCause::Result => concat!(json_parse_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(json_parse_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(json_parse_note_lead!(), sibling_alias_note!()),
+                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
+                    concat!(json_parse_note_lead!(), private_generic_field_note!())
+                }
                 NoCheckCause::GenericField(_) => concat!(json_parse_note_lead!(), generic_field_note!()),
             }),
             EmitError::UnverifiableGenericUse { cause, .. } => Some(match cause {
+                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
+                    concat!(descriptor_use_note_lead!(), private_generic_field_note!())
+                }
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
                 NoCheckCause::Opaque => concat!(descriptor_use_note_lead!(), "Here the generic record's declaration cannot be read from this module."),
                 NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
@@ -587,6 +636,9 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
+                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
+                    concat!(descriptor_use_note_lead!(), private_generic_field_note!())
+                }
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
             }),
         }
@@ -5566,6 +5618,7 @@ impl<'a> Emitter<'a> {
                 NoCheckCause::GenericField(Box::new(GenericFieldName {
                     alias: alias.clone(),
                     generic: name.to_string(),
+                    module: module.to_string(),
                     field,
                     field_ty,
                     cause,

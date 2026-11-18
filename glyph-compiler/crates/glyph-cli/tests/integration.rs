@@ -17512,53 +17512,256 @@ fn an_imported_generic_record_with_an_unchecked_field_of_its_own_is_refused() {
     }
 }
 
-/// An imported generic is judged through the declarations its module
-/// exports, so a field typed by a record that module keeps private is
-/// refused: from here a private record that is checked (`priv`) and one
-/// whose own descriptor tests a field for presence only (`p2`) look the
-/// same (record 103). The message says the field cannot be judged from
-/// here, not that it has no check, and names the fix. Marking the record
-/// `pub` lets the walk read it: `priv` then validates and `p2` is refused
-/// for the field that is unchecked. A generic declared in the module that
-/// applies it reads its private records and validates. Judging the field
-/// through the declaring module's own walk is G350.
-#[test]
-fn an_imported_generic_with_a_private_record_field_is_refused_where_a_local_one_validates() {
-    let main_check = "module main\nimport std/json\nimport model { Page, User }\npub fn read(s: string) -> bool {\n  return match json.parse<Page<User>>(s) { Ok(_) => true, Err(_) => false, }\n}\n";
-    let private = "`Page`'s field `meta` has type `Meta`, and `Meta` is private to `model`: an imported generic is read only through what `model` exports, so the field cannot be judged here, though `Page`'s own check in `model` may check it";
-    let models = [
-        ("priv", "module model\ntype Meta = { n: int, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n"),
-        ("p2", "module model\ntype H = extern_ts(\"{ k: string }\")\ntype Meta = { h: H, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n"),
-    ];
-    for (dir, model) in models {
-        let root = unique_tmp(&format!("g347-private-imported-{dir}"));
-        let src = root.join("src");
-        write_file(&src, "model.glyph", model);
-        write_file(&src, "main.glyph", main_check);
-        let (code, stderr) = check_no_tsc(&src);
-        assert_ne!(code, 0, "{dir}: {stderr}");
-        assert!(stderr.contains(private), "{dir}: {stderr}");
-        assert!(stderr.contains("Help: Mark the private type `pub`"), "{dir}: {stderr}");
-        assert!(stderr.contains("G350"), "{dir}: {stderr}");
-    }
+/// Record 103's `priv` model: `Page`'s field `meta` is typed by a record
+/// `model` keeps private, and that record checks every field.
+const G350_PRIV: &str = "module model\ntype Meta = { n: int, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n";
 
-    // `pub` on `Meta`: `p2`'s hole is named for what it is.
-    let root = unique_tmp("g347-private-imported-p2-pub");
+/// Record 103's `p2` model: the private record's own field is an
+/// `extern_ts` type, so `Meta.is` tests it for presence only.
+const G350_P2: &str = "module model\ntype H = extern_ts(\"{ k: string }\")\ntype Meta = { h: H, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n";
+
+/// A sibling whose alias applies `model`'s `Page`: the generic hop.
+const G350_ROWS: &str = "module rows\nimport model { Page, User }\npub type Rows = Page<User>\n";
+
+/// Every path that trusts `Page<User>`'s descriptor, as a function from a
+/// `Page` document to the arm taken: `(name, declarations, body)`. The
+/// document is wrapped where the path reads `Page` inside something else.
+fn g350_paths() -> Vec<(&'static str, &'static str, &'static str)> {
+    vec![
+        ("json-parse", "", "return match json.parse<Page<User>>(s) { Ok(_) => \"Ok\", Err(_) => \"Err\", }"),
+        ("namespace", "", "return match json.parse<m.Page<m.User>>(s) { Ok(_) => \"Ok\", Err(_) => \"Err\", }"),
+        (
+            "descriptor-parse",
+            "",
+            "return match json.parse<unknown>(s) {\n    Ok(v) => match Page.parse<User>(v) { Ok(_) => \"Ok\", Err(_) => \"Err\", },\n    Err(_) => \"bad json\",\n  }",
+        ),
+        (
+            "record-field",
+            "type Doc = { p: Page<User>, }\n",
+            "return match json.parse<Doc>(\"{\\\"p\\\": ${s}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", }",
+        ),
+        (
+            "option-field",
+            "type Opt = { p: Option<Page<User>>, }\n",
+            "return match json.parse<Opt>(\"{\\\"p\\\": {\\\"tag\\\": \\\"Some\\\", \\\"value\\\": ${s}}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", }",
+        ),
+        ("array", "", "return match json.parse<Array<Page<User>>>(\"[${s}]\") { Ok(_) => \"Ok\", Err(_) => \"Err\", }"),
+        (
+            "record",
+            "",
+            "return match json.parse<Record<string, Page<User>>>(\"{\\\"k\\\": ${s}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", }",
+        ),
+        ("hop", "", "return match json.parse<Rows>(s) { Ok(_) => \"Ok\", Err(_) => \"Err\", }"),
+        (
+            "hop-field",
+            "type HopDoc = { r: Rows, }\n",
+            "return match json.parse<HopDoc>(\"{\\\"r\\\": ${s}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", }",
+        ),
+        (
+            "type-argument",
+            "type Box<T> = { v: T, }\n",
+            "return match json.parse<unknown>(\"{\\\"v\\\": ${s}}\") {\n    Ok(v) => match Box.parse<Page<User>>(v) { Ok(_) => \"Ok\", Err(_) => \"Err\", },\n    Err(_) => \"bad json\",\n  }",
+        ),
+        (
+            "is-pattern",
+            "",
+            "return match json.parse<unknown>(s) {\n    Ok(v) => match v { is Page<User> => \"Ok\", _ => \"Err\", },\n    Err(_) => \"bad json\",\n  }",
+        ),
+    ]
+}
+
+/// A `main` module holding the paths given, each as `pub fn <name>(s)`,
+/// with a `main` that prints each path's arm for each document.
+fn g350_main(paths: &[(&str, &str, &str)], docs: &[&str]) -> String {
+    let mut out = String::from(
+        "module main\nimport std/io { println }\nimport std/json\nimport model { Page, User }\nimport model as m\nimport rows { Rows }\n",
+    );
+    for (_, decls, _) in paths {
+        out.push_str(decls);
+    }
+    for (name, _, body) in paths {
+        out.push_str(&format!("pub fn read_{}(s: string) -> string {{\n  {body}\n}}\n", name.replace('-', "_")));
+    }
+    out.push_str("fn main() {\n");
+    for doc in docs {
+        out.push_str(&format!("  let d{} = \"{doc}\"\n", out.matches("let d").count()));
+    }
+    for (name, _, _) in paths {
+        for i in 0..docs.len() {
+            out.push_str(&format!("  println(read_{}(d{i}))\n", name.replace('-', "_")));
+        }
+    }
+    out.push_str("}\n");
+    out
+}
+
+/// G350: an imported generic is judged by its declaring module's recorded
+/// walk, as an imported record is. Record 103's `priv`: `Page`'s field is
+/// typed by a record `model` keeps private, and that record checks every
+/// field, so `Page<User>` is accepted on every path that trusts its
+/// descriptor and validates at run time: a good document is `Ok`, one that
+/// breaks the private record's field (`n: 1.5` for an `int`) or the
+/// argument's (`{"id": "x"}`) is `Err`. From 0.1.141 to 0.1.143 each of
+/// these was E0304, "`Meta` is private to `model`".
+#[test]
+fn an_imported_generic_with_a_checked_private_record_field_validates_on_every_path() {
+    let good = "{\\\"items\\\": [{\\\"id\\\": 1}], \\\"meta\\\": {\\\"n\\\": 1}}";
+    let bad_private = "{\\\"items\\\": [{\\\"id\\\": 1}], \\\"meta\\\": {\\\"n\\\": 1.5}}";
+    let bad_arg = "{\\\"items\\\": [{\\\"id\\\": \\\"x\\\"}], \\\"meta\\\": {\\\"n\\\": 1}}";
+    let paths = g350_paths();
+    let root = unique_tmp("g350-priv");
     let src = root.join("src");
-    write_file(&src, "model.glyph", &models[1].1.replace("type Meta", "pub type Meta").replace("type H", "pub type H"));
-    write_file(&src, "main.glyph", main_check);
+    write_file(&src, "model.glyph", G350_PRIV);
+    write_file(&src, "rows.glyph", G350_ROWS);
+    write_file(&src, "main.glyph", &g350_main(&paths, &[good, bad_private, bad_arg]));
+    let (code, stderr) = check_no_tsc(&src);
+    assert_eq!(code, 0, "{stderr}");
+    let lines = run_main_lines(&src);
+    let expected: Vec<&str> = paths.iter().flat_map(|_| ["Ok", "Err", "Err"]).collect();
+    assert_eq!(lines, expected, "one Ok, Err, Err per path, in the order {:?}", paths.iter().map(|p| p.0).collect::<Vec<_>>());
+}
+
+/// G350's other half: record 103's `p2`, where the private record's own
+/// field has no runtime check. Judged by `model`'s walk, every path is
+/// still refused, and the message names the field that is unchecked
+/// (`meta.h`, an `extern_ts` type) rather than the record being private.
+/// The hop names the alias whose body applies `Page`.
+#[test]
+fn an_imported_generic_with_an_unchecked_private_record_field_is_refused_for_that_field() {
+    let field = "`Page`'s field `meta.h` has type `H`, which has no runtime check";
+    for path in g350_paths() {
+        let root = unique_tmp(&format!("g350-p2-{}", path.0));
+        let src = root.join("src");
+        write_file(&src, "model.glyph", G350_P2);
+        write_file(&src, "rows.glyph", G350_ROWS);
+        let main = g350_main(&[path], &[]);
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{}: the hole must be refused:\n{main}\n{stderr}", path.0);
+        assert!(stderr.contains("[E0304]"), "{}: {stderr}", path.0);
+        let expected = if path.0.starts_with("hop") {
+            format!("`Rows`'s body applies {}", field.replacen("`Page`'s field", "`Page`, whose field", 1))
+        } else {
+            field.to_string()
+        };
+        assert!(stderr.contains(&expected), "{}: the message names `{expected}`:\n{stderr}", path.0);
+        assert!(!stderr.contains("is private to"), "{}: the cause is the field, not privacy:\n{stderr}", path.0);
+        assert!(!stderr.contains("G350"), "{}: {stderr}", path.0);
+    }
+}
+
+/// A private field of an imported generic that is itself a generic, and
+/// one nested across three modules: each is judged by the walks its
+/// modules recorded. Checkable, the generic validates at run time;
+/// with an `extern_ts` field at the bottom, it is refused naming that
+/// field.
+#[test]
+fn an_imported_generic_is_judged_through_private_generics_and_nested_modules() {
+    let main = |t: &str, docs: [&str; 3]| {
+        format!(
+            "module main\nimport std/io {{ println }}\nimport std/json\nimport model {{ Page, User }}\nfn main() {{\n{}}}\n",
+            docs.iter()
+                .map(|d| format!("  println(match json.parse<{t}>(\"{d}\") {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }})\n"))
+                .collect::<String>()
+        )
+    };
+    // `Page`'s field applies a generic `model` keeps private.
+    let generic_meta = "module model\ntype Meta<T> = { v: T, n: int, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta<T>, }\n";
+    let root = unique_tmp("g350-private-generic");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", generic_meta);
+    write_file(
+        &src,
+        "main.glyph",
+        &main(
+            "Page<User>",
+            [
+                "{\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"id\\\": 1}, \\\"n\\\": 1}}",
+                "{\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"id\\\": 1}, \\\"n\\\": 1.5}}",
+                "{\\\"items\\\": [], \\\"meta\\\": {\\\"v\\\": {\\\"id\\\": \\\"x\\\"}, \\\"n\\\": 1}}",
+            ],
+        ),
+    );
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err", "Err"]);
+    let root = unique_tmp("g350-private-generic-hole");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "model.glyph",
+        "module model\ntype H = extern_ts(\"{ k: string }\")\ntype Meta<T> = { v: T, h: H, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta<T>, }\n",
+    );
+    write_file(&src, "main.glyph", &main("Page<User>", ["{}", "{}", "{}"]));
     let (code, stderr) = check_no_tsc(&src);
     assert_ne!(code, 0, "{stderr}");
-    assert!(stderr.contains("`Page`'s field `meta.h` has type `H`, which has no runtime check"), "{stderr}");
+    assert!(stderr.contains("`Meta`'s field `h` has type `H`, which has no runtime check"), "{stderr}");
 
-    // `pub` on `Meta`: `priv` validates.
-    let run_main = "module main\nimport std/io { println }\nimport std/json\nimport model { Page, User }\nfn main() {\n  println(match json.parse<Page<User>>(\"{\\\"items\\\": [{\\\"id\\\": 1}], \\\"meta\\\": {\\\"n\\\": 1}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", })\n  println(match json.parse<Page<User>>(\"{\\\"items\\\": [], \\\"meta\\\": {\\\"n\\\": 1.5}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", })\n}\n";
-    let root = unique_tmp("g347-private-imported-priv-pub");
+    // Nested: `Page<Page<User>>`, whose private `Meta` holds a record of a
+    // third module, `base`.
+    let base = |inner: &str| format!("module base\npub type H = extern_ts(\"{{ k: string }}\")\npub type Inner = {{ {inner} }}\n");
+    let model = "module model\nimport base { Inner }\ntype Meta = { i: Inner, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n";
+    let root = unique_tmp("g350-nested");
     let src = root.join("src");
-    write_file(&src, "model.glyph", &models[0].1.replace("type Meta", "pub type Meta"));
-    write_file(&src, "main.glyph", run_main);
-    assert_eq!(run_main_lines(&src), vec!["Ok", "Err"]);
+    write_file(&src, "base.glyph", &base("n: int,"));
+    write_file(&src, "model.glyph", model);
+    let outer = |n: &str, id: &str| {
+        format!("{{\\\"items\\\": [{{\\\"items\\\": [{{\\\"id\\\": {id}}}], \\\"meta\\\": {{\\\"i\\\": {{\\\"n\\\": 1}}}}}}], \\\"meta\\\": {{\\\"i\\\": {{\\\"n\\\": {n}}}}}}}")
+    };
+    let (good, bad_n, bad_id) = (outer("1", "1"), outer("1.5", "1"), outer("1", "\\\"x\\\""));
+    write_file(&src, "main.glyph", &main("Page<Page<User>>", [&good, &bad_n, &bad_id]));
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err", "Err"]);
+    let root = unique_tmp("g350-nested-hole");
+    let src = root.join("src");
+    write_file(&src, "base.glyph", &base("h: H,"));
+    write_file(&src, "model.glyph", model);
+    write_file(&src, "main.glyph", &main("Page<Page<User>>", ["{}", "{}", "{}"]));
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(stderr.contains("`Page`'s field `meta.i.h` has type `H`, which has no runtime check"), "{stderr}");
+}
 
+/// Two generics of two modules that apply each other: following one's
+/// recorded walk into the other and back ends, as a recursive generic of
+/// one module does, and the pair validates at run time. With an unchecked
+/// field in the second, the first is refused for it.
+#[test]
+fn a_cycle_of_generics_across_modules_is_judged_and_ends() {
+    let b = |extra: &str| {
+        format!("module b\nimport a {{ A }}\ntype H = extern_ts(\"{{ k: string }}\")\ntype Priv = {{ n: int, }}\npub type B<T> = {{ w: T, p: Priv, a: Option<A<T>>, {extra}}}\n")
+    };
+    let a = "module a\nimport b { B }\npub type A<T> = { v: T, b: Option<B<T>>, }\n";
+    // An `Option` is held as `{"tag": "Some", "value": …}` or `{"tag": "None"}`.
+    let doc = |n: &str, w: &str| {
+        format!("{{\\\"v\\\": 1, \\\"b\\\": {{\\\"tag\\\": \\\"Some\\\", \\\"value\\\": {{\\\"w\\\": {w}, \\\"p\\\": {{\\\"n\\\": {n}}}, \\\"a\\\": {{\\\"tag\\\": \\\"Some\\\", \\\"value\\\": {{\\\"v\\\": 4, \\\"b\\\": {{\\\"tag\\\": \\\"None\\\"}}}}}}}}}}}}")
+    };
+    let main = format!(
+        "module main\nimport std/io {{ println }}\nimport std/json\nimport a {{ A }}\nfn main() {{\n{}}}\n",
+        [doc("3", "2"), doc("3.5", "2"), doc("3", "2.5")]
+            .iter()
+            .map(|d| format!("  println(match json.parse<A<int>>(\"{d}\") {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }})\n"))
+            .collect::<String>()
+    );
+    let main = main.as_str();
+    let root = unique_tmp("g350-cycle");
+    let src = root.join("src");
+    write_file(&src, "a.glyph", a);
+    write_file(&src, "b.glyph", &b(""));
+    write_file(&src, "main.glyph", main);
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err", "Err"]);
+    let root = unique_tmp("g350-cycle-hole");
+    let src = root.join("src");
+    write_file(&src, "a.glyph", a);
+    write_file(&src, "b.glyph", &b("h: H, "));
+    write_file(&src, "main.glyph", main);
+    let (code, stderr) = check_no_tsc(&src);
+    assert_ne!(code, 0, "{stderr}");
+    assert!(stderr.contains("`B`'s field `h` has type `H`, which has no runtime check"), "{stderr}");
+}
+
+/// A generic declared in the module that applies it reads its private
+/// records with that module's own resolution, as an imported one now
+/// does through its module's walk: both validate.
+#[test]
+fn a_local_generic_with_a_private_record_field_validates() {
     let root = unique_tmp("g347-private-local");
     let src = root.join("src");
     write_file(
@@ -17983,8 +18186,7 @@ fn an_is_pattern_is_judged_by_the_walk_its_descriptor_uses() {
         pub type Outer = { d: Doc, }\n\
         pub type Box<T> = { v: T, h: H, }\n\
         pub type Page<T> = { items: Array<T>, }\n\
-        type Priv = { n: int, }\n\
-        pub type Gp<T> = { v: T, p: Priv, }\n";
+";
     let pattern = |pat: &str| {
         format!("pub fn read(v: unknown) -> bool {{\n  return match v {{ is {pat} => true, _ => false, }}\n}}\n")
     };
@@ -18056,16 +18258,6 @@ fn an_is_pattern_is_judged_by_the_walk_its_descriptor_uses() {
             pattern("m.Page<m.U>"),
             Some(parse_call("m.Page", "m.U")),
             u_h,
-        ),
-        // 0.1.141's refusal of an imported generic with a field typed by a
-        // record its module keeps private, here a checkable one: the same
-        // words `Gp.parse<int>(v)` gets, until G350 lifts both.
-        (
-            "imported-generic-private-field",
-            "import model { Gp }\n",
-            pattern("Gp<int>"),
-            Some(parse_call("Gp", "int")),
-            "and `Priv` is private to `model`",
         ),
     ];
     for (dir, imports, body, call, expected) in cases {

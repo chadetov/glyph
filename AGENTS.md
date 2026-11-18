@@ -840,9 +840,9 @@ each `items` entry is checked as a `User`, not just for presence. The `is`
 pattern works the same: `match v { is Paginated<User> => ..., else => ... }`.
 The compiler synthesizes the per-parameter checker at the call site, so the type
 argument must be given explicitly. A generic descriptor omits the `.schema`
-member. Scope today: descriptors cover non-generic and generic record types;
-tagged unions and imported/`.d.ts` types don't get one (materialize an imported
-type with `glyph gen dts` to give it one). A `.d.ts` (or OpenAPI) discriminated
+member. Scope today: descriptors cover records, generic records and
+non-generic tagged unions; a generic union and an imported `.d.ts` type don't
+get one (materialize an imported type with `glyph gen dts` to give it one). A `.d.ts` (or OpenAPI) discriminated
 union (`{ kind: "a"; ... } | { kind: "b"; ... }`) materializes as a tagged union
 of generated variant records plus a `parse_<Name>(v)` dispatcher that reads the
 tag and validates into the right variant.

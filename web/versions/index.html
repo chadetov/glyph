@@ -61,8 +61,28 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.144</span>
+            <span class="rel-ver">0.1.145</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <span class="rel-date">November 2026</span>
+          </div>
+          <div class="rel-body">
+            <p><code>is Record&lt;K, V&gt;</code> and <code>is Array&lt;X&gt;</code> now check what the container holds. Before, <code>match v { is Record&lt;string, int&gt; =&gt; … }</code> took the arm for any object, including <code>{"a": "x"}</code>, and <code>is Array&lt;int&gt;</code> took it for any array. Now every value or element is checked against <code>V</code> or <code>X</code>, at any depth. A pattern whose part type has no runtime check, such as <code>is Array&lt;H&gt;</code> with <code>H</code> an <code>extern_ts</code> type, is E0304. <code>is Record&lt;string, unknown&gt;</code> and <code>is Array&lt;unknown&gt;</code> work as before.</p>
+
+            <p>While doing this we found that a generic named through an import alias, like <code>w.Box&lt;int&gt;</code>, was checked against a different <code>Box</code> when the module declared its own. <code>json.parse&lt;w.Box&lt;int&gt;&gt;</code> compiled, rejected a real <code>w.Box</code> value and accepted a local one. That is now E0304. When the bare name refers to the same generic (<code>m.Page&lt;m.User&gt;</code> beside <code>import model { Page, User }</code>), it is still checked as before.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran 0.1.144 and this build on each affected shape. Patterns over a part with no runtime check, and the mislabelled namespaced generics, went from exit 0 to 1, with and without <code>tsc</code>. Some programs still compile but now behave differently at run time: a value that does not match the declared element or value type falls through to the next arm instead of taking this one. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are identical to 0.1.144.</p>
+
+            <p>A record's keys are not checked yet, here or by <code>json.parse</code>: <code>Record&lt;Tier, int&gt;</code> accepts a key outside <code>Tier</code>. That is 0.1.148.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.144</span>
             <span class="rel-date">November 2026</span>
           </div>
           <div class="rel-body">
@@ -402,7 +422,7 @@ pub fn first(xs: Array&lt;number&gt;) -&gt; number {
 
 let user = read&lt;User&gt;("42")   // Ok, and then a crash</pre>
             </div>
-            <p>That program passed <code>glyph check</code> and <code>tsc</code> in 0.1.132 and crashed on the first field read. The emitter wrote <code>json.parse(s)</code> with no type argument, and <code>tsc</code> inferred <code>T</code> from the return type, which made the unchecked read a cast with no <code>as</code> anywhere. A call with no type argument is now emitted as <code>json.parse&lt;unknown&gt;(s)</code>, so <code>tsc</code> refuses it there, at a <code>let</code> annotated <code>Result&lt;User, ...&gt;</code>, at an argument and in a record field. <code>glyph check --no-tsc</code> does not refuse an <code>unknown</code> value where another type is declared yet; that is 0.1.152.</p>
+            <p>That program passed <code>glyph check</code> and <code>tsc</code> in 0.1.132 and crashed on the first field read. The emitter wrote <code>json.parse(s)</code> with no type argument, and <code>tsc</code> inferred <code>T</code> from the return type, which made the unchecked read a cast with no <code>as</code> anywhere. A call with no type argument is now emitted as <code>json.parse&lt;unknown&gt;(s)</code>, so <code>tsc</code> refuses it there, at a <code>let</code> annotated <code>Result&lt;User, ...&gt;</code>, at an argument and in a record field. <code>glyph check --no-tsc</code> does not refuse an <code>unknown</code> value where another type is declared yet; that is 0.1.153.</p>
             <p><code>json.parse&lt;T&gt;</code> with a <code>T</code> nothing can check at run time is E0304: a type parameter, an <code>extern_ts</code> or package type, an interface, <code>Result</code>, a generic union, an <code>Option</code>, <code>Nullable</code> or <code>Record</code> of one, or a generic record applied to one (<code>Pair&lt;Shape&gt;</code>, whose check tested <code>a</code> only for being there). The note says which. A container of <code>unknown</code> is checked by its shape, so <code>json.parse&lt;Array&lt;unknown&gt;&gt;("{}")</code> is an <code>Err</code>. An <code>Array</code> alias imported from another module validates when its body names types that module declares. If it names one the module imports, that is E0304 for now. It used to look the name up in your module, and validate against your own <code>User</code> if you had one. Assigning <code>json.parse</code> to a variable gives you the unchecked read: <code>let p = json.parse</code> takes no type arguments.</p>
 
             <h3><code>?.</code> on an <code>Option</code> or a <code>Result</code></h3>

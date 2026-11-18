@@ -16,7 +16,7 @@ pub const RELATIVE_IMPORT_HELP: &str = "Name the module from the source root, no
 
 /// The help for E0013 (G351). It carries G217's guidance, because the most
 /// common way to reach it is the TypeScript-adjacent `Order { ... }`.
-const BRACE_AFTER_STATEMENT_HELP: &str = "The braces are not part of the value before them: read as written, they would be a separate statement after it. Glyph has no `TypeName { ... }` construction form. Write the literal alone and put the type on the annotation: `let o: Order = { id: \"a\" }`, or `return { id: \"a\" }` in a function declared `-> Order`. If the braces are meant to be a statement of their own, start them on a new line.";
+const BRACE_AFTER_STATEMENT_HELP: &str = "The braces are not part of the value before them: read as written, they would be a separate statement after it. Glyph has no `TypeName { ... }` construction form. Write the literal alone and put the type on the annotation: `let o: Order = { id: \"a\" }`, or `return { id: \"a\" }` in a function declared `-> Order`. An object literal on its own line does nothing, so if the braces are not meant to be the value, remove them.";
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {

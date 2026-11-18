@@ -5288,7 +5288,13 @@ impl<'a> Emitter<'a> {
                     // cross-module `is` narrows the same way `parse` does rather
                     // than hard-erroring. A user's own `Record<K, V>` or
                     // `Array<T>` lands here, since its shape is `Other`.
-                    (_, Some(gname)) if self.generic_descriptor_arity(gname) > 0 => {
+                    // Only a bare name: `generic_descriptor_arity` resolves it
+                    // in this module's scope, so `is w.Box<int>` would run a
+                    // local `Box`'s check under `w.Box`'s name. A namespaced
+                    // generic has no lowering yet (G356) and is E0300.
+                    (_, Some(gname))
+                        if segments.len() == 1 && self.generic_descriptor_arity(gname) > 0 =>
+                    {
                         // A type argument with no check of its own would get
                         // the presence floor, and `is Pair<Shape>` narrowed
                         // `{ a: 5 }`; such a pattern is refused instead.

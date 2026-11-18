@@ -18177,3 +18177,33 @@ fn an_is_pattern_whose_descriptor_checks_every_field_still_narrows() {
         assert_eq!(run_main_lines(&src), vec!["yes", "no"], "{dir}:\n{main}");
     }
 }
+
+/// A namespaced generic `is w.Box<int>` has no lowering (G356), and is
+/// E0300 whether or not this module declares a `Box` of its own. Through
+/// 0.1.142 the lowering looked the generic up by its last segment, so with
+/// a local `Box` the pattern ran the local `Box.is` under `w.Box`'s name:
+/// `{ v: 1 }` took the `w.Box` arm, and `check` and `tsc` both passed
+/// (record 107). The judgment still runs first, so a namespaced generic
+/// with an unchecked field is E0304 (above).
+#[test]
+fn a_namespaced_generic_is_pattern_has_no_lowering() {
+    let w = "module w\npub type Box<T> = { v: T, k: string, }\n";
+    let body = |import: &str, local: &str, pat: &str| {
+        format!(
+            "module main\n{import}\n{local}pub fn read(v: unknown) -> bool {{\n  return match v {{ is {pat} => true, _ => false, }}\n}}\n"
+        )
+    };
+    for (dir, main) in [
+        ("local-box", body("import w", "type Box<T> = { v: T, }\n", "w.Box<int>")),
+        ("no-local-box", body("import w", "", "w.Box<int>")),
+        ("aliased", body("import w as m", "type Box<T> = { v: T, }\n", "m.Box<int>")),
+    ] {
+        let root = unique_tmp(&format!("g356-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "w.glyph", w);
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("[E0300]"), "{dir}: E0300:\n{stderr}");
+    }
+}

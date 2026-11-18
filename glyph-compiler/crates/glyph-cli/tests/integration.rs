@@ -18607,3 +18607,142 @@ fn a_namespaced_generic_is_checked_only_when_its_bare_name_is_the_same_generic()
     assert_eq!(code, 1, "refused, not checked with `other`'s `Page`:\n{main}\n{stderr}");
     assert!(stderr.contains("[E0304]"), "{stderr}");
 }
+
+/// G362: an `is` pattern whose type, or any part of it, is a type parameter
+/// of the enclosing callable is E0304, the rule `json.parse<T>` has. A type
+/// parameter is erased at run time, so there is nothing to check. The name
+/// is read by scope, so inside `fn h<Doc>` the pattern `is Doc` names the
+/// parameter even beside a module-level `type Doc`; through 0.1.145 it
+/// lowered to that record's `Doc.is(v)` while the checker narrowed `v` to
+/// the parameter, so `check --no-tsc` exited 0 and the program crashed or,
+/// in part position (`is Array<T>`), passed full `check` and checked the
+/// elements against the record (records 108 and 111). With no record of the
+/// same name the bare `is T` was E0300 and `is Array<T>` already E0304; both
+/// read the same as the shadowed forms now.
+#[test]
+fn an_is_pattern_on_a_type_parameter_is_e0304_whatever_shares_its_name() {
+    let head = "module main\nimport std/console\n";
+    let fn_is = |gen: &str, pat: &str| {
+        format!("fn f<{gen}>(v: unknown) -> string {{ return match v {{ is {pat} => \"arm\", _ => \"other\", }} }}\n")
+    };
+    let bare = |p: &str, f: &str| {
+        format!("cannot validate `{p}`: `{p}` is a type parameter of `{f}`, which has no runtime check")
+    };
+    let part = |c: &str, p: &str| {
+        format!("cannot validate `{c}`: its type argument `{p}` is a type parameter of `f`, which has no runtime check")
+    };
+    let doc = "type Doc = { n: int, }\n";
+    let t = "type T = { n: int, }\n";
+    let bx = "type Box<X> = { v: X, }\n";
+    let cases: Vec<(&str, String, String)> = vec![
+        // Record 108's probe `fa-typeparam2`.
+        (
+            "fa-typeparam2",
+            format!("{head}import std/json\nimport std/string\n\
+                 fn u(t: string) -> unknown {{ return match json.parse(t) {{ Ok(x) => x, Err(e) => \"PARSEERR\", }} }}\n\
+                 {doc}fn h<Doc>(v: unknown, d: Doc) -> Doc {{ return match v {{ is Doc => v, _ => d, }} }}\n\
+                 pub fn main() -> void {{\n  let s: string = h<string>(u(\"{{\\\"n\\\":1}}\"), \"fallback\")\n  console.log(string.upper(s))\n}}\n"),
+            bare("Doc", "h"),
+        ),
+        // Record 108's probe `fa-typeparam3`: the record's own unchecked
+        // field is not what the pattern names.
+        (
+            "fa-typeparam3",
+            "module main\ntype H = extern_ts(\"{ k: string }\")\ntype Doc = { h: H, }\n\
+             pub fn h<Doc>(v: unknown, d: Doc) -> Doc { return match v { is Doc => v, _ => d, } }\n"
+                .to_string(),
+            bare("Doc", "h"),
+        ),
+        ("bare-no-record", format!("{head}{}", fn_is("T", "T")), bare("T", "f")),
+        // Record 111's probe `q/t2`.
+        ("array-shadow", format!("{head}{t}{}", fn_is("T", "Array<T>")), part("Array<T>", "T")),
+        ("array-no-record", format!("{head}{}", fn_is("T", "Array<T>")), part("Array<T>", "T")),
+        ("record-shadow", format!("{head}{t}{}", fn_is("T", "Record<string, T>")), part("Record<string, T>", "T")),
+        ("box-shadow", format!("{head}{t}{bx}{}", fn_is("T", "Box<T>")), part("Box<T>", "T")),
+        ("box-no-record", format!("{head}{bx}{}", fn_is("T", "Box<T>")), part("Box<T>", "T")),
+        ("option-shadow", format!("{head}{t}{}", fn_is("T", "Array<Option<T>>")), part("Option<T>", "T")),
+        ("nullable-shadow", format!("{head}{t}{}", fn_is("T", "Array<Nullable<T>>")), part("Nullable<T>", "T")),
+        (
+            "nested-shadow",
+            format!("{head}{t}{}", fn_is("T", "Record<string, Array<T>>")),
+            part("Array<T>", "T"),
+        ),
+        (
+            "box-array-shadow",
+            format!("{head}{t}{bx}{}", fn_is("T", "Box<Array<T>>")),
+            part("Array<T>", "T"),
+        ),
+        // The second of two type parameters.
+        ("second-param", format!("{head}{t}{}", fn_is("A, T", "Array<T>")), part("Array<T>", "T")),
+        // A lambda inside the generic function sees its type parameters.
+        (
+            "nested-lambda",
+            format!("{head}import std/array\n{doc}\
+                 fn f<Doc>(vs: Array<unknown>) -> Array<string> {{ return array.map(vs, fn(v) -> string {{ return match v {{ is Doc => \"doc\", _ => \"other\", }} }}) }}\n"),
+            bare("Doc", "f"),
+        ),
+        // A `<case is T>` in a generic component.
+        (
+            "jsx-case",
+            format!("module main\n{doc}\
+                 pub component V<Doc>(props: {{ v: unknown, }}) -> Component {{\n\
+                 \x20 return <match value={{props.v}}>\n\
+                 \x20\x20\x20 <case is Doc><p>doc</p></case>\n\
+                 \x20\x20\x20 <case else><p>other</p></case>\n\
+                 \x20 </match>\n}}\n"),
+            bare("Doc", "V"),
+        ),
+        (
+            "jsx-case-part",
+            format!("module main\n{doc}\
+                 pub component V<Doc>(props: {{ v: unknown, }}) -> Component {{\n\
+                 \x20 return <match value={{props.v}}>\n\
+                 \x20\x20\x20 <case is Array<Doc>><p>doc</p></case>\n\
+                 \x20\x20\x20 <case else><p>other</p></case>\n\
+                 \x20 </match>\n}}\n"),
+            "cannot validate `Array<Doc>`: its type argument `Doc` is a type parameter of `V`, which has no runtime check".to_string(),
+        ),
+    ];
+    for (dir, main, expected) in cases {
+        let root = unique_tmp(&format!("g362-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("{dir}: E0304:\n{main}\n{stderr}"));
+        assert!(headline.contains(&expected), "{dir}: `{expected}` in:\n{headline}");
+    }
+}
+
+/// G362's controls: the record a type parameter shadows is still the record
+/// everywhere the parameter is not in scope. `is Doc` outside any generic,
+/// and inside a generic whose parameter has another name, checks `Doc`, so
+/// the good document takes the arm and the bad one does not.
+#[test]
+fn an_is_pattern_naming_a_record_outside_a_same_named_type_parameter_still_checks_it() {
+    let head = "module main\nimport std/console\nimport std/json\n\
+                fn u(t: string) -> unknown { return match json.parse(t) { Ok(x) => x, Err(e) => \"PARSEERR\", } }\n\
+                type Doc = { n: int, }\n";
+    let cases: Vec<(&str, &str, &str, &str)> = vec![
+        ("outside", "fn g(v: unknown) -> string { return match v { is Doc => \"arm\", _ => \"other\", } }\n", "g", r#"{"n":1}"#),
+        ("other-param", "fn g<U>(v: unknown, d: U) -> string { return match v { is Doc => \"arm\", _ => \"other\", } }\n", "g<string>", r#"{"n":1}"#),
+        ("other-param-array", "fn g<U>(v: unknown, d: U) -> string { return match v { is Array<Doc> => \"arm\", _ => \"other\", } }\n", "g<string>", r#"[{"n":1}]"#),
+    ];
+    for (dir, f, call, good) in cases {
+        let bad = good.replace('1', "\"x\"");
+        let lit = |s: &str| s.replace('"', "\\\"");
+        let args = |doc: &str| match call {
+            "g" => format!("u(\"{}\")", lit(doc)),
+            _ => format!("u(\"{}\"), \"d\"", lit(doc)),
+        };
+        let main = format!(
+            "{head}{f}pub fn main() -> void {{\n  console.log({call}({}))\n  console.log({call}({}))\n}}\n",
+            args(good),
+            args(&bad)
+        );
+        let root = unique_tmp(&format!("g362-control-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "main.glyph", &main);
+        assert_eq!(run_main_lines(&src), vec!["arm", "other"], "{dir}:\n{main}");
+    }
+}

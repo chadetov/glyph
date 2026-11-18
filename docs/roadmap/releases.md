@@ -5494,9 +5494,11 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **0.1.146 · G351, a value split from a block on the same line is a parse error** (record 104; breaking). A statement that starts with `{` on the line where the previous statement ended is a parse error carrying G217's guidance (no `TypeName { … }` form; write the literal and put the type on the annotation), so `return h() { k: 2 }` no longer becomes `return h()` and a block that never runs. Breaking where the name before the brace is not a type; the G217 test and the `type_name_as_value` fixture move with it
 
-**0.1.145 · G357, `is Record<K, V>` and `is Array<X>` check their values** (record 107; breaking). Every value of a `Record` and every element of an `Array` is checked with `V`'s or `X`'s check, the way `json.parse<Record<K, V>>` does, every refined key included, and a pattern whose `V` or `X` has no check is E0304; a container of `unknown` keeps its shape check, which is complete for it
+**0.1.145 — Next · G357, `is Record<K, V>` and `is Array<X>` check their values** (record 107; breaking). Every value of a `Record` and every element of an `Array` is checked with `V`'s or `X`'s check, the way `json.parse<Record<K, V>>` does, every refined key included, and a pattern whose `V` or `X` has no check is E0304; a container of `unknown` keeps its shape check, which is complete for it
 
-**0.1.144 — Next · G350, an imported generic is judged by its declaring module's recorded walk** (record 103; not breaking). Each generic record's walk verdict is recorded in the project tables like a record's, followed lazily at use time, and the sibling hop delegates the same way, so a field typed by a private record the generic's own check covers is no longer refused. The hop's message wording changes
+**0.1.144 — Shipped 2026-11-18 · G350, an imported generic is judged by its declaring module's recorded walk** (record 103; not breaking)
+- **G350.** Every generic record's walk is recorded in the project tables, its type parameters counted as checked, and an application, the sibling hop included, is followed by that walk when a use is judged. A field typed by a record the generic's module keeps private is followed into that record, so `json.parse<Page<User>>`, `Page.parse<User>(v)`, record fields, `Option`, `Array` and `Record` wrappers, the hop, generic-call type arguments and `is Page<User>` accept it when the record checks every field, where 0.1.141 to 0.1.143 refused it. A record with an unchecked field is still E0304, now naming that field rather than the record's privacy, and the hop uses the direct path's words. A type-argument refusal names the generic's field
+- **Not breaking.** No program goes from exit 0 to 1. Measured against 0.1.143: `check` and `fmt` identical on all 466 tracked files, 324 builds and 2832 emitted files identical, all 32 apps check the same
 
 **0.1.143 — Shipped 2026-11-18 · G349, an `is T` pattern is judged by the walk `T.is` uses** (records 103 and 107; breaking)
 - **The judgment.** `match v { is T => … }` and `<case is T>` narrow on `T`'s descriptor check, and are now refused with E0304 wherever `T.is(v)` or `G.parse<X>(v)` is, in the same words: a record or union however it is named, a nested record, `Array<T>` where `T` has a check, a generic applied or bare, and a type argument with an unchecked payload. `is Pair<Shape>`, bare `is Box` and namespaced patterns whose walk refuses go from E0300 to E0304. The emitted code is unchanged
@@ -8315,6 +8317,8 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**G364 and G365, what 0.1.144's walk still says or splits** (record 109): E0304 stops at a nested generic application instead of naming the field inside it, and a sibling alias over a private generic is refused where a record field of the same type is accepted.
 
 **G352 and G353, what 0.1.142's lint pass made visible** (record 104): the playground holding back emit on a type error, as `glyph build` does, and an applyEdit that writes one of an E0200's missing arms counted as progress rather than a new E0200. G351, the third, is 0.1.146.
 

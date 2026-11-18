@@ -194,9 +194,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             a block the parser ends a statement where its expression stops. \
             `return h() { k: 2 }` stops at `h()`, and the braces after it \
             would be a second statement: an object literal that never runs, \
-            and not part of the value. Before 0.1.146 that compiled, with \
-            only an unreachable-code warning, and the function returned \
-            `h()`. A `{` that would begin a statement on the line where the \
+            and not part of the value. Before 0.1.146 that compiled, and the \
+            function returned `h()`: after `return` with an unreachable-code \
+            warning, and after `let`, `?`, `defer` or a bare call with no \
+            diagnostic at all. A `{` that would begin a statement on the line where the \
             previous one ended is refused instead.\n\n\
             The usual way to get here is the TypeScript-adjacent \
             `TypeName { ... }`. Glyph has no such form: the value is the \

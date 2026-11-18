@@ -183,6 +183,18 @@
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">"A lint rule can ban overloads and decorators"</p>
+        <p>
+          In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to
+          overload. The language still allows all of it, so the guarantee lasts as long as the config
+          does and covers only the code it runs on. A <code>grep</code> over a dependency, a
+          generated file or someone else's repository can't count on it. In Glyph the constructs
+          don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody
+          on your team configured.
+        </p>
+      </div>
+
       <nav class="prevnext">
         <a href="/pillars/verifiability/">
           <span class="dir">&larr; Previous pillar</span>

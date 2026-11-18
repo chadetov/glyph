@@ -145,6 +145,40 @@
       </div>
 
       <div class="detail">
+        <p class="block-label"><span class="ex-label">05</span> "TypeScript can do this with Prettier"</p>
+        <p>
+          For a lot of the formatting, it can. Prettier with <code>trailingComma: "all"</code> puts a
+          comma on the last element and prints long lists one per line, and that gets you most of
+          section 01. The differences are in three places.
+        </p>
+        <p>
+          <strong>The layout depends only on the code.</strong> Prettier keeps an object literal
+          expanded if its author put a line break after the <code>{</code>, and collapses it if they
+          didn't, so the same object can be printed two ways depending on how it was first typed. Two
+          agents writing the same thing produce two layouts, and the next edit to one of them shows
+          up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way
+          however the input was wrapped.
+        </p>
+        <p>
+          <strong>There is nothing to configure.</strong> Prettier's output is whatever the
+          repository's config file says, and some repositories don't have one. An agent moving
+          between TypeScript projects meets a different layout in each. A Glyph file has the same
+          layout in every project, because the formatter has no options.
+        </p>
+        <p>
+          <strong>The formatter can't change what a file says.</strong> <code>glyph fmt</code> is
+          tested by parsing its own output and comparing the syntax tree with the input's, on every
+          example in the repository and under a fuzzer. When a comment sits somewhere the layout has
+          no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to
+          code it doesn't describe.
+        </p>
+        <p>
+          One thing on the list is not done yet: <code>glyph fmt</code> does not sort imports, so two
+          agents adding an import in different places still produce different import blocks (G358).
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="pull-quote">
           Diff stability is what turns "the agent changed something" into "the agent changed
           <strong>exactly this</strong>." When the noise floor is zero, review is fast and trust is

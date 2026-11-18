@@ -495,13 +495,15 @@ pub enum EmitError {
     /// `type_name` is the innermost container, `arg` its part type.
     #[error("{}", type_argument_message(type_name, arg, cause))]
     UnverifiablePatternPart { type_name: String, arg: String, cause: NoCheckCause, span: Span },
-    /// An `is` pattern whose type, or a part of it at any depth, is a type
-    /// parameter of the enclosing `fn` or `component`: `match v { is T => …
-    /// }` or `is Array<T>` inside `fn f<T>`. A type parameter is erased at
-    /// run time, so there is nothing to check. The name is read by scope, so
-    /// a module-level type of the same name, which the parameter hides, is
-    /// not what the pattern means; through 0.1.145 the pattern lowered to
-    /// that type's check while the checker narrowed to the parameter (G362).
+    /// A check whose type, or a part of it at any depth, is a type parameter
+    /// of the enclosing `fn` or `component`: `match v { is T => … }`,
+    /// `is Array<T>`, `json.parse<T>`, `Box.parse<T>(v)`, or `T.parse(v)`,
+    /// `T.is(v)` and `T.schema` with the value `T` naming the parameter. A
+    /// type parameter is erased at run time, so there is nothing to check.
+    /// The name is read by scope, so a module-level type of the same name,
+    /// which the parameter hides, is not what the check means; through
+    /// 0.1.145 each lowered to that type's check while the checker typed the
+    /// result as the parameter (G362).
     /// `container` is the innermost generic application holding the
     /// parameter, `None` when the pattern is the parameter itself.
     #[error("{}", type_parameter_message(container.as_deref(), param, owner))]
@@ -601,7 +603,7 @@ impl EmitError {
                 "Match a container of a type with a runtime check (a record, a primitive, a container of one), or match `is Array<unknown>` or `is Record<string, unknown>` and check each part where you read it.",
             ),
             EmitError::UnverifiableTypeParameter { .. } => Some(
-                "Match a type that has a runtime check, or take a `Schema<T>` argument and match on `schema.parse(v)`. If the pattern meant a type declared with the same name, rename the type parameter: inside its function the parameter hides that type.",
+                "Check a type that has a runtime check, or take a `Schema<T>` argument and call `schema.parse(v)`, or `json.parse_with(text, schema)` for text. If the code meant a type declared with the same name, rename the type parameter: inside its function the parameter hides that type.",
             ),
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
@@ -658,7 +660,7 @@ impl EmitError {
                 NoCheckCause::GenericField(_) => concat!(is_part_note_lead!(), generic_field_note!()),
             }),
             EmitError::UnverifiableTypeParameter { .. } => Some(
-                "An `is` pattern narrows the value to its type on the answer of that type's runtime check, and a type parameter is erased at run time, so there is no check to run, as there is none for `json.parse<T>`. The same holds for a part: `is Array<T>`, `is Record<string, T>` and `is Box<T>` check each element, value or field with `T`'s check. A name is read by scope, so inside `fn f<Doc>` the pattern `is Doc` names the parameter even when the module declares a `type Doc`.",
+                "Nothing can check a type parameter, because a type parameter is erased at run time. That holds for an `is` pattern, `json.parse<T>`, a generic descriptor's type argument (`Box.parse<T>(v)`), and `T.parse`, `T.is` and `T.schema`. The same holds for a part: `is Array<T>`, `json.parse<Array<T>>` and `is Box<T>` check each element or field with `T`'s check. A name is read by scope, so inside `fn f<Doc>` the type and the value `Doc` name the parameter even when the module declares a `type Doc`.",
             ),
             EmitError::UnverifiableTypeArgument { cause, .. } => Some(match cause {
                 NoCheckCause::Opaque => "A generic record checks each type argument wherever its parameter appears, so an argument with no runtime check (a type parameter, which is erased at run time, an `extern_ts` or package type) would leave those fields tested for presence only, and `parse` would return `Ok` on a value it did not check.",
@@ -7422,6 +7424,19 @@ impl<'a> Emitter<'a> {
         if !matches!(field.as_ref(), "parse" | "is" | "schema") {
             return None;
         }
+        // Inside `fn h<Doc>` the value `Doc` is the type parameter, as the
+        // checker reads it, whatever the module declares under that name
+        // (G362).
+        if let Expr::Ident { name, span: name_span } = object.as_ref() {
+            if let Some(owner) = self.type_parameter_owner(*name_span) {
+                return Some(EmitError::UnverifiableTypeParameter {
+                    container: None,
+                    param: name.to_string(),
+                    owner,
+                    span: *name_span,
+                });
+            }
+        }
         let (module, name) = match object.as_ref() {
             Expr::Ident { name, .. } => {
                 let target = self.descriptor_target(name.as_ref())?;
@@ -7523,6 +7538,12 @@ impl<'a> Emitter<'a> {
     /// casting `parse<T>`, as before 0.1.133, returned `Ok` on any document
     /// under a type argument that reads as the thing checked.
     fn json_parse_schema(&self, type_arg: &TypeExpr) -> Result<Option<String>, EmitError> {
+        // A type parameter, or a type holding one, has no check, and is found
+        // by scope before any name is looked up, so a module-level type of
+        // the same name does not stand in for it (G362).
+        if let Some((container, param, owner)) = self.type_parameter_in(type_arg, None) {
+            return Err(EmitError::UnverifiableTypeParameter { container, param, owner, span: type_arg.span() });
+        }
         let refuse = |module: &str, type_name: &str| {
             let mut seen = HashSet::new();
             self.first_unverifiable_in(module, type_name, &mut seen).map(|found| {
@@ -7907,6 +7928,14 @@ impl<'a> Emitter<'a> {
                 format!("{receiver}<{}>", args.join(", "))
             }
         };
+        // A type argument that is, or holds, a type parameter has no check,
+        // whatever shares its name (G362).
+        for ta in type_args {
+            if let Some((container, param, owner)) = self.type_parameter_in(ta, None) {
+                let container = container.or_else(|| Some(applied()));
+                return Some(EmitError::UnverifiableTypeParameter { container, param, owner, span: ta.span() });
+            }
+        }
         if let Some(cause) = target
             .and_then(|(module, name)| self.generic_record_unchecked_field(&module, &name))
         {
@@ -14473,8 +14502,16 @@ pub fn n() -> number {\n  return 1\n}
                     type User = { name: string, }\n\
                     interface Shape { name: string }\n\
                     type Handle = extern_ts(\"{ fd: number }\")\n";
+        // The type parameter is named as one, found by scope (G362).
+        let err = emit_err(&format!(
+            "{head}pub fn f<T>(s: string) -> Result<Pair<T>, Array<Issue>> {{ return json.parse<Pair<T>>(s) }}\n"
+        ));
+        assert!(
+            matches!(&err, EmitError::UnverifiableTypeParameter { container: Some(c), param, owner, .. }
+                if c == "Pair<T>" && param == "T" && owner == "f"),
+            "{err:?}"
+        );
         for body in [
-            "pub fn f<T>(s: string) -> Result<Pair<T>, Array<Issue>> { return json.parse<Pair<T>>(s) }",
             "pub fn f(s: string) -> bool { let r = json.parse<Pair<Shape>>(s)\n return true }",
             "pub fn f(s: string) -> bool { let r = json.parse<Pair<Handle>>(s)\n return true }",
             "pub fn f(s: string) -> bool { let r = json.parse<Option<Pair<Shape>>>(s)\n return true }",
@@ -14531,10 +14568,13 @@ pub fn n() -> number {\n  return 1\n}
                      type Opaque = extern_ts(\"{{ handle: number }}\")\n\
                      {decl}\n"
                 ));
-                assert!(
-                    matches!(&err, EmitError::UnverifiableJsonParse { type_name, .. } if type_name == ty),
-                    "`{callee}<{ty}>` is E0304: {err:?}"
-                );
+                // A type parameter is named as one, found by scope (G362).
+                let named = match ty {
+                    "T" => matches!(&err, EmitError::UnverifiableTypeParameter { container: None, param, owner, .. }
+                        if param == ty && owner == "load"),
+                    _ => matches!(&err, EmitError::UnverifiableJsonParse { type_name, .. } if type_name == ty),
+                };
+                assert!(named && err.code() == "E0304", "`{callee}<{ty}>` is E0304: {err:?}");
             }
         }
     }

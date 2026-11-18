@@ -92,15 +92,30 @@ appreciates. That asymmetry is the bet.
 Every design decision is tested against these. If a feature improves one without
 harming the others, it ships.
 
-1. **Verifiability.** Anything the type system claims is true at runtime.
-2. **Greppability.** Every symbol has one syntactic form at its declaration site.
+1. **Verifiability.** Anything the type system claims is true at runtime. No
+   `any`, no casts, and a value crossing a boundary is checked against its type
+   on the way in: `json.parse<User>(body)` is `Ok` only if the body really is a
+   `User`, and a type Glyph cannot check at runtime is refused rather than
+   trusted.
+2. **Greppability.** Every symbol has one syntactic form at its declaration
+   site: no overloads, no renaming decorators, no implicit `this`, no
+   declaration merging. `grep` finds the definition.
 3. **Abstraction.** Express intent at the level the writer is thinking: pattern
-   matching over switch ladders, `Result` over thrown exceptions, named records
-   over positional tuples.
-4. **Diff stability.** A one-line change produces a one-line diff.
+   matching over `if`/`else` ladders, `Result` over thrown exceptions, named
+   records over positional tuples.
+4. **Diff stability.** A one-line change produces a one-line diff. `glyph fmt`
+   has one layout and no options, and the layout depends only on the code, not
+   on how the input happened to be wrapped.
 
 Verifiability and greppability are the wedge. Abstraction and diff stability are
 the polish.
+
+These are properties of the language rather than of a project's settings.
+Strict TypeScript with lint rules and Prettier gets part of the way in one
+repository; Glyph makes them true of every file, so an agent opening an
+unfamiliar codebase does not have to find out which settings it chose. The
+manifesto (`docs/manifesto.md`) goes through each pillar against that
+objection.
 
 ## Status
 

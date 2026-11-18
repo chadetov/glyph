@@ -306,6 +306,25 @@ type Patient = {
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">"Strict TypeScript and a lint config do this"</p>
+        <p>
+          Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code>
+          and a rule against explicit <code>any</code> catch most of what an agent would otherwise
+          slip past. They stop at the edges. <code>JSON.parse(body) as User</code> compiles under
+          every setting there is, and the usual fix, a zod schema, is a second description of
+          <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is
+          the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against
+          <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than
+          trusted.
+        </p>
+        <p>
+          The other difference is who can rely on it. A lint config is a choice one repository made.
+          An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned
+          there; in Glyph it can't be written anywhere.
+        </p>
+      </div>
+
       <nav class="prevnext">
         <a href="/">
           <span class="dir">&larr; Home</span>

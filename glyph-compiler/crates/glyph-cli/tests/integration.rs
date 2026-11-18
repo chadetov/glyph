@@ -17498,29 +17498,50 @@ fn an_imported_generic_record_with_an_unchecked_field_of_its_own_is_refused() {
 
 /// An imported generic is judged through the declarations its module
 /// exports, so a field typed by a record that module keeps private is
-/// refused, though `Page.is` in `model` could check it. This pins the
-/// conservative reading the 0.1.140 hop already makes; a generic declared
-/// in the module that applies it reads its private records and validates.
+/// refused: from here a private record that is checked (`priv`) and one
+/// whose own descriptor tests a field for presence only (`p2`) look the
+/// same (record 103). The message says the field cannot be judged from
+/// here, not that it has no check, and names the fix. Marking the record
+/// `pub` lets the walk read it: `priv` then validates and `p2` is refused
+/// for the field that is unchecked. A generic declared in the module that
+/// applies it reads its private records and validates. Judging the field
+/// through the declaring module's own walk is G350.
 #[test]
 fn an_imported_generic_with_a_private_record_field_is_refused_where_a_local_one_validates() {
-    let root = unique_tmp("g347-private-imported");
+    let main_check = "module main\nimport std/json\nimport model { Page, User }\npub fn read(s: string) -> bool {\n  return match json.parse<Page<User>>(s) { Ok(_) => true, Err(_) => false, }\n}\n";
+    let private = "`Page`'s field `meta` has type `Meta`, and `Meta` is private to `model`: an imported generic is read only through what `model` exports, so the field cannot be judged here, though `Page`'s own check in `model` may check it";
+    let models = [
+        ("priv", "module model\ntype Meta = { n: int, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n"),
+        ("p2", "module model\ntype H = extern_ts(\"{ k: string }\")\ntype Meta = { h: H, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n"),
+    ];
+    for (dir, model) in models {
+        let root = unique_tmp(&format!("g347-private-imported-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "model.glyph", model);
+        write_file(&src, "main.glyph", main_check);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: {stderr}");
+        assert!(stderr.contains(private), "{dir}: {stderr}");
+        assert!(stderr.contains("Help: Mark the private type `pub`"), "{dir}: {stderr}");
+        assert!(stderr.contains("G350"), "{dir}: {stderr}");
+    }
+
+    // `pub` on `Meta`: `p2`'s hole is named for what it is.
+    let root = unique_tmp("g347-private-imported-p2-pub");
     let src = root.join("src");
-    write_file(
-        &src,
-        "model.glyph",
-        "module model\ntype Meta = { n: int, }\npub type User = { id: number, }\npub type Page<T> = { items: Array<T>, meta: Meta, }\n",
-    );
-    write_file(
-        &src,
-        "main.glyph",
-        "module main\nimport std/json\nimport model { Page, User }\npub fn read(s: string) -> bool {\n  return match json.parse<Page<User>>(s) { Ok(_) => true, Err(_) => false, }\n}\n",
-    );
+    write_file(&src, "model.glyph", &models[1].1.replace("type Meta", "pub type Meta").replace("type H", "pub type H"));
+    write_file(&src, "main.glyph", main_check);
     let (code, stderr) = check_no_tsc(&src);
     assert_ne!(code, 0, "{stderr}");
-    assert!(
-        stderr.contains("`Page`'s field `meta` has type `Meta`, and `Meta` is declared in `model` without `pub`"),
-        "{stderr}"
-    );
+    assert!(stderr.contains("`Page`'s field `meta.h` has type `H`, which has no runtime check"), "{stderr}");
+
+    // `pub` on `Meta`: `priv` validates.
+    let run_main = "module main\nimport std/io { println }\nimport std/json\nimport model { Page, User }\nfn main() {\n  println(match json.parse<Page<User>>(\"{\\\"items\\\": [{\\\"id\\\": 1}], \\\"meta\\\": {\\\"n\\\": 1}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", })\n  println(match json.parse<Page<User>>(\"{\\\"items\\\": [], \\\"meta\\\": {\\\"n\\\": 1.5}}\") { Ok(_) => \"Ok\", Err(_) => \"Err\", })\n}\n";
+    let root = unique_tmp("g347-private-imported-priv-pub");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", &models[0].1.replace("type Meta", "pub type Meta"));
+    write_file(&src, "main.glyph", run_main);
+    assert_eq!(run_main_lines(&src), vec!["Ok", "Err"]);
 
     let root = unique_tmp("g347-private-local");
     let src = root.join("src");

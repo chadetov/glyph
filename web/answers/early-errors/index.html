@@ -382,23 +382,31 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           own and the type goes on the annotation. What the compiler used to say about that
           line was <code>E0108</code>, unreachable code, on a build that exited 0, because
           the name resolved to the type and the braces parsed as a block after the
-          <code>return</code>. It is <code>E0228</code> now, and the message is read off the
-          declaration, so a record lists its fields, a tagged union lists its variants with
-          their payload shapes, and a string-literal union lists its literals.
-          <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay legal, since the
-          receiver of a type's own descriptor is the one expression position a type name
-          belongs in.
+          <code>return</code>. A type's name written as a value is <code>E0228</code>, and
+          the message is read off the declaration, so a record lists its fields, a tagged
+          union lists its variants with their payload shapes, and a string-literal union
+          lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay
+          legal, since the receiver of a type's own descriptor is the one expression
+          position a type name belongs in.
+        </p>
+        <p>
+          That fixed the case where the name was a type and left the parse alone, so
+          <code>return h() { k: 2 }</code> still returned <code>h()</code> and dropped the
+          braces with a warning. Since 0.1.146 a <code>{</code> on the line where a
+          statement ended is <code>E0013</code> at parse, whatever the name before it is,
+          and its help gives the same rewrite.
         </p>
       </div>
 
       <div class="code">
         <span class="cap">glyph check, on a record built the TypeScript way</span>
-<pre><span class="del">[E0228] `Order` is a type, not a value; a value is the record literal
-        `{ id: ..., total: ... }`, with the type on the annotation</span>
-   ╰─ Write the value in its own form and move the type&rsquo;s name to the
-      annotation on the `let`, the parameter, or the return type.
+<pre><span class="del">[E0013] `{` cannot begin a new statement on the line where
+        `return Order` ends</span>
+   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
+      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
 
-<span class="cm">// before: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
       </div>
 
       <div class="detail">
@@ -746,7 +754,7 @@ string.repeeat(s, 2)
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic "expected module path segment", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0013</code> for a <code>{</code> on the line where a statement ended, which used to be dropped as unreachable code, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic "expected module path segment", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>

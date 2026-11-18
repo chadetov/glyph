@@ -271,7 +271,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             does nothing. A dead import is greppability noise: a reader searching \
             for a name finds an import that promises a dependency the module does \
             not actually have.\n\n\
-            Remove it. This is a warning — it does not fail the build.",
+            Remove it. If an E0200 in this file lists this name as a missing \
+            variant, write that arm rather than removing the import: the import \
+            is unused only because the arm that needs it is not written yet. \
+            This is a warning — it does not fail the build.",
         "E0107" => "E0107: unused variable (warning)\n\n\
             A `let` binding is never read. Either it is dead code, or a use was \
             dropped by mistake.\n\n\

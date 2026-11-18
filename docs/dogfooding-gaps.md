@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-369 entries, 298 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-52 are open. G144, the D28 boundary cast that never reached the returns a
+369 entries, 299 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+51 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12641,7 +12641,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
   probe `a12e`: `--no-tsc` exits 0, full `check` reports TS2554.*
 
-- **G351. An expression followed by `{` on the same line is split into a
+- **G351. [FIXED] An expression followed by `{` on the same line is split into a
   value and an unreachable block.** `return h() { k: 2 }` parses as `return
   h()` and a separate `{ k: 2 }` statement that never runs: the program exits
   0 with only an E0108 warning, and the value the author meant is lost.
@@ -12656,6 +12656,14 @@ and is the owner's to confirm.
   a function returning `R` is `[E0108] Warning` and exit 0.*
 
   Planned for 0.1.146 (record 104).
+
+  Fixed in 0.1.146 (record 104). A `{` that would begin a statement on the
+  line where the previous statement ended is E0013 at parse, a new parser
+  code, with G217's guidance in the help. `return h() { k: 2 }`, `let o = h()
+  { … }` and a bare `h() { … }` go from exit 0 to 1; `return Order { … }` and
+  `let o = Order { … }` go from E0228 (with E0108) to E0013 alone. E0228
+  stays for a type name on its own. Other same-line statements still parse
+  (D1).
 
 - **G352. The playground runs the emitter past type errors.** `glyph-wasm`
   emits best-effort when the file has errors, which contradicts record 88's

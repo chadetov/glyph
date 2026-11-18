@@ -7592,7 +7592,8 @@ impl<'a> Emitter<'a> {
             });
         }
         for ta in type_args {
-            if let FieldCheck::Unverifiable(cause) = self.field_check_judged(ta, "__cv") {
+            let (check, called) = self.field_check_delegations(ta);
+            if let FieldCheck::Unverifiable(cause) = check {
                 let applied: Vec<String> = type_args.iter().map(type_label).collect();
                 return Err(EmitError::UnverifiableTypeArgument {
                     type_name: format!("{receiver}<{}>", applied.join(", ")),
@@ -7600,6 +7601,22 @@ impl<'a> Emitter<'a> {
                     cause,
                     span: ta.span(),
                 });
+            }
+            // The checker for an argument calls the descriptors of the
+            // records and unions it names, and `parse` reports their fields
+            // checked too, so each is walked the way `U.parse` and
+            // `json.parse<Page<U>>` walk it, and refused with their words.
+            for (module, name) in called {
+                if let Some(found) = self.first_unverifiable_in(&module, &name, &mut HashSet::new()) {
+                    return Err(EmitError::UnverifiableDescriptorUse {
+                        type_name: name,
+                        field: found.path,
+                        field_ty: found.field_ty,
+                        cause: found.cause,
+                        variant: found.variant,
+                        span: ta.span(),
+                    });
+                }
             }
         }
         let mut targ_strs = Vec::with_capacity(type_args.len());

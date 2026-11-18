@@ -18746,3 +18746,95 @@ fn an_is_pattern_naming_a_record_outside_a_same_named_type_parameter_still_check
         assert_eq!(run_main_lines(&src), vec!["arm", "other"], "{dir}:\n{main}");
     }
 }
+
+/// G362 on every other path that trusts a descriptor: inside `fn h<Doc>`,
+/// `json.parse<Doc>`, a container of the parameter, a generic descriptor's
+/// type argument, and `Doc.parse`/`Doc.is`/`Doc.schema` (the value `Doc`
+/// is the parameter there, as the checker reads it) are E0304 in the words
+/// the `is` pattern gets. Through 0.1.145 each ran the module's `Doc`
+/// check and exited 0, and `Doc.parse(v)` returned the record typed as the
+/// parameter, which full `check` caught as TS2719 and `run --no-tsc` crashed
+/// on.
+#[test]
+fn a_descriptor_check_on_a_type_parameter_is_e0304_whatever_shares_its_name() {
+    let head = "module main\nimport std/json\ntype Doc = { n: int, }\ntype Box<X> = { v: X, }\n";
+    let body = |b: &str| format!("{head}pub fn h<Doc>(t: string, v: unknown) -> bool {{ return {b} }}\n");
+    let bare = "cannot validate `Doc`: `Doc` is a type parameter of `h`, which has no runtime check".to_string();
+    let part = |c: &str| {
+        format!("cannot validate `{c}`: its type argument `Doc` is a type parameter of `h`, which has no runtime check")
+    };
+    let ok = "{ Ok(_) => true, Err(_) => false, }";
+    let cases: Vec<(&str, String, String)> = vec![
+        // Record 108's follow-up probe `jp_shadow`.
+        ("json-parse", body(&format!("match json.parse<Doc>(t) {ok}")), bare.clone()),
+        ("json-parse-array", body(&format!("match json.parse<Array<Doc>>(t) {ok}")), part("Array<Doc>")),
+        ("json-parse-option", body(&format!("match json.parse<Option<Doc>>(t) {ok}")), part("Option<Doc>")),
+        (
+            "json-parse-named",
+            format!("module main\nimport std/json {{ parse }}\ntype Doc = {{ n: int, }}\n\
+                 pub fn h<Doc>(t: string) -> bool {{ return match parse<Doc>(t) {ok} }}\n"),
+            bare.clone(),
+        ),
+        // `ta_shadow`.
+        ("generic-type-argument", body(&format!("match Box.parse<Doc>(v) {ok}")), part("Box<Doc>")),
+        ("generic-type-argument-part", body(&format!("match Box.parse<Array<Doc>>(v) {ok}")), part("Array<Doc>")),
+        ("value-parse", body(&format!("match Doc.parse(v) {ok}")), bare.clone()),
+        ("value-is", body("Doc.is(v)"), bare.clone()),
+        ("value-schema", body(&format!("match json.parse_with(t, Doc.schema) {ok}")), bare.clone()),
+        (
+            "value-schema-array",
+            body(&format!("match json.parse_with(t, Doc.schema.array()) {ok}")),
+            bare.clone(),
+        ),
+        // A lambda inside the generic function.
+        (
+            "lambda-json-parse",
+            format!("{head}import std/array\n\
+                 pub fn h<Doc>(ts: Array<string>) -> Array<bool> {{ return array.map(ts, fn(t) -> bool {{ return match json.parse<Doc>(t) {ok} }}) }}\n"),
+            bare.clone(),
+        ),
+    ];
+    for (dir, main, expected) in cases {
+        let root = unique_tmp(&format!("g362-desc-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("{dir}: E0304:\n{main}\n{stderr}"));
+        assert!(headline.contains(&expected), "{dir}: `{expected}` in:\n{headline}");
+    }
+}
+
+/// The controls for the test above: the same calls on the module's `Doc`
+/// outside any generic, and inside a generic whose parameter has another
+/// name, still validate, so the good input passes and the bad one fails.
+#[test]
+fn a_descriptor_check_on_a_record_outside_a_same_named_type_parameter_still_validates() {
+    let head = "module main\nimport std/console\nimport std/json\n\
+                type Doc = { n: int, }\ntype Box<X> = { v: X, }\n\
+                fn u(t: string) -> unknown { return match json.parse(t) { Ok(x) => x, Err(e) => \"PARSEERR\", } }\n";
+    let ok = "{ Ok(_) => \"ok\", Err(_) => \"err\", }";
+    let checks: Vec<(&str, String, &str, &str)> = vec![
+        ("json-parse", format!("match json.parse<Doc>(t) {ok}"), r#"{"n":1}"#, r#"{"n":"x"}"#),
+        ("json-parse-array", format!("match json.parse<Array<Doc>>(t) {ok}"), r#"[{"n":1}]"#, r#"[{"n":"x"}]"#),
+        ("generic-type-argument", format!("match Box.parse<Doc>(u(t)) {ok}"), r#"{"v":{"n":1}}"#, r#"{"v":{"n":"x"}}"#),
+        ("value-parse", format!("match Doc.parse(u(t)) {ok}"), r#"{"n":1}"#, r#"{"n":"x"}"#),
+        ("value-is", "match Doc.is(u(t)) { true => \"ok\", false => \"err\", }".to_string(), r#"{"n":1}"#, r#"{"n":"x"}"#),
+        ("value-schema", format!("match json.parse_with(t, Doc.schema) {ok}"), r#"{"n":1}"#, r#"{"n":"x"}"#),
+    ];
+    let lit = |s: &str| s.replace('"', "\\\"");
+    for (dir, check, good, bad) in checks {
+        for (shape, sig, call) in [("outside", "fn g(t: string)", "g"), ("other-param", "fn g<U>(t: string)", "g<string>")] {
+            let main = format!(
+                "{head}{sig} -> string {{ return {check} }}\n\
+                 pub fn main() -> void {{\n  console.log({call}(\"{}\"))\n  console.log({call}(\"{}\"))\n}}\n",
+                lit(good),
+                lit(bad)
+            );
+            let root = unique_tmp(&format!("g362-desc-control-{dir}-{shape}"));
+            let src = root.join("src");
+            write_file(&src, "main.glyph", &main);
+            assert_eq!(run_main_lines(&src), vec!["ok", "err"], "{dir} {shape}:\n{main}");
+        }
+    }
+}

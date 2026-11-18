@@ -157,6 +157,27 @@ pub enum NoCheckCause {
     /// arguments. The generic's descriptor would test that field for
     /// presence only. Boxed like [`NoCheckCause::SiblingAlias`].
     GenericField(Box<GenericFieldName>),
+    /// A `Record<K, V>` whose key type `K` has no runtime check, so the
+    /// check every key gets has nothing to run (G367). Boxed like
+    /// [`NoCheckCause::SiblingAlias`].
+    RecordKey(Box<RecordKeyName>),
+    /// A field of a generic record is a `Record` keyed by one of the
+    /// generic's type parameters, applied to an argument other than
+    /// `string`. The descriptor checks that argument with the checker passed
+    /// for it, which tests one key and cannot list a string-literal union's
+    /// members, so it cannot check that every member is present (G367;
+    /// lifting it is G374). Only ever the cause inside a
+    /// [`NoCheckCause::GenericField`], which names the field.
+    KeyParam,
+}
+
+/// The `Record` [`NoCheckCause::RecordKey`] is about.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecordKeyName {
+    /// The `Record` application, as written (`Record<H, int>`).
+    pub record: String,
+    /// Its key type, as written.
+    pub key: String,
 }
 
 /// The field [`NoCheckCause::GenericField`] is about.
@@ -226,6 +247,37 @@ impl NoCheckCause {
 }
 
 impl NoCheckCause {
+    /// For a `Record` whose key type has no check, what to say about it after
+    /// a type spelled `ty` that is that `Record` or holds it: `whose key type
+    /// `K` has no runtime check` for the `Record` itself, and `and its part
+    /// `Record<K, V>` has key type `K`, which has no runtime check` for a
+    /// type holding one (G367).
+    fn record_key_tail(&self, ty: &str) -> Option<String> {
+        let NoCheckCause::RecordKey(r) = self else {
+            return None;
+        };
+        let RecordKeyName { record, key } = r.as_ref();
+        Some(if record == ty {
+            format!("whose key type `{key}` has no runtime check")
+        } else {
+            format!("and its part `{record}` has key type `{key}`, which has no runtime check")
+        })
+    }
+
+    /// [`Self::record_key_tail`] as the whole reason after `cannot validate
+    /// `ty`:`.
+    fn record_key_reason(&self, ty: &str) -> Option<String> {
+        let NoCheckCause::RecordKey(r) = self else {
+            return None;
+        };
+        let RecordKeyName { record, key } = r.as_ref();
+        Some(if record == ty {
+            format!("its key type `{key}` has no runtime check")
+        } else {
+            format!("its part `{record}` has key type `{key}`, which has no runtime check")
+        })
+    }
+
     /// For a generic's field: the clause naming the alias, the generic, the
     /// field and why the field has no check.
     fn generic_field_clause(&self) -> Option<String> {
@@ -247,6 +299,12 @@ impl NoCheckCause {
                     format!("and `{}` is a `std` or package type, which has no runtime check", s.name)
                 }
             },
+            NoCheckCause::RecordKey(_) => cause
+                .record_key_tail(field_ty)
+                .unwrap_or_else(|| "which has no runtime check".to_string()),
+            NoCheckCause::KeyParam => {
+                "and a key type given by a type parameter is not checked at run time".to_string()
+            }
             NoCheckCause::Opaque | NoCheckCause::GenericField(_) => {
                 "which has no runtime check".to_string()
             }
@@ -265,6 +323,9 @@ fn json_parse_message(type_name: &str, cause: &NoCheckCause) -> String {
     if let Some(clause) = cause.generic_field_clause() {
         return format!("cannot validate `{type_name}`: {clause}");
     }
+    if let Some(reason) = cause.record_key_reason(type_name) {
+        return format!("cannot validate `{type_name}`: {reason}");
+    }
     match cause.sibling_clause() {
         Some((names, limit)) => {
             format!("cannot validate `{type_name}`: {names}; `json.parse` {limit}")
@@ -279,6 +340,18 @@ fn json_parse_message(type_name: &str, cause: &NoCheckCause) -> String {
 /// no check. An argument that applies a generic with a field of its own
 /// that has none names that field, as `json.parse<T>` of the argument does.
 fn type_argument_message(type_name: &str, arg: &str, cause: &NoCheckCause) -> String {
+    // The key of the `Record` itself (`is Record<H, int>`), or of one the
+    // argument holds.
+    if let NoCheckCause::RecordKey(r) = cause {
+        let RecordKeyName { record, key } = r.as_ref();
+        return if record == type_name {
+            format!("cannot validate `{type_name}`: its key type `{key}` has no runtime check")
+        } else if record == arg {
+            format!("cannot validate `{type_name}`: its type argument `{arg}` has key type `{key}`, which has no runtime check")
+        } else {
+            format!("cannot validate `{type_name}`: its type argument `{arg}` holds `{record}`, whose key type `{key}` has no runtime check")
+        };
+    }
     match cause.generic_field_clause() {
         Some(clause) => format!(
             "cannot validate `{type_name}`: its type argument `{arg}` has no runtime check: {clause}"
@@ -301,6 +374,9 @@ fn descriptor_use_message(
         return format!(
             "cannot validate `{type_name}`: field {field} has type `{field_ty}`, and {clause}"
         );
+    }
+    if let Some(tail) = cause.record_key_tail(field_ty) {
+        return format!("cannot validate `{type_name}`: field {field} has type `{field_ty}`, {tail}");
     }
     match cause.sibling_clause() {
         Some((names, limit)) => format!(
@@ -410,6 +486,16 @@ macro_rules! generic_union_note {
 macro_rules! generic_field_note {
     () => {
         "Here a generic record is judged field by field in the module that declares it, with that module's own reading of its fields (a record it keeps private included), its type parameters checked by the type arguments, whether it is applied there or imported. Its descriptor would test a field whose own type has no runtime check for presence only, so the application is refused. Give the field a type with a check, or parse a type without it."
+    };
+}
+macro_rules! record_key_note {
+    () => {
+        "Here a `Record<K, V>` checks every key against `K`, with the check a field of type `K` gets: a string-literal union's keys are exactly its members, every member present; a `where`-refined string's keys pass its predicate; an `int` or `number` key is the spelling of a number. A key type with no runtime check leaves nothing to test each key with. Key the map by `string`, or by a type with a check."
+    };
+}
+macro_rules! key_param_note {
+    () => {
+        "Here a field of a generic record is a `Record` keyed by one of its type parameters. The descriptor checks a type argument with the checker passed for it, which tests one value and cannot list a string-literal union's members, so it cannot check that every member is present, as a `Record<K, V>` written out does. The generic applied to `string` there is checked; any other argument is refused. Write the `Record` out in a record of its own, or key it by `string`."
     };
 }
 macro_rules! sibling_alias_note {
@@ -633,7 +719,10 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
+                NoCheckCause::GenericField(g) if g.cause == NoCheckCause::KeyParam => concat!(descriptor_use_note_lead!(), key_param_note!()),
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
+                NoCheckCause::RecordKey(_) => concat!(descriptor_use_note_lead!(), record_key_note!()),
+                NoCheckCause::KeyParam => concat!(descriptor_use_note_lead!(), key_param_note!()),
             }),
             EmitError::UnverifiableJsonParse { cause, .. } => Some(match cause {
                 NoCheckCause::Opaque => "`json.parse<T>` validates the document against `T` and returns `Ok` only when it matches, so a `T` with no runtime check cannot be its type argument: a type parameter is erased at run time, and an `extern_ts` or package type is a TypeScript type the compiler cannot see into. A container of `unknown` (`Array<unknown>`, `Record<string, unknown>`) is checked by its shape and is not this error.",
@@ -641,10 +730,16 @@ impl EmitError {
                 NoCheckCause::Result => concat!(json_parse_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(json_parse_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(json_parse_note_lead!(), sibling_alias_note!()),
+                NoCheckCause::GenericField(g) if g.cause == NoCheckCause::KeyParam => concat!(json_parse_note_lead!(), key_param_note!()),
                 NoCheckCause::GenericField(_) => concat!(json_parse_note_lead!(), generic_field_note!()),
+                NoCheckCause::RecordKey(_) => concat!(json_parse_note_lead!(), record_key_note!()),
+                NoCheckCause::KeyParam => concat!(json_parse_note_lead!(), key_param_note!()),
             }),
             EmitError::UnverifiableGenericUse { cause, .. } => Some(match cause {
+                NoCheckCause::GenericField(g) if g.cause == NoCheckCause::KeyParam => concat!(descriptor_use_note_lead!(), key_param_note!()),
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
+                NoCheckCause::RecordKey(_) => concat!(descriptor_use_note_lead!(), record_key_note!()),
+                NoCheckCause::KeyParam => concat!(descriptor_use_note_lead!(), key_param_note!()),
                 NoCheckCause::Opaque => concat!(descriptor_use_note_lead!(), "Here the generic record's declaration cannot be read from this module."),
                 NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
@@ -657,7 +752,10 @@ impl EmitError {
                 NoCheckCause::Result => concat!(is_part_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(is_part_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(is_part_note_lead!(), sibling_alias_note!()),
+                NoCheckCause::GenericField(g) if g.cause == NoCheckCause::KeyParam => concat!(is_part_note_lead!(), key_param_note!()),
                 NoCheckCause::GenericField(_) => concat!(is_part_note_lead!(), generic_field_note!()),
+                NoCheckCause::RecordKey(_) => concat!(is_part_note_lead!(), record_key_note!()),
+                NoCheckCause::KeyParam => concat!(is_part_note_lead!(), key_param_note!()),
             }),
             EmitError::UnverifiableTypeParameter { .. } => Some(
                 "Nothing can check a type parameter, because a type parameter is erased at run time. That holds for an `is` pattern, `json.parse<T>`, a generic descriptor's type argument (`Box.parse<T>(v)`), and `T.parse`, `T.is` and `T.schema`. The same holds for a part: `is Array<T>`, `json.parse<Array<T>>` and `is Box<T>` check each element or field with `T`'s check. A name is read by scope, so inside `fn f<Doc>` the type and the value `Doc` name the parameter even when the module declares a `type Doc`.",
@@ -668,7 +766,10 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
+                NoCheckCause::GenericField(g) if g.cause == NoCheckCause::KeyParam => concat!(descriptor_use_note_lead!(), key_param_note!()),
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
+                NoCheckCause::RecordKey(_) => concat!(descriptor_use_note_lead!(), record_key_note!()),
+                NoCheckCause::KeyParam => concat!(descriptor_use_note_lead!(), key_param_note!()),
             }),
         }
     }
@@ -691,6 +792,57 @@ enum FieldCheck {
     /// Nothing can check it, and the declared type names something specific.
     /// The cause is what E0304 says about it.
     Unverifiable(NoCheckCause),
+}
+
+/// The access a `Record`'s key type is checked at: the parameter of the
+/// `Object.keys(..).every` callback each key is tested in, which the record
+/// descriptor's unknown-key check names the same way.
+const KEY_ACCESS: &str = "__k";
+
+/// The leaf of a `Record`'s key type that `field_check_in` reached at
+/// [`KEY_ACCESS`], recorded with the check it wrote there (G367).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum KeyLeaf {
+    /// `string`: every key is one.
+    String,
+    /// `int` or `number`: a key is the spelling of one.
+    Number,
+    /// A string-literal union, by its members.
+    Members(Vec<String>),
+    /// A descriptor's `is`, of the type `(module path, name)` names: a
+    /// refined primitive, whose base decides how a key is read.
+    Descriptor(Option<(String, String)>),
+    /// A type parameter of the generic record whose field holds the
+    /// `Record`, checked by the checker passed for it.
+    Param(String),
+}
+
+/// What a `Record` check tests each key with, decided from the key type's
+/// leaf ([`Emitter::record_key_check`]).
+enum KeyDomain {
+    /// `string`, a plain alias of it, or `unknown`: nothing to test.
+    Any,
+    /// A finite set of strings: every key a member, every member a key.
+    Members { check: String, count: usize },
+    /// Each key, as the string it is, passes `check`.
+    Strings(String),
+    /// Each key is the canonical spelling of a number, and that number
+    /// passes the key type's check.
+    Numbers,
+}
+
+/// A generic record's type argument, as far as a `Record` keyed by the
+/// parameter it fills is concerned (G367).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum KeyArg {
+    /// `string` or a plain alias of it: the `Record` it keys needs no key
+    /// check, and the descriptor's is complete.
+    String,
+    /// A type parameter of the generic record being walked, filled by that
+    /// generic's own argument when a use of it is judged.
+    Param(String),
+    /// Any other type.
+    Other,
 }
 
 /// The discriminant field of an emitted tagged-union value. Single-sourced
@@ -1052,7 +1204,8 @@ enum WalkStep {
     /// ([`GenericWalk`]), followed when a use is judged (G350). `alias` is
     /// the alias of another module whose body applies the generic, when the
     /// application was reached through one (the sibling hop), and names it
-    /// in the message.
+    /// in the message. `key_args` is what each type argument is to a
+    /// `Record` the generic keys by its parameter (G367).
     AppliesGeneric {
         field: String,
         field_ty: String,
@@ -1060,6 +1213,7 @@ enum WalkStep {
         module: String,
         name: String,
         alias: Option<String>,
+        key_args: Vec<KeyArg>,
     },
 }
 
@@ -1074,6 +1228,12 @@ enum WalkStep {
 struct GenericWalk {
     params: Vec<String>,
     steps: Vec<WalkStep>,
+    /// The fields that hold a `Record` keyed by one of `params`, at any
+    /// depth, as `(param, field, field type)`. Such a field is checked by
+    /// the checker passed for the parameter, which cannot list a
+    /// string-literal union's members, so a use whose argument for the
+    /// parameter is not `string` is refused (G367).
+    key_params: Vec<(String, String, String)>,
 }
 
 /// A generic record whose descriptor a check being built calls, recorded
@@ -1085,6 +1245,9 @@ struct GenericApplication {
     /// The alias of another module whose body applies it, when the
     /// application was written there (the sibling hop).
     alias: Option<String>,
+    /// What each type argument is to a `Record` keyed by the parameter it
+    /// fills ([`KeyArg`]).
+    key_args: Vec<KeyArg>,
 }
 
 /// The E0304 facts of every record in a project: for each
@@ -1576,6 +1739,8 @@ impl<'a> Emitter<'a> {
             expanding_sibling_aliases: RefCell::new(Vec::new()),
             following_sibling_imports: RefCell::new(Vec::new()),
             judging_generic_records: RefCell::new(Vec::new()),
+            key_leaves: RefCell::new(None),
+            key_param_uses: RefCell::new(None),
             marks: mapped.then(|| Rc::new(RefCell::new(Vec::new()))),
             ctx,
         }
@@ -1878,6 +2043,17 @@ struct Emitter<'a> {
     /// The generic records being judged field by field, with their type
     /// parameters ([`Self::generic_record_unchecked_field`]).
     judging_generic_records: RefCell<Vec<JudgedGeneric>>,
+    /// While [`Self::record_key_check`] builds the check of a `Record`'s key
+    /// type, each leaf `field_check_in` reached at the key's access
+    /// ([`KEY_ACCESS`]), with the check it wrote there. `None` otherwise. The
+    /// key's domain is the leaf whose check is the whole check, so what is
+    /// classified is what the field check resolved, never a second reading
+    /// of the type (G367).
+    key_leaves: RefCell<Option<Vec<(String, KeyLeaf)>>>,
+    /// While a generic record's walk is recorded ([`Self::generic_walk`]),
+    /// the type parameters of that generic a `Record` in the field being
+    /// walked is keyed by. `None` otherwise.
+    key_param_uses: RefCell<Option<Vec<String>>>,
     /// The span table the source-map markers index (see "Source-map markers"
     /// above `strip_marks`). Shared with every sub-emitter, so a statement in
     /// a lambda body gets a marker that survives the splice into the parent.
@@ -1962,6 +2138,8 @@ impl<'a> Emitter<'a> {
             expanding_sibling_aliases: RefCell::new(Vec::new()),
             following_sibling_imports: RefCell::new(Vec::new()),
             judging_generic_records: RefCell::new(Vec::new()),
+            key_leaves: RefCell::new(None),
+            key_param_uses: RefCell::new(None),
             // The same table: a sub-emitter's markers travel inside its
             // output when it is spliced into the parent, and the final strip
             // pass places them in the finished file.
@@ -5363,8 +5541,9 @@ impl<'a> Emitter<'a> {
     /// an `Array` is checked with its type's check, the check a record field
     /// of that type gets; a part of type `unknown` claims nothing, so a
     /// container of `unknown` is checked by its shape alone, as it was
-    /// before parts were checked. A `Record`'s keys are not checked, as
-    /// `json.parse<Record<K, V>>` does not check them.
+    /// before parts were checked. A `Record`'s keys are checked against `K`
+    /// by [`Self::record_key_check`], the check `json.parse<Record<K, V>>`
+    /// runs on them (G367).
     ///
     /// [`Self::unverifiable_is_container`] judges the same parts first, so a
     /// part this answers `None` for is E0304 when its type has no check.
@@ -5383,9 +5562,12 @@ impl<'a> Emitter<'a> {
             (TypeShape::Array, _) => Some(format!("{arr}.isArray({m})")),
             (TypeShape::Record, args) => {
                 let rec = self.ty(ty).ok()?;
-                let values = match args {
-                    [_key, value] => self.is_part_check(value, "__v")?,
-                    _ => None,
+                let (values, keys) = match args {
+                    [key, value] => (
+                        self.is_part_check(value, "__v")?,
+                        self.record_key_check(ty, key, "__x", Origin::Local).ok()?,
+                    ),
+                    _ => (None, None),
                 };
                 let every = values.map_or_else(String::new, |c| {
                     format!(
@@ -5393,8 +5575,9 @@ impl<'a> Emitter<'a> {
                         self.g("Object")
                     )
                 });
+                let keys = keys.map_or_else(String::new, |c| format!(" && {c}"));
                 Some(format!(
-                    "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{arr}.isArray(__x){every})({m})"
+                    "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{arr}.isArray(__x){every}{keys})({m})"
                 ))
             }
             _ => None,
@@ -5565,7 +5748,8 @@ impl<'a> Emitter<'a> {
         let key = (module.to_string(), name.to_string());
         if self.ctx.plain_descriptors.contains(&key) {
             let check = format!("{}.is({access})", self.sibling_ref(module, name));
-            self.note_delegation(Some(key));
+            self.note_delegation(Some(key.clone()));
+            self.note_key_leaf(access, &check, KeyLeaf::Descriptor(Some(key)));
             return FieldCheck::Deep(check);
         }
         if let Some((owner, leaf)) = self.resolve_imported_alias_leaf(module, name) {
@@ -5693,13 +5877,22 @@ impl<'a> Emitter<'a> {
     /// A generic already being judged answers `None` here, which ends a
     /// recursive one, across modules as well: its own fields are judged
     /// where the walk began.
-    fn generic_record_unchecked_field(&self, module: &str, name: &str) -> Option<NoCheckCause> {
+    ///
+    /// `key_args` are the application's type arguments as a `Record` keyed
+    /// by a parameter sees them: a field holding one is refused unless the
+    /// argument is `string` (G367).
+    fn generic_record_unchecked_field(
+        &self,
+        module: &str,
+        name: &str,
+        key_args: &[KeyArg],
+    ) -> Option<NoCheckCause> {
         let alias = self
             .expanding_sibling_aliases
             .borrow()
             .last()
             .map(|(_, a)| a.clone());
-        self.generic_walk_unchecked(module, name, alias)
+        self.generic_walk_unchecked(module, name, alias, key_args)
     }
 
     /// [`Self::generic_record_unchecked_field`], with the alias of another
@@ -5711,6 +5904,7 @@ impl<'a> Emitter<'a> {
         module: &str,
         name: &str,
         alias: Option<String>,
+        key_args: &[KeyArg],
     ) -> Option<NoCheckCause> {
         let key = (module.to_string(), name.to_string());
         if self.judging_generic_records.borrow().iter().any(|(k, _)| *k == key) {
@@ -5749,8 +5943,20 @@ impl<'a> Emitter<'a> {
                 variant: variant.clone(),
             }))
         };
-        let mut found = None;
+        // A `Record` keyed by a parameter is checked by the checker passed
+        // for it, which cannot list a literal union's members: only a
+        // `string` argument there is checked whole (G367, G374).
+        let mut found = walk.key_params.iter().find_map(|(param, field, field_ty)| {
+            let index = walk.params.iter().position(|p| p == param)?;
+            match key_args.get(index) {
+                Some(KeyArg::String) => None,
+                _ => Some(wrap(field, field_ty, &NoCheckCause::KeyParam, &None)),
+            }
+        });
         for step in &walk.steps {
+            if found.is_some() {
+                break;
+            }
             found = match step {
                 WalkStep::Unverifiable { cause: cause @ NoCheckCause::GenericField(_), .. } => {
                     Some(cause.clone())
@@ -5760,8 +5966,22 @@ impl<'a> Emitter<'a> {
                 }
                 // A generic applied in a field answers for itself, in the
                 // words of its own field.
-                WalkStep::AppliesGeneric { module: m, name: n, alias: a, .. } => {
-                    self.generic_walk_unchecked(m, n, a.clone().or_else(|| alias.clone()))
+                WalkStep::AppliesGeneric { module: m, name: n, alias: a, key_args: inner, .. } => {
+                    // An argument that is one of this generic's parameters
+                    // is what this use passed for it.
+                    let inner: Vec<KeyArg> = inner
+                        .iter()
+                        .map(|arg| match arg {
+                            KeyArg::Param(p) => walk
+                                .params
+                                .iter()
+                                .position(|q| q == p)
+                                .and_then(|i| key_args.get(i).cloned())
+                                .unwrap_or(KeyArg::Other),
+                            other => other.clone(),
+                        })
+                        .collect();
+                    self.generic_walk_unchecked(m, n, a.clone().or_else(|| alias.clone()), &inner)
                 }
                 WalkStep::Delegates { field, module: m, name: n } => {
                     self.note_delegation(Some((m.clone(), n.clone())));
@@ -5806,8 +6026,16 @@ impl<'a> Emitter<'a> {
             .borrow_mut()
             .push((key, params.clone()));
         let mut steps = Vec::new();
+        let mut key_params = Vec::new();
         for f in fields {
+            let outer_keys = self.key_param_uses.replace(Some(Vec::new()));
             let (check, called, applied) = self.field_check_collected(&f.ty, "__w");
+            let keyed = self.key_param_uses.replace(outer_keys).unwrap_or_default();
+            key_params.extend(
+                keyed
+                    .into_iter()
+                    .map(|param| (param, f.name.to_string(), type_label(&f.ty))),
+            );
             if let FieldCheck::Unverifiable(cause) = check {
                 steps.push(WalkStep::Unverifiable {
                     field: f.name.to_string(),
@@ -5824,6 +6052,7 @@ impl<'a> Emitter<'a> {
                 module: app.module,
                 name: app.name,
                 alias: app.alias,
+                key_args: app.key_args,
             }));
             steps.extend(called.into_iter().map(|(module, name)| WalkStep::Delegates {
                 field: f.name.to_string(),
@@ -5834,7 +6063,7 @@ impl<'a> Emitter<'a> {
         self.judging_generic_records.borrow_mut().pop();
         *self.desc_param_guards.borrow_mut() = guards;
         *self.used_sibling_namespaces.borrow_mut() = namespaces;
-        Some(GenericWalk { params, steps })
+        Some(GenericWalk { params, steps, key_params })
     }
 
     /// The walk of every generic record this module declares, keyed by
@@ -5921,17 +6150,58 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// What each of `args`, the type arguments of a generic record's
+    /// application written in `origin`'s scope, is to a `Record` the generic
+    /// keys by the parameter it fills (G367): `string` (or a plain alias of
+    /// it, or `unknown`), a type parameter of the generic being walked, which
+    /// that generic's own use fills in, or anything else.
+    fn key_args(&self, args: &[TypeExpr], origin: Origin) -> Vec<KeyArg> {
+        let module = match origin {
+            Origin::Local => self.ctx.module_path,
+            Origin::Sibling(m) => m,
+        };
+        args.iter()
+            .map(|arg| {
+                if let TypeExpr::Path { segments, .. } = arg {
+                    if let [name] = segments.as_slice() {
+                        if self.is_judged_generic_param(module, name.as_ref()) {
+                            return KeyArg::Param(name.to_string());
+                        }
+                    }
+                }
+                let outer = self.key_leaves.replace(Some(Vec::new()));
+                let check = self.field_check_in(arg, KEY_ACCESS, origin);
+                let leaves = self.key_leaves.replace(outer).unwrap_or_default();
+                match check {
+                    FieldCheck::PresenceOnly => KeyArg::String,
+                    FieldCheck::Deep(c)
+                        if leaves.iter().rev().find(|(lc, _)| *lc == c).map(|(_, l)| l)
+                            == Some(&KeyLeaf::String) =>
+                    {
+                        KeyArg::String
+                    }
+                    _ => KeyArg::Other,
+                }
+            })
+            .collect()
+    }
+
     /// Record that the check being built calls the descriptor of the generic
     /// record `target`, applied in the body of the sibling alias `alias` when
     /// that is where it was written, when a judged check is collecting (see
     /// `generic_applications`). Answers whether one was.
-    fn note_generic_application(&self, target: Option<(String, String)>, alias: Option<String>) -> bool {
+    fn note_generic_application(
+        &self,
+        target: Option<(String, String)>,
+        alias: Option<String>,
+        key_args: Vec<KeyArg>,
+    ) -> bool {
         let mut list = self.generic_applications.borrow_mut();
         let Some(list) = list.as_mut() else {
             return false;
         };
         if let Some((module, name)) = target {
-            let app = GenericApplication { module, name, alias };
+            let app = GenericApplication { module, name, alias, key_args };
             if !list.contains(&app) {
                 list.push(app);
             }
@@ -5958,7 +6228,14 @@ impl<'a> Emitter<'a> {
             .map(|(_, a)| a.clone());
         match applied
             .into_iter()
-            .find_map(|app| self.generic_walk_unchecked(&app.module, &app.name, app.alias.or_else(|| alias.clone())))
+            .find_map(|app| {
+                self.generic_walk_unchecked(
+                    &app.module,
+                    &app.name,
+                    app.alias.or_else(|| alias.clone()),
+                    &app.key_args,
+                )
+            })
         {
             Some(cause) => FieldCheck::Unverifiable(cause),
             None => check,
@@ -6005,8 +6282,9 @@ impl<'a> Emitter<'a> {
             .borrow()
             .last()
             .map(|(_, a)| a.clone());
-        if !self.note_generic_application(Some((home.clone(), gname.clone())), alias) {
-            if let Some(cause) = self.generic_record_unchecked_field(&home, &gname) {
+        let key_args = self.key_args(args, Origin::Sibling(module));
+        if !self.note_generic_application(Some((home.clone(), gname.clone())), alias, key_args.clone()) {
+            if let Some(cause) = self.generic_record_unchecked_field(&home, &gname, &key_args) {
                 return FieldCheck::Unverifiable(cause);
             }
         }
@@ -6636,6 +6914,156 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// Record that `field_check_in` reached `leaf` and wrote `check` for it,
+    /// when the access is a `Record`'s key ([`KEY_ACCESS`]) and
+    /// [`Self::record_key_check`] is collecting.
+    fn note_key_leaf(&self, access: &str, check: &str, leaf: KeyLeaf) {
+        if access != KEY_ACCESS {
+            return;
+        }
+        if let Some(list) = self.key_leaves.borrow_mut().as_mut() {
+            list.push((check.to_string(), leaf));
+        }
+    }
+
+    /// The check of the keys of the object at `obj`, for `record`, a
+    /// `Record` whose key type is `key` (G367): `Ok(None)` when the key type
+    /// is `string` (or a plain alias of it, or `unknown`) and there is
+    /// nothing to check, `Ok(Some(c))` for a conjunct to add to the object
+    /// check, and `Err` when the key type has no runtime check, which makes
+    /// the `Record` unverifiable.
+    ///
+    /// The key type is resolved by the check a field of that type gets,
+    /// written at [`KEY_ACCESS`], so it is reached however it is spelled
+    /// (declared here, an alias chain, imported by name, through a
+    /// namespace, in a sibling alias's body) and refused where a field of it
+    /// would be. Which kind of key it is comes from the leaf that check
+    /// ended at ([`KeyLeaf`]):
+    ///
+    /// - a string-literal union: each own key is a member, and there are as
+    ///   many keys as members, so every member is present;
+    /// - `int`, `number` or a refinement of either: each key is the
+    ///   canonical spelling of a number (`"" + Number(k) === k`, the only
+    ///   key `m[n] = v` makes), and that number passes the key type's check;
+    /// - anything else (a `where`-refined string, a generic's type
+    ///   parameter checked by its passed checker): each key passes the key
+    ///   type's check.
+    ///
+    /// The keys are `Object.keys`, the own enumerable ones `Object.values`
+    /// walks for the values. Both places that build a `Record` check call
+    /// this: [`Self::is_container_check`] for an `is` pattern, and the
+    /// `Record` arm of [`Self::field_check_in`] for everything else.
+    fn record_key_check(
+        &self,
+        record: &TypeExpr,
+        key: &TypeExpr,
+        obj: &str,
+        origin: Origin,
+    ) -> Result<Option<String>, NoCheckCause> {
+        let outer = self.key_leaves.replace(Some(Vec::new()));
+        let check = self.field_check_in(key, KEY_ACCESS, origin);
+        let leaves = self.key_leaves.replace(outer).unwrap_or_default();
+        let check = match check {
+            FieldCheck::PresenceOnly => return Ok(None),
+            FieldCheck::Unverifiable(_) => {
+                return Err(NoCheckCause::RecordKey(Box::new(RecordKeyName {
+                    record: type_label(record),
+                    key: type_label(key),
+                })))
+            }
+            FieldCheck::Deep(c) => c,
+        };
+        // The leaf whose check is the whole check: one a wrapper around it
+        // (`Nullable<K>`) did not reach, so a wrapped leaf is not the key's.
+        let leaf = leaves.into_iter().rev().find(|(c, _)| *c == check).map(|(_, l)| l);
+        let domain = match leaf {
+            Some(KeyLeaf::String) => KeyDomain::Any,
+            Some(KeyLeaf::Number) => KeyDomain::Numbers,
+            Some(KeyLeaf::Members(mut members)) => {
+                members.sort();
+                members.dedup();
+                KeyDomain::Members { check, count: members.len() }
+            }
+            Some(KeyLeaf::Descriptor(target)) => {
+                match target.and_then(|(module, name)| self.refined_key_is_numeric(&module, &name)) {
+                    Some(true) => KeyDomain::Numbers,
+                    _ => KeyDomain::Strings(check),
+                }
+            }
+            Some(KeyLeaf::Param(param)) => {
+                if let Some(list) = self.key_param_uses.borrow_mut().as_mut() {
+                    if !list.contains(&param) {
+                        list.push(param);
+                    }
+                }
+                KeyDomain::Strings(check)
+            }
+            None => KeyDomain::Strings(check),
+        };
+        let keys = format!("{}.keys({obj} as object)", self.g("Object"));
+        Ok(match domain {
+            KeyDomain::Any => None,
+            KeyDomain::Members { check, count } => Some(format!(
+                "{keys}.length === {count} && {keys}.every(({KEY_ACCESS}: string) => {check})"
+            )),
+            KeyDomain::Strings(check) => Some(format!("{keys}.every(({KEY_ACCESS}: string) => {check})")),
+            KeyDomain::Numbers => {
+                let n = format!("{}({KEY_ACCESS})", self.g("Number"));
+                let check = match self.field_check_in(key, &n, origin) {
+                    FieldCheck::Deep(c) => c,
+                    FieldCheck::PresenceOnly => "true".to_string(),
+                    FieldCheck::Unverifiable(cause) => return Err(cause),
+                };
+                Some(format!(
+                    "{keys}.every(({KEY_ACCESS}: string) => \"\" + {n} === {KEY_ACCESS} && {check})"
+                ))
+            }
+        })
+    }
+
+    /// Whether the type `name` of the project module `module`, a key type
+    /// checked by its descriptor, is a refinement of a number (`true`) or of
+    /// a string (`false`); `None` for any other type (a record, a tagged
+    /// union), whose descriptor no string key passes. Read through the
+    /// checker's lowering: this module's declarations by their alias chain
+    /// and body, another module's by the declaration its own module lowered.
+    fn refined_key_is_numeric(&self, module: &str, name: &str) -> Option<bool> {
+        let ty = if module == self.ctx.module_path {
+            self.local_type_named(name)?
+        } else {
+            Ty::Imported { module: module.into(), name: Ident::from(name) }
+        };
+        self.key_ty_is_numeric(&ty, 0)
+    }
+
+    /// [`Self::refined_key_is_numeric`] for a lowered type, `depth` hops in.
+    fn key_ty_is_numeric(&self, ty: &Ty, depth: u8) -> Option<bool> {
+        if depth > 32 {
+            return None;
+        }
+        match resolve_alias_chain(self.module, self.resolved, &self.lowerer, ty) {
+            Ty::Prim(Primitive::Number) => Some(true),
+            Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => Some(false),
+            named @ Ty::Named { .. } => {
+                let td = direct_type_decl(self.module, self.resolved, &named)?;
+                if !td.generics.is_empty()
+                    || matches!(td.body, TypeExpr::Record { .. } | TypeExpr::Union { .. })
+                {
+                    return None;
+                }
+                self.key_ty_is_numeric(&self.lowerer.lower(&td.body), depth + 1)
+            }
+            Ty::Imported { module, name } => {
+                let decl = self.ctx.decls.imported_type_decl(module.as_str(), name.as_ref())?;
+                if !decl.generics.is_empty() {
+                    return None;
+                }
+                self.key_ty_is_numeric(&decl.body, depth + 1)
+            }
+            _ => None,
+        }
+    }
+
     /// The real check for a field of type `ty`, or `None` when there is nothing
     /// to check it with.
     ///
@@ -6672,13 +7100,21 @@ impl<'a> Emitter<'a> {
         }
         // `int` is a whole `number`: the leaf check that `number` cannot express.
         if shape == TypeShape::Int {
-            return FieldCheck::Deep(format!(
+            let check = format!(
                 "(typeof {access} === \"number\" && {}.isInteger({access}))",
                 self.g("Number")
-            ));
+            );
+            self.note_key_leaf(access, &check, KeyLeaf::Number);
+            return FieldCheck::Deep(check);
         }
         if let TypeShape::Typeof(jt) = shape {
-            return FieldCheck::Deep(format!("typeof {access} === \"{jt}\""));
+            let check = format!("typeof {access} === \"{jt}\"");
+            match jt {
+                "string" => self.note_key_leaf(access, &check, KeyLeaf::String),
+                "number" => self.note_key_leaf(access, &check, KeyLeaf::Number),
+                _ => {}
+            }
+            return FieldCheck::Deep(check);
         }
         match ty {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
@@ -6690,6 +7126,7 @@ impl<'a> Emitter<'a> {
                     // A type parameter of a generic being judged: its checker
                     // is passed in, so the walk counts it as checked.
                     if self.is_judged_generic_param(module, name) {
+                        self.note_key_leaf(access, "true", KeyLeaf::Param(name.to_string()));
                         return FieldCheck::Deep("true".to_string());
                     }
                     return self.sibling_name_check(module, name, access);
@@ -6698,14 +7135,20 @@ impl<'a> Emitter<'a> {
                     // A field typed as one of the enclosing generic descriptor's
                     // parameters: validate it with the checker threaded in at the
                     // call site, not a presence check.
-                    FieldCheck::Deep(format!("{guard}({access})"))
+                    let check = format!("{guard}({access})");
+                    self.note_key_leaf(access, &check, KeyLeaf::Param(name.to_string()));
+                    FieldCheck::Deep(check)
                 } else if self.is_judged_generic_param(self.ctx.module_path, name) {
                     // A type parameter of a generic of this module being
                     // judged: its checker is passed in, as on the sibling path.
+                    self.note_key_leaf(access, "true", KeyLeaf::Param(name.to_string()));
                     FieldCheck::Deep("true".to_string())
                 } else if self.has_descriptor(name) {
-                    self.note_delegation(self.descriptor_target(name));
-                    FieldCheck::Deep(format!("{name}.is({access})"))
+                    let target = self.descriptor_target(name);
+                    self.note_delegation(target.clone());
+                    let check = format!("{name}.is({access})");
+                    self.note_key_leaf(access, &check, KeyLeaf::Descriptor(target));
+                    FieldCheck::Deep(check)
                 } else if let Some(leaf) = self.alias_leaf(name) {
                     // A non-record type alias (`type Tier = "free" | "pro"`,
                     // `type Count = int`): resolve to its leaf so a field typed by
@@ -6750,10 +7193,11 @@ impl<'a> Emitter<'a> {
                     };
                 }
                 if self.has_namespaced_descriptor(ns, name) {
-                    self.note_delegation(
-                        self.namespace_module_path(ns).map(|m| (m, name.to_string())),
-                    );
-                    FieldCheck::Deep(format!("{ns}.{name}.is({access})"))
+                    let target = self.namespace_module_path(ns).map(|m| (m, name.to_string()));
+                    self.note_delegation(target.clone());
+                    let check = format!("{ns}.{name}.is({access})");
+                    self.note_key_leaf(access, &check, KeyLeaf::Descriptor(target));
+                    FieldCheck::Deep(check)
                 } else if let Some(module) = self.namespace_module_path(ns) {
                     // `import catalog` then a field typed `catalog.ColType`:
                     // the same descriptorless alias reached through a namespace.
@@ -6817,16 +7261,22 @@ impl<'a> Emitter<'a> {
                         ))
                     }
                     // `Record<K, V>` is a structural object map: reject non-objects
-                    // (a string, an array, null) and recurse the value type over
+                    // (a string, an array, null), recurse the value type over
                     // every entry, so a `Record<string, number>` field can never
-                    // bind to a string or an object whose values are not numbers.
-                    (TypeShape::Record, _, [_key, value]) => {
+                    // bind to a string or an object whose values are not numbers,
+                    // and check every key against `K` (G367), which for
+                    // `string` adds nothing.
+                    (TypeShape::Record, _, [key, value]) => {
                         let value_check = match self.part_check(value, "__v", origin) {
                             Ok(c) => c,
                             Err(cause) => return FieldCheck::Unverifiable(cause),
                         };
+                        let keys = match self.record_key_check(ty, key, access, origin) {
+                            Ok(keys) => keys.map_or_else(String::new, |c| format!(" && {c}")),
+                            Err(cause) => return FieldCheck::Unverifiable(cause),
+                        };
                         FieldCheck::Deep(format!(
-                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}) && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))",
+                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}) && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}){keys})",
                             arr = self.g("Array"),
                             obj = self.g("Object")
                         ))
@@ -6872,7 +7322,11 @@ impl<'a> Emitter<'a> {
                         // The descriptor checks the generic's own fields as
                         // well as the arguments; a judged check reads them
                         // (G347), and the predicate is the same either way.
-                        self.note_generic_application(self.generic_record_target(gname), None);
+                        self.note_generic_application(
+                            self.generic_record_target(gname),
+                            None,
+                            self.key_args(args, Origin::Local),
+                        );
                         FieldCheck::Deep(format!("{gname}.is({access}, {checkers})"))
                     }
                     // A sibling's application is read in the sibling's scope,
@@ -6920,13 +7374,21 @@ impl<'a> Emitter<'a> {
             // the leaf-value check that a bare `string` cannot express.
             TypeExpr::StringLiteralUnion { values, .. } => {
                 if values.is_empty() {
-                    return FieldCheck::Deep(format!("typeof {access} === \"string\""));
+                    let check = format!("typeof {access} === \"string\"");
+                    self.note_key_leaf(access, &check, KeyLeaf::String);
+                    return FieldCheck::Deep(check);
                 }
                 let arms: Vec<String> = values
                     .iter()
                     .map(|v| format!("{access} === {}", escape_double_quoted(v)))
                     .collect();
-                FieldCheck::Deep(format!("({})", arms.join(" || ")))
+                let check = format!("({})", arms.join(" || "));
+                self.note_key_leaf(
+                    access,
+                    &check,
+                    KeyLeaf::Members(values.iter().map(|v| v.to_string()).collect()),
+                );
+                FieldCheck::Deep(check)
             }
             _ => FieldCheck::Unverifiable(NoCheckCause::Opaque),
         }
@@ -7300,6 +7762,7 @@ impl<'a> Emitter<'a> {
                     module: app.module,
                     name: app.name,
                     alias: app.alias,
+                    key_args: app.key_args,
                 });
             }
             for (module, name) in called {
@@ -7388,8 +7851,8 @@ impl<'a> Emitter<'a> {
                         return Some(found);
                     }
                 }
-                WalkStep::AppliesGeneric { field, field_ty, variant, module, name, alias } => {
-                    if let Some(cause) = self.generic_walk_unchecked(module, name, alias.clone()) {
+                WalkStep::AppliesGeneric { field, field_ty, variant, module, name, alias, key_args } => {
+                    if let Some(cause) = self.generic_walk_unchecked(module, name, alias.clone(), key_args) {
                         return Some(Unchecked {
                             path: field.clone(),
                             field_ty: field_ty.clone(),
@@ -7937,7 +8400,9 @@ impl<'a> Emitter<'a> {
             }
         }
         if let Some(cause) = target
-            .and_then(|(module, name)| self.generic_record_unchecked_field(&module, &name))
+            .and_then(|(module, name)| {
+                self.generic_record_unchecked_field(&module, &name, &self.key_args(type_args, Origin::Local))
+            })
         {
             return Some(EmitError::UnverifiableGenericUse { type_name: applied(), cause, span });
         }
@@ -8111,7 +8576,19 @@ impl<'a> Emitter<'a> {
         };
         let part = match (self.type_shape(ty, Origin::Local), args.as_slice()) {
             (TypeShape::Array, [elem]) => elem,
-            (TypeShape::Record, [_key, value]) => value,
+            (TypeShape::Record, [key, value]) => {
+                // Every key is checked against `K` (G367), so a key type
+                // with no check is refused as a value type with none is.
+                if let Err(cause) = self.record_key_check(ty, key, "__x", Origin::Local) {
+                    return Some(EmitError::UnverifiablePatternPart {
+                        type_name: type_label(ty),
+                        arg: type_label(key),
+                        cause,
+                        span,
+                    });
+                }
+                value
+            }
             _ => return None,
         };
         match self.type_shape(part, Origin::Local) {
@@ -10801,7 +11278,7 @@ mod tests {
             walks: Default::default(),
             generics: std::collections::BTreeMap::from([(
                 ("boxmod".to_string(), "Box".to_string()),
-                GenericWalk { params: vec!["T".to_string()], steps: Vec::new() },
+                GenericWalk { params: vec!["T".to_string()], steps: Vec::new(), key_params: Vec::new() },
             )]),
         };
         let ctx = EmitContext {

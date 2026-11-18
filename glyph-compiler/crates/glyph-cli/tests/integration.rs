@@ -18838,3 +18838,269 @@ fn a_descriptor_check_on_a_record_outside_a_same_named_type_parameter_still_vali
         }
     }
 }
+
+/// The G367 parity program for one spelling of a `Record`'s key type `k`:
+/// every path that checks a `Record<k, int>` (its own `json.parse`, a
+/// record holding it through `json.parse`, `parse`, `is`, an `is` pattern
+/// and `json.parse_with` of its schema, an `is Record` pattern, an
+/// `Array`'s element, a `Nullable` and an `Option` field, a generic's
+/// argument through `json.parse` and its descriptor, a tagged union's
+/// payload, and an alias of another module that spells the key there) runs
+/// on each input, and prints one `label path verdict` line per pair.
+fn g367_program(k: &str, decls: &str, inputs: &[(&str, &str, &str)]) -> String {
+    let rec = format!("Record<{k}, int>");
+    let ok = "{ Ok(_) => \"Ok\", Err(_) => \"Err\", }";
+    let paths: Vec<(&str, String)> = vec![
+        ("jp", format!("match json.parse<{rec}>(txt) {ok}")),
+        ("jdoc", format!("match json.parse<Doc>(wm(txt)) {ok}")),
+        ("docparse", format!("match Doc.parse(u(wm(txt))) {ok}")),
+        ("schema", format!("match json.parse_with(wm(txt), Doc.schema) {ok}")),
+        ("jarr", format!("match json.parse<Array<{rec}>>(\"[\" + txt + \"]\") {ok}")),
+        ("jnull", format!("match json.parse<DN>(wm(txt)) {ok}")),
+        ("jopt", format!("match json.parse<DO>(\"{{\\\"m\\\":{{\\\"tag\\\":\\\"Some\\\",\\\"value\\\":\" + txt + \"}}}}\") {ok}")),
+        ("jbox", format!("match json.parse<Box<{rec}>>(wv(txt)) {ok}")),
+        ("boxparse", format!("match Box.parse<{rec}>(u(wv(txt))) {ok}")),
+        ("junion", format!("match json.parse<U>(\"{{\\\"tag\\\":\\\"A\\\",\\\"value\\\":\" + txt + \"}}\") {ok}")),
+        ("hop", format!("match json.parse<M>(txt) {ok}")),
+        ("docis", "b(Doc.is(u(wm(txt))))".to_string()),
+        ("isdoc", "b(match u(wm(txt)) { is Doc => true, _ => false, })".to_string()),
+        ("isrec", format!("b(match u(txt) {{ is {rec} => true, _ => false, }})")),
+        ("isarr", format!("b(match u(\"[\" + txt + \"]\") {{ is Array<{rec}> => true, _ => false, }})")),
+    ];
+    let mut out = format!(
+        "module main\nimport std/console\nimport std/json\nimport s {{ M }}\n{decls}\
+         type Doc = {{ m: {rec}, }}\n\
+         type DN = {{ m: Nullable<{rec}>, }}\n\
+         type DO = {{ m: Option<{rec}>, }}\n\
+         type Box<T> = {{ v: T, }}\n\
+         type U = A({rec}) | B\n\
+         fn u(txt: string) -> unknown {{ return match json.parse(txt) {{ Ok(x) => x, Err(e) => \"PARSEERR\", }} }}\n\
+         fn wm(txt: string) -> string {{ return \"{{\\\"m\\\":\" + txt + \"}}\" }}\n\
+         fn wv(txt: string) -> string {{ return \"{{\\\"v\\\":\" + txt + \"}}\" }}\n\
+         fn b(r: bool) -> string {{ return match r {{ true => \"Ok\", false => \"Err\", }} }}\n"
+    );
+    for (name, check) in &paths {
+        out.push_str(&format!("fn {name}(txt: string) -> string {{ return {check} }}\n"));
+    }
+    out.push_str("fn all(l: string, txt: string) -> void {\n");
+    for (name, _) in &paths {
+        out.push_str(&format!("  console.log(l + \" {name} \" + {name}(txt))\n"));
+    }
+    out.push_str("  return void\n}\npub fn main() -> void {\n");
+    for (label, text, _) in inputs {
+        let text = text.replace('\\', "\\\\").replace('"', "\\\"");
+        out.push_str(&format!("  all(\"{label}\", \"{text}\")\n"));
+    }
+    out.push_str("}\n");
+    out
+}
+
+/// One parity case: its name, `K` as main spells it, main's declarations,
+/// module `t` if any, module `s`'s body, and the inputs with their verdicts.
+type G367Case<'a> = (&'a str, &'a str, String, Option<&'a str>, String, &'a [(&'a str, &'a str, &'a str)]);
+
+/// G367: a `Record`'s keys are checked against its key type `K`, with one
+/// verdict on every path that checks the `Record`, however `K` is spelled.
+/// A string-literal union `K` (declared here, imported by name, through a
+/// namespace, an alias chain, written inline, a single literal) admits
+/// exactly its members, every one present; a `where`-refined string admits
+/// each key its predicate passes; `int`, `number` and a refinement of one
+/// admit the canonical spelling of a number its check passes. `string`
+/// admits any key, as before. Through 0.1.147 every path returned `Ok` for
+/// a stray key, a missing member and a non-numeric key alike (record 113).
+#[test]
+fn a_record_key_type_is_checked_with_one_verdict_on_every_path() {
+    let tier = "pub type Tier = \"a\" | \"b\"\n";
+    let lit: &[(&str, &str, &str)] = &[
+        ("good", r#"{"a":1,"b":2}"#, "Ok"),
+        ("badkey", r#"{"a":1,"z":2}"#, "Err"),
+        ("missing", r#"{"a":1}"#, "Err"),
+        ("empty", "{}", "Err"),
+        ("extra", r#"{"a":1,"b":2,"c":3}"#, "Err"),
+        ("badvalue", r#"{"a":1,"b":"x"}"#, "Err"),
+    ];
+    let one: &[(&str, &str, &str)] = &[
+        ("good", r#"{"a":1}"#, "Ok"),
+        ("badkey", r#"{"z":1}"#, "Err"),
+        ("missing", "{}", "Err"),
+        ("extra", r#"{"a":1,"c":2}"#, "Err"),
+    ];
+    let slug: &[(&str, &str, &str)] = &[
+        ("good", r#"{"ab":1,"cd":2}"#, "Ok"),
+        ("badkey", r#"{"ab":1,"z":2}"#, "Err"),
+        ("empty", "{}", "Ok"),
+    ];
+    let int: &[(&str, &str, &str)] = &[
+        ("good", r#"{"1":1,"-2":2}"#, "Ok"),
+        ("badkey", r#"{"x":1}"#, "Err"),
+        ("lead0", r#"{"01":1}"#, "Err"),
+        ("frac", r#"{"1.5":1}"#, "Err"),
+        ("empty", "{}", "Ok"),
+    ];
+    let number: &[(&str, &str, &str)] = &[
+        ("good", r#"{"1.5":1,"-2":2}"#, "Ok"),
+        ("badkey", r#"{"x":1}"#, "Err"),
+        ("lead0", r#"{"01":1}"#, "Err"),
+    ];
+    let small: &[(&str, &str, &str)] = &[
+        ("good", r#"{"1":1,"9":2}"#, "Ok"),
+        ("badkey", r#"{"12":1}"#, "Err"),
+        ("word", r#"{"x":1}"#, "Err"),
+    ];
+    let string: &[(&str, &str, &str)] = &[
+        ("good", r#"{"a":1,"zzz":2}"#, "Ok"),
+        ("empty", "{}", "Ok"),
+        ("badvalue", r#"{"a":"x"}"#, "Err"),
+    ];
+    let small_t = "pub type Small = int where value < 10\n";
+    let slug_t = "pub type Slug = string where value.length > 1\n";
+    // (case, K in main, main's declarations, module `t` if any, module `s`'s
+    // body, which exports `M` as the `Record` with `K` spelled in `s`, inputs)
+    let cases: Vec<G367Case> = vec![
+        ("local", "Tier", "type Tier = \"a\" | \"b\"\n".into(), None, format!("{tier}pub type M = Record<Tier, int>\n"), lit),
+        ("imported", "Tier", "import t { Tier }\n".into(), Some(tier), "import t { Tier }\npub type M = Record<Tier, int>\n".into(), lit),
+        ("namespaced", "t.Tier", "import t\n".into(), Some(tier), "import t\npub type M = Record<t.Tier, int>\n".into(), lit),
+        ("alias-chain", "T3", "type Tier = \"a\" | \"b\"\ntype T2 = Tier\ntype T3 = T2\n".into(), None,
+         format!("{tier}pub type T2 = Tier\npub type M = Record<T2, int>\n"), lit),
+        ("imported-alias", "T2", "import t { Tier }\ntype T2 = Tier\n".into(), Some(tier),
+         "import t\npub type T2 = t.Tier\npub type M = Record<T2, int>\n".into(), lit),
+        ("inline", "\"a\" | \"b\"", String::new(), None, "pub type M = Record<\"a\" | \"b\", int>\n".into(), lit),
+        ("single", "One", "type One = \"a\"\n".into(), None, "pub type One = \"a\"\npub type M = Record<One, int>\n".into(), one),
+        ("slug", "Slug", slug_t.trim_start_matches("pub ").into(), None, format!("{slug_t}pub type M = Record<Slug, int>\n"), slug),
+        ("ns-slug", "t.Slug", "import t\n".into(), Some(slug_t), "import t\npub type M = Record<t.Slug, int>\n".into(), slug),
+        ("int", "int", String::new(), None, "pub type M = Record<int, int>\n".into(), int),
+        ("number", "number", String::new(), None, "pub type M = Record<number, int>\n".into(), number),
+        ("small", "Small", small_t.trim_start_matches("pub ").into(), None, format!("{small_t}pub type M = Record<Small, int>\n"), small),
+        ("imported-small", "Small", "import t { Small }\n".into(), Some(small_t), "import t { Small }\npub type M = Record<Small, int>\n".into(), small),
+        ("ns-small", "t.Small", "import t\n".into(), Some(small_t), "import t\npub type M = Record<t.Small, int>\n".into(), small),
+        ("string", "string", String::new(), None, "pub type M = Record<string, int>\n".into(), string),
+    ];
+    std::thread::scope(|scope| {
+        let runs: Vec<_> = cases
+            .iter()
+            .map(|(case, k, decls, t, s, inputs)| {
+                scope.spawn(move || {
+                    let root = unique_tmp(&format!("g367-{case}"));
+                    let src = root.join("src");
+                    let main = g367_program(k, decls, inputs);
+                    write_file(&src, "main.glyph", &main);
+                    write_file(&src, "s.glyph", &format!("module s\n{s}"));
+                    if let Some(t) = t {
+                        write_file(&src, "t.glyph", &format!("module t\n{t}"));
+                    }
+                    (case, inputs, main, run_main_lines(&src))
+                })
+            })
+            .collect();
+        for run in runs {
+            let (case, inputs, main, lines) = run.join().expect("a parity run panicked");
+            for (label, _, expected) in inputs.iter() {
+                let verdicts: Vec<&String> = lines
+                    .iter()
+                    .filter(|l| l.split(' ').next() == Some(label))
+                    .collect();
+                assert_eq!(verdicts.len(), 15, "{case} {label}: one line per path:\n{lines:?}\n{main}");
+                for line in verdicts {
+                    assert!(line.ends_with(&format!(" {expected}")), "{case} {label}: expected {expected}, got `{line}`\n{main}");
+                }
+            }
+        }
+    });
+}
+
+/// G367: a check of a `Record` whose key type has no runtime check is
+/// E0304, naming the key type, at the top, as a record's field, inside an
+/// `Array`, as a generic's argument and in an `is` pattern. Through 0.1.147
+/// the key type was never read, so each of these exited 0.
+#[test]
+fn a_record_whose_key_type_has_no_runtime_check_is_e0304() {
+    let h = "type H = extern_ts(\"string\")\n";
+    let jp = |ty: &str| format!("fn p(s: string) -> bool {{ return match json.parse<{ty}>(s) {{ Ok(_) => true, Err(_) => false, }} }}\n");
+    let cases: Vec<(&str, String, &str)> = vec![
+        ("json-parse", jp("Record<H, int>"), "cannot validate `Record<H, int>`: its key type `H` has no runtime check"),
+        ("field", format!("type Doc = {{ m: Record<H, int>, }}\n{}", jp("Doc")),
+         "cannot validate `Doc`: field `m` has type `Record<H, int>`, whose key type `H` has no runtime check"),
+        ("array", jp("Array<Record<H, int>>"),
+         "cannot validate `Array<Record<H, int>>`: its part `Record<H, int>` has key type `H`, which has no runtime check"),
+        ("type-argument",
+         "type Box<T> = { v: T, }\nfn p(s: unknown) -> bool { return match Box.parse<Record<H, int>>(s) { Ok(_) => true, Err(_) => false, } }\n".into(),
+         "cannot validate `Box<Record<H, int>>`: its type argument `Record<H, int>` has key type `H`, which has no runtime check"),
+        ("is-pattern", "fn p(s: unknown) -> bool { return match s { is Record<H, int> => true, _ => false, } }\n".into(),
+         "cannot validate `Record<H, int>`: its key type `H` has no runtime check"),
+    ];
+    for (dir, body, expected) in cases {
+        let root = unique_tmp(&format!("g367-nokey-{dir}"));
+        let src = root.join("src");
+        let main = format!("module main\nimport std/json\n{h}{body}pub fn main() -> void {{ return void }}\n");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("{dir}: E0304:\n{stderr}"));
+        assert!(headline.contains(expected), "{dir}: `{expected}` in:\n{headline}");
+    }
+}
+
+/// G367: a generic record with a `Record` field keyed by one of its type
+/// parameters checks that key with the checker passed for the parameter,
+/// which tests one key and cannot list a literal union's members, so the
+/// totality the written-out `Record<Tier, int>` gets cannot hold. Every
+/// check through such a generic with an argument other than `string` is
+/// E0304: `json.parse`, its descriptor, an `is` pattern, a field typed by
+/// the application, a generic applying it with its own parameter, and an
+/// alias of another module applying it. With `string` it is checked and
+/// runs. Through 0.1.147 `json.parse<Idx<Tier>>` returned `Ok` for
+/// `{"m":{"zzz":1}}` (record 113, probe v3). Lifting this is G374.
+#[test]
+fn a_record_keyed_by_a_generic_type_parameter_is_e0304_unless_the_argument_is_string() {
+    let w = "module w\npub type Tier = \"a\" | \"b\"\npub type Idx<K: string> = { m: Record<K, int>, }\n\
+             pub type Page<T: string> = { idx: Idx<T>, }\npub type I = Idx<Tier>\npub type S = Idx<string>\n";
+    let header = "module main\nimport std/console\nimport std/json\nimport w { Tier, Idx, Page, I, S }\n";
+    let jp = |ty: &str| format!("fn p(s: string) -> bool {{ return match json.parse<{ty}>(s) {{ Ok(_) => true, Err(_) => false, }} }}\n");
+    let key = "and a key type given by a type parameter is not checked at run time";
+    let cases: Vec<(&str, String, &str)> = vec![
+        ("json-parse", jp("Idx<Tier>"), "cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`"),
+        ("descriptor", "fn p(s: unknown) -> bool { return match Idx.parse<Tier>(s) { Ok(_) => true, Err(_) => false, } }\n".into(),
+         "cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`"),
+        ("is-pattern", "fn p(s: unknown) -> bool { return match s { is Idx<Tier> => true, _ => false, } }\n".into(),
+         "cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`"),
+        ("field", format!("type Doc = {{ i: Idx<Tier>, }}\n{}", jp("Doc")),
+         "cannot validate `Doc`: field `i` has type `Idx<Tier>`, and `Idx`'s field `m` has type `Record<K, int>`"),
+        ("through-a-generic", jp("Page<Tier>"), "cannot validate `Page<Tier>`: `Idx`'s field `m` has type `Record<K, int>`"),
+        ("sibling-alias", jp("I"), "cannot validate `I`: `I`'s body applies `Idx`, whose field `m` has type `Record<K, int>`"),
+    ];
+    for (dir, body, expected) in cases {
+        let root = unique_tmp(&format!("g367-keyparam-{dir}"));
+        let src = root.join("src");
+        write_file(&src, "w.glyph", w);
+        let main = format!("{header}{body}pub fn main() -> void {{ return void }}\n");
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
+        let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("{dir}: E0304:\n{stderr}"));
+        assert!(headline.contains(expected) && headline.contains(key), "{dir}: `{expected}` in:\n{headline}");
+    }
+
+    // With `string` for the key every spelling is checked, and runs.
+    let root = unique_tmp("g367-keyparam-string");
+    let src = root.join("src");
+    write_file(&src, "w.glyph", w);
+    let ok = "{ Ok(_) => \"Ok\", Err(_) => \"Err\", }";
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            "{header}fn u(t: string) -> unknown {{ return match json.parse(t) {{ Ok(x) => x, Err(e) => \"PARSEERR\", }} }}\n\
+             fn a(t: string) -> string {{ return match json.parse<Idx<string>>(t) {ok} }}\n\
+             fn b(t: string) -> string {{ return match Idx.parse<string>(u(t)) {ok} }}\n\
+             fn c(t: string) -> string {{ return match json.parse<S>(t) {ok} }}\n\
+             fn d(t: string) -> string {{ return match json.parse<Page<string>>(\"{{\\\"idx\\\":\" + t + \"}}\") {ok} }}\n\
+             pub fn main() -> void {{\n\
+             \x20 let good = \"{{\\\"m\\\":{{\\\"zzz\\\":1}}}}\"\n\
+             \x20 let bad = \"{{\\\"m\\\":{{\\\"zzz\\\":\\\"x\\\"}}}}\"\n\
+             \x20 console.log(a(good) + b(good) + c(good) + d(good))\n\
+             \x20 console.log(a(bad) + b(bad) + c(bad) + d(bad))\n\
+             }}\n"
+        ),
+    );
+    assert_eq!(run_main_lines(&src), vec!["OkOkOkOk", "ErrErrErrErr"]);
+}

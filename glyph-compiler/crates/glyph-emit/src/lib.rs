@@ -181,8 +181,7 @@ pub struct GenericFieldName {
 /// The name [`NoCheckCause::SiblingAlias`] is about.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SiblingAliasName {
-    /// The alias whose body holds the name, or the generic record being
-    /// judged in its own module when the name is in one of its fields.
+    /// The alias whose body holds the name.
     pub alias: String,
     /// The module that declares the alias.
     pub module: String,
@@ -226,37 +225,15 @@ impl NoCheckCause {
 }
 
 impl NoCheckCause {
-    /// Whether this is a field of an imported generic whose type names
-    /// something the generic's own module keeps private: the field is not
-    /// shown to have no check, only not judged from outside that module,
-    /// which reads the generic through its exports (G350).
-    fn is_private_in_generic_home(&self) -> bool {
-        let NoCheckCause::GenericField(g) = self else {
-            return false;
-        };
-        matches!(&g.cause, NoCheckCause::SiblingAlias(s)
-            if s.reach == SiblingReach::Private && s.module == g.module)
-    }
-
     /// For a generic's field: the clause naming the alias, the generic, the
     /// field and why the field has no check.
     fn generic_field_clause(&self) -> Option<String> {
         let NoCheckCause::GenericField(g) = self else {
             return None;
         };
-        let GenericFieldName { alias, generic, module, field, field_ty, cause, variant } = g.as_ref();
+        let GenericFieldName { alias, generic, module: _, field, field_ty, cause, variant } = g.as_ref();
         let field = format!("`{field}`{}", of_variant(variant.as_deref()));
         let why = match cause {
-            // Read through the generic's module's exports, a name it keeps
-            // private cannot be judged here, though the generic's own check
-            // in that module may cover it (G350).
-            _ if self.is_private_in_generic_home() => {
-                let NoCheckCause::SiblingAlias(s) = cause else { unreachable!() };
-                format!(
-                    "and `{name}` is private to `{module}`: an imported generic is read only through what `{module}` exports, so the field cannot be judged here, though `{generic}`'s own check in `{module}` may check it",
-                    name = s.name
-                )
-            }
             NoCheckCause::Interface => "which is an interface and has no descriptor".to_string(),
             NoCheckCause::Result => "which is a `Result` and has no runtime check".to_string(),
             NoCheckCause::GenericUnion => "which is a generic union and has no descriptor".to_string(),
@@ -294,6 +271,18 @@ fn json_parse_message(type_name: &str, cause: &NoCheckCause) -> String {
         None => format!(
             "cannot validate `{type_name}`: `json.parse<{type_name}>` has no runtime check to run for it"
         ),
+    }
+}
+
+/// The E0304 message for a generic descriptor call whose type argument has
+/// no check. An argument that applies a generic with a field of its own
+/// that has none names that field, as `json.parse<T>` of the argument does.
+fn type_argument_message(type_name: &str, arg: &str, cause: &NoCheckCause) -> String {
+    match cause.generic_field_clause() {
+        Some(clause) => format!(
+            "cannot validate `{type_name}`: its type argument `{arg}` has no runtime check: {clause}"
+        ),
+        None => format!("cannot validate `{type_name}`: its type argument `{arg}` has no runtime check"),
     }
 }
 
@@ -395,12 +384,7 @@ macro_rules! generic_union_note {
 }
 macro_rules! generic_field_note {
     () => {
-        "Here a generic record is judged field by field, its type parameters checked by the type arguments: one this module declares through this module's own reading of its fields, one imported from another module through what that module exports. Its descriptor would test a field whose own type has no runtime check for presence only, so the application is refused. Give the field a type with a check, or parse a type without it."
-    };
-}
-macro_rules! private_generic_field_note {
-    () => {
-        "Here the generic record is imported, and this module reads it only through what its module exports. A field whose type that module keeps private cannot be judged from here, though the generic's own check in its module may check it, so the application is refused rather than trusted. Mark that type `pub` in the generic's module, or take a `Schema<T>` and read with `json.parse_with(text, schema)`. Judging the field through the declaring module's own walk is G350."
+        "Here a generic record is judged field by field in the module that declares it, with that module's own reading of its fields (a record it keeps private included), its type parameters checked by the type arguments, whether it is applied there or imported. Its descriptor would test a field whose own type has no runtime check for presence only, so the application is refused. Give the field a type with a check, or parse a type without it."
     };
 }
 macro_rules! sibling_alias_note {
@@ -467,7 +451,7 @@ pub enum EmitError {
     /// would have tested `a` for presence only and returned `Ok` on any value
     /// there. `json.parse<Pair<Shape>>` is refused through
     /// [`EmitError::UnverifiableJsonParse`] for the same reason.
-    #[error("cannot validate `{type_name}`: its type argument `{arg}` has no runtime check")]
+    #[error("{}", type_argument_message(type_name, arg, cause))]
     UnverifiableTypeArgument { type_name: String, arg: String, cause: NoCheckCause, span: Span },
     /// A generic record's descriptor called with checkable type arguments,
     /// where one of the generic's own fields has no runtime check:
@@ -539,18 +523,6 @@ impl EmitError {
     /// A one-line, actionable fix.
     pub fn help(&self) -> Option<&'static str> {
         match self {
-            // A field of an imported generic naming a type its module keeps
-            // private: the field may well be checked there, and the fix is
-            // to let this module read it, not to split the type (G350).
-            EmitError::UnverifiableDescriptorUse { cause, .. }
-            | EmitError::UnverifiableJsonParse { cause, .. }
-            | EmitError::UnverifiableGenericUse { cause, .. }
-                if cause.is_private_in_generic_home() =>
-            {
-                Some(
-                    "Mark the private type `pub` in the module that declares the generic, or take a `Schema<T>` and read with `json.parse_with(text, schema)`.",
-                )
-            }
             EmitError::Unsupported { .. } => {
                 Some("Rewrite using a construct the v1 emitter supports; see the spec for the supported forms.")
             }
@@ -603,9 +575,6 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
-                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
-                    concat!(descriptor_use_note_lead!(), private_generic_field_note!())
-                }
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
             }),
             EmitError::UnverifiableJsonParse { cause, .. } => Some(match cause {
@@ -614,15 +583,9 @@ impl EmitError {
                 NoCheckCause::Result => concat!(json_parse_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(json_parse_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(json_parse_note_lead!(), sibling_alias_note!()),
-                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
-                    concat!(json_parse_note_lead!(), private_generic_field_note!())
-                }
                 NoCheckCause::GenericField(_) => concat!(json_parse_note_lead!(), generic_field_note!()),
             }),
             EmitError::UnverifiableGenericUse { cause, .. } => Some(match cause {
-                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
-                    concat!(descriptor_use_note_lead!(), private_generic_field_note!())
-                }
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
                 NoCheckCause::Opaque => concat!(descriptor_use_note_lead!(), "Here the generic record's declaration cannot be read from this module."),
                 NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),
@@ -636,9 +599,6 @@ impl EmitError {
                 NoCheckCause::Result => concat!(descriptor_use_note_lead!(), result_note!()),
                 NoCheckCause::GenericUnion => concat!(descriptor_use_note_lead!(), generic_union_note!()),
                 NoCheckCause::SiblingAlias(_) => concat!(descriptor_use_note_lead!(), sibling_alias_note!()),
-                c @ NoCheckCause::GenericField(_) if c.is_private_in_generic_home() => {
-                    concat!(descriptor_use_note_lead!(), private_generic_field_note!())
-                }
                 NoCheckCause::GenericField(_) => concat!(descriptor_use_note_lead!(), generic_field_note!()),
             }),
         }
@@ -953,19 +913,6 @@ pub struct EmitContext<'a> {
     /// in that body is there, rather than looking it up in the importer's
     /// scope, where it can be a different type of the same name.
     pub sibling_names: &'a std::collections::BTreeMap<(String, String), SiblingName>,
-    /// Every exported generic record of the project, keyed by
-    /// `(module path, name)`, as its module declares it: what a generic
-    /// applied in a sibling alias's body is judged against, field by field,
-    /// in that module's scope ([`GenericRecordDecl`]).
-    pub generic_records: &'a std::collections::BTreeMap<(String, String), GenericRecordDecl>,
-}
-
-/// An exported generic record as its module declares it: its type
-/// parameters and its fields, spelled in that module's scope.
-#[derive(Debug, Clone)]
-pub struct GenericRecordDecl {
-    pub params: Vec<String>,
-    pub fields: Vec<RecordTypeField>,
 }
 
 /// What a project module binds a name to, for the names
@@ -1029,6 +976,46 @@ enum WalkStep {
     /// descriptor is that record's, so its verdict is that record's walk,
     /// with no field of its own in between.
     SecondNameFor { module: String, name: String },
+    /// The field `field`, of type `field_ty`, is checked by calling the
+    /// descriptor of the generic record `name` declared in the project module
+    /// `module`. That descriptor checks the generic's own fields as well as
+    /// the arguments, so the field's verdict is the generic's own walk
+    /// ([`GenericWalk`]), followed when a use is judged (G350). `alias` is
+    /// the alias of another module whose body applies the generic, when the
+    /// application was reached through one (the sibling hop), and names it
+    /// in the message.
+    AppliesGeneric {
+        field: String,
+        field_ty: String,
+        variant: Option<String>,
+        module: String,
+        name: String,
+        alias: Option<String>,
+    },
+}
+
+/// The E0304 walk of a generic record, recorded by the emitter of the module
+/// that declares it, with that module's own resolution: its type parameters,
+/// each counted as checked (the descriptor checks it with the checker passed
+/// for it), and one step per fact about its fields, in the order the walk
+/// meets them. An importer reads this rather than the generic's declaration,
+/// whose field types are names in the declaring module's scope, a private
+/// record included (G350).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GenericWalk {
+    params: Vec<String>,
+    steps: Vec<WalkStep>,
+}
+
+/// A generic record whose descriptor a check being built calls, recorded
+/// while a judged check collects them ([`Emitter::generic_applications`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GenericApplication {
+    module: String,
+    name: String,
+    /// The alias of another module whose body applies it, when the
+    /// application was written there (the sibling hop).
+    alias: Option<String>,
 }
 
 /// The E0304 facts of every record in a project: for each
@@ -1046,9 +1033,15 @@ enum WalkStep {
 /// A walk records a delegation to another record rather than that record's
 /// verdict, so it needs no module order: the chain is followed when a use is
 /// judged, across as many modules as it crosses.
+///
+/// A generic record's walk is recorded the same way, in its own table, and
+/// an application of one is recorded as a step to follow rather than judged
+/// while the tables are built: the generic's module may not have recorded
+/// its walk yet (G350).
 #[derive(Debug, Default, Clone)]
 pub struct DescriptorWalks {
     walks: std::collections::BTreeMap<(String, String), Vec<WalkStep>>,
+    generics: std::collections::BTreeMap<(String, String), GenericWalk>,
 }
 
 /// The `DeclTyResolver` of a program with no siblings: every cross-module
@@ -1085,17 +1078,12 @@ impl<'a> EmitContext<'a> {
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
             sibling_names: &EMPTY_SIBLING_NAMES,
-            generic_records: &EMPTY_GENERIC_RECORDS,
         }
     }
 }
 
 static EMPTY_SIBLING_NAMES: std::sync::LazyLock<
     std::collections::BTreeMap<(String, String), SiblingName>,
-> = std::sync::LazyLock::new(Default::default);
-
-static EMPTY_GENERIC_RECORDS: std::sync::LazyLock<
-    std::collections::BTreeMap<(String, String), GenericRecordDecl>,
 > = std::sync::LazyLock::new(Default::default);
 
 static EMPTY_WALKS: std::sync::LazyLock<DescriptorWalks> =
@@ -1138,7 +1126,6 @@ pub struct ProjectTables {
     imported_module_paths: std::collections::BTreeSet<String>,
     descriptor_walks: DescriptorWalks,
     sibling_names: std::collections::BTreeMap<(String, String), SiblingName>,
-    generic_records: std::collections::BTreeMap<(String, String), GenericRecordDecl>,
 }
 
 /// One module of a project, as [`ProjectTables::from_modules`] reads it.
@@ -1168,8 +1155,8 @@ impl ProjectTables {
     /// Two passes. The first reads each AST: the module set, which sibling
     /// types emit a descriptor and which do not, and what is imported. The
     /// second builds each checked module's emitter over the first pass's
-    /// tables and records the E0304 walk of every record it declares
-    /// ([`DescriptorWalks`]). The second pass needs the first:
+    /// tables and records the E0304 walk of every record and every generic
+    /// record it declares ([`DescriptorWalks`]). The second pass needs the first:
     /// whether a field typed by an imported record delegates to a descriptor
     /// is read off the descriptor table.
     ///
@@ -1200,6 +1187,7 @@ impl ProjectTables {
         }
         t.add_second_name_descriptors(&modules, prelude);
         let mut walks = Vec::new();
+        let mut generics = Vec::new();
         for m in &modules {
             let (Some(ast), Some(checked)) = (m.ast, m.checked) else {
                 continue;
@@ -1207,8 +1195,10 @@ impl ProjectTables {
             let ctx = t.emit_context(m.module_path, checked.decls);
             let e = Emitter::new(ast, checked.resolved, checked.types, prelude, ctx, false);
             walks.extend(e.descriptor_walks_of_module());
+            generics.extend(e.generic_walks_of_module());
         }
         t.descriptor_walks.walks.extend(walks);
+        t.descriptor_walks.generics.extend(generics);
         t
     }
 
@@ -1297,15 +1287,6 @@ impl ProjectTables {
                     );
                 }
                 Decl::Type(td) if !td.generics.is_empty() => {
-                    if let TypeExpr::Record { fields, .. } = &td.body {
-                        self.generic_records.insert(
-                            (module_path.to_string(), td.name.to_string()),
-                            GenericRecordDecl {
-                                params: td.generics.iter().map(|g| g.name.to_string()).collect(),
-                                fields: fields.clone(),
-                            },
-                        );
-                    }
                     let kind = match td.body {
                         TypeExpr::Union { .. } => Some(SiblingName::GenericUnion),
                         TypeExpr::Record { .. } => Some(SiblingName::GenericRecord),
@@ -1351,7 +1332,6 @@ impl ProjectTables {
             decls,
             descriptor_walks: &self.descriptor_walks,
             sibling_names: &self.sibling_names,
-            generic_records: &self.generic_records,
         }
     }
 
@@ -1811,13 +1791,13 @@ struct Emitter<'a> {
     /// `T.is(..)` call, so the records E0304 follows are exactly the ones the
     /// emitted check trusts, never a second reading of the type.
     delegations: RefCell<Option<Vec<(String, String)>>>,
-    /// While a judged check runs ([`Self::field_check_judged`]), the
-    /// `(module path, type name)` of every generic record the check being
-    /// built calls the descriptor of. `None` otherwise. Recorded where
-    /// `field_check_in` writes the `G.is(..)` call, like `delegations`, so the
-    /// generics judged are the ones the emitted check trusts, and the check
-    /// itself is written as before: only the verdict reads this.
-    generic_applications: RefCell<Option<Vec<(String, String)>>>,
+    /// While a judged check runs ([`Self::field_check_judged`]) or a walk is
+    /// recorded ([`Self::field_check_collected`]), every generic record the
+    /// check being built calls the descriptor of. `None` otherwise. Recorded
+    /// where `field_check_in` writes the `G.is(..)` call, like `delegations`,
+    /// so the generics judged are the ones the emitted check trusts, and the
+    /// check itself is written as before: only the verdict reads this.
+    generic_applications: RefCell<Option<Vec<GenericApplication>>>,
     /// The sibling aliases whose bodies `field_check_in` is expanding, so a
     /// recursive one (`pub type L = Array<L>`) ends as unverifiable rather
     /// than expanding forever.
@@ -5567,96 +5547,111 @@ impl<'a> Emitter<'a> {
     /// since the descriptor checks it with the checker passed for it. This is
     /// the one judgment of a generic's own fields, on every path that trusts
     /// its descriptor: applied in this module, imported by name or through a
-    /// namespace, held by a record's field at any depth, or applied in the
-    /// body of a sibling's alias (G347; the hop since 0.1.140).
+    /// namespace, held by a record's field at any depth, applied in the body
+    /// of a sibling's alias (G347; the hop since 0.1.140), passed as a type
+    /// argument, or named by an `is` pattern.
     ///
-    /// The fields are read in `module`'s scope. A generic this module
-    /// declares is read with this module's resolution, a private one
-    /// included, so a field typed by one of its private records is followed
-    /// into that record. Another module's generic is read out of
-    /// [`EmitContext::generic_records`], which holds the generics each module
-    /// exports, by its spelling in that module's scope; a name there that the
-    /// module keeps private cannot be read from here and refuses the
-    /// application, though its descriptor in that module could check it.
+    /// The fields are judged in `module`, with `module`'s own resolution, as
+    /// a record's are ([`DescriptorWalks`]): a generic this module declares
+    /// is walked here ([`Self::generic_walk`]), and another module's is read
+    /// from the walk its own module recorded. So a field typed by a record
+    /// the generic's module keeps private is followed into that record's
+    /// walk, and is refused only for a field that record cannot check
+    /// (G350). A generic with no recorded walk, whose module did not
+    /// resolve, is refused: nothing has judged its fields.
     ///
-    /// A field of another generic is judged the same way, so
+    /// A field applying another generic is judged by that generic's walk, so
     /// `Page<T> = { meta: Meta<T> }` is refused for a field of `Meta`, and a
     /// field calling a record's descriptor is judged by that record's walk
-    /// (`Page<T> = { u: Inner }` for a field of `Inner`). A record walk not
-    /// recorded yet, which is another module's while the project tables are
-    /// built, is passed on to the caller's walk, which follows it when the
-    /// use is judged.
+    /// (`Page<T> = { u: Inner }` for a field of `Inner`).
     ///
-    /// This is the judgment only: nothing it reaches is emitted, so the
-    /// hidden namespace imports the walk records are dropped afterwards. A
-    /// generic already being judged answers `None` here, which ends a
-    /// recursive one; its own fields are judged where the walk began.
+    /// A generic already being judged answers `None` here, which ends a
+    /// recursive one, across modules as well: its own fields are judged
+    /// where the walk began.
     fn generic_record_unchecked_field(&self, module: &str, name: &str) -> Option<NoCheckCause> {
-        let key = (module.to_string(), name.to_string());
-        if self.judging_generic_records.borrow().iter().any(|(k, _)| *k == key) {
-            return None;
-        }
-        let local = (module == self.ctx.module_path)
-            .then(|| self.local_generic_record(name))
-            .flatten();
-        let (params, fields, origin) = match local {
-            Some((params, fields)) => (params, fields, Origin::Local),
-            None => match self.ctx.generic_records.get(&key) {
-                Some(decl) => (decl.params.clone(), decl.fields.as_slice(), Origin::Sibling(module)),
-                None => return Some(NoCheckCause::Opaque),
-            },
-        };
         let alias = self
             .expanding_sibling_aliases
             .borrow()
             .last()
             .map(|(_, a)| a.clone());
+        self.generic_walk_unchecked(module, name, alias)
+    }
+
+    /// [`Self::generic_record_unchecked_field`], with the alias of another
+    /// module whose body applies the generic, which the message names, given
+    /// rather than read off the aliases being expanded: an application the
+    /// walk recorded is followed after the expansion that met it has ended.
+    fn generic_walk_unchecked(
+        &self,
+        module: &str,
+        name: &str,
+        alias: Option<String>,
+    ) -> Option<NoCheckCause> {
+        let key = (module.to_string(), name.to_string());
+        if self.judging_generic_records.borrow().iter().any(|(k, _)| *k == key) {
+            return None;
+        }
+        let local;
+        let walk: &GenericWalk = if module == self.ctx.module_path {
+            match self.generic_walk(name) {
+                Some(w) => {
+                    local = w;
+                    &local
+                }
+                None => return Some(NoCheckCause::Opaque),
+            }
+        } else {
+            match self.ctx.descriptor_walks.generics.get(&key) {
+                Some(w) => w,
+                None => return Some(NoCheckCause::Opaque),
+            }
+        };
         let namespaces = self.used_sibling_namespaces.borrow().clone();
         // An enclosing generic descriptor's guards are not this generic's
         // parameters; its own are counted through the judged stack.
         let guards = self.desc_param_guards.replace(Vec::new());
-        self.judging_generic_records.borrow_mut().push((key, params));
+        self.judging_generic_records
+            .borrow_mut()
+            .push((key, walk.params.clone()));
+        let wrap = |field: &str, field_ty: &str, cause: &NoCheckCause, variant: &Option<String>| {
+            NoCheckCause::GenericField(Box::new(GenericFieldName {
+                alias: alias.clone(),
+                generic: name.to_string(),
+                module: module.to_string(),
+                field: field.to_string(),
+                field_ty: field_ty.to_string(),
+                cause: cause.clone(),
+                variant: variant.clone(),
+            }))
+        };
         let mut found = None;
-        for f in fields {
-            let outer_calls = self.delegations.replace(Some(Vec::new()));
-            let outer_applied = self.generic_applications.replace(Some(Vec::new()));
-            let check = self.field_check_in(&f.ty, "__w", origin);
-            let calls = self.delegations.replace(outer_calls).unwrap_or_default();
-            let applied = self.generic_applications.replace(outer_applied).unwrap_or_default();
-            let wrap = |field: String, field_ty: String, cause: NoCheckCause, variant: Option<String>| {
-                NoCheckCause::GenericField(Box::new(GenericFieldName {
-                    alias: alias.clone(),
-                    generic: name.to_string(),
-                    module: module.to_string(),
-                    field,
-                    field_ty,
-                    cause,
-                    variant,
-                }))
-            };
-            found = match check {
-                FieldCheck::Unverifiable(cause @ NoCheckCause::GenericField(_)) => Some(cause),
-                FieldCheck::Unverifiable(cause) => {
-                    Some(wrap(f.name.to_string(), type_label(&f.ty), cause, None))
+        for step in &walk.steps {
+            found = match step {
+                WalkStep::Unverifiable { cause: cause @ NoCheckCause::GenericField(_), .. } => {
+                    Some(cause.clone())
                 }
-                FieldCheck::Deep(_) | FieldCheck::PresenceOnly => applied
-                    .iter()
-                    .find_map(|(m, n)| self.generic_record_unchecked_field(m, n))
-                    .or_else(|| {
-                        calls.iter().find_map(|(m, n)| {
-                            let found = self.first_unverifiable_in(m, n, &mut HashSet::new())?;
-                            Some(wrap(
-                                format!("{}.{}", f.name, found.path),
-                                found.field_ty,
-                                found.cause,
-                                found.variant,
-                            ))
-                        })
-                    }),
+                WalkStep::Unverifiable { field, field_ty, cause, variant } => {
+                    Some(wrap(field, field_ty, cause, variant))
+                }
+                // A generic applied in a field answers for itself, in the
+                // words of its own field.
+                WalkStep::AppliesGeneric { module: m, name: n, alias: a, .. } => {
+                    self.generic_walk_unchecked(m, n, a.clone().or_else(|| alias.clone()))
+                }
+                WalkStep::Delegates { field, module: m, name: n } => {
+                    self.note_delegation(Some((m.clone(), n.clone())));
+                    self.first_unverifiable_in(m, n, &mut HashSet::new()).map(|found| {
+                        wrap(
+                            &format!("{field}.{}", found.path),
+                            &found.field_ty,
+                            &found.cause,
+                            &found.variant,
+                        )
+                    })
+                }
+                // A generic is never a second name.
+                WalkStep::SecondNameFor { .. } => None,
             };
-            for call in calls {
-                self.note_delegation(Some(call));
-            }
             if found.is_some() {
                 break;
             }
@@ -5665,6 +5660,90 @@ impl<'a> Emitter<'a> {
         *self.desc_param_guards.borrow_mut() = guards;
         *self.used_sibling_namespaces.borrow_mut() = namespaces;
         found
+    }
+
+    /// The E0304 walk of the generic record `name` this module declares,
+    /// exported or not, or `None` when it declares no such generic. Each
+    /// field is read in this module's scope, a private record included,
+    /// with the generic's type parameters counted as checked. A field with
+    /// no check ends the walk; a field whose check calls a record's
+    /// descriptor or a generic's is recorded as a step to follow, not
+    /// judged here, so the walk needs no module order ([`DescriptorWalks`]).
+    ///
+    /// This is the judgment only: nothing it reaches is emitted, so the
+    /// hidden namespace imports the walk records are dropped afterwards.
+    fn generic_walk(&self, name: &str) -> Option<GenericWalk> {
+        let (params, fields) = self.local_generic_record(name)?;
+        let key = (self.ctx.module_path.to_string(), name.to_string());
+        let namespaces = self.used_sibling_namespaces.borrow().clone();
+        let guards = self.desc_param_guards.replace(Vec::new());
+        self.judging_generic_records
+            .borrow_mut()
+            .push((key, params.clone()));
+        let mut steps = Vec::new();
+        for f in fields {
+            let (check, called, applied) = self.field_check_collected(&f.ty, "__w");
+            if let FieldCheck::Unverifiable(cause) = check {
+                steps.push(WalkStep::Unverifiable {
+                    field: f.name.to_string(),
+                    field_ty: type_label(&f.ty),
+                    cause,
+                    variant: None,
+                });
+                break;
+            }
+            steps.extend(applied.into_iter().map(|app| WalkStep::AppliesGeneric {
+                field: f.name.to_string(),
+                field_ty: type_label(&f.ty),
+                variant: None,
+                module: app.module,
+                name: app.name,
+                alias: app.alias,
+            }));
+            steps.extend(called.into_iter().map(|(module, name)| WalkStep::Delegates {
+                field: f.name.to_string(),
+                module,
+                name,
+            }));
+        }
+        self.judging_generic_records.borrow_mut().pop();
+        *self.desc_param_guards.borrow_mut() = guards;
+        *self.used_sibling_namespaces.borrow_mut() = namespaces;
+        Some(GenericWalk { params, steps })
+    }
+
+    /// The walk of every generic record this module declares, keyed by
+    /// `(module path, type name)`: this module's contribution to
+    /// [`DescriptorWalks`]. A private one is included, since an exported
+    /// generic's field may apply it.
+    fn generic_walks_of_module(&self) -> Vec<((String, String), GenericWalk)> {
+        self.module
+            .items
+            .iter()
+            .filter_map(|d| match d {
+                Decl::Type(td) if !td.generics.is_empty() => {
+                    let walk = self.generic_walk(td.name.as_ref())?;
+                    Some(((self.ctx.module_path.to_string(), td.name.to_string()), walk))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// `field_check_in` for a field of this module, with the record
+    /// descriptors and the generic records the check calls, collected rather
+    /// than judged: what a recorded walk is made of.
+    fn field_check_collected(
+        &self,
+        ty: &TypeExpr,
+        access: &str,
+    ) -> (FieldCheck, Vec<(String, String)>, Vec<GenericApplication>) {
+        let outer_calls = self.delegations.replace(Some(Vec::new()));
+        let outer_applied = self.generic_applications.replace(Some(Vec::new()));
+        let check = self.field_check_in(ty, access, Origin::Local);
+        let calls = self.delegations.replace(outer_calls).unwrap_or_default();
+        let applied = self.generic_applications.replace(outer_applied).unwrap_or_default();
+        (check, calls, applied)
     }
 
     /// The type parameters and fields of the generic record `name` this
@@ -5698,14 +5777,21 @@ impl<'a> Emitter<'a> {
     }
 
     /// Record that the check being built calls the descriptor of the generic
-    /// record `target`, when a judged check is collecting (see
-    /// `generic_applications`).
-    fn note_generic_application(&self, target: Option<(String, String)>) {
-        if let (Some(list), Some(target)) = (self.generic_applications.borrow_mut().as_mut(), target) {
-            if !list.contains(&target) {
-                list.push(target);
+    /// record `target`, applied in the body of the sibling alias `alias` when
+    /// that is where it was written, when a judged check is collecting (see
+    /// `generic_applications`). Answers whether one was.
+    fn note_generic_application(&self, target: Option<(String, String)>, alias: Option<String>) -> bool {
+        let mut list = self.generic_applications.borrow_mut();
+        let Some(list) = list.as_mut() else {
+            return false;
+        };
+        if let Some((module, name)) = target {
+            let app = GenericApplication { module, name, alias };
+            if !list.contains(&app) {
+                list.push(app);
             }
         }
+        true
     }
 
     /// `field_check` with every generic record the check applies judged by
@@ -5720,9 +5806,14 @@ impl<'a> Emitter<'a> {
         if let FieldCheck::Unverifiable(_) = check {
             return check;
         }
+        let alias = self
+            .expanding_sibling_aliases
+            .borrow()
+            .last()
+            .map(|(_, a)| a.clone());
         match applied
-            .iter()
-            .find_map(|(m, n)| self.generic_record_unchecked_field(m, n))
+            .into_iter()
+            .find_map(|app| self.generic_walk_unchecked(&app.module, &app.name, app.alias.or_else(|| alias.clone())))
         {
             Some(cause) => FieldCheck::Unverifiable(cause),
             None => check,
@@ -5760,9 +5851,19 @@ impl<'a> Emitter<'a> {
         }
         // The descriptor checks the record's own fields as well as the
         // arguments, so a field it can only test for presence makes the
-        // application unverifiable (record 101).
-        if let Some(cause) = self.generic_record_unchecked_field(&home, &gname) {
-            return FieldCheck::Unverifiable(cause);
+        // application unverifiable (record 101). A judged check or a walk
+        // being recorded follows the generic's walk itself, after this
+        // expansion, the way it follows one applied in this module: while
+        // the tables are built, `home`'s walk may not be recorded yet (G350).
+        let alias = self
+            .expanding_sibling_aliases
+            .borrow()
+            .last()
+            .map(|(_, a)| a.clone());
+        if !self.note_generic_application(Some((home.clone(), gname.clone())), alias) {
+            if let Some(cause) = self.generic_record_unchecked_field(&home, &gname) {
+                return FieldCheck::Unverifiable(cause);
+            }
         }
         let mut checkers = Vec::with_capacity(args.len());
         for a in args {
@@ -5826,14 +5927,8 @@ impl<'a> Emitter<'a> {
             // error the checker reports first.
             Some(SiblingName::GenericRecord) | None => return NoCheckCause::Opaque,
         };
-        // Read outside an alias, the name is in the body of a generic being
-        // judged in its module, which names it in the message (G347).
-        let alias = alias.or_else(|| {
-            self.judging_generic_records
-                .borrow()
-                .last()
-                .map(|((_, generic), _)| generic.clone())
-        });
+        // A generic's fields are read in its own module (G350), so a sibling
+        // name is met only in the body of an alias being expanded.
         let Some(alias) = alias else {
             return NoCheckCause::Opaque;
         };
@@ -6622,7 +6717,7 @@ impl<'a> Emitter<'a> {
                         // The descriptor checks the generic's own fields as
                         // well as the arguments; a judged check reads them
                         // (G347), and the predicate is the same either way.
-                        self.note_generic_application(self.generic_record_target(gname));
+                        self.note_generic_application(self.generic_record_target(gname), None);
                         FieldCheck::Deep(format!("{gname}.is({access}, {checkers})"))
                     }
                     // A sibling's application is read in the sibling's scope,
@@ -7004,8 +7099,8 @@ impl<'a> Emitter<'a> {
     /// The claim `B.is` makes is the claim of the record `B` names (D46), so
     /// the fields walked are the fields of the declaration the chain ends at.
     /// Each field is either one no check exists for, which ends the walk, or
-    /// one whose check calls other records' descriptors, recorded as
-    /// delegations to follow. A tagged union's fields are its variants'
+    /// one whose check calls other records' or generic records' descriptors,
+    /// recorded as steps to follow. A tagged union's fields are its variants'
     /// payload fields, each walked like a record's ([`walked_fields`]): the
     /// union's `is` checks the tag and then each of them, so a payload field
     /// with no check makes `U.parse` as unverifiable as a record holding it
@@ -7026,7 +7121,11 @@ impl<'a> Emitter<'a> {
             return steps;
         }
         for (variant, field, ty) in walked_fields(&decl.body) {
-            let (check, called) = self.field_check_delegations(ty);
+            // The generics the check applies are recorded as steps and
+            // judged by their own walks when a use is judged, since another
+            // module's walk may not be recorded yet while the tables are
+            // built (G350).
+            let (check, called, applied) = self.field_check_collected(ty, "__x");
             // `PresenceOnly` is not an error: an `unknown` field claims
             // nothing, so being there is the whole of what the descriptor said.
             if let FieldCheck::Unverifiable(cause) = check {
@@ -7037,6 +7136,16 @@ impl<'a> Emitter<'a> {
                     variant: variant.map(str::to_string),
                 });
                 break;
+            }
+            for app in applied {
+                steps.push(WalkStep::AppliesGeneric {
+                    field: field.to_string(),
+                    field_ty: type_label(ty),
+                    variant: variant.map(str::to_string),
+                    module: app.module,
+                    name: app.name,
+                    alias: app.alias,
+                });
             }
             for (module, name) in called {
                 steps.push(WalkStep::Delegates {
@@ -7122,6 +7231,16 @@ impl<'a> Emitter<'a> {
                 WalkStep::SecondNameFor { module, name } => {
                     if let Some(found) = self.first_unverifiable_in(module, name, seen) {
                         return Some(found);
+                    }
+                }
+                WalkStep::AppliesGeneric { field, field_ty, variant, module, name, alias } => {
+                    if let Some(cause) = self.generic_walk_unchecked(module, name, alias.clone()) {
+                        return Some(Unchecked {
+                            path: field.clone(),
+                            field_ty: field_ty.clone(),
+                            cause,
+                            variant: variant.clone(),
+                        });
                     }
                 }
             }
@@ -9865,7 +9984,6 @@ mod tests {
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
             sibling_names: &EMPTY_SIBLING_NAMES,
-            generic_records: &EMPTY_GENERIC_RECORDS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -9896,7 +10014,6 @@ mod tests {
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
             sibling_names: &EMPTY_SIBLING_NAMES,
-            generic_records: &EMPTY_GENERIC_RECORDS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -10391,25 +10508,26 @@ mod tests {
         );
         let boxmod = "module boxmod\npub type Box<T> = { value: T }\n";
         let siblings = Siblings::new(&[("boxmod", boxmod)]);
-        // The project tables list `boxmod`'s exported generic, as
-        // `ProjectTables` does: `Box.parse<User>` judges `Box`'s own fields
-        // there (G347), and a generic the tables do not list is refused.
-        let (box_module, ..) = pipeline(boxmod);
-        let Some(Decl::Type(td)) = box_module.items.first() else { panic!("Box") };
-        let TypeExpr::Record { fields, .. } = &td.body else { panic!("Box is a record") };
-        let generic_records = std::collections::BTreeMap::from([(
-            ("boxmod".to_string(), "Box".to_string()),
-            GenericRecordDecl { params: vec!["T".to_string()], fields: fields.clone() },
-        )]);
+        // The project tables hold `boxmod`'s walk of its generic, as
+        // `ProjectTables` records it: `Box.parse<User>` judges `Box`'s own
+        // fields by that walk (G347, G350), and a generic with no recorded
+        // walk is refused. `Box`'s one field is its type parameter, so the
+        // walk has no step.
+        let walks = DescriptorWalks {
+            walks: Default::default(),
+            generics: std::collections::BTreeMap::from([(
+                ("boxmod".to_string(), "Box".to_string()),
+                GenericWalk { params: vec!["T".to_string()], steps: Vec::new() },
+            )]),
+        };
         let ctx = EmitContext {
             module_path: "app",
             project_modules: &EMPTY_MODULES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
             decls: &siblings,
-            descriptor_walks: &EMPTY_WALKS,
+            descriptor_walks: &walks,
             sibling_names: &EMPTY_SIBLING_NAMES,
-            generic_records: &generic_records,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -10531,7 +10649,6 @@ mod tests {
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
             sibling_names: &EMPTY_SIBLING_NAMES,
-            generic_records: &EMPTY_GENERIC_RECORDS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -14202,7 +14319,6 @@ pub fn n() -> number {\n  return 1\n}
             decls: &NoDecls,
             descriptor_walks: &EMPTY_WALKS,
             sibling_names: &EMPTY_SIBLING_NAMES,
-            generic_records: &EMPTY_GENERIC_RECORDS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

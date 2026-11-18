@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-365 entries, 296 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+367 entries, 298 are fixed, 8 are partly fixed, 11 are decided or resolved, and
 50 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12150,7 +12150,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.152 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.153 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12689,7 +12689,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `k/`: both remove `Paid` and `Cancelled`.*
 
-  Planned for 0.1.148 (record 106).
+  Planned for 0.1.149 (record 106).
 
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
@@ -12703,7 +12703,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by record 106's probe
   `g5_first`.*
 
-  Planned for 0.1.148 (record 106).
+  Planned for 0.1.149 (record 106).
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -12715,7 +12715,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
 
-  Planned for 0.1.148 (record 106).
+  Planned for 0.1.149 (record 106).
 
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
@@ -12731,7 +12731,7 @@ and is the owner's to confirm.
   (`/private/tmp/claude-501/linus107/a`, `b`, `d`): `a` prints `wbox` on
   0.1.141; `b` and `d` are E0300 on both.*
 
-- **G357. `is Record<K, V>` and `is Array<X>` narrow on the container's shape
+- **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
   "x" }`: the lowering tests only "an object, not an array". `is Array<H>`,
   with `H` an `extern_ts` type, takes the arm for `[5]`, lowered to
@@ -12747,6 +12747,17 @@ and is the owner's to confirm.
   `c`: `rec-int` and `arr-h` take their arms on both.*
 
   Planned for 0.1.145 (record 107).
+
+  Correction (record 110): `json.parse<Record<K, V>>` does not check keys
+  either, so "every refined key" above was wrong; keys are G367.
+
+  Fixed in 0.1.145 (records 107, 108 and 110). Every value of a `Record` and
+  every element of an `Array` in an `is` pattern is checked with the part
+  type's check, at any depth, in element position, inside a generic's
+  argument and in `<case is …>`. A part with no check is E0304, judged before
+  lowering; a namespaced generic part is E0300 (G356). A container of
+  `unknown` keeps its shape check. The probes `c`, `fa-g357-arr`,
+  `fa-g357-rec`, `fa-rec-arr` and `x-arrarr-h` go from exit 0 to E0304.
 
 - **G362. An `is T` pattern where `T` is a type parameter named like a record
   is lowered to the record's check.** In `fn h<Doc>(v: unknown, d: Doc) ->
@@ -12794,3 +12805,37 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.143 and 0.1.144 (the release build) by record
   109's probes `s_alias_privgen` and `s_rec_privgen`.*
+
+- **G366. [FIXED] A namespaced generic application is checked with a local
+  generic of the same name.** `field_check_in` looked a generic up by its last
+  path segment, so in a module with its own `Box`, `json.parse<w.Box<int>>`,
+  `json.parse<Array<w.Box<int>>>` and a field typed `w.Box<int>` validated
+  against the local `Box`: `Err` for a `w.Box` value, `Ok` for a local one,
+  with `check` exiting 0. Through 0.1.145's part checks the same reached `is
+  Array<Nullable<w.Box<int>>>`. Found by record 110.
+
+  *Reproduced against 0.1.143 and 0.1.144 by record 110's probes `n1`, `o1`
+  and `o3` (`/private/tmp/claude-501/linus110/`).*
+
+  Fixed in 0.1.145 by refusal. Each of these is E0304 on every path, judged
+  and emitted alike, as is a namespaced generic whose bare name is a
+  different generic imported from another module. An application whose bare
+  name resolves to the same declaration (`json.parse<m.Page<m.User>>` beside
+  `import model { Page, User }`) is still checked, so no correct program is
+  refused. Resolving an application through its namespace with no such bare
+  name is G354 (G356 for `is`).
+
+- **G367. A `Record` with a refined key type checks its values but not its
+  keys.** With `type Tier = "a" | "b"`, `json.parse<Record<Tier, int>>`
+  returns `Ok` for `{"zzz":1}`, and so do `Doc.parse` and `json.parse<Doc>`
+  for a record field of that type and `is Record<Tier, int>`. The fix checks
+  keys against `K` in the one shared `Record` check. A decision comes first:
+  membership (every key in `K`) or totality (every member of `K` present, as
+  TypeScript's `Record<"a" | "b", V>` requires), matching how the checker
+  already reads `Record<Tier, V>`, with a union alias or an imported alias as
+  `K` covered. Breaking. Found by the 0.1.145 work (record 110).
+
+  *Reproduced against 0.1.143 and 0.1.145 (the release build) by record
+  110's probes: `{"zzz":1}` comes back `Ok` on every path.*
+
+  Planned for 0.1.148 (record 110).

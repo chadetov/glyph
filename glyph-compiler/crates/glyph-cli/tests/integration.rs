@@ -17788,3 +17788,113 @@ fn a_union_whose_payloads_are_all_checked_still_validates_on_every_path() {
         assert_eq!(run_main_lines(&src), want, "{dir}:\n{main}");
     }
 }
+
+/// The type argument of a generic descriptor call is walked like the type
+/// `json.parse` reads (record 105, B1). `Page.parse<U>(v)` lowers to
+/// `Page.parse<U>(v, (__cv) => U.is(__cv))`, so it trusts `U`'s descriptor
+/// exactly as `U.parse` and `json.parse<Page<U>>` do, and through the
+/// 0.1.141 build it returned `Ok` for `{"items": [{"tag": "A", "h": 5}]}`
+/// while both of those refused `U`. A record argument (`Doc`, and `W`
+/// holding `U`) was `Ok` on 0.1.140 too. Each spelling, local, imported by
+/// name and through a namespace, is E0304 in the words the other two paths
+/// use, naming the argument and the field.
+#[test]
+fn a_generic_descriptor_call_walks_its_type_argument() {
+    let decls = "pub type H = extern_ts(\"{ k: string }\")\npub type U = A({ h: H, }) | B\npub type Doc = { h: H, }\npub type W = { u: U, }\npub type Page<T> = { items: Array<T>, }\n";
+    let call = |recv: &str, arg: &str| {
+        format!(
+            "pub fn read(v: unknown) -> bool {{\n  return match {recv}.parse<{arg}>(v) {{ Ok(_) => true, Err(_) => false, }}\n}}\n"
+        )
+    };
+    let u_h = "cannot validate `U`: field `h` of variant `A` has type `H`, which has no runtime check";
+    let local = |body: String| format!("module main\n{decls}{body}");
+    let cases: Vec<(&str, Option<String>, String, String)> = vec![
+        ("a12-union", None, local(call("Page", "U")), u_h.to_string()),
+        (
+            "a12b-record",
+            None,
+            local(call("Page", "Doc")),
+            "cannot validate `Doc`: field `h` has type `H`, which has no runtime check".to_string(),
+        ),
+        (
+            "a12d-record-holding-union",
+            None,
+            local(call("Page", "W")),
+            "cannot validate `W`: field `u.h` of variant `A` has type `H`, which has no runtime check".to_string(),
+        ),
+        ("array-of-union", None, local(call("Page", "Array<U>")), u_h.to_string()),
+        ("option-of-union", None, local(call("Page", "Option<U>")), u_h.to_string()),
+        (
+            "named-import",
+            Some(format!("module model\n{decls}")),
+            format!("module main\nimport model {{ Page, U }}\n{}", call("Page", "U")),
+            u_h.to_string(),
+        ),
+        (
+            "named-import-record",
+            Some(format!("module model\n{decls}")),
+            format!("module main\nimport model {{ Page, Doc }}\n{}", call("Page", "Doc")),
+            "cannot validate `Doc`: field `h` has type `H`, which has no runtime check".to_string(),
+        ),
+        (
+            "ns-bad",
+            Some(format!("module model\n{decls}")),
+            format!("module main\nimport model as m\n{}", call("m.Page", "m.U")),
+            u_h.to_string(),
+        ),
+        (
+            "ns-record-holding-union",
+            Some(format!("module model\n{decls}")),
+            format!("module main\nimport model as m\n{}", call("m.Page", "m.W")),
+            "cannot validate `W`: field `u.h` of variant `A` has type `H`, which has no runtime check".to_string(),
+        ),
+    ];
+    for (dir, model, main, expected) in cases {
+        let root = unique_tmp(&format!("b1-genarg-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", &model);
+        }
+        write_file(&src, "main.glyph", &main);
+        let (code, stderr) = check_no_tsc(&src);
+        assert_ne!(code, 0, "{dir}: the type argument's unchecked field must be refused:\n{main}\n{stderr}");
+        assert!(stderr.contains("[E0304]"), "{dir}: {stderr}");
+        assert!(stderr.contains(&expected), "{dir}: the message names `{expected}`:\n{stderr}");
+    }
+}
+
+/// A type argument whose every field and payload has a check still
+/// validates through the generic's descriptor, run so the arm taken is the
+/// evidence: a good document is `Ok`, one that breaks a payload field is
+/// `Err`, in each spelling the refusal above covers.
+#[test]
+fn a_generic_descriptor_call_with_a_checked_type_argument_still_validates() {
+    let decls = "pub type U = A({ n: int, }) | B\npub type Doc = { n: int, }\npub type W = { u: U, }\npub type Page<T> = { items: Array<T>, }\n";
+    let main = |head: &str, recv: &str, arg: &str, good: &str, bad: &str| {
+        format!(
+            "module main\nimport std/io {{ println }}\n{head}fn main() {{\n  let good: unknown = {good}\n  let bad: unknown = {bad}\n  println(match {recv}.parse<{arg}>(good) {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }})\n  println(match {recv}.parse<{arg}>(bad) {{ Ok(_) => \"Ok\", Err(_) => \"Err\", }})\n}}\n"
+        )
+    };
+    let ug = "{ items: [{ tag: \"A\", n: 1 }, { tag: \"B\" }] }";
+    let ub = "{ items: [{ tag: \"A\", n: 1.5 }] }";
+    let dg = "{ items: [{ n: 1 }] }";
+    let db = "{ items: [{ n: \"x\" }] }";
+    let wg = "{ items: [{ u: { tag: \"A\", n: 1 } }] }";
+    let wb = "{ items: [{ u: { tag: \"A\", n: 1.5 } }] }";
+    let cases: Vec<(&str, Option<String>, String)> = vec![
+        ("union", None, main(decls, "Page", "U", ug, ub)),
+        ("record", None, main(decls, "Page", "Doc", dg, db)),
+        ("record-holding-union", None, main(decls, "Page", "W", wg, wb)),
+        ("named", Some(format!("module model\n{decls}")), main("import model { Page, U }\n", "Page", "U", ug, ub)),
+        ("namespace", Some(format!("module model\n{decls}")), main("import model as m\n", "m.Page", "m.W", wg, wb)),
+    ];
+    for (dir, model, main) in cases {
+        let root = unique_tmp(&format!("b1-genarg-control-{dir}"));
+        let src = root.join("src");
+        if let Some(model) = model {
+            write_file(&src, "model.glyph", &model);
+        }
+        write_file(&src, "main.glyph", &main);
+        assert_eq!(run_main_lines(&src), vec!["Ok", "Err"], "{dir}:\n{main}");
+    }
+}

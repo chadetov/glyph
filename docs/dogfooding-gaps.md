@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-371 entries, 299 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-53 are open. G144, the D28 boundary cast that never reached the returns a
+371 entries, 300 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+52 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12809,7 +12809,7 @@ and is the owner's to confirm.
   `unknown` keeps its shape check. The probes `c`, `fa-g357-arr`,
   `fa-g357-rec`, `fa-rec-arr` and `x-arrarr-h` go from exit 0 to E0304.
 
-- **G362. An `is T` pattern where `T` is a type parameter named like a record
+- **G362. [FIXED] An `is T` pattern where `T` is a type parameter named like a record
   is lowered to the record's check.** In `fn h<Doc>(v: unknown, d: Doc) ->
   Doc { return match v { is Doc => v, _ => d } }` beside a module-level `type
   Doc = { n: int }`, the arm emits `Doc.is(v)`, the record's descriptor,
@@ -12829,6 +12829,19 @@ and is the owner's to confirm.
   }` at module level, `fn f<T>` with `is Array<T>` passes full `check` (no
   TS2719) on 0.1.144 and 0.1.145 and checks elements against the record `T`,
   so the default build does not catch every case. The fix covers parts.
+
+  Fixed in 0.1.147 (records 102, 108 and 111). Inside a generic `fn` or
+  `component`, a check that trusts a descriptor and names one of its type
+  parameters, bare or as a part at any depth, is E0304 (``cannot validate
+  `Doc`: `Doc` is a type parameter of `h`, which has no runtime check``):
+  `is T` and every part form, a nested lambda, `<case is T>`,
+  `json.parse<T>` in both spellings and its containers, `Box.parse<T>(v)`,
+  and `T.parse(v)`, `T.is(v)` and `T.schema` where the value `T` is the
+  parameter. The parameter is found by scope, so a module-level type of the
+  same name no longer stands in. `fa-typeparam2`, `fa-typeparam3`, `q/t2`,
+  `jp_shadow` and `ta_shadow` go from exit 0 (or the wrong record's E0304)
+  to this E0304. A type parameter inside a function type is not refused,
+  since no check looks inside a function.
 
 - **G363. Only the first E0304 in a module is reported.** Two refused `is`
   patterns, or two refused `Doc.is(v)` calls, in two functions of one module

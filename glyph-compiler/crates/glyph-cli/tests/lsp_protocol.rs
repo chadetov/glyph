@@ -1543,3 +1543,52 @@ fn check_and_the_editor_lint_a_file_with_a_type_error() {
     drop(lsp);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// `stages` when a file belongs to two projects (record 104). `inner/` is a
+/// marked project nested in the outer one, so `inner/use.glyph` is read by
+/// both. In the outer project its `import lib { hello }` names the outer
+/// `lib.glyph`, which has no `hello` (E0105, a front-end error); in the inner
+/// project it is clean. A stage counts only when it ran in every project
+/// that read the file, so the verdict says `["front"]`. Each project's list
+/// is still judged, so an unused `let` the edit adds is refused with the
+/// inner project's E0107 although `lints` is not in the list.
+#[test]
+fn stages_of_a_file_in_two_projects_are_the_ones_that_ran_in_both() {
+    let dir = tmp_dir("g313_two_projects");
+    std::fs::create_dir_all(dir.join("inner")).expect("mkdir inner");
+    let top = "module top\n\npub fn t() -> number {\n  return 1\n}\n";
+    let use_ = "module use\nimport lib { hello }\n\npub fn run() -> string {\n  return hello()\n}\n";
+    for (name, text) in [
+        ("inner/package.json", "{\"name\":\"inner\",\"glyph\":{}}\n"),
+        ("inner/lib.glyph", GATE_LIB),
+        ("inner/use.glyph", use_),
+        ("top.glyph", top),
+        ("lib.glyph", "module lib\n\npub fn other() -> string {\n  return \"o\"\n}\n"),
+    ] {
+        std::fs::write(dir.join(name), text).expect("write a fixture");
+    }
+    let (top_path, use_path) = (dir.join("top.glyph"), dir.join("inner/use.glyph"));
+    let mut lsp = Lsp::start(&dir);
+    lsp.open(&use_path);
+    lsp.open(&top_path);
+
+    let answer = lsp.apply_changes(&[
+        (&top_path, json!([replace_first(top, "return 1", "return 2")])),
+        (&use_path, json!([replace_first(use_, "return hello()", "return hello() + \"!\"")])),
+    ]);
+    assert_eq!(answer["ok"], json!(true), "refused: {answer}");
+    let verdict = elsewhere_for(&answer, &use_path).expect("the shared file's verdict");
+    assert_eq!(stages_of(verdict), ["front"], "{answer}");
+    assert_eq!(answer_codes(verdict, "preexisting"), ["E0105"], "{answer}");
+
+    let answer = lsp.apply_changes(&[
+        (&top_path, json!([replace_first(top, "return 1", "return 3")])),
+        (&use_path, json!([replace_first(use_, "  return hello()", "  let q = 1\n  return hello()")])),
+    ]);
+    assert_eq!(answer["ok"], json!(false), "accepted: {answer}");
+    let verdict = elsewhere_for(&answer, &use_path).expect("the shared file's verdict");
+    assert_eq!(stages_of(verdict), ["front"], "{answer}");
+    assert_eq!(answer_codes(verdict, "diagnostics"), ["E0107"], "{answer}");
+    drop(lsp);
+    let _ = std::fs::remove_dir_all(&dir);
+}

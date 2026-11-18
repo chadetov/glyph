@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-372 entries, 300 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-53 are open. G144, the D28 boundary cast that never reached the returns a
+376 entries, 301 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+56 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12150,7 +12150,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.154 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.155 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12747,7 +12747,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `k/`: both remove `Paid` and `Cancelled`.*
 
-  Planned for 0.1.150 (record 106).
+  Planned for 0.1.151 (record 106).
 
   *Reproduced against 0.1.147 (the release build) by record 106's probe
   `k/`: `glyph fix` prints "removed 2 unused import(s)" and then declines the
@@ -12765,7 +12765,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by record 106's probe
   `g5_first`.*
 
-  Planned for 0.1.150 (record 106).
+  Planned for 0.1.151 (record 106).
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -12777,7 +12777,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
 
-  Planned for 0.1.150 (record 106).
+  Planned for 0.1.151 (record 106).
 
   *Reproduced against 0.1.147 (the release build) by record 106's probe
   `g/h1_lcvariant`: `glyph fix` applies the E0220 rename and still declines
@@ -12919,7 +12919,7 @@ and is the owner's to confirm.
   refused. Resolving an application through its namespace with no such bare
   name is G354 (G356 for `is`).
 
-- **G367. A `Record` with a refined key type checks its values but not its
+- **G367. [FIXED] A `Record` with a refined key type checks its values but not its
   keys.** With `type Tier = "a" | "b"`, `json.parse<Record<Tier, int>>`
   returns `Ok` for `{"zzz":1}`, and so do `Doc.parse` and `json.parse<Doc>`
   for a record field of that type and `is Record<Tier, int>`. The fix checks
@@ -12933,6 +12933,20 @@ and is the owner's to confirm.
   110's probes: `{"zzz":1}` comes back `Ok` on every path.*
 
   Planned for 0.1.148 (record 110).
+
+  Decided in record 113: membership and totality for a finite literal key
+  set, a per-key predicate for a refined string, the canonical number
+  spelling for `int` and `number`.
+
+  Fixed in 0.1.148. One key check serves both `Record` check builders. It
+  resolves `K` through the check a field of type `K` gets, so a literal union
+  is the exact member set, a refined string runs its predicate on each key,
+  `int`, `number` and refinements of them need the canonical spelling of a
+  number, and `string` checks nothing, with emitted code byte-identical (all
+  177 tracked uses). A key type with no check is E0304, as is a generic whose
+  `Record` is keyed by a type parameter applied to anything but `string`
+  (G374). A parity test drives bad-key, missing, extra and good inputs
+  through 15 paths and 15 spellings of `K` with one verdict each.
 
 - **G368. The bare import that lets a namespaced generic validate is reported
   unused, and `glyph fix` deletes it.** With `import model { Page }` and
@@ -12994,3 +13008,47 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.145 and 0.1.147 (the release build) by record
   114's probe (`/private/tmp/claude-501/linus114/`).*
+
+- **G372. Glyph's checker does not read a `Record`'s key type.** Under
+  `check --no-tsc`, `let r: Record<Tier, int> = { a: 1, }`, `{}`, `{ a: 1, b:
+  2, c: 3 }`, `mut r["zzz"] = 3` and `Record<bool, int>` or `Record<Doc,
+  int>` exit 0; full `check` refuses each through `tsc` (TS2741, TS2739,
+  TS2353, TS7053, TS2344). Since 0.1.148 the runtime check refuses those
+  values, so the checker should decide a literal's keys, a write's key and a
+  `K` that is not key-shaped, as the validator does. Breaking under
+  `--no-tsc` only. Found by record 113.
+
+  *Reproduced against 0.1.147 by record 113's probes s1 to s7, t1 to t6, u1,
+  u4 and v2 (`/private/tmp/claude-501/linus113/`).*
+
+- **G373. A `Record<string, V>` stands where a `Record<K, V>` with a narrower
+  key is declared.** `fn f(r: Record<string, int>) -> Record<Tier, int> {
+  return r }`, a `record.set` or `record.remove` result, and record 113's t5
+  pass both the checker and `tsc`, so a value the 0.1.148 validator refuses
+  can hold `Record<Tier, V>` unchecked. Needs a decision: refuse the
+  narrowing and give `std/record` key-preserving signatures, or keep it and
+  document the static promise. E0224 stays on `Record<Tier, V>` reads until
+  this closes. Breaking. Found by record 113.
+
+  *Reproduced against 0.1.147 by record 113's probe t5.*
+
+  Planned for 0.1.150 (record 113).
+
+- **G374. A generic record whose `Record` field is keyed by a type parameter
+  cannot be checked.** With `type Idx<K: string> = { m: Record<K, int>, }`,
+  0.1.147 returned `Ok` for `json.parse<Idx<Tier>>` on `{"m":{"zzz":1}}`;
+  0.1.148 refuses every such check with E0304 unless the argument is
+  `string`, because a per-argument checker cannot list members for totality.
+  Lift it by passing the argument's member set or a key-domain descriptor
+  beside its checker. Not breaking. Found by record 113.
+
+  *Reproduced against 0.1.147 by record 113's probe v3.*
+
+- **G375. A `Record` check reports the whole map, not the entry.** A bad
+  value, a stray key and a missing member all report ``field `m` must be
+  Record<Tier, int>``, where a record names ``unexpected field `q` `` and
+  ``field `m` is required`` with a path. Per-entry issues (path
+  `["m","zzz"]`, codes `unexpected`, `missing`, `type`) would name the key.
+  Not breaking. Found by record 113.
+
+  *Reproduced against 0.1.148 (the dev build) by record 113's probe v4.*

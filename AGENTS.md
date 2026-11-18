@@ -816,7 +816,7 @@ from `unknown` to `T`. An annotation is not one: `let a: Result<User,
 Array<Issue>> = json.parse(body)` does not make the unchecked read a `User`,
 and `glyph check` refuses it through `tsc`. `glyph check --no-tsc` and the
 agent gate do not yet refuse an `unknown` value where another type is
-declared; that comes in 0.1.149.
+declared; that comes in 0.1.152.
 
 ```glyph
 module validate

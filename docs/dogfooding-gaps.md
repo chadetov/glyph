@@ -12138,7 +12138,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.149 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.152 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12611,6 +12611,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build): `return h() { k: 2 }` in
   a function returning `R` is `[E0108] Warning` and exit 0.*
 
+  Planned for 0.1.146 (record 104).
+
 - **G352. The playground runs the emitter past type errors.** `glyph-wasm`
   emits best-effort when the file has errors, which contradicts record 88's
   rule that the emitter runs only on a file with no error, shows TypeScript
@@ -12660,6 +12662,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `k/`: both remove `Paid` and `Cancelled`.*
 
+  Planned for 0.1.148 (record 106).
+
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
   => n`, the decline says "its arm `other` handles `Loaded` now, so renaming
@@ -12672,6 +12676,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by record 106's probe
   `g5_first`.*
 
+  Planned for 0.1.148 (record 106).
+
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
   renames `Loadd` to `Loaded` and then reports "add an arm for each of
@@ -12681,6 +12687,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
+
+  Planned for 0.1.148 (record 106).
 
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
@@ -12726,6 +12734,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.142 and 0.1.143 (the release build) by record 108's
   probe `fa-typeparam2` (`/private/tmp/claude-501/linus108/`).*
+
+  Planned for 0.1.147 (record 108).
 
 - **G363. Only the first E0304 in a module is reported.** Two refused `is`
   patterns, or two refused `Doc.is(v)` calls, in two functions of one module

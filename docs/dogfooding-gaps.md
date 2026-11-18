@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-369 entries, 299 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-51 are open. G144, the D28 boundary cast that never reached the returns a
+371 entries, 299 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+53 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12150,7 +12150,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.153 (record 89): `unknown` is assignable only to `unknown`,
+  Planned for 0.1.154 (record 89): `unknown` is assignable only to `unknown`,
   after G315 and G314 step 2.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12251,6 +12251,9 @@ and is the owner's to confirm.
   *Reproduced against 0.1.140 (the release build): `let x = f<a,
   "\q">(1)` is ``[E0003] Error: parse: unexpected token: Comma``.*
 
+  *Reproduced against 0.1.146 (the release build): `let x = f<a,
+  "\q">(1)` is ``[E0003] Error: parse: unexpected token: Comma``.*
+
 - **G330. [FIXED] A non-ASCII character in code crashes `glyph check`.**
   `let s = 1 é` exits 101 with a panic in the diagnostic renderer ("end byte
   index 13 is not a char boundary"). The lexer turned the first byte of a
@@ -12285,6 +12288,10 @@ and is the owner's to confirm.
   *Reproduced against 0.1.134 and 0.1.135: both exit 0.*
 
   *Reproduced against 0.1.140 (the release build): `<p
+  title="&amp;">x</p>` is `no diagnostics`, and the emitted TypeScript
+  holds `title: "&amp;"`.*
+
+  *Reproduced against 0.1.146 (the release build): `<p
   title="&amp;">x</p>` is `no diagnostics`, and the emitted TypeScript
   holds `title: "&amp;"`.*
 
@@ -12627,6 +12634,10 @@ and is the owner's to confirm.
   *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
   probes (`/private/tmp/claude-501/linus105/`): E0304 on both.*
 
+  *Reproduced against 0.1.146 (the release build): `json.parse<m.Box<int>>`
+  through `import model as m`, every field checkable, is ``[E0304] ...
+  `json.parse<m.Box<int>>` has no runtime check to run for it``.*
+
 - **G355. `Page.is<U>(v)` passes Glyph's checker and fails `tsc`.** A type
   argument on a generic descriptor's `is` is accepted by the checker, and the
   emitted call is refused by `tsc` with TS2554 (wrong number of arguments).
@@ -12640,6 +12651,10 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.140 and 0.1.141 (the release build) by record 105's
   probe `a12e`: `--no-tsc` exits 0, full `check` reports TS2554.*
+
+  *Reproduced against 0.1.146 (the release build): `Page.is<U>(v)` is `no
+  diagnostics` under `--no-tsc`, and full `check` reports ``TS2554:
+  Expected 2 arguments, but got 1``.*
 
 - **G351. [FIXED] An expression followed by `{` on the same line is split into a
   value and an unreachable block.** `return h() { k: 2 }` parses as `return
@@ -12689,6 +12704,10 @@ and is the owner's to confirm.
   LSP client (`/private/tmp/claude-501/linus104/`): adding one of two missing
   arms is refused with the E0200 counted as introduced on both.*
 
+  *Reproduced against 0.1.146 (the release build) by record 104's LSP client:
+  adding one of two missing arms answers `ok: false` with E0200 counted as
+  introduced; adding both answers `ok: true`.*
+
 - **G358. `glyph fmt` does not sort imports, though the manifesto said it
   did.** Two `import` lines in the wrong order are left as they are, and
   `glyph fmt --check` passes the file. The manifesto listed "Sorted imports"
@@ -12714,7 +12733,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `k/`: both remove `Paid` and `Cancelled`.*
 
-  Planned for 0.1.149 (record 106).
+  Planned for 0.1.150 (record 106).
 
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
@@ -12728,7 +12747,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by record 106's probe
   `g5_first`.*
 
-  Planned for 0.1.149 (record 106).
+  Planned for 0.1.150 (record 106).
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -12740,7 +12759,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
 
-  Planned for 0.1.149 (record 106).
+  Planned for 0.1.150 (record 106).
 
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
@@ -12900,3 +12919,29 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.145 (the release build) by record 111's probe
   `q/deep`.*
+
+- **G370. Two statements on one line with nothing between them parse silently,
+  and a value can be dropped.** `let x = h() g` binds `h()` and leaves `g` a
+  dead statement, `let s = "a" "b"` binds `"a"` and drops `"b"`, and `let a =
+  1 let b = 2` puts a declaration mid-line; all exit 0 under `check`, with
+  `tsc --strict` passing, and at most an E0107. `return h() as R` parses as
+  three statements. G351's defect with a token other than `{`. The fix makes
+  a statement that begins on the line where the previous one ended a parse
+  error inside a block, generalizing E0013, with the G217 help kept for `{`.
+  Breaking. Found by the 0.1.146 release review (record 112).
+
+  *Reproduced against 0.1.145 and 0.1.146 (the release build) by record
+  112's probes `q/d_two` and `a_type` (`/private/tmp/claude-501/linus112/`).*
+
+  Planned for 0.1.149 (record 112).
+
+- **G371. An expression statement with no effect is silent.** `let o = h()`
+  followed by `{ k: 2 }` on the next line, or `{ k: 2 }`, `"dead"` and `42` as
+  statements of their own, exit 0 with no diagnostic. A literal, an object
+  literal or a bare name as a statement does nothing and is most often a
+  value the author meant to bind or return. Either a lint warning ("expression
+  statement has no effect") or a refusal; to decide. Found by the 0.1.146
+  release review (record 112).
+
+  *Reproduced against 0.1.145 and 0.1.146 (the release build) by record
+  112's probes `q/a_nextline_let` and `q/a_bare`.*

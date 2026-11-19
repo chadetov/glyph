@@ -392,16 +392,17 @@ def section_anchors(body: str, s: site_i18n.Strings) -> str:
 
 
 def secondary_spans(n: int) -> list[int]:
-    """Column spans, in a six-column grid, that fill every row evenly: rows of
-    three, with a remainder laid out as one or two rows of two."""
+    """Column spans, in a six-column grid, that fill every row: rows of
+    three, with the remainder first, as a row of two wider cards or one full
+    one, so the grid never ends on a short row."""
     if n == 1:
         return [6]
     if n == 2:
         return [3, 3]
     if n == 4:
         return [3] * 4
-    threes = n - 4 if n % 3 == 1 else n - 2 if n % 3 == 2 else n
-    return [2] * threes + [3] * (n - threes)
+    lead = [6] if n % 3 == 1 else [3, 3] if n % 3 == 2 else []
+    return lead + [2] * (n - len(lead))
 
 
 def next_steps(site: dict, value: str, where: str) -> str:

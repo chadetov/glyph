@@ -2178,6 +2178,20 @@ div.card {
   font-size: var(--fs-sm);
   line-height: 1.55;
 }
+/* Rows that fill: three columns when the count divides by three and the
+   column is wide enough, two otherwise, and with an odd count in two
+   columns the first card takes the whole first row. */
+.ans-cards:has(> :last-child:nth-child(odd)) > :first-child {
+  grid-column: 1 / -1;
+}
+@media (min-width: 960px) {
+  .ans-cards:has(> :last-child:nth-child(3n)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ans-cards:has(> :last-child:nth-child(3n)) > :first-child {
+    grid-column: auto;
+  }
+}
 @media (max-width: 720px) {
   .ans-cards {
     grid-template-columns: minmax(0, 1fr);

@@ -244,13 +244,16 @@
 .ak-flow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1.1fr) 44px minmax(0, 1.15fr);
-  align-items: center;
+  align-items: stretch;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   padding: var(--s5) var(--s4);
 }
 .ak-node {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   background: var(--bg);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
@@ -312,6 +315,7 @@
   color: var(--line-2);
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 .ak-arrow svg {
   width: 100%;

@@ -1,17 +1,213 @@
 {
-  "_comment": "Shared data for scripts/build_site.py: the main nav and sitemap entries for pages the generator does not render. The numbered sub-navs are site/partials/subnav-<name>.html.",
+  "_comment": "Shared data for scripts/build_site.py: the main nav, the line icons it and other components use, and sitemap entries for pages the generator does not render. The numbered sub-navs are site/partials/subnav-<name>.html. Each nav entry is a menu (`menu` id, label, columns of items, optional featured card) or a link (label, href). `match` lists the front-matter `nav:` keys of the pages that highlight it. An item's `icon` names an entry in `icons` (inner SVG markup for a 24x24 stroked icon). An item with \"count\": \"answers\" shows the number of answer pages under site/pages/answers/. A featured card's text may use {{catches:...}} counts.",
   "nav": [
-    {"label": "Catches", "href": "/catches/", "key": "catches"},
-    {"label": "Start", "href": "/start/", "key": "start"},
-    {"label": "Answers", "href": "/answers/", "key": "answers"},
-    {"label": "Agents", "href": "/agents/", "key": "agents"},
-    {"label": "Evidence", "href": "/evidence/", "key": "evidence"},
-    {"label": "Design", "href": "/design/", "key": "design"},
-    {"label": "Versions", "href": "/versions/", "key": "versions"},
-    {"label": "Playground", "href": "/playground/", "key": "playground"},
-    {"label": "GitHub", "href": "https://github.com/chadetov/glyph", "key": "github"}
+    {
+      "menu": "why",
+      "label": "Why Glyph",
+      "match": [
+        "why",
+        "from-typescript",
+        "teams",
+        "agents",
+        "design"
+      ],
+      "columns": [
+        {
+          "title": "Who it is for",
+          "items": [
+            {
+              "label": "Coming from TypeScript",
+              "href": "/from-typescript/",
+              "icon": "code",
+              "desc": "What changes and what stays the same"
+            },
+            {
+              "label": "For teams",
+              "href": "/teams/",
+              "icon": "teams",
+              "desc": "What it guarantees and what adopting it costs"
+            },
+            {
+              "label": "For agent builders",
+              "href": "/agents/",
+              "icon": "agents",
+              "desc": "The MCP server and the queries it answers"
+            }
+          ]
+        },
+        {
+          "title": "The design",
+          "items": [
+            {
+              "label": "The design",
+              "href": "/design/",
+              "icon": "design",
+              "desc": "The four pillars and what was left out on purpose"
+            },
+            {
+              "label": "Glyph vs Effect",
+              "href": "/design/vs-effect/",
+              "icon": "compare",
+              "desc": "A language and a library, compared"
+            },
+            {
+              "label": "Glyph vs tooled TypeScript",
+              "href": "/answers/vs-tooled-ts/",
+              "icon": "compare",
+              "desc": "What strict tsc, zod and eslint still let through"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "What it catches",
+      "href": "/catches/",
+      "match": [
+        "catches"
+      ]
+    },
+    {
+      "menu": "learn",
+      "label": "Learn",
+      "match": [
+        "start",
+        "answers",
+        "contribute"
+      ],
+      "columns": [
+        {
+          "title": "Get going",
+          "items": [
+            {
+              "label": "Start in 10 minutes",
+              "href": "/start/",
+              "icon": "start",
+              "desc": "Install it, write a program, run it"
+            },
+            {
+              "label": "Answers",
+              "href": "/answers/",
+              "icon": "answers",
+              "desc": "Questions engineers ask, with worked examples",
+              "count": "answers"
+            },
+            {
+              "label": "Contribute",
+              "href": "/contribute/",
+              "icon": "contribute",
+              "desc": "How the compiler is built and how to help"
+            }
+          ]
+        },
+        {
+          "title": "Reference",
+          "items": [
+            {
+              "label": "Language reference",
+              "href": "https://github.com/chadetov/glyph/blob/main/docs/language/spec.md",
+              "icon": "spec",
+              "desc": "The full spec, on GitHub"
+            },
+            {
+              "label": "llms.txt for agents",
+              "href": "/llms.txt",
+              "icon": "file",
+              "desc": "The language in one file an agent can read"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "menu": "evidence",
+      "label": "Evidence",
+      "match": [
+        "evidence"
+      ],
+      "columns": [
+        {
+          "title": "How it is checked",
+          "items": [
+            {
+              "label": "How claims are checked",
+              "href": "/evidence/",
+              "icon": "evidence",
+              "desc": "The fixtures and the CI gate behind each claim"
+            },
+            {
+              "label": "Hardening",
+              "href": "/hardening/",
+              "icon": "hardening",
+              "desc": "Agents trying to break it, and what they found"
+            },
+            {
+              "label": "Benchmarks",
+              "href": "/benchmarks/",
+              "icon": "benchmarks",
+              "desc": "The four pillars as numbers, with caveats"
+            },
+            {
+              "label": "Not caught yet",
+              "href": "/catches/#not-yet",
+              "icon": "notyet",
+              "desc": "Known holes, each with a reproduction"
+            }
+          ]
+        }
+      ],
+      "featured": {
+        "href": "/catches/",
+        "big": "{{catches:none}} of {{catches:count}}",
+        "text": "mistakes that nothing in a fully configured TypeScript setup catches",
+        "cta": "See what it catches"
+      }
+    },
+    {
+      "label": "Versions",
+      "href": "/versions/",
+      "match": [
+        "versions"
+      ]
+    }
   ],
   "extra_sitemap": [
-    {"loc": "/playground/", "lastmod": "2026-06-15", "changefreq": "monthly", "priority": "0.7"}
-  ]
+    {
+      "loc": "/playground/",
+      "lastmod": "2026-06-15",
+      "changefreq": "monthly",
+      "priority": "0.7"
+    }
+  ],
+  "actions": {
+    "playground": {
+      "label": "Playground",
+      "href": "/playground/"
+    },
+    "github": {
+      "label": "GitHub",
+      "href": "https://github.com/chadetov/glyph"
+    }
+  },
+  "icons": {
+    "code": "<path d=\"M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14\"/>",
+    "teams": "<circle cx=\"9\" cy=\"8\" r=\"3.5\"/><path d=\"M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7\"/>",
+    "agents": "<rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5\"/>",
+    "design": "<path d=\"M12 3l9 5-9 5-9-5 9-5z\"/><path d=\"M3 12.5l9 5 9-5M3 17l9 5 9-5\"/>",
+    "compare": "<rect x=\"3\" y=\"4\" width=\"7\" height=\"16\" rx=\"1.5\"/><rect x=\"14\" y=\"4\" width=\"7\" height=\"16\" rx=\"1.5\"/><path d=\"M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2\"/>",
+    "start": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M10 8.5l5.5 3.5-5.5 3.5z\"/>",
+    "answers": "<path d=\"M4 5h16v11H9.5L4 20V5z\"/><path d=\"M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01\"/>",
+    "contribute": "<circle cx=\"6\" cy=\"6\" r=\"2.5\"/><circle cx=\"6\" cy=\"18\" r=\"2.5\"/><circle cx=\"18\" cy=\"18\" r=\"2.5\"/><path d=\"M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5\"/>",
+    "spec": "<path d=\"M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z\"/><path d=\"M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7\"/>",
+    "file": "<path d=\"M14 3H6v18h12V7l-4-4z\"/><path d=\"M14 3v4h4M9 12h6M9 16h6\"/>",
+    "evidence": "<path d=\"M9 3.5h6v3H9z\"/><path d=\"M15 5h3v16H6V5h3M9 14l2 2 4-4\"/>",
+    "hardening": "<path d=\"M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z\"/><path d=\"M9 12l2 2 4-4\"/>",
+    "benchmarks": "<path d=\"M4 20h16M7 16v-5M12 16V6M17 16v-8\"/>",
+    "notyet": "<path d=\"M12 3.5L2.5 20h19L12 3.5z\"/><path d=\"M12 10v4.5M12 17.2v.01\"/>",
+    "catches": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>",
+    "playground": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7 9l3 3-3 3M12.5 15H17\"/>",
+    "github": "<circle cx=\"6\" cy=\"5.5\" r=\"2.5\"/><circle cx=\"6\" cy=\"18.5\" r=\"2.5\"/><circle cx=\"18\" cy=\"7.5\" r=\"2.5\"/><path d=\"M6 8v8M18 10c0 4.5-6.5 3.5-11 6.5\"/>",
+    "versions": "<path d=\"M3 12V4h8l10 10-8 8L3 12z\"/><circle cx=\"7.5\" cy=\"8.5\" r=\"1.3\"/>",
+    "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>"
+  }
 }

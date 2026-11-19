@@ -24,7 +24,8 @@ takes the indented lines that follow it. Keys:
   canonical              optional; defaults to https://glyphlang.io<url>
   layout                 home | article | wide | index
   article_class          extra class on the article (layout: article)
-  nav                    key of the main nav item to mark active
+  nav                    key in a site.json nav entry's `match` list; that entry
+                         is highlighted as the current section
   subnav                 name of a sub-nav, site/partials/subnav-<name>.html
   prev, next             "href | direction label | title" for the prev/next pair
   sitemap                "lastmod changefreq priority" for sitemap.xml
@@ -33,8 +34,10 @@ takes the indented lines that follow it. Keys:
 The page body is copied byte for byte, so <pre> blocks reach web/ exactly as
 written; the doc gates compile them from there. Two substitutions happen in a
 body. {{version}} is the workspace version from glyph-compiler/Cargo.toml, so
-the home page's release pill never needs a hand edit and the bump scripts,
-which edit web/index.html, leave web/ matching what this script renders.
+the home page's release pill never needs a hand edit. The header partial
+renders the same version as a badge beside the logo on every page, so a
+version bump changes every page: scripts/bump_version.py re-renders web/ after
+it moves Cargo.toml, which keeps web/ matching what this script renders.
 {{catches:...}} is markup generated from the committed cases in catches/ by
 scripts/site_catches.py, so the /catches/ page and every page that quotes it
 show what scripts/check_catches.py verified, without running a compiler here.
@@ -130,11 +133,79 @@ def fill(template: str, values: dict[str, str], where: str) -> str:
     return re.sub(r"\{\{([a-z_]+)\}\}", sub, template)
 
 
-def nav_links(site: dict, active: str | None) -> str:
+def answers_count() -> int:
+    """The number of answer pages, each one a directory under site/pages/answers/."""
+    return sum(1 for d in (PAGES / "answers").iterdir() if (d / "index.html").is_file())
+
+
+def nav_keys(site: dict) -> set[str]:
+    return {k for entry in site["nav"] for k in entry["match"]}
+
+
+def icon(site: dict, name: str, where: str) -> str:
+    """A 24x24 stroked line icon from site.json `icons`, drawn in currentColor."""
+    if name not in site["icons"]:
+        raise SiteError(f"{where}: no icon {name!r} in site.json icons")
+    return ('<svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" '
+            'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+            f'{site["icons"][name]}</svg>')
+
+
+def nav_item(site: dict, it: dict, url: str, where: str) -> str:
+    cur = ' aria-current="page"' if it["href"] == url else ""
+    count = ""
+    if it.get("count") == "answers":
+        count = f' <span class="nav-count">{answers_count()}</span>'
+    elif it.get("count"):
+        raise SiteError(f"site.json: unknown nav count {it['count']!r}")
+    return (f'<li><a href="{it["href"]}"{cur}><span class="nav-ico">{icon(site, it["icon"], where)}</span>'
+            f'<span class="nav-text"><span class="nav-label">{it["label"]}{count}</span>'
+            f'<span class="nav-desc">{it["desc"]}</span></span></a></li>')
+
+
+def nav_links(site: dict, active: str | None, url: str, where: str) -> str:
+    """The main nav: a <details> dropdown per menu in site.json, its items in
+    titled columns with an optional featured card, and a plain link per link
+    entry. The entry whose `match` holds the page's `nav:` key is highlighted,
+    and the link to the page itself carries aria-current."""
+    if active is not None and active not in nav_keys(site):
+        raise SiteError(f"{where}: nav key {active!r} is not in any site.json nav entry's match list")
     out = []
-    for item in site["nav"]:
-        attrs = ' class="active" aria-current="page"' if item["key"] == active else ""
-        out.append(f'          <a href="{item["href"]}"{attrs}>{item["label"]}</a>')
+    for entry in site["nav"]:
+        on = " active" if active in entry["match"] else ""
+        if "menu" not in entry:
+            cur = ' aria-current="page"' if entry["href"] == url else ""
+            out.append(f'            <li class="nav-li-link"><a class="nav-top{on}" href="{entry["href"]}"{cur}>'
+                       f'{entry["label"]}</a></li>')
+            continue
+        pid = f'nav-{entry["menu"]}'
+        cols = []
+        for col in entry["columns"]:
+            items = "\n".join(f"                      {nav_item(site, it, url, where)}" for it in col["items"])
+            cols.append(f'                  <div class="nav-col">\n'
+                        f'                    <p class="nav-col-title">{col["title"]}</p>\n'
+                        f'                    <ul>\n{items}\n                    </ul>\n'
+                        f'                  </div>')
+        feat = entry.get("featured")
+        if feat:
+            try:
+                big = site_catches.expand(feat["big"], "site.json")
+                text = site_catches.expand(feat["text"], "site.json")
+            except site_catches.CatchesError as e:
+                raise SiteError(str(e)) from None
+            cols.append(f'                  <a class="nav-feature" href="{feat["href"]}">'
+                        f'<span class="nav-feature-big">{big}</span>'
+                        f'<span class="nav-feature-text">{text}</span>'
+                        f'<span class="nav-feature-cta">{feat["cta"]} {icon(site, "arrow", where)}</span></a>')
+        n = len(entry["columns"]) + (1 if feat else 0)
+        out.append(f'            <li class="nav-li-menu">\n'
+                   f'              <details class="nav-menu">\n'
+                   f'                <summary class="nav-top{on}" aria-controls="{pid}">{entry["label"]}'
+                   f'<span class="nav-chev" aria-hidden="true"></span></summary>\n'
+                   f'                <div class="nav-drop cols-{n}{" has-feature" if feat else ""}" id="{pid}">\n' + "\n".join(cols) + "\n"
+                   f'                </div>\n'
+                   f'              </details>\n'
+                   f'            </li>')
     return "\n".join(out)
 
 
@@ -204,7 +275,15 @@ def render(path: pathlib.Path, site: dict, version: str) -> str:
     head = fill(partial("head.html"), head_values, where)
     if fm.get("head"):
         head += "".join(f"    {line}\n" if line else "\n" for line in fm["head"].split("\n"))
-    header = fill(partial("header.html"), {"nav_links": nav_links(site, fm.get("nav"))}, where)
+    actions = site["actions"]
+    header = fill(partial("header.html"), {
+        "nav_links": nav_links(site, fm.get("nav"), url, where),
+        "version": version,
+        "playground_href": actions["playground"]["href"],
+        "playground_label": actions["playground"]["label"],
+        "github_href": actions["github"]["href"],
+        "github_label": actions["github"]["label"],
+    }, where)
     edit = EDIT_BASE + path.relative_to(PAGES).as_posix()
     footer = fill(partial("footer.html"), {"edit_url": edit}, where)
     sub = subnav(fm["subnav"], url, where) if fm.get("subnav") else ""

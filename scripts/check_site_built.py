@@ -8,7 +8,8 @@ to rebuild (and the change never ships). Either way the source and the served
 site disagree about what the site says.
 
 This renders site/ in memory and compares every file the
-generator owns with web/, byte for byte. It fails naming each file that
+generator owns with web/, byte for byte (text and the binary files copied
+from site/static/ alike). It fails naming each file that
 differs, each generated file web/ is missing, and each page in web/ that no
 source renders. The fix is always the same: edit site/, then run
 `python3 scripts/build_site.py`.
@@ -36,6 +37,10 @@ def main() -> int:
         have_path = WEB / rel
         if not have_path.exists():
             problems.append((f"web/{rel}: missing (site/ renders it)", None))
+            continue
+        if isinstance(want, bytes):
+            if have_path.read_bytes() != want:
+                problems.append((f"web/{rel}: differs from site/static/{rel} (binary)", None))
             continue
         have = have_path.read_text()
         if have != want:

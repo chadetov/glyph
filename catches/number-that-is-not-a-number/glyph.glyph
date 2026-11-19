@@ -1,0 +1,15 @@
+module main
+
+// show
+fn total(input: string) -> number {
+  let qty: number = number.parse(input)
+  return qty * 10
+}
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  let t = total("ten")
+  print("${t}")
+  return 0
+}

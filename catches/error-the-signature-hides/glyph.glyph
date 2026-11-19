@@ -1,0 +1,18 @@
+module main
+
+type Config = { port: number }
+
+// show
+fn load_config() -> Result<Config, string> {
+  return Err("missing file")
+}
+
+// end show
+
+fn main(argv: Array<string>) -> number {
+  // show
+  let cfg: Config = load_config()
+  // end show
+  print("${cfg.port}")
+  return 0
+}

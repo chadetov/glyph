@@ -1,0 +1,16 @@
+module main
+
+type User = { name: string }
+
+fn label(u: User) -> string {
+  // show
+  u.name = "admin"
+  // end show
+  return u.name
+}
+
+fn main(argv: Array<string>) -> number {
+  let ada: User = { name: "ada" }
+  print(label(ada))
+  return 0
+}

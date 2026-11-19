@@ -63,10 +63,14 @@ is checked rather than cast.
 
 ## What the compiler refuses that `tsc --strict` accepts
 
-[`catches/`](../../catches/) holds five pairs of programs. In each, `tsc --strict`
-accepts the TypeScript and Glyph refuses the equivalent Glyph with the code
-listed. `scripts/check_catches.py` runs both halves in CI, with `@types/node`
-installed for the TypeScript.
+[`catches/`](../../catches/) holds 53 pairs of programs, and 28 of them are
+refusals: `tsc --strict` accepts the TypeScript and Glyph refuses the
+equivalent Glyph with the code listed in its `case.toml`. The rest are
+warnings, checks at the boundary, run-time stops, and 11 gaps Glyph does not
+catch yet. `scripts/check_catches.py` runs both halves of every case in CI,
+with `@types/node` installed for the TypeScript and a fully configured lint
+run to record whether a strict project would have caught it. The five the
+corpus started with:
 
 | Case | Code |
 |---|---|
@@ -76,8 +80,8 @@ installed for the TypeScript.
 | A validator claiming success for a `net.Socket` field it never checked | E0304 |
 | `JSON.parse(body)` assigned to a `User` with nothing checked | E0204 |
 
-All five are verifiability cases. None is evidence for greppability,
-abstraction or diff stability.
+Of the 28 refusals, 23 are verifiability cases, 3 abstraction and 2
+greppability. None is evidence for diff stability.
 
 Two of them have a TypeScript answer outside `--strict`. `noUncheckedIndexedAccess`
 catches the map read (and not the split). typescript-eslint's
@@ -85,8 +89,8 @@ catches the map read (and not the split). typescript-eslint's
 union case. In Glyph those checks are always on.
 
 The playground at https://glyphlang.io/playground/ compiles one file in the
-browser and does not run `tsc`. All five are refused by Glyph's own checker, so
-all five reproduce there.
+browser and does not run `tsc`. 26 of the 28 refusals reproduce there; the
+other two need the `tsc` pass or a second module.
 
 ## The toolchain
 

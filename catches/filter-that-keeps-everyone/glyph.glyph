@@ -1,0 +1,17 @@
+module main
+
+import std/array
+import std/string
+
+async fn is_active(name: string) -> bool {
+  return name != "mallory"
+}
+
+async fn main(argv: Array<string>) -> number {
+  let names = ["ada", "mallory"]
+  // show
+  let active = array.filter(names, async fn(n: string) -> bool { await is_active(n) })
+  // end show
+  print(string.join(active, ","))
+  return 0
+}

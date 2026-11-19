@@ -1,0 +1,5 @@
+module users
+
+pub fn get_user() -> string {
+  return "ada"
+}

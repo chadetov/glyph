@@ -1,0 +1,26 @@
+module main
+
+import std/task
+
+type Account = { balance: number }
+
+async fn fee() -> number {
+  return 10
+}
+
+async fn charge(a: Account) -> void {
+  // show
+  let before = a.balance
+  let f = await fee()
+  mut a.balance = before - f
+  // end show
+}
+
+async fn main(argv: Array<string>) -> number {
+  let acct: Account = { balance: 100 }
+  await task.all(
+    [async fn() -> void { await charge(acct) }, async fn() -> void { await charge(acct) }],
+  )
+  print("balance ${acct.balance}")
+  return 0
+}

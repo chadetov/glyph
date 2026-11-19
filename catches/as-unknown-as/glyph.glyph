@@ -1,0 +1,12 @@
+module main
+
+type Config = { hosts: Array<string> }
+
+fn main(argv: Array<string>) -> number {
+  let raw = { hostname: "db.internal" }
+  // show
+  let cfg = raw as unknown as Config
+  // end show
+  print("${cfg.hosts.length}")
+  return 0
+}

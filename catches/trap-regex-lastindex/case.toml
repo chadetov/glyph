@@ -1,0 +1,10 @@
+code = "E0003"
+pillar = "abstraction"
+title = "A /g regex that remembers where it stopped"
+kind = "refused"
+ts_output = "[ true, false, true ]"
+fullconfig = "none"
+section = "trap"
+slug = "trap-regex-lastindex"
+order = 2
+summary = "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state."

@@ -1,0 +1,17 @@
+module main
+
+type UnverifiedEmail = { address: string }
+
+type VerifiedEmail = { address: string }
+
+fn send_invoice(to: VerifiedEmail) -> void {
+  print("invoice sent to ${to.address}")
+}
+
+fn main(argv: Array<string>) -> number {
+  let signup: UnverifiedEmail = { address: "typo@exmaple.com" }
+  // show
+  send_invoice(signup)
+  // end show
+  return 0
+}

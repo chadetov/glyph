@@ -1,0 +1,10 @@
+code = "E0003"
+pillar = "abstraction"
+title = "A method passed to forEach without its object"
+kind = "refused"
+ts_output = "Cannot read properties of undefined (reading 'count')"
+fullconfig = "lint:unbound-method"
+section = "trap"
+slug = "trap-foreach-method-this"
+order = 3
+summary = "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>."

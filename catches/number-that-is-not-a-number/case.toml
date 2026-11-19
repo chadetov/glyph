@@ -1,0 +1,18 @@
+code = "E0204"
+pillar = "verifiability"
+title = "A number that is not a number"
+kind = "refused"
+ts_output = "NaN"
+fullconfig = "none"
+section = "mistake"
+slug = "number-that-is-not-a-number"
+order = 21
+page_title = "A number that is not a number"
+why = "User input, a query string, a CSV cell."
+likelihood = 3
+severity = 3
+ts_verdict = "compiles, runs"
+glyph_verdict = "refused when you build"
+ts_result = "<b><code>NaN</code> spreads</b> through every sum it touches."
+glyph_result = "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed."
+page_note = "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"

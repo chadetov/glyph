@@ -3,9 +3,11 @@ module m
 pub type Status = "todo" | "doing" | "done" | "archived"
 
 pub fn announce(s: Status) {
+  // show
   match s {
     "todo" => print("not started"),
     "doing" => print("in progress"),
     "done" => print("finished"),
   }
+  // end show
 }

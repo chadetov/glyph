@@ -1,0 +1,20 @@
+module main
+
+type Status =
+  | Active
+  | Suspended
+
+fn label(s: Status) -> string {
+  return match s {
+    Active => "active",
+    Suspended => "suspended",
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  // show
+  let from_db: number = 7
+  print(label(from_db))
+  // end show
+  return 0
+}

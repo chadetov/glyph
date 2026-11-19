@@ -1,0 +1,10 @@
+module main
+
+// show
+import users { get_user as fetch_user }
+// end show
+
+fn main(argv: Array<string>) -> number {
+  print(fetch_user())
+  return 0
+}

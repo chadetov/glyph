@@ -4,6 +4,7 @@
 export type Status = "todo" | "doing" | "done" | "archived";
 
 export function announce(s: Status): void {
+  // show
   switch (s) {
     case "todo":
       console.log("not started");
@@ -15,4 +16,9 @@ export function announce(s: Status): void {
       console.log("finished");
       break;
   }
+  // end show
 }
+
+announce("done");
+announce("archived");
+console.log("archived logged nothing");

@@ -4,8 +4,8 @@
 export function describe(s: string): string {
   // show
   const [user, host] = s.split("@");
-  // end show
   return `${user} at ${host}`;
+  // end show
 }
 
 console.log(describe("nobody"));

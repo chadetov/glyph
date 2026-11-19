@@ -8,4 +8,4 @@ fullconfig = "none"
 section = "gap"
 slug = "gap-g380-mutation-without-mut"
 order = 5
-summary = "<code>xs.push(4)</code> and <code>xs.sort()</code> change an array without <code>mut</code>."
+summary = "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it."

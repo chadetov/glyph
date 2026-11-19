@@ -477,6 +477,25 @@
           releases before 0.1.99 were not tested this way, so an unmarked old release is
           untested rather than safe.
         </p>
+        <p>
+          What a Breaking release has cost in practice: each recent note says what happened when
+          the old and new versions were run over the repository's example apps. These are the
+          newest Breaking releases, quoted from their notes:
+        </p>
+        <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.149">0.1.149</a>: &ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, the only changes are three files that were already refused (two test fixtures and a benchmark that demonstrates a refusal, which still passes), and the emitted TypeScript is identical.&rdquo;</li>
+          <li><a href="/versions/2026-11/#0.1.148">0.1.148</a>: &ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are unchanged.&rdquo;</li>
+          <li><a href="/versions/2026-11/#0.1.147">0.1.147</a>: &ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, nothing changes.&rdquo;</li>
+          <li><a href="/versions/2026-11/#0.1.146">0.1.146</a>: &ldquo;On every other <code>.glyph</code> file in the repository and all 32 example apps, nothing changes.&rdquo;</li>
+          <li><a href="/versions/2026-11/#0.1.145">0.1.145</a>: &ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are identical to 0.1.144.&rdquo;</li>
+          <li><a href="/versions/2026-11/#0.1.143">0.1.143</a>: &ldquo;On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> gives the same result apart from the reworded E0304 note on one file that already failed, and the emitted TypeScript is identical.&rdquo;</li>
+        </ul>
+
+        <p>
+          The example apps are the project's own code, kept compiling release by release, so a
+          newly refused shape is less likely to turn up in them than in yours. Each note names the
+          shapes it refuses, so read it before upgrading.
+        </p>
 
         <h2 class="block-label" id="status">Status<a class="h-anchor" href="#status" aria-label="Link to this section">#</a></h2>
         <p>

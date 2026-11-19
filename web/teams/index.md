@@ -52,6 +52,17 @@ Details in [Will a new Glyph release break my build?](https://glyphlang.io/answe
 
 The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.149, 148 in all, and 22 of them shipped in November 2026 up to the 19th. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 32 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
 
+What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:
+
+- [0.1.149](https://glyphlang.io/versions/2026-11/#0.1.149): “On every `.glyph` file in the repository and all 32 example apps, the only changes are three files that were already refused (two test fixtures and a benchmark that demonstrates a refusal, which still passes), and the emitted TypeScript is identical.”
+- [0.1.148](https://glyphlang.io/versions/2026-11/#0.1.148): “On every `.glyph` file in the repository and all 32 example apps, `glyph check` and the emitted TypeScript are unchanged.”
+- [0.1.147](https://glyphlang.io/versions/2026-11/#0.1.147): “On every `.glyph` file in the repository and all 32 example apps, nothing changes.”
+- [0.1.146](https://glyphlang.io/versions/2026-11/#0.1.146): “On every other `.glyph` file in the repository and all 32 example apps, nothing changes.”
+- [0.1.145](https://glyphlang.io/versions/2026-11/#0.1.145): “On every `.glyph` file in the repository and all 32 example apps, `glyph check` and the emitted TypeScript are identical to 0.1.144.”
+- [0.1.143](https://glyphlang.io/versions/2026-11/#0.1.143): “On every `.glyph` file in the repository and all 32 example apps, `glyph check` gives the same result apart from the reworded E0304 note on one file that already failed, and the emitted TypeScript is identical.”
+
+The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.
+
 ## Status
 
 Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md) says what may change and what is held stable. [MAINTAINERS.md](https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md) says plainly that the project is maintained primarily by one person today.

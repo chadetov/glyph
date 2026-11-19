@@ -285,6 +285,19 @@ pre .h {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--s3) var(--s5);
 }
+/* rows that fill, as .ans-cards in site/style.css: three columns for a
+   count that divides by three, else two with an odd first item spanning */
+.c-gaps:has(> :last-child:nth-child(odd)) > :first-child {
+  grid-column: 1 / -1;
+}
+@media (min-width: 861px) {
+  .c-gaps:has(> :last-child:nth-child(3n)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .c-gaps:has(> :last-child:nth-child(3n)) > :first-child {
+    grid-column: auto;
+  }
+}
 .c-gaps li {
   font-size: var(--fs-sm);
   padding-left: var(--s3);

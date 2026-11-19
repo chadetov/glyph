@@ -723,7 +723,7 @@ details.more > .body .code {
   flex-wrap: nowrap;
 }
 /* a long one-line message can wrap; box-drawing output must not */
-.code.term.wrap pre {
+.code.term.wraps pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

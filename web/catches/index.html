@@ -361,7 +361,7 @@
           <div class="c-scores"><span class="c-score likely" title="Likely: 5 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 of 5</span></span><span class="c-score severe" title="Severity: 5 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 of 5</span></span></div>
         </div>
         <p class="c-why">A request body, a file, an API response.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> user = <span class="t">JSON</span>.parse(body) <span class="k">as</span> <span class="t">User</span>;
@@ -427,7 +427,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-scores"><span class="c-score likely" title="Likely: 5 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sr">5 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
         <p class="c-why">Looking a record up by id.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> users.find((u) =&gt; u.id === id)!.name;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">TypeError: Cannot read properties of undefined (reading 'name')</span></pre></div>
@@ -509,7 +509,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-scores"><span class="c-score likely" title="Likely: 4 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
         <p class="c-why">Checking each user against an async permission call.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> active = names.filter(
@@ -534,7 +534,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-scores"><span class="c-score likely" title="Likely: 4 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
         <p class="c-why">Validating a request body by hand.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> isUser(x: unknown): x <span class="k">is</span> <span class="t">User</span> {
@@ -664,7 +664,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           <div class="c-scores"><span class="c-score likely" title="Likely: 3 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
         <p class="c-why">An API starts sending a status your code has never seen.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Account</span> = { status: <span class="s">"active"</span> | <span class="s">"banned"</span> };
@@ -695,7 +695,7 @@ a.balance = before - f;</pre><span class="cap">$ tsx ts.ts</span><pre class="c-o
           <div class="c-scores"><span class="c-score likely" title="Likely: 3 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
         <p class="c-why">A limit for each plan, loaded from a file someone forgot to update.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> limits = <span class="t">JSON</span>.parse(text) <span class="k">as</span> <span class="t">Record</span>&lt;<span class="t">Plan</span>, number&gt;;
@@ -806,7 +806,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           <div class="c-scores"><span class="c-score likely" title="Likely: 4 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
         <p class="c-why">Reading a field from a row of strings, with the name misspelled.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then prints undefined</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> nameOf(row: <span class="t">Record</span>&lt;string, string&gt;): string {
@@ -834,7 +834,7 @@ closeConn(c);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span 
           <div class="c-scores"><span class="c-score likely" title="Likely: 4 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
         <p class="c-why">Building the options in a variable, then passing them.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then uses the wrong setting</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> opts = { host: <span class="s">"db"</span>, timeoutMS: 500 };
@@ -860,7 +860,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
           <div class="c-scores"><span class="c-score likely" title="Likely: 4 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
         <p class="c-why">Parsing a date from a form.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives a wrong date or crashes</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">return</span> <span class="k">new</span> <span class="t">Date</span>(input).toISOString().slice(0, 10);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">2025-03-02</span>
@@ -1024,7 +1024,7 @@ print(<span class="s">"timeout ${connect(opts)}"</span>)</pre><span class="cap">
           <div class="c-scores"><span class="c-score likely" title="Likely: 3 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
         <p class="c-why">A rule about a value, not just its type.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Person</span> = { age: number }; <span class="c">// must be &gt;= 0</span>
@@ -1186,7 +1186,7 @@ sum = sum * (1 + taxRate);</pre><span class="cap">$ tsx ts.ts</span><pre class="
           <div class="c-scores"><span class="c-score likely" title="Likely: 3 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
         <p class="c-why">Mapping users to rows.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then gives the wrong answer</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">const</span> rows = users.map((u) =&gt; { label: u.name });</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">[ undefined ]</span></pre></div>
@@ -1265,7 +1265,7 @@ sendInvoice(signup);</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"
           <div class="c-scores"><span class="c-score likely" title="Likely: 2 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 of 5</span></span><span class="c-score severe" title="Severity: 4 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="sr">4 of 5</span></span></div>
         </div>
         <p class="c-why">A record holding a socket, checked by a hand-written guard.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then accepts a string as a socket</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">export</span> <span class="k">function</span> isConn(value: unknown): value <span class="k">is</span> <span class="t">Conn</span> {
@@ -1320,7 +1320,7 @@ console.log(up());</pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><
           <div class="c-scores"><span class="c-score likely" title="Likely: 2 of 5">Likely <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="sr">2 of 5</span></span><span class="c-score severe" title="Severity: 3 of 5">Severity <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="sr">3 of 5</span></span></div>
         </div>
         <p class="c-why">An order line that can only be a whole number.</p>
-        <div class="c-pair">
+        <div class="c-pair stack">
           <div class="c-side ts">
             <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then runs on bad data</span></div>
             <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">type</span> <span class="t">Order</span> = { qty: number };

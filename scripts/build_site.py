@@ -46,6 +46,11 @@ Every `<h2 class="block-label">` section heading gets an id and a "#" link
 to itself. {{catches:...}} is markup generated from the committed cases in catches/ by
 scripts/site_catches.py, so the /catches/ page and every page that quotes it
 show what scripts/check_catches.py verified, without running a compiler here.
+A side-by-side pair of code panes (`<div class="two-up">`, or a case's
+`<div class="c-pair">`) whose longest code line would not fit half the
+column at the narrowest width it is shown side by side gets the class
+`stack`, and site/style.css stacks it rather than letting both halves
+scroll. See stack_wide_pairs().
 
 The release notes are the one source page that renders as several.
 site/pages/versions/index.html carries {{versions:...}} placeholders, and
@@ -65,6 +70,7 @@ Python standard library only.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import pathlib
 import re
@@ -433,6 +439,55 @@ def next_steps(site: dict, value: str, where: str) -> str:
     return "\n".join(out) + "\n"
 
 
+# The longest code line, in characters, that fits one half of a side-by-side
+# pair at the narrowest width the pair is shown side by side. Code is IBM Plex
+# Mono at 13px, 7.8px a character, inside 16px of padding a side and a 1px
+# border. A .two-up sits in the 760px article column beside the answers
+# sidebar, and in at least 773px below 821px where it stacks anyway: halves
+# of 372px hold 43 characters. A .c-pair sits in the wide column and stacks
+# below 861px: halves of 398px hold 46.
+PAIR_FIT = {"two-up": 43, "c-pair": 46}
+
+
+def _div_end(body: str, start: int) -> int:
+    """Index just past the </div> that closes the <div> opening at `start`."""
+    depth = 0
+    for m in re.compile(r"<(/?)div\b[^>]*>").finditer(body, start):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return m.end()
+    raise SiteError("unbalanced <div> in a side-by-side pair")
+
+
+def longest_code_line(fragment: str) -> int:
+    """The longest line, in characters, of the <pre> blocks in `fragment`
+    that keep their lines (an output block marked c-out wraps instead)."""
+    longest = 0
+    for cls, code in re.findall(r"<pre(\s[^>]*)?>(.*?)</pre>", fragment, re.S):
+        if "c-out" in (cls or ""):
+            continue
+        text = html.unescape(re.sub(r"<[^>]+>", "", code))
+        longest = max([longest, *(len(line) for line in text.split("\n"))])
+    return longest
+
+
+def stack_wide_pairs(body: str) -> str:
+    """Add `stack` to each side-by-side pair whose code would scroll."""
+    out, pos = [], 0
+    pattern = re.compile(r'<div class="(two-up|c-pair)((?: [a-z-]+)*)">')
+    for m in pattern.finditer(body):
+        if m.start() < pos:
+            continue
+        kind, extra = m.group(1), m.group(2).split()
+        end = _div_end(body, m.start())
+        tag = m.group(0)
+        if "fit" not in extra and "stack" not in extra and longest_code_line(body[m.end():end]) > PAIR_FIT[kind]:
+            tag = f'<div class="{kind}{m.group(2)} stack">'
+        out += [body[pos:m.start()], tag]
+        pos = m.end()
+    return "".join(out) + body[pos:]
+
+
 def page_url(path: pathlib.Path) -> str:
     rel = path.relative_to(PAGES).parent.as_posix()
     return "/" if rel == "." else f"/{rel}/"
@@ -452,6 +507,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         body = site_catches.expand(body, where)
     except site_catches.CatchesError as e:
         raise SiteError(str(e)) from None
+    body = stack_wide_pairs(body)
     body = site_i18n.english_island(body, ctx)
     head_values = {
         "title": fm["title"],

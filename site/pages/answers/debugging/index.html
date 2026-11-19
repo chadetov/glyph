@@ -21,7 +21,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">1 &middot; The generated TypeScript is yours to read</p>
+        <h2 class="block-label">1 &middot; The generated TypeScript is yours to read</h2>
         <p>
           Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you
           commit and deploy like any other TS. So the worst case (an on-call engineer who
@@ -29,7 +29,7 @@ sitemap: 2026-08-23 weekly 0.8
           no black box between your source and production.
         </p>
 
-        <p class="block-label">2 &middot; Source maps back to <code>.glyph</code></p>
+        <h2 class="block-label">2 &middot; Source maps back to <code>.glyph</code></h2>
         <p>
           Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to
           it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded
@@ -45,7 +45,7 @@ sitemap: 2026-08-23 weekly 0.8
       </div>
 
       <div class="detail">
-        <p class="block-label">3 &middot; Build and type errors already point at Glyph</p>
+        <h2 class="block-label">3 &middot; Build and type errors already point at Glyph</h2>
         <p>
           You rarely get to production with a type error, because <code>glyph build</code> runs
           <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your
@@ -57,7 +57,7 @@ sitemap: 2026-08-23 weekly 0.8
           file, 1-based line/col, help) for your CI or tooling to act on.
         </p>
 
-        <p class="block-label">4 &middot; <code>glyph run</code> tells you the same things</p>
+        <h2 class="block-label">4 &middot; <code>glyph run</code> tells you the same things</h2>
         <p>
           The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter
           than the build. It compiled the whole directory, took the list of emitted files out of the
@@ -85,7 +85,7 @@ glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">Two current limitations</p>
+        <h2 class="block-label">Two current limitations</h2>
         <p>
           <strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line
           numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code>
@@ -106,7 +106,7 @@ glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

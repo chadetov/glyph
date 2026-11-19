@@ -20,7 +20,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Money is not a float</p>
+        <h2 class="block-label">Money is not a float</h2>
         <p>
           A financial system on IEEE-754 <code>number</code> is a bug waiting to
           be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value
@@ -53,7 +53,7 @@ decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from 
       </div>
 
       <div class="detail">
-        <p class="block-label">Ids and counters stay exact past 2<sup>53</sup></p>
+        <h2 class="block-label">Ids and counters stay exact past 2<sup>53</sup></h2>
         <p>
           An account id or a ledger counter that overflows the float range and
           rounds is a different kind of catastrophe. <code>bigint</code> is an
@@ -65,7 +65,7 @@ decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from 
       </div>
 
       <div class="detail">
-        <p class="block-label">An invariant is a type, not a comment</p>
+        <h2 class="block-label">An invariant is a type, not a comment</h2>
         <p>
           "The amount is non-negative" and "the rating is 1 to 5" are the checks
           that get written once and forgotten later. A <code>where</code>
@@ -86,7 +86,7 @@ Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">Injection is a compile error</p>
+        <h2 class="block-label">Injection is a compile error</h2>
         <p>
           The classic remote-code path is untrusted input reaching a SQL query, a
           shell command, or an HTML template. <code>std/taint</code> makes that a
@@ -127,7 +127,7 @@ pub fn handle(body: string) -&gt; string {
         </div>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

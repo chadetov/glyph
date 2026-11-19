@@ -304,7 +304,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           This is the difference between a language that can run a script and one that can
           run a service. A server, a file watcher, a bot holding a gateway connection, a
@@ -319,7 +319,7 @@
           and no reason to think anything failed.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>
           A TCP server in full. <code>main</code> returns immediately; the callbacks run
           for as long as the process lives:
@@ -371,7 +371,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
           drains its event loop and exits 0, reporting success.
         </p>
 
-        <p class="block-label">A real one</p>
+        <h2 class="block-label" id="a-real-one">A real one<a class="h-anchor" href="#a-real-one" aria-label="Link to this section">#</a></h2>
         <p>
           <code>examples/apps/chat</code> is a chat server holding several TCP clients at
           once. The parts that do not touch the network stay separate and testable: line
@@ -411,7 +411,7 @@ pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">The other direction: a long-running client</p>
+        <h2 class="block-label" id="the-other-direction-a-long-running-client">The other direction: a long-running client<a class="h-anchor" href="#the-other-direction-a-long-running-client" aria-label="Link to this section">#</a></h2>
         <p>
           A bot is the same shape pointed outward. <code>examples/apps/discord</code>
           is a Discord gateway client: it connects over a WebSocket, identifies,
@@ -450,7 +450,7 @@ pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</p
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

@@ -38,7 +38,8 @@ the home page's release pill never needs a hand edit. The header partial
 renders the same version as a badge beside the logo on every page, so a
 version bump changes every page: scripts/bump_version.py re-renders web/ after
 it moves Cargo.toml, which keeps web/ matching what this script renders.
-{{catches:...}} is markup generated from the committed cases in catches/ by
+Every `<h2 class="block-label">` section heading gets an id and a "#" link
+to itself. {{catches:...}} is markup generated from the committed cases in catches/ by
 scripts/site_catches.py, so the /catches/ page and every page that quotes it
 show what scripts/check_catches.py verified, without running a compiler here.
 
@@ -253,6 +254,37 @@ def prevnext(fm: dict, where: str) -> str:
     return out + "      </nav>\n"
 
 
+def slug(text: str) -> str:
+    text = re.sub(r"<[^>]+>", "", text)
+    text = re.sub(r"&[a-z]+;|&#\d+;", " ", text).lower()
+    s = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+    if len(s) > 60:
+        s = s[:61].rsplit("-", 1)[0]
+    return s or "section"
+
+
+def section_anchors(body: str) -> str:
+    """Give every `<h2 class="block-label">` section heading an id (kept when
+    the source sets one, else a slug of its text, unique on the page) and a
+    "#" link to itself, so any section can be linked to."""
+    taken = set(re.findall(r'\bid="([^"]+)"', body))
+
+    def sub(m: re.Match) -> str:
+        attrs, inner = m.group(1), m.group(2)
+        if 'id="' in attrs:
+            hid = re.search(r'id="([^"]+)"', attrs).group(1)
+        else:
+            base = hid = slug(re.sub(r'<span class="ex-label">.*?</span>', "", inner))
+            n = 2
+            while hid in taken:
+                hid, n = f"{base}-{n}", n + 1
+            taken.add(hid)
+            attrs += f' id="{hid}"'
+        return (f'<h2 class="block-label"{attrs}>{inner}'
+                f'<a class="h-anchor" href="#{hid}" aria-label="Link to this section">#</a></h2>')
+    return re.sub(r'<h2 class="block-label"([^>]*)>(.*?)</h2>', sub, body)
+
+
 def page_url(path: pathlib.Path) -> str:
     rel = path.relative_to(PAGES).parent.as_posix()
     return "/" if rel == "." else f"/{rel}/"
@@ -263,6 +295,7 @@ def render(path: pathlib.Path, site: dict, version: str) -> str:
     fm, body = parse_page(path)
     url = page_url(path)
     body = body.replace("{{version}}", version)
+    body = section_anchors(body)
     try:
         body = site_catches.expand(body, where)
     except site_catches.CatchesError as e:

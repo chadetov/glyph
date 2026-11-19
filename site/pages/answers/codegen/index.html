@@ -21,7 +21,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           Hand-written API clients and their DTOs drift from the spec, and the drift is a class of
           bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions,
@@ -29,7 +29,7 @@ sitemap: 2026-08-23 weekly 0.8
           source of truth, and regeneration is an idempotent, reviewable diff, not a black box.
         </p>
 
-        <p class="block-label">See it: the client</p>
+        <h2 class="block-label">See it: the client</h2>
         <p>
           Each operation becomes an <code>async fn</code> with typed path parameters and a typed
           request body, returning the HTTP <code>Response</code>:
@@ -82,7 +82,7 @@ async fn getTask(base: string, id: number)
           you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you
           fill them in and wire it up with <code>await serve(PORT, route)</code>.
         </p>
-        <p class="block-label">From a zod schema instead</p>
+        <h2 class="block-label">From a zod schema instead</h2>
         <p>
           If your team already defines shapes with <code>zod</code>, generate from those directly.
           The schema becomes a first-class Glyph type with its own descriptor:
@@ -131,7 +131,7 @@ async fn getTask(base: string, id: number)
       </div>
 
       <div class="detail">
-        <p class="block-label">Keeping it in sync</p>
+        <h2 class="block-label">Keeping it in sync</h2>
         <p>
           Every generated file records the exact command that made it in its header. When a spec
           changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans
@@ -141,7 +141,7 @@ async fn getTask(base: string, id: number)
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

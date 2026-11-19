@@ -18,7 +18,7 @@ sitemap: 2026-08-26 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           Glyph compiles to TypeScript and then type-checks the output with
           <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes
@@ -36,7 +36,7 @@ sitemap: 2026-08-26 weekly 0.8
           the decision behind it, and shows the before and after.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>
           The arm case is the one that used to escape entirely. <code>{}</code> in arm
           position is an empty <em>block</em>, not an empty record, so the arm ran and
@@ -118,7 +118,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">The worse case: when tsc is happy too</p>
+        <h2 class="block-label">The worse case: when tsc is happy too</h2>
         <p>
           A <code>tsc</code> error in the wrong place is annoying. A clean build on a
           program that means something else is the real problem, and Glyph had one. Every
@@ -188,7 +188,7 @@ assignable to parameter of type ...</span></pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">A wrong message is worse than no message</p>
+        <h2 class="block-label">A wrong message is worse than no message</h2>
         <p>
           The shadow list started with names the emitter writes as <em>values</em>. It
           was missing the ones it writes as <em>types</em>, and that produced the sharpest
@@ -277,7 +277,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">Naming the rule, not the token</p>
+        <h2 class="block-label">Naming the rule, not the token</h2>
         <p>
           The quieter version of the same problem is an error that is correct and
           still tells you nothing. An agent writing a red-black tree reached for the
@@ -322,7 +322,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">Two more the checker took over in 0.1.121</p>
+        <h2 class="block-label">Two more the checker took over in 0.1.121</h2>
         <p>
           <code>Order { id: "a", total: 1 }</code> is what someone coming from TypeScript
           writes to build a record, and Glyph has no such form: a value is written on its
@@ -400,7 +400,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">And three more, since 0.1.133</p>
+        <h2 class="block-label">And three more, since 0.1.133</h2>
         <p>
           <code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when
           <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses
@@ -431,7 +431,7 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       </div>
 
       <div class="detail">
-        <p class="block-label">And two more in 0.1.122</p>
+        <h2 class="block-label">And two more in 0.1.122</h2>
         <p>
           <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the
           Glyph checker compared a value against it by nothing at all. A number, a
@@ -485,7 +485,7 @@ let d: Mode = { x: 1 }
       </div>
 
       <div class="detail">
-        <p class="block-label">0.1.123: the literal a value is, not the <code>string</code> it emits to</p>
+        <h2 class="block-label">0.1.123: the literal a value is, not the <code>string</code> it emits to</h2>
         <p>
           <code>type Mode = "read" | "write"</code> put the set on the declaration and nothing on
           the value, so <code>"read"</code> was a <code>string</code> and
@@ -541,7 +541,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       </div>
 
       <div class="detail">
-        <p class="block-label">A module under <code>std/</code> was dead code with no diagnostic</p>
+        <h2 class="block-label">A module under <code>std/</code> was dead code with no diagnostic</h2>
         <p>
           <code>std/</code> and <code>extern/</code> name modules the compiler carries, and the
           resolver reserved them for imports. Nothing stopped a project file from
@@ -597,7 +597,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         </p>
       </div>
 
-      <p class="block-label">When neither compiler is wrong</p>
+      <h2 class="block-label">When neither compiler is wrong</h2>
       <div class="detail">
         <p>
           There is a third shape, and it is the one that reads worst. Glyph reports
@@ -663,7 +663,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         </p>
       </div>
 
-      <p class="block-label">The same typo, two answers</p>
+      <h2 class="block-label">The same typo, two answers</h2>
       <div class="detail">
         <p>
           A misspelled standard-library function used to get a different answer depending
@@ -705,7 +705,7 @@ string.repeeat(s, 2)
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

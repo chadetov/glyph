@@ -278,7 +278,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Too many ways to say the same thing</p>
+        <h2 class="block-label" id="too-many-ways-to-say-the-same-thing">Too many ways to say the same thing<a class="h-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Link to this section">#</a></h2>
         <p class="lede">
           TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as
           an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can
@@ -294,7 +294,7 @@
           sharp tool per job, chosen so the obvious way is also the safe way.
         </p>
 
-        <p class="block-label"><span class="ex-label">01</span> <code>match</code> is the only conditional</p>
+        <h2 class="block-label" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code> is the only conditional<a class="h-anchor" href="#match-is-the-only-conditional" aria-label="Link to this section">#</a></h2>
         <p>
           There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>,
           everywhere, and <code>match</code> is an expression: it produces a value. One
@@ -326,7 +326,7 @@ else label = "C";</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">02</span> Tagged unions and pattern matching</p>
+        <h2 class="block-label" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Tagged unions and pattern matching<a class="h-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Link to this section">#</a></h2>
         <p>
           The way to model "one of these shapes" is a tagged union, and the way to take it apart is
           <code>match</code>, which destructures the payload in the same step it selects the case. No
@@ -352,7 +352,7 @@ fn view(feed: Feed) -&gt; string {
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">03</span> <code>Result</code> over exceptions</p>
+        <h2 class="block-label" id="result-over-exceptions"><span class="ex-label">03</span> <code>Result</code> over exceptions<a class="h-anchor" href="#result-over-exceptions" aria-label="Link to this section">#</a></h2>
         <p>
           Failure is a value, not a hidden control-flow jump. A function that can fail says so in its
           return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the
@@ -361,7 +361,7 @@ fn view(feed: Feed) -&gt; string {
           path.
         </p>
 
-        <p class="block-label"><span class="ex-label">04</span> Named records over positional tuples</p>
+        <h2 class="block-label" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Named records over positional tuples<a class="h-anchor" href="#named-records-over-positional-tuples" aria-label="Link to this section">#</a></h2>
         <p>
           Data is described with named fields, always. There's no object-literal shorthand and no
           reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to
@@ -391,7 +391,7 @@ fn origin() -&gt; Point {
       </div>
 
       <div class="detail">
-        <p class="block-label"><span class="ex-label">05</span> One primitive per job</p>
+        <h2 class="block-label" id="one-primitive-per-job"><span class="ex-label">05</span> One primitive per job<a class="h-anchor" href="#one-primitive-per-job" aria-label="Link to this section">#</a></h2>
         <p>
           When a concept needs its own tool, Glyph gives it exactly one. Shared mutable
           state lives in a <code>std/store</code>. A file or socket handle that must be closed once is
@@ -405,7 +405,7 @@ fn origin() -&gt; Point {
           has an obvious form, and the obvious form is the one you're meant to use.
         </p>
 
-        <p class="block-label">The benchmark: coming</p>
+        <h2 class="block-label" id="the-benchmark-coming">The benchmark: coming<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link to this section">#</a></h2>
         <p>
           The way to measure this is surface area: how many distinct concepts a reader has to hold to
           understand a program, and how much code it takes to express a common task cleanly. Glyph

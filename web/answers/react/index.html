@@ -305,7 +305,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           A lot of the code agents write is React. Glyph treats it as a first-class target, not a
           bolt-on: <code>component</code> is its own keyword (so <code>grep "^component "</code>
@@ -314,7 +314,7 @@
           declarations.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:</p>
       </div>
 
@@ -364,7 +364,7 @@ pub component Counter() {
       </div>
 
       <div class="detail">
-        <p class="block-label">Are props checked before tsc?</p>
+        <h2 class="block-label" id="are-props-checked-before-tsc">Are props checked before tsc?<a class="h-anchor" href="#are-props-checked-before-tsc" aria-label="Link to this section">#</a></h2>
         <p>
           Yes. Glyph compares each element with its component's props record itself, so a wrong
           value, a misspelled prop and a missing required one are Glyph errors that name the prop.
@@ -401,7 +401,7 @@ pub component App() {
       </div>
 
       <div class="detail">
-        <p class="block-label">Is a &lt;match&gt; in JSX checked like a match?</p>
+        <h2 class="block-label" id="is-a-match-in-jsx-checked-like-a-match">Is a &lt;match&gt; in JSX checked like a match?<a class="h-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Link to this section">#</a></h2>
         <p>
           It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code>
           arm takes, and the compiler runs it through the code it uses for the arm. The names a
@@ -431,7 +431,7 @@ component Results(props: { page: Page }) {
       </div>
 
       <div class="detail">
-        <p class="block-label">How does a page start it?</p>
+        <h2 class="block-label" id="how-does-a-page-start-it">How does a page start it?<a class="h-anchor" href="#how-does-a-page-start-it" aria-label="Link to this section">#</a></h2>
         <p>
           Glyph has no top-level statements, so the page calls an exported <code>main</code>
           itself. The app is two modules: one holding the components, and one that mounts them
@@ -501,7 +501,7 @@ pub fn main() -&gt; void {
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

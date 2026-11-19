@@ -19,7 +19,7 @@ sitemap: 2026-08-23 weekly 0.8
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label">Why it matters</h2>
         <p>
           A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own.
           Read that file as text and every byte the decoder cannot make sense of becomes
@@ -34,7 +34,7 @@ sitemap: 2026-08-23 weekly 0.8
           worked around inside the language.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>
           An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The
           secret arrives base32-encoded, the message is an eight-byte counter that is
@@ -84,7 +84,7 @@ pub fn code(secret: string, counter: number) -&gt; Result&lt;number, bytes.Bytes
           <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.
         </p>
 
-        <p class="block-label">Every decode can refuse, and says where</p>
+        <h2 class="block-label">Every decode can refuse, and says where</h2>
         <p>
           This is the part that cost the most to build and is the reason to use it. Node's
           <code>Buffer</code> accepts malformed input and reports success:
@@ -127,7 +127,7 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
           only <code>std/bytes</code> still runs in a Web Worker.
         </p>
 
-        <p class="block-label">Which HMAC you pick changes the answer</p>
+        <h2 class="block-label">Which HMAC you pick changes the answer</h2>
         <p>
           <code>std/crypto</code> now has both forms of every algorithm. The plain name
           takes a string and returns hex, which is what hashing a password wants. The
@@ -144,7 +144,7 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

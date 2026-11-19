@@ -19,7 +19,7 @@ sitemap: 2026-07-23 weekly 0.9
       </p>
 
       <div class="detail">
-        <p class="block-label">Why an agent wants this</p>
+        <h2 class="block-label">Why an agent wants this</h2>
         <p>
           An agent editing a codebase usually works blind. It reads files, guesses at types, and
           finds out whether it broke something only after a build. Glyph already answers those
@@ -31,7 +31,7 @@ sitemap: 2026-07-23 weekly 0.9
           an edit breaks before the edit exists.
         </p>
 
-        <p class="block-label">Set it up</p>
+        <h2 class="block-label">Set it up</h2>
         <p>
           Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the
           <code>mcp</code> subcommand, and pass your project root as an argument or run it from the
@@ -70,7 +70,7 @@ sitemap: 2026-07-23 weekly 0.9
           tables, and a test fails the build if it names a tool this server does not serve.
         </p>
 
-        <p class="block-label">The eleven tools</p>
+        <h2 class="block-label">The eleven tools</h2>
       </div>
 
       <div class="code">
@@ -129,7 +129,7 @@ glyph_exports(module)</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">See it</p>
+        <h2 class="block-label">See it</h2>
         <p>
           A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo
           returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code>
@@ -199,7 +199,7 @@ glyph_exports(module)</pre>
           covers the whole project, not just the file you asked from.
         </p>
 
-        <p class="block-label">No MCP client? Same questions on the command line</p>
+        <h2 class="block-label">No MCP client? Same questions on the command line</h2>
         <p>
           Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags
           and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes
@@ -229,7 +229,7 @@ glyph query exports      --path src/main.glyph --module std/result</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">When the build is already red</p>
+        <h2 class="block-label">When the build is already red</h2>
         <p>
           The tools answer questions asked before an edit. After one, the thing to read is
           <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics
@@ -244,7 +244,7 @@ glyph query exports      --path src/main.glyph --module std/result</pre>
         </p>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label">Where it stands</h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

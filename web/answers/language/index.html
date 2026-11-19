@@ -304,7 +304,7 @@
       </p>
 
       <div class="detail">
-        <p class="block-label">Why it matters</p>
+        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
         <p>
           A language you can write one file in but not structure a project in
           isn't one you'll bet a codebase on. The gaps that matter aren't exotic:
@@ -314,7 +314,7 @@
           the annotation-heavy direction it deliberately dropped.
         </p>
 
-        <p class="block-label">See it</p>
+        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
         <p>
           Declarations are private to their module until you mark them
           <code>pub</code>, so the public surface is one search
@@ -379,7 +379,7 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
       </div>
 
       <div class="detail">
-        <p class="block-label">There's no <code>if</code>, so <code>match</code> has to carry everything</p>
+        <h2 class="block-label" id="there-s-no-if-so-match-has-to-carry-everything">There's no <code>if</code>, so <code>match</code> has to carry everything<a class="h-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Link to this section">#</a></h2>
         <p>
           The first thing a TypeScript developer asks after the exhaustiveness
           pitch is whether <code>match</code> is really a general-purpose
@@ -424,7 +424,7 @@ let cache = <span class="add">match</span> args.offline {
       </div>
 
       <div class="detail">
-        <p class="block-label">A pattern can name a shape more than one level down</p>
+        <h2 class="block-label" id="a-pattern-can-name-a-shape-more-than-one-level-down">A pattern can name a shape more than one level down<a class="h-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Link to this section">#</a></h2>
         <p>
           A variant with several fields carries a record, so an arm that wants to
           recognise a shape has to reach through the record's fields. Until 0.1.90
@@ -479,7 +479,7 @@ match t {
       </div>
 
       <div class="detail">
-        <p class="block-label">And the compiler knows what the <code>match</code> produced</p>
+        <h2 class="block-label" id="and-the-compiler-knows-what-the-match-produced">And the compiler knows what the <code>match</code> produced<a class="h-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Link to this section">#</a></h2>
         <p>
           The follow-up question is the one that decides whether any of this is
           load-bearing: once you bind a value out of a branch, does Glyph know its
@@ -561,7 +561,7 @@ for i, hop in path {               <span class="cm"># i is a number, so the inde
       </div>
 
       <div class="detail">
-        <p class="block-label">Do I have to write <code>pad_start</code> myself?</p>
+        <h2 class="block-label" id="do-i-have-to-write-pad-start-myself">Do I have to write <code>pad_start</code> myself?<a class="h-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Link to this section">#</a></h2>
         <p>
           The gap you hit first in a real program isn't a type-system feature.
           It's reaching for <code>string.slice</code> and finding nothing there.
@@ -611,7 +611,7 @@ io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<s
       </div>
 
       <div class="detail">
-        <p class="block-label">Can I walk a directory and tell what broke?</p>
+        <h2 class="block-label" id="can-i-walk-a-directory-and-tell-what-broke">Can I walk a directory and tell what broke?<a class="h-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Link to this section">#</a></h2>
         <p>
           <code>std/fs</code> shipped six functions and none of them listed a
           directory. The link checker in this repo reached past the stdlib into
@@ -695,7 +695,7 @@ match err.<span class="add">kind</span> {                        <span class="cm
       </div>
 
       <div class="detail">
-        <p class="block-label">How do you know the functions are the right ones?</p>
+        <h2 class="block-label" id="how-do-you-know-the-functions-are-the-right-ones">How do you know the functions are the right ones?<a class="h-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Link to this section">#</a></h2>
         <p>
           Because the app that asked for them had to stop working around them
           before the release counted as done. A library function that ships and a
@@ -732,7 +732,7 @@ match err.<span class="add">kind</span> {                        <span class="cm
       </div>
 
       <div class="detail">
-        <p class="block-label">Money doesn't run on floats</p>
+        <h2 class="block-label" id="money-doesn-t-run-on-floats">Money doesn't run on floats<a class="h-anchor" href="#money-doesn-t-run-on-floats" aria-label="Link to this section">#</a></h2>
         <p>
           The gap that would end a fintech evaluation on the spot is doing money
           on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not
@@ -767,7 +767,7 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
       </div>
 
       <div class="detail">
-        <p class="block-label">An async callback finally has a type</p>
+        <h2 class="block-label" id="an-async-callback-finally-has-a-type">An async callback finally has a type<a class="h-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Link to this section">#</a></h2>
         <p>
           A function type was <code>fn(A) -&gt; T</code> and nothing else, which
           emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a
@@ -803,7 +803,7 @@ async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: stri
       </div>
 
       <div class="detail">
-        <p class="block-label">A recursive type, matched all the way down</p>
+        <h2 class="block-label" id="a-recursive-type-matched-all-the-way-down">A recursive type, matched all the way down<a class="h-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Link to this section">#</a></h2>
         <p>
           A union can name itself inside its own payload, with its type
           parameters, and a match arm can nest a constructor pattern inside
@@ -838,7 +838,7 @@ fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
 }</pre>
       </div>
 
-      <p class="block-label">Where it stands</p>
+      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>

@@ -15,7 +15,7 @@ sitemap: 2026-11-19 monthly 0.6
       </p>
 
       <div class="detail">
-        <p class="block-label">The pipeline</p>
+        <h2 class="block-label">The pipeline</h2>
         <p>
           <code>glyph build</code> lexes, parses, resolves names, type-checks and emits
           TypeScript, then runs <code>tsc --strict</code> on what it wrote. The middle stages run
@@ -58,7 +58,7 @@ sitemap: 2026-11-19 monthly 0.6
           has the full crate notes and the current test count.
         </p>
 
-        <p class="block-label">Build and test</p>
+        <h2 class="block-label">Build and test</h2>
         <p>
           Rust 1.95 is pinned in <code>rust-toolchain.toml</code>. Some tests shell out to
           <code>tsc</code> and <code>tsx</code>, so install those too. CI runs clippy with warnings
@@ -86,7 +86,7 @@ INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
           goes in <code>catches/</code>, where <a href="/evidence/">a gate runs both halves</a>.
         </p>
 
-        <p class="block-label">What is planned, and what is broken</p>
+        <h2 class="block-label">What is planned, and what is broken</h2>
         <p>
           <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a>
           is the release roadmap: what each shipped release did and what the next ones are for.
@@ -96,7 +96,7 @@ INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
           good place to start.
         </p>
 
-        <p class="block-label">Issues and pull requests</p>
+        <h2 class="block-label">Issues and pull requests</h2>
         <p>
           Toolchain fixes, diagnostics, docs and examples can go straight to a pull request. A
           change to syntax or semantics starts with an issue, and larger ones go through the RFC
@@ -110,7 +110,7 @@ INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
           are scoped for a first change.
         </p>
 
-        <p class="block-label">Licence</p>
+        <h2 class="block-label">Licence</h2>
         <p>
           MIT or Apache-2.0, at your option
           (<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>,

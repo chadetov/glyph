@@ -117,7 +117,9 @@ def placeholders(text: str) -> list[str]:
 # with the catches counts, which a translation writes out in its own words
 # around those numbers.
 FREE = {"{{version}}", "{{catches:measured}}", "{{catches:count}}", "{{catches:none}}",
-        "{{catches:refused}}", "{{catches:gap-count}}", "{{catches:flag}}", "{{catches:lint}}"}
+        "{{catches:refused}}", "{{catches:gap-count}}", "{{catches:flag}}", "{{catches:lint}}",
+        "{{catches:total}}", "{{catches:trap-count}}", "{{catches:gap-cases}}",
+        "{{catches:traps-refused}}", "{{catches:refused-all}}"}
 
 
 def blocks(text: str) -> list[str]:

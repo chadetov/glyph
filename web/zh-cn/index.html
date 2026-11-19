@@ -132,7 +132,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">尚未覆盖的问题</span><span class="nav-desc">已知漏洞，每个都附复现示例</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">案例，即使 TypeScript 项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">37 个中有 21 个</span><span class="nav-feature-text">TypeScript 错误，即使项目配置拉满，也没有任何工具能发现</span><span class="nav-feature-cta">看看它能发现什么 <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -511,7 +511,7 @@
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">37 个中有 <span>21</span> 个</p>
-          <p>列表中所有 TypeScript 示例都能零错误通过 <code>tsc --strict</code>。每个示例还会在一个配置拉满的项目里再检查一遍：比 <code>--strict</code> 更严格的所有编译器 flag，再加上 typescript-eslint 的 <code>strictTypeChecked</code>。在 37 个案例中，有 21 个是这套配置里没有任何一项能发现的。有 5 个能被默认关闭的编译器 flag 发现，11 个能被某条 lint 规则发现。这些都需要项目自己去打开，而智能体也可以再把它们关掉。在 Glyph 里，这些都不是配置项。</p>
+          <p>列表中所有 TypeScript 示例都能零错误通过 <code>tsc --strict</code>。每个示例还会在一个配置拉满的项目里再检查一遍：比 <code>--strict</code> 更严格的所有编译器 flag，再加上 typescript-eslint 的 <code>strictTypeChecked</code>。在 37 个案例中，有 21 个是这套配置里没有任何一项能发现的。有 5 个能被默认关闭的编译器 flag 发现，11 个能被某条 lint 规则发现。这些都需要项目自己去打开，而智能体也可以再把它们关掉。在 Glyph 里，这些都不是配置项。共有 53 个经过检验的案例：37 个 TypeScript 错误、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 11 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个错误和 5 个陷阱）。</p>
         </div>
       </div>
     </section>

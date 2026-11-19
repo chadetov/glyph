@@ -22,10 +22,10 @@ next_steps: |
         <h2 class="block-label">What it guarantees</h2>
         <p>
           Every claim about what Glyph catches is a case in the repository's <code>catches/</code>
-          directory: the same program in TypeScript and in Glyph, both run by a CI gate. Of the 53
-          cases, 28 are programs Glyph refuses to build, 3 draw a warning, 9 are bad data stopped at
-          a runtime boundary check, 2 stop at run time, and 11 are holes Glyph does not close yet.
-          The ones a reviewer of agent-written code leans on most:
+          directory: the same program in TypeScript and in Glyph, both run by a CI gate.
+          {{catches:breakdown}} Of the mistakes it does not refuse, {{catches:warned-all}} draw a warning,
+          {{catches:boundary-all}} are bad data stopped at a runtime boundary check, and
+          {{catches:runtime-all}} stop at run time. The ones a reviewer of agent-written code leans on most:
         </p>
       </div>
 
@@ -55,7 +55,7 @@ next_steps: |
         <p>
           The guarantees cover code written in Glyph. An exception thrown inside an npm dependency
           still bypasses <code>Result</code>, and a type imported from a package's
-          <code>.d.ts</code> has no runtime check. Inside Glyph, the 11 open holes are listed with
+          <code>.d.ts</code> has no runtime check. Inside Glyph, the {{catches:gap-cases}} open holes are listed with
           their gap numbers in <a href="/catches/#not-yet">what it does not catch yet</a>, and the
           full ledger is <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>.
           For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where

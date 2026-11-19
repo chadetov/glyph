@@ -101,7 +101,7 @@
     "Not caught yet": "尚未覆盖的问题",
     "Known holes, each with a reproduction": "已知漏洞，每个都附复现示例",
     "{{catches:none}} of {{catches:count}}": "{{catches:count}} 个中有 {{catches:none}} 个",
-    "cases that nothing in a fully configured TypeScript setup catches": "案例，即使 TypeScript 项目配置拉满，也没有任何工具能发现",
+    "TypeScript mistakes that nothing in a fully configured setup catches": "TypeScript 错误，即使项目配置拉满，也没有任何工具能发现",
     "See what it catches": "看看它能发现什么",
     "Versions": "版本",
     "Playground": "Playground",

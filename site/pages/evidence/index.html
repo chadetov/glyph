@@ -28,7 +28,7 @@ next_steps: |
           what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires
           every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program
           that doesn't compile proves nothing, and checks the Glyph half according to the case's
-          kind. These are the 53 cases today:
+          kind. {{catches:breakdown}} By the kind the gate checks:
         </p>
       </div>
 
@@ -38,11 +38,11 @@ next_steps: |
             <tr><th>Kind</th><th>Cases</th><th>What the gate requires of the Glyph</th></tr>
           </thead>
           <tbody>
-            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">28</td><td data-label="What the gate requires of the Glyph">The build fails with the code in <code>case.toml</code></td></tr>
-            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">The build passes and reports that code as a warning</td></tr>
-            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">The program runs, and the check at the boundary turns the bad data into an <code>Err</code></td></tr>
-            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">The program builds, then stops when it runs, with the stated output</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">11</td><td data-label="What the gate requires of the Glyph">Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case</td></tr>
+            <tr><td data-label="Kind"><code>refused</code></td><td data-label="Cases">{{catches:refused-all}}</td><td data-label="What the gate requires of the Glyph">The build fails with the code in <code>case.toml</code></td></tr>
+            <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">{{catches:warned-all}}</td><td data-label="What the gate requires of the Glyph">The build passes and reports that code as a warning</td></tr>
+            <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">{{catches:boundary-all}}</td><td data-label="What the gate requires of the Glyph">The program runs, and the check at the boundary turns the bad data into an <code>Err</code></td></tr>
+            <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">{{catches:runtime-all}}</td><td data-label="What the gate requires of the Glyph">The program builds, then stops when it runs, with the stated output</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">{{catches:gap-cases}}</td><td data-label="What the gate requires of the Glyph">Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case</td></tr>
           </tbody>
         </table>
       </div>
@@ -157,7 +157,7 @@ glyph check: 1 error(s) across 1 module(s)</pre>
 
         <h2 class="block-label">What it does not catch yet</h2>
         <p>
-          The 11 <code>gap</code> cases are on <a href="/catches/#not-yet">the catches page</a>,
+          The {{catches:gap-cases}} <code>gap</code> cases are on <a href="/catches/#not-yet">the catches page</a>,
           each with its gap number. Every gap found by building real apps is in the ledger,
           <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>,
           where a bracketed marker is the only live status (<code>[FIXED]</code>,

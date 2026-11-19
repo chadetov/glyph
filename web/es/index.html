@@ -130,7 +130,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Lo que aún no detecta</span><span class="nav-desc">Agujeros conocidos, cada uno con su reproducción</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 de 37</span><span class="nav-feature-text">casos que nada detecta en un proyecto TypeScript configurado al máximo</span><span class="nav-feature-cta">Ver qué detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 de 37</span><span class="nav-feature-text">errores de TypeScript que nada detecta en un proyecto configurado al máximo</span><span class="nav-feature-cta">Ver qué detecta <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -512,7 +512,7 @@
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>21</span> de 37</p>
-          <p>Todos los ejemplos de TypeScript de la lista pasan <code>tsc --strict</code> sin errores. Cada uno se comprueba además contra un proyecto configurado al máximo: todos los flags del compilador más estrictos que <code>--strict</code>, más typescript-eslint <code>strictTypeChecked</code>. En 21 de los 37 casos, nada de esa configuración lo detecta. Un flag del compilador que viene desactivado por defecto detecta 5, y una regla de lint detecta 11. Un proyecto tiene que activar cada uno de ellos, y un agente puede volver a desactivarlo. En Glyph ninguno es una opción de configuración.</p>
+          <p>Todos los ejemplos de TypeScript de la lista pasan <code>tsc --strict</code> sin errores. Cada uno se comprueba además contra un proyecto configurado al máximo: todos los flags del compilador más estrictos que <code>--strict</code>, más typescript-eslint <code>strictTypeChecked</code>. En 21 de los 37 casos, nada de esa configuración lo detecta. Un flag del compilador que viene desactivado por defecto detecta 5, y una regla de lint detecta 11. Un proyecto tiene que activar cada uno de ellos, y un agente puede volver a desactivarlo. En Glyph ninguno es una opción de configuración. En total hay 53 casos comprobados: 37 errores de TypeScript, 5 trampas de JavaScript que no existen en Glyph y 11 huecos que Glyph aún no cierra. Glyph rechaza 28 de ellos al compilar (23 errores y 5 trampas).</p>
         </div>
       </div>
     </section>

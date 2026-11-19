@@ -1,7 +1,7 @@
 ---
 title: Glyph: ภาษามี type ที่คอมไพล์เป็น TypeScript สำหรับเอเจนต์ AI
 description: Glyph เป็นภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา
-source_hash: ee41196e3e94a8ce
+source_hash: dc3c50270be35784
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, ภาษาโปรแกรม, typescript, transpiler, เอเจนต์ ai, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -61,7 +61,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> จาก {{catches:count}}</p>
-          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก {{catches:count}} ข้อ มี {{catches:none}} ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ {{catches:flag}} ข้อ และกฎ lint จับได้ {{catches:lint}} ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า</p>
+          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก {{catches:count}} ข้อ มี {{catches:none}} ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ {{catches:flag}} ข้อ และกฎ lint จับได้ {{catches:lint}} ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ ข้อผิดพลาดใน TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (ข้อผิดพลาด {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี)</p>
         </div>
       </div>
     </section>

@@ -101,7 +101,7 @@
     "Not caught yet": "Noch nicht erkannt",
     "Known holes, each with a reproduction": "Bekannte Lücken, jede mit einer Reproduktion",
     "{{catches:none}} of {{catches:count}}": "{{catches:none}} von {{catches:count}}",
-    "cases that nothing in a fully configured TypeScript setup catches": "Fälle, die in einem maximal konfigurierten TypeScript-Setup nichts findet",
+    "TypeScript mistakes that nothing in a fully configured setup catches": "TypeScript-Fehler, die in einem maximal konfigurierten Setup nichts findet",
     "See what it catches": "Sehen, was es findet",
     "Versions": "Versionen",
     "Playground": "Playground",

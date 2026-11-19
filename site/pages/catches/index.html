@@ -9,6 +9,7 @@ head: |
       <header class="page-hero">
         <p class="eyebrow">Cases TypeScript lets through</p>
         <h1>Caught before it ships</h1>
+        <p class="lede">{{catches:breakdown}}</p>
         <p class="lede">{{catches:measured}}</p>
         <p class="lede">
           Each entry is two programs in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>,
@@ -20,13 +21,13 @@ head: |
       </header>
 
       <section class="c-cases" id="cases">
-        <h2 class="group-head">The cases Glyph catches</h2>
+        <h2 class="group-head">{{catches:count}} TypeScript mistakes</h2>
 {{catches:legend}}
 {{catches:filters}}
 {{catches:mistakes}}
       </section>
       <section class="c-section" id="traps">
-        <h2 class="group-head">JavaScript traps that do not exist in Glyph</h2>
+        <h2 class="group-head">{{catches:trap-count}} JavaScript traps that do not exist in Glyph</h2>
         <p class="group-sub">
           Older traps that agents still hit now and then. Glyph refuses each
           program, but not by spotting the mistake: the feature behind it is not
@@ -38,7 +39,7 @@ head: |
       <section class="c-section" id="not-yet">
         <h2 class="group-head">What Glyph does not catch yet</h2>
         <p class="group-sub">
-          Each of these compiles in Glyph today and does the same wrong thing as
+          {{catches:gap-cases}} holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as
           in TypeScript. Every one has a reproduction in <code>catches/</code>
           and an open gap number, and the gate fails when a fix lands so the
           entry cannot outlive the hole.

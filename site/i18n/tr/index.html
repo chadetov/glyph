@@ -1,7 +1,7 @@
 ---
 title: Glyph: tipli, TypeScript'e derlenir, yapay zekâ ajanları için
 description: Glyph, TypeScript'e derlenen statik tipli bir dil: bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, denetlenebilsin ve değiştirilebilsin diye.
-source_hash: ee41196e3e94a8ce
+source_hash: dc3c50270be35784
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, programlama dili, typescript, transpiler, yapay zekâ ajanları, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -62,7 +62,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}} vakadan <span>{{catches:none}}</span> tanesi</p>
-          <p>Listedeki her TypeScript örneği <code>tsc --strict</code>'ten hatasız geçer. Her biri ayrıca en sıkı şekilde yapılandırılmış bir projeye karşı da kontrol edilir: <code>--strict</code>'ten daha katı tüm derleyici flag'leri, artı typescript-eslint <code>strictTypeChecked</code>. {{catches:count}} vakanın {{catches:none}} tanesini bu yapılandırmadaki hiçbir şey yakalamıyor. Varsayılan olarak kapalı olan bir derleyici flag'i {{catches:flag}} tanesini, bir lint kuralı da {{catches:lint}} tanesini yakalıyor. Bunların her birini projenin açması gerekir ve bir ajan onu yeniden kapatabilir. Glyph'te bunların hiçbiri bir yapılandırma seçeneği değil.</p>
+          <p>Listedeki her TypeScript örneği <code>tsc --strict</code>'ten hatasız geçer. Her biri ayrıca en sıkı şekilde yapılandırılmış bir projeye karşı da kontrol edilir: <code>--strict</code>'ten daha katı tüm derleyici flag'leri, artı typescript-eslint <code>strictTypeChecked</code>. {{catches:count}} vakanın {{catches:none}} tanesini bu yapılandırmadaki hiçbir şey yakalamıyor. Varsayılan olarak kapalı olan bir derleyici flag'i {{catches:flag}} tanesini, bir lint kuralı da {{catches:lint}} tanesini yakalıyor. Bunların her birini projenin açması gerekir ve bir ajan onu yeniden kapatabilir. Glyph'te bunların hiçbiri bir yapılandırma seçeneği değil. Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript hatası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} hata ve {{catches:traps-refused}} tuzak).</p>
         </div>
       </div>
     </section>

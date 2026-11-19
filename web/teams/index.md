@@ -8,7 +8,7 @@ Glyph refuses a specific, checked list of cases that a strict TypeScript project
 
 ## What it guarantees
 
-Every claim about what Glyph catches is a case in the repository's `catches/` directory: the same program in TypeScript and in Glyph, both run by a CI gate. Of the 53 cases, 28 are programs Glyph refuses to build, 3 draw a warning, 9 are bad data stopped at a runtime boundary check, 2 stop at run time, and 11 are holes Glyph does not close yet. The ones a reviewer of agent-written code leans on most:
+Every claim about what Glyph catches is a case in the repository's `catches/` directory: the same program in TypeScript and in Glyph, both run by a CI gate. There are 53 checked cases: 37 TypeScript mistakes, 5 JavaScript traps that do not exist in Glyph, and 11 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 mistakes and 5 traps). Of the mistakes it does not refuse, 3 draw a warning, 9 are bad data stopped at a runtime boundary check, and 2 stop at run time. The ones a reviewer of agent-written code leans on most:
 
 | Code | What is refused |
 

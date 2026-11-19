@@ -311,22 +311,27 @@ def subnav_entries(key: str, where: str) -> list[tuple[str | None, str, str]]:
     return out
 
 
-def subnav_label(label: str, s: site_i18n.Strings) -> str:
-    """A sub-nav label in the page's language: the number stays, the text
-    after it comes from strings.json "subnav"."""
-    m = re.match(r'(<span class="n">[^<]*</span>\s*)(.*)$', label, re.S)
-    return m.group(1) + s.subnav(m.group(2)) if m else s.subnav(label)
+def subnav_in(key: str, where: str, s: site_i18n.Strings) -> list[tuple[str | None, str, str]]:
+    """subnav_entries() in the page's language. strings.json "subnav" keys
+    an entry's label by its link target (the number before it stays) and a
+    group by its English name; anything missing stays English."""
+    out = []
+    for group, href, label in subnav_entries(key, where):
+        m = re.match(r'(<span class="n">[^<]*</span>\s*)(.*)$', label, re.S)
+        lead, text = (m.group(1), m.group(2)) if m else ("", label)
+        out.append((s.subnav(group) if group else group, href, lead + s.subnav(href, text)))
+    return out
 
 
 def subnav(key: str, url: str, where: str, s: site_i18n.Strings) -> str:
     """A numbered sub-nav row from site/partials/subnav-<key>.html, with the
     current page's link marked active."""
     links, found = [], False
-    for _, href, label in subnav_entries(key, where):
+    for _, href, label in subnav_in(key, where, s):
         attrs = ""
         if href == url:
             attrs, found = ' class="active" aria-current="page"', True
-        links.append(f'        <a href="{href}"{attrs}>{subnav_label(label, s)}</a>')
+        links.append(f'        <a href="{href}"{attrs}>{label}</a>')
     if not found:
         raise SiteError(f"{where}: sub-nav {key!r} has no entry for {url}")
     return (f'    <nav class="subnav-wrap" aria-label="{s("subnav.aria")}">\n'
@@ -339,7 +344,7 @@ def answers_nav(url: str, where: str, s: site_i18n.Strings) -> tuple[str, str]:
     sticky sidebar beside the article. Narrower screens show the bar instead:
     where you are, the previous and next answer, and a button that opens the
     same list as a panel."""
-    entries = subnav_entries("answers", where)
+    entries = subnav_in("answers", where, s)
     hrefs = [href for _, href, _ in entries]
     if url not in hrefs:
         raise SiteError(f"{where}: sub-nav 'answers' has no entry for {url}")
@@ -351,7 +356,7 @@ def answers_nav(url: str, where: str, s: site_i18n.Strings) -> tuple[str, str]:
         return m.group(1) if m else ""
 
     def text(label: str) -> str:
-        return s.subnav(re.sub(r'<span class="n">[^<]*</span>\s*', "", label))
+        return re.sub(r'<span class="n">[^<]*</span>\s*', "", label)
 
     groups: list[tuple[str | None, list]] = []
     for g, href, label in entries:
@@ -365,7 +370,7 @@ def answers_nav(url: str, where: str, s: site_i18n.Strings) -> tuple[str, str]:
             '<span aria-hidden="true">&times;</span></button></p>']
     for g, items in groups:
         open_ = " open" if g == cur_group else ""
-        side.append(f'          <details class="ans-grp"{open_}><summary>{s.subnav(g) if g else ""}</summary><ol>')
+        side.append(f'          <details class="ans-grp"{open_}><summary>{g}</summary><ol>')
         for href, label in items:
             cur = ' aria-current="page"' if href == url else ""
             side.append(f'            <li><a href="{href}"{cur}><span class="n">{num(label)}</span>'

@@ -82,9 +82,11 @@ page. Edit the segments file instead.
 
 - `strings.json` holds the words the generator puts around every page: the
   header and footer (`ui`), the main menu (`nav`, keyed by the English text),
-  and the numbered lists of answers and pillars (`subnav`, keyed by the English
-  label). A missing entry shows in English, and `check_i18n.py` lists what is
-  missing. Keep every `{name}` in a `ui` string; the generator fills it in.
+  and the numbered lists of answers and pillars (`subnav`: each entry keyed by
+  the address it links to, such as `"/answers/react/"`, with its English label
+  in `site/partials/subnav-answers.html` or `subnav-pillars.html`, and each
+  group of answers keyed by its English name). A missing entry shows in
+  English, and `check_i18n.py` lists what is missing. Keep every `{name}` in a `ui` string; the generator fills it in.
   `date.months` is twelve short month names separated by spaces, and
   `date.format` puts `{day}`, `{month}` and `{year}` in your order.
 - `catches.json` holds the texts of the cases on `/catches/` and the home

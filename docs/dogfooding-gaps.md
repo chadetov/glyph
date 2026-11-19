@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-382 entries, 302 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-61 are open. G144, the D28 boundary cast that never reached the returns a
+391 entries, 302 are fixed, 8 are partly fixed, 11 are decided or resolved, and
+70 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13288,3 +13288,69 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.149 (the release build): ``[E0002] Error: parse:
   expected `}`, found As``.*
+
+- **G384. An `async` call whose result is dropped is silent.** `save(1)` as a statement inside an `async fn`, where `save` is `async`, and
+  `ids.forEach(async fn(id: string) -> void { await save(id) })` both report no
+  diagnostics. The first returns before the save finishes and loses its error;
+  the second runs every save concurrently and nothing waits for any of them.
+  E0217 already flags a discarded `Result`; a discarded pending value is the
+  same mistake one step earlier. G99 fixed the `array.map` case only. Found by
+  the agent-mistakes research (a forgotten `await` is among the most reported
+  async bugs in agent-written code).
+
+  *Reproduced against 0.1.149 (the release build): both probes are `1 module(s) checked, no diagnostics` under `--no-tsc`.*
+
+- **G385. Interpolation accepts any type, so a record prints `[object Object]`.** `print("Welcome back, ${user}!")` with `user: User` checks clean and prints
+  `Welcome back, [object Object]!`; an `Option` and a pending async value do the
+  same. G118 fixed one response-body case. Allow only text-like types inside
+  `${}` (string, number, int, bool, Decimal) and refuse the rest with a help
+  naming the field to print.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `Welcome back, [object Object]!`.*
+
+- **G386. `||`, `&&` and `!` accept numbers and strings.** `return requested || 3` with `requested: number` returns `3` for a real `0`,
+  and `match !discount_pct { ... }` treats `0` as false and gives `90`. Glyph has
+  `??` for a default and `==` for a test, so requiring `bool` operands costs a
+  correct program nothing.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `3` and `90`.*
+
+- **G387. `std/sqlite` accepts a query built by interpolation.** `db.query("SELECT * FROM users WHERE name = '${name}'", [])` checks clean, so
+  the stdlib's own database API takes an injectable string. `std/taint` exists
+  but each sink has to opt in. The query parameter should refuse an
+  interpolated string and point at the parameter array.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics.*
+
+- **G388. `.sort()` on numbers sorts them as text.** `mut scores.sort()` on `[100, 9, 25]` gives `100,25,9`. Require a comparator
+  when the element type is not `string`, or route `.sort` to a numeric default.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `100,25,9`.*
+
+- **G389. A member TypeScript marks `@deprecated` is accepted silently.** `s.substr(1, 2)` checks clean. Agents emit deprecated APIs often (every model
+  in one ICSE 2025 study did). The built-in member table comes from the
+  TypeScript library declarations, which carry the tag, so a warning can name
+  the replacement.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics.*
+
+- **G390. E0225 does not see an index write across an `await`.** `let first = c[0]`, `let f = await fee()`, `mut c[0] = first + f` reports
+  nothing, while the same read-modify-write on a field (`a.balance`) is E0225.
+  Extend the check to element and index writes.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics (an unrelated unused-import warning only).*
+
+- **G391. An optional field decoded from `null` keeps the `null`, so a spread erases a default.** With `type Opts = { timeout_ms?: number }`, `json.parse<Opts>("{\"timeout_ms\": null}")`
+  is `Ok` (null is absence, by decision), but the decoded object still holds
+  the key with `null`. `{ timeout_ms: 5000, ...opts }` then sets it to `null`,
+  and `cfg.timeout_ms * 2` is `0`, all typed as `number`. The decoder should
+  drop the key, so the value matches what the type says.
+
+  *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `timeout x2 = 0`.*
+
+- **G392. `xs.find(...)` as a method is not an `Option` to Glyph's checker.** `users.find(fn(u: User) -> bool { u.id == id }).name` passes `--no-tsc`; only
+  `tsc` refuses it (TS2532). The `std/array` form `array.find(users, ...)` is
+  E0210, `Option<User>` has no field `name`. The editor, MCP and the applyEdit
+  gate run without `tsc`. Same family as G381.
+
+  *Reproduced against 0.1.149 (the release build): `--no-tsc` reports an unused-import warning only; full `check` reports `[TS2532] Error: tsc: Object is possibly 'undefined'`.*

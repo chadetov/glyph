@@ -48,8 +48,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">TypeScript のどのツールも検出できないケース</h2>
         <p class="friction-intro">
-          追加の strict 系フラグをすべて有効にした <code>tsc --strict</code> と
-          strict 設定の typescript-eslint を通過してしまうケースのうち、上位 3 件です。エージェントが書く頻度と、本番に出たときの被害の大きさで順位を付けています。各ケースはリポジトリにあるとおり英語で表示しています。
+          追加の strict 系フラグをすべて有効にした <code>tsc --strict</code> と strict 設定の typescript-eslint を通過してしまうケースのうち、上位 3 件です。エージェントが書く頻度と、本番に出たときの被害の大きさで順位を付けています。各ケースはリポジトリにあるとおり英語で表示しています。
         </p>
 {{catches:top}}
         <p class="h-more"><a class="card-more" href="/catches/">{{catches:count}} 件すべてを見る &rarr;</a></p>
@@ -60,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}} 件中 <span>{{catches:none}}</span> 件</p>
-          <p>リストにある TypeScript の例は、どれも <code>tsc --strict</code> をエラーなしで通過します。さらに各例を、最も厳しく設定したプロジェクトでも検証しています。<code>--strict</code> より厳しいコンパイラフラグをすべて有効にし、typescript-eslint の <code>strictTypeChecked</code> も加えた設定です。{{catches:count}} 件のケースのうち {{catches:none}} 件は、この設定のどれにも検出されません。デフォルトでは無効のコンパイラフラグで検出できるのが {{catches:flag}} 件、lint ルールで検出できるのが {{catches:lint}} 件です。これらはプロジェクトごとに 1 つずつ有効にする必要があり、エージェントが無効に戻すこともできます。Glyph では、どれも設定項目ではありません。チェック済みのケースは全部で {{catches:total}} 件です。TypeScript のミスが {{catches:count}} 件、Glyph には存在しない JavaScript の落とし穴が {{catches:trap-count}} 件、Glyph がまだ塞いでいない穴が {{catches:gap-cases}} 件です。そのうち {{catches:refused-all}} 件はビルド時に Glyph が拒否します（ミス {{catches:refused}} 件と落とし穴 {{catches:traps-refused}} 件）。</p>
+          <p>{{catches:measured}}チェック済みのケースは全部で {{catches:total}} 件です。TypeScript のミスが {{catches:count}} 件、Glyph には存在しない JavaScript の落とし穴が {{catches:trap-count}} 件、Glyph がまだ塞いでいない穴が {{catches:gap-cases}} 件です。そのうち {{catches:refused-all}} 件はビルド時に Glyph が拒否します（ミス {{catches:refused}} 件と落とし穴 {{catches:traps-refused}} 件）。</p>
         </div>
       </div>
     </section>
@@ -81,9 +80,7 @@ head: |
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          予測は 8 か所すべてで当たりました。残りの 2 か所、
-          <code>exec::total</code> と <code>render::literal_text</code> はコンパイルが通ったまま、新しいケースを catch-all の行き先に流します。
-          8 つのエラーを直したところで手を止めたエージェントには、通ったビルドと生きたままの 2 つのバグが残ります。その 2 つを指し示すのがこのクエリです。
+          予測は 8 か所すべてで当たりました。残りの 2 か所、 <code>exec::total</code> と <code>render::literal_text</code> はコンパイルが通ったまま、新しいケースを catch-all の行き先に流します。 8 つのエラーを直したところで手を止めたエージェントには、通ったビルドと生きたままの 2 つのバグが残ります。その 2 つを指し示すのがこのクエリです。
         </p>
       </div>
     </section>
@@ -91,9 +88,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph はまだすべてを検出できるわけではありません。既知の穴
-          {{catches:gap-count}} 件には再現コードと gap 番号が付いています。また、ロジックの誤りは TypeScript と同じく Glyph でも通ってしまいます。
-          <a href="/catches/#not-yet">まだ検出できないもの &rarr;</a>
+          Glyph はまだすべてを検出できるわけではありません。既知の穴 {{catches:gap-count}} 件には再現コードと gap 番号が付いています。また、ロジックの誤りは TypeScript と同じく Glyph でも通ってしまいます。 <a href="/catches/#not-yet">まだ検出できないもの &rarr;</a>
         </p>
       </div>
     </section>

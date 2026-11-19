@@ -481,10 +481,7 @@
       <div class="wrap">
         <h2 class="section-head">TypeScript의 어떤 도구도 잡지 못하는 사례</h2>
         <p class="friction-intro">
-          추가 플래그를 모두 켠 <code>tsc --strict</code>와 strict 모드의
-          typescript-eslint를 통과하는 사례 가운데, 에이전트가 얼마나 자주
-          작성하는지와 배포되었을 때 얼마나 심각한지를 기준으로 상위 세 개를
-          골랐습니다. 사례는 저장소에 있는 그대로 영어로 표시됩니다.
+          추가 플래그를 모두 켠 <code>tsc --strict</code>와 strict 모드의 typescript-eslint를 통과하는 사례 가운데, 에이전트가 얼마나 자주 작성하는지와 배포되었을 때 얼마나 심각한지를 기준으로 상위 세 개를 골랐습니다. 사례는 저장소에 있는 그대로 영어로 표시됩니다.
         </p>
         <div class="c-cards">
           <a class="c-card" href="/catches/#data-from-outside-the-program">
@@ -524,9 +521,7 @@
       <div class="wrap">
         <h2 class="section-head">실제 애플리케이션에서의 변경 하나</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code>은 이 저장소에 있는 CSV 쿼리 엔진으로,
-          중심에 <code>Value</code> union이 있습니다. 여기에 케이스를 추가하기
-          전에, 그 변경이 어디까지 영향을 주는지 컴파일러에 물어봅니다.
+          <code>examples/apps/csvql</code>은 이 저장소에 있는 CSV 쿼리 엔진으로, 중심에 <code>Value</code> union이 있습니다. 여기에 케이스를 추가하기 전에, 그 변경이 어디까지 영향을 주는지 컴파일러에 물어봅니다.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -538,11 +533,7 @@
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          예측은 여덟 곳 모두 맞았습니다. 나머지 두 곳,
-          <code>exec::total</code>과 <code>render::literal_text</code>는 계속
-          컴파일되면서 새 케이스를 catch-all이 가리키는 곳으로 보냅니다. 오류
-          여덟 개를 고치고 멈춘 에이전트에게는 초록색 빌드와 살아 있는 버그 두
-          개가 남고, 그 두 곳을 짚어 주는 것이 바로 이 쿼리입니다.
+          예측은 여덟 곳 모두 맞았습니다. 나머지 두 곳, <code>exec::total</code>과 <code>render::literal_text</code>는 계속 컴파일되면서 새 케이스를 catch-all이 가리키는 곳으로 보냅니다. 오류 여덟 개를 고치고 멈춘 에이전트에게는 초록색 빌드와 살아 있는 버그 두 개가 남고, 그 두 곳을 짚어 주는 것이 바로 이 쿼리입니다.
         </p>
       </div>
     </section>
@@ -550,10 +541,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph가 아직 모든 것을 잡아내지는 못합니다. 알려진 구멍
-          11개에는 재현 코드와 gap 번호가 붙어 있고, 논리
-          오류는 TypeScript에서와 마찬가지로 Glyph에서도 통과합니다.
-          <a href="/catches/#not-yet">아직 잡아내지 못하는 것 &rarr;</a>
+          Glyph가 아직 모든 것을 잡아내지는 못합니다. 알려진 구멍 11개에는 재현 코드와 gap 번호가 붙어 있고, 논리 오류는 TypeScript에서와 마찬가지로 Glyph에서도 통과합니다. <a href="/catches/#not-yet">아직 잡아내지 못하는 것 &rarr;</a>
         </p>
       </div>
     </section>

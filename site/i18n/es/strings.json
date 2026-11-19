@@ -59,7 +59,9 @@
     "footer.edit": "Editar esta página",
     "footer.tagline": "Glyph: TypeScript que tus agentes no pueden romper sin que te enteres.",
     "footer.license": "MIT o Apache-2.0",
-    "footer.pillars": "Los cuatro pilares"
+    "footer.pillars": "Los cuatro pilares",
+    "catches.measured": "Todos los ejemplos de TypeScript de la lista pasan <code>tsc --strict</code> sin errores. Cada uno se comprueba además contra un proyecto configurado al máximo: todos los flags del compilador más estrictos que <code>--strict</code>, más typescript-eslint <code>strictTypeChecked</code>. En {none} de los {count} casos, nada de esa configuración lo detecta. Un flag del compilador que viene desactivado por defecto detecta {flag}, y una regla de lint detecta {lint}. Un proyecto tiene que activar cada uno de ellos, y un agente puede volver a desactivarlo. En Glyph ninguno es una opción de configuración.",
+    "catches.breakdown": "En total hay {total} casos comprobados: {count} errores de TypeScript, {trap_count} trampas de JavaScript que no existen en Glyph y {gap_cases} huecos que Glyph aún no cierra. Glyph rechaza {refused_all} de ellos al compilar ({refused} errores y {traps_refused} trampas)."
   },
   "nav": {
     "Why Glyph": "Por qué Glyph",

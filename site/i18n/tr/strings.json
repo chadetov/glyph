@@ -59,7 +59,9 @@
     "footer.edit": "Bu sayfayı düzenle",
     "footer.tagline": "Glyph: ajanlarınızın siz fark etmeden bozamayacağı TypeScript.",
     "footer.license": "MIT veya Apache-2.0",
-    "footer.pillars": "Dört temel ilke"
+    "footer.pillars": "Dört temel ilke",
+    "catches.measured": "Listedeki her TypeScript örneği <code>tsc --strict</code>'ten hatasız geçer. Her biri ayrıca en sıkı şekilde yapılandırılmış bir projeye karşı da kontrol edilir: <code>--strict</code>'ten daha katı tüm derleyici flag'leri, artı typescript-eslint <code>strictTypeChecked</code>. {count} vakanın {none} tanesini bu yapılandırmadaki hiçbir şey yakalamıyor. Varsayılan olarak kapalı olan bir derleyici flag'i {flag} tanesini, bir lint kuralı da {lint} tanesini yakalıyor. Bunların her birini projenin açması gerekir ve bir ajan onu yeniden kapatabilir. Glyph'te bunların hiçbiri bir yapılandırma seçeneği değil.",
+    "catches.breakdown": "Toplam {total} doğrulanmış vaka var: {count} TypeScript hatası, Glyph'te var olmayan {trap_count} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {gap_cases} açık. Glyph bunların {refused_all} tanesini derleme sırasında reddeder ({refused} hata ve {traps_refused} tuzak)."
   },
   "nav": {
     "Why Glyph": "Neden Glyph",

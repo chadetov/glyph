@@ -48,10 +48,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">TypeScript의 어떤 도구도 잡지 못하는 사례</h2>
         <p class="friction-intro">
-          추가 플래그를 모두 켠 <code>tsc --strict</code>와 strict 모드의
-          typescript-eslint를 통과하는 사례 가운데, 에이전트가 얼마나 자주
-          작성하는지와 배포되었을 때 얼마나 심각한지를 기준으로 상위 세 개를
-          골랐습니다. 사례는 저장소에 있는 그대로 영어로 표시됩니다.
+          추가 플래그를 모두 켠 <code>tsc --strict</code>와 strict 모드의 typescript-eslint를 통과하는 사례 가운데, 에이전트가 얼마나 자주 작성하는지와 배포되었을 때 얼마나 심각한지를 기준으로 상위 세 개를 골랐습니다. 사례는 저장소에 있는 그대로 영어로 표시됩니다.
         </p>
 {{catches:top}}
         <p class="h-more"><a class="card-more" href="/catches/">{{catches:count}}개 모두 보기 &rarr;</a></p>
@@ -62,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}}개 중 <span>{{catches:none}}</span>개</p>
-          <p>목록에 있는 TypeScript 예제는 모두 <code>tsc --strict</code>를 오류 없이 통과합니다. 각 예제는 최대한 엄격하게 설정한 프로젝트에서도 다시 검사합니다. <code>--strict</code>보다 엄격한 컴파일러 플래그를 모두 켜고, typescript-eslint <code>strictTypeChecked</code>까지 적용한 설정입니다. {{catches:count}}개의 사례 중 {{catches:none}}개는 이 설정의 어떤 것도 잡아내지 못합니다. 기본값이 꺼져 있는 컴파일러 플래그가 {{catches:flag}}개를, lint 규칙이 {{catches:lint}}개를 잡아냅니다. 이 플래그와 규칙은 프로젝트에서 하나하나 켜야 하고, 에이전트가 다시 끌 수도 있습니다. Glyph에서는 이 중 어느 것도 설정 옵션이 아닙니다. 확인된 사례는 모두 {{catches:total}}건입니다. TypeScript 실수 {{catches:count}}건, Glyph에는 없는 JavaScript 함정 {{catches:trap-count}}건, Glyph가 아직 막지 못한 구멍 {{catches:gap-cases}}건입니다. 그중 {{catches:refused-all}}건은 빌드할 때 Glyph가 거부합니다(실수 {{catches:refused}}건, 함정 {{catches:traps-refused}}건).</p>
+          <p>{{catches:measured}} 확인된 사례는 모두 {{catches:total}}건입니다. TypeScript 실수 {{catches:count}}건, Glyph에는 없는 JavaScript 함정 {{catches:trap-count}}건, Glyph가 아직 막지 못한 구멍 {{catches:gap-cases}}건입니다. 그중 {{catches:refused-all}}건은 빌드할 때 Glyph가 거부합니다(실수 {{catches:refused}}건, 함정 {{catches:traps-refused}}건).</p>
         </div>
       </div>
     </section>
@@ -71,9 +68,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">실제 애플리케이션에서의 변경 하나</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code>은 이 저장소에 있는 CSV 쿼리 엔진으로,
-          중심에 <code>Value</code> union이 있습니다. 여기에 케이스를 추가하기
-          전에, 그 변경이 어디까지 영향을 주는지 컴파일러에 물어봅니다.
+          <code>examples/apps/csvql</code>은 이 저장소에 있는 CSV 쿼리 엔진으로, 중심에 <code>Value</code> union이 있습니다. 여기에 케이스를 추가하기 전에, 그 변경이 어디까지 영향을 주는지 컴파일러에 물어봅니다.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -85,11 +80,7 @@ head: |
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          예측은 여덟 곳 모두 맞았습니다. 나머지 두 곳,
-          <code>exec::total</code>과 <code>render::literal_text</code>는 계속
-          컴파일되면서 새 케이스를 catch-all이 가리키는 곳으로 보냅니다. 오류
-          여덟 개를 고치고 멈춘 에이전트에게는 초록색 빌드와 살아 있는 버그 두
-          개가 남고, 그 두 곳을 짚어 주는 것이 바로 이 쿼리입니다.
+          예측은 여덟 곳 모두 맞았습니다. 나머지 두 곳, <code>exec::total</code>과 <code>render::literal_text</code>는 계속 컴파일되면서 새 케이스를 catch-all이 가리키는 곳으로 보냅니다. 오류 여덟 개를 고치고 멈춘 에이전트에게는 초록색 빌드와 살아 있는 버그 두 개가 남고, 그 두 곳을 짚어 주는 것이 바로 이 쿼리입니다.
         </p>
       </div>
     </section>
@@ -97,10 +88,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph가 아직 모든 것을 잡아내지는 못합니다. 알려진 구멍
-          {{catches:gap-count}}개에는 재현 코드와 gap 번호가 붙어 있고, 논리
-          오류는 TypeScript에서와 마찬가지로 Glyph에서도 통과합니다.
-          <a href="/catches/#not-yet">아직 잡아내지 못하는 것 &rarr;</a>
+          Glyph가 아직 모든 것을 잡아내지는 못합니다. 알려진 구멍 {{catches:gap-count}}개에는 재현 코드와 gap 번호가 붙어 있고, 논리 오류는 TypeScript에서와 마찬가지로 Glyph에서도 통과합니다. <a href="/catches/#not-yet">아직 잡아내지 못하는 것 &rarr;</a>
         </p>
       </div>
     </section>

@@ -48,11 +48,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">Fälle, die in TypeScript nichts findet</h2>
         <p class="friction-intro">
-          Die drei am höchsten eingestuften Fälle, die <code>tsc --strict</code>
-          mit allen zusätzlichen Flags und typescript-eslint im Strict-Modus
-          bestehen, sortiert danach, wie oft ein Agent sie schreibt und wie
-          schlimm sie sind, wenn sie in Produktion landen. Die Fälle werden auf
-          Englisch gezeigt, so wie sie im Repository stehen.
+          Die drei am höchsten eingestuften Fälle, die <code>tsc --strict</code> mit allen zusätzlichen Flags und typescript-eslint im Strict-Modus bestehen, sortiert danach, wie oft ein Agent sie schreibt und wie schlimm sie sind, wenn sie in Produktion landen. Die Fälle werden auf Englisch gezeigt, so wie sie im Repository stehen.
         </p>
 {{catches:top}}
         <p class="h-more"><a class="card-more" href="/catches/">Alle {{catches:count}} ansehen &rarr;</a></p>
@@ -63,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> von {{catches:count}}</p>
-          <p>Jedes TypeScript-Beispiel in der Liste besteht <code>tsc --strict</code> ohne Fehler. Jedes wird außerdem gegen ein maximal konfiguriertes Projekt geprüft: alle Compiler-Flags, die strenger als <code>--strict</code> sind, dazu typescript-eslint <code>strictTypeChecked</code>. Von den {{catches:count}} Fällen erkennt dieses Setup {{catches:none}} überhaupt nicht. Ein standardmäßig deaktiviertes Compiler-Flag findet {{catches:flag}}, eine Lint-Regel {{catches:lint}}. Ein Projekt muss jedes davon einschalten, und ein Agent kann es wieder ausschalten. In Glyph ist keins davon eine Konfigurationsoption. Insgesamt gibt es {{catches:total}} geprüfte Fälle: {{catches:count}} TypeScript-Fehler, {{catches:trap-count}} JavaScript-Fallen, die es in Glyph nicht gibt, und {{catches:gap-cases}} Lücken, die Glyph noch nicht schließt. Glyph lehnt {{catches:refused-all}} davon beim Build ab ({{catches:refused}} Fehler und {{catches:traps-refused}} Fallen).</p>
+          <p>{{catches:measured}} Insgesamt gibt es {{catches:total}} geprüfte Fälle: {{catches:count}} TypeScript-Fehler, {{catches:trap-count}} JavaScript-Fallen, die es in Glyph nicht gibt, und {{catches:gap-cases}} Lücken, die Glyph noch nicht schließt. Glyph lehnt {{catches:refused-all}} davon beim Build ab ({{catches:refused}} Fehler und {{catches:traps-refused}} Fallen).</p>
         </div>
       </div>
     </section>
@@ -72,10 +68,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">Eine Änderung in einer echten Anwendung</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> ist eine Query-Engine für CSV-Dateien
-          in diesem Repository, mit einer <code>Value</code>-Union im Zentrum.
-          Bevor du einen Fall hinzufügst, frag den Compiler, welche Stellen er
-          erreicht.
+          <code>examples/apps/csvql</code> ist eine Query-Engine für CSV-Dateien in diesem Repository, mit einer <code>Value</code>-Union im Zentrum. Bevor du einen Fall hinzufügst, frag den Compiler, welche Stellen er erreicht.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -87,12 +80,7 @@ head: |
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          Die Vorhersage traf bei allen acht zu. Die anderen beiden,
-          <code>exec::total</code> und <code>render::literal_text</code>,
-          kompilieren weiter und schicken den neuen Fall dorthin, wohin ihr
-          Catch-all zeigt. Ein Agent, der die acht Fehler behebt und dann aufhört,
-          hat einen grünen Build und zwei lebende Bugs, und erst die Abfrage
-          benennt sie.
+          Die Vorhersage traf bei allen acht zu. Die anderen beiden, <code>exec::total</code> und <code>render::literal_text</code>, kompilieren weiter und schicken den neuen Fall dorthin, wohin ihr Catch-all zeigt. Ein Agent, der die acht Fehler behebt und dann aufhört, hat einen grünen Build und zwei lebende Bugs, und erst die Abfrage benennt sie.
         </p>
       </div>
     </section>
@@ -100,10 +88,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph findet noch nicht alles. {{catches:gap-count}} bekannte Lücken
-          haben eine Reproduktion und eine Gap-Nummer, und Logikfehler kommen in
-          Glyph genauso durch wie in TypeScript.
-          <a href="/catches/#not-yet">Was es noch nicht findet &rarr;</a>
+          Glyph findet noch nicht alles. {{catches:gap-count}} bekannte Lücken haben eine Reproduktion und eine Gap-Nummer, und Logikfehler kommen in Glyph genauso durch wie in TypeScript. <a href="/catches/#not-yet">Was es noch nicht findet &rarr;</a>
         </p>
       </div>
     </section>

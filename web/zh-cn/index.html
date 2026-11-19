@@ -481,8 +481,7 @@
       <div class="wrap">
         <h2 class="section-head">TypeScript 工具链发现不了的案例</h2>
         <p class="friction-intro">
-          排名最靠前的三个案例。它们能通过打开了所有额外 flag 的
-          <code>tsc --strict</code> 和 strict 模式的 typescript-eslint，排名依据是智能体写出它们的频率，以及上线后的危害程度。下面的案例保留英文，与仓库中的原文一致。
+          排名最靠前的三个案例。它们能通过打开了所有额外 flag 的 <code>tsc --strict</code> 和 strict 模式的 typescript-eslint，排名依据是智能体写出它们的频率，以及上线后的危害程度。下面的案例保留英文，与仓库中的原文一致。
         </p>
         <div class="c-cards">
           <a class="c-card" href="/catches/#data-from-outside-the-program">
@@ -522,8 +521,7 @@
       <div class="wrap">
         <h2 class="section-head">在真实应用里做一次改动</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个
-          <code>Value</code> 联合类型。给它加一个新 case 之前，先问编译器这会影响到哪些地方。
+          <code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个 <code>Value</code> 联合类型。给它加一个新 case 之前，先问编译器这会影响到哪些地方。
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -535,9 +533,7 @@
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          预测的八处全部命中。另外两处，<code>exec::total</code> 和
-          <code>render::literal_text</code>，仍然能编译通过，并把新的 case 交给各自的
-          catch-all 分支处理。一个修完这八个错误就停手的智能体，会得到一个通过的构建和两个仍然存在的 bug，而指出这两处的正是那次查询。
+          预测的八处全部命中。另外两处，<code>exec::total</code> 和 <code>render::literal_text</code>，仍然能编译通过，并把新的 case 交给各自的 catch-all 分支处理。一个修完这八个错误就停手的智能体，会得到一个通过的构建和两个仍然存在的 bug，而指出这两处的正是那次查询。
         </p>
       </div>
     </section>
@@ -545,9 +541,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph 目前还不能发现所有问题。已知的 11 个漏洞都有复现示例和
-          gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。
-          <a href="/catches/#not-yet">它目前还发现不了的问题 &rarr;</a>
+          Glyph 目前还不能发现所有问题。已知的 11 个漏洞都有复现示例和 gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。 <a href="/catches/#not-yet">它目前还发现不了的问题 &rarr;</a>
         </p>
       </div>
     </section>

@@ -48,11 +48,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">Casos que nada no TypeScript detecta</h2>
         <p class="friction-intro">
-          Os três casos mais bem classificados que passam no <code>tsc --strict</code>
-          com todas as flags extras ativadas e o typescript-eslint em modo
-          strict, ordenados pela frequência com que um agente os escreve e pelo
-          estrago que causam quando chegam em produção. Os casos aparecem em
-          inglês, do jeito que estão no repositório.
+          Os três casos mais bem classificados que passam no <code>tsc --strict</code> com todas as flags extras ativadas e o typescript-eslint em modo strict, ordenados pela frequência com que um agente os escreve e pelo estrago que causam quando chegam em produção. Os casos aparecem em inglês, do jeito que estão no repositório.
         </p>
 {{catches:top}}
         <p class="h-more"><a class="card-more" href="/catches/">Ver todos os {{catches:count}} &rarr;</a></p>
@@ -63,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> de {{catches:count}}</p>
-          <p>Todos os exemplos de TypeScript da lista passam no <code>tsc --strict</code> sem erros. Cada um também é verificado contra um projeto configurado no máximo: todas as flags do compilador mais rígidas que <code>--strict</code>, mais o typescript-eslint <code>strictTypeChecked</code>. Em {{catches:none}} dos {{catches:count}} casos, nada nessa configuração detecta o problema. Uma flag do compilador que vem desativada por padrão detecta {{catches:flag}}, e uma regra de lint detecta {{catches:lint}}. Um projeto precisa ativar cada uma delas, e um agente pode desativá-la de novo. No Glyph, nenhuma delas é uma opção de configuração. No total são {{catches:total}} casos verificados: {{catches:count}} erros de TypeScript, {{catches:trap-count}} armadilhas de JavaScript que não existem em Glyph e {{catches:gap-cases}} brechas que o Glyph ainda não fecha. O Glyph recusa {{catches:refused-all}} deles no build ({{catches:refused}} erros e {{catches:traps-refused}} armadilhas).</p>
+          <p>{{catches:measured}} No total são {{catches:total}} casos verificados: {{catches:count}} erros de TypeScript, {{catches:trap-count}} armadilhas de JavaScript que não existem em Glyph e {{catches:gap-cases}} brechas que o Glyph ainda não fecha. O Glyph recusa {{catches:refused-all}} deles no build ({{catches:refused}} erros e {{catches:traps-refused}} armadilhas).</p>
         </div>
       </div>
     </section>
@@ -72,9 +68,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">Uma mudança, em uma aplicação real</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> é um motor de consultas sobre CSV que
-          fica neste repositório, com uma union <code>Value</code> no centro.
-          Antes de adicionar um caso a ela, pergunte ao compilador quais pontos ela alcança.
+          <code>examples/apps/csvql</code> é um motor de consultas sobre CSV que fica neste repositório, com uma union <code>Value</code> no centro. Antes de adicionar um caso a ela, pergunte ao compilador quais pontos ela alcança.
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -86,11 +80,7 @@ head: |
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          A previsão acertou os oito. Os outros dois,
-          <code>exec::total</code> e <code>render::literal_text</code>, continuam
-          compilando e mandam o caso novo para onde o catch-all deles apontar. Um
-          agente que corrige os oito erros e para ali fica com o build verde e dois
-          bugs vivos, e é a consulta que aponta quais são.
+          A previsão acertou os oito. Os outros dois, <code>exec::total</code> e <code>render::literal_text</code>, continuam compilando e mandam o caso novo para onde o catch-all deles apontar. Um agente que corrige os oito erros e para ali fica com o build verde e dois bugs vivos, e é a consulta que aponta quais são.
         </p>
       </div>
     </section>
@@ -98,10 +88,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          O Glyph ainda não detecta tudo. {{catches:gap-count}} falhas conhecidas
-          têm uma reprodução e um número de gap, e erros de lógica passam no
-          Glyph do mesmo jeito que passam no TypeScript.
-          <a href="/catches/#not-yet">O que ele ainda não detecta &rarr;</a>
+          O Glyph ainda não detecta tudo. {{catches:gap-count}} falhas conhecidas têm uma reprodução e um número de gap, e erros de lógica passam no Glyph do mesmo jeito que passam no TypeScript. <a href="/catches/#not-yet">O que ele ainda não detecta &rarr;</a>
         </p>
       </div>
     </section>

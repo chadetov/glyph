@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "index.html",
+  "locale": "zh-cn",
+  "source_hash": "a5087688a56d8e43",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Glyph: typed, compiles to TypeScript, built for AI agents",
+      "tr": "Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph is a statically typed language that compiles to TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.",
+      "tr": "Glyph 是一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。"
+    },
+    {
+      "id": "keywords",
+      "kind": "keywords",
+      "en": "glyph, glyph language, glyph lang, glyphlang, programming language, typescript, transpiler, ai agents, llm",
+      "tr": "glyph, glyph language, glyphlang, 编程语言, typescript, 转译器, AI 智能体, llm"
+    },
+    {
+      "id": "a-0295b602",
+      "kind": "attr:title",
+      "en": "See what's new",
+      "tr": "查看更新内容"
+    },
+    {
+      "id": "h-9710b5cd",
+      "kind": "html",
+      "en": "v{{version}} · early preview →",
+      "tr": "v{{version}} · 早期预览版 →"
+    },
+    {
+      "id": "h-c893d480",
+      "kind": "html",
+      "en": "Your AI agent writes it. <span class=\"accent\">The compiler checks it.</span>",
+      "tr": "AI 智能体来写， <span class=\"accent\">编译器来查。</span>"
+    },
+    {
+      "id": "h-312ac4ca",
+      "kind": "html",
+      "en": "Glyph reads like TypeScript, with the escape hatches removed: no <code>any</code>, no casts, no unchecked data, every case handled. It compiles to readable TypeScript, so you keep node, npm and the code you already have.",
+      "tr": "Glyph 读起来像 TypeScript，只是去掉了逃生口：没有 <code>any</code>，没有类型断言，没有未经校验的数据，每种情况都要处理。它编译为可读的 TypeScript，node、npm 和你现有的代码都照常使用。"
+    },
+    {
+      "id": "a-0963fe9f",
+      "kind": "attr:title",
+      "en": "Requires Node.js 18+",
+      "tr": "需要 Node.js 18 或更高版本"
+    },
+    {
+      "id": "h-6f5a6034",
+      "kind": "html",
+      "en": "copy",
+      "tr": "复制"
+    },
+    {
+      "id": "h-7985262d",
+      "kind": "html",
+      "en": "No global install needed. To put <code>glyph</code> on your PATH instead: <code>npm install -g @glyphlang/glyph tsx typescript</code>",
+      "tr": "无需全局安装。若想把 <code>glyph</code> 放进 PATH：<code>npm install -g @glyphlang/glyph tsx typescript</code>"
+    },
+    {
+      "id": "h-5939e6e0",
+      "kind": "html",
+      "en": "See what it catches →",
+      "tr": "看看它能发现什么 →"
+    },
+    {
+      "id": "h-32d27690",
+      "kind": "html",
+      "en": "Start in 10 minutes →",
+      "tr": "10 分钟上手 →"
+    },
+    {
+      "id": "h-92f76a10",
+      "kind": "html",
+      "en": "Where to go from here",
+      "tr": "接下来看什么"
+    },
+    {
+      "id": "h-1ee95dbf",
+      "kind": "html",
+      "en": "I write TypeScript",
+      "tr": "我写 TypeScript"
+    },
+    {
+      "id": "h-90b72e29",
+      "kind": "html",
+      "en": "What changes, what stays, and how npm packages come along.",
+      "tr": "哪些变了，哪些不变，npm 包怎么继续用。"
+    },
+    {
+      "id": "h-415dd5bc",
+      "kind": "html",
+      "en": "I'm deciding for a team",
+      "tr": "我在为团队做技术选型"
+    },
+    {
+      "id": "h-eddd22eb",
+      "kind": "html",
+      "en": "What it guarantees, what it does not, and what leaving costs.",
+      "tr": "它保证什么，不保证什么，以及弃用它的成本。"
+    },
+    {
+      "id": "h-1777f1a3",
+      "kind": "html",
+      "en": "I build agents and tools",
+      "tr": "我在做智能体和工具"
+    },
+    {
+      "id": "h-a7f97874",
+      "kind": "html",
+      "en": "The MCP server, the queries it answers, and the diagnostic format.",
+      "tr": "MCP 服务器、它能回答的查询，以及诊断信息的格式。"
+    },
+    {
+      "id": "h-110f049e",
+      "kind": "html",
+      "en": "Show me the evidence",
+      "tr": "给我看证据"
+    },
+    {
+      "id": "h-e218dac1",
+      "kind": "html",
+      "en": "How each claim is checked, and how to reproduce it.",
+      "tr": "每条说法是怎么验证的，以及如何复现。"
+    },
+    {
+      "id": "h-f1cd7a9b",
+      "kind": "html",
+      "en": "Why a new language?",
+      "tr": "为什么要一门新语言？"
+    },
+    {
+      "id": "h-c459657e",
+      "kind": "html",
+      "en": "The design argument, and what was left out on purpose.",
+      "tr": "设计上的理由，以及有意没有做的部分。"
+    },
+    {
+      "id": "h-0a00e35d",
+      "kind": "html",
+      "en": "Just let me try it",
+      "tr": "直接让我试试"
+    },
+    {
+      "id": "h-6e3f25ec",
+      "kind": "html",
+      "en": "Start in 10 minutes",
+      "tr": "10 分钟上手"
+    },
+    {
+      "id": "h-a6273fb5",
+      "kind": "html",
+      "en": "Playground",
+      "tr": "Playground"
+    },
+    {
+      "id": "h-aa8e1bd8",
+      "kind": "html",
+      "en": "Cases nothing in TypeScript catches",
+      "tr": "TypeScript 工具链发现不了的案例"
+    },
+    {
+      "id": "h-8bfb0506",
+      "kind": "html",
+      "en": "The three highest-ranked cases that pass <code>tsc --strict</code> with every extra flag on and typescript-eslint strict, ranked by how often an agent writes them and how bad they are when they ship.",
+      "tr": "排名最靠前的三个案例。它们能通过打开了所有额外 flag 的 <code>tsc --strict</code> 和 strict 模式的 typescript-eslint，排名依据是智能体写出它们的频率，以及上线后的危害程度。下面的案例保留英文，与仓库中的原文一致。"
+    },
+    {
+      "id": "h-bb229a74",
+      "kind": "html",
+      "en": "See all {{catches:count}} &rarr;",
+      "tr": "查看全部 {{catches:count}} 个 &rarr;"
+    },
+    {
+      "id": "h-57a571c1",
+      "kind": "html",
+      "en": "<span>{{catches:none}}</span> of {{catches:count}}",
+      "tr": "{{catches:count}} 个中有 <span>{{catches:none}}</span> 个"
+    },
+    {
+      "id": "h-fa646db9",
+      "kind": "html",
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript mistakes, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} mistakes and {{catches:traps-refused}} traps).",
+      "tr": "{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 错误、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个错误和 {{catches:traps-refused}} 个陷阱）。"
+    },
+    {
+      "id": "h-cda6f98d",
+      "kind": "html",
+      "en": "One change, on a real application",
+      "tr": "在真实应用里做一次改动"
+    },
+    {
+      "id": "h-2e4f29c6",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
+      "tr": "<code>examples/apps/csvql</code> 是本仓库里的一个 CSV 查询引擎，核心是一个 <code>Value</code> 联合类型。给它加一个新 case 之前，先问编译器这会影响到哪些地方。"
+    },
+    {
+      "id": "h-bb44e881",
+      "kind": "html",
+      "en": "glyph_variants { name: \"Value\" }",
+      "tr": "glyph_variants { name: \"Value\" }"
+    },
+    {
+      "id": "h-dd6a6de7",
+      "kind": "html",
+      "en": "then add the case and run glyph check",
+      "tr": "然后加上这个 case，运行 glyph check"
+    },
+    {
+      "id": "h-dcb7c936",
+      "kind": "html",
+      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
+      "tr": "预测的八处全部命中。另外两处，<code>exec::total</code> 和 <code>render::literal_text</code>，仍然能编译通过，并把新的 case 交给各自的 catch-all 分支处理。一个修完这八个错误就停手的智能体，会得到一个通过的构建和两个仍然存在的 bug，而指出这两处的正是那次查询。"
+    },
+    {
+      "id": "h-35b0b48e",
+      "kind": "html",
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph 目前还不能发现所有问题。已知的 {{catches:gap-count}} 个漏洞都有复现示例和 gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。 <a href=\"/catches/#not-yet\">它目前还发现不了的问题 &rarr;</a>"
+    },
+    {
+      "id": "j-fb30593c",
+      "kind": "script",
+      "en": "copied",
+      "tr": "已复制"
+    }
+  ]
+}

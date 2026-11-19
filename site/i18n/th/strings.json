@@ -59,7 +59,9 @@
     "footer.edit": "แก้ไขหน้านี้",
     "footer.tagline": "Glyph: TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้",
     "footer.license": "MIT หรือ Apache-2.0",
-    "footer.pillars": "สี่เสาหลัก"
+    "footer.pillars": "สี่เสาหลัก",
+    "catches.measured": "ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก {count} ข้อ มี {none} ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ {flag} ข้อ และกฎ lint จับได้ {lint} ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า",
+    "catches.breakdown": "รวมทั้งหมดมี {total} กรณีที่ตรวจแล้ว ได้แก่ ข้อผิดพลาดใน TypeScript {count} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {trap_count} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {gap_cases} กรณี Glyph ปฏิเสธ {refused_all} กรณีในจำนวนนี้ตอน build (ข้อผิดพลาด {refused} กรณี และกับดัก {traps_refused} กรณี)"
   },
   "nav": {
     "Why Glyph": "ทำไมต้อง Glyph",

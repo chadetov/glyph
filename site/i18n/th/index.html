@@ -48,10 +48,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">กรณีที่ไม่มีอะไรใน TypeScript จับได้</h2>
         <p class="friction-intro">
-          กรณีสามอันดับแรกที่ผ่าน <code>tsc --strict</code>
-          ได้ แม้จะเปิด flag เสริมทุกตัวและใช้ typescript-eslint แบบ strict
-          เรียงตามความถี่ที่เอเจนต์เขียนออกมาและความเสียหายเมื่อหลุดขึ้น production
-          ตัวอย่างแต่ละกรณีแสดงเป็นภาษาอังกฤษตามที่อยู่ใน repository
+          กรณีสามอันดับแรกที่ผ่าน <code>tsc --strict</code> ได้ แม้จะเปิด flag เสริมทุกตัวและใช้ typescript-eslint แบบ strict เรียงตามความถี่ที่เอเจนต์เขียนออกมาและความเสียหายเมื่อหลุดขึ้น production ตัวอย่างแต่ละกรณีแสดงเป็นภาษาอังกฤษตามที่อยู่ใน repository
         </p>
 {{catches:top}}
         <p class="h-more"><a class="card-more" href="/catches/">ดูทั้ง {{catches:count}} ข้อ &rarr;</a></p>
@@ -62,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> จาก {{catches:count}}</p>
-          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก {{catches:count}} ข้อ มี {{catches:none}} ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ {{catches:flag}} ข้อ และกฎ lint จับได้ {{catches:lint}} ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ ข้อผิดพลาดใน TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (ข้อผิดพลาด {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี)</p>
+          <p>{{catches:measured}} รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ ข้อผิดพลาดใน TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (ข้อผิดพลาด {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี)</p>
         </div>
       </div>
     </section>
@@ -71,8 +68,7 @@ head: |
       <div class="wrap">
         <h2 class="section-head">การเปลี่ยนแปลงหนึ่งครั้ง ในแอปพลิเคชันจริง</h2>
         <p class="friction-intro">
-          <code>examples/apps/csvql</code> เป็น query engine สำหรับไฟล์ CSV
-          ที่อยู่ใน repository นี้ โดยมี union <code>Value</code> เป็นแกนกลาง ก่อนจะเพิ่ม case ใหม่เข้าไป ให้ถามคอมไพเลอร์ก่อนว่าจะกระทบจุดไหนบ้าง
+          <code>examples/apps/csvql</code> เป็น query engine สำหรับไฟล์ CSV ที่อยู่ใน repository นี้ โดยมี union <code>Value</code> เป็นแกนกลาง ก่อนจะเพิ่ม case ใหม่เข้าไป ให้ถามคอมไพเลอร์ก่อนว่าจะกระทบจุดไหนบ้าง
         </p>
         <div class="code">
           <span class="cap">glyph_variants { name: "Value" }</span>
@@ -84,9 +80,7 @@ head: |
 The two catch-all sites report <span class="add">nothing at all</span>.</pre>
         </div>
         <p class="friction-intro h-after">
-          ที่คาดการณ์ไว้ถูกครบทั้งแปดจุด อีกสองจุดคือ
-          <code>exec::total</code> และ <code>render::literal_text</code> ยังคอมไพล์ผ่าน และส่ง case ใหม่ไปตามที่ catch-all ของแต่ละจุดกำหนดไว้ เอเจนต์ที่แก้ error
-          ครบแปดจุดแล้วหยุดจะได้ build สีเขียวพร้อมบั๊กที่ยังอยู่อีกสองตัว และคิวรีนี้คือสิ่งที่ชี้ให้เห็นว่าอยู่ตรงไหน
+          ที่คาดการณ์ไว้ถูกครบทั้งแปดจุด อีกสองจุดคือ <code>exec::total</code> และ <code>render::literal_text</code> ยังคอมไพล์ผ่าน และส่ง case ใหม่ไปตามที่ catch-all ของแต่ละจุดกำหนดไว้ เอเจนต์ที่แก้ error ครบแปดจุดแล้วหยุดจะได้ build สีเขียวพร้อมบั๊กที่ยังอยู่อีกสองตัว และคิวรีนี้คือสิ่งที่ชี้ให้เห็นว่าอยู่ตรงไหน
         </p>
       </div>
     </section>
@@ -94,9 +88,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph
-          ได้เหมือนที่ผ่าน TypeScript
-          <a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้ &rarr;</a>
+          Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph ได้เหมือนที่ผ่าน TypeScript <a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้ &rarr;</a>
         </p>
       </div>
     </section>

@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "index.html",
+  "locale": "tr",
+  "source_hash": "a5087688a56d8e43",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Glyph: typed, compiles to TypeScript, built for AI agents",
+      "tr": "Glyph: tipli, TypeScript'e derlenir, yapay zekâ ajanları için"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph is a statically typed language that compiles to TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.",
+      "tr": "Glyph, TypeScript'e derlenen statik tipli bir dil: bir yapay zekâ ajanının yazdığı kod tahmin yürütmeden okunabilsin, denetlenebilsin ve değiştirilebilsin diye."
+    },
+    {
+      "id": "keywords",
+      "kind": "keywords",
+      "en": "glyph, glyph language, glyph lang, glyphlang, programming language, typescript, transpiler, ai agents, llm",
+      "tr": "glyph, glyph language, glyphlang, programlama dili, typescript, transpiler, yapay zekâ ajanları, llm"
+    },
+    {
+      "id": "a-0295b602",
+      "kind": "attr:title",
+      "en": "See what's new",
+      "tr": "Yenilikleri gör"
+    },
+    {
+      "id": "h-9710b5cd",
+      "kind": "html",
+      "en": "v{{version}} · early preview →",
+      "tr": "v{{version}} · erken önizleme →"
+    },
+    {
+      "id": "h-c893d480",
+      "kind": "html",
+      "en": "Your AI agent writes it. <span class=\"accent\">The compiler checks it.</span>",
+      "tr": "Yapay zekâ ajanınız yazar. <span class=\"accent\">Derleyici kontrol eder.</span>"
+    },
+    {
+      "id": "h-312ac4ca",
+      "kind": "html",
+      "en": "Glyph reads like TypeScript, with the escape hatches removed: no <code>any</code>, no casts, no unchecked data, every case handled. It compiles to readable TypeScript, so you keep node, npm and the code you already have.",
+      "tr": "Glyph TypeScript gibi okunur, kaçış kapıları olmadan: <code>any</code> yok, cast yok, kontrol edilmemiş veri yok, her durum ele alınır. Okunabilir TypeScript'e derlenir; node, npm ve mevcut kodunuz olduğu gibi kalır."
+    },
+    {
+      "id": "a-0963fe9f",
+      "kind": "attr:title",
+      "en": "Requires Node.js 18+",
+      "tr": "Node.js 18 veya üstü gerekir"
+    },
+    {
+      "id": "h-6f5a6034",
+      "kind": "html",
+      "en": "copy",
+      "tr": "kopyala"
+    },
+    {
+      "id": "h-7985262d",
+      "kind": "html",
+      "en": "No global install needed. To put <code>glyph</code> on your PATH instead: <code>npm install -g @glyphlang/glyph tsx typescript</code>",
+      "tr": "Global kurulum gerekmez. <code>glyph</code> komutunu PATH'te istersen: <code>npm install -g @glyphlang/glyph tsx typescript</code>"
+    },
+    {
+      "id": "h-5939e6e0",
+      "kind": "html",
+      "en": "See what it catches →",
+      "tr": "Neleri yakaladığını gör →"
+    },
+    {
+      "id": "h-32d27690",
+      "kind": "html",
+      "en": "Start in 10 minutes →",
+      "tr": "10 dakikada başla →"
+    },
+    {
+      "id": "h-92f76a10",
+      "kind": "html",
+      "en": "Where to go from here",
+      "tr": "Buradan nereye"
+    },
+    {
+      "id": "h-1ee95dbf",
+      "kind": "html",
+      "en": "I write TypeScript",
+      "tr": "TypeScript yazıyorum"
+    },
+    {
+      "id": "h-90b72e29",
+      "kind": "html",
+      "en": "What changes, what stays, and how npm packages come along.",
+      "tr": "Neler değişiyor, neler aynı kalıyor ve npm paketleriniz nasıl yanınızda geliyor."
+    },
+    {
+      "id": "h-415dd5bc",
+      "kind": "html",
+      "en": "I'm deciding for a team",
+      "tr": "Bir ekip adına karar veriyorum"
+    },
+    {
+      "id": "h-eddd22eb",
+      "kind": "html",
+      "en": "What it guarantees, what it does not, and what leaving costs.",
+      "tr": "Neyi garanti ediyor, neyi etmiyor ve bırakmanın maliyeti ne."
+    },
+    {
+      "id": "h-1777f1a3",
+      "kind": "html",
+      "en": "I build agents and tools",
+      "tr": "Ajan ve araç geliştiriyorum"
+    },
+    {
+      "id": "h-a7f97874",
+      "kind": "html",
+      "en": "The MCP server, the queries it answers, and the diagnostic format.",
+      "tr": "MCP sunucusu, yanıtladığı sorgular ve diagnostic formatı."
+    },
+    {
+      "id": "h-110f049e",
+      "kind": "html",
+      "en": "Show me the evidence",
+      "tr": "Kanıtları görmek istiyorum"
+    },
+    {
+      "id": "h-e218dac1",
+      "kind": "html",
+      "en": "How each claim is checked, and how to reproduce it.",
+      "tr": "Her iddianın nasıl kontrol edildiği ve nasıl tekrar üretileceği."
+    },
+    {
+      "id": "h-f1cd7a9b",
+      "kind": "html",
+      "en": "Why a new language?",
+      "tr": "Neden yeni bir dil?"
+    },
+    {
+      "id": "h-c459657e",
+      "kind": "html",
+      "en": "The design argument, and what was left out on purpose.",
+      "tr": "Tasarımın gerekçesi ve bilerek dışarıda bırakılanlar."
+    },
+    {
+      "id": "h-0a00e35d",
+      "kind": "html",
+      "en": "Just let me try it",
+      "tr": "Sadece denemek istiyorum"
+    },
+    {
+      "id": "h-6e3f25ec",
+      "kind": "html",
+      "en": "Start in 10 minutes",
+      "tr": "10 dakikada başlayın"
+    },
+    {
+      "id": "h-a6273fb5",
+      "kind": "html",
+      "en": "Playground",
+      "tr": "Playground"
+    },
+    {
+      "id": "h-aa8e1bd8",
+      "kind": "html",
+      "en": "Cases nothing in TypeScript catches",
+      "tr": "TypeScript'te hiçbir şeyin yakalamadığı vakalar"
+    },
+    {
+      "id": "h-8bfb0506",
+      "kind": "html",
+      "en": "The three highest-ranked cases that pass <code>tsc --strict</code> with every extra flag on and typescript-eslint strict, ranked by how often an agent writes them and how bad they are when they ship.",
+      "tr": "Tüm ek flag'ler açıkken ve typescript-eslint strict moddayken <code>tsc --strict</code>'ten geçen vakalar arasında en üst sıradaki üçü. Sıralama, bir ajanın onları ne sıklıkla yazdığına ve production'a çıktıklarında ne kadar zarar verdiklerine göre yapıldı. Örnekler, repoda oldukları gibi İngilizce gösteriliyor."
+    },
+    {
+      "id": "h-bb229a74",
+      "kind": "html",
+      "en": "See all {{catches:count}} &rarr;",
+      "tr": "{{catches:count}} vakanın tümünü gör &rarr;"
+    },
+    {
+      "id": "h-57a571c1",
+      "kind": "html",
+      "en": "<span>{{catches:none}}</span> of {{catches:count}}",
+      "tr": "{{catches:count}} vakadan <span>{{catches:none}}</span> tanesi"
+    },
+    {
+      "id": "h-fa646db9",
+      "kind": "html",
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript mistakes, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} mistakes and {{catches:traps-refused}} traps).",
+      "tr": "{{catches:measured}} Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript hatası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} hata ve {{catches:traps-refused}} tuzak)."
+    },
+    {
+      "id": "h-cda6f98d",
+      "kind": "html",
+      "en": "One change, on a real application",
+      "tr": "Gerçek bir uygulamada tek bir değişiklik"
+    },
+    {
+      "id": "h-2e4f29c6",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is a CSV query engine in this repository, with a <code>Value</code> union at its centre. Before adding a case to it, ask the compiler which places it reaches.",
+      "tr": "<code>examples/apps/csvql</code>, bu repoda bulunan ve merkezinde bir <code>Value</code> union'ı olan bir CSV sorgu motoru. Ona yeni bir case eklemeden önce derleyiciye bunun hangi yerlere ulaştığını sorun."
+    },
+    {
+      "id": "h-bb44e881",
+      "kind": "html",
+      "en": "glyph_variants { name: \"Value\" }",
+      "tr": "glyph_variants { name: \"Value\" }"
+    },
+    {
+      "id": "h-dd6a6de7",
+      "kind": "html",
+      "en": "then add the case and run glyph check",
+      "tr": "ardından case'i ekleyin ve glyph check çalıştırın"
+    },
+    {
+      "id": "h-dcb7c936",
+      "kind": "html",
+      "en": "The prediction was right on all eight. The other two, <code>exec::total</code> and <code>render::literal_text</code>, keep compiling and send the new case wherever their catch-all points. An agent that fixes the eight errors and stops has a green build and two live bugs, and the query is what names them.",
+      "tr": "Tahmin sekizinde de doğru çıktı. Diğer ikisi, <code>exec::total</code> ve <code>render::literal_text</code>, derlenmeye devam ediyor ve yeni case'i catch-all'ları nereye gösteriyorsa oraya yolluyor. Sekiz hatayı düzeltip duran bir ajanın elinde yeşil bir build ve canlı iki bug kalır; bunları gösteren de sorgunun kendisidir."
+    },
+    {
+      "id": "h-35b0b48e",
+      "kind": "html",
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph henüz her şeyi yakalamıyor. Bilinen {{catches:gap-count}} açığın bir reprodüksiyonu ve bir gap numarası var; mantık hataları da TypeScript'te olduğu gibi Glyph'ten de geçiyor. <a href=\"/catches/#not-yet\">Henüz yakalamadıkları &rarr;</a>"
+    },
+    {
+      "id": "j-fb30593c",
+      "kind": "script",
+      "en": "copied",
+      "tr": "kopyalandı"
+    }
+  ]
+}

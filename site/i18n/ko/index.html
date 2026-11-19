@@ -1,7 +1,7 @@
 ---
 title: Glyph: TypeScript로 컴파일되는, AI 에이전트를 위한 타입 언어
 description: Glyph는 TypeScript로 컴파일되는 정적 타입 언어로, AI 에이전트가 작성한 코드를 추측 없이 읽고 검사하고 수정할 수 있도록 설계되었습니다.
-source_hash: ee41196e3e94a8ce
+source_hash: dc3c50270be35784
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, 프로그래밍 언어, typescript, 트랜스파일러, ai 에이전트, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -61,7 +61,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}}개 중 <span>{{catches:none}}</span>개</p>
-          <p>목록에 있는 TypeScript 예제는 모두 <code>tsc --strict</code>를 오류 없이 통과합니다. 각 예제는 최대한 엄격하게 설정한 프로젝트에서도 다시 검사합니다. <code>--strict</code>보다 엄격한 컴파일러 플래그를 모두 켜고, typescript-eslint <code>strictTypeChecked</code>까지 적용한 설정입니다. {{catches:count}}개의 사례 중 {{catches:none}}개는 이 설정의 어떤 것도 잡아내지 못합니다. 기본값이 꺼져 있는 컴파일러 플래그가 {{catches:flag}}개를, lint 규칙이 {{catches:lint}}개를 잡아냅니다. 이 플래그와 규칙은 프로젝트에서 하나하나 켜야 하고, 에이전트가 다시 끌 수도 있습니다. Glyph에서는 이 중 어느 것도 설정 옵션이 아닙니다.</p>
+          <p>목록에 있는 TypeScript 예제는 모두 <code>tsc --strict</code>를 오류 없이 통과합니다. 각 예제는 최대한 엄격하게 설정한 프로젝트에서도 다시 검사합니다. <code>--strict</code>보다 엄격한 컴파일러 플래그를 모두 켜고, typescript-eslint <code>strictTypeChecked</code>까지 적용한 설정입니다. {{catches:count}}개의 사례 중 {{catches:none}}개는 이 설정의 어떤 것도 잡아내지 못합니다. 기본값이 꺼져 있는 컴파일러 플래그가 {{catches:flag}}개를, lint 규칙이 {{catches:lint}}개를 잡아냅니다. 이 플래그와 규칙은 프로젝트에서 하나하나 켜야 하고, 에이전트가 다시 끌 수도 있습니다. Glyph에서는 이 중 어느 것도 설정 옵션이 아닙니다. 확인된 사례는 모두 {{catches:total}}건입니다. TypeScript 실수 {{catches:count}}건, Glyph에는 없는 JavaScript 함정 {{catches:trap-count}}건, Glyph가 아직 막지 못한 구멍 {{catches:gap-cases}}건입니다. 그중 {{catches:refused-all}}건은 빌드할 때 Glyph가 거부합니다(실수 {{catches:refused}}건, 함정 {{catches:traps-refused}}건).</p>
         </div>
       </div>
     </section>

@@ -101,7 +101,7 @@
     "Not caught yet": "まだ検出できないもの",
     "Known holes, each with a reproduction": "既知の穴と、それぞれの再現コード",
     "{{catches:none}} of {{catches:count}}": "{{catches:count}} 件中 {{catches:none}} 件",
-    "cases that nothing in a fully configured TypeScript setup catches": "最も厳しく設定した TypeScript 環境でも何も検出できないケース",
+    "TypeScript mistakes that nothing in a fully configured setup catches": "最も厳しく設定した環境でも何も検出できない TypeScript のミス",
     "See what it catches": "検出できるものを見る",
     "Versions": "バージョン",
     "Playground": "Playground",

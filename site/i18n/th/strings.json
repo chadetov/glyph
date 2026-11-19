@@ -101,7 +101,7 @@
     "Not caught yet": "สิ่งที่ยังจับไม่ได้",
     "Known holes, each with a reproduction": "ช่องโหว่ที่รู้แล้ว แต่ละจุดมีโค้ดสำหรับทำซ้ำ",
     "{{catches:none}} of {{catches:count}}": "{{catches:none}} จาก {{catches:count}}",
-    "cases that nothing in a fully configured TypeScript setup catches": "กรณีที่ไม่มีอะไรในโปรเจกต์ TypeScript ที่ตั้งค่าเต็มที่จับได้",
+    "TypeScript mistakes that nothing in a fully configured setup catches": "ข้อผิดพลาดใน TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้",
     "See what it catches": "ดูว่าจับอะไรได้บ้าง",
     "Versions": "เวอร์ชัน",
     "Playground": "Playground",

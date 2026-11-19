@@ -109,7 +109,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">cases that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">TypeScript mistakes that nothing in a fully configured setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -378,6 +378,7 @@
       <header class="page-hero">
         <p class="eyebrow">Cases TypeScript lets through</p>
         <h1>Caught before it ships</h1>
+        <p class="lede">There are 53 checked cases: 37 TypeScript mistakes, 5 JavaScript traps that do not exist in Glyph, and 11 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 mistakes and 5 traps).</p>
         <p class="lede">Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 cases, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
         <p class="lede">
           Each entry is two programs in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>,
@@ -389,7 +390,7 @@
       </header>
 
       <section class="c-cases" id="cases">
-        <h2 class="group-head">The cases Glyph catches</h2>
+        <h2 class="group-head">37 TypeScript mistakes</h2>
       <div class="c-legend">
         <span class="c-score likely"><b>Likely</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> how often an AI agent writes it</span>
         <span class="c-score severe"><b>Severity</b> <span class="c-dots" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> how bad it is when it ships</span>
@@ -1425,7 +1426,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
 
       </section>
       <section class="c-section" id="traps">
-        <h2 class="group-head">JavaScript traps that do not exist in Glyph</h2>
+        <h2 class="group-head">5 JavaScript traps that do not exist in Glyph</h2>
         <p class="group-sub">
           Older traps that agents still hit now and then. Glyph refuses each
           program, but not by spotting the mistake: the feature behind it is not
@@ -1444,7 +1445,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">What Glyph does not catch yet</h2>
         <p class="group-sub">
-          Each of these compiles in Glyph today and does the same wrong thing as
+          11 holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as
           in TypeScript. Every one has a reproduction in <code>catches/</code>
           and an open gap number, and the gate fails when a fix lands so the
           entry cannot outlive the hole.

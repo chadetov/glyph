@@ -1,7 +1,7 @@
 ---
 title: Glyph: AI エージェントのための、TypeScript にコンパイルされる型付き言語
 description: Glyph は TypeScript にコンパイルされる静的型付き言語です。AI エージェントが書いたコードを、推測に頼らずに読み、検証し、変更できるように設計されています。
-source_hash: ee41196e3e94a8ce
+source_hash: dc3c50270be35784
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, プログラミング言語, typescript, トランスパイラ, AI エージェント, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -59,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}} 件中 <span>{{catches:none}}</span> 件</p>
-          <p>リストにある TypeScript の例は、どれも <code>tsc --strict</code> をエラーなしで通過します。さらに各例を、最も厳しく設定したプロジェクトでも検証しています。<code>--strict</code> より厳しいコンパイラフラグをすべて有効にし、typescript-eslint の <code>strictTypeChecked</code> も加えた設定です。{{catches:count}} 件のケースのうち {{catches:none}} 件は、この設定のどれにも検出されません。デフォルトでは無効のコンパイラフラグで検出できるのが {{catches:flag}} 件、lint ルールで検出できるのが {{catches:lint}} 件です。これらはプロジェクトごとに 1 つずつ有効にする必要があり、エージェントが無効に戻すこともできます。Glyph では、どれも設定項目ではありません。</p>
+          <p>リストにある TypeScript の例は、どれも <code>tsc --strict</code> をエラーなしで通過します。さらに各例を、最も厳しく設定したプロジェクトでも検証しています。<code>--strict</code> より厳しいコンパイラフラグをすべて有効にし、typescript-eslint の <code>strictTypeChecked</code> も加えた設定です。{{catches:count}} 件のケースのうち {{catches:none}} 件は、この設定のどれにも検出されません。デフォルトでは無効のコンパイラフラグで検出できるのが {{catches:flag}} 件、lint ルールで検出できるのが {{catches:lint}} 件です。これらはプロジェクトごとに 1 つずつ有効にする必要があり、エージェントが無効に戻すこともできます。Glyph では、どれも設定項目ではありません。チェック済みのケースは全部で {{catches:total}} 件です。TypeScript のミスが {{catches:count}} 件、Glyph には存在しない JavaScript の落とし穴が {{catches:trap-count}} 件、Glyph がまだ塞いでいない穴が {{catches:gap-cases}} 件です。そのうち {{catches:refused-all}} 件はビルド時に Glyph が拒否します（ミス {{catches:refused}} 件と落とし穴 {{catches:traps-refused}} 件）。</p>
         </div>
       </div>
     </section>

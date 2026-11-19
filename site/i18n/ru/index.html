@@ -1,7 +1,7 @@
 ---
 title: Glyph: типизирован, компилируется в TypeScript, для ИИ-агентов
 description: Glyph: статически типизированный язык, который компилируется в TypeScript, чтобы код ИИ-агента можно было читать, проверять и менять без догадок.
-source_hash: ee41196e3e94a8ce
+source_hash: dc3c50270be35784
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, язык программирования, typescript, транспайлер, ии-агенты, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -62,7 +62,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> из {{catches:count}}</p>
-          <p>Все примеры на TypeScript из списка проходят <code>tsc --strict</code> без ошибок. Каждый из них дополнительно проверяется на проекте с максимально строгой настройкой: все флаги компилятора строже <code>--strict</code> плюс typescript-eslint <code>strictTypeChecked</code>. Из {{catches:count}} случаев такая настройка не ловит {{catches:none}}. Флаг компилятора, выключенный по умолчанию, ловит {{catches:flag}}, правило линтера ловит {{catches:lint}}. Каждый из них проект должен включить сам, и агент может снова его выключить. В Glyph ни одна из этих проверок не является настройкой.</p>
+          <p>Все примеры на TypeScript из списка проходят <code>tsc --strict</code> без ошибок. Каждый из них дополнительно проверяется на проекте с максимально строгой настройкой: все флаги компилятора строже <code>--strict</code> плюс typescript-eslint <code>strictTypeChecked</code>. Из {{catches:count}} случаев такая настройка не ловит {{catches:none}}. Флаг компилятора, выключенный по умолчанию, ловит {{catches:flag}}, правило линтера ловит {{catches:lint}}. Каждый из них проект должен включить сам, и агент может снова его выключить. В Glyph ни одна из этих проверок не является настройкой. Всего проверенных случаев: {{catches:total}}. Из них ошибок в TypeScript: {{catches:count}}, ловушек JavaScript, которых нет в Glyph: {{catches:trap-count}}, и дыр, которые Glyph пока не закрывает: {{catches:gap-cases}}. При сборке Glyph отклоняет {{catches:refused-all}} из них (ошибок: {{catches:refused}}, ловушек: {{catches:traps-refused}}).</p>
         </div>
       </div>
     </section>

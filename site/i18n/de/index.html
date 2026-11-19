@@ -1,7 +1,7 @@
 ---
 title: Glyph: typisiert, kompiliert zu TypeScript, für KI-Agenten
 description: Glyph ist eine statisch typisierte Sprache, die zu TypeScript kompiliert, damit sich Code eines KI-Agenten ohne Rätselraten lesen, prüfen und ändern lässt.
-source_hash: ee41196e3e94a8ce
+source_hash: dc3c50270be35784
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, programmiersprache, typescript, transpiler, ki-agenten, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -62,7 +62,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> von {{catches:count}}</p>
-          <p>Jedes TypeScript-Beispiel in der Liste besteht <code>tsc --strict</code> ohne Fehler. Jedes wird außerdem gegen ein maximal konfiguriertes Projekt geprüft: alle Compiler-Flags, die strenger als <code>--strict</code> sind, dazu typescript-eslint <code>strictTypeChecked</code>. Von den {{catches:count}} Fällen erkennt dieses Setup {{catches:none}} überhaupt nicht. Ein standardmäßig deaktiviertes Compiler-Flag findet {{catches:flag}}, eine Lint-Regel {{catches:lint}}. Ein Projekt muss jedes davon einschalten, und ein Agent kann es wieder ausschalten. In Glyph ist keins davon eine Konfigurationsoption.</p>
+          <p>Jedes TypeScript-Beispiel in der Liste besteht <code>tsc --strict</code> ohne Fehler. Jedes wird außerdem gegen ein maximal konfiguriertes Projekt geprüft: alle Compiler-Flags, die strenger als <code>--strict</code> sind, dazu typescript-eslint <code>strictTypeChecked</code>. Von den {{catches:count}} Fällen erkennt dieses Setup {{catches:none}} überhaupt nicht. Ein standardmäßig deaktiviertes Compiler-Flag findet {{catches:flag}}, eine Lint-Regel {{catches:lint}}. Ein Projekt muss jedes davon einschalten, und ein Agent kann es wieder ausschalten. In Glyph ist keins davon eine Konfigurationsoption. Insgesamt gibt es {{catches:total}} geprüfte Fälle: {{catches:count}} TypeScript-Fehler, {{catches:trap-count}} JavaScript-Fallen, die es in Glyph nicht gibt, und {{catches:gap-cases}} Lücken, die Glyph noch nicht schließt. Glyph lehnt {{catches:refused-all}} davon beim Build ab ({{catches:refused}} Fehler und {{catches:traps-refused}} Fallen).</p>
         </div>
       </div>
     </section>

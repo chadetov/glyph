@@ -101,7 +101,7 @@
     "Not caught yet": "Что пока не ловится",
     "Known holes, each with a reproduction": "Известные дыры, у каждой есть воспроизведение",
     "{{catches:none}} of {{catches:count}}": "{{catches:none}} из {{catches:count}}",
-    "cases that nothing in a fully configured TypeScript setup catches": "случаев, которые не ловит ничто в максимально настроенном проекте на TypeScript",
+    "TypeScript mistakes that nothing in a fully configured setup catches": "ошибок в TypeScript, которые не ловит ничто даже в максимально настроенном проекте",
     "See what it catches": "Посмотреть, что он ловит",
     "Versions": "Версии",
     "Playground": "Песочница",

@@ -20,8 +20,24 @@ Placeholders:
   {{catches:hero}}           one refusal as a TS / Glyph pair, for the home hero
   {{catches:top}}            the three highest-ranked mistakes nothing catches
   {{catches:refused-table}}  every refused mistake, for /hardening/
+  {{catches:breakdown}}      the one-line breakdown every page that cites a count
+                             uses: all checked cases, by section, and how many
+                             of them are refused when you build
   {{catches:count}}, {{catches:none}}, {{catches:refused}}, {{catches:gap-count}}
-                             single numbers
+                             single numbers about the TypeScript mistakes
+                             (count, none, flag, lint, refused) and the
+                             distinct gap numbers among the holes (gap-count)
+  {{catches:total}}, {{catches:trap-count}}, {{catches:gap-cases}},
+  {{catches:traps-refused}}, {{catches:refused-all}}, {{catches:warned-all}},
+  {{catches:boundary-all}}, {{catches:runtime-all}}
+                             single numbers over every section: all cases,
+                             the traps, the holes, and each kind across all of
+                             them, so 28 refused is 23 mistakes plus 5 traps
+
+The section names are fixed here, once: "TypeScript mistakes", "JavaScript
+traps that do not exist in Glyph" and "holes Glyph does not close yet". A page
+that cites a count uses these names, so a reader adding up the numbers on two
+pages gets the same total.
 
 Python standard library only.
 """
@@ -279,7 +295,31 @@ def counts(cases: list[dict]) -> dict[str, int]:
         "lint": sum(ts_group(c) == "lint" for c in ms),
         "refused": sum(c["kind"] == "refused" for c in ms),
         "gap-count": len({c["gap_id"] for c in cases if c["section"] == "gap"}),
+        "total": len(cases),
+        "trap-count": sum(c["section"] == "trap" for c in cases),
+        "gap-cases": sum(c["section"] == "gap" for c in cases),
+        "traps-refused": sum(c["section"] == "trap" and c["kind"] == "refused" for c in cases),
+        "refused-all": sum(c["kind"] == "refused" for c in cases),
+        "warned-all": sum(c["kind"] == "warned" for c in cases),
+        "boundary-all": sum(c["kind"] == "boundary" for c in cases),
+        "runtime-all": sum(c["kind"] == "runtime" for c in cases),
     }
+
+
+def breakdown(cases: list[dict]) -> str:
+    """One sentence with every denominator, in the section names every page uses."""
+    k = counts(cases)
+    if k["count"] + k["trap-count"] + k["gap-cases"] != k["total"]:
+        raise CatchesError("a case in catches/ is in no section the breakdown names")
+    if k["refused"] + k["traps-refused"] != k["refused-all"]:
+        raise CatchesError("a refused case in catches/ is neither a mistake nor a trap; the breakdown would not add up")
+    return (
+        f"There are {k['total']} checked cases: {k['count']} TypeScript mistakes, "
+        f"{k['trap-count']} JavaScript traps that do not exist in Glyph, and "
+        f"{k['gap-cases']} holes Glyph does not close yet. Glyph refuses "
+        f"{k['refused-all']} of them when you build ({k['refused']} mistakes and "
+        f"{k['traps-refused']} traps)."
+    )
 
 
 def measured(cases: list[dict]) -> str:
@@ -482,6 +522,7 @@ def expand(body: str, where: str) -> str:
         "hero": lambda: hero(cases),
         "top": lambda: top(cases),
         "refused-table": lambda: refused_table(cases),
+        "breakdown": lambda: breakdown(cases),
         **{name: (lambda v=v: str(v)) for name, v in k.items()},
     }
 

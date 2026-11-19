@@ -101,7 +101,7 @@
     "Not caught yet": "Henüz yakalanmayanlar",
     "Known holes, each with a reproduction": "Bilinen açıklar, her biri bir reprodüksiyonla",
     "{{catches:none}} of {{catches:count}}": "{{catches:none}} / {{catches:count}}",
-    "cases that nothing in a fully configured TypeScript setup catches": "tamamen yapılandırılmış bir TypeScript kurulumunda hiçbir şeyin yakalamadığı vaka",
+    "TypeScript mistakes that nothing in a fully configured setup catches": "tamamen yapılandırılmış bir kurulumda hiçbir şeyin yakalamadığı TypeScript hatası",
     "See what it catches": "Neleri yakaladığını gör",
     "Versions": "Sürümler",
     "Playground": "Playground",

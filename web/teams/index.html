@@ -110,7 +110,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">cases that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">TypeScript mistakes that nothing in a fully configured setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -389,10 +389,10 @@
         <h2 class="block-label" id="what-it-guarantees">What it guarantees<a class="h-anchor" href="#what-it-guarantees" aria-label="Link to this section">#</a></h2>
         <p>
           Every claim about what Glyph catches is a case in the repository's <code>catches/</code>
-          directory: the same program in TypeScript and in Glyph, both run by a CI gate. Of the 53
-          cases, 28 are programs Glyph refuses to build, 3 draw a warning, 9 are bad data stopped at
-          a runtime boundary check, 2 stop at run time, and 11 are holes Glyph does not close yet.
-          The ones a reviewer of agent-written code leans on most:
+          directory: the same program in TypeScript and in Glyph, both run by a CI gate.
+          There are 53 checked cases: 37 TypeScript mistakes, 5 JavaScript traps that do not exist in Glyph, and 11 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 mistakes and 5 traps). Of the mistakes it does not refuse, 3 draw a warning,
+          9 are bad data stopped at a runtime boundary check, and
+          2 stop at run time. The ones a reviewer of agent-written code leans on most:
         </p>
       </div>
 

@@ -8,7 +8,7 @@ A claim that Glyph catches something is a pair of programs in the repository, on
 
 ## The fixtures
 
-Each directory under [catches/](https://github.com/chadetov/glyph/tree/main/catches) holds `ts.ts`, `glyph.glyph` and a `case.toml` saying what each one does. `scripts/check_catches.py` runs in CI. It requires every `ts.ts` to pass `tsc --strict`, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. These are the 53 cases today:
+Each directory under [catches/](https://github.com/chadetov/glyph/tree/main/catches) holds `ts.ts`, `glyph.glyph` and a `case.toml` saying what each one does. `scripts/check_catches.py` runs in CI. It requires every `ts.ts` to pass `tsc --strict`, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. There are 53 checked cases: 37 TypeScript mistakes, 5 JavaScript traps that do not exist in Glyph, and 11 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 mistakes and 5 traps). By the kind the gate checks:
 
 | Kind | Cases | What the gate requires of the Glyph |
 

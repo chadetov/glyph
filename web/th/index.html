@@ -132,7 +132,7 @@
                       <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">สิ่งที่ยังจับไม่ได้</span><span class="nav-desc">ช่องโหว่ที่รู้แล้ว แต่ละจุดมีโค้ดสำหรับทำซ้ำ</span></span></a></li>
                     </ul>
                   </div>
-                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">กรณีที่ไม่มีอะไรในโปรเจกต์ TypeScript ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 จาก 37</span><span class="nav-feature-text">ข้อผิดพลาดใน TypeScript ที่ไม่มีอะไรในโปรเจกต์ที่ตั้งค่าเต็มที่จับได้</span><span class="nav-feature-cta">ดูว่าจับอะไรได้บ้าง <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
                 </div>
               </details>
             </li>
@@ -513,7 +513,7 @@
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>21</span> จาก 37</p>
-          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก 37 ข้อ มี 21 ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ 5 ข้อ และกฎ lint จับได้ 11 ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า</p>
+          <p>ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก 37 ข้อ มี 21 ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ 5 ข้อ และกฎ lint จับได้ 11 ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า รวมทั้งหมดมี 53 กรณีที่ตรวจแล้ว ได้แก่ ข้อผิดพลาดใน TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 11 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (ข้อผิดพลาด 23 กรณี และกับดัก 5 กรณี)</p>
         </div>
       </div>
     </section>

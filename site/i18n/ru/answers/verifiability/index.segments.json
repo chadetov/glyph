@@ -1,0 +1,1226 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/verifiability/index.html",
+  "locale": "ru",
+  "source_hash": "debac5501878fd3d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What stops an agent from silently breaking my code? · Glyph",
+      "tr": "Что мешает агенту незаметно сломать мой код? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.",
+      "tr": "Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить."
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Далее &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "Останутся ли правки агента чистыми, или он переформатирует весь файл?"
+    },
+    {
+      "id": "h-817ec091",
+      "kind": "html",
+      "en": "01 &middot; The core promise",
+      "tr": "01 &middot; Главное обещание"
+    },
+    {
+      "id": "h-91535472",
+      "kind": "html",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "Что мешает агенту незаметно сломать мой код?"
+    },
+    {
+      "id": "h-8860267a",
+      "kind": "html",
+      "en": "A whole class of change that <strong>quietly compiles</strong> in TypeScript (a missing case, an unhandled error, a renamed field) becomes a <strong>compile error the agent has to fix before it can ship</strong>.",
+      "tr": "Целый класс изменений, которые в TypeScript <strong>тихо компилируются</strong> (пропущенный случай, необработанная ошибка, переименованное поле), становится <strong>ошибкой компиляции, которую агент должен исправить, прежде чем что-то выпустить</strong>."
+    },
+    {
+      "id": "h-0dca38d0",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.ts</span> one new state, no other edit",
+      "tr": "<span class=\"ak-lang\">status.ts</span> одно новое состояние, больше никаких правок"
+    },
+    {
+      "id": "h-a7fd8366",
+      "kind": "html",
+      "en": "tsc --strict: passes, prints undefined",
+      "tr": "tsc --strict: проходит, печатает undefined"
+    },
+    {
+      "id": "h-df578f1c",
+      "kind": "html",
+      "en": "<span class=\"ak-lang\">status.glyph</span> one new variant, and the compiler finds every gap",
+      "tr": "<span class=\"ak-lang\">status.glyph</span> один новый вариант, и компилятор находит каждую дыру"
+    },
+    {
+      "id": "h-f12dfbd8",
+      "kind": "html",
+      "en": "refused: E0200",
+      "tr": "отклонено: E0200"
+    },
+    {
+      "id": "h-dddaf308",
+      "kind": "html",
+      "en": "glyph check --no-tsc, 0.1.149 (excerpt)",
+      "tr": "glyph check --no-tsc, 0.1.149 (фрагмент)"
+    },
+    {
+      "id": "h-b4036960",
+      "kind": "html",
+      "en": "<span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span>",
+      "tr": "<span>Добавьте состояние в union, и каждое место, которое обрабатывало старый набор, перестанет компилироваться с указанием точного места для правки. Эквивалентный <code>switch</code> на TypeScript компилируется без ошибок и во время выполнения возвращает <code>undefined</code>.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Почему это важно</a>"
+    },
+    {
+      "id": "h-493ba471",
+      "kind": "html",
+      "en": "<a href=\"#errors\">Errors</a>",
+      "tr": "<a href=\"#errors\">Ошибки</a>"
+    },
+    {
+      "id": "h-299aad85",
+      "kind": "html",
+      "en": "<a href=\"#typos\">Typos in arms</a>",
+      "tr": "<a href=\"#typos\">Опечатки в ветках</a>"
+    },
+    {
+      "id": "h-f1f1c9bc",
+      "kind": "html",
+      "en": "<a href=\"#imports\">Across modules</a>",
+      "tr": "<a href=\"#imports\">Между модулями</a>"
+    },
+    {
+      "id": "h-ef1ba415",
+      "kind": "html",
+      "en": "<a href=\"#refinements\">Refinements</a>",
+      "tr": "<a href=\"#refinements\">Уточнения</a>"
+    },
+    {
+      "id": "h-736c66f8",
+      "kind": "html",
+      "en": "<a href=\"#examples\">Tests in the build</a>",
+      "tr": "<a href=\"#examples\">Тесты в сборке</a>"
+    },
+    {
+      "id": "h-1af522cc",
+      "kind": "html",
+      "en": "<a href=\"#four-more-found-by-building-with-it\">Found by building</a>",
+      "tr": "<a href=\"#four-more-found-by-building-with-it\">Найдено на практике</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Текущее состояние</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
+      "id": "h-32dffb36",
+      "kind": "html",
+      "en": "Agents don't usually break code loudly. They break it <strong>confidently</strong>: they add a state, drop a branch, or rename a field, everything still type-checks, and the bug surfaces in production.",
+      "tr": "Агенты обычно ломают код не громко. Они ломают его <strong>уверенно</strong>: добавляют состояние, выкидывают ветку или переименовывают поле, всё по-прежнему проходит проверку типов, а баг всплывает в продакшене."
+    },
+    {
+      "id": "h-593cf2d6",
+      "kind": "html",
+      "en": "The expensive failures are the ones that <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into &ldquo;the compiler proved you did.&rdquo;",
+      "tr": "Дорого обходятся те ошибки, которые <em>скомпилировались и оказались неверными</em>. Glyph закрывает этот разрыв, превращая «вы, вероятно, это обработали» в «компилятор доказал, что вы это обработали»."
+    },
+    {
+      "id": "h-7c47ac02",
+      "kind": "html",
+      "en": "<b>Sealed unions</b>Tagged unions are <strong>sealed</strong>, so <code>match</code> must cover every case.",
+      "tr": "<b>Закрытые union</b>Размеченные объединения <strong>закрыты</strong>, поэтому <code>match</code> обязан покрыть каждый вариант."
+    },
+    {
+      "id": "h-a732dd83",
+      "kind": "html",
+      "en": "<b>Errors as values</b>Errors are <strong>values</strong> you have to unwrap, not exceptions that vanish.",
+      "tr": "<b>Ошибки как значения</b>Ошибки это <strong>значения</strong>, которые нужно развернуть, а не исключения, которые бесследно пропадают."
+    },
+    {
+      "id": "h-7cc9aefc",
+      "kind": "html",
+      "en": "<b>Checked boundaries</b>And every type carries a runtime descriptor, so data crossing a boundary is checked against its shape.",
+      "tr": "<b>Проверяемые границы</b>Кроме того, у каждого типа есть дескриптор времени выполнения, поэтому данные, пересекающие границу, проверяются на соответствие форме."
+    },
+    {
+      "id": "h-9e145fb3",
+      "kind": "html",
+      "en": "A dropped error is a warning",
+      "tr": "Отброшенная ошибка даёт предупреждение"
+    },
+    {
+      "id": "h-a0f7e838",
+      "kind": "html",
+      "en": "Same for errors: a function that returns <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or propagated with <code>?</code> (and the compiler checks the error type lines up). And if you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.",
+      "tr": "С ошибками так же: функцию, которая возвращает <code>Result&lt;T, E&gt;</code>, предполагается обработать через <code>match</code> или пробросить через <code>?</code> (и компилятор проверяет, что типы ошибок совпадают). А если вы <em>отбросите</em> <code>Result</code> (вызовете функцию как инструкцию и проигнорируете результат), Glyph предупредит вас (<code>E0217</code>), потому что выброшенная ошибка это проглоченный сбой."
+    },
+    {
+      "id": "h-3c7c9444",
+      "kind": "html",
+      "en": "You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "Заглушить предупреждение можно намеренно, через <code>let _ = ...</code>, но не случайно."
+    },
+    {
+      "id": "h-4faa036c",
+      "kind": "html",
+      "en": "The standard library's unions are sealed too",
+      "tr": "Union из стандартной библиотеки тоже закрыты"
+    },
+    {
+      "id": "h-ac5ad03f",
+      "kind": "html",
+      "en": "The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code> is a closed set of six kinds, and the checker knows its shape, so <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and fails with <code>E0200</code> when you leave a kind out.",
+      "tr": "Для union, которым владеет стандартная библиотека, планка та же. <code>fs.ErrorKind</code> это закрытый набор из шести видов, и проверка типов знает его форму, поэтому <code>match e.kind</code> по ошибке файловой системы не требует ветки <code>else</code> и падает с <code>E0200</code>, если вы пропустите какой-то вид."
+    },
+    {
+      "id": "h-d6bf3201",
+      "kind": "html",
+      "en": "E0200 missing kind",
+      "tr": "E0200 пропущен вид"
+    },
+    {
+      "id": "h-82c9da4e",
+      "kind": "html",
+      "en": "E0210 unknown field",
+      "tr": "E0210 неизвестное поле"
+    },
+    {
+      "id": "h-b365b66a",
+      "kind": "html",
+      "en": "E0218 needs else",
+      "tr": "E0218 нужен else"
+    },
+    {
+      "id": "h-68b00f6d",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">field typos, return types, number and string matches</span>",
+      "tr": "Подробнее <span class=\"hint\">опечатки в полях, возвращаемые типы, match по числам и строкам</span>"
+    },
+    {
+      "id": "h-0469c431",
+      "kind": "html",
+      "en": "<code>e.mesage</code> is <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return types travel too: <code>string.split(text, \",\")</code> is an <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, \",\")</code> binds <code>i</code> as a number instead of the string key you'd get from an untyped iterand.",
+      "tr": "<code>e.mesage</code> даёт <code>E0210</code>, а не то, что <code>tsc</code> поймает где-то дальше. Возвращаемые типы тоже распространяются: <code>string.split(text, \",\")</code> имеет тип <code>Array&lt;string&gt;</code>, поэтому <code>for i, part in string.split(text, \",\")</code> связывает <code>i</code> как число, а не как строковый ключ, который получился бы при нетипизированном итерируемом значении."
+    },
+    {
+      "id": "h-50f9d186",
+      "kind": "html",
+      "en": "Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value fall through to a runtime throw.",
+      "tr": "Исчерпываемость касается не только union. <code>match</code> по <code>number</code> или <code>string</code> только с литеральными ветками не может покрыть неограниченную область значений, поэтому Glyph требует <code>else</code> (<code>E0218</code>), а не позволяет непокрытому значению провалиться до исключения во время выполнения."
+    },
+    {
+      "id": "h-bf2adc90",
+      "kind": "html",
+      "en": "The rule is the same everywhere: a <code>match</code> that doesn't account for a case doesn't compile.",
+      "tr": "Правило везде одно: <code>match</code>, который не учитывает какой-то случай, не компилируется."
+    },
+    {
+      "id": "h-94ceef2f",
+      "kind": "html",
+      "en": "A misspelled arm is a gap, not a catch-all",
+      "tr": "Ветка с опечаткой это дыра, а не catch-all"
+    },
+    {
+      "id": "h-325a109d",
+      "kind": "html",
+      "en": "A typo can't quietly paper over a gap either. A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding.",
+      "tr": "Опечатка тоже не может тихо замаскировать пропуск. Имя ветки с заглавной буквы это <strong>ссылка на вариант</strong>, а не новая переменная."
+    },
+    {
+      "id": "h-81a2cb84",
+      "kind": "html",
+      "en": "status.glyph: a misspelled arm is a gap, not a catch-all",
+      "tr": "status.glyph: ветка с опечаткой это дыра, а не catch-all"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-1111b2dc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what older Glyph did with the typo</span>",
+      "tr": "История <span class=\"hint\">что раньше Glyph делал с опечаткой</span>"
+    },
+    {
+      "id": "h-35c640dd",
+      "kind": "html",
+      "en": "A capitalized arm head is a <strong>reference to a variant</strong>, not a fresh binding, so if you misspell <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a catch-all that bound every value and made the match look total. Now the head has to name a real variant of the union you're matching. When it doesn't, the build stops with <code>E0220</code> and points at the nearest real name, and the variant you actually skipped still shows up as <code>E0200</code> right next to it.",
+      "tr": "Имя ветки с заглавной буквы это <strong>ссылка на вариант</strong>, а не новая переменная, поэтому если вы напишете <code>Loading</code> как <code>Loadign</code>, старые версии Glyph читали опечатку как catch-all, который связывал любое значение, и match выглядел полным. Теперь имя ветки должно называть реальный вариант union, по которому идёт match. Если это не так, сборка останавливается с <code>E0220</code> и указывает на ближайшее реальное имя, а вариант, который вы на самом деле пропустили, по-прежнему появляется рядом как <code>E0200</code>."
+    },
+    {
+      "id": "h-e45746f9",
+      "kind": "html",
+      "en": "Variants inside a payload",
+      "tr": "Варианты внутри полезной нагрузки"
+    },
+    {
+      "id": "h-4e9c7c14",
+      "kind": "html",
+      "en": "That reading holds one level down, where the variant is the payload of another one. The arm now dispatches on the payload's own tag, whatever the outer variant is.",
+      "tr": "Это прочтение работает и на уровень ниже, где вариант является полезной нагрузкой другого варианта. Теперь ветка выбирается по собственному тегу полезной нагрузки, каким бы ни был внешний вариант."
+    },
+    {
+      "id": "h-5f78059f",
+      "kind": "html",
+      "en": "repl.glyph: the inner arm tests the payload, it doesn't bind it",
+      "tr": "repl.glyph: внутренняя ветка проверяет полезную нагрузку, а не связывает её"
+    },
+    {
+      "id": "h-e29806a9",
+      "kind": "html",
+      "en": "E0305 duplicate case label",
+      "tr": "E0305 повторяющаяся метка case"
+    },
+    {
+      "id": "h-a9f4ca6a",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the dead arm before 0.1.93, and the E0305 guard</span>",
+      "tr": "История <span class=\"hint\">мёртвая ветка до 0.1.93 и защита E0305</span>"
+    },
+    {
+      "id": "h-6b579450",
+      "kind": "html",
+      "en": "<code>Err(Blank)</code> beside <code>Err(e)</code> reads as \"ignore a blank line, print every other parse error\", and until 0.1.93 it compiled to two <code>case \"Err\":</code> labels on the outer tag whose first bound the whole payload under the name <code>Blank</code>. Every error took the first arm, the second was dead code, and nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> accepts a duplicate case label. The arm now dispatches on the payload's own tag, whatever the outer variant is, and the compiler reads the name the way the typechecker does: the payload union's own variant list decides, and only when that list is out of reach does the name's shape decide. For a union declared in the same file the capitalization no longer matters. For one imported from another module the variant list is out of reach today, so a capitalized variant dispatches and a lowercase one stops the build.",
+      "tr": "<code>Err(Blank)</code> рядом с <code>Err(e)</code> читается как «пропусти пустую строку, напечатай все остальные ошибки разбора», но до 0.1.93 это компилировалось в две метки <code>case \"Err\":</code> по внешнему тегу, и первая связывала всю полезную нагрузку под именем <code>Blank</code>. Каждая ошибка попадала в первую ветку, вторая была мёртвым кодом, и ничто об этом не сообщало: Glyph не выдавал диагностик, а <code>tsc --strict</code> принимает повторяющуюся метку case. Теперь ветка выбирается по собственному тегу полезной нагрузки, каким бы ни был внешний вариант, и компилятор читает имя так же, как проверка типов: решает собственный список вариантов union полезной нагрузки, и только когда этот список недоступен, решает форма имени. Для union, объявленного в том же файле, регистр больше не важен. Для union, импортированного из другого модуля, список вариантов сейчас недоступен, поэтому вариант с заглавной буквы выбирается по тегу, а со строчной останавливает сборку."
+    },
+    {
+      "id": "h-2bcf741d",
+      "kind": "html",
+      "en": "It stops because the switch is guarded now. Two arms that would write the same <code>case</code> label are <code>E0305</code>, not a switch whose second label can never run. That is what makes the class loud instead of silent: a lowering that reaches for the same tag twice fails the build rather than picking the wrong arm at run time.",
+      "tr": "Она останавливается потому, что switch теперь защищён. Две ветки, которые записали бы одну и ту же метку <code>case</code>, дают <code>E0305</code>, а не switch, вторая метка которого никогда не выполнится. Именно это делает этот класс ошибок громким, а не тихим: преобразование, которое дважды обращается к одному тегу, роняет сборку, а не выбирает не ту ветку во время выполнения."
+    },
+    {
+      "id": "h-5ae4d2b0",
+      "kind": "html",
+      "en": "Import spelling never turns the check off",
+      "tr": "Способ импорта никогда не отключает проверку"
+    },
+    {
+      "id": "h-cf742b0d",
+      "kind": "html",
+      "en": "How the union got into scope doesn't change any of this. Glyph lets you write a variant arm two ways, and both are checked the same: <code>import model { Cond, Yes, No }</code> with bare arms, or <code>import model</code> (or <code>import model as m</code>) with <code>model.Yes(_)</code>.",
+      "tr": "То, как union попал в область видимости, ничего здесь не меняет. В Glyph ветку варианта можно записать двумя способами, и оба проверяются одинаково: <code>import model { Cond, Yes, No }</code> с короткими ветками или <code>import model</code> (или <code>import model as m</code>) с <code>model.Yes(_)</code>."
+    },
+    {
+      "id": "h-a5be5f60",
+      "kind": "html",
+      "en": "interp.glyph: the import list came out, the match is still checked",
+      "tr": "interp.glyph: список импорта убран, match по-прежнему проверяется"
+    },
+    {
+      "id": "h-1efde9fe",
+      "kind": "html",
+      "en": "glyph build, after deleting the last arm",
+      "tr": "glyph build после удаления последней ветки"
+    },
+    {
+      "id": "h-f2895549",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">standard library unions, string enums, and why the list existed</span>",
+      "tr": "Подробнее <span class=\"hint\">union стандартной библиотеки, строковые перечисления и зачем был нужен список</span>"
+    },
+    {
+      "id": "h-d10dc4ff",
+      "kind": "html",
+      "en": "That holds for the standard library's unions too, so <code>match o { option.Some(s) =&gt; … }</code> on an <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling is. Until 0.1.56 the qualified spelling skipped the check entirely and the build reported no diagnostics on a match that threw at run time.",
+      "tr": "Это верно и для union стандартной библиотеки, поэтому <code>match o { option.Some(s) =&gt; … }</code> по <code>option.Option&lt;string&gt;</code> даёт <code>E0200</code> за пропущенный <code>None</code> точно так же, как короткая запись <code>Some</code>/<code>None</code>. До 0.1.56 полная запись полностью пропускала проверку, и сборка не выдавала диагностик для match, который падал во время выполнения."
+    },
+    {
+      "id": "h-947faa47",
+      "kind": "html",
+      "en": "A string enum crosses the boundary too. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code> declared in <code>catalog.glyph</code> and imported into another module keeps its four values, so a match covering all four compiles with no <code>else</code>, and dropping one is <code>E0200</code> naming the value you dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add an <code>else</code> arm. That help was wrong about the code in front of it, and taking it turned a compile error into a runtime fallthrough. All three import spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with <code>catalog.ColType</code>, and <code>import catalog as c</code> with <code>c.ColType</code>.",
+      "tr": "Строковое перечисление тоже пересекает границу. <code>type ColType = \"text\" | \"int\" | \"real\" | \"bool\"</code>, объявленный в <code>catalog.glyph</code> и импортированный в другой модуль, сохраняет свои четыре значения, поэтому match, покрывающий все четыре, компилируется без <code>else</code>, а пропуск одного даёт <code>E0200</code> с названием пропущенного значения. До 0.1.57 это был <code>E0218</code> с подсказкой добавить ветку <code>else</code>. Подсказка была неверна для кода, к которому относилась, и следование ей превращало ошибку компиляции в провал во время выполнения. Работают все три способа импорта: <code>import catalog { ColType }</code>, <code>import catalog</code> с <code>catalog.ColType</code> и <code>import catalog as c</code> с <code>c.ColType</code>."
+    },
+    {
+      "id": "h-1a86b4ae",
+      "kind": "html",
+      "en": "That import list is where this came from. It was written by hand in every module of a statechart engine, with a comment above it saying a union's constructors don't arrive with its type. The comment was right about the syntax and wrong about the reason: the list was there because the shorter spelling turned the check off, and nobody had noticed, because turning it off is silent. Which form you pick is now a real choice rather than a trap. The named one puts every variant you handle in the import list, which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one says at each arm which module the variant came from. Neither costs you the check.",
+      "tr": "Именно отсюда появился тот список импорта. Его вручную писали в каждом модуле движка statechart, с комментарием сверху: мол, конструкторы union не приходят вместе с его типом. Комментарий был прав насчёт синтаксиса и неправ насчёт причины: список был нужен потому, что короткая запись отключала проверку, и никто этого не замечал, потому что отключение происходит молча. Выбор формы теперь настоящий выбор, а не ловушка. Именованная форма помещает каждый обрабатываемый вариант в список импорта, и именно его найдёт <code>grep</code> по <code>Equals</code>. Полная форма в каждой ветке показывает, из какого модуля пришёл вариант. Ни одна из них не лишает вас проверки."
+    },
+    {
+      "id": "h-5d24c15d",
+      "kind": "html",
+      "en": "Imported records keep their fields",
+      "tr": "Импортированные записи сохраняют свои поля"
+    },
+    {
+      "id": "h-22710d78",
+      "kind": "html",
+      "en": "Records cross now too, and until 0.1.58 they did not. A record therefore keeps its field set, and a bad field is <code>E0210</code> naming the record rather than a <code>tsc</code> error about an anonymous shape.",
+      "tr": "Записи теперь тоже пересекают границу, а до 0.1.58 этого не было. Поэтому запись сохраняет свой набор полей, и неверное поле даёт <code>E0210</code> с названием записи, а не ошибку <code>tsc</code> про анонимную форму."
+    },
+    {
+      "id": "h-7282177b",
+      "kind": "html",
+      "en": "glyph build, on a typo'd field of an imported record",
+      "tr": "glyph build на поле импортированной записи с опечаткой"
+    },
+    {
+      "id": "h-e3755b2b",
+      "kind": "html",
+      "en": "table.glyph: the hoists and the comment explaining them are gone",
+      "tr": "table.glyph: вынесенные переменные и объясняющий их комментарий больше не нужны"
+    },
+    {
+      "id": "h-7255646a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the line 11 bug, what tsc misses, how identity crosses</span>",
+      "tr": "Подробнее <span class=\"hint\">баг со строкой 11, что пропускает tsc, как переносится идентичность</span>"
+    },
+    {
+      "id": "h-14cf6d10",
+      "kind": "html",
+      "en": "A type declared in one file and used in another arrived with nothing known about it, which cost two separate checks. A misspelled field on it drew no Glyph error at all, so <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a TypeScript message about a shape you never wrote. And <code>for i, r in sheet.rows</code> could not tell that <code>rows</code> was an array, so it emitted <code>Object.entries(sheet.rows)</code> rather than <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>\"0\"</code>. <code>i + 1</code> then concatenates instead of adding, and a row that should be reported as <code>line 2</code> reports as <code>line 11</code>.",
+      "tr": "Тип, объявленный в одном файле и используемый в другом, приходил без какой-либо информации о себе, и это стоило двух отдельных проверок. Опечатка в его поле вообще не вызывала ошибку Glyph, поэтому <code>sheet.rowz</code> проваливался до <code>tsc</code> и возвращался сообщением TypeScript о форме, которую вы никогда не писали. А <code>for i, r in sheet.rows</code> не мог понять, что <code>rows</code> это массив, поэтому генерировал <code>Object.entries(sheet.rows)</code> вместо <code>sheet.rows.entries()</code>. Это связывает <code>i</code> со строкой <code>\"0\"</code>. Тогда <code>i + 1</code> склеивает строки вместо сложения, и строка, о которой нужно сообщить как о <code>line 2</code>, сообщается как <code>line 11</code>."
+    },
+    {
+      "id": "h-9abff4c5",
+      "kind": "html",
+      "en": "The part worth knowing is which half <code>tsc</code> catches. Arithmetic on that index it does catch, though it reports the error against generated TypeScript for a variable Glyph bound on your behalf. What it cannot catch is every place a string is accepted where a number was meant: string interpolation, concatenation, a <code>record.get</code> key. Those compile clean under both checkers and print the wrong number. That is the shape of bug this project exists to remove, so a module boundary that reintroduces it is not a boundary Glyph can leave alone.",
+      "tr": "Важно понимать, какую половину ловит <code>tsc</code>. Арифметику с таким индексом он ловит, хотя сообщает об ошибке в сгенерированном TypeScript, про переменную, которую Glyph объявил за вас. Чего он поймать не может, так это все места, где принимается строка там, где имелось в виду число: интерполяция строк, конкатенация, ключ <code>record.get</code>. Они компилируются без ошибок под обеими проверками и печатают неверное число. Это ровно тот тип багов, ради устранения которых существует этот проект, поэтому граница модулей, которая возвращает его обратно, не та граница, которую Glyph может оставить как есть."
+    },
+    {
+      "id": "h-458dd926",
+      "kind": "html",
+      "en": "An imported type now carries an identity across the boundary, keyed on the module that declares it and the name it declares, so all three import spellings resolve to the same type. The declaration itself is fetched on demand and lowered on the declaring module's side, which is the half a consumer cannot do: resolution runs over spans, and an imported declaration's spans belong to another file.",
+      "tr": "Импортированный тип теперь переносит через границу свою идентичность, привязанную к модулю, который его объявляет, и к объявленному имени, поэтому все три способа импорта дают один и тот же тип. Само объявление загружается по требованию и обрабатывается на стороне объявляющего модуля, а это та половина, которую потребитель сделать не может: разрешение имён работает по позициям в исходнике, а позиции импортированного объявления принадлежат другому файлу."
+    },
+    {
+      "id": "h-056c35df",
+      "kind": "html",
+      "en": "The query engine in <code>examples/apps/csvql</code> is where this surfaced. It carried three <code>let</code> hoists whose only job was to restate an imported field's type for the emitter, under a four-line comment explaining that without them the row and column numbers in an error message come out wrong. All three are deleted and the app prints byte-identical output for all twelve queries.",
+      "tr": "Это всплыло в движке запросов в <code>examples/apps/csvql</code>. В нём было три вынесенных <code>let</code>, единственная задача которых состояла в том, чтобы повторить для эмиттера тип импортированного поля, а над ними четырёхстрочный комментарий о том, что без них номера строк и столбцов в сообщении об ошибке получаются неправильными. Все три удалены, и приложение выдаёт побайтно тот же вывод для всех двенадцати запросов."
+    },
+    {
+      "id": "h-16e56e8c",
+      "kind": "html",
+      "en": "One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is E0211 naming both types, but an <code>interface</code>'s member list does not cross, so a record passed where an imported interface is expected is compared against nothing. Giving it the treatment a record's field set gets would quietly change what structural satisfaction means, which is a language decision rather than a fix.",
+      "tr": "Одна вещь всё ещё останавливается на границе. Передача <code>catalog.Sheet</code> туда, где ожидается <code>table.Row</code>, даёт E0211 с названием обоих типов, но список членов <code>interface</code> границу не пересекает, поэтому запись, переданная туда, где ожидается импортированный interface, ни с чем не сравнивается. Если обращаться с ним так же, как с набором полей записи, это тихо изменит смысл структурного соответствия, а это решение о языке, а не исправление."
+    },
+    {
+      "id": "h-6834f6ea",
+      "kind": "html",
+      "en": "PII masking lives on the type",
+      "tr": "Маскирование персональных данных задаётся в типе"
+    },
+    {
+      "id": "h-e74ab1dc",
+      "kind": "html",
+      "en": "The same \"make it type-level, not convention\" instinct covers PII. Put <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a <code>redact()</code> on its descriptor that masks those fields, so <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "Тот же принцип «на уровне типа, а не по соглашению» распространяется на персональные данные. Поставьте <code>@redact fields: [ssn, dob]</code> на тип, и компилятор сгенерирует в его дескрипторе <code>redact()</code>, который маскирует эти поля, так что <code>json.stringify(User.redact(u))</code> не может их раскрыть."
+    },
+    {
+      "id": "h-13194d57",
+      "kind": "html",
+      "en": "E0219 unknown field in @redact",
+      "tr": "E0219 неизвестное поле в @redact"
+    },
+    {
+      "id": "h-a3dc9bf7",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently does nothing.",
+      "tr": "Укажите поле, которого у типа нет, и получите ошибку компиляции (<code>E0219</code>), а не маскирование, которое молча ничего не делает."
+    },
+    {
+      "id": "h-f83eef70",
+      "kind": "html",
+      "en": "Refinements are checked all the way down",
+      "tr": "Уточнения проверяются на всю глубину"
+    },
+    {
+      "id": "h-4f2c9d8a",
+      "kind": "html",
+      "en": "A descriptor is only worth anything if it's the check the type declares, all the way down. A <code>where</code> refinement runs its predicate wherever the type appears, not just at a direct <code>Instant.parse</code>: as a record field, as an <code>Array</code> element, as an <code>Option</code> payload, inside a union variant, and through <code>json.parse&lt;T&gt;</code>.",
+      "tr": "Дескриптор чего-то стоит, только если это та проверка, которую объявляет тип, на всю глубину. Уточнение <code>where</code> выполняет свой предикат везде, где появляется тип, а не только при прямом <code>Instant.parse</code>: как поле записи, как элемент <code>Array</code>, как полезная нагрузка <code>Option</code>, внутри варианта union и через <code>json.parse&lt;T&gt;</code>."
+    },
+    {
+      "id": "a-9d24b993",
+      "kind": "attr:aria-label",
+      "en": "Where the predicate runs",
+      "tr": "Где выполняется предикат"
+    },
+    {
+      "id": "h-cc2d34d0",
+      "kind": "html",
+      "en": "<span>Calendar</span>",
+      "tr": "<span>Calendar</span>"
+    },
+    {
+      "id": "h-ff1a5c12",
+      "kind": "html",
+      "en": "<span>busy</span>",
+      "tr": "<span>busy</span>"
+    },
+    {
+      "id": "h-6f5019a2",
+      "kind": "html",
+      "en": "<span>start</span>",
+      "tr": "<span>start</span>"
+    },
+    {
+      "id": "h-b466db9f",
+      "kind": "html",
+      "en": "<span>The fix is four levels down from the boundary: <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to <code>busy</code> to <code>start</code> to the predicate.</span>",
+      "tr": "<span>Исправление находится на четыре уровня ниже границы: от <code>Calendar</code> к <code>Array&lt;WireParticipant&gt;</code>, к <code>busy</code>, к <code>start</code> и к предикату.</span>"
+    },
+    {
+      "id": "h-b717ddb6",
+      "kind": "html",
+      "en": "schedule.glyph: the predicate follows the type into the field",
+      "tr": "schedule.glyph: предикат следует за типом внутрь поля"
+    },
+    {
+      "id": "h-db3eb4df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the confident wrong schedule before 0.1.41</span>",
+      "tr": "История <span class=\"hint\">уверенное неверное расписание до 0.1.41</span>"
+    },
+    {
+      "id": "h-26ea0f9a",
+      "kind": "html",
+      "en": "The same goes for a record imported from another module. Until 0.1.41 both of those fell back to checking that the key was present, which is not a check of anything.",
+      "tr": "То же относится к записи, импортированной из другого модуля. До 0.1.41 в обоих случаях проверялось только наличие ключа, а это ничего не проверяет."
+    },
+    {
+      "id": "h-32933c95",
+      "kind": "html",
+      "en": "The scheduling app below is where this surfaced. It reads calendars from a JSON file and needs every timestamp to be a real ISO-8601 instant. Before, the refinement stopped at the top level, so a hand-edited file with <code>\"start\": \"no\"</code> parsed fine, the instant read as 0, and the app printed a confident schedule and exited 0.",
+      "tr": "Это всплыло в приложении-планировщике ниже. Оно читает календари из JSON-файла, и каждая метка времени в нём должна быть настоящим моментом ISO-8601. Раньше уточнение останавливалось на верхнем уровне, поэтому отредактированный вручную файл с <code>\"start\": \"no\"</code> разбирался без ошибок, момент читался как 0, а приложение уверенно печатало расписание и завершалось с кодом 0."
+    },
+    {
+      "id": "h-e0b0c6e0",
+      "kind": "html",
+      "en": "Tests run as part of the build",
+      "tr": "Тесты запускаются как часть сборки"
+    },
+    {
+      "id": "h-8f68e695",
+      "kind": "html",
+      "en": "Tests live next to the code and run as part of compiling it. An <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.",
+      "tr": "Тесты лежат рядом с кодом и запускаются при его компиляции. <code>@example</code> над функцией или блок <code>```glyph @run```</code> внутри <code>@doc</code> выполняет <code>glyph build</code>, и никакой флаг помнить не нужно."
+    },
+    {
+      "id": "h-a935d52f",
+      "kind": "html",
+      "en": "bracket.glyph: break the seeding and the build stops",
+      "tr": "bracket.glyph: сломайте посев, и сборка остановится"
+    },
+    {
+      "id": "h-9fb096f6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it can't be skipped quietly, and the JSON channel</span>",
+      "tr": "Подробнее <span class=\"hint\">почему их нельзя тихо пропустить, и канал JSON</span>"
+    },
+    {
+      "id": "h-8d480a9c",
+      "kind": "html",
+      "en": "A false one fails the build the same way a type error does, which is the point: an agent rewriting a function body cannot pass the build by leaving the assertion behind. <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is visible in the log.",
+      "tr": "Ложное утверждение роняет сборку так же, как ошибка типов, и в этом весь смысл: агент, переписывающий тело функции, не может пройти сборку, оставив утверждение позади. <code>--no-test</code> отключает их и печатает, сколько тестов пропущено, так что обход виден в логе."
+    },
+    {
+      "id": "h-0c14dec1",
+      "kind": "html",
+      "en": "The JSON output agents read reports the same verdict. <code>glyph build --json</code> carries an <code>examples</code> object next to the diagnostics, and a failing example makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran only under <code>--test</code>, and the JSON path returned before they ran at all, so the one channel an agent can read printed <code>\"ok\": true</code> on a project whose own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails instead of reporting a pass it never checked.",
+      "tr": "JSON-вывод, который читают агенты, сообщает тот же вердикт. <code>glyph build --json</code> содержит объект <code>examples</code> рядом с диагностиками, а упавший пример делает <code>ok</code> ложным и код выхода ненулевым. До 0.1.43 примеры выполнялись только с <code>--test</code>, а путь JSON возвращал результат ещё до их запуска, так что единственный канал, который может прочитать агент, печатал <code>\"ok\": true</code> для проекта, собственное утверждение которого было ложным. Если <code>tsx</code> нет в <code>PATH</code>, сборка падает, а не сообщает об успехе, который она не проверяла."
+    },
+    {
+      "id": "h-39aaaa02",
+      "kind": "html",
+      "en": "The bracket app below carries 23 of these. <code>seed_order</code> builds standard bracket order by doubling, which is the kind of function that is easy to get subtly wrong and easy to describe exactly. Change the doubling rule and the build stops, without a test file, a runner, or a flag.",
+      "tr": "В приложении турнирной сетки ниже таких 23. <code>seed_order</code> строит стандартный порядок сетки удвоением, а такую функцию легко незаметно сделать неправильно и легко точно описать. Поменяйте правило удвоения, и сборка остановится, без тестового файла, раннера и флага."
+    },
+    {
+      "id": "h-03f15931",
+      "kind": "html",
+      "en": "Found by building with it",
+      "tr": "Найдено на практике"
+    },
+    {
+      "id": "h-698c73d4",
+      "kind": "html",
+      "en": "Four more, found by building with it",
+      "tr": "Ещё четыре случая, найденные при работе с языком"
+    },
+    {
+      "id": "h-113db4ca",
+      "kind": "html",
+      "en": "Each of these compiled clean and passed <code>tsc --strict</code>, and each was found by writing an application rather than by reading the compiler. They are the same failure in three places: the types said one thing and the program did another.",
+      "tr": "Каждый из них компилировался без ошибок и проходил <code>tsc --strict</code>, и каждый был найден при написании приложения, а не при чтении компилятора. Это один и тот же сбой в трёх местах: типы говорили одно, а программа делала другое."
+    },
+    {
+      "id": "h-a616a906",
+      "kind": "html",
+      "en": "Reading a key that may not be there",
+      "tr": "Чтение ключа, которого может не быть"
+    },
+    {
+      "id": "h-52489cbb",
+      "kind": "html",
+      "en": "reading a key that may not be there: now E0224",
+      "tr": "чтение ключа, которого может не быть: теперь E0224"
+    },
+    {
+      "id": "h-f531f861",
+      "kind": "html",
+      "en": "It is now a compile error pointing at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.",
+      "tr": "Теперь это ошибка компиляции, указывающая на <code>record.get</code>, который возвращает <code>Option&lt;V&gt;</code>, чтобы у случая отсутствия было куда деться."
+    },
+    {
+      "id": "h-e54e941e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a map read is different from array indexing</span>",
+      "tr": "Подробнее <span class=\"hint\">чем чтение из map отличается от индексации массива</span>"
+    },
+    {
+      "id": "h-c9bcefe0",
+      "kind": "html",
+      "en": "A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as <code>string</code> stated something it had not checked, and the value printed as the text \"undefined\". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.",
+      "tr": "Ключи map произвольные, поэтому компилятор не может знать, что ключ есть. Типизация чтения как <code>string</code> утверждала то, что не было проверено, и значение печаталось как текст \"undefined\". Запись по ключу не затронута, как и индексация массивов: границу программа может проверить, а ключ map нет."
+    },
+    {
+      "id": "h-7affa1da",
+      "kind": "html",
+      "en": "<code>==</code> is value equality everywhere",
+      "tr": "<code>==</code> везде означает равенство значений"
+    },
+    {
+      "id": "h-4243938e",
+      "kind": "html",
+      "en": "a test that passed while the code failed",
+      "tr": "тест, который проходил, когда код не работал"
+    },
+    {
+      "id": "h-310e559c",
+      "kind": "html",
+      "en": "<code>==</code> is now value equality everywhere; primitives still compile to <code>===</code>, so ordinary comparisons are unchanged.",
+      "tr": "<code>==</code> теперь везде означает равенство значений; примитивы по-прежнему компилируются в <code>===</code>, так что обычные сравнения не изменились."
+    },
+    {
+      "id": "h-ce8c5b9d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how a test could pass on broken code</span>",
+      "tr": "История <span class=\"hint\">как тест мог пройти на сломанном коде</span>"
+    },
+    {
+      "id": "h-493aa455",
+      "kind": "html",
+      "en": "<code>==</code> was documented as value equality and lowered to <code>===</code>, which is <em>reference</em> equality the moment either side is a record, a tagged union, or an array. The same expression compared structurally in a test and by identity in the program beside it, so a test could report success on code that did not work.",
+      "tr": "<code>==</code> был задокументирован как равенство значений, а компилировался в <code>===</code>, то есть в равенство <em>ссылок</em>, как только с любой стороны оказывалась запись, размеченное объединение или массив. Одно и то же выражение сравнивало структурно в тесте и по идентичности в программе рядом, поэтому тест мог сообщить об успехе для неработающего кода."
+    },
+    {
+      "id": "h-5f4e8e26",
+      "kind": "html",
+      "en": "A loop binding keeps its element type",
+      "tr": "Переменная цикла сохраняет тип элемента"
+    },
+    {
+      "id": "h-8a885009",
+      "kind": "html",
+      "en": "exhaustiveness that evaporated inside a loop",
+      "tr": "исчерпываемость, которая исчезала внутри цикла"
+    },
+    {
+      "id": "h-6c2e2fbd",
+      "kind": "html",
+      "en": "It now names the variant you have not handled, which is advice to satisfy the check rather than to switch it off.",
+      "tr": "Теперь компилятор называет необработанный вариант, то есть советует выполнить проверку, а не отключить её."
+    },
+    {
+      "id": "h-811ca57d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the catch-all advice it used to give</span>",
+      "tr": "История <span class=\"hint\">совет про catch-all, который он раньше давал</span>"
+    },
+    {
+      "id": "h-1933d79f",
+      "kind": "html",
+      "en": "The loop binding carried no element type, so a <code>match</code> over a string-literal union degraded to a match over <code>string</code> and the compiler advised adding a catch-all.",
+      "tr": "Переменная цикла не несла тип элемента, поэтому <code>match</code> по union строковых литералов деградировал до match по <code>string</code>, и компилятор советовал добавить catch-all."
+    },
+    {
+      "id": "h-c324ad5a",
+      "kind": "html",
+      "en": "Imported generic unions are checked",
+      "tr": "Импортированные обобщённые union проверяются"
+    },
+    {
+      "id": "h-c5058636",
+      "kind": "html",
+      "en": "a variant left out of a match on an imported generic union",
+      "tr": "вариант, пропущенный в match по импортированному обобщённому union"
+    },
+    {
+      "id": "h-e2d737fb",
+      "kind": "html",
+      "en": "It is <code>E0200</code> either way now, at both import spellings and at an open parameter or a concrete instantiation alike.",
+      "tr": "Теперь в любом случае это <code>E0200</code>, при обоих способах импорта и одинаково для открытого параметра и для конкретной подстановки."
+    },
+    {
+      "id": "h-16f631f3",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why the check never started</span>",
+      "tr": "История <span class=\"hint\">почему проверка так и не начиналась</span>"
+    },
+    {
+      "id": "h-b1b9589f",
+      "kind": "html",
+      "en": "A union your own module declares is checked whether or not it takes type parameters. One imported from a sibling module was checked only when it took none. <code>Tree&lt;string&gt;</code> reaches the cross-module coverage path as an application of an imported union rather than as one, and the gate that starts the check was looking for the second, so the <code>match</code> was never counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw. Delete <code>&lt;K&gt;</code> from both files and the same program was <code>E0200</code>.",
+      "tr": "Union, объявленный в вашем собственном модуле, проверяется независимо от того, принимает ли он параметры типа. Union, импортированный из соседнего модуля, проверялся только если параметров у него не было. <code>Tree&lt;string&gt;</code> попадает в путь межмодульной проверки покрытия как применение импортированного union, а не как сам union, а условие, запускающее проверку, искало второе, поэтому <code>match</code> вообще не учитывался: <code>tsc --strict</code> проходил, а <code>Leaf</code> выбрасывал исключение. Удалите <code>&lt;K&gt;</code> из обоих файлов, и та же программа давала <code>E0200</code>."
+    },
+    {
+      "id": "h-215b69fb",
+      "kind": "html",
+      "en": "A <code>parse</code> can't claim a check it didn't do",
+      "tr": "<code>parse</code> не может заявлять о проверке, которую не делал"
+    },
+    {
+      "id": "h-ed18ae93",
+      "kind": "html",
+      "en": "a <code>parse</code> that reported success without checking: now E0304",
+      "tr": "<code>parse</code>, который сообщал об успехе без проверки: теперь E0304"
+    },
+    {
+      "id": "h-39872533",
+      "kind": "html",
+      "en": "Holding a socket in a record is ordinary and still compiles. Validating one is now refused where it is written and in every module that imports the record, naming the field and its type, and the refusal follows the shape: through a nested record, an <code>Array</code>, an <code>Option</code>.",
+      "tr": "Хранить сокет в записи нормально, и это по-прежнему компилируется. А вот его валидация теперь отклоняется там, где она написана, и в каждом модуле, импортирующем запись, с названием поля и его типа, и отказ следует за формой: через вложенную запись, <code>Array</code>, <code>Option</code>."
+    },
+    {
+      "id": "h-a05fe05e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why presence is not a check, and the fix it asks for</span>",
+      "tr": "Подробнее <span class=\"hint\">почему наличие не проверка и какое исправление предлагается</span>"
+    },
+    {
+      "id": "h-9c3b562f",
+      "kind": "html",
+      "en": "Every record type carries a runtime descriptor. For a field whose type the compiler cannot see into, a socket or anything reached through <code>extern_ts</code>, the generated check was \"is it present\" while the reported message read <code>field `sock` must be Socket</code>. A boolean that is always true is useless. One that is always true under a message naming a type nothing checked is worse, because <code>parse</code> is the thing a boundary is told to trust.",
+      "tr": "У каждого типа записи есть дескриптор времени выполнения. Для поля, тип которого компилятор не видит изнутри (сокет или что угодно, полученное через <code>extern_ts</code>), сгенерированная проверка была «присутствует ли поле», а сообщение гласило <code>field `sock` must be Socket</code>. Булево значение, которое всегда истинно, бесполезно. Значение, которое всегда истинно под сообщением с названием типа, который никто не проверял, ещё хуже, потому что именно <code>parse</code> граница должна доверять."
+    },
+    {
+      "id": "h-f64526be",
+      "kind": "html",
+      "en": "The fix it asks for is the split you would have written anyway, a wire type whose fields are all checkable, then a domain record you build from it. <code>unknown</code> is not caught by this, because it claims nothing and presence really is the whole check.",
+      "tr": "Предлагаемое исправление это разделение, которое вы бы и так написали: тип для передачи данных, все поля которого можно проверить, и доменная запись, которая строится из него. <code>unknown</code> эта проверка не ловит, потому что он ничего не утверждает, и наличие действительно составляет всю проверку."
+    },
+    {
+      "id": "h-ffa8c81e",
+      "kind": "html",
+      "en": "A signature change, invisible at the call site: closed in 0.1.116",
+      "tr": "Изменение сигнатуры, невидимое в месте вызова: закрыто в 0.1.116"
+    },
+    {
+      "id": "h-6db7877f",
+      "kind": "html",
+      "en": "Change a function to take a payload instead of a raw string and every call still passing the old shape built clean.",
+      "tr": "Поменяйте функцию, чтобы она принимала полезную нагрузку вместо сырой строки, и каждый вызов, который всё ещё передаёт старую форму, собирался без ошибок."
+    },
+    {
+      "id": "h-9ee21e49",
+      "kind": "html",
+      "en": "billing.glyph: a union crosses a `string` parameter unnoticed",
+      "tr": "billing.glyph: union незаметно проходит через параметр `string`"
+    },
+    {
+      "id": "h-a20d51b6",
+      "kind": "html",
+      "en": "glyph build, now",
+      "tr": "glyph build, теперь"
+    },
+    {
+      "id": "h-dac7e473",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the check fires, and where it stays quiet</span>",
+      "tr": "Подробнее <span class=\"hint\">где проверка срабатывает и где молчит</span>"
+    },
+    {
+      "id": "h-17c058ca",
+      "kind": "html",
+      "en": "A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.",
+      "tr": "Параметр с типом <code>string</code>, <code>number</code> или <code>bool</code> раньше без единой жалобы принимал значение объявленного union или записи, хотя тот же вызов с неподходящим аргументом <code>bool</code> уже давал <code>E0211</code>."
+    },
+    {
+      "id": "h-da7fe218",
+      "kind": "html",
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "Проверка читает объявление, поэтому срабатывает только там, где ответ точно известен. Примитивный алиас, union строковых литералов (D30), тело <code>extern_ts</code> или <code>typeof</code> и <code>interface</code> по-прежнему ничего не дают, потому что ни про один из них нельзя доказать, что это не <code>string</code>, как про размеченное объединение или запись; <code>void</code> тоже исключён. Проверка одинаково работает для аргумента, для <code>return</code> и для аннотации <code>let</code>, поскольку все три используют одно отношение."
+    },
+    {
+      "id": "h-77fa2d03",
+      "kind": "html",
+      "en": "An annotated <code>const</code> is typed",
+      "tr": "<code>const</code> с аннотацией типизирован"
+    },
+    {
+      "id": "h-18946092",
+      "kind": "html",
+      "en": "A <code>const</code> had the matching gap on the receiving side.",
+      "tr": "У <code>const</code> была такая же дыра с принимающей стороны."
+    },
+    {
+      "id": "h-275d90ea",
+      "kind": "html",
+      "en": "catalog.glyph: an annotated const, and the field it does not have",
+      "tr": "catalog.glyph: const с аннотацией и поле, которого у него нет"
+    },
+    {
+      "id": "h-ace01ce9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">unannotated consts, and why both fixes are breaking</span>",
+      "tr": "Подробнее <span class=\"hint\">const без аннотации и почему оба исправления ломающие</span>"
+    },
+    {
+      "id": "h-7e1d4db5",
+      "kind": "html",
+      "en": "A module-level <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated <code>let</code> inside a function already reported it.",
+      "tr": "<code>const</code> уровня модуля с аннотацией типа превращался в <code>Ty::Unknown</code>, что бы ни говорила аннотация, поэтому опечатка в его поле была не видна ровно там, где такой же аннотированный <code>let</code> внутри функции уже давал ошибку."
+    },
+    {
+      "id": "h-4319dca8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "<code>const</code> без аннотации ничего не утверждает и намеренно остаётся <code>Unknown</code>: вывод его типа из инициализатора это другой вопрос с другим набором ложных срабатываний. Оба исправления ломающие для <code>glyph check --no-tsc</code>, языкового сервера и песочницы, поскольку каждое начинает ловить программу, которую принимал предыдущий выпуск; полный <code>glyph build</code> в обоих случаях и так был красным из-за <code>tsc</code>."
+    },
+    {
+      "id": "h-cbab1648",
+      "kind": "html",
+      "en": "An extra field is still <code>tsc</code>'s to catch",
+      "tr": "Лишнее поле по-прежнему ловит <code>tsc</code>"
+    },
+    {
+      "id": "h-ac6a4587",
+      "kind": "html",
+      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
+      "tr": "Одна проверка литерала записи всё ещё за <code>tsc</code>, а не за Glyph. <code>glyph build</code> на ней останавливается; <code>glyph check --no-tsc</code>, языковой сервер и песочница молчат (G273)."
+    },
+    {
+      "id": "h-b4f5f44a",
+      "kind": "html",
+      "en": "point.glyph: an extra field, left to tsc",
+      "tr": "point.glyph: лишнее поле, оставленное tsc"
+    },
+    {
+      "id": "h-500a7735",
+      "kind": "html",
+      "en": "TS2353 from tsc",
+      "tr": "TS2353 от tsc"
+    },
+    {
+      "id": "h-420c0512",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how tsc reports it</span>",
+      "tr": "Подробнее <span class=\"hint\">как об этом сообщает tsc</span>"
+    },
+    {
+      "id": "h-ef7526a6",
+      "kind": "html",
+      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
+      "tr": "Литерал с полем, которого нет у объявленной записи, проходит проверку Glyph, а <code>tsc</code> отклоняет его в сгенерированном TypeScript как <code>TS2353</code>, с привязкой обратно к литералу."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-d58144f7",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">18</span>",
+      "tr": "Уже работает <span class=\"count\">18</span>"
+    },
+    {
+      "id": "h-f9b8704d",
+      "kind": "html",
+      "en": "Matching",
+      "tr": "Сопоставление"
+    },
+    {
+      "id": "h-1822a7e3",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>",
+      "tr": "Исчерпывающий <code>match</code> по закрытым union: вашим или из соседнего модуля, обобщённым или нет, и по union стандартной библиотеки, например <code>fs.ErrorKind</code>"
+    },
+    {
+      "id": "h-1dc7d0ec",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code> over <code>number</code>/<code>string</code>",
+      "tr": "Исчерпывающий <code>match</code> по <code>number</code>/<code>string</code>"
+    },
+    {
+      "id": "h-d12411b5",
+      "kind": "html",
+      "en": "A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all",
+      "tr": "Ветка варианта с опечаткой ловится как ошибка компиляции с подсказкой ближайшего варианта, а не становится тихим catch-all"
+    },
+    {
+      "id": "h-b2819e07",
+      "kind": "html",
+      "en": "A variant in payload position dispatching on the payload's own tag rather than binding it",
+      "tr": "Вариант в позиции полезной нагрузки выбирается по собственному тегу полезной нагрузки, а не связывает её"
+    },
+    {
+      "id": "h-12d7966b",
+      "kind": "html",
+      "en": "Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning",
+      "tr": "Две ветки, которые отвечали бы на один и тот же тег, отклоняются как <code>E0305</code>, а не так, что одна из них молча побеждает"
+    },
+    {
+      "id": "h-42315da3",
+      "kind": "html",
+      "en": "A <code>for</code> binding that keeps its element type",
+      "tr": "Переменная <code>for</code>, которая сохраняет тип элемента"
+    },
+    {
+      "id": "h-d7829106",
+      "kind": "html",
+      "en": "Errors and tests",
+      "tr": "Ошибки и тесты"
+    },
+    {
+      "id": "h-71ede7c9",
+      "kind": "html",
+      "en": "<code>Result</code> + the <code>?</code> operator with error-type checking",
+      "tr": "<code>Result</code> и оператор <code>?</code> с проверкой типа ошибки"
+    },
+    {
+      "id": "h-77e204a0",
+      "kind": "html",
+      "en": "A warning when a <code>Result</code> is discarded",
+      "tr": "Предупреждение, когда <code>Result</code> отброшен"
+    },
+    {
+      "id": "h-c7fdeb1c",
+      "kind": "html",
+      "en": "<code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included",
+      "tr": "Тесты <code>@example</code> / <code>@doc @run</code>, которые выполняются при каждой сборке, включая <code>--json</code>"
+    },
+    {
+      "id": "h-5f5f223f",
+      "kind": "html",
+      "en": "Types, records and literals",
+      "tr": "Типы, записи и литералы"
+    },
+    {
+      "id": "h-538cd6bb",
+      "kind": "html",
+      "en": "A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected",
+      "tr": "Объявленный union или запись, переданные туда, где ожидается <code>string</code>/<code>number</code>/<code>bool</code>"
+    },
+    {
+      "id": "h-1d1dcc32",
+      "kind": "html",
+      "en": "A field typo on an annotated module-level <code>const</code>",
+      "tr": "Опечатка в поле аннотированного <code>const</code> уровня модуля"
+    },
+    {
+      "id": "h-10b714c5",
+      "kind": "html",
+      "en": "<code>==</code> as value equality on every type",
+      "tr": "<code>==</code> как равенство значений для любого типа"
+    },
+    {
+      "id": "h-65a54713",
+      "kind": "html",
+      "en": "Reading a key out of a map rejected",
+      "tr": "Чтение ключа из map отклоняется"
+    },
+    {
+      "id": "h-0fdc9dd8",
+      "kind": "html",
+      "en": "Object literals and JSX attributes checked against the declared type",
+      "tr": "Объектные литералы и атрибуты JSX проверяются по объявленному типу"
+    },
+    {
+      "id": "h-194b7ac0",
+      "kind": "html",
+      "en": "since 0.1.124",
+      "tr": "с 0.1.124"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Подробнее"
+    },
+    {
+      "id": "h-16b87510",
+      "kind": "html",
+      "en": "Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant=\"nope\" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.",
+      "tr": "С 0.1.124 у объектного литерала есть тип записи, который задают его поля, поэтому <code>let g: string = { x: 1 }</code>, литерал без поля, обязательного для объявленной записи, и литерал, переданный туда, куда он не подходит, дают E0204 или E0211 с названием объявленного типа, в <code>let</code>, <code>const</code>, <code>return</code> и аргументе вызова; а атрибут JSX проверяется по записи props компонента, поэтому <code>&lt;Button variant=\"nope\" /&gt;</code> даёт E0211 со списком допустимых значений, а атрибут, которого запись не объявляет, даёт E0210, и <code>glyph fix</code> его переименовывает."
+    },
+    {
+      "id": "h-cafb3664",
+      "kind": "html",
+      "en": "A missing required field or prop is named",
+      "tr": "Пропущенное обязательное поле или prop называется по имени"
+    },
+    {
+      "id": "h-90bb1a2a",
+      "kind": "html",
+      "en": "since 0.1.125",
+      "tr": "с 0.1.125"
+    },
+    {
+      "id": "h-2bed57b7",
+      "kind": "html",
+      "en": "Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.",
+      "tr": "С 0.1.125 литерал записи или элемент компонента, в котором пропущено обязательное поле, называет его в сообщении и в <code>missing_fields</code> при <code>--json</code>, а элемент без обязательного prop даёт E0211, даже если у него нет ни одного атрибута; компонент, единственный параметр которого не запись, даёт E0229."
+    },
+    {
+      "id": "h-d16cf25f",
+      "kind": "html",
+      "en": "Every field of a record compared by the same rule as the record",
+      "tr": "Каждое поле записи сравнивается по тому же правилу, что и сама запись"
+    },
+    {
+      "id": "h-5e7cd30b",
+      "kind": "html",
+      "en": "since 0.1.127",
+      "tr": "с 0.1.127"
+    },
+    {
+      "id": "h-7f53d708",
+      "kind": "html",
+      "en": "Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.",
+      "tr": "С 0.1.127 каждое поле записи сравнивается по тому же правилу, что и сама запись, поэтому вложенная запись, объявленный тип или union строковых литералов внутри неё отклоняются там же, где их отклоняет <code>tsc</code>, как и необязательное поле там, где объявлено обязательное, функция, возвращаемое значение которой не подходит, и члены локального interface. Запись, все поля которой необязательны, отклоняет значение, не имеющее ни одного из них, как это делает TS2559. Параметры функций пока не сравниваются."
+    },
+    {
+      "id": "h-ea0eaaf6",
+      "kind": "html",
+      "en": "Data boundaries",
+      "tr": "Границы данных"
+    },
+    {
+      "id": "h-256d43ee",
+      "kind": "html",
+      "en": "Runtime type descriptors",
+      "tr": "Дескрипторы типов времени выполнения"
+    },
+    {
+      "id": "h-32584cfc",
+      "kind": "html",
+      "en": "<code>@redact</code> PII masking on the type descriptor",
+      "tr": "Маскирование персональных данных через <code>@redact</code> в дескрипторе типа"
+    },
+    {
+      "id": "h-f094b384",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">13</span>",
+      "tr": "Становится точнее <span class=\"count\">13</span>"
+    },
+    {
+      "id": "h-832f8a5e",
+      "kind": "html",
+      "en": "Coverage of an imported union doesn't look inside a variant's payload yet",
+      "tr": "Проверка покрытия импортированного union пока не заглядывает внутрь полезной нагрузки варианта"
+    },
+    {
+      "id": "h-951e9ba7",
+      "kind": "html",
+      "en": "next to deepen",
+      "tr": "следующее на углубление"
+    },
+    {
+      "id": "h-1398e498",
+      "kind": "html",
+      "en": "A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.",
+      "tr": "Раньше параметр типа отключал проверку: до 0.1.90 включительно <code>match</code> по <code>Tree&lt;K&gt;</code> мог пропустить вариант, собраться без ошибок, пройти <code>tsc --strict</code> и упасть во время выполнения, тогда как тот же match по <code>Tree</code> давал <code>E0200</code>. Это закрыто для union, объявленного в вашем модуле, а с 0.1.95 и для импортированного. На пути импорта мельче осталась глубина, а не условие запуска: проверка для импортированного union никогда не заглядывает внутрь полезной нагрузки варианта, поэтому <code>B(X)</code> по импортированному union, полезная нагрузка которого сама является union, сопоставляется с любым <code>B</code>, а не сообщает о пропущенном <code>Y</code>, и параметры типа здесь ни при чём. Это следующее, что нужно углубить."
+    },
+    {
+      "id": "h-8efe9560",
+      "kind": "html",
+      "en": "A lowercase payload variant of an imported union stops the build",
+      "tr": "Вариант полезной нагрузки импортированного union со строчной буквы останавливает сборку"
+    },
+    {
+      "id": "h-5584b05d",
+      "kind": "html",
+      "en": "A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.",
+      "tr": "Вариант в позиции полезной нагрузки теперь определяется по списку вариантов union полезной нагрузки, поэтому для union, объявленного в вашем модуле, регистр имени больше не важен. Для union, импортированного из другого модуля, списка для чтения нет, и решает по-прежнему форма имени, а значит, <code>Err(Blank)</code> выбирается по тегу, а <code>Err(blank)</code> останавливает сборку на <code>E0305</code>: громкий сбой на корректной программе, и для исправления нужен тот же реестр импортированных union, что и для поверхностной проверки покрытия выше."
+    },
+    {
+      "id": "h-bc939020",
+      "kind": "html",
+      "en": "A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph",
+      "tr": "Конструкторный паттерн по полезной нагрузке-записи (<code>Ok(Point)</code>) падает в <code>tsc</code>, а не в Glyph"
+    },
+    {
+      "id": "h-0de1643c",
+      "kind": "html",
+      "en": "A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.",
+      "tr": "Конструкторный паттерн по полезной нагрузке, которая является записью, а не union (<code>Ok(Point)</code>), падает через <code>tsc</code> с упоминанием <code>.tag</code>, которого вы не писали, хотя должен давать диагностику Glyph с названием типа и паттерна."
+    },
+    {
+      "id": "h-f3636a71",
+      "kind": "html",
+      "en": "A misspelled bare arm reports two lines for the same name",
+      "tr": "Короткая ветка с опечаткой даёт две строки для одного имени"
+    },
+    {
+      "id": "h-578afec8",
+      "kind": "html",
+      "en": "The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.",
+      "tr": "Проверка опечаток (<code>E0220</code>) теперь одинаково работает для union, объявленного в модуле, и для union, доступного через импорт пространства имён (<code>model.Nooo(_)</code>), в конструкторной и в короткой форме: до 0.1.115 включительно короткое имя с опечаткой по импортированному union (<code>Loadign</code>, без аргументов) засчитывалось как покрытие варианта и ничего не сообщало, тогда как та же опечатка в локальном union уже давала <code>E0220</code>; теперь обе формы сообщают об ошибке. Короткая ветка с опечаткой также вызывает <code>E0103</code> на стадию раньше, поэтому для одного имени вы получаете обе строки."
+    },
+    {
+      "id": "h-5ab756fd",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted",
+      "tr": "Литерал со spread не имеет типа, и лишнее поле по-прежнему принимается"
+    },
+    {
+      "id": "h-3a8ce517",
+      "kind": "html",
+      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
+      "tr": "Литерал со spread не имеет типа, и лишнее поле по-прежнему принимается, тогда как <code>tsc</code> отклоняет такое поле в свежем литерале как TS2353 (G273)."
+    },
+    {
+      "id": "h-cf31f508",
+      "kind": "html",
+      "en": "An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet",
+      "tr": "Члены импортированного <code>interface</code> и тип импортированного <code>const</code> пока не пересекают границу"
+    },
+    {
+      "id": "h-182d14d1",
+      "kind": "html",
+      "en": "Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.",
+      "tr": "Типы теперь пересекают границу модуля без потерь: union сохраняют исчерпываемость, как размеченные, так и из строковых литералов, а запись сохраняет набор полей, поэтому опечатка в поле импортированной записи даёт <code>E0210</code> с названием собственного типа этой записи, а <code>for i, x</code> по одному из её полей-массивов связывает число без аннотации. Пока не пересекает границу список членов <code>interface</code>, поэтому запись, переданная туда, где ожидается импортированный interface, ни с чем не сравнивается; импортированный <code>const</code> это та же ситуация на шаг в сторону: он по-прежнему <code>Ty::Unknown</code>, поэтому опечатка в поле через именованный импорт или импорт пространства имён остаётся незамеченной, независимо от того, была ли у него аннотация в исходном модуле."
+    },
+    {
+      "id": "h-b6b84555",
+      "kind": "html",
+      "en": "Deeper flow-narrowing is on the roadmap",
+      "tr": "Более глубокое сужение типов по потоку управления в планах"
+    },
+    {
+      "id": "h-fd47e980",
+      "kind": "html",
+      "en": "Maps from another module or the standard library are read unchecked",
+      "tr": "Map из другого модуля или стандартной библиотеки читаются без проверки"
+    },
+    {
+      "id": "h-0edf415f",
+      "kind": "html",
+      "en": "A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.",
+      "tr": "Map, пришедший из другого модуля или из стандартной библиотеки, по-прежнему читается без проверки, поэтому E0224 пока не покрывает <code>sqlite.Row</code>, а <code>for i, x in xs</code> с двумя переменными по-прежнему теряет их типы."
+    },
+    {
+      "id": "h-15d1a62f",
+      "kind": "html",
+      "en": "A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code>",
+      "tr": "У типа из обычного <code>.d.ts</code> нет дескриптора; материализуйте его через <code>glyph gen dts</code>"
+    },
+    {
+      "id": "h-5b74c17a",
+      "kind": "html",
+      "en": "A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.",
+      "tr": "Тип, импортированный из другого модуля Glyph, теперь проверяется через собственный дескриптор, как и уточнение <code>where</code> в позиции поля; у типа, импортированного из обычного <code>.d.ts</code>, дескриптора нет, и <code>parse</code> для записи, которая его содержит, теперь отклоняется (<code>E0304</code>), а не сообщает об успехе, который не проверял; материализуйте его через <code>glyph gen dts</code>, чтобы получить тип с проверкой."
+    },
+    {
+      "id": "h-b99fb20b",
+      "kind": "html",
+      "en": "Tooling and the standard library",
+      "tr": "Инструменты и стандартная библиотека"
+    },
+    {
+      "id": "h-3aeea93f",
+      "kind": "html",
+      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
+      "tr": "Девять функций <code>std/string</code> и <code>std/array</code> всё ещё возвращают нетипизированные значения"
+    },
+    {
+      "id": "h-b4a6a924",
+      "kind": "html",
+      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
+      "tr": "Возвращаемые типы стандартной библиотеки, которые моделирует проверка, покрывают половину <code>std/string</code> и <code>std/array</code> с фиксированным числом аргументов; шесть функций с необязательным последним аргументом (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) и <code>array.map</code>/<code>flat_map</code>/<code>zip</code> пока не типизированы, поэтому значению, полученному прямо из них, нужна аннотация, прежде чем перебирать его с индексом."
+    },
+    {
+      "id": "h-201d023a",
+      "kind": "html",
+      "en": "Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run",
+      "tr": "Обращение к членам примитивов и массивов не даёт диагностики там, где не запускается <code>tsc</code>"
+    },
+    {
+      "id": "h-4ea82084",
+      "kind": "html",
+      "en": "Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.",
+      "tr": "Обращение к членам и вызовы на <code>string</code>, <code>number</code>, <code>bool</code> и <code>Array&lt;T&gt;</code> оставлены <code>tsc</code> намеренно, это не дыра; Glyph разрешает там обычные члены JS, поэтому <code>s.length</code> и <code>xs.length</code> компилируются и проходят <code>tsc --strict</code>, а не хватает диагностики для четырёх мест, где <code>tsc</code> никогда не запускается: <code>glyph check --no-tsc</code>, языкового сервера, MCP-сервера и песочницы."
+    },
+    {
+      "id": "h-92f64275",
+      "kind": "html",
+      "en": "An offline build with examples needs <code>tsx</code> or <code>--no-test</code>",
+      "tr": "Офлайн-сборке с примерами нужен <code>tsx</code> или <code>--no-test</code>"
+    },
+    {
+      "id": "h-be29560d",
+      "kind": "html",
+      "en": "The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.",
+      "tr": "Запуск примеров вызывает <code>tsx</code>, поэтому проект с примерами без <code>tsx</code> в <code>PATH</code> роняет сборку, а не пропускает их молча; это сделано намеренно, но значит, что для офлайн-сборки нужен установленный <code>tsx</code> или <code>--no-test</code>."
+    },
+    {
+      "id": "h-b5f0eada",
+      "kind": "html",
+      "en": "An <code>await</code> in a plain <code>fn</code> is caught against your own source",
+      "tr": "<code>await</code> в обычной <code>fn</code> ловится относительно вашего исходного кода"
+    },
+    {
+      "id": "h-d7c47327",
+      "kind": "html",
+      "en": "Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href=\"/answers/early-errors/\">caught earlier</a>.",
+      "tr": "Асинхронный контекст был единственным правилом, которое Glyph оставлял <code>tsc</code>; <code>await</code> в обычной <code>fn</code> теперь даёт <code>E0222</code> относительно вашего исходного кода, и единственный оставшийся разрешённый случай это инициализатор <code>const</code> верхнего уровня. Это и ещё два правила, которые переехали на стадию раньше, описаны на странице <a href=\"/answers/early-errors/\">о ранних ошибках</a>."
+    },
+    {
+      "id": "h-9517f6f5",
+      "kind": "html",
+      "en": "Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the <a href=\"/pillars/verifiability/\">verifiability pillar page</a>.",
+      "tr": "Почему это первый из четырёх принципов Glyph и где заканчивается его гарантия, рассказано на <a href=\"/pillars/verifiability/\">странице принципа проверяемости</a>."
+    }
+  ]
+}

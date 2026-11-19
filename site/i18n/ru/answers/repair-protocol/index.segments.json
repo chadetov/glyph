@@ -1,0 +1,218 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/repair-protocol/index.html",
+  "locale": "ru",
+  "source_hash": "4b15cc7a1cc4e288",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Does the compiler tell my agent how to fix it? · Glyph",
+      "tr": "Говорит ли компилятор агенту, как это починить? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Each diagnostic carries the types, the symbol at fault and the legal alternatives, and glyph fix writes the repairs the compiler can settle on its own.",
+      "tr": "Каждая диагностика содержит типы, виновный символ и допустимые альтернативы, а glyph fix записывает те исправления, которые компилятор может определить сам."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Назад"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "Может ли агент спросить у компилятора, что такое символ, до того как писать код?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Далее &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "Документация, которую читает агент, генерируется или пишется вручную и устаревает?"
+    },
+    {
+      "id": "h-4012a25e",
+      "kind": "html",
+      "en": "23 &middot; Fixing a red build",
+      "tr": "23 &middot; Починка красной сборки"
+    },
+    {
+      "id": "h-e2d1e436",
+      "kind": "html",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Когда сборка падает, говорит ли компилятор агенту, как её починить?"
+    },
+    {
+      "id": "h-a89b956d",
+      "kind": "html",
+      "en": "It tells you what is wrong as data, not as a sentence to parse: the two types, the symbol at fault as a <code>module::name</code>, and the finite list of things that could legally stand where the wrong thing stands. <code>glyph check --agent</code> adds what the repairing edit must not break. Where the answer is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "Он сообщает, что не так, в виде данных, а не фразы, которую надо разбирать: два типа, виновный символ в виде <code>module::name</code> и конечный список того, что может законно стоять на месте неправильного. <code>glyph check --agent</code> добавляет то, что исправляющая правка не должна сломать. Там, где ответ определён полностью, его записывает <code>glyph fix</code>."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "h-26bdb633",
+      "kind": "html",
+      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string. An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
+      "tr": "Цикл агента вокруг компилятора выглядит так: прочитать ошибку, угадать правку, пересобрать. Вред возникает на шаге угадывания, и возникает потому, что ошибка это строка. Агент, прочитавший «non-exhaustive match on <code>OrderStatus</code>», понимает, что в match не хватает веток. Он не знает, что несут недостающие варианты, поэтому пишет <code>Paid(\"tx_1\")</code> и узнаёт об ошибке из следующей диагностики. Или он видит слово «exhaustive», добавляет ветку <code>else</code>, и сборка становится зелёной, выбросив ту самую гарантию, ради защиты которой существовала диагностика."
+    },
+    {
+      "id": "h-07118770",
+      "kind": "html",
+      "en": "The compiler knew all of it. It knew the union's variants and their payloads, it knew an <code>else</code> would forfeit the seal, and it dropped both one line before the reply.",
+      "tr": "Компилятор всё это знал. Он знал варианты union и их данные, знал, что <code>else</code> лишит match исчерпывающей гарантии, и выбросил и то и другое за строку до ответа."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Посмотрите сами"
+    },
+    {
+      "id": "h-1dc2ec59",
+      "kind": "html",
+      "en": "A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here:",
+      "tr": "Проект из двух модулей. <code>orders</code> объявляет union; <code>main</code> пишет <code>match</code> по нему и обрабатывает один случай. Вывод <code>glyph check --agent</code>, сокращённый до ключей, которые здесь важны:"
+    },
+    {
+      "id": "h-22f8192a",
+      "kind": "html",
+      "en": "glyph check --agent --no-tsc src",
+      "tr": "glyph check --agent --no-tsc src"
+    },
+    {
+      "id": "h-e83558c5",
+      "kind": "html",
+      "en": "Three things are worth pulling out. <code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>. Both are addresses the other tools take, so an answer chains without re-deriving anything.",
+      "tr": "Стоит выделить три вещи. <code>cause</code> это виновный символ, и это не то же самое, что <code>entity</code>, то есть объявление, внутри которого находится диагностика: здесь правка делается в <code>main::describe</code>, а форма, которой она должна соответствовать, приходит из <code>orders::OrderStatus</code>. Оба значения являются адресами, которые принимают другие инструменты, так что ответы выстраиваются в цепочку без повторного вывода."
+    },
+    {
+      "id": "h-24cad838",
+      "kind": "html",
+      "en": "<code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it. The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
+      "tr": "<code>constraints</code> не являются исправлением. Каждое из них это то, что компилятор уже проверяет, выписанное явно, чтобы правка, удовлетворяющая диагностике, не сломала стоящую за ней гарантию. Второе ограничение и есть причина существования этого ключа: ветка <code>else</code> допустима, она сделала бы сборку зелёной, а ограничение говорит, чего это стоит."
+    },
+    {
+      "id": "h-c78e85ef",
+      "kind": "html",
+      "en": "<code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call. A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
+      "tr": "<code>symbols</code> это ответ <code>glyph_symbol</code> для каждого символа, который называет диагностика, поэтому следующей правке агента не нужен второй вызов. Символ, на который инструмент отвечает отказом, попадает в <code>symbols_absent</code> с причиной, и так «мы не смотрели» не путается с «мы посмотрели, и его там нет»."
+    },
+    {
+      "id": "h-e9482ec6",
+      "kind": "html",
+      "en": "Every key is always present. A fact the compiler does not hold arrives as an explicit <code>null</code>, never as a missing key, so absence has one spelling on every code and on both the CLI and the MCP surface.",
+      "tr": "Каждый ключ присутствует всегда. Факт, которого у компилятора нет, приходит как явный <code>null</code>, а не как отсутствующий ключ, так что отсутствие записывается одинаково для каждого кода и в CLI, и в MCP."
+    },
+    {
+      "id": "h-d838480e",
+      "kind": "html",
+      "en": "Where the answer is determined, the compiler writes it",
+      "tr": "Если ответ определён, компилятор записывает его сам"
+    },
+    {
+      "id": "h-0e5250b5",
+      "kind": "html",
+      "en": "<code>glyph fix</code> applies only the repairs the compiler settles on its own: unused imports, an arm head that is not a variant when the checker computed exactly one suggestion, and a field the record does not declare when exactly one declared field is a character away. The <code>match</code> above is not one of them.",
+      "tr": "<code>glyph fix</code> применяет только те исправления, которые компилятор определяет сам: неиспользуемые импорты, заголовок ветки, который не является вариантом, если проверка типов вычислила ровно одну подсказку, и поле, которого нет в записи, если ровно одно объявленное поле отличается от него на один символ. <code>match</code> выше к ним не относится."
+    },
+    {
+      "id": "h-dd062039",
+      "kind": "html",
+      "en": "glyph fix src, on the match above",
+      "tr": "glyph fix src на match выше"
+    },
+    {
+      "id": "h-2f820b6c",
+      "kind": "html",
+      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
+      "tr": "Компилятор знает, каких случаев не хватает и какой шаблон у каждого. Он не знает, что программа должна делать, когда заказ в состоянии <code>Paid</code>, и любое тело, которое он бы написал, было бы догадкой, которая компилируется. До 0.1.128 <code>glyph fix</code> записывал такую догадку: по ветке на каждый случай, тело которой печатало случай и вызывало <code>process.exit(1)</code>. После этого программа проходила <code>check</code>, <code>tsc</code> и <code>build</code>, а <code>glyph query variants</code> считал match исчерпывающим, так что пропущенный случай превращался из ошибки компиляции в падение во время выполнения, и указать на него было уже нечему."
+    },
+    {
+      "id": "h-3f1cdc48",
+      "kind": "html",
+      "en": "So the rule declines, and names the cases. Everything needed to write the arms is already in the <code>--agent</code> answer above: <code>missing_variants</code>, and the <code>construct</code> spelling of each variant under <code>symbols</code>. The arms are yours or your agent's to write, the same as any other code whose behaviour the compiler cannot infer.",
+      "tr": "Поэтому правило отказывается и называет случаи. Всё, что нужно, чтобы написать ветки, уже есть в ответе <code>--agent</code> выше: <code>missing_variants</code> и запись <code>construct</code> для каждого варианта в <code>symbols</code>. Ветки пишете вы или ваш агент, как и любой другой код, поведение которого компилятор вывести не может."
+    },
+    {
+      "id": "h-f50a9d84",
+      "kind": "html",
+      "en": "What <code>glyph fix</code> does write, it writes without guessing, and every rule that cannot settle an answer prints the decline and the reason on the same output as what it applied. Two fields a character away from a typo are two, not one, and it says so rather than picking.",
+      "tr": "То, что <code>glyph fix</code> записывает, он записывает без догадок, а каждое правило, которое не может прийти к ответу, печатает отказ и причину в том же выводе, что и применённые исправления. Два поля, отличающиеся от опечатки на один символ, это два поля, а не одно, и он так и говорит, вместо того чтобы выбирать."
+    },
+    {
+      "id": "h-e426e014",
+      "kind": "html",
+      "en": "The code's own explanation, as data",
+      "tr": "Объяснение кода в виде данных"
+    },
+    {
+      "id": "h-c5081b0e",
+      "kind": "html",
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it. The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> отвечает развёрнутым объяснением, однострочным <code>help</code>, URL документации и неправильной программой из негативного корпуса компилятора в паре с диагностикой, которую этот компилятор на неё выдаёт. Диагностика компилируется в момент запроса, а не хранится, поэтому не может разойтись с тем, что компилятор говорит на самом деле."
+    },
+    {
+      "id": "h-da4c5d63",
+      "kind": "html",
+      "en": "glyph --explain E0200 --json",
+      "tr": "glyph --explain E0200 --json"
+    },
+    {
+      "id": "h-cb55179b",
+      "kind": "html",
+      "en": "A code the corpus does not cover comes back with <code>counter_example: null</code> and a sentence saying the corpus holds no case for it, rather than a made-up example. The corpus claims what it covers and nothing about the rest.",
+      "tr": "Код, который корпус не покрывает, возвращается с <code>counter_example: null</code> и фразой о том, что в корпусе для него нет случая, а не с выдуманным примером. Корпус заявляет то, что покрывает, и ничего не утверждает об остальном."
+    },
+    {
+      "id": "h-dee8d5de",
+      "kind": "html",
+      "en": "<code>glyph --explain</code> hands over one case per code. The whole corpus is readable too: <code>glyph llms --negative E0200</code> prints every wrong program that draws the code, each compiled when you ask, and where a second corpus pairs a program <code>tsc --strict</code> accepts with the Glyph that refuses it, that comes back beside it. With no code it lists 102 cases over 46 of the 70 codes and names the 24 that have none, so coverage is stated rather than inferred from what came back. That and the rest of what the compiler publishes about itself is <a href=\"/answers/generated-docs/\">its own page</a>.",
+      "tr": "<code>glyph --explain</code> отдаёт один случай на код. Весь корпус тоже можно прочитать: <code>glyph llms --negative E0200</code> печатает все неправильные программы, на которые выдаётся этот код, каждая компилируется в момент запроса, а если второй корпус сопоставляет программу, которую принимает <code>tsc --strict</code>, с кодом на Glyph, который её отклоняет, она возвращается рядом. Без кода команда перечисляет 102 случая по 46 из 70 кодов и называет 24 кода, у которых случаев нет, так что покрытие заявлено явно, а не выводится из того, что вернулось. Об этом и обо всём остальном, что компилятор публикует о себе, рассказывает <a href=\"/answers/generated-docs/\">отдельная страница</a>."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Уже работает"
+    },
+    {
+      "id": "h-206d5f58",
+      "kind": "html",
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
+      "tr": "Каждая диагностика содержит <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (где <code>alternatives_kind</code> говорит, что в списке: <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> или <code>exports</code>, и задаётся там, где возникает ошибка), <code>related</code>, <code>module</code>, <code>file</code> и <code>explain</code>. Они заполняются из ошибки, которую выдал компилятор, а не выводятся заново, и каждое равно явному <code>null</code>, если у компилятора такого факта нет. <code>file</code> это путь относительно корня разрешения, а отчёт называет этот корень в <code>project_root</code>, так что файл открывается. <code>glyph check --agent</code> добавляет <code>constraints</code> и <code>symbols</code> к каждой диагностике. <code>glyph fix</code> применяет три правила (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) и сообщает о каждом отказе с причиной, включая каждый <code>E0200</code>, о котором он сообщает, но никогда не исправляет. <code>glyph --explain &lt;CODE&gt; --json</code> возвращает объяснение со скомпилированным контрпримером, а <code>glyph llms --negative &lt;CODE&gt;</code> возвращает весь корпус неправильных программ, на которые выдаётся этот код."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Где он останавливается"
+    },
+    {
+      "id": "h-a46b5ce4",
+      "kind": "html",
+      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.",
+      "tr": "<code>cause</code> для <code>E0211</code> равен <code>null</code>: виновный символ в аргументе вызова это параметр, а <code>module::fn.param</code> нельзя записать в словаре идентичностей, так что null здесь намеренный, а не упущение. <code>corrected</code> у контрпримера всегда <code>null</code>, потому что негативный корпус не сопоставляет случаю исправленную программу, а у 24 из 70 кодов случаев нет вообще. <code>glyph fix</code> записывает три правила и больше ничего, и не пишет ни одной ветки для неполного <code>match</code>: они остаются вам или вашему агенту, а случаи и их шаблоны есть в диагностике. От всего, от чего он отказывается, он отказывается открыто."
+    }
+  ]
+}

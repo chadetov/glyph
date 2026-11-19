@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "agents/index.html",
+  "locale": "ru",
+  "source_hash": "74db8e3bf226ba57",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For agents and tool builders · Glyph",
+      "tr": "Для агентов и разработчиков инструментов · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.",
+      "tr": "Как агент работает с Glyph: MCP-сервер с одиннадцатью инструментами, те же запросы в командной строке и glyph check --agent для починки красной сборки."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Each piece in depth",
+      "tr": "Каждая часть подробно"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "Начните здесь"
+    },
+    {
+      "id": "ns./mcp/.title",
+      "kind": "ns.title",
+      "en": "The MCP server",
+      "tr": "MCP-сервер"
+    },
+    {
+      "id": "ns./mcp/.desc",
+      "kind": "ns.desc",
+      "en": "Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.",
+      "tr": "Настройка, одиннадцать инструментов с аргументами, команды <code>glyph query</code> и то, чего сервер пока не умеет."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Set up the server",
+      "tr": "Настроить сервер"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.title",
+      "kind": "ns.title",
+      "en": "Can my agent ask the compiler what a symbol is?",
+      "tr": "Может ли агент спросить у компилятора, что такое символ?"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.desc",
+      "kind": "ns.desc",
+      "en": "<code>glyph_symbol</code>: a union's cases with the syntax that constructs each.",
+      "tr": "<code>glyph_symbol</code>: варианты union с синтаксисом, который создаёт каждый из них."
+    },
+    {
+      "id": "ns./answers/impact/.title",
+      "kind": "ns.title",
+      "en": "Can the compiler say what a change breaks first?",
+      "tr": "Может ли компилятор заранее сказать, что сломает изменение?"
+    },
+    {
+      "id": "ns./answers/impact/.desc",
+      "kind": "ns.desc",
+      "en": "Six change kinds, one verdict per site, and the csvql run above in full.",
+      "tr": "Шесть видов изменений, один вердикт на каждое место и полный прогон csvql, показанный выше."
+    },
+    {
+      "id": "ns./answers/repair-protocol/.title",
+      "kind": "ns.title",
+      "en": "Does a failed build tell my agent how to fix it?",
+      "tr": "Говорит ли упавшая сборка агенту, как её починить?"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.desc",
+      "kind": "ns.desc",
+      "en": "<code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.",
+      "tr": "<code>check --agent</code>, <code>glyph fix</code> и пошаговый разбор с настоящим выводом."
+    },
+    {
+      "id": "ns./answers/generated-docs/.title",
+      "kind": "ns.title",
+      "en": "Is the agent's documentation generated?",
+      "tr": "Генерируется ли документация для агента?"
+    },
+    {
+      "id": "ns./answers/generated-docs/.desc",
+      "kind": "ns.desc",
+      "en": "What <code>glyph llms</code> emits, where each number comes from, and what is still missing.",
+      "tr": "Что выводит <code>glyph llms</code>, откуда берётся каждое число и чего пока не хватает."
+    },
+    {
+      "id": "ns./answers/ai-authoring/.title",
+      "kind": "ns.title",
+      "en": "Can an AI write a language it has barely seen?",
+      "tr": "Может ли ИИ писать на языке, который почти не видел?"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.desc",
+      "kind": "ns.desc",
+      "en": "What carries over from TypeScript, and how the compiler covers the rest.",
+      "tr": "Что переносится из TypeScript и как компилятор покрывает остальное."
+    },
+    {
+      "id": "h-753824bb",
+      "kind": "html",
+      "en": "For agents and tool builders",
+      "tr": "Для агентов и разработчиков инструментов"
+    },
+    {
+      "id": "h-035437e3",
+      "kind": "html",
+      "en": "The compiler's interface for agents",
+      "tr": "Интерфейс компилятора для агентов"
+    },
+    {
+      "id": "h-59e0f1f6",
+      "kind": "html",
+      "en": "An agent can ask Glyph's compiler what a symbol is, what an edit will break, and why a build failed, and get JSON back. <code>glyph mcp</code> serves eleven tools over stdio, each one also a <code>glyph query</code> verb, and <code>glyph llms</code> prints the language reference offline.",
+      "tr": "Агент может спросить у компилятора Glyph, что такое символ, что сломает правка и почему упала сборка, и получить ответ в JSON. <code>glyph mcp</code> отдаёт одиннадцать инструментов через stdio, каждый из них также доступен как команда <code>glyph query</code>, а <code>glyph llms</code> печатает справочник по языку без сети."
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "Настройка"
+    },
+    {
+      "id": "h-f72d5056",
+      "kind": "html",
+      "en": "<code>glyph init</code> writes this <code>.mcp.json</code> into a new project, and <code>glyph agents</code> writes it (with an <code>AGENTS.md</code> pointing at <code>glyph llms</code>) into an existing one. Any MCP client that reads the file launches the server; there is no port and no daemon.",
+      "tr": "<code>glyph init</code> записывает этот <code>.mcp.json</code> в новый проект, а <code>glyph agents</code> записывает его (вместе с <code>AGENTS.md</code>, который отсылает к <code>glyph llms</code>) в существующий. Любой MCP-клиент, который читает этот файл, запускает сервер; ни порта, ни демона нет."
+    },
+    {
+      "id": "h-95651357",
+      "kind": "html",
+      "en": ".mcp.json, as glyph init writes it",
+      "tr": ".mcp.json в том виде, в каком его пишет glyph init"
+    },
+    {
+      "id": "h-bef1632c",
+      "kind": "html",
+      "en": "One call, with its real answer",
+      "tr": "Один вызов и его настоящий ответ"
+    },
+    {
+      "id": "h-d90f4a66",
+      "kind": "html",
+      "en": "A file reads a field that its record doesn't declare (<code>u.naem</code>). The agent calls <code>glyph_diagnostics</code> and gets the compiler's own diagnostic, with the fields the record does declare and the record that owns them. This is the tool's output on 0.1.149, trimmed only where marked.",
+      "tr": "Файл читает поле, которого нет в его записи (<code>u.naem</code>). Агент вызывает <code>glyph_diagnostics</code> и получает собственную диагностику компилятора с полями, которые запись объявляет, и записью, которой они принадлежат. Это вывод инструмента на 0.1.149, сокращённый только в отмеченных местах."
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "запрос"
+    },
+    {
+      "id": "h-f6a214f7",
+      "kind": "html",
+      "en": "result",
+      "tr": "результат"
+    },
+    {
+      "id": "h-7039cad1",
+      "kind": "html",
+      "en": "<code>not_run</code> names what this check did not cover, so an empty <code>diagnostics</code> list can't be mistaken for a full build. Without an MCP client, <code>glyph query diagnostics --path src/user.glyph</code> prints the same JSON. The full tool list, with every verb, is on <a href=\"/mcp/\">the MCP page</a>.",
+      "tr": "<code>not_run</code> называет то, что эта проверка не покрыла, поэтому пустой список <code>diagnostics</code> нельзя принять за полную сборку. Без MCP-клиента <code>glyph query diagnostics --path src/user.glyph</code> печатает тот же JSON. Полный список инструментов со всеми командами есть на <a href=\"/mcp/\">странице MCP</a>."
+    },
+    {
+      "id": "h-1fb11ce5",
+      "kind": "html",
+      "en": "Before an edit: what will it break?",
+      "tr": "До правки: что она сломает?"
+    },
+    {
+      "id": "h-ada15b5d",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is an eleven-file CSV query engine with a four-case union, <code>Value</code>. Asked what adding a fifth case does, <code>glyph_impact</code> lists 10 <code>match</code> sites in 4 files: 8 <code>WILL_FAIL</code> and 2 <code>ABSORBS</code>, where a catch-all arm will swallow the new case and keep compiling. Adding the case for real gives exactly 8 <code>E0200</code> errors, at those 8 sites. The 2 absorbing sites stay silent, which is why the answer names them.",
+      "tr": "<code>examples/apps/csvql</code> это движок запросов к CSV из одиннадцати файлов с union <code>Value</code> на четыре варианта. На вопрос, что сделает добавление пятого варианта, <code>glyph_impact</code> перечисляет 10 мест с <code>match</code> в 4 файлах: 8 <code>WILL_FAIL</code> и 2 <code>ABSORBS</code>, где ветка catch-all проглотит новый вариант и код продолжит компилироваться. Реальное добавление варианта даёт ровно 8 ошибок <code>E0200</code> в этих 8 местах. Два поглощающих места молчат, поэтому ответ их и называет."
+    },
+    {
+      "id": "h-1b4a94d5",
+      "kind": "html",
+      "en": "the same question on the command line",
+      "tr": "тот же вопрос в командной строке"
+    },
+    {
+      "id": "h-e02ae173",
+      "kind": "html",
+      "en": "After a red build: what does the fix have to keep?",
+      "tr": "После красной сборки: что исправление должно сохранить?"
+    },
+    {
+      "id": "h-fd59d326",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> prints <code>check --json</code>'s diagnostics with two more keys on each. <code>constraints</code> lists what a repairing edit must not break; for the typo above it reads \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\". <code>symbols</code> carries the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. Where the fix is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "<code>glyph check --agent</code> печатает диагностики <code>check --json</code> с двумя дополнительными ключами у каждой. <code>constraints</code> перечисляет, что исправляющая правка не должна сломать; для опечатки выше там написано «the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others». <code>symbols</code> содержит ответ <code>glyph_symbol</code> для каждого символа, упомянутого в диагностике, так что следующей правке не нужен второй вызов. Где исправление определено полностью, его записывает <code>glyph fix</code>."
+    },
+    {
+      "id": "h-b85dc276",
+      "kind": "html",
+      "en": "Reading the language offline",
+      "tr": "Справочник по языку без сети"
+    },
+    {
+      "id": "h-1f29991a",
+      "kind": "html",
+      "en": "<code>glyph llms</code> prints the language reference, and <code>/llms.txt</code> on this site is the same document. <code>glyph llms --json</code> is that knowledge as data, read from the compiler's own tables: 77 diagnostic codes, 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions, and the eleven tools. <code>glyph llms --negative</code> returns 117 wrong programs in 0.1.149 (139 from the next release) with the code each one draws, compiled when you ask. <code>scripts/check_llms_sync.py</code> fails when the diagnostic and reserved-word tables in the reference drift from the compiler's own.",
+      "tr": "<code>glyph llms</code> печатает справочник по языку, и <code>/llms.txt</code> на этом сайте это тот же документ. <code>glyph llms --json</code> отдаёт те же знания как данные, прочитанные из собственных таблиц компилятора: 77 кодов диагностик, 24 имени прелюдии, 40 модулей стандартной библиотеки с 340 экспортами, 49 решений по языку и одиннадцать инструментов. <code>glyph llms --negative</code> возвращает 117 неверных программ в 0.1.149 (139 начиная со следующего выпуска) с кодом, который выдаёт каждая, и компилирует их по запросу. <code>scripts/check_llms_sync.py</code> падает, когда таблицы диагностик и зарезервированных слов в справочнике расходятся с таблицами компилятора."
+    },
+    {
+      "id": "h-d7b19eb8",
+      "kind": "html",
+      "en": "offline entry points",
+      "tr": "точки входа без сети"
+    }
+  ]
+}

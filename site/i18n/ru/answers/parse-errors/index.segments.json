@@ -1,0 +1,176 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/parse-errors/index.html",
+  "locale": "ru",
+  "source_hash": "7f1a8b2bd45c7f9e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "When a parse fails, do I find out why? · Glyph",
+      "tr": "Когда разбор не удаётся, узнаю ли я почему? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.",
+      "tr": "Неудачный разбор называет поле, говорит, какое правило нарушило значение, цитирует нарушенный предикат where и помечает проблему кодом, по которому можно ветвиться."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Назад"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Почему Glyph ловит то же, что tsc, но раньше?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Далее &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "Когда в три часа ночи всё ломается в продакшене, что видит дежурный?"
+    },
+    {
+      "id": "h-24923701",
+      "kind": "html",
+      "en": "27 &middot; Parse failures",
+      "tr": "27 &middot; Ошибки разбора"
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Когда разбор не удаётся, узнаю ли я почему?"
+    },
+    {
+      "id": "h-dc11cff3",
+      "kind": "html",
+      "en": "Yes. Every issue names the field, says <strong>which rule the value broke</strong>, and carries a <code>code</code> you can branch on. A field constrained by a <code>where</code> predicate reports the predicate itself, so the rejection greps back to the line that imposed it.",
+      "tr": "Да. Каждая проблема называет поле, говорит, <strong>какое правило нарушило значение</strong>, и несёт <code>code</code>, по которому можно ветвиться. Поле, ограниченное предикатом <code>where</code>, сообщает сам предикат, так что по отказу grep приводит к строке, где это ограничение задано."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "h-2b8c51b7",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "Валидатор, который говорит «этот payload плохой», сделал половину работы. Обработчику всё равно нужно решить: это клиент, который забыл поле, или клиент, который прислал пароль из четырёх символов? Первое это 400, второе 422, и если валидатор этого не говорит, в итоге вы разбираете одно и то же тело дважды с двумя разными типами, чтобы восстановить информацию, которая у валидатора уже была."
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Именно это и случилось при написании API авторизации на Glyph. Регистрация вообще без ключа <code>password</code> возвращалась как <code>weak_password</code>, потому что отсутствующее и слишком короткое значение давали одну и ту же строку."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Посмотрите сами"
+    },
+    {
+      "id": "h-bddd14ad",
+      "kind": "html",
+      "en": "One type, one constraint:",
+      "tr": "Один тип, одно ограничение:"
+    },
+    {
+      "id": "h-66999642",
+      "kind": "html",
+      "en": "Four bad payloads, four different answers. Each is one <code>Issue</code>, shown as <code>code | path | message</code>:",
+      "tr": "Четыре плохих payload, четыре разных ответа. Каждый из них это один <code>Issue</code>, показанный как <code>code | path | message</code>:"
+    },
+    {
+      "id": "h-cb372fc2",
+      "kind": "html",
+      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "Главное здесь второй. <code>value.length &gt;= 8</code> написано один раз, в типе, и отказ цитирует его дословно. Вставьте эту строку из тела ответа HTTP 422 в <code>grep</code>, и вы попадёте на объявление, которое её породило. Никому не нужно держать копию правила в слое сообщений об ошибках, а именно так эти две копии и расходятся."
+    },
+    {
+      "id": "h-c1b3d39f",
+      "kind": "html",
+      "en": "The fourth one used to be worse than a bad message. An array is an object to <code>typeof</code>, so a record with no required fields accepted one outright, and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared field, none of them mentioning that you had sent a list.",
+      "tr": "Четвёртый раньше был хуже, чем просто плохое сообщение. Для <code>typeof</code> массив это объект, поэтому запись без обязательных полей принимала его без вопросов, а присланный <code>[1, 2, 3]</code> возвращался как по одной непонятной проблеме на каждое объявленное поле, и ни одна не упоминала, что вы прислали список."
+    },
+    {
+      "id": "h-f15fe14d",
+      "kind": "html",
+      "en": "Nested types answer for themselves",
+      "tr": "Вложенные типы отвечают сами за себя"
+    },
+    {
+      "id": "h-1c1f349a",
+      "kind": "html",
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
+      "tr": "Поле, у типа которого есть собственный дескриптор, проверяется <code>parse</code> этого типа, и его проблемы возвращаются с именем поля в начале пути. Так что <code>Password</code>, вложенный на два уровня, сообщает <code>[\"body\", \"password\"]</code> и сохраняет своё сообщение. Место и причину вы получаете из одной и той же проблемы, ничего не перезапуская."
+    },
+    {
+      "id": "h-f4063e91",
+      "kind": "html",
+      "en": "The code, not the string",
+      "tr": "Код, а не строка"
+    },
+    {
+      "id": "h-0696faed",
+      "kind": "html",
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> несёт необязательный <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code> или <code>\"unexpected\"</code>. Ветвитесь по нему. Сопоставление по тексту сообщения это та хрупкость, которую Glyph и призван убрать, а сообщение предназначено для человека, читающего тело ответа."
+    },
+    {
+      "id": "h-d38a3f61",
+      "kind": "html",
+      "en": "A 400/422 split that does not read the message",
+      "tr": "Разделение на 400/422 без чтения сообщения"
+    },
+    {
+      "id": "h-4e6a1d50",
+      "kind": "html",
+      "en": "<code>code</code> is optional, so an <code>Issue</code> you build by hand, and every consumer written before it existed, still compiles unchanged.",
+      "tr": "<code>code</code> необязателен, поэтому <code>Issue</code>, собранный вручную, и любой потребитель, написанный до его появления, по-прежнему компилируются без изменений."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Уже работает"
+    },
+    {
+      "id": "h-7654d152",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле: <code>\"missing\"</code> для отсутствующего обязательного поля, <code>\"type\"</code> для неверной формы (включая не-объект или массив), <code>\"refinement\"</code> для значения, которое прошло базовый тип, но не прошло предикат, и <code>\"unexpected\"</code> для ключа, которого тип не объявляет. Уточнение цитирует свой предикат. Поле, у типа которого есть дескриптор, передаёт проверку ему, поэтому вложенные проблемы приходят с полным путём. Необязательные поля (<code>f?: T</code>) никогда не сообщаются как отсутствующие."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Становится точнее"
+    },
+    {
+      "id": "h-7339349c",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "Два ограничения. Поле, типизированное чем-то без собственного дескриптора (неограниченным параметром типа или типом, импортированным из рукописного <code>.d.ts</code>), по-прежнему получает плоскую проверку и проблему <code>\"type\"</code>; компилятор не синтезирует для них дескриптор, а дать его может запуск <code>glyph gen dts</code> на объявлении. Модуль, объявляющий собственный тип с именем <code>Issue</code>, раньше перекрывал тип из прелюдии внутри сгенерированного файла и ломал все дескрипторы в этом модуле; начиная с 0.1.60 такое объявление даёт <code>E0110</code> на строке, где назван тип, так что вы узнаёте, где проблема, вместо того чтобы читать ошибку <code>tsc</code> о сгенерированном коде."
+    }
+  ]
+}

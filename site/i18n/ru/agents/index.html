@@ -1,0 +1,127 @@
+---
+title: Для агентов и разработчиков инструментов · Glyph
+description: Как агент работает с Glyph: MCP-сервер с одиннадцатью инструментами, те же запросы в командной строке и glyph check --agent для починки красной сборки.
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  Каждая часть подробно
+  Начните здесь | /mcp/ | agents | MCP-сервер | Настройка, одиннадцать инструментов с аргументами, команды <code>glyph query</code> и то, чего сервер пока не умеет. | Настроить сервер
+  /answers/ask-the-compiler/ | lookup | Может ли агент спросить у компилятора, что такое символ? | <code>glyph_symbol</code>: варианты union с синтаксисом, который создаёт каждый из них.
+  /answers/impact/ | impact | Может ли компилятор заранее сказать, что сломает изменение? | Шесть видов изменений, один вердикт на каждое место и полный прогон csvql, показанный выше.
+  /answers/repair-protocol/ | repair | Говорит ли упавшая сборка агенту, как её починить? | <code>check --agent</code>, <code>glyph fix</code> и пошаговый разбор с настоящим выводом.
+  /answers/generated-docs/ | docs | Генерируется ли документация для агента? | Что выводит <code>glyph llms</code>, откуда берётся каждое число и чего пока не хватает.
+  /answers/ai-authoring/ | spark | Может ли ИИ писать на языке, который почти не видел? | Что переносится из TypeScript и как компилятор покрывает остальное.
+---
+      <p class="q-eyebrow">Для агентов и разработчиков инструментов</p>
+      <h1 class="q-title">Интерфейс компилятора для агентов</h1>
+
+      <p class="short-answer">
+        Агент может спросить у компилятора Glyph, что такое символ, что сломает правка и почему упала сборка, и получить ответ в JSON. <code>glyph mcp</code> отдаёт одиннадцать инструментов через stdio, каждый из них также доступен как команда <code>glyph query</code>, а <code>glyph llms</code> печатает справочник по языку без сети.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Настройка</h2>
+        <p>
+          <code>glyph init</code> записывает этот <code>.mcp.json</code> в новый проект, а <code>glyph agents</code> записывает его (вместе с <code>AGENTS.md</code>, который отсылает к <code>glyph llms</code>) в существующий. Любой MCP-клиент, который читает этот файл, запускает сервер; ни порта, ни демона нет.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json в том виде, в каком его пишет glyph init</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Один вызов и его настоящий ответ</h2>
+        <p>
+          Файл читает поле, которого нет в его записи (<code>u.naem</code>). Агент вызывает <code>glyph_diagnostics</code> и получает собственную диагностику компилятора с полями, которые запись объявляет, и записью, которой они принадлежат. Это вывод инструмента на 0.1.149, сокращённый только в отмеченных местах.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">запрос</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">результат</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code> называет то, что эта проверка не покрыла, поэтому пустой список <code>diagnostics</code> нельзя принять за полную сборку. Без MCP-клиента <code>glyph query diagnostics --path src/user.glyph</code> печатает тот же JSON. Полный список инструментов со всеми командами есть на <a href="/mcp/">странице MCP</a>.
+        </p>
+
+        <h2 class="block-label">До правки: что она сломает?</h2>
+        <p>
+          <code>examples/apps/csvql</code> это движок запросов к CSV из одиннадцати файлов с union <code>Value</code> на четыре варианта. На вопрос, что сделает добавление пятого варианта, <code>glyph_impact</code> перечисляет 10 мест с <code>match</code> в 4 файлах: 8 <code>WILL_FAIL</code> и 2 <code>ABSORBS</code>, где ветка catch-all проглотит новый вариант и код продолжит компилироваться. Реальное добавление варианта даёт ровно 8 ошибок <code>E0200</code> в этих 8 местах. Два поглощающих места молчат, поэтому ответ их и называет.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">тот же вопрос в командной строке</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">После красной сборки: что исправление должно сохранить?</h2>
+        <p>
+          <code>glyph check --agent</code> печатает диагностики <code>check --json</code> с двумя дополнительными ключами у каждой. <code>constraints</code> перечисляет, что исправляющая правка не должна сломать; для опечатки выше там написано «the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others». <code>symbols</code> содержит ответ <code>glyph_symbol</code> для каждого символа, упомянутого в диагностике, так что следующей правке не нужен второй вызов. Где исправление определено полностью, его записывает <code>glyph fix</code>.
+        </p>
+
+        <h2 class="block-label">Справочник по языку без сети</h2>
+        <p>
+          <code>glyph llms</code> печатает справочник по языку, и <code>/llms.txt</code> на этом сайте это тот же документ. <code>glyph llms --json</code> отдаёт те же знания как данные, прочитанные из собственных таблиц компилятора: 77 кодов диагностик, 24 имени прелюдии, 40 модулей стандартной библиотеки с 340 экспортами, 49 решений по языку и одиннадцать инструментов. <code>glyph llms --negative</code> возвращает 117 неверных программ в 0.1.149 (139 начиная со следующего выпуска) с кодом, который выдаёт каждая, и компилирует их по запросу. <code>scripts/check_llms_sync.py</code> падает, когда таблицы диагностик и зарезервированных слов в справочнике расходятся с таблицами компилятора.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">точки входа без сети</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

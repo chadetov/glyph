@@ -1,0 +1,206 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "benchmarks/index.html",
+  "locale": "ru",
+  "source_hash": "c2635229de656794",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Benchmarks · measured, not asserted · Glyph",
+      "tr": "Бенчмарки · измерено, а не заявлено · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's four pillars as numbers: errors caught at compile time, one grep per symbol, one-line diffs, and about 9% fewer tokens than TypeScript, with caveats.",
+      "tr": "Четыре принципа Glyph в цифрах: ошибки, пойманные при компиляции, один grep на символ, диффы в одну строку и примерно на 9% меньше токенов, чем у TypeScript, с оговорками."
+    },
+    {
+      "id": "h-9f2e7732",
+      "kind": "html",
+      "en": "Benchmarks",
+      "tr": "Бенчмарки"
+    },
+    {
+      "id": "h-9c3743c9",
+      "kind": "html",
+      "en": "Two kinds of <span class=\"accent\">evidence</span>.",
+      "tr": "Два вида <span class=\"accent\">доказательств</span>."
+    },
+    {
+      "id": "h-b3331cb8",
+      "kind": "html",
+      "en": "There are two questions worth measuring, and we keep them separate. <strong>Structural:</strong> what does Glyph reject by construction that TypeScript accepts? That's provable today, shown below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and we don't have it yet. It's a study we're building, and we won't dress up a proxy as if it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a>.)",
+      "tr": "Измерять стоит два вопроса, и мы держим их раздельно. <strong>Структурный:</strong> что Glyph отклоняет по построению, а TypeScript принимает? Это доказуемо уже сегодня, см. ниже. <strong>Надёжность:</strong> действительно ли агенты выпускают меньше дефектов на Glyph, чем в <em>хорошо настроенном</em> строгом TypeScript? Именно это число решает вопрос внедрения, и у нас его пока нет. Это исследование мы строим, и мы не будем выдавать косвенный показатель за этот ответ. (Настоящее сравнение не Glyph против наивного TS, а Glyph против <a href=\"/answers/vs-tooled-ts/\">строгого TS + zod + eslint + ts-pattern</a>.)"
+    },
+    {
+      "id": "h-cae40d7f",
+      "kind": "html",
+      "en": "Structural: provable by construction",
+      "tr": "Структурный: доказуемо по построению"
+    },
+    {
+      "id": "h-2f56c6d4",
+      "kind": "html",
+      "en": "Not a statistic: paired demonstrations. Each is a case Glyph rejects and <code>tsc --strict</code> accepts, reproducible from the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory.",
+      "tr": "Не статистика, а парные демонстрации. Каждая из них это случай, который Glyph отклоняет, а <code>tsc --strict</code> принимает; их можно воспроизвести из каталога <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a>."
+    },
+    {
+      "id": "h-7d361f00",
+      "kind": "html",
+      "en": "Verifiability: the bugs that cost you",
+      "tr": "Проверяемость: ошибки, которые дорого обходятся"
+    },
+    {
+      "id": "h-b9c29918",
+      "kind": "html",
+      "en": "<span class=\"accent\">Both</span> caught at compile time",
+      "tr": "<span class=\"accent\">Обе</span> ловятся при компиляции"
+    },
+    {
+      "id": "h-d9a4c68e",
+      "kind": "html",
+      "en": "Two mistakes agents make constantly (a missing <code>match</code> variant and a cast through <code>as unknown as</code>) are rejected by Glyph and accepted by <code>tsc --strict</code>. Both are checked cases in <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), re-run by the build gate. Wrong code that compiles is the expensive failure. Glyph won't let it.",
+      "tr": "Две ошибки, которые агенты делают постоянно (пропущенный вариант в <code>match</code> и приведение через <code>as unknown as</code>), Glyph отклоняет, а <code>tsc --strict</code> принимает. Обе это проверяемые случаи в <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), которые перезапускает проверка при сборке. Неверный код, который компилируется, это дорогая ошибка. Glyph её не допустит."
+    },
+    {
+      "id": "h-18ef286e",
+      "kind": "html",
+      "en": "Greppability: one name, one place",
+      "tr": "Удобство поиска: одно имя, одно место"
+    },
+    {
+      "id": "h-7d95f946",
+      "kind": "html",
+      "en": "<span class=\"accent\">1</span> match, every time",
+      "tr": "<span class=\"accent\">1</span> совпадение, каждый раз"
+    },
+    {
+      "id": "h-c195e0eb",
+      "kind": "html",
+      "en": "Every symbol has exactly one declaration form: no overloads, decorators, or merged namespaces to scatter it.",
+      "tr": "У каждого символа ровно одна форма объявления: нет перегрузок, декораторов и слитых namespace, которые бы его разбрасывали."
+    },
+    {
+      "id": "h-395c7a50",
+      "kind": "html",
+      "en": "Diff stability: reviewable by default",
+      "tr": "Стабильность диффов: удобно ревьюить по умолчанию"
+    },
+    {
+      "id": "h-eb7a3918",
+      "kind": "html",
+      "en": "1 line &rarr; 1 line",
+      "tr": "1 строка &rarr; 1 строка"
+    },
+    {
+      "id": "h-78c7e9a8",
+      "kind": "html",
+      "en": "A one-line Glyph edit produces a one-line TypeScript diff through the transpiler, and <code>glyph fmt</code> adds no churn. The diff is the change, not the noise around it.",
+      "tr": "Правка в одну строку на Glyph даёт дифф в одну строку в TypeScript после транспиляции, а <code>glyph fmt</code> не добавляет шума. Дифф это изменение, а не шум вокруг него."
+    },
+    {
+      "id": "h-6b841d3c",
+      "kind": "html",
+      "en": "And the safety does not cost length",
+      "tr": "И безопасность не стоит длины"
+    },
+    {
+      "id": "h-c31998ef",
+      "kind": "html",
+      "en": "Tokens for the same three functions",
+      "tr": "Токены для одних и тех же трёх функций"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-18885f27",
+      "kind": "html",
+      "en": "Python",
+      "tr": "Python"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-6cc8519b",
+      "kind": "html",
+      "en": "Go",
+      "tr": "Go"
+    },
+    {
+      "id": "h-d9aa89fd",
+      "kind": "html",
+      "en": "Rust",
+      "tr": "Rust"
+    },
+    {
+      "id": "h-df8eac6d",
+      "kind": "html",
+      "en": "Safety usually costs length: Go and Rust, the other rows with static types and explicit error handling, are the longest. Glyph has both and is not longer for it: 436 tokens to TypeScript's 478, about 9% fewer, level with Python, about 23% fewer than Go and 30% fewer than Rust, on real <code>cl100k_base</code> counts of programs that pass <code>glyph check</code> with <code>tsc</code>. The lead is in the function with real control flow (<code>parse_user</code>, 132 to 174); on the one-line <code>slugify</code> Glyph is longer (67 to 47) because it has no regex literal. Three functions, a small sample. An earlier figure of 341 was measured on fixtures the compiler did not accept and is withdrawn. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">See the methodology and caveats &rarr;</a>",
+      "tr": "Обычно безопасность стоит длины: Go и Rust, другие строки со статическими типами и явной обработкой ошибок, самые длинные. В Glyph есть и то, и другое, но длиннее он от этого не становится: 436 токенов против 478 у TypeScript, примерно на 9% меньше, вровень с Python, примерно на 23% меньше, чем у Go, и на 30% меньше, чем у Rust; это реальные подсчёты <code>cl100k_base</code> для программ, которые проходят <code>glyph check</code> с <code>tsc</code>. Выигрыш приходится на функцию с настоящим управлением потоком (<code>parse_user</code>, 132 против 174); на однострочной <code>slugify</code> Glyph длиннее (67 против 47), потому что в нём нет литералов регулярных выражений. Три функции, небольшая выборка. Более ранняя цифра 341 была измерена на фикстурах, которые компилятор не принимал, и отозвана. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">Методология и оговорки &rarr;</a>"
+    },
+    {
+      "id": "h-8ac5b0ca",
+      "kind": "html",
+      "en": "Reliability: the study we're building",
+      "tr": "Надёжность: исследование, которое мы строим"
+    },
+    {
+      "id": "h-a81f267c",
+      "kind": "html",
+      "en": "The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof that it does. The proof is a differential study: the same agent, the same realistic tasks, written once in Glyph and once in a fully-tooled strict-TypeScript setup (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number five different reviewers told us would move them, so we're building it, and until it exists these bars are a placeholder, not a claim.",
+      "tr": "Структурные результаты выше это <em>основания ожидать</em>, что Glyph помогает, а не доказательство этого. Доказательство даст сравнительное исследование: тот же агент, те же реалистичные задачи, написанные один раз на Glyph и один раз в полностью оснащённом строгом TypeScript (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), с оценкой по <strong>просочившимся семантическим дефектам</strong> и доле зелёных сборок с первой попытки. Пять разных ревьюеров сказали нам, что именно это число повлияет на их решение, поэтому мы его строим, а пока его нет, эти столбцы просто заглушка, а не утверждение."
+    },
+    {
+      "id": "h-dcf46d14",
+      "kind": "html",
+      "en": "Escaped defects per task &middot; lower is better &middot; <span style=\"color:var(--amber)\">not measured yet</span>",
+      "tr": "Просочившиеся дефекты на задачу &middot; меньше значит лучше &middot; <span style=\"color:var(--amber)\">пока не измерено</span>"
+    },
+    {
+      "id": "h-bce540e4",
+      "kind": "html",
+      "en": "Glyph vs fully-tooled strict TypeScript",
+      "tr": "Glyph против полностью оснащённого строгого TypeScript"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "ожидается"
+    },
+    {
+      "id": "h-e82e7273",
+      "kind": "html",
+      "en": "tooled TS",
+      "tr": "TS с инструментами"
+    },
+    {
+      "id": "h-57cc1ce7",
+      "kind": "html",
+      "en": "The apparatus (a task corpus, a run/replay harness, and the pinned strongest-honest TS baseline) is in the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the label) publishes here the moment it runs. Whatever it shows.",
+      "tr": "Инструментарий (корпус задач, обвязка для запуска и повтора и зафиксированная самая сильная честная база на TS) лежит в каталоге <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a>; первый настоящий пилот (с указанием <em>n</em>, модели и стоимости) будет опубликован здесь, как только он пройдёт. Что бы он ни показал."
+    },
+    {
+      "id": "h-88029d8d",
+      "kind": "html",
+      "en": "Why the comparison is against tooled TS &rarr;",
+      "tr": "Почему сравнение идёт с TS с инструментами &rarr;"
+    },
+    {
+      "id": "h-c0b5c819",
+      "kind": "html",
+      "en": "&larr; Back to home",
+      "tr": "&larr; На главную"
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+---
+title: Начните здесь · первая программа на Glyph за 10 минут · Glyph
+description: Создайте проект Glyph через npx, запустите его, намеренно сломайте, прочитайте ошибку компилятора и исправьте её. Десять минут, ничего не устанавливается глобально.
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; Главная | TypeScript, который агенты не сломают незаметно
+next: /answers/verifiability/ | Далее &rarr; | Что мешает агенту незаметно сломать мой код?
+next_steps: |
+  Куда дальше
+  Далее &middot; без установки | /playground/ | playground | Песочница | Попробуйте Glyph в браузере, без установки. | Открыть песочницу
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | Пятиминутный обзор | Весь язык, коротко.
+  /answers/ | answers | Ответы | Разобранные ответы о React, типизированных API, npm и TypeScript с инструментами.
+---
+      <p class="q-eyebrow">Начните здесь &middot; ~10 минут</p>
+      <h1 class="q-title">Ваша первая программа на Glyph</h1>
+
+      <p class="short-answer">
+        Создайте проект, запустите его, а затем <strong>намеренно сломайте</strong> и прочитайте ошибку, которую выдаст компилятор. Знать Glyph заранее не нужно. Если вы хоть немного писали на TypeScript, вы поймёте каждую строку.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; Создайте проект</h2>
+        <p>
+          Glyph распространяется через npm как готовый бинарный файл для macOS и Linux (x64 и ARM) и Windows (x64) и требует Node 18 или новее. Этот способ ничего не устанавливает глобально: <code>npx</code> скачивает компилятор, чтобы создать проект, а проект фиксирует собственную копию вместе с <code>tsx</code> и <code>typescript</code>, которые Glyph использует для запуска и проверки типов.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">терминал</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Если вы хотите, чтобы <code>glyph</code> был в PATH, установите его глобально вместе с двумя инструментами, через которые он работает, и уберите <code>npx</code> из команд на этой странице:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">терминал, глобальная установка</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; Посмотрите, что получилось</h2>
+        <p><code>glyph init</code> создаёт готовую к запуску заготовку: <code>src/main.glyph</code>; <code>src/.types/README.md</code>, где объясняется, что типизированному пакету из npm там ничего не нужно, а каталог предназначен для пакетов без типов; <code>package.json</code>; <code>.gitignore</code>; и два файла, которые агенты читают сами: <code>AGENTS.md</code>, который отсылает к <code>glyph llms</code> за полным справочником по языку, и <code>.mcp.json</code>, который регистрирует <code>glyph mcp</code>, чтобы агент мог спрашивать у компилятора типы и ссылки, а не искать их. В уже существующем проекте эти два файла пишет <code>glyph agents</code>. <code>package.json</code> фиксирует компилятор, <code>typescript</code> и <code>tsx</code> в <code>devDependencies</code>, поэтому любой, кто клонирует проект, соберёт его через <code>npm install</code> без глобальной установки.</p>
+        <p>Откройте <code>src/main.glyph</code>. Это hello world:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Обратите внимание на две вещи: программа запускает свою функцию <code>main(argv)</code>, а <code>main</code> возвращает <code>number</code>, код завершения процесса. Возврат задаёт этот код, но не останавливает процесс принудительно, поэтому программа, которая запускает сервер, продолжает его обслуживать.
+        </p>
+
+        <h2 class="block-label">3 &middot; Запустите</h2>
+      </div>
+      <div class="code">
+        <span class="cap">терминал</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> проверил типы, скомпилировал код в TypeScript и выполнил его. Этот цикл вы будете повторять до конца страницы.
+        </p>
+
+        <h2 class="block-label">4 &middot; Добавьте что-нибудь настоящее</h2>
+        <p>
+          Теперь замените тело на немного логики: статус задачи и функцию, которая подписывает его. Здесь появляются две вещи, которыми вы будете пользоваться постоянно: <em>размеченное объединение</em> (<code>type Status = ...</code>) и <code>match</code>, единственная условная конструкция в Glyph.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">терминал</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; Сломайте намеренно</h2>
+        <p>
+          Вот часть, которая показывает, <em>для чего</em> нужен Glyph. Удалите ветку <code>Done</code> из <code>match</code> (агент делает так, когда добавляет где-то вариант и забывает его обработать) и запустите снова.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (без ветки Done)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Программа не запустилась. В TypeScript ровно эта функция с явно указанным возвращаемым типом тоже отклоняется (TS2366). Но <code>switch</code>, который только пишет в лог или обновляет состояние, или вариант с <code>default:</code> компилируется без ошибок и молча пропускает новый случай. Здесь любой неполный match это ошибка компиляции со стабильным кодом (<code>E0200</code>), точным местом и исправлением в одну строку. Запустите <code>glyph --explain E0200</code>, когда захотите подробное объяснение.
+        </p>
+
+        <h2 class="block-label">6 &middot; Исправьте</h2>
+        <p>Верните ветку (или добавьте <code>else</code>), и программа снова запустится.</p>
+      </div>
+      <div class="code">
+        <span class="cap">терминал</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Это и есть основной цикл: пишете, запускаете, а если что-то не так, компилятор точно говорит, что и как исправить, до того как код попадёт в продакшен, а не после.
+        </p>
+      </div>

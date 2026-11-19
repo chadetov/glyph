@@ -1,0 +1,54 @@
+---
+title: Можно ли внедрить Glyph в моё существующее приложение? · Glyph
+description: Без переписывания: приложение остаётся на TypeScript, ядро предметной области пишется на Glyph, а скомпилированные модули импортируются как любой локальный файл. Работает в стандартном Vite.
+source_hash: 4dc0a3c1d0f26ab3
+prev: /answers/imports/ | &larr; Назад | Можно ли использовать мой существующий TypeScript, JavaScript и библиотеки из npm?
+next: /answers/typed-apis/ | Далее &rarr; | Нужно ли писать валидатор для каждого API вручную?
+---
+      <p class="q-eyebrow">10 &middot; Внутри вашего приложения</p>
+      <h1 class="q-title">Можно ли внедрить Glyph в моё существующее приложение, или только всё или ничего?</h1>
+
+      <p class="short-answer">
+        Без переписывания. Приложение остаётся на TypeScript, а часть, в которой нельзя ошибиться (модели, права доступа, переходы состояний, денежные расчёты), пишется на Glyph. <code>glyph build</code> генерирует модули, которые приложение импортирует <strong>как любой локальный файл</strong>, без настройки бандлера и без алиасов путей.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Большинство команд не могут переписать приложение, и большей части приложения Glyph не нужен. Нужен он ядру предметной области: правилам, которые ИИ-агент будет править в следующем месяце и которые никто не хочет получить тихо сломанными. Если держать это ядро на Glyph, исчерпывающий <code>match</code>, отсутствие приведений типов и проверенные границы будут ровно там, где они окупаются, а компоненты React, стили и инфраструктура останутся обычным TypeScript.
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>Одна папка с исходниками Glyph, скомпилированная в приложение и импортируемая интерфейсом:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Гибридная раскладка: ядро предметной области на Glyph, всё остальное на TypeScript</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Всё, что нужно сгенерированному коду, идёт вместе с ним. Импорты относительные, включая встроенную стандартную библиотеку, поэтому в <code>tsconfig.json</code> и бандлер вашего проекта ничего добавлять не нужно: стандартный шаблон Vite компилирует и собирает результат как есть, и те же файлы проходят <code>tsc --strict</code> основного проекта. Помечайте то, что импортирует приложение, через <code>pub</code>; объявление без него приватно для своего модуля. Это не гипотеза: сторонний инженер <a href="https://github.com/yildizadem/glyph-kanban">так и построил Kanban-доску на React</a>, где матрица RBAC, формулы аналитики и переходы статусов лежат в четырёх модулях Glyph под написанным вручную интерфейсом на React.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Сгенерированный код встраивается в основной проект без изменений: везде относительные пути импорта, типы прелюдии несёт сам код, проверено на стандартном шаблоне Vite, <code>tsc --strict</code> основного проекта, esbuild и <code>tsx</code>. Гибридная раскладка описана в <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">руководстве по развёртыванию</a>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">В работе</h3>
+          <p>Режима наблюдения пока нет: после правки исходников <code>.glyph</code> запускайте <code>glyph build</code> заново (добавьте это в свой скрипт <code>dev</code>). Модулям, использующим <code>std/fs</code> или <code>std/net</code>, нужен <code>@types/node</code> в основном проекте, как любому TypeScript, который работает с Node.</p>
+        </div>
+      </div>

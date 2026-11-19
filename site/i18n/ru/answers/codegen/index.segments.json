@@ -1,0 +1,164 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/codegen/index.html",
+  "locale": "ru",
+  "source_hash": "6bd6413e23269b0f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I generate a typed client from my API spec? · Glyph",
+      "tr": "Можно ли сгенерировать типизированный клиент из спецификации API? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.",
+      "tr": "Да. glyph gen openapi превращает спецификацию в типизированный HTTP-клиент или в серверные заготовки с роутером, а gen zod работает со схемами zod. На выходе обычный Glyph."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Назад"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "Нужно ли писать валидатор для каждого API вручную?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Далее &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "Работает ли он с React: компоненты, хуки и Context?"
+    },
+    {
+      "id": "h-2d504cee",
+      "kind": "html",
+      "en": "12 &middot; From your spec",
+      "tr": "12 &middot; Из вашей спецификации"
+    },
+    {
+      "id": "h-aacedd15",
+      "kind": "html",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "Можно ли сгенерировать типизированный клиент и сервер из спецификации API?"
+    },
+    {
+      "id": "h-b2505a68",
+      "kind": "html",
+      "en": "Yes. Point <code>glyph gen openapi</code> at an OpenAPI spec: <code>--client</code> emits a typed HTTP client, one function per operation; <code>--handlers</code> emits server stubs and a working <code>route</code> dispatcher. If your source of truth is a <code>zod</code> schema, <code>glyph gen zod</code> does the same. Everything comes out as <strong>committed, greppable Glyph</strong> you own and edit, never a hidden codegen step.",
+      "tr": "Да. Направьте <code>glyph gen openapi</code> на спецификацию OpenAPI: <code>--client</code> генерирует типизированный HTTP-клиент, по одной функции на операцию; <code>--handlers</code> генерирует серверные заготовки и работающий диспетчер <code>route</code>. Если источник истины у вас это схема <code>zod</code>, то же самое делает <code>glyph gen zod</code>. Всё получается в виде <strong>закоммиченного Glyph, который можно искать grep</strong>, который принадлежит вам и который вы правите, а не скрытого шага кодогенерации."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "h-6e5bdb9e",
+      "kind": "html",
+      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
+      "tr": "Рукописные API-клиенты и их DTO расходятся со спецификацией, и такое расхождение это класс багов, который никто не любит. Поскольку Glyph генерирует <em>настоящий</em> код (типизированные функции, настоящие объявления <code>type</code> с дескрипторами для проверки во время выполнения), спецификация остаётся источником истины, а повторная генерация даёт идемпотентный дифф, который можно ревьюить, а не чёрный ящик."
+    },
+    {
+      "id": "h-a484bd7e",
+      "kind": "html",
+      "en": "See it: the client",
+      "tr": "Посмотрите сами: клиент"
+    },
+    {
+      "id": "h-009373ae",
+      "kind": "html",
+      "en": "Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>:",
+      "tr": "Каждая операция становится <code>async fn</code> с типизированными параметрами пути и типизированным телом запроса и возвращает HTTP <code>Response</code>:"
+    },
+    {
+      "id": "h-e40c10b9",
+      "kind": "html",
+      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
+      "tr": "Роутер из <code>--handlers</code> сопоставляет путь с паттернами массивов, так что <code>/tasks/{id}</code> становится <code>[\"tasks\", id]</code> и параметр связывается за вас. Каждая заготовка начинается как <code>501</code> с комментарием, показывающим разбор тела; вы их заполняете и подключаете через <code>await serve(PORT, route)</code>."
+    },
+    {
+      "id": "h-06875f94",
+      "kind": "html",
+      "en": "From a zod schema instead",
+      "tr": "Или из схемы zod"
+    },
+    {
+      "id": "h-6535dfa8",
+      "kind": "html",
+      "en": "If your team already defines shapes with <code>zod</code>, generate from those directly. The schema becomes a first-class Glyph type with its own descriptor:",
+      "tr": "Если ваша команда уже описывает структуры через <code>zod</code>, генерируйте прямо из них. Схема становится полноценным типом Glyph с собственным дескриптором:"
+    },
+    {
+      "id": "h-e545951d",
+      "kind": "html",
+      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant. Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
+      "tr": "Полиморфное <strong>размеченное объединение</strong> (<code>discriminator</code> в OpenAPI) превращается в настоящее размеченное объединение Glyph и сгенерированную функцию <code>parse_&lt;Name&gt;</code>, которая читает свойство-дискриминатор и проверяет значение как нужный вариант. Поскольку Glyph помечает варианты по имени конструктора, а не по произвольному свойству, сгенерированный диспетчер связывает объект из сети с union за вас."
+    },
+    {
+      "id": "h-b5ade80b",
+      "kind": "html",
+      "en": "Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields, and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
+      "tr": "Где он не дотягивает: генерация следует формату данных в сети, поэтому покрывает частые 80%: объекты, примитивы, массивы, ссылки, необязательные и nullable-поля и размеченные объединения. То, что нельзя представить точно (строковый enum, <em>не</em>размеченный union), сужается с выведенным примечанием, а не превращается в валидатор, который отклонял бы настоящие данные. Следующими будут более богатые enum. И у инструментов есть реальные зависимости: <code>gen dts</code>/<code>gen zod</code> нужны Node и <code>typescript</code>/<code>zod</code>. <code>gen dts</code> работает с любым TypeScript (5, 6 или нативным портом 7.x), который сначала ищется в вашем проекте, и если чего-то не хватает, они точно говорят, что установить."
+    },
+    {
+      "id": "h-9d3f5fa1",
+      "kind": "html",
+      "en": "Keeping it in sync",
+      "tr": "Синхронизация"
+    },
+    {
+      "id": "h-c8254899",
+      "kind": "html",
+      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
+      "tr": "Каждый сгенерированный файл записывает в заголовок точную команду, которая его создала. Когда спецификация меняется, не нужно выяснять, какие команды перезапускать: <code>glyph regen</code> находит эти заголовки, перезапускает каждую команду и перезаписывает результат. Это идемпотентно, так что regen без изменений в спецификации ничего не трогает; его легко встроить в pre-commit хук или в проверку в CI, которая падает, если закоммиченный код разошёлся со спецификацией."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Уже работает"
+    },
+    {
+      "id": "h-46515e67",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.",
+      "tr": "<code>glyph gen openapi</code> (типы, <code>--client</code>, <code>--handlers</code> с настоящим роутером), <code>glyph gen dts</code>, <code>glyph gen zod</code> и <code>glyph regen</code>, чтобы обновить всё из исходников: каждая команда выдаёт закоммиченный Glyph с дескрипторами, который идемпотентно перегенерируется."
+    },
+    {
+      "id": "h-d9d35e28",
+      "kind": "html",
+      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
+      "tr": "Два типа, которые получили бы одно и то же имя в Glyph, останавливают генератор, а не порождают файл, который не скомпилируется: он называет каждый конфликтующий источник, ничего не пишет, а <code>--rename Source=GlyphName</code> разрешает конфликт. Этот выбор записывается в сгенерированный заголовок, так что <code>glyph regen</code> его повторяет."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "В работе"
+    },
+    {
+      "id": "h-a232f27a",
+      "kind": "html",
+      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
+      "tr": "Более богатое отображение enum и более широкое покрытие OpenAPI, всё по тому же правилу: следовать формату данных и выводить примечание при сужении. Генерация из собственного <code>.d.ts</code> пакета читает его объявления <code>interface</code> и <code>type</code>, поэтому библиотека, API которой состоит из классов или поля которой используют вычисляемые типы вроде <code>Omit</code>, оставляет ссылки, которые генератор называет в примечании, а <code>glyph build</code> сообщает как неразрешённые. Импорт такого класса и создание его через <code>new</code> генерации не требуют и проверяются <code>tsc</code>, так что этот путь не затронут."
+    }
+  ]
+}

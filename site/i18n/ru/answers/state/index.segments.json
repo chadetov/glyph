@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/state/index.html",
+  "locale": "ru",
+  "source_hash": "59f9695c32448ee8",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "How do I share mutable state between functions? · Glyph",
+      "tr": "Как разделять изменяемое состояние между функциями? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.",
+      "tr": "В Glyph нет изменяемых глобальных переменных. Общее состояние живёт в std/store: const на уровне модуля, у которого get, set и update единственные способы записи, и все они находятся одним поиском."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Назад"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "Работает ли он с React: компоненты, хуки и Context?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Далее &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "Это настоящий язык или игрушка с дырами?"
+    },
+    {
+      "id": "h-3cfc3cc8",
+      "kind": "html",
+      "en": "14 &middot; Shared state",
+      "tr": "14 &middot; Общее состояние"
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "Как разделять изменяемое состояние между функциями?"
+    },
+    {
+      "id": "h-ed0c2fbf",
+      "kind": "html",
+      "en": "With a <strong>store</strong>. Glyph has no mutable global variables. Module bindings are <code>const</code>. Shared state lives in a <code>std/store</code>: a module-level <code>const</code> holding a value you read with <code>get()</code> and change with <code>set()</code>/<code>update()</code>. The binding never moves; only the value inside it does, through a method call, so every write is a literal <code>.set(</code> or <code>.update(</code> you can grep for.",
+      "tr": "Через <strong>store</strong>. В Glyph нет изменяемых глобальных переменных. Привязки модуля это <code>const</code>. Общее состояние живёт в <code>std/store</code>: <code>const</code> на уровне модуля, который хранит значение; читаете его через <code>get()</code>, меняете через <code>set()</code>/<code>update()</code>. Сама привязка никогда не меняется, меняется только значение внутри неё, через вызов метода, поэтому каждая запись это буквальный <code>.set(</code> или <code>.update(</code>, который можно найти grep."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Посмотрите сами"
+    },
+    {
+      "id": "h-3ba2ac81",
+      "kind": "html",
+      "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
+      "tr": "Объявите store один раз на уровне модуля. Все функции модуля пользуются им вместе. Никакого <code>let</code>, протаскиваемого через <code>main</code>, никаких захватывающих замыканий:"
+    },
+    {
+      "id": "h-333b6247",
+      "kind": "html",
+      "en": "the whole write-surface, in one grep",
+      "tr": "вся поверхность записи одним grep"
+    },
+    {
+      "id": "h-d1af17c7",
+      "kind": "html",
+      "en": "Why a store, and not a mutable global",
+      "tr": "Почему store, а не изменяемая глобальная переменная"
+    },
+    {
+      "id": "h-3b512acb",
+      "kind": "html",
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "Это сознательное решение. Glyph ограничивает <code>mut</code> локальными присваиваниями, а привязки модуля делает <code>const</code>, потому что разбросанный набор изменяемых глобальных переменных именно то, из-за чего о состоянии трудно рассуждать и его трудно <em>найти</em>. Store не требует ослаблять ни одно из правил: привязка <code>const s</code> неизменяема, а значение внутри меняется только через <code>set</code>/<code>update</code>. Поэтому общее состояние появляется как <strong>библиотека, а не новый синтаксис</strong> (без линейных типов, без ослабленных правил изменения), и изменения живут ровно в одном проверяемом месте, а не разбросаны по программе."
+    },
+    {
+      "id": "h-90f9eefd",
+      "kind": "html",
+      "en": "One sharp edge, shared with TypeScript: an empty collection can't infer its element type, so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. A scalar store (<code>create(0)</code>) infers fine.",
+      "tr": "Есть один острый угол, общий с TypeScript: пустая коллекция не может вывести тип элемента, поэтому задайте его явным аргументом типа: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Скалярный store (<code>create(0)</code>) выводится без проблем."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Текущее состояние"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Уже работает"
+    },
+    {
+      "id": "h-fe78aabc",
+      "kind": "html",
+      "en": "<code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.",
+      "tr": "<code>std/store</code> с <code>create</code>, <code>get</code>, <code>set</code> и <code>update</code>: единственное место для общего изменяемого состояния, которое находится grep."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "В работе"
+    },
+    {
+      "id": "h-e4b5e189",
+      "kind": "html",
+      "en": "Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.",
+      "tr": "Удобства поверх того же примитива (производные и вычисляемые store, подписки), без изменений в языке."
+    }
+  ]
+}

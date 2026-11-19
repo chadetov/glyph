@@ -1,0 +1,136 @@
+---
+title: Почему не TypeScript с инструментами: tsc, zod, eslint? · Glyph
+description: TypeScript с инструментами заходит далеко, но каждая гарантия включается по желанию, и агент может её обойти. В Glyph строгость это сам язык, а не конфигурационный файл.
+source_hash: d0694478c32b0491
+prev: /answers/why-typescript/ | &larr; Назад | Почему TypeScript, а не Go или новый язык?
+next: /answers/human-value/ | Далее &rarr; | Стоит ли Glyph того, если я не пользуюсь ИИ?
+---
+      <p class="q-eyebrow">05 &middot; Сравнение</p>
+      <h1 class="q-title">Почему не просто строгий TypeScript + zod + eslint + ts-pattern?</h1>
+
+      <p class="short-answer">
+        Потому что каждая из этих гарантий <strong>включается по желанию</strong>, и агент может обойти любую из них одной строкой. Строгость Glyph это не конфигурационный файл, который агент может поправить. Это сам язык. Точка контроля смещается с «не забыли ли мы прогнать линтер по этому файлу» на «компилируется ли это».
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Что уже даёт TypeScript с инструментами</h2>
+        <p>
+          Хорошо настроенный TypeScript заводит очень далеко, и если ваша команда гоняет всё это в CI, большинство пробелов, на которые нацелен Glyph, у вас уже закрыто. Это альтернатива, к которой стоит отнестись серьёзно, поэтому вот соответствие:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">что уже даёт TypeScript с инструментами</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Если всё это у вас подключено и соблюдается, вы прошли большую часть пути. В TypeScript эти идеи есть. Язык, делая их обязательными, добавляет к ним три вещи.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Обязательное лучше необязательного</h2>
+        <p>
+          Конфигурация eslint защищает только тот код, который агент пропускает <em>через</em> неё, а агент может написать <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> или просто забыть <code>.exhaustive()</code>, и это всё равно скомпилируется и будет смёржено. Каждая из этих лазеек это настройка, которую агент может поменять. В Glyph такой лазейки нет: нет <code>as</code>, нет прагмы игнорирования, нет способа получить типизированное значение из <code>unknown</code> без проверки, которую видит компилятор.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: лазейки есть</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: отключать нечего</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          Строгость, которую агент <strong>не может отключить конфигурацией</strong>, находится в другой точке контроля, чем строгость, которую может. На этой разнице и построен Glyph.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> Тип и есть валидатор: второго артефакта нет</h2>
+        <p>
+          zod переворачивает источник истины: вы пишете <em>схему</em>, выводите из неё тип, а потом вручную синхронизируете тип, схему и любой сериализатор. Именно при поддержании этого соответствия агент и вносит расхождение: переименовывает поле в типе, но не в схеме, и оба продолжают компилироваться. В Glyph тип <em>и есть</em> валидатор: объявление <code>type User = {...}</code> генерирует рядом <code>User.parse</code>. Один артефакт, нечего синхронизировать, нечего забыть.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Мутации, которые находит grep</h2>
+        <p>
+          В TypeScript изменение состояния может прятаться за <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, сеттером или spread. Нет одного токена, который можно искать, и ни одно правило линтера это полностью не исправляет. В Glyph общее состояние живёт в store, и каждое изменение это буквальный <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> находит каждую локальную мутацию. В обычном TypeScript аналога нет.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Разница в том, как всё ломается</h2>
+        <p>
+          Та же задача: агент добавляет вариант в union и забывает обработать его в одном из трёх мест:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TS с инструментами</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">В чём TypeScript с инструментами пока впереди</h2>
+        <p>
+          Четыре места, где сегодня он опережает Glyph:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Более богатая валидация.</strong> Дескрипторы Glyph по умолчанию строгие (они отклоняют необъявленные ключи), а уточнение <code>where</code> накладывает предикат на примитив (<code>type Email = string where value.includes("@")</code>), и дескриптор выполняет его на каждой границе, до которой доходит тип. zod всё ещё впереди в двух отношениях: в нём есть готовые проверки вроде <code>.email()</code> и <code>.url()</code>, которые в Glyph вы пишете сами, и он уточняет целые объекты, тогда как <code>where</code> на записи (<code>lo &lt;= hi</code> по двум полям) сегодня даёт <code>E0300</code>.</li>
+          <li><strong>Более глубокое сопоставление.</strong> Гарды и глубокие структурные паттерны ts-pattern выходят за пределы того, что выражает <code>match</code> в Glyph.</li>
+          <li><strong>«Доказуемое отсутствие» заканчивается на границе <code>.ts</code>.</strong> Гарантии Glyph действуют для кода, написанного на Glyph; исключение, выброшенное зависимостью из npm, всё равно обходит <code>Result</code>, а у импортированного типа из <code>.d.ts</code> нет дескриптора для проверки во время выполнения.</li>
+          <li><strong>Экосистема и найм.</strong> Инструменты, сообщество и рынок разработчиков TypeScript намного больше, и за ними годы использования в продакшене. Glyph это ранняя предварительная версия.</li>
+        </ul>
+        <p>
+          Если TypeScript с инструментами у вас подключён полностью и ваши агенты остаются внутри него, большая часть этого у вас уже есть. Довод Glyph в том, что вся нагрузка лежит на словах «остаются внутри», и именно их агент нарушает. Обязательность, валидация одним артефактом и мутации, которые находит grep, это то, чего не получить, добавляя новые необязательные инструменты.
+        </p>
+        <p>
+          Если вы готовы уйти с TypeScript на более старый типизированный язык, компилирующийся в JavaScript, страница <a href="/design/vs-rescript-gleam-elm/">Почему не ReScript, Gleam или Elm?</a> сравнивает Glyph с ними.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Нет <code>any</code>/<code>as</code>, исчерпывающий <code>match</code> (<code>E0200</code>/<code>E0218</code>), предупреждение об отброшенном <code>Result</code> (<code>E0217</code>), валидаторы, сгенерированные из типов, и мутации, которые находит grep: всё обязательное, и ничто из этого не правило eslint, которое можно отключить.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Измеряется</h3>
+          <p>Утверждение, что агенты допускают меньше ускользнувших дефектов в Glyph, чем в <em>хорошо настроенном</em> строгом TS, это бенчмарк, который мы строим, и сравнение идёт с TypeScript с инструментами, а не с наивным TS. Смотрите <a href="/benchmarks/">бенчмарки</a>.</p>
+        </div>
+      </div>

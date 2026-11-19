@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "ru",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "Ключа может не быть"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "Чтение поля из строки со строковыми значениями, с опечаткой в имени."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "компилируется, а потом печатает undefined"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>Любой ключ читается как <code>string</code>,</b> даже отсутствующий, поэтому поле с опечаткой печатает <code>undefined</code>."
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>Чтение из map сообщает, что значения может не быть,</b> поэтому код обязан сказать, что делать в этом случае."
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "<code>Record&lt;string, string&gt;</code> в TypeScript утверждает, что для любого ключа есть строка. Glyph считает это map, где поиск может ничего не найти, поэтому отклоняет и правильно написанное <code>row.name</code>."
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "Ковариантность массивов"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "Передача списка собак туда, где ожидается список животных."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>В списке собак оказывается кошка.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>Список собак не является изменяемым списком животных.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "TypeScript позволяет передать <code>Dog[]</code> вместо <code>Animal[]</code>, даже если функция добавляет в него элементы."
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "Стрелочная функция, которая ничего не возвращает"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "Преобразование пользователей в строки таблицы."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "компилируется, а потом выдаёт неверный ответ"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "так написать нельзя"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>Фигурные скобки здесь тело функции,</b> а <code>label:</code> это метка оператора."
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>Неоднозначная форма в Glyph недопустима.</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "Чтобы вернуть объект из стрелочной функции TypeScript, фигурные скобки нужно взять в круглые: <code>u =&gt; ({ ... })</code>."
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "Принудительное приведение значения к нужному типу."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "так написать нельзя"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>Двойное приведение выключает проверку.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>Приведения, которое можно было бы написать, нет.</b> Подсказка говорит, что делать вместо него."
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "<code>as unknown as T</code>: так агенты глушат ошибку типов, которую не могут исправить."
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "Изменение, спрятанное в хелпере"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "Функция, которая меняет переданный ей объект."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "отклонено, пока не помечено"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>Пользователь вызывающего кода переименован.</b> В месте вызова на это ничего не указывает."
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>Изменение поля требует <code>mut</code>.</b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph не запрещает изменение. Он делает его видимым: поиск по <code>mut</code> показывает каждое поле, которое пишет функция."
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "Код после <code>return</code>"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "Добавление налога после того, как функция уже вернула значение."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "предупреждение"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>Строка с налогом никогда не выполняется.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph указывает на мёртвую строку.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "По умолчанию TypeScript показывает недостижимый код только бледной подсказкой в редакторе."
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "Сравнение двух записей через <code>===</code>"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "Пропуск сохранения, если ничего не изменилось."
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "компилируется, а потом сравнивает идентичность, а не данные"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "сравнивает данные"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>Данные одинаковые, но <code>===</code> проверяет, один ли это объект.</b> Сохранение выполняется каждый раз."
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>Две записи с одинаковыми полями равны.</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "Это JavaScript, работающий так, как задуман: <code>===</code> на объектах сравнивает идентичность, а для сравнения данных нужен хелпер вроде <code>isEqual</code> из lodash. Ошибка в том, чтобы взять <code>===</code>, когда имелись в виду данные. В Glyph <code>==</code> на записях сравнивает данные, так что очевидное написание и есть правильное."
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "Вычисленное значение, которое не используется"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "Очистка ввода, после которой по ошибке возвращается исходное значение."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "предупреждение"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>Очистка так и не происходит.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph указывает на неиспользуемое значение.</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code> не входит в <code>--strict</code>, поэтому по умолчанию TypeScript молчит."
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "Конфиг без одной настройки"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "Лимит для каждого тарифа, загруженный из файла, который забыли обновить."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "проверяется при поступлении данных"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>Тип обещает, что у каждого тарифа есть лимит.</b> В файле его нет."
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>Каждый тариф должен быть на месте, и ничего лишнего.</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code> обещает значение для каждого тарифа, а <code>as</code> ничего не проверяет. Glyph требует каждый ключ из типа и отклоняет лишние."
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "Незакрытое соединение"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "Ранний возврат до очистки ресурсов."
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "компилируется, а потом теряет соединение"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>Каждый отклонённый запрос оставляет соединение открытым.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>Каждый путь выполнения обязан его закрыть.</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "Эта проверка действует для значений, объявленных как <code>owned</code>. Ресурс без этой пометки не отслеживается."
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "Данные извне программы"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "Тело запроса, файл, ответ API."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "проверяется при поступлении данных"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>Данные никто не проверяет.</b> <code>undefined</code> идёт дальше под видом тарифа."
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>Тело, которое не является настоящим <code>User</code>, становится <code>Err</code>.</b> Поддельного значения в программе не бывает."
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code> ничего не проверяет. Он просит компилятор поверить вам на слово. В Glyph нет <code>as</code>."
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "Повторяющийся вариант"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "Решаем, какие заказы можно вернуть."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>Второе правило мёртвое.</b> Никто этого не замечает."
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>Ветка, которая никогда не выполнится, это ошибка.</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc не сообщает о метке <code>case</code>, которая встречается дважды."
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "Ошибка, на которую никто не посмотрел"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "Вызов того, что может завершиться неудачей, и движение дальше."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "предупреждение"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>Ошибка отбрасывается,</b> а пользователю сообщают, что всё получилось."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph указывает на отброшенную ошибку.</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "Это предупреждение, а не ошибка. Чтобы отбросить результат намеренно, скажите об этом явно: <code>let _ = save(user)</code>."
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "Ошибка, которую прячет сигнатура"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "Функция, которая может завершиться ошибкой, и код, который об этом не знает."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>Тип говорит <code>Config</code>.</b> О том, что функция может бросить исключение, ничего не сказано."
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>Ошибка входит в возвращаемый тип,</b> поэтому вызывающий код обязан её обработать."
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "Тип функции в TypeScript перечисляет, что она возвращает, но никогда то, что она бросает. В Glyph ошибка входит в возвращаемый тип, поэтому её видит каждый вызывающий."
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "Фильтр, который пропускает всех"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "Проверка каждого пользователя асинхронным вызовом прав доступа."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "компилируется, а потом выдаёт неверный ответ"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>Ничего не отфильтровывается.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>Асинхронная функция не является ответом «да или нет».</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "Асинхронная функция возвращает Promise, а любой Promise считается истинным. Фильтр прав доступа, построенный так, пропускает всех."
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "<code>xs.sort(...)</code> внутри хелпера переупорядочивает массив вызывающего кода, и никакой <code>mut</code> это не отмечает."
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> на строке, <code>users.find(...).name</code> и чтение поля у <code>unknown</code> ловит только шаг <code>tsc</code>, а не собственная проверка Glyph, поэтому редактор и инструменты агента их не видят."
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> на строке, <code>users.find(...).name</code> и чтение поля у <code>unknown</code> ловит только шаг <code>tsc</code>, а не собственная проверка Glyph, поэтому редактор и инструменты агента их не видят."
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code> отбрасывает все промисы, поэтому работа завершается после кода, который от неё зависит, и ничто об этом не предупреждает."
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "<code>\"Welcome back, ${user}!\"</code> с записью печатает <code>[object Object]</code>."
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code> превращает настоящий <code>0</code> в <code>3</code>."
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "SQL-запрос, собранный через <code>${name}</code>, принимается <code>std/sqlite</code>."
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "<code>.sort()</code> на числах сортирует их как текст: <code>100,25,9</code>."
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "Потерянное обновление через <code>await</code> на <code>c[0]</code>, хотя такая же запись в поле отклоняется."
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "JSON <code>null</code> в необязательном поле проходит проверку, поэтому spread поверх значений по умолчанию оставляет <code>null</code>."
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "<code>input + 1</code> на строке, <code>users.find(...).name</code> и чтение поля у <code>unknown</code> ловит только шаг <code>tsc</code>, а не собственная проверка Glyph, поэтому редактор и инструменты агента их не видят."
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "Некорректная дата"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "Разбор даты из формы."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "компилируется, а потом выдаёт неверную дату или падает"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "так написать нельзя"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>Неверные даты перетекают</b> в настоящие."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>Разбор может не удаться, и тип об этом говорит.</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "<code>Date</code> в JavaScript без возражений превращает 30 февраля во 2 марта. В Glyph нет <code>Date</code>; <code>time.parse_iso</code> возвращает <code>None</code>."
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "Потерянное обновление через <code>await</code>"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "Два запроса одновременно списывают деньги с одного счёта."
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "компилируется, а потом теряет деньги во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>Одно списание пропадает.</b> Ни один тест надёжно это не ловит."
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph замечает чтение и запись вокруг ожидания.</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "Пока один вызов ждёт <code>fee()</code>, другой может обновить баланс. Первый затем записывает устаревшее значение."
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "Медиана с дробным индексом"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "Взять середину отсортированного списка."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "компилируется, а потом выдаёт неверный ответ"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "останавливается при выполнении"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>Чтение по индексу 1.5 даёт <code>undefined</code>,</b> а арифметика в вызывающем коде превращает его в <code>NaN</code>."
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>Неверный индекс останавливает программу,</b> а не распространяет <code>NaN</code>."
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph проверяет каждый индекс массива во время выполнения. Этот случай при сборке не ловится."
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "Метод, который забывает свой объект"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "Передача метода как значения."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>Метод отрывается от своей строки</b> и теряет её."
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>Метод нужно вызывать там же, где он прочитан.</b> Передавайте функцию."
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "Метод в TypeScript зависит от объекта, на котором его вызывают (<code>this</code>). Взятый из <code>name.toUpperCase()</code> как значение, он больше не знает, какую строку использовать."
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "Отрицательный возраст"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "Правило о значении, а не только о его типе."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "проверяется при поступлении данных"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>Правило живёт в комментарии,</b> где его никто не проверяет."
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>Правило входит в тип</b> и проверяется вместе с ним."
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "В TypeScript правило вроде «никогда не отрицательное» живёт в комментарии или в отдельном валидаторе. В Glyph оно входит в тип, поэтому каждая проверка типа его соблюдает."
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "Необработанный вариант"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "Агент добавляет статус <code>\"archived\"</code>. Обработчик, который сообщает о каждом статусе, был написан до его появления."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>Архивирование ничего не пишет в лог.</b> Ничто не говорит, что <code>switch</code> устарел."
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>Сборка останавливается и называет вариант.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "TypeScript проверяет, что <code>switch</code> покрывает все варианты, только если функция возвращает значение из каждой ветки, или с идиомой <code>assertNever</code>. Обработчик, который ничего не возвращает, не получает ни того, ни другого. В Glyph каждый <code>match</code> обязан покрыть все варианты, поэтому добавление нового варианта перечисляет все места, которые нужно изменить."
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "Число, принятое как enum"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "Код статуса, прочитанный из базы данных."
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "компилируется, а потом выбирает не то состояние"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>Неизвестный код становится настоящим статусом.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>Число не является <code>Status</code>.</b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "В TypeScript числовому enum можно присвоить любое число, даже такое, которому не соответствует ни один элемент."
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "Число, которое не число"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "Пользовательский ввод, query-строка, ячейка CSV."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code> расползается</b> по каждой сумме, которой касается."
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>Разбор возвращает <code>Result</code>:</b> число или причину неудачи."
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "Ошибка указывает на эту строку ещё до того, как вызывается <code>total</code>. Чтобы код скомпилировался, он должен сказать, что означает неверный ввод: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "Одна функция, много имён"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "Поиск всех вызовов перед изменением."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "одно имя везде"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code> пропускает два вызова из трёх.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>Нет экспорта по умолчанию, нет переименования.</b> <code>grep get_user</code> находит все вызовы."
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "Именно это позволяет агенту безопасно менять функцию: он находит все места её использования обычным текстовым поиском."
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "На шаг за конец"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "Суммирование списка в цикле."
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "компилируется, а потом выдаёт неверный ответ"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "останавливается при выполнении"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code> читает на один элемент за концом.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>В Glyph нет <code>for</code> в стиле C.</b> Чтение за концом останавливает программу."
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "Чтение за границами в TypeScript возвращает <code>undefined</code>, а арифметика превращает его в <code>NaN</code>."
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "Количество 1.5"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "Строка заказа, где может быть только целое число."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "проверяется при поступлении данных"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>В TypeScript один <code>number</code>.</b> Отправляется половина товара."
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code> это отдельный тип,</b> и он проверяется."
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "В TypeScript один тип <code>number</code> и для целых, и для дробных чисел. В Glyph есть <code>int</code>, и он проверяется при поступлении данных."
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "Деструктуризация <code>split</code>"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "Разделение адреса на пользователя и хост."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "компилируется, а потом печатает не тот текст"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript предполагает, что вторая часть существует.</b> Без <code>@</code> текст гласит «nobody at undefined»."
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>Отсутствующую часть нужно обработать.</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code> может вернуть одну часть. TypeScript всё равно типизирует <code>host</code> как <code>string</code>."
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "Проваливание в switch"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "Скидка для каждого тарифа."
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "компилируется, а потом выставляет неверную цену"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "так написать нельзя"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b>Пропущенный <code>break</code> выполняет следующий case.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b>Ветки <code>match</code> никогда не проваливаются.</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code> не входит в <code>--strict</code>."
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "Шаблон, который печатает «undefined»"
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "Вывод необязательной связи."
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "компилируется, а потом печатает не тот текст"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>Пользователь видит слово «undefined».</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>Для отсутствующего значения нужен вариант по умолчанию.</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code> предотвращает падение, но <code>undefined</code>, который он возвращает, всё равно печатается."
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code> возвращает три дыры, потому что <code>map</code> их пропускает. В Glyph нет <code>Array(n)</code>; массивы записываются литералами."
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code> выполняет метод без его объекта. В Glyph нет классов и нет <code>this</code>."
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> даёт <code>[10, NaN, NaN]</code>, потому что <code>map</code> передаёт индекс как основание системы счисления. В Glyph есть <code>number.parse</code>, который возвращает <code>Result</code>."
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code> равно <code>-Infinity</code>. <code>array.max</code> в Glyph возвращает <code>Option</code>, пустой для пустого списка."
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "Регулярное выражение с <code>/g</code>, повторно использованное в <code>.test</code>, не срабатывает на каждом втором совпадении, потому что помнит <code>lastIndex</code>. В Glyph нет объектов регулярных выражений; у <code>regex.matches(pattern, text)</code> нет состояния."
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "Доверие к <code>find</code> через <code>!</code>"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "Поиск записи по id."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code> говорит компилятору «поверь мне».</b> Во время выполнения он ничего не делает."
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code> возвращает <code>Option</code>,</b> поэтому пустой случай нужно обработать."
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "Без <code>!</code> <code>tsc --strict</code> отклоняет эту строку. Именно <code>!</code> выключает эту проверку, а во время выполнения он ничего не делает. В Glyph нет <code>!</code>."
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "Два типа одинаковой формы"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "Подтверждённые и неподтверждённые адреса почты."
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "компилируется без предупреждений"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>Счёт уходит на неподтверждённый адрес.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>Два именованных типа это разные типы.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript сравнивает объектные типы по форме, поэтому типы одинаковой формы взаимозаменяемы, как бы они ни назывались."
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "Type guard, который проверяет меньше, чем заявляет"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "Ручная валидация тела запроса."
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "проверяется при поступлении данных"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>Guard говорит «User», проверив одно поле.</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code> проверяет каждое поле.</b> В Glyph нет рукописных guard-функций."
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript полностью доверяет функции <code>x is User</code>, что бы на самом деле ни проверяло её тело."
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "Опечатка в объекте опций"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "Опции собираются в переменной, а потом передаются."
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "компилируется, а потом использует не ту настройку"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>Опция с опечаткой молча отбрасывается.</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>Неверное имя это ошибка.</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript проверяет неизвестные ключи только у литерала, записанного прямо в вызове, но не у собранного заранее в переменной."
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "Опечатка, которую никто не видит"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "Чтение поля из ответа."
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "компилируется, а потом падает во время выполнения"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "отклонено glyph check"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code> имеет тип <code>any</code>,</b> поэтому в нём ничего не проверяется."
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b><code>any</code> нет.</b> Непроверенные данные имеют тип <code>unknown</code>; <code>json.parse&lt;User&gt;</code> даёт им тип."
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code> выключает проверку типов для всего, чего касается, и расползается: <code>data.usr</code> тоже <code>any</code>. В Glyph нет <code>any</code>. Отказ здесь исходит от шага <code>tsc</code>, который запускают <code>glyph check</code> и <code>glyph build</code>; собственная проверка Glyph его пока не видит (G381)."
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "Разобранному телу дан тип без проверки"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "Чтение тела запроса в типизированную переменную."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>Аннотация это обещание, которое никто не выполняет.</b> <code>JSON.parse</code> возвращает <code>any</code>, так что проходит тело любой формы."
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code> возвращает <code>Result</code> от <code>unknown</code>,</b> а это не <code>User</code>."
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "Запись <code>const user: User</code> выглядит как проверка, но ею не является. В Glyph <code>json.parse&lt;User&gt;(body)</code> проверяет тело и возвращает <code>Result</code>, который нужно разобрать через match."
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "Валидатор, который не может проверить то, что заявляет"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "Запись с сокетом, проверяемая рукописным guard."
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "компилируется, а потом принимает строку как сокет"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "отклонено при сборке"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>Guard говорит <code>Conn</code>, проверив лишь, что <code>sock</code> существует.</b> Строка проходит как сокет."
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>Для сокета нет проверки во время выполнения,</b> поэтому Glyph отклоняет <code>Conn.parse</code>, а не генерирует проверку, которая не может быть верной."
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "Разделите тип для передачи и доменный тип: разберите поля, которые можно проверить, а затем постройте запись вокруг сокета."
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "Значение вне списка"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "API начинает присылать статус, которого ваш код никогда не видел."
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "компилируется, а потом работает на плохих данных"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "проверяется при поступлении данных"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code> считается одним из двух.</b> Каждая проверка <code>status</code> теперь неверна."
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>Проходят только перечисленные значения.</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "В TypeScript union вроде <code>\"active\" | \"banned\"</code> существует только во время компиляции. Во время выполнения ничто не мешает третьему значению. Glyph проверяет это при поступлении данных."
+      }
+    }
+  }
+}

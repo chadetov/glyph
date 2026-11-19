@@ -1,0 +1,230 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/greppability/index.html",
+  "locale": "ru",
+  "source_hash": "dc081d192bed2b9f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Greppability · one name, one place · Glyph",
+      "tr": "Удобство поиска · одно имя, одно место · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's second pillar: every symbol has one form at its declaration. No overloads, decorators, namespace merging or barrel re-exports, so grep finds it.",
+      "tr": "Второй принцип Glyph: у каждого символа одна форма в месте объявления. Нет перегрузок, декораторов, слияния namespace и реэкспортов через barrel, поэтому grep его находит."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous pillar",
+      "tr": "&larr; Предыдущий принцип"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Verifiability: true at runtime",
+      "tr": "Проверяемость: верно и во время выполнения"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next pillar &rarr;",
+      "tr": "Следующий принцип &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Diff stability: a one-line change is a one-line diff",
+      "tr": "Стабильность диффов: изменение в одну строку даёт дифф в одну строку"
+    },
+    {
+      "id": "h-e8d9455d",
+      "kind": "html",
+      "en": "Pillar 02 &middot; <span class=\"wedge\">The wedge</span>",
+      "tr": "Принцип 02 &middot; <span class=\"wedge\">Основа</span>"
+    },
+    {
+      "id": "h-6b14954f",
+      "kind": "html",
+      "en": "Greppability",
+      "tr": "Удобство поиска"
+    },
+    {
+      "id": "h-376314fa",
+      "kind": "html",
+      "en": "<strong>One name, one place.</strong> Every symbol has exactly one syntactic form at the spot it's declared, so a plain <code>grep</code> finds the definition, always, with no index, no language server, and no luck required.",
+      "tr": "<strong>Одно имя, одно место.</strong> У каждого символа ровно одна синтаксическая форма в месте объявления, поэтому обычный <code>grep</code> всегда находит определение, без индекса, без языкового сервера и без везения."
+    },
+    {
+      "id": "h-cfc911db",
+      "kind": "html",
+      "en": "Why \"where is this defined?\" is hard",
+      "tr": "Почему на вопрос «где это определено?» трудно ответить"
+    },
+    {
+      "id": "h-8a696257",
+      "kind": "html",
+      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest. The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
+      "tr": "В зрелой кодовой базе на TypeScript самый простой вопрос, <em>откуда взялось это имя?</em>, часто оказывается самым трудным. Язык предлагает полдюжины способов размазать один символ по многим местам: перегрузки делят функцию на несколько сигнатур, декораторы оборачивают её во что-то другое, слияние <code>namespace</code> и <code>interface</code> разбрасывает тип по файлам, <code>declare module</code> дополняет чужой код, а barrel-файлы <code>index.ts</code> реэкспортируют всё подряд, так что путь импорта не совпадает с местом, где что-то на самом деле лежит."
+    },
+    {
+      "id": "h-7ac6182d",
+      "kind": "html",
+      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is. Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
+      "tr": "Человек справляется с помощью LSP и мышечной памяти. <strong>Агент</strong> ищет grep: он читает репозиторий как текст, и каждая из этих конструкций это место, где текст врёт о том, где находится код. Glyph их убирает. В результате поиск становится надёжным примитивом, а не эвристикой."
+    },
+    {
+      "id": "h-e0bad820",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
+      "tr": "<span class=\"ex-label\">01</span> Одно объявление, одна форма"
+    },
+    {
+      "id": "h-b1b69e3e",
+      "kind": "html",
+      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>). So the search for a definition has exactly one answer.",
+      "tr": "Функция, тип или компонент объявляются ровно один раз, одним синтаксисом. Нет перегрузок, которые делят сигнатуру, и нет способа объявить имя повторно: две сущности верхнего уровня с одним именем дают жёсткую ошибку (<code>E0100</code>). Так что у поиска определения ровно один ответ."
+    },
+    {
+      "id": "h-e3252323",
+      "kind": "html",
+      "en": "TypeScript: four hits, one is the body",
+      "tr": "TypeScript: четыре совпадения, одно из них тело"
+    },
+    {
+      "id": "h-5df9ace5",
+      "kind": "html",
+      "en": "Glyph: the first hit is the definition",
+      "tr": "Glyph: первое совпадение это определение"
+    },
+    {
+      "id": "h-eb25898c",
+      "kind": "html",
+      "en": "The declaration keyword is part of the name you search for. <code>grep \"fn parseUser\"</code> cannot match a call, an import, or a re-export, only the one place it's <strong>defined</strong>.",
+      "tr": "Ключевое слово объявления входит в искомое имя. <code>grep \"fn parseUser\"</code> не может совпасть с вызовом, импортом или реэкспортом, только с единственным местом, где имя <strong>определено</strong>."
+    },
+    {
+      "id": "h-79996f09",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> No barrel files: the import path is the location",
+      "tr": "<span class=\"ex-label\">02</span> Нет barrel-файлов: путь импорта и есть расположение"
+    },
+    {
+      "id": "h-f450e21f",
+      "kind": "html",
+      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
+      "tr": "Импорты в Glyph никогда не реэкспортируются, а модуль, который состоит только из импортов, отклоняется (<code>E0102</code>). Слоя <code>index.ts</code>, который отмывает происхождение, нет. Поэтому импорт называет модуль, где символ действительно лежит: путь <em>и есть</em> адрес."
+    },
+    {
+      "id": "h-f4999a77",
+      "kind": "html",
+      "en": "the import tells you exactly where to look",
+      "tr": "импорт точно говорит, куда смотреть"
+    },
+    {
+      "id": "h-6c9d2ede",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> No hidden ways to attach behavior",
+      "tr": "<span class=\"ex-label\">03</span> Нет скрытых способов прицепить поведение"
+    },
+    {
+      "id": "h-c09fa1b1",
+      "kind": "html",
+      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to. A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
+      "tr": "Нет декораторов, оборачивающих функцию в невидимый слой, нет слияния <code>namespace</code>, собирающего члены со всего дерева, нет <code>declare module</code>, дополняющего сторонний тип из файла, который вы бы никогда не открыли, и нет неявного <code>this</code>, меняющего то, на что ссылается метод. Имя разрешается в одно объявление, и всё, что его формирует, видно в этом объявлении."
+    },
+    {
+      "id": "h-1f8a2312",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Even mutation is greppable",
+      "tr": "<span class=\"ex-label\">04</span> Даже изменения можно найти grep"
+    },
+    {
+      "id": "h-844b3d63",
+      "kind": "html",
+      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call. So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
+      "tr": "Удобство поиска касается не только поиска определений, но и поиска <em>эффектов</em>. Общее состояние живёт в <code>std/store</code>, и каждое его изменение это буквальный вызов <code>.set(</code> или <code>.update(</code>. Поэтому один поиск перечисляет всю поверхность записи для этого состояния, и не нужно выискивать присваивания, разбросанные по файлу."
+    },
+    {
+      "id": "h-69824f13",
+      "kind": "html",
+      "en": "A codebase is greppable when its <strong>text tells the truth about its structure.</strong> Every restriction here (one form per name, no re-exports, no merging) is there so that a search returns the answer, not a lead.",
+      "tr": "Кодовая база удобна для поиска, когда её <strong>текст говорит правду о её структуре.</strong> Каждое ограничение здесь (одна форма на имя, никаких реэкспортов, никакого слияния) нужно для того, чтобы поиск возвращал ответ, а не зацепку."
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "Бенчмарк: скоро"
+    },
+    {
+      "id": "h-45b81f92",
+      "kind": "html",
+      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition? Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
+      "tr": "Измеримая версия этого утверждения это точность: какая доля совпадений обычного grep для данного символа оказывается тем, что вы искали, и за сколько шагов агент добирается до определения? Glyph пока не используется в реальных проектах, поэтому график ниже это заглушка, он заполнится настоящими числами, когда появится реальная кодовая база для измерения."
+    },
+    {
+      "id": "h-22a29cf4",
+      "kind": "html",
+      "en": "Grep precision for a definition &middot; higher is better",
+      "tr": "Точность grep при поиске определения &middot; больше значит лучше"
+    },
+    {
+      "id": "h-301f9c4a",
+      "kind": "html",
+      "en": "TypeScript vs Glyph",
+      "tr": "TypeScript против Glyph"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "ожидается"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-78ff0968",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> We'll report grep precision and steps-to-definition from a real Glyph codebase as soon as one exists, and publish the numbers here whatever they turn out to be.",
+      "tr": "<span class=\"h\">Пока не измерено</span> Мы сообщим точность grep и число шагов до определения на реальной кодовой базе на Glyph, как только такая появится, и опубликуем числа здесь, какими бы они ни оказались."
+    },
+    {
+      "id": "h-31f8c9a6",
+      "kind": "html",
+      "en": "The payoff compounds with scale and with autonomy. A human learns a codebase's hiding places; an agent starting cold does not. Greppability is what lets a tool (or a new teammate) navigate by reading, the way the repo actually is.",
+      "tr": "Выигрыш растёт с масштабом и с автономностью. Человек узнаёт, где в кодовой базе что спрятано; агент, начинающий с нуля, этого не знает. Удобство поиска позволяет инструменту (или новому коллеге) ориентироваться, просто читая репозиторий таким, какой он есть."
+    },
+    {
+      "id": "h-1ee9e785",
+      "kind": "html",
+      "en": "\"A lint rule can ban overloads and decorators\"",
+      "tr": "«Правило линтера может запретить перегрузки и декораторы»"
+    },
+    {
+      "id": "h-054477f5",
+      "kind": "html",
+      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload. The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it. In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
+      "tr": "В вашем собственном репозитории да. ESLint может запретить namespace, а команда может договориться не использовать перегрузки. Язык всё равно всё это позволяет, так что гарантия живёт, пока живёт конфигурация, и покрывает только код, на котором она запускается. <code>grep</code> по зависимости, сгенерированному файлу или чужому репозиторию не может на неё рассчитывать. В Glyph этих конструкций нет, поэтому <code>grep</code> работает одинаково на любом файле Glyph, включая те, которые никто из вашей команды не настраивал."
+    },
+    {
+      "id": "h-7ef205c4",
+      "kind": "html",
+      "en": "What this looks like from the agent's side, finding a definition or every write to a value with one search, is answered in <a href=\"/answers/greppability/\">Can an agent (or I) find where anything is defined?</a>",
+      "tr": "Как это выглядит со стороны агента, когда определение или каждая запись в значение находится одним поиском, разобрано в ответе <a href=\"/answers/greppability/\">Может ли агент (или я) найти, где что определено?</a>"
+    }
+  ]
+}

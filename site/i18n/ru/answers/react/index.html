@@ -1,0 +1,174 @@
+---
+title: Работает ли он с React, хуками и Context? · Glyph
+description: React встроен: компонент компилируется в функциональный компонент, JSX понижается в createElement, а действия редьюсера сопоставляются исчерпывающе.
+source_hash: 7cfdf0dbb16b7eaf
+prev: /answers/codegen/ | &larr; Назад | Можно ли сгенерировать типизированный клиент и сервер из спецификации API?
+next: /answers/state/ | Далее &rarr; | Как разделять изменяемое состояние между функциями?
+---
+      <p class="q-eyebrow">13 &middot; Фронтенд</p>
+      <h1 class="q-title">Работает ли он с React: компоненты, хуки и Context?</h1>
+
+      <p class="short-answer">
+        Да. <code>component</code> компилируется в функциональный компонент React, JSX понижается в <code>createElement</code>, собственные хуки React импортируются по имени, а их пары деструктурируются, и состояние редьюсера получает исчерпывающую проверку, которой нет в обычном TypeScript. К самой странице (её заголовку, точке монтирования, сохранённому состоянию) обращаются через <code>std/dom</code> и <code>std/storage</code>. Ограничение, о котором стоит знать сразу: собственная проверка Glyph не типизирует то, что возвращает хук, поэтому эти значения проверяет <code>tsc</code>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Большая часть кода, который пишут агенты, это React. Glyph считает его полноценной целью, а не надстройкой: <code>component</code> это отдельное ключевое слово (так что <code>grep "^component "</code> проверяет весь ваш UI). Хуки React импортируются из <code>react</code> и вызываются под своими настоящими именами и с настоящими типами, а <code>tsc</code> проверяет их по собственным объявлениям React.
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>Настоящий <code>useReducer</code> из React с редьюсером над размеченным объединением. Каждое действие должно быть обработано, и компилятор это проверяет:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">counter.glyph, с react@18 и его типами</span>
+<pre>import react { useReducer }
+
+type Action = Inc | Dec | Reset
+
+fn reducer(n: number, a: Action) -&gt; number {
+  return match a {
+    Inc =&gt; n + 1,
+    Dec =&gt; n - 1,
+    Reset =&gt; 0,
+<span class="add">    // add an Action variant and this match is E0200</span>
+  }
+}
+
+pub component Counter() {
+  let [count, dispatch] = useReducer(reducer, 0)
+  return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Добавьте действие <code>Double</code>, и редьюсер перестанет компилироваться с <code>E0200</code>, где оно названо, тогда как обычный <code>switch</code> в TypeScript пропустил бы это в релиз. Пара деструктурируется через <code>let [count, dispatch]</code>, а сгенерированный TypeScript добавляет <code>satisfies readonly [unknown, unknown]</code>, так что <code>tsc</code> доказывает, что хук вернул пару, и всё равно выводит тип каждого элемента. Собственная проверка Glyph не типизирует значения, пришедшие из React, поэтому о неверном аргументе <code>dispatch</code> или сеттера состояния сообщает <code>tsc</code> при сборке, а не редактор или <code>--no-tsc</code>. <strong>Context</strong> React уже работает через <code>createContext</code> / <code>useContext</code>, а имена элементов в виде обращения к члену (<code>&lt;ThemeContext.Provider&gt;</code>) работают напрямую, без обходных путей.
+        </p>
+        <p>
+          Spread пропсов в JSX тоже работает: <code>&lt;input {...register("email")} /&gt;</code> понижается в spread объекта в props, так что идиоме react-hook-form адаптер не нужен. Типы zod, выведенные из значений, поддерживаются полноценно: <code>type FormData = z.infer&lt;typeof schema&gt;</code> работает напрямую, без лазейки. Одно отличие: компонент принимает одну запись props, а не несколько позиционных параметров. Где именно проходит эта граница, смотрите в <a href="/answers/imports/">использовании ваших библиотек</a> и на <a href="/hardening/">странице про укрепление</a>.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Проверяются ли пропсы до tsc?</h2>
+        <p>
+          Да. Glyph сам сравнивает каждый элемент с записью props его компонента, поэтому неверное значение, опечатка в имени пропса и отсутствующий обязательный пропс это ошибки Glyph, в которых пропс назван. Вы видите их в редакторе и через MCP, а не только в полной сборке. Это работает одинаково, импортирован ли компонент по имени или через свой модуль:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph, где <code>Card</code> объявлен в <code>ui.glyph</code></span>
+<pre>import ui
+
+pub component App() {
+  return &lt;div&gt;
+    &lt;ui.Card title="Q3" /&gt;
+    &lt;ui.Card title="Q4" cout={2} /&gt;
+  &lt;/div&gt;
+}
+
+<span class="add">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`
+// E0210 type `CardProps` has no field `cout`; did you mean `count`?
+// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--json</code> передаёт отсутствующие имена списком <code>missing_fields</code>, так что агент может добавить пропсы, не разбирая сообщение. Кроме того, компонент должен принимать свои props одной записью: <code>component Greeting(name: string)</code> даёт E0229 на параметре, потому что React всегда передаёт только объект props, и такой элемент никогда не прошёл бы проверку типов. Если вы вызываете его как функцию, а не рендерите, объявите его через <code>fn</code>.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Проверяется ли &lt;match&gt; в JSX как match?</h2>
+        <p>
+          Это одно и то же. Каждый <code>&lt;case&gt;</code> принимает тот же паттерн, что и ветка <code>match</code>, и компилятор прогоняет его через тот же код, что и ветку. Имена, которые привязывает case, получают типы полезной нагрузки, поле, которого нет в записи полезной нагрузки, даёт E0210, а пропущенный вариант даёт E0200. Case, который проверяет значение, покрывает только часть своего варианта, поэтому ему нужен соседний case или <code>&lt;case else&gt;</code>, который заберёт остальное:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">results.glyph</span>
+<pre>type Page =
+  | Loading
+  | Loaded({ users: Array&lt;User&gt;, total: number })
+  | Failed(string)
+
+component Results(props: { page: Page }) {
+  return &lt;match value={props.page}&gt;
+    &lt;case Loading&gt;&lt;p&gt;Loading...&lt;/p&gt;&lt;/case&gt;
+    &lt;case Loaded({ users, totl })&gt;&lt;p&gt;{users.length} of {totl}&lt;/p&gt;&lt;/case&gt;
+    &lt;case Failed(message)&gt;&lt;p&gt;{message}&lt;/p&gt;&lt;/case&gt;
+  &lt;/match&gt;
+}
+
+<span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Как страница его запускает?</h2>
+        <p>
+          В Glyph нет операторов верхнего уровня, поэтому страница сама вызывает экспортированный <code>main</code>. Приложение состоит из двух модулей: в одном компоненты, а другой монтирует их на <code>#root</code> через <code>std/dom</code> и <code>createRoot</code> из react-dom. Атрибуты событий пишутся в snake case (<code>on_change</code> генерирует <code>onChange</code> React), обработчик это лямбда, а текст поля ввода это <code>e.currentTarget.value</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">app.glyph</span>
+<pre data-check="needs-react">module app
+
+import react { useState }
+
+pub component App() {
+  let [name, set_name] = useState("")
+  return &lt;main&gt;
+    &lt;input value={name} on_change={fn(e) { set_name(e.currentTarget.value) }} /&gt;
+    &lt;p&gt;Hello, {name}&lt;/p&gt;
+  &lt;/main&gt;
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre data-check="needs-react">module main
+
+import react-dom/client { createRoot }
+import std/dom
+import std/console
+import std/option { Some, None }
+import app { App }
+
+pub fn main() -&gt; void {
+  match dom.element_by_id("root") {
+    Some(root) =&gt; createRoot(root).render(&lt;App /&gt;),
+    None =&gt; console.error("the page has no #root element"),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">index.html рядом с двумя модулями</span>
+<pre>&lt;div id="root"&gt;&lt;/div&gt;
+&lt;script type="module"&gt;
+  import { main } from "./dist/gen/main.ts";
+  main();
+&lt;/script&gt;</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>npx glyph build . --out dist/gen</code> проверяет модули, запускает <code>tsc --strict</code> по объявлениям React и пишет TypeScript в <code>dist/gen</code>. Затем <code>npx vite build --outDir dist/web</code> читает <code>index.html</code>, идёт по импорту и собирает бандл вместе с React. Этот <code>main</code> ничего не принимает и ничего не возвращает, потому что скрипт вызывает его без аргументов; <code>main(argv) -&gt; number</code>, который пишет <code>glyph init</code>, это тот, что вызывает <code>glyph run</code> под node. Полный разбор с <code>package.json</code> и строкой установки находится в разделе <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">запуск Glyph на странице в браузере</a> справочника, который печатает <code>glyph llms</code>. CI собирает <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> так же и отрисовывает его в headless Chromium.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Компоненты, JSX, фрагменты (<code>&lt;&gt;...&lt;/&gt;</code>), имена элементов в виде обращения к члену (<code>&lt;Ctx.Provider&gt;</code>), spread пропсов в JSX (<code>{...register()}</code>), пропсы, проверяемые по компоненту до <code>tsc</code> при любом написании импорта, собственные хуки React, импортируемые по имени (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>), с проверкой их типов в tsc и деструктуризацией пар (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> с исчерпывающими действиями на размеченном объединении, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, которые проверяются и понижаются как <code>match</code> с паттернами веток, Context через <code>createContext</code>/<code>useContext</code> и страница через <code>std/dom</code> (заголовок, точка монтирования, адрес), <code>std/storage</code> и <code>std/console</code>. Текст в JSX читается так же, как его читает TSX, поэтому <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> это обычный текст; <code>}</code>, <code>&gt;</code>, <code>//</code> и HTML-сущность вроде <code>&amp;amp;</code> в тексте отклоняются (E0012) с подсказкой, как написать вместо этого. Обращение к члену массива проверяется, поэтому <code>{items.foo}</code> на <code>Array&lt;string&gt;</code> даёт E0210. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> это целое приложение на React 18, которое собирается Vite и отрисовывается в браузере.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">В работе</h3>
+          <p>Проверка Glyph не типизирует результат хука, поэтому <code>set_count("x")</code> на числовом состоянии это ошибка <code>tsc</code> при сборке, а не ошибка Glyph в редакторе. <code>std/dom</code> ограничивается чтением страницы и установкой её заголовка: DOM, который рендерит React, принадлежит React, поэтому сеттеров элементов и обработчиков событий там нет. Эффект нужно писать как <code>fn() -&gt; void { ... }</code>, потому что лямбда возвращает своё последнее выражение, и React вызвал бы его как функцию очистки. Тип props, записанный inline, в этих сообщениях по-прежнему показывается как <code>record</code>; именованный показывает своё имя. Как встроить вывод Glyph в существующее приложение на Vite с UI на TypeScript, описано в <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">руководстве по развёртыванию</a>.</p>
+        </div>
+      </div>

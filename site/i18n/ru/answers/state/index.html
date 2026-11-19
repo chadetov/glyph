@@ -1,0 +1,83 @@
+---
+title: Как разделять изменяемое состояние между функциями? · Glyph
+description: В Glyph нет изменяемых глобальных переменных. Общее состояние живёт в std/store: const на уровне модуля, у которого get, set и update единственные способы записи, и все они находятся одним поиском.
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; Назад | Работает ли он с React: компоненты, хуки и Context?
+next: /answers/language/ | Далее &rarr; | Это настоящий язык или игрушка с дырами?
+---
+      <p class="q-eyebrow">14 &middot; Общее состояние</p>
+      <h1 class="q-title">Как разделять изменяемое состояние между функциями?</h1>
+
+      <p class="short-answer">
+        Через <strong>store</strong>. В Glyph нет изменяемых глобальных переменных. Привязки модуля это <code>const</code>. Общее состояние живёт в <code>std/store</code>: <code>const</code> на уровне модуля, который хранит значение; читаете его через <code>get()</code>, меняете через <code>set()</code>/<code>update()</code>. Сама привязка никогда не меняется, меняется только значение внутри неё, через вызов метода, поэтому каждая запись это буквальный <code>.set(</code> или <code>.update(</code>, который можно найти grep.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>
+          Объявите store один раз на уровне модуля. Все функции модуля пользуются им вместе. Никакого <code>let</code>, протаскиваемого через <code>main</code>, никаких захватывающих замыканий:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">вся поверхность записи одним grep</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Почему store, а не изменяемая глобальная переменная</h2>
+        <p>
+          Это сознательное решение. Glyph ограничивает <code>mut</code> локальными присваиваниями, а привязки модуля делает <code>const</code>, потому что разбросанный набор изменяемых глобальных переменных именно то, из-за чего о состоянии трудно рассуждать и его трудно <em>найти</em>. Store не требует ослаблять ни одно из правил: привязка <code>const s</code> неизменяема, а значение внутри меняется только через <code>set</code>/<code>update</code>. Поэтому общее состояние появляется как <strong>библиотека, а не новый синтаксис</strong> (без линейных типов, без ослабленных правил изменения), и изменения живут ровно в одном проверяемом месте, а не разбросаны по программе.
+        </p>
+        <p>
+          Есть один острый угол, общий с TypeScript: пустая коллекция не может вывести тип элемента, поэтому задайте его явным аргументом типа: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Скалярный store (<code>create(0)</code>) выводится без проблем.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p><code>std/store</code> с <code>create</code>, <code>get</code>, <code>set</code> и <code>update</code>: единственное место для общего изменяемого состояния, которое находится grep.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">В работе</h3>
+          <p>Удобства поверх того же примитива (производные и вычисляемые store, подписки), без изменений в языке.</p>
+        </div>
+      </div>

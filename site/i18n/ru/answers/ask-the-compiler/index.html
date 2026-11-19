@@ -1,0 +1,141 @@
+---
+title: Может ли агент сначала спросить компилятор о символе? · Glyph
+description: glyph_symbol отвечает за один вызов: варианты union, поля записи, сигнатура функции и то, должен ли match по ней быть исчерпывающим.
+source_hash: 49fea6335f3e735f
+prev: /answers/impact/ | &larr; Назад | Может ли компилятор сказать, что сломает изменение, до того как я его сделаю?
+next: /answers/repair-protocol/ | Далее &rarr; | Когда сборка падает, говорит ли компилятор агенту, как её починить?
+---
+      <p class="q-eyebrow">22 &middot; Спросите компилятор</p>
+      <h1 class="q-title">Может ли агент спросить у компилятора, что такое символ, до того как писать код?</h1>
+
+      <p class="short-answer">
+        За один вызов. <code>glyph_symbol</code> принимает <code>module::name</code>, который уже напечатала диагностика, или позицию в файле, и отвечает полями записи с их типами, вариантами union с их данными <em>и синтаксисом, который создаёт каждый из них</em>, параметрами и возвращаемым типом вызываемого объекта, членами интерфейса и тем, должен ли <code>match</code> по нему быть исчерпывающим.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Почему это важно</h2>
+        <p>
+          Агент, которому поручили обработать новый случай в union, объявленном не им, должен знать, что несут варианты. Чтобы прочитать объявление, сначала нужно найти файл. Поиск символов раньше давал ему имя и диапазон байтов, а список вариантов давал <code>["Pending", "Paid", "Cancelled"]</code>. Исходя из этого, агент пишет <code>Paid("tx_1")</code>, что не соответствует форме, и узнаёт об этом из диагностики. Данные варианта у компилятора были с самого начала. Инструмент выбрасывал их за строку до ответа.
+        </p>
+        <p>
+          Именно этот паттерн и должна была убрать поверхность для агентов: факты, которые компилятор уже вычисляет и кэширует, но которые не отдаёт ни один инструмент. Аудит проекта из трёх модулей показал, что hover отвечал на две позиции из четырнадцати, а каждый union приходил без данных вариантов.
+        </p>
+
+        <h2 class="block-label">Посмотрите сами</h2>
+        <p>
+          Проект из трёх файлов, в котором <code>OrderStatus</code> объявлен в <code>orders.glyph</code>. Запрос из <code>main.glyph</code>, который его не импортирует:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
+<pre>{
+  "entity": "orders::OrderStatus",
+  "kind": "union",
+  "pub": true,
+  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+  "exhaustive_match": true,
+  "variants": [
+    { "name": "Pending",   "payload": null, "construct": "Pending",
+      "payload_absent": "`Pending` is declared with no payload." },
+    { "name": "Paid",      "payload": "{ transaction_id: string }",
+      "construct": "Paid({ transaction_id: string })" },
+    { "name": "Cancelled", "payload": null, "construct": "Cancelled",
+      "payload_absent": "`Cancelled` is declared with no payload." }
+  ],
+  "fields": null,
+  "fields_absent": "`orders::OrderStatus` is a union and declares no record fields.",
+  "path": "src/orders.glyph",
+  "range": { "start": { "line": 2, "character": 4 },
+             "end":   { "line": 5, "character": 13 } },
+  "origin": "glyph",
+  "origin_detail": "`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
+    module this project holds, and the compiler parsed and resolved that declaration"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Сокращено: в ответе есть также <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> и <code>examples</code>. Каждый из них идёт в паре. Ключ равен null только вместе с фразой <code>&lt;key&gt;_absent</code>, объясняющей почему, поэтому агенту никогда не приходится гадать, значит ли пустой ответ, что у символа этого нет, или что инструмент не смотрел. <code>const</code> без аннотации по этому правилу не сообщает тип: проверка типов намеренно не выводит тип объявления из инициализатора, так что напечатать тип инициализатора значило бы сказать вызывающему, что использования имени проверяются относительно того, что ничего не проверяет.
+        </p>
+
+        <h2 class="block-label">Второй вопрос, который задаёт агент</h2>
+        <p>
+          Получив форму, агент дальше хочет знать, можно ли поставить значение, которое у него есть, туда, куда он собирается. <code>glyph_assignable</code> обращается к собственному сравнению проверки типов. Каждая сторона это <code>module::name</code> или запись типа на Glyph, прочитанная в области видимости указанного файла, а вердикт говорит, какой из трёх исходов получился.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
+<pre>{
+  "verdict": "WILL_FAIL",
+  "because": "the checker's own comparison
+    refuses a `Nullable&lt;number&gt;` value where a
+    `number` is declared, so every site that
+    writes this pairing is a diagnostic",
+  "diagnostics": [
+    { "code": "E0204",
+      "at": "an annotated `let` or `const`,
+             and a `return`" },
+    { "code": "E0211", "at": "a call argument" }
+  ],
+  "from": { "asked": "Nullable&lt;int&gt;",
+            "form": "spelling",
+            "read_as": "Nullable&lt;number&gt;" },
+  "to":   { "asked": "int", "form": "spelling",
+            "read_as": "number" }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
+<pre>{
+  "verdict": "COMPATIBLE",
+  "because": "two generic applications are
+    compared by arity, by base and by argument,
+    and every one of those pairings is itself
+    accepted, so the checker accepts a
+    `Option&lt;number&gt;` value where a
+    `Option&lt;number&gt;` is declared. This is a rule
+    accepting rather than a rule staying silent",
+  "diagnostics": null,
+  "diagnostics_absent": "the checker refuses
+    nothing for this pairing, so no code is
+    raised for it anywhere"
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Слово здесь <code>COMPATIBLE</code>, а не <code>SAFE</code>, и разница стоит пояснения. <code>SAFE</code> это слово <code>glyph_impact</code>, и оно значит, что конкретное место остаётся корректным после конкретной правки. Этот ответ касается двух типов, и ни места, ни правки в вопросе нет. Третий вердикт <code>UNDETERMINED</code>, и он выдаётся всякий раз, когда ни одно правило не покрывает пару: так возвращаются два типа функций, потому что лежащее в основе отношение сравнивает возвращаемые типы и ничего не говорит о параметрах. Его молчание здесь не означает согласия, и инструмент не выдаст его за согласие.
+        </p>
+
+        <h2 class="block-label">В обратную сторону: от чего это зависит и что даёт мне тот модуль</h2>
+        <p>
+          <code>glyph_references</code> отвечает, кто использует символ. <code>glyph_dependencies</code> читает те же таблицы с другого конца: от чего зависит одно объявление, то есть каждое объявление, которое называет его исходный код, с разбивкой на <code>CALLS</code>, <code>REFERENCES</code> и <code>FIELD_ACCESS</code>, и каждое ребро несёт оба конца и своё местоположение. <code>glyph_exports</code> отвечает, что модуль делает видимым для импортирующего, по собственному запросу экспорта компилятора, а не по сканированию: каждое объявление <code>pub</code> и каждый вариант, который поднимает <code>pub</code> union, каждое как запись с идентичностью, видом и сигнатурой. Агент, который собирается написать импорт, может спросить, что находится на другой стороне, вместо того чтобы открывать файл.
+        </p>
+        <p>
+          Построение зеркального отношения как раз и выявило ошибку в исходном. Каждое ребро несёт происхождение, и <code>PROVED</code> должно означать, что компилятор прочитал оба конца. Он отвечал <code>PROVED</code> для ребра в модуль, который не разбирается, где ничего прочитано не было. Теперь он отвечает <code>UNDETERMINED</code> с причиной, а поскольку <code>glyph_references</code> и <code>glyph_impact</code> вызывают одну и ту же функцию, оба ошибались одинаково и оба исправлены.
+        </p>
+
+        <h2 class="block-label">Одиннадцать инструментов, и клиент не обязателен</h2>
+        <p>
+          <code>glyph mcp</code> отдаёт одиннадцать: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> и <code>glyph_exports</code>. У каждого есть команда <code>glyph query</code>, которая принимает те же аргументы в виде флагов и печатает тот же JSON, проходя через ту же точку входа, что и клиент, поэтому агент, который умеет только запускать команды оболочки, задаёт те же вопросы. <code>glyph_diagnostics</code> проверяет файл внутри его проекта и возвращает ту же диагностику, что печатает <code>glyph check --json</code>, из того же типа Rust, а тест запускает обе поверхности на шести проектах и сравнивает JSON ключ за ключом. Подробности на <a href="/mcp/">странице MCP</a>.
+        </p>
+        <p>
+          Всё это спрашивается до правки. После неё компилятор отвечает в обратную сторону: <code>glyph check --agent</code> печатает каждую диагностику с инвариантами, которые исправляющая правка должна сохранить, и описанием <code>glyph_symbol</code> для каждого символа, который она называет, так что форма, нужная агенту, приходит вместе с ошибкой, которая её потребовала. Об этом есть <a href="/answers/repair-protocol/">отдельная страница</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Текущее состояние</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Уже работает</h3>
+          <p>Одиннадцать инструментов чтения через MCP, у каждого есть команда <code>glyph query</code>. <code>glyph_symbol</code> отвечает по идентичности или по позиции, и каждый факт, которого у него нет, равен null рядом с фразой, объясняющей почему. Идентичность доходит до стандартной библиотеки: <code>Result</code> из прелюдии это <code>std/result::Result</code>, то есть модуль, под которым его регистрирует резолвер и из которого эмиттер пишет импорт, поэтому <code>glyph query symbol --entity std/result::Result</code> отвечает <code>Ok(T)</code> и <code>Err(E)</code>, <code>glyph query exports --module std/result</code> перечисляет поверхность, а <code>E0200</code> по нему несёт эту идентичность в <code>cause</code>. За ним нет исходного кода на Glyph, поэтому <code>path</code> и <code>range</code> равны null с этой причиной, а не отсутствуют. Hover отвечает на все четырнадцать позиций, которые проверил аудит на проекте из трёх модулей, против двух до начала этой работы: имя, объявленное в другом модуле, отвечает по собственному объявлению этого модуля, так что тип есть у привязки импорта, у импортированной функции в вызове, у импортированного варианта, использованного как значение, и у поля, прочитанного из импортированной записи. <code>glyph_dependencies</code> и <code>glyph_exports</code> закрывают набор, который запрашивал G221. <code>glyph_variants</code> несёт данные каждого варианта и синтаксис его создания; <code>glyph_definition</code> и <code>glyph_symbols</code> несут <code>module::name</code>, так что ответ выстраивается в цепочку с <code>glyph_impact</code> без повторного вывода. Таблица типов сигнатур <code>glyph_impact</code> сопоставляет контейнер с контейнером, структурную запись со структурной или объявленной записью (локальной, импортированной, обобщённой или под вторым именем), JSX-элемент как вызов, в который он опускается, и union строковых литералов с любой стороны тем же сравнением, что и <code>glyph_assignable</code>, так что два инструмента не могут разойтись в оценке одной пары. Аргумент, пару которого отношение читает полностью, получает <code>WILL_FAIL</code> независимо от исхода сравнения, потому что <code>change_signature_type</code> не называет тип замены, а принятая пара может быть отклонена при какой-то замене; <code>UNDETERMINED</code> получает только пара, от которой отношение отказывается.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Где он останавливается</h3>
+          <p>Ни один инструмент здесь не пишет: нет переименования, нет применяемых правок. Сторона записи это <code>glyph fix</code> в командной строке, и он исправляет три вещи, а не всё, что вы попросите: неиспользуемые импорты, заголовок ветки, для которого у проверки типов ровно одна подсказка, и имя поля, отличающееся на один символ ровно от одного объявленного поля. Экспорт стандартной библиотеки, для которого компилятор не моделирует ни объявления, ни сигнатуры, отвечает <code>kind: null</code> с причиной: <code>std/result::all</code> и <code>std/io::println</code> типизированы в TypeScript, который компилятор подкладывает в сборку и который не читает ни один проход Glyph. <code>glyph_diagnostics</code> пропускает три проверки, которые делает <code>glyph check</code>: <code>tsc</code>, проверку <code>E0104</code> на импорт, не называющий модуль (ей нужно представление сборки о <code>node_modules</code>), и <code>E0400</code> для упавшего <code>@example</code> (ей нужен запуск сгенерированного проекта). Он перечисляет все три в <code>not_run</code>, а не отвечает так, будто их выполнил.</p>
+        </div>
+      </div>

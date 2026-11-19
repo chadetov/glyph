@@ -1,6 +1,7 @@
 ---
 version: 0.1.57
 month: 2026-08
+date: 2026-08-07
 ---
             <h3>The compiler asked you to delete an exhaustive match</h3>
             <p>A string enum is one of the few places TypeScript already does well, and Glyph adds the part it is missing: <code>match</code> every value and you need no <code>else</code>, drop one and the build fails. That stopped at the file boundary. <code>type ColType = "text" | "int" | "real" | "bool"</code> declared in one module and imported into another lost its four values on the way across, so a <code>match</code> covering all four came back <code>E0218</code>, with help text reading "Add an <code>else</code> arm. A <code>number</code>/<code>string</code> match with only literal arms can never be exhaustive." That was false about the code in front of it, and doing what it said turns a compile error into a silent runtime fallthrough. This came out of writing a query engine over CSV, where the author did what it said: a dead <code>else =&gt; None</code> shipped in the app, with a comment recording what it cost.</p>

@@ -1,6 +1,7 @@
 ---
 version: 0.1.56
 month: 2026-08
+date: 2026-08-07
 ---
             <h3>How you imported the union decided whether it was checked</h3>
             <p>Exhaustive <code>match</code> is the guarantee Glyph leans on hardest, and it was off for one of the two ways you can import a union. <code>match c { model.Yes(_) =&gt; …, model.No(_) =&gt; … }</code> over a three-variant union reported no diagnostics, passed <code>tsc --strict</code>, and then threw <code>Error: non-exhaustive match</code> at run time. Writing the same match with <code>import model { Yes, No }</code> was <code>E0200</code>. This came out of writing a statechart replay engine, where every module carried an eighteen-name variant import so its matches would be checked, with a comment in the source explaining the import lists as a syntax rule. They were not a syntax rule. They were a workaround.</p>

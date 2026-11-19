@@ -1,6 +1,7 @@
 ---
 version: 0.1.114
 month: 2026-09
+date: 2026-09-05
 ---
             <h3>Editing one declaration no longer invalidates the others</h3>
             <p>The compiler's per-declaration answers were keyed by position, so adding a function at the top of a file threw away what it knew about every function below it. They key by name now, and an edit above a declaration leaves that declaration's work intact.</p>

@@ -1,6 +1,7 @@
 ---
 version: 0.1.141
 month: 2026-11
+date: 2026-11-18
 tags: breaking
 ---
             <p><code>json.parse</code> now checks a generic record's own fields and a union's variant payloads, and refuses with E0304 when one of them has no runtime check. Before, such a field was only tested for being present, so a document with the wrong value in it came back <code>Ok</code>:</p>

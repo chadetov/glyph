@@ -1,6 +1,7 @@
 ---
 version: 0.1.119
 month: 2026-09
+date: 2026-09-08
 ---
             <h3>The corpus, checked against its own formatter</h3>
             <p>80 of the 175 Glyph files under <code>examples/</code> were not what <code>glyph fmt</code> produces: collapsed parameter lists, missing blank lines, a corpus that the diff-stability pillar points to without being in its own canonical form. Every file is reformatted, a second pass changes nothing, and every app and corpus file gives the same exit code and diagnostic count before and after. <code>scripts/check_fmt.py</code> runs <code>glyph fmt --check</code> over <code>examples/</code> in the release gates and in CI, so the corpus can't drift again without the gate catching it.</p>

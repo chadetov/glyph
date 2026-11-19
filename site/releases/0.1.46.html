@@ -1,6 +1,7 @@
 ---
 version: 0.1.46
 month: 2026-08
+date: 2026-08-05
 ---
             <h3><code>std/http</code> can serve a web page, not just JSON</h3>
             <p>A response was <code>{ status, body }</code> with nowhere to put a header, and the server chose the content type from the body's shape: a string went out as <code>text/plain</code>, anything else as JSON. So a 302 <code>Location</code> and a <code>text/html</code> page were both unspellable, and the only way to serve a browser was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your entire request path outside the type checker. A URL shortener in the repo was doing exactly that, in 121 lines it should never have had to write.</p>

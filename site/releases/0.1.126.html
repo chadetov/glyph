@@ -1,6 +1,7 @@
 ---
 version: 0.1.126
 month: 2026-10
+date: 2026-10-17
 tags: breaking
 ---
             <p>This release finishes what 0.1.125 started on React components: the type a component returns now means something to <code>tsc</code>, go-to-definition works through a namespace import, and impact answers the same for a call however its callee was imported. It is breaking in two places, each established by running 0.1.125 and this build on the same program: a component whose parameter is <code>unknown</code> or an unbounded type parameter is E0229, and <code>?</code> inside a component body is E0201.</p>

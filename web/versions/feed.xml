@@ -5,153 +5,153 @@
   <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/" />
   <link rel="self" type="application/atom+xml" href="https://glyphlang.io/versions/feed.xml" />
   <id>https://glyphlang.io/versions/</id>
-  <updated>2026-11-01T00:00:00Z</updated>
+  <updated>2026-11-19T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
     <title>Glyph 0.1.149 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.149" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.149</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-19T00:00:00Z</updated>
     <summary>A statement can no longer start on the line where the one before it ended.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.148 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.148" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.148</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-19T00:00:00Z</updated>
     <summary>A map's keys are checked at run time now.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.147 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.147" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.147</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-19T00:00:00Z</updated>
     <summary>A check that names a type parameter is now E0304, because a type parameter has no runtime check.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.146 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.146" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.146</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-19T00:00:00Z</updated>
     <summary>A { on the line where a statement just ended is now a parse error, E0013.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.145 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.145" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.145</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>is Record&lt;K, V&gt; and is Array&lt;X&gt; now check what the container holds.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.144</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.144" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.144</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>A generic record imported from another module is now judged by the module that declares it, the way an imported record already was.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.143 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.143" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.143</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>An is pattern is now checked the same way T.is(v) is.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.142 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.142" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.142</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>Lint warnings (unused import, unused binding, unreachable code, unreachable module) now show up on a file that has a type error, as long as it parses and its names resolve.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.141 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.141" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.141</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>json.parse now checks a generic record's own fields and a union's variant payloads, and refuses with E0304 when one of them has no runtime check.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.140</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.140" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.140</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>json.parse&lt;Rows&gt; now works when Rows comes from another module and names a type that module imports.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.139 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.139" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.139</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>Reading a member off an Option or a Result is now checked.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.138 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.138" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.138</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-18T00:00:00Z</updated>
     <summary>Two ways for glyph fmt to change what a program means are fixed, and the fuzzer now checks for that directly.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.137 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.137" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.137</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-17T00:00:00Z</updated>
     <summary>glyph fmt no longer moves a comment.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.136</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.136" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.136</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-17T00:00:00Z</updated>
     <summary>glyph fmt keeps a comment written between the steps of a method chain.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.135 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.135" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.135</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-17T00:00:00Z</updated>
     <summary>JSX text is read as text.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.134</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.134" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.134</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-11T00:00:00Z</updated>
     <summary>This release changes how the parser reads a file and nothing about what a program means.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.133 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.133" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.133</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-11T00:00:00Z</updated>
     <summary>This release finishes what 0.1.132 started on json.parse: it never casts now, however it is spelled or reached.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.132 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.132" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.132</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-10T00:00:00Z</updated>
     <summary>This release removes places where a guarantee depended on how something was spelled, and closes more of the programs only tsc used to refuse.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.131 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.131" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.131</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-06T00:00:00Z</updated>
     <summary>Most of this release is programs that only tsc refused and Glyph's own checker now refuses too, so glyph check --no-tsc, the editor and the playground see them.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.130 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.130" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.130</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-06T00:00:00Z</updated>
     <summary>The preview announcement makes five claims of the form "TypeScript accepts this and Glyph refuses it".</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.129 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.129" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.129</id>
-    <updated>2026-11-01T00:00:00Z</updated>
+    <updated>2026-11-02T00:00:00Z</updated>
     <summary>Before announcing a preview I had two agents start from npx @glyphlang/glyph init with nothing but the shipped docs, one building a small React page and one a Node CLI.</summary>
   </entry>
   <entry>
@@ -165,56 +165,56 @@
     <title>Glyph 0.1.127 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-10/#0.1.127" />
     <id>https://glyphlang.io/versions/2026-10/#0.1.127</id>
-    <updated>2026-10-01T00:00:00Z</updated>
+    <updated>2026-10-29T00:00:00Z</updated>
     <summary>This release is about records.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.126 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-10/#0.1.126" />
     <id>https://glyphlang.io/versions/2026-10/#0.1.126</id>
-    <updated>2026-10-01T00:00:00Z</updated>
+    <updated>2026-10-17T00:00:00Z</updated>
     <summary>This release finishes what 0.1.125 started on React components: the type a component returns now means something to tsc, go-to-definition works through a namespace import, and impact answers the same for a call however its callee was imported.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.125 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-10/#0.1.125" />
     <id>https://glyphlang.io/versions/2026-10/#0.1.125</id>
-    <updated>2026-10-01T00:00:00Z</updated>
+    <updated>2026-10-11T00:00:00Z</updated>
     <summary>This release is about React components.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.124 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.124" />
     <id>https://glyphlang.io/versions/2026-09/#0.1.124</id>
-    <updated>2026-09-01T00:00:00Z</updated>
+    <updated>2026-09-22T00:00:00Z</updated>
     <summary>This release closes the holes a two-agent experiment would have found first, so that the study the roadmap gates 0.2.0 on measures the language rather than a checker that still leaned on tsc.</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.123 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.123" />
     <id>https://glyphlang.io/versions/2026-09/#0.1.123</id>
-    <updated>2026-09-01T00:00:00Z</updated>
+    <updated>2026-09-18T00:00:00Z</updated>
     <summary>A string literal now has the type it spells</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.122 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.122" />
     <id>https://glyphlang.io/versions/2026-09/#0.1.122</id>
-    <updated>2026-09-01T00:00:00Z</updated>
+    <updated>2026-09-15T00:00:00Z</updated>
     <summary>A type that lists its legal strings now rejects the illegal ones</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.121 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.121" />
     <id>https://glyphlang.io/versions/2026-09/#0.1.121</id>
-    <updated>2026-09-01T00:00:00Z</updated>
+    <updated>2026-09-11T00:00:00Z</updated>
     <summary>Three programs that used to build clean now don't</summary>
   </entry>
   <entry>
     <title>Glyph 0.1.120 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-09/#0.1.120" />
     <id>https://glyphlang.io/versions/2026-09/#0.1.120</id>
-    <updated>2026-09-01T00:00:00Z</updated>
+    <updated>2026-09-08T00:00:00Z</updated>
     <summary>An imported union passed where a string is declared, without tsc</summary>
   </entry>
 </feed>

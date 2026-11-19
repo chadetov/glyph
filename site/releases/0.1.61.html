@@ -1,6 +1,7 @@
 ---
 version: 0.1.61
 month: 2026-08
+date: 2026-08-08
 ---
             <h3>A directory can say it is a project</h3>
             <p>A local import resolves from a root, and until now that root was whatever directory you handed to <code>glyph build</code>. That made a project uncombinable with anything: an app whose modules resolved perfectly on its own stopped resolving the moment you built the directory above it, and the failure named neither imports nor layout. A <code>package.json</code> carrying a <code>"glyph"</code> key now marks its directory as a resolution root, nearest one wins, so a tree of projects builds in one command and each project still builds alone.</p>

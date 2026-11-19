@@ -1,6 +1,7 @@
 ---
 version: 0.1.127
 month: 2026-10
+date: 2026-10-29
 tags: breaking
 ---
             <p>This release is about records. Glyph checked the top level of a record against its declaration and then compared what was inside it with a weaker rule, so a record nested in another record could be the wrong shape and pass <code>glyph check --no-tsc</code>. It is breaking for that reason: programs that 0.1.126 accepted and <code>tsc</code> refuses are now refused by Glyph too. That was established by running 0.1.126 and this build on each program below.</p>

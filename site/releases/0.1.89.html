@@ -1,6 +1,7 @@
 ---
 version: 0.1.89
 month: 2026-08
+date: 2026-08-26
 ---
             <h3>A bool binding you can match on</h3>
             <p>A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> arrived at <code>tsc</code> typed <code>false</code>. Matching on it built clean in Glyph and then failed with <code>Type 'true' is not comparable to type 'false'</code>: an error about a <code>switch</code> you never wrote, on a program the Glyph checker found nothing wrong with. A string-literal union type failed the same way, and so did <code>==</code>.</p>

@@ -1,6 +1,7 @@
 ---
 version: 0.1.144
 month: 2026-11
+date: 2026-11-18
 ---
             <p>A generic record imported from another module is now judged by the module that declares it, the way an imported record already was. If <code>Page&lt;T&gt;</code> has a field typed by a record its module keeps private, <code>json.parse&lt;Page&lt;User&gt;&gt;</code>, <code>Page.parse&lt;User&gt;</code>, <code>is Page&lt;User&gt;</code> and the other uses of <code>Page</code> now compile and check that field at run time. 0.1.141 to 0.1.143 refused them with E0304 and suggested marking the record <code>pub</code>; that is no longer needed.</p>
 

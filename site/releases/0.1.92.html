@@ -1,6 +1,7 @@
 ---
 version: 0.1.92
 month: 2026-08
+date: 2026-08-27
 ---
             <h3>A derived return type survives a <code>match</code></h3>
             <p>When a combinator&rsquo;s return type is derived from the argument you passed it, as <code>Schema&lt;infer_output&lt;Shape&gt;&gt;</code> is, the compiler inserts one cast at the return, because the body assembles a value the type system cannot prove carries the shape-derived type. The cast lived in one place, and two ways of writing a return went around it. A <code>match</code> in return position becomes a <code>switch</code> whose arms carry their own <code>return</code>, and a tail <code>E?</code> returns the unwrapped payload directly. Either one dropped the cast, so a function that compiled as <code>return { name: "object", parse: ... }</code> stopped compiling the moment a <code>match</code> sat between the <code>return</code> and the value. What you saw was a <code>TS2322</code> against the generated TypeScript, on well-formed Glyph the compiler had already accepted. Both sites go through the same return now.</p>

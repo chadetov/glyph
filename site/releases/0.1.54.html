@@ -1,6 +1,7 @@
 ---
 version: 0.1.54
 month: 2026-08
+date: 2026-08-07
 ---
             <h3>A declaration can't quietly take a name the module needs</h3>
             <p>Every top-level name you write reaches the emitted TypeScript verbatim, including the constructors of a tagged union. So a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level, and the <code>new Error(...)</code> the compiler writes below it calls your variant instead. The name is legal TypeScript, so nothing downstream noticed. You saw it as a <code>tsc</code> error twenty lines away, about something else. This came out of writing a spreadsheet, where a cell is a number, a label, nothing, or an error, and two of those four words are already taken.</p>

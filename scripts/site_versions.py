@@ -5,12 +5,18 @@ Each release's notes live in their own file, site/releases/<version>.html:
     ---
     version: 0.1.150
     month: 2026-11
+    date: 2026-11-20
     tags: breaking
     headline: One sentence that says what the release is for.
     ---
             <p>The notes, as HTML: paragraphs, h3 subheads, changelists, code.</p>
 
-`version` must match the file name and `month` is YYYY-MM. `tags` is a comma
+`version` must match the file name and `month` is YYYY-MM. `date` is the day
+it shipped, YYYY-MM-DD in that month: the day its tag was pushed, which is
+what publishes it (`git for-each-ref --format='%(creatordate:short)'
+refs/tags/v0.1.N`). The page shows it in a <time> element and the feed dates
+the entry with it; a release without one shows its month and dates the entry
+the first of the month. `tags` is a comma
 list of `breaking` (the release rejects a program the previous one accepted,
 established by running both) and `shipped`. `headline` is optional; without it
 the entry shows its leading <h3>, or failing that the first sentence of its
@@ -64,7 +70,7 @@ ORIGIN = "https://glyphlang.io"
 # and 0.1.33 was skipped. scripts/check_releases.py allows these two only.
 KNOWN_GAPS = {"0.1.1", "0.1.33"}
 
-KEYS = {"version", "month", "tags", "headline"}
+KEYS = {"version", "month", "date", "tags", "headline"}
 TAGS = {"breaking", "shipped"}
 OPEN_NEWEST = 3   # how many of the newest releases show their notes expanded
 FEED_SIZE = 30
@@ -81,6 +87,7 @@ class VersionsError(Exception):
 class Release:
     version: str
     month: str          # YYYY-MM
+    date: str | None    # YYYY-MM-DD, the day it shipped
     tags: list[str]
     headline: str       # HTML
     headline_from: str  # "front matter" | "h3" | "sentence"
@@ -98,6 +105,11 @@ class Release:
     @property
     def permalink(self) -> str:
         return f"/versions/{self.month}/#{self.version}"
+
+    @property
+    def day(self) -> str:
+        """The ship date, or the first of the month for a release without one."""
+        return self.date or f"{self.month}-01"
 
 
 def vkey(v: str) -> tuple[int, ...]:
@@ -143,6 +155,12 @@ def parse(path: pathlib.Path) -> Release:
     month = fm["month"]
     if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month):
         raise VersionsError(f"{where}: month {month!r} is not YYYY-MM")
+    date = fm.get("date")
+    if date is not None:
+        if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])", date):
+            raise VersionsError(f"{where}: date {date!r} is not YYYY-MM-DD")
+        if not date.startswith(month + "-"):
+            raise VersionsError(f"{where}: date {date} is not in month {month}")
     tags = [t.strip() for t in fm.get("tags", "").split(",") if t.strip()]
     for t in tags:
         if t not in TAGS:
@@ -155,7 +173,7 @@ def parse(path: pathlib.Path) -> Release:
         headline, source = fm["headline"], "front matter"
     else:
         headline, source = derive_headline(body, where)
-    return Release(version, month, tags, headline, source, body, path)
+    return Release(version, month, date, tags, headline, source, body, path)
 
 
 def derive_headline(body: str, where: str) -> tuple[str, str]:
@@ -273,7 +291,7 @@ def release_html(r: Release, latest: str, open_set: set[str]) -> str:
         '          <div class="rel-head">\n'
         f'            <h3 class="rel-ver">{esc(r.version)}</h3>\n'
         + (head + "\n" if head else "")
-        + f'            <span class="rel-date">{month_name(r.month)}</span>\n'
+        + f'            {date_html(r)}\n'
         f'            <a class="rel-link" href="{r.permalink}" data-url="{ORIGIN}{r.permalink}"'
         f' aria-label="Link to {esc(r.version)}">Link</a>\n'
         "          </div>\n"
@@ -286,6 +304,18 @@ def release_html(r: Release, latest: str, open_set: set[str]) -> str:
         "          </details>\n"
         "        </article>\n"
     )
+
+
+def date_html(r: Release) -> str:
+    if r.date:
+        y, m, d = r.date.split("-")
+        shown = f"{int(d)} {MONTH_NAMES[int(m) - 1][:3]} {y}"
+        return f'<time class="rel-date" datetime="{r.date}">{shown}</time>'
+    return f'<time class="rel-date" datetime="{r.month}">{month_name(r.month)}</time>'
+
+
+def month_h1(month: str) -> str:
+    return f"<h1>{month_name(month)} releases</h1>"
 
 
 def releases_html(releases: list[Release], shown: list[Release], month: str) -> str:
@@ -403,6 +433,10 @@ def pages(fm: dict, body: str, where: str) -> list[tuple[str, dict, str]]:
         page_body = re.sub(r"\{\{versions:([a-z]+)\}\}", sub, body)
         page_fm = dict(fm)
         if not on_index:
+            # Each month's page has its own heading, matching its title.
+            page_body, n = re.subn(r"<h1>.*?</h1>", month_h1(month), page_body, count=1, flags=re.S)
+            if n != 1:
+                raise VersionsError(f"{where}: no <h1> to give the month's page its own heading")
             b = sum(r.breaking for r in shown)
             span = shown[0].version if len(shown) == 1 else f"{shown[-1].version} to {shown[0].version}"
             page_fm["title"] = f"{month_name(month)} releases · Glyph"
@@ -417,13 +451,13 @@ def pages(fm: dict, body: str, where: str) -> list[tuple[str, dict, str]]:
 
 
 def feed() -> str:
-    """An Atom feed of the newest releases. The notes carry a month, not a day,
-    so each entry's timestamp is the first of its month."""
+    """An Atom feed of the newest releases, each entry dated the day it
+    shipped (a release with no `date` gets the first of its month)."""
     releases = load()
     newest = releases[:FEED_SIZE]
 
-    def stamp(month: str) -> str:
-        return f"{month}-01T00:00:00Z"
+    def stamp(day: str) -> str:
+        return f"{day}T00:00:00Z"
 
     lines = [
         '<?xml version="1.0" encoding="utf-8"?>',
@@ -433,7 +467,7 @@ def feed() -> str:
         f'  <link rel="alternate" type="text/html" href="{ORIGIN}/versions/" />',
         f'  <link rel="self" type="application/atom+xml" href="{ORIGIN}/versions/feed.xml" />',
         f"  <id>{ORIGIN}/versions/</id>",
-        f"  <updated>{stamp(newest[0].month)}</updated>",
+        f"  <updated>{stamp(max(r.day for r in newest))}</updated>",
         "  <author><name>The Glyph project</name></author>",
     ]
     for r in newest:
@@ -444,7 +478,7 @@ def feed() -> str:
             f"    <title>{html.escape(title, quote=False)}</title>",
             f'    <link rel="alternate" type="text/html" href="{ORIGIN}{r.permalink}" />',
             f"    <id>{ORIGIN}{r.permalink}</id>",
-            f"    <updated>{stamp(r.month)}</updated>",
+            f"    <updated>{stamp(r.day)}</updated>",
             f"    <summary>{html.escape(summary, quote=False)}</summary>",
             "  </entry>",
         ]

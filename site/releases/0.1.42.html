@@ -1,6 +1,7 @@
 ---
 version: 0.1.42
 month: 2026-08
+date: 2026-08-05
 ---
             <h3>A <code>match</code> you assign is a switch, not a closure</h3>
             <p>Glyph has no <code>if</code>, so <code>match</code> is the conditional, and in real code it is usually the right-hand side of a binding. The emitter had two ways to lower it, a flat <code>switch</code> and a closure for a <code>match</code> used inside a bigger expression, and it picked between them by asking whether any arm had a block body instead of whether the <code>match</code> was the whole value being assigned. Three unrelated-looking failures came out of that one condition, and all three passed <code>glyph build</code> and then failed at <code>tsc</code>. A Markdown link checker found them.</p>

@@ -1,6 +1,7 @@
 ---
 version: 0.1.36
 month: 2026-08
+date: 2026-08-04
 ---
             <h3>Generic validators check the same across module boundaries</h3>
             <p>A generic type's <code>.parse&lt;T&gt;</code> and <code>is</code> checks now thread their per-element runtime check even when the generic type is defined in another file and imported. Which module the type lives in no longer changes what gets validated.</p>

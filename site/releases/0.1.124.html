@@ -1,6 +1,7 @@
 ---
 version: 0.1.124
 month: 2026-09
+date: 2026-09-22
 tags: breaking
 ---
             <p>This release closes the holes a two-agent experiment would have found first, so that the study the roadmap gates 0.2.0 on measures the language rather than a checker that still leaned on <code>tsc</code>. It is breaking in four places, each established by running 0.1.123 and this build on the same program: an object literal that does not fit its declared type, a JSX attribute that does not fit its component's props, a wrong argument type to one of eleven stdlib modules, and a single-file check of a nested file in a tree with no <code>package.json</code> marker, which now agrees with the project build. All four went from exit 0 to exit 1 under <code>glyph check --no-tsc</code>.</p>

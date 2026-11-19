@@ -1,6 +1,7 @@
 ---
 version: 0.1.85
 month: 2026-08
+date: 2026-08-25
 ---
             <h3>A TLS dial you can bound</h3>
             <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one as a plain argument rather than an options field, so nothing can default it away, and refuses a deadline it cannot actually hold.</p>

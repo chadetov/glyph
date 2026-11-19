@@ -1,6 +1,7 @@
 ---
 version: 0.1.135
 month: 2026-11
+date: 2026-11-17
 tags: breaking
 ---
             <p>JSX text is read as text. Until now it went through the same lexer as code, so an apostrophe started a string, <code>//</code> started a comment, and a <code>"</code> could swallow markup up to the next one. The parser now asks the lexer to read text raw, from a tag up to the next <code>{</code> or <code>&lt;</code>, the way TypeScript does.</p>

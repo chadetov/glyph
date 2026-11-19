@@ -1,6 +1,7 @@
 ---
 version: 0.1.43
 month: 2026-08
+date: 2026-08-05
 ---
             <h3>Your <code>@example</code>s run on every build</h3>
             <p>Glyph puts tests next to the code: an <code>@example</code> above a function, or a <code>@run</code> fence inside a <code>@doc</code>, is an assertion the compiler is supposed to execute. It executed them only when you passed <code>--test</code>, so a plain build of a project whose own assertion was false printed no diagnostics, printed <code>tsc --strict passed</code>, and exited 0. The <code>--json</code> output that agents and CI read was worse: it returned before the examples ran at all, so even <code>--test --json</code> reported <code>"ok": true</code>. A tournament bracket app found it by carrying 23 examples that a plain build never touched.</p>

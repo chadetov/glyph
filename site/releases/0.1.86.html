@@ -1,6 +1,7 @@
 ---
 version: 0.1.86
 month: 2026-08
+date: 2026-08-25
 ---
             <h3>A variant name in a pattern matches, or the compiler says so</h3>
             <p>A pattern that names a variant inside a record field looked like it tested that variant and did not. It bound the field to a new name that shadowed the constructor, so the arm fired for every value, the arms below it became unreachable, and both <code>glyph check</code> and <code>tsc --strict</code> reported nothing.</p>

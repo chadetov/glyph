@@ -328,7 +328,17 @@
   </url>
   <url>
     <loc>https://glyphlang.io/start/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://glyphlang.io/start/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://glyphlang.io/es/start/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://glyphlang.io/start/" />
     <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://glyphlang.io/es/start/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://glyphlang.io/start/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://glyphlang.io/es/start/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://glyphlang.io/start/" />
+    <lastmod>2026-11-20</lastmod>
   </url>
   <url>
     <loc>https://glyphlang.io/teams/</loc>

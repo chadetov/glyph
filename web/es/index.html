@@ -101,7 +101,7 @@
                   <div class="nav-col">
                     <p class="nav-col-title">Para empezar</p>
                     <ul>
-                      <li><a href="/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Empieza en 10 minutos</span><span class="nav-desc">Instálalo, escribe un programa y ejecútalo</span></span></a></li>
+                      <li><a href="/es/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Empieza en 10 minutos</span><span class="nav-desc">Instálalo, escribe un programa y ejecútalo</span></span></a></li>
                       <li><a href="/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Respuestas <span class="nav-count">28</span></span><span class="nav-desc">Preguntas que hacen los ingenieros, con ejemplos resueltos</span></span></a></li>
                       <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Referencia del lenguaje</span><span class="nav-desc">La especificación completa, en GitHub</span></span></a></li>
                       <li><a href="/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Contribuir</span><span class="nav-desc">Cómo está hecho el compilador y cómo ayudar</span></span></a></li>
@@ -434,7 +434,7 @@
           <p class="install-alt">Sin instalar nada globalmente. Para tener <code>glyph</code> en el PATH: <code>npm install -g @glyphlang/glyph tsx typescript</code></p>
           <div class="cta">
             <a class="btn primary" href="/catches/">Mira qué detecta →</a>
-            <a class="btn" href="/start/">Empieza en 10 minutos →</a>
+            <a class="btn" href="/es/start/">Empieza en 10 minutos →</a>
           </div>
         </div>
           <figure class="c-hero">
@@ -448,7 +448,7 @@
 <span class="k">const</span> cfg = loadConfig(); <span class="c">// no try</span></pre><span class="cap">$ tsx ts.ts</span><pre class="c-out"><span class="e">Error: missing file</span></pre></div>
             </div>
             <div class="c-hero-side gl">
-              <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">refused when you build</span></div>
+              <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">rechazado al compilar</span></div>
               <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">fn</span> load_config() <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Config</span>, <span class="t">string</span>&gt; {
   <span class="k">return</span> <span class="t">Err</span>(<span class="s">"missing file"</span>)
 }
@@ -470,7 +470,7 @@
           <a class="h-tile tone-green" href="/agents/"><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><b class="h-title">Construyo agentes y herramientas</b><span class="h-desc">El servidor MCP, las consultas que responde y el formato de los diagnósticos.</span><span class="h-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
           <a class="h-tile tone-amber" href="/evidence/"><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><b class="h-title">Quiero ver las pruebas</b><span class="h-desc">Cómo se comprueba cada afirmación y cómo reproducirla.</span><span class="h-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
           <a class="h-tile tone-rose" href="/design/"><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><b class="h-title">¿Por qué un lenguaje nuevo?</b><span class="h-desc">El razonamiento del diseño y lo que se dejó fuera a propósito.</span><span class="h-go"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
-          <div class="h-tile h-tile-try tone-blue"><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><b class="h-title">Solo quiero probarlo</b><span class="h-acts"><a class="h-btn primary" href="/start/">Empieza en 10 minutos</a><a class="h-btn" href="/playground/">Playground</a></span></div>
+          <div class="h-tile h-tile-try tone-blue"><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><b class="h-title">Solo quiero probarlo</b><span class="h-acts"><a class="h-btn primary" href="/es/start/">Empieza en 10 minutos</a><a class="h-btn" href="/playground/">Playground</a></span></div>
         </div>
       </div>
     </section>
@@ -486,19 +486,19 @@
             <span class="c-card-n">1</span>
             <h3><span lang="en">Data from outside the program</span></h3>
             <p><span lang="en">A request body, a file, an API response.</span></p>
-            <p class="c-card-v"><span class="ts">TypeScript: <span lang="en">compiles, then runs on bad data</span></span><span class="gl">Glyph: checked when the data arrives</span></p>
+            <p class="c-card-v"><span class="ts">TypeScript: <span lang="en">compiles, then runs on bad data</span></span><span class="gl">Glyph: comprobado cuando llegan los datos</span></p>
           </a>
           <a class="c-card" href="/catches/#error-the-signature-hides">
             <span class="c-card-n">2</span>
             <h3><span lang="en">An error the signature hides</span></h3>
             <p><span lang="en">A function that can fail, called by code that does not know it can.</span></p>
-            <p class="c-card-v"><span class="ts">TypeScript: <span lang="en">compiles, then crashes at run time</span></span><span class="gl">Glyph: refused when you build</span></p>
+            <p class="c-card-v"><span class="ts">TypeScript: <span lang="en">compiles, then crashes at run time</span></span><span class="gl">Glyph: rechazado al compilar</span></p>
           </a>
           <a class="c-card" href="/catches/#error-nobody-looked-at">
             <span class="c-card-n">3</span>
             <h3><span lang="en">An error nobody looked at</span></h3>
             <p><span lang="en">Calling something that can fail and moving on.</span></p>
-            <p class="c-card-v"><span class="ts">TypeScript: <span lang="en">compiles with no warning</span></span><span class="gl">Glyph: warned</span></p>
+            <p class="c-card-v"><span class="ts">TypeScript: <span lang="en">compiles with no warning</span></span><span class="gl">Glyph: avisado</span></p>
           </a>
         </div>
 
@@ -566,7 +566,7 @@ The two catch-all sites report <span class="add">nothing at all</span>.</pre>
           </div>
           <div class="foot-col">
             <h2>Empezar</h2>
-            <a href="/start/">Tu primer programa</a>
+            <a href="/es/start/">Tu primer programa</a>
             <a href="/from-typescript/">Si vienes de TypeScript</a>
             <a href="/teams/">Para equipos</a>
             <a href="/playground/">Playground</a>

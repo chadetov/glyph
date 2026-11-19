@@ -1,0 +1,29 @@
+---
+version: 0.1.138
+month: 2026-11
+tags: breaking
+---
+            <p>Two ways for <code>glyph fmt</code> to change what a program means are fixed, and the fuzzer now checks for that directly.</p>
+
+            <p>The first is G335. Inside a block, a line that starts with <code>(</code> continues the line above. 0.1.137 printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. The formatter now keeps the step on its own line:</p>
+
+            <div class="code">
+              <span class="cap">job.glyph</span>
+<pre>pub fn f() -&gt; Result&lt;number, string&gt; {
+  let a = 1
+  load()?
+    .run()
+  return Ok(a)
+}</pre>
+            </div>
+
+            <p>It also stops adding parentheses around a <code>?</code> that the source did not need: <code>f()?(x)</code>, <code>f()?[0]</code> and <code>f()? ?</code> are written as they are. The two <code>?</code> in the last one are a space apart, because <code>??</code> is the nullish operator. Inside an expression, <code>(f()?).name</code> keeps its parentheses, since <code>f()?.name</code> is optional chaining.</p>
+
+            <p>The second is G338. A <code>where</code> refinement on a union type was dropped, so a program <code>glyph check</code> refused (E0300) came out of the formatter as one it accepted. The refinement now prints on its own line after the last variant and the error stays.</p>
+
+            <p>The fuzzer used to check that formatting twice gives the same text. It now also parses the formatted file and compares the syntax tree with the original's, so a layout that changes what a file means fails on the first run. A test runs the same comparison over every example and test file in the repository.</p>
+
+            <p>A method chain with two <code>?</code> in a row can now hold comments between its steps, like any other chain. 0.1.137 refused such a file.</p>
+
+            <h3>Breaking</h3>
+            <p>Only for <code>glyph fmt --check</code>. We ran the published 0.1.137 and this build on each layout the formatter now writes differently: <code>(e?)(x)</code> and <code>(e?)[i]</code> become <code>e?(x)</code> and <code>e?[i]</code>, <code>(e?)?</code> becomes <code>e? ?</code> wherever it appears, and a statement that starts with <code>(e?).f</code>, including the body of a one-line lambda, is split across two lines. A file containing one of these passed <code>fmt --check</code> under 0.1.137 and fails it now; running <code>glyph fmt</code> once fixes it. No program's meaning changes, and <code>glyph check</code>, <code>glyph build</code> and the emitted TypeScript are the same. On every <code>.glyph</code> file in the repository and all 32 example apps, the only formatting changes are on the two new test files, and no file that 0.1.137 had already formatted is touched.</p>

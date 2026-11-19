@@ -1,0 +1,26 @@
+---
+version: 0.1.87
+month: 2026-08
+---
+            <h3>The exit code your program recorded is the one it leaves with</h3>
+            <p>A CLI that computes a verdict inside <code>main</code> and records it, rather than returning it, exited 0 regardless. The wrapper we generate assigned <code>process.exitCode</code> unconditionally after <code>main</code> returned, so a <code>main</code> declared <code>-&gt; void</code> had whatever it recorded written back to zero on the way out. Every shell and CI check reading that code saw success.</p>
+            <div class="code">
+              <span class="cap">This exits 1 now, and used to exit 0</span>
+<pre>module audit
+
+import std/process
+import std/io
+
+pub fn main(argv: Array&lt;string&gt;) -&gt; void {
+  let failures = 2
+  io.println("checked, ${failures} failing")
+  match failures &gt; 0 {
+    true =&gt; process.set_exit_code(1),
+    false =&gt; {},
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A recorded exit code survives a <code>void</code> return.</strong> The generated entrypoint only assigns <code>process.exitCode</code> when <code>main</code> actually produced a number. An unset code is still 0 to Node, so nothing else changes: a <code>main</code> that returns a number still wins over an earlier recorded one, and a program that records nothing still exits 0.</li>
+              <li><span class="tag note">Note</span> <strong>The doc said this worked.</strong> <code>set_exit_code</code>'s own comment described the program that computes a verdict inside <code>main</code> and records it. That program was the one that did not work, which is the kind of gap a doc cannot catch and an app does.</li>
+            </ul>

@@ -1,0 +1,35 @@
+---
+version: 0.1.85
+month: 2026-08
+---
+            <h3>A TLS dial you can bound</h3>
+            <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one as a plain argument rather than an options field, so nothing can default it away, and refuses a deadline it cannot actually hold.</p>
+            <div class="code">
+              <span class="cap">A dial that cannot outlive its budget</span>
+<pre>module probe
+
+import std/tls
+import std/io
+
+<span class="cm">// the deadline is an argument, not an options field:</span>
+<span class="cm">// nothing downstream can default it away</span>
+pub async fn reachable(host: string) -&gt; bool {
+  match await tls.connect(host, 443, 3000) {
+    Ok(conn) =&gt; true,
+    Err(e) =&gt; {
+      io.println("${host}: ${e}")
+      false
+    },
+  }
+}
+
+<span class="cm">// and a deadline node would silently clamp is refused, rather</span>
+<span class="cm">// than failing in 1ms and blaming the 35 days you asked for:</span>
+<span class="cm">// "a TLS dial deadline must be at most 2147483647ms, got 3000000000"</span></pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>tls.connect</code> takes a required deadline.</strong> A dial that has not completed its handshake in time fails as an error you can match on, and the socket is destroyed rather than left holding the process open.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A deadline node cannot hold is refused, not silently clamped.</strong> Node truncates a <code>setTimeout</code> past 2147483647ms to 1ms, so asking for 35 days used to fail after a millisecond and report it as if the 35 days had elapsed. That now names the limit instead.</li>
+              <li><span class="tag known">Known</span> <strong>The deadline covers the socket, not name resolution.</strong> A dial still resolving a hostname has nothing for <code>destroy</code> to reach, so it can answer on time and still hold the process open. Documented rather than claimed shut, because we could not wedge a resolver to test it without changing machine config.</li>
+              <li><span class="tag known">Known</span> <strong><code>std/http</code> still bounds nothing by default.</strong> <code>get</code> and <code>post</code> take no deadline. A request against a listener that accepts and stays silent was still pending at 45 seconds. Same shape as this fix, and it needs its own release because the choice between a required deadline and a changed default is a change to a guarantee.</li>
+            </ul>

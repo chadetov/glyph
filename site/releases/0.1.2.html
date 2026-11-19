@@ -1,0 +1,19 @@
+---
+version: 0.1.2
+month: 2026-07
+---
+            <h3>Correctness, JSX, and the guided site</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> over a <code>Result</code> whose error union has a no-payload variant no longer silently dispatches to the wrong arm.</li>
+              <li><span class="tag fixed">Fixed</span> A misspelled constructor in a match arm is rejected, not silently treated as a catch-all that masks a missing case.</li>
+              <li><span class="tag fixed">Fixed</span> An incomplete <code>bool</code> match (missing <code>false</code>) and a JSX <code>&lt;match&gt;</code> missing a case are now compile errors, not runtime throws.</li>
+              <li><span class="tag fixed">Fixed</span> A multi-parameter component is a clear compile error instead of silently mis-binding props; record payloads bind correctly.</li>
+              <li><span class="tag added">Added</span> The typechecker checks call arity (<code>E0213</code>); unreachable match arms are flagged; the <code>?</code> error-type rule extends across the stdlib boundary.</li>
+              <li><span class="tag added">Added</span> Hyphenated and scoped npm imports (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>), <code>aria-*</code>/<code>data-*</code> JSX attributes, and significant JSX whitespace.</li>
+              <li><span class="tag added">Added</span> Targeted diagnostics: <code>if</code>/<code>else</code> point at <code>match</code> (<code>E0006</code>), range patterns say so directly (<code>E0007</code>); <code>json.parse</code> deep-validates <code>Record</code> fields.</li>
+              <li><span class="tag added">Added</span> <code>std/http</code> gains a server: <code>serve</code>, <code>Handler</code>, <code>Request</code>, <code>Response</code>, <code>query</code>, and <code>path</code>, a thin, errors-as-values wrapper over <code>node:http</code>.</li>
+              <li><span class="tag added">Added</span> <code>glyph init</code> scaffolds a runnable starter project, and <code>glyph llms</code> prints the agent bootstrap offline.</li>
+              <li><span class="tag added">Added</span> A one-document agent reference (<code>AGENTS.md</code> / <a href="/llms.txt">llms.txt</a>), a standard-library reference, and an editor-setup guide.</li>
+              <li><span class="tag added">Added</span> Quoted string keys in object literals, and clearer hints that suggest the Glyph spelling for common TypeScript type names.</li>
+              <li><span class="tag site">Site</span> A guided <a href="/answers/">Answers</a> section, a <a href="/hardening/">Hardening</a> page, a dedicated <a href="/benchmarks/">Benchmarks</a> page, and the landing page + playground on glyphlang.io.</li>
+            </ul>

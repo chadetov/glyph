@@ -1,0 +1,11 @@
+---
+version: 0.1.111
+month: 2026-09
+---
+            <h3>The loop is proven, not asserted</h3>
+            <p>An agent adds a case to a union, the compiler names what broke, a query names a site the compiler never mentioned because it keeps compiling, and the tree goes green after the named sites are fixed. That had been walked once by hand and tested nowhere. It is six tests now, over the real process.</p>
+            <p>The loop test was the one easy to write dishonestly, so the honesty is structural rather than a promise. Its fixture hands back paths and counts and nothing else, so a test cannot spell the union, its module, or the variant: those names are not in scope. They also carry a per-run suffix, so a hard-coded one fails instead of passing quietly. Each hop is fed from the previous answer.</p>
+            <p>Three deliberate breakages prove it bites. The one that matters: repair only the sites the compiler reported, and the tree still goes green, but the test fails because the edits did not go where the answer pointed. A test asserting only that the build passes would have missed it, and that silent site is the entire reason for this work.</p>
+            <h3>The surface an agent talks to, tested for the first time</h3>
+            <p>Every test called the server in process, so the transport was never exercised. The <code>instructions</code> string shipped in 0.1.107 appeared in no assertion at all, which was checked by deleting it and watching 1312 tests pass. The handshake is now exercised as an ordered exchange over a spawned process, and three kinds of line that are not requests get no answer while the server stays up.</p>
+            <p class="rel-note">The demonstration is a committed benchmark rather than a story. On a CSV query engine in this repository, eleven files, adding one case to the union at its centre: ten match sites across four files, eight that fail and two that absorb, and the compiler afterwards reporting exactly those eight. A text search asked the same question finds twenty catch-all arms, two of them relevant, and says nothing about the eight that break.</p>

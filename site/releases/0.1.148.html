@@ -1,0 +1,13 @@
+---
+version: 0.1.148
+month: 2026-11
+tags: breaking
+---
+            <p>A map's keys are checked at run time now. With <code>type Tier = "free" | "pro"</code>, <code>json.parse&lt;Record&lt;Tier, int&gt;&gt;</code> returns <code>Ok</code> only for an object whose keys are exactly <code>free</code> and <code>pro</code>. A stray key or a missing one is an <code>Err</code>; before, both came back <code>Ok</code>, and the program went on believing every member was there.</p>
+
+            <p>A <code>where</code>-refined key type runs its predicate on each key, and an <code>int</code> key must be the plain spelling of a whole number, so <code>"01"</code> and <code>"1.5"</code> are refused. The same check runs in <code>T.parse</code>, <code>T.is</code>, <code>is</code> patterns, record fields and everywhere else a value is validated. <code>Record&lt;string, V&gt;</code> behaves exactly as before, and its emitted code is unchanged.</p>
+
+            <h3>Breaking</h3>
+            <p>Programs that compiled still compile, but a map that does not match its key type is now refused where it used to be accepted. Two shapes stop compiling with E0304: a <code>Record</code> whose key type has no runtime check, and a generic record whose <code>Record</code> field is keyed by its own type parameter, unless that parameter is <code>string</code>. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code> and the emitted TypeScript are unchanged.</p>
+
+            <p>Still open: a <code>Record&lt;string, V&gt;</code> can still be passed where <code>Record&lt;Tier, V&gt;</code> is declared, which 0.1.151 addresses, and Glyph's own checker leaves a map's keys to <code>tsc</code>, which is on the list after that.</p>

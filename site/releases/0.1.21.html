@@ -1,0 +1,8 @@
+---
+version: 0.1.21
+month: 2026-07
+---
+            <h3>Cross-module payload-binding fix</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>Variant(v)</code> pattern that binds the whole payload emitted <code>v.value</code> and failed <code>tsc</code> when the union was imported from another module. The whole object now binds correctly across a module boundary.</li>
+            </ul>

@@ -1,0 +1,13 @@
+---
+version: 0.1.146
+month: 2026-11
+tags: breaking
+---
+            <p>A <code>{</code> on the line where a statement just ended is now a parse error, E0013. Before, <code>return h() { k: 2 }</code> compiled as <code>return h()</code> followed by an object literal that never ran, and the only hint was an unreachable-code warning. The value the line was written to return was silently dropped.</p>
+
+<pre>`{` cannot begin a new statement on the line where `return h()` ends</pre>
+
+            <p>The help gives the fix. Glyph has no <code>Order { … }</code> form, so write the literal on its own and put the type on the annotation, or drop the braces if they were not meant to be the value. <code>return Order { … }</code> now reports this error instead of E0228.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran 0.1.145 and this build on each shape: <code>return h() { … }</code>, <code>let o = h() { … }</code> and a bare <code>h() { … }</code>, in a function, a match arm or a lambda, exited 0 before and exit 1 now, and <code>tsc</code> accepted all of them. <code>glyph fmt</code> refuses such a file instead of splitting it across two lines. On every other <code>.glyph</code> file in the repository and all 32 example apps, nothing changes.</p>

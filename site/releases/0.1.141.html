@@ -1,0 +1,22 @@
+---
+version: 0.1.141
+month: 2026-11
+tags: breaking
+---
+            <p><code>json.parse</code> now checks a generic record's own fields and a union's variant payloads, and refuses with E0304 when one of them has no runtime check. Before, such a field was only tested for being present, so a document with the wrong value in it came back <code>Ok</code>:</p>
+
+            <div class="code">
+              <span class="cap">page.glyph</span>
+<pre>pub type Page&lt;T&gt; = { items: Array&lt;T&gt;, h: Handle }
+
+let page = json.parse&lt;Page&lt;User&gt;&gt;(body)</pre>
+            </div>
+
+<pre>cannot validate `Page&lt;User&gt;`: `Page`'s field `h` has type `Handle`, which has no runtime check</pre>
+
+            <p>Here <code>Handle</code> is an <code>extern_ts</code> type, which Glyph cannot check at run time. A record with the same field was already refused; a generic one and a union variant carrying it now get the same answer, whether you call <code>json.parse</code>, <code>Page.parse</code>, <code>U.is</code> or <code>json.parse_with</code> with its <code>schema</code>, put the type inside another record, an <code>Option</code> or an <code>Array</code>, pass it as a generic's type argument, or reach it through another module.</p>
+
+            <h3>Breaking</h3>
+            <p>We ran 0.1.140 and this build on each refused shape: every one exited 0 before and exits 1 now, with and without <code>tsc</code>, and <code>tsc</code> accepts all of them. One case is refused although it was safe: an imported generic whose field is a record its module keeps private. This module cannot see into that record, so it refuses rather than guess; the message says so, and marking the record <code>pub</code> fixes it. 0.1.144 will judge it from the module that declares it instead. Nothing else changes. On every <code>.glyph</code> file in the repository and all 32 example apps, <code>glyph check</code>, <code>glyph fmt</code> and the emitted TypeScript are identical to 0.1.140.</p>
+
+            <p>A <code>match</code> arm written <code>is Page</code> is not covered by this check yet; that is 0.1.143.</p>

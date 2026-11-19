@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>July 2026 releases · Glyph</title>
+    <meta name="description" content="What changed in each Glyph release of July 2026: 0.1.2 to 0.1.32, 31 releases." />
+    <link rel="canonical" href="https://glyphlang.io/versions/2026-07/" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/versions.css" />
+    <link rel="alternate" type="application/atom+xml" title="Glyph releases" href="/versions/feed.xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <div class="nav-brand">
+          <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.149</a>
+        </div>
+        <div class="nav-panel" id="nav-panel">
+          <ul class="nav-links">
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-why">Why Glyph<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-why">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Who it is for</p>
+                    <ul>
+                      <li><a href="/from-typescript/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">Coming from TypeScript</span><span class="nav-desc">What changes and what stays the same</span></span></a></li>
+                      <li><a href="/teams/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg></span><span class="nav-text"><span class="nav-label">For teams</span><span class="nav-desc">What it guarantees and what adopting it costs</span></span></a></li>
+                      <li><a href="/agents/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></svg></span><span class="nav-text"><span class="nav-label">For agent builders</span><span class="nav-desc">The MCP server and the queries it answers</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">The design</p>
+                    <ul>
+                      <li><a href="/design/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5M3 17l9 5 9-5"/></svg></span><span class="nav-text"><span class="nav-label">The design</span><span class="nav-desc">The four pillars and what was left out on purpose</span></span></a></li>
+                      <li><a href="/design/vs-effect/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph vs Effect</span><span class="nav-desc">A language and a library, compared</span></span></a></li>
+                      <li><a href="/answers/vs-tooled-ts/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M5.5 9h2M16.5 9h2M5.5 13h2M16.5 13h2"/></svg></span><span class="nav-text"><span class="nav-label">Glyph vs tooled TypeScript</span><span class="nav-desc">What strict tsc, zod and eslint still let through</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top" href="/catches/">What it catches</a></li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-learn">Learn<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2" id="nav-learn">
+                  <div class="nav-col">
+                    <p class="nav-col-title">Get going</p>
+                    <ul>
+                      <li><a href="/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">Start in 10 minutes</span><span class="nav-desc">Install it, write a program, run it</span></span></a></li>
+                      <li><a href="/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Answers <span class="nav-count">28</span></span><span class="nav-desc">Questions engineers ask, with worked examples</span></span></a></li>
+                      <li><a href="/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">Contribute</span><span class="nav-desc">How the compiler is built and how to help</span></span></a></li>
+                    </ul>
+                  </div>
+                  <div class="nav-col">
+                    <p class="nav-col-title">Reference</p>
+                    <ul>
+                      <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">Language reference</span><span class="nav-desc">The full spec, on GitHub</span></span></a></li>
+                      <li><a href="/llms.txt"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 3H6v18h12V7l-4-4z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="nav-text"><span class="nav-label">llms.txt for agents</span><span class="nav-desc">The language in one file an agent can read</span></span></a></li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-menu">
+              <details class="nav-menu">
+                <summary class="nav-top" aria-controls="nav-evidence">Evidence<span class="nav-chev" aria-hidden="true"></span></summary>
+                <div class="nav-drop cols-2 has-feature" id="nav-evidence">
+                  <div class="nav-col">
+                    <p class="nav-col-title">How it is checked</p>
+                    <ul>
+                      <li><a href="/evidence/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 3.5h6v3H9z"/><path d="M15 5h3v16H6V5h3M9 14l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">How claims are checked</span><span class="nav-desc">The fixtures and the CI gate behind each claim</span></span></a></li>
+                      <li><a href="/hardening/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="nav-text"><span class="nav-label">Hardening</span><span class="nav-desc">Agents trying to break it, and what they found</span></span></a></li>
+                      <li><a href="/benchmarks/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg></span><span class="nav-text"><span class="nav-label">Benchmarks</span><span class="nav-desc">The four pillars as numbers, with caveats</span></span></a></li>
+                      <li><a href="/catches/#not-yet"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.01"/></svg></span><span class="nav-text"><span class="nav-label">Not caught yet</span><span class="nav-desc">Known holes, each with a reproduction</span></span></a></li>
+                    </ul>
+                  </div>
+                  <a class="nav-feature" href="/catches/"><span class="nav-feature-big">21 of 37</span><span class="nav-feature-text">mistakes that nothing in a fully configured TypeScript setup catches</span><span class="nav-feature-cta">See what it catches <svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+                </div>
+              </details>
+            </li>
+            <li class="nav-li-link"><a class="nav-top active" href="/versions/">Versions</a></li>
+          </ul>
+          <div class="nav-actions">
+            <a class="nav-cta" href="/playground/">Playground</a>
+            <a class="nav-gh" href="https://github.com/chadetov/glyph"><svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">GitHub</span></a>
+          </div>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+        <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Open menu">
+          <span class="burger-icon" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+    <div class="nav-scrim" aria-hidden="true"></div>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var header = document.querySelector(".site-header");
+        if (!header) return;
+        var menus = [].slice.call(header.querySelectorAll("details.nav-menu"));
+        var burger = header.querySelector(".nav-burger");
+        var phone = window.matchMedia("(max-width: 860px)");
+        var hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+        function summary(d) {
+          return d.querySelector("summary");
+        }
+        function anyOpen() {
+          return menus.some(function (d) {
+            return d.open;
+          });
+        }
+        function closeMenus(except) {
+          menus.forEach(function (d) {
+            if (d !== except) d.open = false;
+          });
+        }
+        // A pointer press hides the focus ring; the next key brings it back.
+        document.addEventListener("pointerdown", function () {
+          root.classList.add("nav-pointer");
+        });
+        document.addEventListener("keydown", function () {
+          root.classList.remove("nav-pointer");
+        });
+        menus.forEach(function (d) {
+          var s = summary(d);
+          var timer = null;
+          s.setAttribute("aria-expanded", "false");
+          d.addEventListener("toggle", function () {
+            s.setAttribute("aria-expanded", d.open ? "true" : "false");
+            if (phone.matches) return;
+            if (d.open) {
+              closeMenus(d);
+              var drop = d.querySelector(".nav-drop");
+              drop.style.transform = "";
+              var r = drop.getBoundingClientRect();
+              var over = r.right - (window.innerWidth - 8);
+              var under = 8 - r.left;
+              if (over > 0) drop.style.transform = "translateX(" + -over + "px)";
+              else if (under > 0) drop.style.transform = "translateX(" + under + "px)";
+            } else {
+              delete d.dataset.hover;
+            }
+            root.classList.toggle("nav-dim", anyOpen());
+          });
+          s.addEventListener("click", function (e) {
+            // On a phone the groups are always-open sections of the panel.
+            if (phone.matches) return e.preventDefault();
+            // A click on a panel that hover just opened keeps it open.
+            if (d.open && d.dataset.hover) {
+              e.preventDefault();
+              delete d.dataset.hover;
+            }
+          });
+          // Hover intent: open after a short rest, close after a short leave.
+          var li = d.parentNode;
+          li.addEventListener("pointerenter", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (!d.open) {
+                d.dataset.hover = "1";
+                d.open = true;
+              }
+            }, anyOpen() ? 0 : 120);
+          });
+          li.addEventListener("pointerleave", function (e) {
+            if (phone.matches || !hover.matches || e.pointerType !== "mouse") return;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              if (d.dataset.hover) d.open = false;
+            }, 220);
+          });
+          d.addEventListener("keydown", function (e) {
+            if (phone.matches || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+            var links = [].slice.call(d.querySelectorAll(".nav-drop a"));
+            e.preventDefault();
+            d.open = true;
+            var i = links.indexOf(document.activeElement);
+            if (e.key === "ArrowDown") i = (i + 1) % links.length;
+            else i = i <= 0 ? links.length - 1 : i - 1;
+            links[i].focus();
+          });
+        });
+        function setPanel(open) {
+          header.classList.toggle("nav-open", open);
+          root.classList.toggle("nav-locked", open);
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+          if (open) root.style.setProperty("--nav-h", header.getBoundingClientRect().bottom + "px");
+        }
+        burger.addEventListener("click", function () {
+          setPanel(!header.classList.contains("nav-open"));
+        });
+        document.addEventListener("click", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("focusin", function (e) {
+          if (phone.matches) return;
+          menus.forEach(function (d) {
+            if (d.open && !d.contains(e.target)) d.open = false;
+          });
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape") return;
+          if (phone.matches) {
+            if (header.classList.contains("nav-open")) {
+              setPanel(false);
+              burger.focus();
+            }
+            return;
+          }
+          var open = menus.filter(function (d) {
+            return d.open;
+          });
+          if (!open.length) return;
+          closeMenus();
+          summary(open[0]).focus();
+        });
+        // Leaving the page (a link inside a panel, back/forward) closes everything.
+        window.addEventListener("pagehide", function () {
+          closeMenus();
+          setPanel(false);
+        });
+        function layout() {
+          menus.forEach(function (d) {
+            d.open = phone.matches;
+            if (phone.matches) summary(d).setAttribute("tabindex", "-1");
+            else summary(d).removeAttribute("tabindex");
+          });
+          if (!phone.matches) setPanel(false);
+          root.classList.remove("nav-dim");
+        }
+        if (phone.addEventListener) phone.addEventListener("change", layout);
+        else phone.addListener(layout);
+        layout();
+      })();
+    </script>
+    <script>
+      // The answers list: a sidebar on wide screens needs nothing, and on
+      // narrow ones the bar's button opens the same list as a panel.
+      document.addEventListener("DOMContentLoaded", function () {
+        var root = document.documentElement;
+        var btn = document.querySelector(".ans-all");
+        var side = document.getElementById("ans-nav");
+        if (!btn || !side) return;
+        var bar = document.querySelector(".ans-bar");
+        var close = side.querySelector(".ans-close");
+        function set(open, fromKey) {
+          if (open) root.style.setProperty("--ans-top", Math.max(0, bar.getBoundingClientRect().bottom) + "px");
+          root.classList.toggle("ans-open", open);
+          root.classList.toggle("nav-dim", open);
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          if (open && fromKey) {
+            var cur = side.querySelector('[aria-current="page"]');
+            if (cur) cur.focus();
+          }
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // a click from the keyboard (detail 0) moves focus into the list
+          set(!root.classList.contains("ans-open"), e.detail === 0);
+        });
+        close.addEventListener("click", function () {
+          set(false);
+          btn.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (root.classList.contains("ans-open") && !side.contains(e.target)) set(false);
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && root.classList.contains("ans-open")) {
+            set(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener("resize", function () {
+          if (root.classList.contains("ans-open") && window.innerWidth >= 1240) set(false);
+        });
+      });
+    </script>
+    <main id="main">
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">Versions &amp; changelog</p>
+        <h1>What changed, <span class="accent">newest first</span>.</h1>
+        <p class="lede">
+          Glyph is an early preview and moves fast. Every release is here with what it fixed and
+          added, so you can see exactly what's in the version you're running, and what's
+          waiting for you in the next one.
+        </p>
+        <p class="lede">
+          <strong>Stability, pre-1.0:</strong> the language can still change between 0.1.x releases.
+          We hold two lines: your code stays runnable (it always compiles to plain TypeScript
+          you own, a permanent escape hatch), and when syntax changes we aim to make
+          <code>glyph fmt</code> migrate it for you. The full policy is in
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a>.
+        </p>
+      </header>
+
+      <div class="breaking-note">
+        <strong>A release marked Breaking rejects code an earlier version accepted.</strong>
+        Usually because the compiler started catching something it had been missing, which is
+        the point of the language, but it can turn a green build red on an upgrade. Read that
+        release's note before taking it.
+        <br><br>
+        The marker is applied only where both versions were actually run and the older one
+        accepted the program. It is not inferred from how a note is worded, and an unmarked
+        release older than 0.1.99 has not been tested rather than been found safe. Every
+        release from here on states which it is.
+      </div>
+
+      <nav class="month-nav" aria-label="Releases by month">
+        <a href="/versions/2026-11/"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 22 releases · 18 breaking</span></a>
+        <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
+        <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
+        <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
+        <a href="/versions/2026-07/" class="active" aria-current="page"><span class="mn-month">Jul 2026</span> <span class="mn-count">· 31 releases</span></a>
+        <a href="/versions/2026-06/"><span class="mn-month">Jun 2026</span> <span class="mn-count">· 1 release</span></a>
+      </nav>
+      <div class="month-head">
+        <h2 class="month-title">July 2026</h2>
+        <p class="month-sum">31 releases, 0.1.2 to 0.1.32</p>
+        <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
+      </div>
+
+      <div class="releases">
+        <article class="release" id="0.1.32" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.32</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.32" data-url="https://glyphlang.io/versions/2026-07/#0.1.32" aria-label="Link to 0.1.32">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Fluent await and discriminated unions from a .d.ts</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Fluent await and discriminated unions from a .d.ts</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>await</code> on a fluent chain awaits the async terminal: <code>await cursor.find({}).to_array()</code> awaits <code>to_array</code>, so the mongodb cursor pattern no longer needs a split line.</li>
+              <li><span class="tag added">Added</span> A TypeScript <code>.d.ts</code> union of variants that share a string-literal tag materializes as a Glyph tagged union plus a <code>parse_&lt;Name&gt;</code> dispatcher that reads the tag and validates into the right variant.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.31" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.31</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.31" data-url="https://glyphlang.io/versions/2026-07/#0.1.31" aria-label="Link to 0.1.31">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Taint tracking</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Taint tracking</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/taint</code>: <code>Tainted&lt;T&gt;</code> and <code>Trusted&lt;T&gt;</code> are structurally distinct, so a sink typed <code>Trusted&lt;string&gt;</code> (a SQL runner, a shell command) cannot receive a <code>Tainted&lt;string&gt;</code> without going through <code>sanitize</code> first. A SQL injection path becomes a compile error.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.30" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.30</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.30" data-url="https://glyphlang.io/versions/2026-07/#0.1.30" aria-label="Link to 0.1.30">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Refinement types</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Refinement types</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>where</code> refinements: <code>type Amount = int where value &gt;= 0</code>, <code>type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5</code>. The predicate is woven into the descriptor, so <code>Amount.parse(-1)</code> is an <code>Err</code> at the boundary, not just "is a number".</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.29" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.29</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.29" data-url="https://glyphlang.io/versions/2026-07/#0.1.29" aria-label="Link to 0.1.29">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Exact large integers</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Exact large integers</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> The <code>bigint</code> prelude type, literals <code>123n</code>, kept distinct from <code>number</code> by <code>tsc</code> (no mixed arithmetic). A <code>bigint</code> field's descriptor rejects a JSON number rather than truncating an account id past 2^53.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.28" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.28</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.28" data-url="https://glyphlang.io/versions/2026-07/#0.1.28" aria-label="Link to 0.1.28">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Exact money math</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Exact money math</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/decimal</code>, exact base-10 fixed-point over BigInt: <code>0.1 + 0.2</code> is exactly <code>0.3</code>, with no precision loss past 2^53. Construction validates and returns a <code>Result</code>; operations are methods (<code>price.add(tax)</code>). Money is never a float.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.27" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.27</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.27" data-url="https://glyphlang.io/versions/2026-07/#0.1.27" aria-label="Link to 0.1.27">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Real database interop, and two bugs it surfaced</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Real database interop, and two bugs it surfaced</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>std/sqlite</code> is <code>tsc</code>-clean under <code>@types/node</code>, and a JS-only package's <code>@types/&lt;pkg&gt;</code> companion now resolves, so <code>pg</code>, <code>react</code>, and <code>express</code> type-check instead of reporting an implicit <code>any</code>.</li>
+              <li><span class="tag added">Added</span> A databases guide proving Postgres and MongoDB work end to end; every program in it was compiled against the real client types first.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.26" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.26</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.26" data-url="https://glyphlang.io/versions/2026-07/#0.1.26" aria-label="Link to 0.1.26">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">new for class-based npm clients</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>new for class-based npm clients</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>new Client(args)</code> for interop, type-checked against the real constructor (<code>pg</code>'s <code>new Pool</code>, <code>mongodb</code>'s <code>new MongoClient</code>, <code>kafkajs</code>'s <code>new Kafka</code>). It exists only to construct a type from a package; Glyph gains no <code>class</code> declarations of its own.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.25" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.25</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.25" data-url="https://glyphlang.io/versions/2026-07/#0.1.25" aria-label="Link to 0.1.25">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">A persisted database, and a real app on it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>A persisted database, and a real app on it</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/sqlite</code> over Node's built-in SQLite (no native install, no flag); rows come back as <code>unknown</code>, so the database is a validated boundary like any other.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/tasks/main.glyph</code>, a persisted, validated task API with data that survives a restart and no hand-written validators anywhere in it.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.24" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.24</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.24" data-url="https://glyphlang.io/versions/2026-07/#0.1.24" aria-label="Link to 0.1.24">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Imported-union resolution and shift operators</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Imported-union resolution and shift operators</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> over a tagged union imported from another module is now held to full exhaustiveness (the imported-union type-resolution pass), retiring the recurring cross-module-<code>Unknown</code> class the dogfood loop kept surfacing.</li>
+              <li><span class="tag added">Added</span> Bitwise shift operators <code>&lt;&lt; &gt;&gt; &gt;&gt;&gt;</code>, completing the operator family.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.23" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.23</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.23" data-url="https://glyphlang.io/versions/2026-07/#0.1.23" aria-label="Link to 0.1.23">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Imported-union match fixes</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Imported-union match fixes</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An empty-block match arm no longer falls through into the next case, and an imported tagged union's no-payload variant match lowers to a real <code>case</code> instead of a binding catch-all.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.22" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.22</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.22" data-url="https://glyphlang.io/versions/2026-07/#0.1.22" aria-label="Link to 0.1.22">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Interfaces as ordinary types</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Interfaces as ordinary types</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> A structural <code>interface</code> is usable as an ordinary parameter or return type, with member access and structural assignability checked, not only as a generic bound.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.21" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.21</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.21" data-url="https://glyphlang.io/versions/2026-07/#0.1.21" aria-label="Link to 0.1.21">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Cross-module payload-binding fix</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Cross-module payload-binding fix</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>Variant(v)</code> pattern that binds the whole payload emitted <code>v.value</code> and failed <code>tsc</code> when the union was imported from another module. The whole object now binds correctly across a module boundary.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.20" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.20</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.20" data-url="https://glyphlang.io/versions/2026-07/#0.1.20" aria-label="Link to 0.1.20">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Bitwise operators</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Bitwise operators</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Bitwise operators <code>&amp; | ^ ~</code>, surfaced writing a reproducible PRNG in pure Glyph. They emit verbatim to TypeScript, number-typed, at JS precedence.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.19" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.19</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.19" data-url="https://glyphlang.io/versions/2026-07/#0.1.19" aria-label="Link to 0.1.19">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Dogfooding the stdlib in Glyph</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Dogfooding the stdlib in Glyph</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> A TypeScript reserved word (<code>class</code>, <code>switch</code>, <code>new</code>, <code>typeof</code>) used as an identifier is now <code>E0109</code>, caught in the resolver instead of emitting broken TypeScript.</li>
+              <li><span class="tag added">Added</span> Negative-number literals as match patterns (<code>-1 =&gt; ...</code>).</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.18" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.18</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.18" data-url="https://glyphlang.io/versions/2026-07/#0.1.18" aria-label="Link to 0.1.18">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Governance, distribution, and editor tooling</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Governance, distribution, and editor tooling</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> The standard OSS surface: a Code of Conduct, a security policy, governance and maintainers docs, an RFC process, and a deprecation policy; plus distribution and deployment guides.</li>
+              <li><span class="tag added">Added</span> <code>glyph bench</code> (ns/op per <code>bench_*</code>), and LSP warning-tier lints, a remove-unused-import quick-fix, and inlay type hints on untyped <code>let</code>.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.17" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.17</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.17" data-url="https://glyphlang.io/versions/2026-07/#0.1.17" aria-label="Link to 0.1.17">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Stdlib breadth, tooling, and docs</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Stdlib breadth, tooling, and docs</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Four stdlib modules: <code>std/regex</code>, <code>std/set</code>, <code>std/path</code>, and <code>std/crypto</code> (sha256/512, HMAC, UUID); <code>std/time</code> gained <code>format_iso</code>/<code>parse_iso</code> and UTC calendar accessors.</li>
+              <li><span class="tag added">Added</span> <code>glyph fix</code> (safe autofixes), <code>glyph init --template &lt;cli|web|lib&gt;</code>, diagnostics that link to the error-codes reference, and a large guide expansion.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.16" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.16</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.16" data-url="https://glyphlang.io/versions/2026-07/#0.1.16" aria-label="Link to 0.1.16">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Language-design completeness</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Language-design completeness</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Structural <code>interface</code>s and generic bounds (<code>fn f&lt;T: Named&gt;(x: T)</code>); module visibility (private by default, <code>pub</code> to export, so the public API is <code>grep '^pub'</code>); digit separators in numeric literals; and <code>defer</code> for deterministic cleanup on every exit path.</li>
+              <li><span class="tag added">Added</span> <code>std/task</code>: <code>all</code> (concurrent join, fail-fast), <code>race</code>, and <code>all_settled</code> over the promise model.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.15" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.15</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.15" data-url="https://glyphlang.io/versions/2026-07/#0.1.15" aria-label="Link to 0.1.15">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Materialize the types real SDKs actually ship</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Materialize the types real SDKs actually ship</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph gen dts</code> now materializes the shapes real packages ship: a <code>declare namespace</code> tree, types split across files and re-exported from an <code>index</code> barrel, and generics kept first-class (<code>interface Page&lt;T&gt;</code> becomes <code>type Page&lt;T&gt;</code> with a descriptor that validates each item as its type argument).</li>
+              <li><span class="tag added">Added</span> Leaf-value validation. A string enum materializes as a string-literal union (<code>"free" | "pro"</code>), so <code>parse</code> checks membership and a <code>match</code> over it is exhaustive without an <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire <code>3.5</code> fails <code>parse</code> where a plain number would pass.</li>
+              <li><span class="tag added">Added</span> Generated wire types carry <code>@open</code>, so a forward-compatible API that adds a field does not break <code>parse</code>, while every declared field is still validated. Records stay strict by default in the language.</li>
+              <li><span class="tag added">Added</span> Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when installed.</li>
+              <li><span class="tag changed">Changed</span> <code>gen dts</code> flags a reference it can't resolve or a type name that collides across files with a note, instead of emitting a wrong-typed validator silently.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.14" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.14</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.14" data-url="https://glyphlang.io/versions/2026-07/#0.1.14" aria-label="Link to 0.1.14">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Use your npm dependencies without an adapter</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Use your npm dependencies without an adapter</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> An installed package that ships its own types (or has an <code>@types/...</code>) now type-checks and runs with no hand-written <code>.types/</code> stub. The build points <code>tsc</code> at your project's <code>node_modules</code>. Real zod works inline: <code>z.object</code>, <code>z.string</code>, <code>.parse</code>, all checked against zod's own types.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen dts &lt;package&gt;</code> and <code>glyph gen zod &lt;package&gt;</code> resolve an installed package by name and materialize its types into committed Glyph types with runtime validators, so a value crossing the boundary gets a real <code>T.parse</code> instead of a presence check.</li>
+              <li><span class="tag added">Added</span> JSX prop spread: <code>&lt;input {...register("email")} /&gt;</code>, the react-hook-form idiom, now lowers to an object spread in the props with no adapter.</li>
+              <li><span class="tag added">Added</span> <code>extern_ts("...")</code>, a scoped escape hatch for the TypeScript idioms Glyph's grammar does not spell (a value-derived <code>z.infer&lt;typeof s&gt;</code>, a raw runtime call). It emits raw TypeScript that <code>tsc</code> still checks, in both type and expression position, and every use is greppable.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.13" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.13</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.13" data-url="https://glyphlang.io/versions/2026-07/#0.1.13" aria-label="Link to 0.1.13">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Close the boundary</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Close the boundary</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> The type check is no longer silently optional. <code>glyph run</code>, <code>build</code>, and <code>publish</code> now stop with a non-zero exit when <code>tsc</code> is missing instead of quietly running unchecked. Pass <code>--no-check</code> if you really want to skip it.</li>
+              <li><span class="tag added">Added</span> An unknown annotation is now a hard error (<code>E0221</code>). A typo like <code>@puer</code> no longer compiles as if it meant something; the recognized set is <code>@example</code>, <code>@doc</code>, <code>@redact</code>, <code>@open</code>, <code>@pure</code>, <code>@public</code>.</li>
+              <li><span class="tag changed">Changed</span> The manifesto states the productivity claim as a hypothesis to measure, not a number we have earned. No figure until the study runs.</li>
+              <li><span class="tag added">Added</span> A CI gate that keeps every package version in sync and flags when the published npm release falls behind the repo.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.12" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.12</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.12" data-url="https://glyphlang.io/versions/2026-07/#0.1.12" aria-label="Link to 0.1.12">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Docs: the README finds its agents</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Docs: the README finds its agents</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> The npm README now documents the <a href="/mcp/"><code>glyph mcp</code></a> Model Context Protocol server and the <code>glyph lsp</code> language server: the agent and editor surface that shipped in 0.1.11. No code changes.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.11" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.11</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.11" data-url="https://glyphlang.io/versions/2026-07/#0.1.11" aria-label="Link to 0.1.11">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Wired into your agent</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Wired into your agent</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <a href="/mcp/"><code>glyph mcp</code></a>: a Model Context Protocol server that exposes Glyph's own analysis to a coding agent as tools: diagnostics, the type at a cursor, where a name is defined, every reference to a symbol across the project, and symbol search. The same analysis the editor uses, so it can't drift from the compiler.</li>
+              <li><span class="tag added">Added</span> Workspace-wide <strong>find-references and rename</strong> in the language server. A module-level rename edits the declaration, every reference, <em>and</em> each importing module's <code>import</code> binding across the whole project, complete and safe, with the new name validated first.</li>
+              <li><span class="tag changed">Changed</span> <code>infer_shape</code> is now <code>infer_output</code> and generalized: it derives a validator combinator's output type by matching any parser-shaped field <em>structurally</em>, so your own <code>Codec&lt;T&gt;</code> works, not only a type literally named <code>Schema</code>.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.10" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.10</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.10" data-url="https://glyphlang.io/versions/2026-07/#0.1.10" aria-label="Link to 0.1.10">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Types that keep their word</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Types that keep their word</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>infer_shape&lt;Shape&gt;</code>: a validator combinator's output type is now <em>derived</em> from the shape you pass it, and the compiler checks your annotation against it: a schema and its type can no longer drift apart (drop a field from the shape and it won't compile).</li>
+              <li><span class="tag added">Added</span> Generic types validate at runtime. <code>Paginated.parse&lt;User&gt;(body)</code> checks every element <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.</li>
+              <li><span class="tag added">Added</span> The typechecker catches more shape mismatches itself (a scalar where a function or record is expected, a function with the wrong return type) instead of leaving them to <code>tsc</code>. Function-typed fields are now validated by <code>typeof</code>, not presence.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph fmt</code> no longer drops a generic bound (<code>&lt;T: Bound&gt;</code>), and the one invisible compiler-inserted cast is narrowed so every honest generic function emits cast-free.</li>
+              <li><span class="tag changed">Changed</span> The site now states exactly what the compiler guarantees and where the guarantee stops. Every claim is backed by working code.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.9" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.9</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.9" data-url="https://glyphlang.io/versions/2026-07/#0.1.9" aria-label="Link to 0.1.9">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">The trust release</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>The trust release</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> A signed supply chain: npm packages published with provenance, GitHub Release archives carry SLSA build attestations, and every archive has a published SHA-256, all verifiable (<code>npm audit signatures</code>, <code>gh attestation verify</code>, <code>sha256sum -c</code>).</li>
+              <li><span class="tag added">Added</span> A <a href="/start/">10-minute Start Here</a> tutorial, a "why not just tooled TypeScript?" answer, a debugging/ops answer, and an "is it worth it without AI?" answer. The answers section is now a guided 14-page set with a real index.</li>
+              <li><span class="tag added">Added</span> Record descriptors are strict by default now: they reject undeclared keys (an <code>@open</code> type opts out).</li>
+              <li><span class="tag added">Added</span> <code>glyph doctor</code> checks your node/tsx/tsc toolchain; <code>glyph init</code> pins <code>typescript</code>/<code>tsx</code>; <code>llms.txt</code> now inlines the full diagnostic catalogue and teaches <code>T.parse</code>.</li>
+              <li><span class="tag fixed">Fixed</span> Running a library with no <code>main</code> gives a friendly <code>E0310</code> instead of a raw Node stack trace, and concurrent <code>glyph run</code>s no longer race on the temp directory.</li>
+              <li><span class="tag added">Added</span> A <code>CONTRIBUTING.md</code> with issue and PR templates, a stated pre-1.0 stability policy, and a site link-check in CI.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.8" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.8</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.8" data-url="https://glyphlang.io/versions/2026-07/#0.1.8" aria-label="Link to 0.1.8">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Install fix</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Install fix</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> The published compiler binary is now executable on install: a packaging step dropped the Unix execute bit, so <code>npx @glyphlang/glyph</code> failed with <code>EACCES</code>. The launcher now also restores it defensively.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.7" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.7</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.7" data-url="https://glyphlang.io/versions/2026-07/#0.1.7" aria-label="Link to 0.1.7">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Works with React, speaks to agents</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Works with React, speaks to agents</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> JSX fragments (<code>&lt;&gt;...&lt;/&gt;</code>) and member-expression tags (<code>&lt;Ctx.Provider&gt;</code>), so React Context and multi-child returns work.</li>
+              <li><span class="tag added">Added</span> Machine-readable diagnostics (<code>glyph build --json</code>) and standard v3 source maps (<code>.ts.map</code>) on every emitted file.</li>
+              <li><span class="tag added">Added</span> Bounded generics (<code>&lt;T: Bound&gt;</code>), a shared-state <code>std/store</code>, and <code>glyph regen</code> to refresh generated code from its spec.</li>
+              <li><span class="tag added">Added</span> A warning tier (unused import, unused binding, unreachable code) plus exhaustiveness for <code>number</code>/<code>string</code> matches (<code>E0218</code>) and real <code>@redact</code> PII masking (<code>E0219</code>).</li>
+              <li><span class="tag added">Added</span> Discriminated-union generation from an OpenAPI <code>discriminator</code>, and <code>gen dts</code> on the TypeScript 7 native compiler.</li>
+              <li><span class="tag fixed">Fixed</span> Template interpolations get distinct spans (go-to-definition works inside <code>"${x}"</code>), and a payload-carrying first union variant (<code>Wrap({...}) | Empty</code>) parses.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.6" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.6</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.6" data-url="https://glyphlang.io/versions/2026-07/#0.1.6" aria-label="Link to 0.1.6">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Sharper errors and diagnostics</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Sharper errors and diagnostics</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> TypeScript back-end errors are mapped back onto your <code>.glyph</code> source (same caret and stable code) instead of pointing at the generated <code>.ts</code>.</li>
+              <li><span class="tag added">Added</span> A warning tier: diagnostics can be warnings that are surfaced without failing the build. The first is <code>E0217</code>, which warns when a <code>Result</code> is discarded and its error silently ignored.</li>
+              <li><span class="tag fixed">Fixed</span> A literal <code>\${</code> in a string stays literal instead of silently interpolating, and non-ASCII text in a template string (<code>"café ${x}"</code>) is no longer mangled.</li>
+              <li><span class="tag fixed">Fixed</span> Binding a whole record payload in a nested <code>match</code> (<code>Err(BadQty(b))</code>) no longer emits code <code>tsc</code> rejects.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.5" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.5</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.5" data-url="https://glyphlang.io/versions/2026-07/#0.1.5" aria-label="Link to 0.1.5">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Typed clients and servers from your API spec</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Typed clients and servers from your API spec</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph gen openapi --client</code> generates a typed <code>std/http</code> client: one <code>async fn</code> per operation, with typed path parameters and request bodies.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen openapi --handlers</code> generates server handler stubs plus a <code>route</code> dispatcher that matches the method and path (array patterns capture <code>/tasks/{id}</code> for you).</li>
+              <li><span class="tag added">Added</span> <code>glyph gen zod</code> materializes a module of zod schemas into committed, descriptor-bearing Glyph types.</li>
+              <li><span class="tag added">Added</span> Untrusted request input is typed as <code>Option</code>: <code>header</code> and <code>query_param</code> return <code>Option&lt;string&gt;</code>, so a missing value can't slip past a <code>match</code>. The <code>std/http</code> client gains <code>put</code>/<code>patch</code>/<code>del</code>.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph gen dts</code> resolves TypeScript from the target file's own project first, so a pinned <code>typescript@6</code> works even when the global install is 7.x.</li>
+              <li><span class="tag site">Site</span> A new <a href="/answers/codegen/">Client &amp; server</a> answer walking through the generated client, router, and zod materialization.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.4" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.4</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.4" data-url="https://glyphlang.io/versions/2026-07/#0.1.4" aria-label="Link to 0.1.4">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">TypeScript 7 compatibility for <code>glyph gen dts</code></span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>TypeScript 7 compatibility for <code>glyph gen dts</code></h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>glyph gen dts</code> now detects the TypeScript 7 native compiler (the new default from <code>npm install typescript</code>), whose API it cannot use, and prints a clear message pointing you at <code>typescript@6</code> instead of crashing.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.3" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.3</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.3" data-url="https://glyphlang.io/versions/2026-07/#0.1.3" aria-label="Link to 0.1.3">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Generated types, not hand-written DTOs</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Generated types, not hand-written DTOs</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph gen openapi &lt;spec&gt; --out &lt;dir&gt;</code> turns an OpenAPI 3, Swagger 2, or JSON Schema document into committed Glyph types: one real record per schema, each with a runtime descriptor, so bodies validate for free.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen dts &lt;file.d.ts&gt; --out &lt;dir&gt;</code> materializes a TypeScript declaration file into first-class Glyph types you own and can validate, instead of an ambient, unvalidated phantom.</li>
+              <li><span class="tag added">Added</span> A guide, <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/typed-apis.md">Typed APIs</a>, and a runnable <a href="https://github.com/chadetov/glyph/blob/main/examples/05_rest_api.glyph">REST API example</a>: declare a <code>type</code>, get a validated request boundary with no separate <code>zod</code> schema.</li>
+              <li><span class="tag note">Note</span> Generation is wire-faithful: constructs Glyph cannot represent exactly (a string enum, an undiscriminated <code>oneOf</code>) narrow with a printed note rather than emit a validator that would reject real payloads.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <article class="release" id="0.1.2" data-hl="h3">
+          <div class="rel-head">
+            <h2 class="rel-ver">0.1.2</h2>
+            <span class="rel-date">July 2026</span>
+            <a class="rel-link" href="/versions/2026-07/#0.1.2" data-url="https://glyphlang.io/versions/2026-07/#0.1.2" aria-label="Link to 0.1.2">Link</a>
+          </div>
+          <details class="rel-details">
+            <summary><span class="rel-headline">Correctness, JSX, and the guided site</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <h3>Correctness, JSX, and the guided site</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> over a <code>Result</code> whose error union has a no-payload variant no longer silently dispatches to the wrong arm.</li>
+              <li><span class="tag fixed">Fixed</span> A misspelled constructor in a match arm is rejected, not silently treated as a catch-all that masks a missing case.</li>
+              <li><span class="tag fixed">Fixed</span> An incomplete <code>bool</code> match (missing <code>false</code>) and a JSX <code>&lt;match&gt;</code> missing a case are now compile errors, not runtime throws.</li>
+              <li><span class="tag fixed">Fixed</span> A multi-parameter component is a clear compile error instead of silently mis-binding props; record payloads bind correctly.</li>
+              <li><span class="tag added">Added</span> The typechecker checks call arity (<code>E0213</code>); unreachable match arms are flagged; the <code>?</code> error-type rule extends across the stdlib boundary.</li>
+              <li><span class="tag added">Added</span> Hyphenated and scoped npm imports (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>), <code>aria-*</code>/<code>data-*</code> JSX attributes, and significant JSX whitespace.</li>
+              <li><span class="tag added">Added</span> Targeted diagnostics: <code>if</code>/<code>else</code> point at <code>match</code> (<code>E0006</code>), range patterns say so directly (<code>E0007</code>); <code>json.parse</code> deep-validates <code>Record</code> fields.</li>
+              <li><span class="tag added">Added</span> <code>std/http</code> gains a server: <code>serve</code>, <code>Handler</code>, <code>Request</code>, <code>Response</code>, <code>query</code>, and <code>path</code>, a thin, errors-as-values wrapper over <code>node:http</code>.</li>
+              <li><span class="tag added">Added</span> <code>glyph init</code> scaffolds a runnable starter project, and <code>glyph llms</code> prints the agent bootstrap offline.</li>
+              <li><span class="tag added">Added</span> A one-document agent reference (<code>AGENTS.md</code> / <a href="/llms.txt">llms.txt</a>), a standard-library reference, and an editor-setup guide.</li>
+              <li><span class="tag added">Added</span> Quoted string keys in object literals, and clearer hints that suggest the Glyph spelling for common TypeScript type names.</li>
+              <li><span class="tag site">Site</span> A guided <a href="/answers/">Answers</a> section, a <a href="/hardening/">Hardening</a> page, a dedicated <a href="/benchmarks/">Benchmarks</a> page, and the landing page + playground on glyphlang.io.</li>
+            </ul>
+          </div>
+          </details>
+        </article>
+        <p class="rel-empty" hidden>No release in July 2026 is marked Breaking.</p>
+      </div>
+
+      <nav class="month-pager" aria-label="Other months">
+        <a href="/versions/2026-08/" class="newer">&larr; Newer: August 2026</a>
+        <a href="/versions/2026-06/" class="older">Older: June 2026 &rarr;</a>
+      </nav>
+
+      <p class="friction-intro">
+        Install or upgrade with <code>npm install -g @glyphlang/glyph</code>. The full commit
+        history lives on <a href="https://github.com/chadetov/glyph/commits/main">GitHub</a>.
+      </p>
+
+      <a href="/" class="backlink">&larr; Back to home</a>
+    <script>
+      (function () {
+        // An anchor for a release that lives on another month's page goes there.
+        var where = {"0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var id = decodeURIComponent(location.hash.slice(1));
+        if (id && !document.getElementById(id) && where[id]) {
+          location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);
+          return;
+        }
+        function reveal() {
+          var t = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+          if (!t || !t.classList.contains("release")) return;
+          var d = t.querySelector("details");
+          if (d) d.open = true;
+          if (t.hidden) set(false);
+        }
+        var list = document.querySelector(".releases");
+        var toggle = document.querySelector(".breaking-only");
+        var box = toggle && toggle.querySelector("input");
+        var empty = document.querySelector(".rel-empty");
+        var items = Array.prototype.slice.call(document.querySelectorAll(".release"));
+        var months = Array.prototype.slice.call(document.querySelectorAll(".month-nav a, .month-pager a"));
+        function set(on) {
+          box.checked = on;
+          var shown = 0;
+          items.forEach(function (el) {
+            el.hidden = on && !el.hasAttribute("data-breaking");
+            if (!el.hidden) shown++;
+          });
+          empty.hidden = shown > 0;
+          var q = new URLSearchParams(location.search);
+          if (on) q.set("breaking", "1"); else q.delete("breaking");
+          var s = q.toString() ? "?" + q.toString() : "";
+          history.replaceState(null, "", location.pathname + s + location.hash);
+          months.forEach(function (a) { a.search = s; });
+        }
+        if (toggle && list) {
+          toggle.hidden = false;
+          set(new URLSearchParams(location.search).get("breaking") === "1");
+          box.addEventListener("change", function () { set(box.checked); });
+        }
+        reveal();
+        window.addEventListener("hashchange", reveal);
+        document.querySelectorAll(".rel-link").forEach(function (a) {
+          a.addEventListener("click", function (e) {
+            if (!navigator.clipboard) return;
+            e.preventDefault();
+            history.replaceState(null, "", a.getAttribute("href"));
+            navigator.clipboard.writeText(a.dataset.url).then(function () {
+              a.textContent = "Copied";
+              setTimeout(function () { a.textContent = "Link"; }, 1400);
+            });
+          });
+        });
+      })();
+    </script>
+
+    </div>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Start</h2>
+            <a href="/start/">Your first program</a>
+            <a href="/from-typescript/">Coming from TypeScript</a>
+            <a href="/teams/">For teams</a>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/agents/">For agents</a>
+            <a href="/mcp/">MCP server</a>
+            <a href="/design/">Design</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Evidence</h2>
+            <a href="/catches/">Catches</a>
+            <a href="/evidence/">How claims are checked</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="/benchmarks/">Benchmarks</a>
+            <a href="/versions/">Versions</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="/contribute/">Contribute</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/versions/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+  </body>
+</html>

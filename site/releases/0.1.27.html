@@ -1,0 +1,9 @@
+---
+version: 0.1.27
+month: 2026-07
+---
+            <h3>Real database interop, and two bugs it surfaced</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>std/sqlite</code> is <code>tsc</code>-clean under <code>@types/node</code>, and a JS-only package's <code>@types/&lt;pkg&gt;</code> companion now resolves, so <code>pg</code>, <code>react</code>, and <code>express</code> type-check instead of reporting an implicit <code>any</code>.</li>
+              <li><span class="tag added">Added</span> A databases guide proving Postgres and MongoDB work end to end; every program in it was compiled against the real client types first.</li>
+            </ul>

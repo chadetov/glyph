@@ -12,7 +12,7 @@ owns every .html file in web/ (one per page under site/pages/, and a page
 whose source is gone is deleted), every stylesheet in site/ (site/style.css
 for every page, and the per-page ones such as site/catches.css, which a page
 links from its `head`), and web/sitemap.xml (generated from the page list). Everything else in web/
-(llms.txt, robots.txt, favicon.svg) is left alone. scripts/check_site_built.py fails when web/ and this script disagree.
+(llms.txt, robots.txt, favicon.svg) is left alone, except web/versions/feed.xml, which it also writes. scripts/check_site_built.py fails when web/ and this script disagree.
 
     python3 scripts/build_site.py            # render into web/
     python3 scripts/build_site.py --out DIR  # render somewhere else
@@ -47,6 +47,13 @@ to itself. {{catches:...}} is markup generated from the committed cases in catch
 scripts/site_catches.py, so the /catches/ page and every page that quotes it
 show what scripts/check_catches.py verified, without running a compiler here.
 
+The release notes are the one source page that renders as several.
+site/pages/versions/index.html carries {{versions:...}} placeholders, and
+scripts/site_versions.py fills them from site/releases/<version>.html, one
+file per release: /versions/ shows the newest month, /versions/YYYY-MM/ each
+month, and web/versions/feed.xml is the Atom feed. Writing a release's notes
+is adding its file under site/releases/ and running this script.
+
 Python standard library only.
 """
 from __future__ import annotations
@@ -58,6 +65,7 @@ import re
 import sys
 
 import site_catches
+import site_versions
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -417,10 +425,8 @@ def page_url(path: pathlib.Path) -> str:
     return "/" if rel == "." else f"/{rel}/"
 
 
-def render(path: pathlib.Path, site: dict, version: str) -> str:
+def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str) -> str:
     where = str(path.relative_to(ROOT))
-    fm, body = parse_page(path)
-    url = page_url(path)
     body = body.replace("{{version}}", version)
     if fm.get("next_steps"):
         body += next_steps(site, fm["next_steps"], where)
@@ -501,6 +507,18 @@ def sitemap(entries: list[dict]) -> str:
     return "\n".join(out) + "\n"
 
 
+def expand_pages(path: pathlib.Path) -> list[tuple[str, dict, str]]:
+    """[(url, front matter, body)] for one source page. Almost every page is
+    one page; the versions template becomes one page per month of releases."""
+    fm, body = parse_page(path)
+    if "{{versions:" not in body:
+        return [(page_url(path), fm, body)]
+    try:
+        return site_versions.pages(fm, body, str(path.relative_to(ROOT)))
+    except site_versions.VersionsError as e:
+        raise SiteError(str(e)) from None
+
+
 def page_files() -> list[pathlib.Path]:
     return sorted(PAGES.rglob("index.html"),
                   key=lambda p: (p.relative_to(PAGES).parent.as_posix() != ".", p.relative_to(PAGES).as_posix()))
@@ -513,17 +531,22 @@ def build() -> dict[str, str]:
     files: dict[str, str] = {}
     entries = []
     for path in page_files():
-        rel = path.relative_to(PAGES).as_posix()
-        files[rel] = render(path, site, version)
-        fm, _ = parse_page(path)
-        url = page_url(path)
-        lastmod = changefreq = priority = None
-        if fm.get("sitemap"):
-            parts = fm["sitemap"].split()
-            if len(parts) != 3:
-                raise SiteError(f"{rel}: sitemap must be 'lastmod changefreq priority'")
-            lastmod, changefreq, priority = parts
-        entries.append({"loc": url, "lastmod": lastmod, "changefreq": changefreq, "priority": priority})
+        for url, fm, body in expand_pages(path):
+            rel = url.strip("/") + "/index.html" if url != "/" else "index.html"
+            files[rel] = render(path, site, version, fm, body, url)
+            lastmod = changefreq = priority = None
+            if fm.get("sitemap"):
+                parts = fm["sitemap"].split()
+                if len(parts) != 3:
+                    raise SiteError(f"{rel}: sitemap must be 'lastmod changefreq priority'")
+                lastmod, changefreq, priority = parts
+                if lastmod == "-":
+                    lastmod = None
+            entries.append({"loc": url, "lastmod": lastmod, "changefreq": changefreq, "priority": priority})
+    try:
+        files["versions/feed.xml"] = site_versions.feed()
+    except site_versions.VersionsError as e:
+        raise SiteError(str(e)) from None
     entries += site.get("extra_sitemap", [])
     files["sitemap.xml"] = sitemap(entries)
     for css in sorted(SITE.glob("*.css")):

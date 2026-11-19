@@ -1,0 +1,22 @@
+---
+version: 0.1.88
+month: 2026-08
+---
+            <h3>A variant's shape comes from where it is declared</h3>
+            <p>Matching a variant through its namespace, <code>outcome.Failed(f)</code>, read the payload's shape from your module instead of from the one that declared it. When the two disagreed the emitter reached for a field that does not exist at runtime, and the build failed somewhere unrelated or the value came back wrong.</p>
+            <div class="code">
+              <span class="cap">What the arm emitted, before and after</span>
+<pre><span class="cm">// before: the shape was looked up by name in the consuming module,</span>
+<span class="cm">// so a flat payload was read as if it were wrapped</span>
+const f = __m0.value;   <span class="cm">// .value never exists on a record payload</span>
+
+<span class="cm">// after: the shape comes from the module that declared the variant</span>
+const f = __m0;</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>The variant's shape is read from the scrutinee's own module.</strong> This is the rule G75 settled, applied one layer deeper: a type's identity comes from where it is declared, never from how you happened to spell the import. The precise lookup runs ahead of the older by-name heuristic, because behind it the heuristic still won whenever two modules declare the same variant name with different payloads.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A typo in a variant payload reports the typo.</strong> <code>Node(int, 5, int)</code> used to be reported as an arity error about a variant carrying one field, with the span shrunk to the first field and the <code>5</code> never mentioned. The payload tail now propagates the real parse error, so the arity diagnostic is reached only when every field actually read as a type.</li>
+              <li><span class="tag changed">Changed</span> <strong>That arity diagnostic now quotes your own fields.</strong> Its help was a fixed string naming a different program's variant, so the message and the help could disagree about how many fields you wrote. It is built from your source now, with field names left as holes because a wrong name is worse than an obvious blank.</li>
+              <li><span class="tag added">Added</span> <strong>A dev-loop tool in the examples.</strong> <code>watchrun</code> polls for changes, filters them through globs from a real npm dependency, debounces a burst into one run, spawns a subprocess, and streams its output to a log while enforcing a timeout. It blocked twice on missing language features and this is the round where it built with no workaround.</li>
+              <li><span class="tag known">Known</span> <strong><code>Full(Black)</code> still miscompiles.</strong> The same shape where the payload is a union rather than a record is G130, scheduled for 0.1.90.</li>
+            </ul>

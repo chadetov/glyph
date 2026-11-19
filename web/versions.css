@@ -1,0 +1,221 @@
+/* /versions/ and /versions/YYYY-MM/: the month selector, the breaking-only
+   toggle, and one release per <article>. The release's own markup (rel-head,
+   rel-tag, changelist, tag chips) is styled in style.css. */
+
+/* ============ month selector ============ */
+.month-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin: var(--s5) 0 var(--s5);
+  max-width: 820px;
+}
+.month-nav a {
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.month-nav a:hover {
+  border-color: var(--line-2);
+}
+.month-nav .mn-month {
+  font-weight: 600;
+}
+.month-nav .mn-count {
+  color: var(--muted);
+}
+.month-nav a.active {
+  background: var(--violet-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.month-nav a.active .mn-count {
+  color: var(--accent);
+}
+
+.month-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s4);
+  max-width: 820px;
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+.month-title {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.month-sum {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.breaking-only {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  cursor: pointer;
+  user-select: none;
+}
+.breaking-only[hidden] {
+  display: none;
+}
+.breaking-only input {
+  accent-color: var(--red-fill);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+/* ============ one release ============ */
+.releases {
+  max-width: 820px;
+}
+.releases > .release {
+  border-top: none;
+  border-bottom: 1px solid var(--line);
+  padding: var(--s4) 0 var(--s5);
+  scroll-margin-top: var(--s4);
+}
+.releases > .release[hidden],
+.rel-empty[hidden] {
+  display: none;
+}
+.release:target {
+  box-shadow: inset 3px 0 0 var(--violet);
+  padding-left: var(--s4);
+}
+.releases .rel-head {
+  margin-bottom: var(--s2);
+}
+h2.rel-ver {
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.rel-link {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 1px 8px;
+}
+.rel-link:hover,
+.rel-link:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* The headline is the summary: always visible, and the control that opens the
+   full notes. */
+.rel-details > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  justify-content: space-between;
+}
+.rel-details > summary::-webkit-details-marker {
+  display: none;
+}
+.rel-headline {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.rel-toggle {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.rel-toggle::after {
+  content: "Show notes \25BE";
+}
+.rel-details[open] > summary .rel-toggle::after {
+  content: "Hide notes \25B4";
+}
+.rel-details > summary:hover .rel-toggle {
+  text-decoration: underline;
+}
+.rel-details[open] > summary {
+  margin-bottom: var(--s4);
+}
+.rel-details > .rel-body {
+  padding-top: 0;
+}
+/* A headline taken from the notes' leading <h3> is that heading, already
+   shown in the summary; showing it again right below would only repeat it. */
+.release[data-hl="h3"] .rel-body > h3:first-child {
+  display: none;
+}
+/* A headline taken from the first sentence repeats the opening of the notes,
+   so once they are open the summary is only the control. */
+.release[data-hl="sentence"] .rel-details[open] > summary .rel-headline {
+  visibility: hidden;
+  height: 0;
+}
+.release[data-hl="sentence"] .rel-details[open] > summary {
+  justify-content: flex-end;
+  margin-bottom: var(--s2);
+}
+
+.rel-empty {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  padding: var(--s5) 0;
+  margin: 0;
+}
+
+/* ============ older / newer month ============ */
+.month-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  max-width: 820px;
+  margin: var(--s5) 0 var(--s6);
+  font-size: var(--fs-sm);
+}
+.month-pager .older {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  /* style.css gives the date a row of its own on a phone; here it shares
+     the row with the link, which keeps each release one line shorter. */
+  .releases .rel-date {
+    width: auto;
+  }
+  .releases .rel-link {
+    margin-left: auto;
+  }
+  .breaking-only {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .rel-details > summary {
+    flex-direction: column;
+    gap: var(--s1);
+  }
+  .release[data-hl="sentence"] .rel-details[open] > summary {
+    align-items: flex-end;
+  }
+  .rel-headline {
+    font-size: var(--fs-base);
+  }
+}

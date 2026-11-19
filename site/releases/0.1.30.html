@@ -1,0 +1,8 @@
+---
+version: 0.1.30
+month: 2026-07
+---
+            <h3>Refinement types</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>where</code> refinements: <code>type Amount = int where value &gt;= 0</code>, <code>type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5</code>. The predicate is woven into the descriptor, so <code>Amount.parse(-1)</code> is an <code>Err</code> at the boundary, not just "is a number".</li>
+            </ul>

@@ -1,0 +1,9 @@
+---
+version: 0.1.24
+month: 2026-07
+---
+            <h3>Imported-union resolution and shift operators</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> over a tagged union imported from another module is now held to full exhaustiveness (the imported-union type-resolution pass), retiring the recurring cross-module-<code>Unknown</code> class the dogfood loop kept surfacing.</li>
+              <li><span class="tag added">Added</span> Bitwise shift operators <code>&lt;&lt; &gt;&gt; &gt;&gt;&gt;</code>, completing the operator family.</li>
+            </ul>

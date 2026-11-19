@@ -84,6 +84,9 @@ supports: every page's body was rewritten that day when the site moved to
 this generator. scripts/check_site_built.py fails when site/lastmod.json is not
 what a build would write, which keeps the dates from drifting.
 
+Some pages also get a Markdown copy, web/<path>/index.md, linked from the
+page and listed in web/llms-pages.txt; see scripts/site_markdown.py.
+
 site/pages/404.html renders to web/404.html, which GitHub Pages serves for
 any address with no file: the normal header and footer, links to the main
 sections, a robots noindex tag instead of a canonical, and no sitemap entry.
@@ -111,6 +114,7 @@ import sys
 import site_catches
 import site_i18n
 import site_jsonld
+import site_markdown
 import site_versions
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -670,10 +674,10 @@ def stamp_answer(body: str, version: str, date: str) -> str:
 
 
 def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
-           ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str]) -> tuple[str, str]:
-    """One page, and the date its content last changed. `url` is the page's
-    English URL; `ctx` says which language this rendering is in and which
-    others the page has."""
+           ctx: site_i18n.Ctx, lastmod: LastMod, titles: dict[str, str]) -> tuple[str, str, str | None]:
+    """One page, the date its content last changed, and its Markdown copy
+    when it has one. `url` is the page's English URL; `ctx` says which
+    language this rendering is in and which others the page has."""
     where = str(path.relative_to(ROOT))
     t = ctx.s
     body = re.sub(r"\{\{icon:([a-z-]+)\}\}", lambda m: icon(site, m.group(1), where), body)
@@ -698,12 +702,17 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     body = body.replace("{{version}}", version)
     if url.startswith("/answers/") and url != "/answers/" and not fm.get("noindex"):
         body = stamp_answer(body, version, date)
+    markdown = None
+    if ctx.loc == "en" and site_markdown.wanted(url) and not fm.get("noindex"):
+        markdown = site_markdown.convert(body, url, short_title(fm["title"]), date)
     head_values = {
         "title": fm["title"],
         "description": fm["description"],
         "canonical_link": (f'    <link rel="canonical" href="{fm.get("canonical", ORIGIN + ctx.here)}" />\n'
                            if not fm.get("noindex") else '    <meta name="robots" content="noindex" />\n'),
         "og_url": fm.get("canonical", ORIGIN + ctx.here) if not fm.get("noindex") else ORIGIN + "/",
+        "markdown_link": (f'    <link rel="alternate" type="text/markdown" href="{url}index.md" />\n'
+                          if markdown is not None else ""),
         "og_title": attr(short_title(fm["title"])),
         "og_description": attr(fm["description"]),
         "og_locale": site_i18n.OG_LOCALES[ctx.loc],
@@ -756,7 +765,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         raise SiteError(f"{where}: prev/next is only rendered by the article layout")
 
     page = site_i18n.localize_links(f"{header}{sub}{site_i18n.notices(ctx)}{main}{footer}", ctx)
-    return date, ("<!doctype html>\n"
+    return date, markdown, ("<!doctype html>\n"
             f'<html lang="{ctx.lang}">\n'
             "  <head>\n"
             f"{head}"
@@ -831,6 +840,7 @@ def build() -> dict[str, str | bytes]:
     pages = [(path, expand_pages(path)) for path in page_files()]
     # Every English page's title, for breadcrumbs and the answers list.
     titles = {url: short_title(fm["title"]) for _, expanded in pages for url, fm, _ in expanded}
+    md_pages: list[tuple[str, str, str]] = []
     for path, expanded in pages:
         for url, fm, body in expanded:
             by_loc = translations.get(path, {})
@@ -845,7 +855,10 @@ def build() -> dict[str, str | bytes]:
                     ctx = site_i18n.Ctx(loc, url, available, tr, translated_urls)
                     here = ctx.here
                     rel = here.strip("/") + "/index.html" if here != "/" else "index.html"
-                    date, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod, titles)
+                    date, markdown, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod, titles)
+                    if markdown is not None:
+                        files[rel.removesuffix("index.html") + "index.md"] = markdown
+                        md_pages.append((url, short_title(vfm["title"]), vfm["description"]))
                 except site_i18n.I18nError as e:
                     raise SiteError(str(e)) from None
                 # Only a page that is its own canonical belongs in the sitemap.
@@ -856,7 +869,7 @@ def build() -> dict[str, str | bytes]:
     fm, body = parse_page(NOT_FOUND)
     fm["noindex"] = "yes"
     try:
-        _, files["404.html"] = render(NOT_FOUND, site, version, fm, body, "/404.html",
+        _, _, files["404.html"] = render(NOT_FOUND, site, version, fm, body, "/404.html",
                                       site_i18n.Ctx("en", "/404.html", ["en"], None, translated_urls), lastmod,
                                       titles)
     except site_i18n.I18nError as e:
@@ -865,6 +878,7 @@ def build() -> dict[str, str | bytes]:
         files["versions/feed.xml"] = site_versions.feed()
     except site_versions.VersionsError as e:
         raise SiteError(str(e)) from None
+    files["llms-pages.txt"] = site_markdown.listing(md_pages)
     entries += site.get("extra_sitemap", [])
     files["sitemap.xml"] = sitemap(entries)
     LASTMOD_TEXT = lastmod.text()
@@ -886,10 +900,11 @@ def build() -> dict[str, str | bytes]:
 
 
 def stale_pages(out: pathlib.Path, files: dict[str, str]) -> list[str]:
-    """HTML pages under `out` that no source in site/pages/ renders any more."""
+    """HTML pages and Markdown copies under `out` that no source in
+    site/pages/ renders any more."""
     if not out.is_dir():
         return []
-    return sorted(p.relative_to(out).as_posix() for p in out.rglob("*.html")
+    return sorted(p.relative_to(out).as_posix() for p in [*out.rglob("*.html"), *out.rglob("index.md")]
                   if p.relative_to(out).as_posix() not in files)
 
 

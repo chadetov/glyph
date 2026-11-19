@@ -1996,3 +1996,122 @@ h4 code,
     transition: none !important;
   }
 }
+
+/* ============ journey pages (from-typescript, teams, agents, evidence, design, contribute) ============ */
+.ans-group-sub {
+  margin: calc(-1 * var(--s2)) 0 var(--s3);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.answer-page .ans-cards {
+  margin: var(--s4) 0 var(--s5);
+}
+.table-scroll {
+  overflow-x: auto;
+  margin: var(--s4) 0 var(--s5);
+}
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.ref-table th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: var(--s2) var(--s3);
+  border-bottom: 2px solid var(--line-2);
+}
+.ref-table td {
+  padding: var(--s3);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  vertical-align: top;
+}
+.ref-table td:first-child {
+  white-space: nowrap;
+}
+.gloss-list {
+  margin: var(--s4) 0 var(--s5);
+  border-top: 1px solid var(--line);
+}
+.gloss-list > div {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.gloss-list dt {
+  margin: 0;
+}
+.gloss-list dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.tax-list {
+  list-style: none;
+  margin: var(--s4) 0 var(--s5);
+  padding: 0;
+}
+.tax-list li {
+  position: relative;
+  padding: var(--s2) 0 var(--s2) var(--s5);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  border-bottom: 1px solid var(--line);
+}
+.tax-list li::before {
+  content: "\2717";
+  position: absolute;
+  left: 0;
+  color: var(--red);
+  font-weight: 600;
+}
+@media (min-width: 821px) {
+  .foot-grid {
+    grid-template-columns: 1.3fr repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .gloss-list > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s1);
+  }
+}
+@media (max-width: 640px) {
+  .ref-table thead {
+    display: none;
+  }
+  .ref-table tr {
+    display: block;
+    padding: var(--s3) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .ref-table td {
+    display: block;
+    padding: 2px 0;
+    border: 0;
+  }
+  .ref-table td:first-child {
+    white-space: normal;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .ref-table td:not(:first-child)::before {
+    content: attr(data-label) ": ";
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+}
+/* ============ end journey pages ============ */

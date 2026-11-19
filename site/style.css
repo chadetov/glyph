@@ -1198,17 +1198,19 @@ kbd {
   outline-offset: -2px;
 }
 
-/* Wide screens: the list is a sticky sidebar beside the article. The pair
-   is centred together: 232px of sidebar and a 40px gap to the left of the
-   960px article. The sidebar is a float whose margin box takes no width,
-   so the article's blocks keep their edges. */
+/* Wide screens: the list is a sticky sidebar beside the article, and the
+   pair sits in the header's container (--w-wide): the sidebar's left edge
+   is the logo's, the article's right edge is the header's. 232px of
+   sidebar and a 40px gap leave the article a 760px column. The sidebar is
+   a float whose margin box takes no width, so the article's blocks keep
+   their edges. */
 @media (min-width: 1240px) {
   .ans-bar {
     display: none;
   }
   .answer-page.has-side {
-    margin-left: calc(50% - 356px);
-    margin-right: auto;
+    max-width: var(--w-wide);
+    padding-left: calc(var(--gutter) + 272px);
   }
   .ans-side {
     display: block;

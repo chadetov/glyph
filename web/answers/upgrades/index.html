@@ -105,20 +105,20 @@
           </div>
         </div>
         <details class="lang-menu">
-          <summary class="lang-btn" aria-label="Language: English"><svg class="lang-globe" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg><span class="lang-cur">English</span><span class="lang-short" aria-hidden="true">EN</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <summary class="lang-btn" aria-label="Language: English"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" decoding="async"><span class="lang-cur">English</span><span class="lang-short" aria-hidden="true">EN</span><span class="nav-chev" aria-hidden="true"></span></summary>
           <div class="lang-drop">
             <p class="lang-head">Language</p>
             <ul>
-              <li><a href="/answers/upgrades/" hreflang="en" lang="en" data-lang="en" aria-current="true"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
-              <li><span class="lang-off"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
-              <li><span class="lang-off"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
+              <li><a href="/answers/upgrades/" hreflang="en" lang="en" data-lang="en" aria-current="true"><img class="lang-flag" src="/flags/gb.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name">English</span><span class="lang-tick" aria-hidden="true"></span></a></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/br.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="pt-BR">Português (Brasil)</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/es.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="es">Español</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/jp.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ja">日本語</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/tr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="tr">Türkçe</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/cn.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="zh-Hans">简体中文</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/kr.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ko">한국어</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/de.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="de">Deutsch</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/ru.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="ru">Русский</span><span class="lang-note">not translated yet</span></span></li>
+              <li><span class="lang-off"><img class="lang-flag" src="/flags/th.svg" width="20" height="15" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="lang-name" lang="th">ไทย</span><span class="lang-note">not translated yet</span></span></li>
             </ul>
           </div>
         </details>
@@ -648,6 +648,22 @@ npm finished. Confirm with:
         fit();
         window.addEventListener("resize", fit);
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      })();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menu.open) {
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }
+        });
       })();
       // A language picked from the menu or a "Read in English" link is the
       // reader's choice from then on; the first-visit redirect never overrides it.

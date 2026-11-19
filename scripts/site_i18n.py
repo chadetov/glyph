@@ -53,6 +53,17 @@ REPO = "https://github.com/chadetov/glyph"
 # short label for the narrow header). zh-cn is written as zh-Hans: the text is
 # Simplified Chinese for every Simplified reader, not a China-specific
 # localization, and the script subtag is what browsers use to pick glyphs.
+# The flag shown beside each language in the language menu. A flag stands for
+# a country, so each language keeps its name next to it.
+FLAGS = {"en": "gb", "pt-br": "br", "es": "es", "ja": "jp", "tr": "tr",
+         "zh-cn": "cn", "ko": "kr", "de": "de", "ru": "ru", "th": "th"}
+
+
+def flag(loc: str) -> str:
+    return (f'<img class="lang-flag" src="/flags/{FLAGS[loc]}.svg" width="20" height="15" '
+            f'alt="" aria-hidden="true" loading="lazy" decoding="async">')
+
+
 LOCALES: dict[str, tuple[str, str, str]] = {
     "en": ("en", "English", "EN"),
     "pt-br": ("pt-BR", "Português (Brasil)", "PT"),
@@ -316,13 +327,13 @@ def switcher(ctx: Ctx) -> str:
     for loc, (tag, native, _) in LOCALES.items():
         if loc == ctx.loc:
             items.append(f'<li><a href="{ctx.here}" hreflang="{tag}" lang="{tag}" data-lang="{loc}" '
-                         f'aria-current="true"><span class="lang-name">{native}</span>'
+                         f'aria-current="true">{flag(loc)}<span class="lang-name">{native}</span>'
                          f'<span class="lang-tick" aria-hidden="true"></span></a></li>')
         elif loc in ctx.available:
             items.append(f'<li><a href="{url_for(loc, ctx.url)}" hreflang="{tag}" lang="{tag}" data-lang="{loc}">'
-                         f'<span class="lang-name">{native}</span></a></li>')
+                         f'{flag(loc)}<span class="lang-name">{native}</span></a></li>')
         else:
-            items.append(f'<li><span class="lang-off"><span class="lang-name" lang="{tag}">{native}</span>'
+            items.append(f'<li><span class="lang-off">{flag(loc)}<span class="lang-name" lang="{tag}">{native}</span>'
                          f'<span class="lang-note">{s("lang.unavailable")}</span></span></li>')
     read_en = ""
     if ctx.loc != "en":
@@ -330,7 +341,7 @@ def switcher(ctx: Ctx) -> str:
                    f'{s("lang.read_en")}</a>')
     lis = "\n".join(f"              {i}" for i in items)
     return f"""        <details class="lang-menu">
-          <summary class="lang-btn" aria-label="{s('lang.label')}: {name}">{GLOBE}<span class="lang-cur">{name}</span><span class="lang-short" aria-hidden="true">{short}</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <summary class="lang-btn" aria-label="{s('lang.label')}: {name}">{flag(ctx.loc).replace('loading="lazy" ', '')}<span class="lang-cur">{name}</span><span class="lang-short" aria-hidden="true">{short}</span><span class="nav-chev" aria-hidden="true"></span></summary>
           <div class="lang-drop">
             <p class="lang-head">{s("lang.label")}</p>
             <ul>
@@ -402,6 +413,22 @@ CHOICE_SCRIPT = f"""    <script>
         fit();
         window.addEventListener("resize", fit);
         if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      }})();
+      // The language menu closes on a click or tap outside it, and on Escape,
+      // which returns focus to its button.
+      (function () {{
+        var menu = document.querySelector("details.lang-menu");
+        if (!menu) return;
+        document.addEventListener("pointerdown", function (e) {{
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        }});
+        document.addEventListener("keydown", function (e) {{
+          if (e.key === "Escape" && menu.open) {{
+            menu.open = false;
+            var s = menu.querySelector("summary");
+            if (s) s.focus();
+          }}
+        }});
       }})();
       // A language picked from the menu or a "Read in English" link is the
       // reader's choice from then on; the first-visit redirect never overrides it.

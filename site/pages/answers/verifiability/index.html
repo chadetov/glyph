@@ -2,10 +2,13 @@
 title: What stops an agent from silently breaking my code? · Glyph
 description: In Glyph, changes that silently compile-and-break in TypeScript, like a missing case, an unhandled error, or a renamed field, become compile errors the agent must fix first.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 next: /answers/diff-stability/ | Next &rarr; | Will agent edits stay clean, or reformat my whole file?
 sitemap: 2026-08-27 weekly 0.9
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">01 &middot; The core promise</p>
       <h1 class="q-title">What stops an agent from silently breaking my code?</h1>
@@ -16,28 +19,29 @@ sitemap: 2026-08-27 weekly 0.9
         <strong>compile error the agent has to fix before it can ship</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          Agents don't usually break code loudly. They break it <strong>confidently</strong>:
-          they add a state, drop a branch, or rename a field, everything still type-checks,
-          and the bug surfaces in production. The expensive failures are the ones that
-          <em>compiled and were wrong</em>.
-        </p>
-        <p>
-          Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into
-          &ldquo;the compiler proved you did.&rdquo; Tagged unions are <strong>sealed</strong>,
-          so <code>match</code> must cover every case. Errors are <strong>values</strong> you
-          have to unwrap, not exceptions that vanish. And every type carries a runtime
-          descriptor, so data crossing a boundary is checked against its shape.
-        </p>
+      <figure class="ak-hero" id="see-it">
+        <div class="ak-compare">
+          <div class="ak-pane bad">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.ts</span> one new state, no other edit <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg> tsc --strict: passes, prints undefined</span></span>
+<pre>type Status =
+  | { tag: "Loading" }
+  | { tag: "Ready" }
+  | { tag: "Failed"; msg: string }
+<span class="add">  | { tag: "Cancelled" };</span>
 
-        <h2 class="block-label">See it</h2>
-        <p>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">status.glyph: one new variant, and the compiler finds every gap</span>
+function label(s: Status) {
+  switch (s.tag) {
+    case "Loading": return "…";
+    case "Ready": return "done";
+    case "Failed": return s.msg;
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ak-pane good">
+            <div class="code">
+              <span class="cap"><span class="ak-lang">status.glyph</span> one new variant, and the compiler finds every gap <span class="ak-verdict"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8.4l3 3 6-6.6"/></svg> refused: E0200</span></span>
 <pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
 
 fn label(s: Status) -&gt; string {
@@ -48,30 +52,82 @@ fn label(s: Status) -&gt; string {
 <span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
   }
 }</pre>
-      </div>
+            </div>
+            <div class="code term">
+              <span class="cap">glyph check --no-tsc, 0.1.149 (excerpt)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Cancelled`</span>
+    ╭─[ status:6:10 ]
+  6 │ ╭─▶   return match s {
+ 10 │ ├─▶   }
+    │ ╰───────── non-exhaustive match on `Status`: missing variants `Cancelled`
+    │     Help: Add an arm for each missing variant.</pre>
+            </div>
+          </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update. The equivalent TypeScript <code>switch</code> compiles clean and returns <code>undefined</code> at runtime.</span></figcaption>
+      </figure>
 
-      <div class="code">
-        <span class="cap">glyph build</span>
-<pre><span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Cancelled`</span>
-   ╰─ add an arm for `Cancelled`</pre>
-      </div>
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#errors">Errors</a></li>
+          <li><a href="#typos">Typos in arms</a></li>
+          <li><a href="#imports">Across modules</a></li>
+          <li><a href="#refinements">Refinements</a></li>
+          <li><a href="#examples">Tests in the build</a></li>
+          <li><a href="#four-more-found-by-building-with-it">Found by building</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Agents don't usually break code loudly. They break it <strong>confidently</strong>:
+        they add a state, drop a branch, or rename a field, everything still type-checks,
+        and the bug surfaces in production.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The expensive failures are the ones that
+        <em>compiled and were wrong</em>. Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into
+        &ldquo;the compiler proved you did.&rdquo;</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Sealed unions</b>Tagged unions are <strong>sealed</strong>,
+          so <code>match</code> must cover every case.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Errors as values</b>Errors are <strong>values</strong> you
+          have to unwrap, not exceptions that vanish.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Checked boundaries</b>And every type carries a runtime
+          descriptor, so data crossing a boundary is checked against its shape.</li>
+      </ul>
+
+      <h2 class="ak-h" id="errors">A dropped error is a warning<a class="ak-anchor" href="#errors" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Same for errors: a function that returns
+        <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or
+        propagated with <code>?</code> (and the compiler checks the error type lines up). And if
+        you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and
+        ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded
+        error is a swallowed failure.
+      </p>
+      <div class="code term wrap">
+        <span class="cap">glyph check --no-tsc, 0.1.149 (excerpt)</span>
+<pre><span class="p">13 │</span>   save("a")
+<span class="del">[E0217] Warning: typecheck: this `Result` is discarded; its `Err` case is silently ignored</span>
+    │ Help: Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional.</pre>
+      </div>
+      <p class="ak-lede">You silence it deliberately with <code>let _ = ...</code>,
+        never by accident.</p>
+
+      <h2 class="ak-h" id="stdlib">The standard library's unions are sealed too<a class="ak-anchor" href="#stdlib" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code>
+        is a closed set of six kinds, and the checker knows its shape, so
+        <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and
+        fails with <code>E0200</code> when you leave a kind out.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200 missing kind</span><span class="chip code">E0210 unknown field</span><span class="chip code">E0218 needs else</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">field typos, return types, number and string matches</span></summary><div class="body">
         <p>
-          The equivalent TypeScript <code>switch</code> compiles clean and returns
-          <code>undefined</code> at runtime. Same for errors: a function that returns
-          <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or
-          propagated with <code>?</code> (and the compiler checks the error type lines up). And if
-          you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and
-          ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded
-          error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>,
-          never by accident.
-        </p>
-        <p>
-          The bar is the same for a union the standard library owns. <code>fs.ErrorKind</code>
-          is a closed set of six kinds, and the checker knows its shape, so
-          <code>match e.kind</code> on a filesystem error needs no <code>else</code> arm and
-          fails with <code>E0200</code> when you leave a kind out. <code>e.mesage</code> is
+          <code>e.mesage</code> is
           <code>E0210</code> rather than something <code>tsc</code> catches downstream. Return
           types travel too: <code>string.split(text, ",")</code> is an
           <code>Array&lt;string&gt;</code>, so <code>for i, part in string.split(text, ",")</code>
@@ -82,20 +138,17 @@ fn label(s: Status) -&gt; string {
           Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or
           <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph
           requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value
-          fall through to a runtime throw. The rule is the same everywhere: a <code>match</code> that
-          doesn't account for a case doesn't compile.
+          fall through to a runtime throw.
         </p>
-        <p>
-          A typo can't quietly paper over a gap either. A capitalized arm head is a
-          <strong>reference to a variant</strong>, not a fresh binding, so if you misspell
-          <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a
-          catch-all that bound every value and made the match look total. Now the head has to
-          name a real variant of the union you're matching. When it doesn't, the build stops
-          with <code>E0220</code> and points at the nearest real name, and the variant you
-          actually skipped still shows up as <code>E0200</code> right next to it.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The rule is the same everywhere: a <code>match</code> that
+          doesn't account for a case doesn't compile.</p></div>
 
+      <h2 class="ak-h" id="typos">A misspelled arm is a gap, not a catch-all<a class="ak-anchor" href="#typos" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A typo can't quietly paper over a gap either. A capitalized arm head is a
+        <strong>reference to a variant</strong>, not a fresh binding.
+      </p>
       <div class="code">
         <span class="cap">status.glyph: a misspelled arm is a gap, not a catch-all</span>
 <pre>fn label(s: Status) -&gt; string {
@@ -107,17 +160,44 @@ fn label(s: Status) -&gt; string {
 }</pre>
       </div>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph build</span>
 <pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
    ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
 <span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what older Glyph did with the typo</span></summary><div class="body">
         <p>
-          That reading holds one level down, where the variant is the payload of
-          another one. <code>Err(Blank)</code> beside <code>Err(e)</code> reads as
+          A capitalized arm head is a
+          <strong>reference to a variant</strong>, not a fresh binding, so if you misspell
+          <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a
+          catch-all that bound every value and made the match look total. Now the head has to
+          name a real variant of the union you're matching. When it doesn't, the build stops
+          with <code>E0220</code> and points at the nearest real name, and the variant you
+          actually skipped still shows up as <code>E0200</code> right next to it.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="payload">Variants inside a payload<a class="ak-anchor" href="#payload" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        That reading holds one level down, where the variant is the payload of
+        another one. The arm now dispatches on the payload's own tag,
+        whatever the outer variant is.
+      </p>
+      <div class="code">
+        <span class="cap">repl.glyph: the inner arm tests the payload, it doesn't bind it</span>
+<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
+  return match parse_command(line) {
+    Err(Blank) =&gt; z,                          // a comment or an empty line
+    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
+    Ok(command) =&gt; execute(z, command),
+  }
+}</pre>
+      </div>
+      <div class="ak-chips"><span class="chip code">E0305 duplicate case label</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the dead arm before 0.1.93, and the E0305 guard</span></summary><div class="body">
+        <p>
+          <code>Err(Blank)</code> beside <code>Err(e)</code> reads as
           "ignore a blank line, print every other parse error", and until 0.1.93 it
           compiled to two <code>case "Err":</code> labels on the outer tag whose
           first bound the whole payload under the name <code>Blank</code>. Every
@@ -139,46 +219,16 @@ fn label(s: Status) -&gt; string {
           instead of silent: a lowering that reaches for the same tag twice fails
           the build rather than picking the wrong arm at run time.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
-        <span class="cap">repl.glyph: the inner arm tests the payload, it doesn't bind it</span>
-<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
-  return match parse_command(line) {
-    Err(Blank) =&gt; z,                          // a comment or an empty line
-    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
-    Ok(command) =&gt; execute(z, command),
-  }
-}</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          How the union got into scope doesn't change any of this. Glyph lets you
-          write a variant arm two ways, and both are checked the same:
-          <code>import model { Cond, Yes, No }</code> with bare arms, or
-          <code>import model</code> (or <code>import model as m</code>) with
-          <code>model.Yes(_)</code>. That holds for the standard library's unions too, so
-          <code>match o { option.Some(s) =&gt; … }</code> on an
-          <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing
-          <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling
-          is. Until 0.1.56 the qualified spelling skipped the check entirely and the build
-          reported no diagnostics on a match that threw at run time.
-        </p>
-        <p>
-          A string enum crosses the boundary too. <code>type ColType = "text" | "int" |
-          "real" | "bool"</code> declared in <code>catalog.glyph</code> and imported into
-          another module keeps its four values, so a match covering all four compiles with
-          no <code>else</code>, and dropping one is <code>E0200</code> naming the value you
-          dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add
-          an <code>else</code> arm. That help was wrong about the code in front of it, and
-          taking it turned a compile error into a runtime fallthrough. All three import
-          spellings work: <code>import catalog { ColType }</code>,
-          <code>import catalog</code> with <code>catalog.ColType</code>, and
-          <code>import catalog as c</code> with <code>c.ColType</code>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="imports">Import spelling never turns the check off<a class="ak-anchor" href="#imports" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        How the union got into scope doesn't change any of this. Glyph lets you
+        write a variant arm two ways, and both are checked the same:
+        <code>import model { Cond, Yes, No }</code> with bare arms, or
+        <code>import model</code> (or <code>import model as m</code>) with
+        <code>model.Yes(_)</code>.
+      </p>
       <div class="code">
         <span class="cap">interp.glyph: the import list came out, the match is still checked</span>
 <pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
@@ -198,14 +248,77 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
 }</pre>
       </div>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph build, after deleting the last arm</span>
 <pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">standard library unions, string enums, and why the list existed</span></summary><div class="body">
         <p>
-          Records cross now too, and until 0.1.58 they did not. A type declared in one
+          That holds for the standard library's unions too, so
+          <code>match o { option.Some(s) =&gt; … }</code> on an
+          <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing
+          <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling
+          is. Until 0.1.56 the qualified spelling skipped the check entirely and the build
+          reported no diagnostics on a match that threw at run time.
+        </p>
+        <p>
+          A string enum crosses the boundary too. <code>type ColType = "text" | "int" |
+          "real" | "bool"</code> declared in <code>catalog.glyph</code> and imported into
+          another module keeps its four values, so a match covering all four compiles with
+          no <code>else</code>, and dropping one is <code>E0200</code> naming the value you
+          dropped. Until 0.1.57 it was <code>E0218</code>, with help text telling you to add
+          an <code>else</code> arm. That help was wrong about the code in front of it, and
+          taking it turned a compile error into a runtime fallthrough. All three import
+          spellings work: <code>import catalog { ColType }</code>,
+          <code>import catalog</code> with <code>catalog.ColType</code>, and
+          <code>import catalog as c</code> with <code>c.ColType</code>.
+        </p>
+        <p>
+          That import list is where this came from. It was written by hand in every module of a
+          statechart engine, with a comment above it saying a union's constructors don't arrive
+          with its type. The comment was right about the syntax and wrong about the reason: the
+          list was there because the shorter spelling turned the check off, and nobody had
+          noticed, because turning it off is silent. Which form you pick is now a real choice
+          rather than a trap. The named one puts every variant you handle in the import list,
+          which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one
+          says at each arm which module the variant came from. Neither costs you the check.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="records">Imported records keep their fields<a class="ak-anchor" href="#records" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Records cross now too, and until 0.1.58 they did not. A record therefore keeps its
+        field set, and a bad field is <code>E0210</code> naming the record rather than a
+        <code>tsc</code> error about an anonymous shape.
+      </p>
+      <div class="code term">
+        <span class="cap">glyph build, on a typo'd field of an imported record</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+      <div class="code">
+        <span class="cap">table.glyph: the hoists and the comment explaining them are gone</span>
+<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
+<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
+<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
+<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
+<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
+<span class="del">for i, raw_row in raw_rows {</span>
+<span class="add">for i, raw_row in sheet.rows {</span>
+  let typed: Array&lt;Value&gt; = []
+<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
+<span class="del">  for j, col in cols {</span>
+<span class="add">  for j, col in spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the line 11 bug, what tsc misses, how identity crosses</span></summary><div class="body">
+        <p>
+          A type declared in one
           file and used in another arrived with nothing known about it, which cost two
           separate checks. A misspelled field on it drew no Glyph error at all, so
           <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a
@@ -233,9 +346,7 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
           resolve to the same type. The declaration itself is fetched on demand and
           lowered on the declaring module's side, which is the half a consumer cannot do:
           resolution runs over spans, and an imported declaration's spans belong to
-          another file. A record therefore keeps its field set, and a bad field is
-          <code>E0210</code> naming the record rather than a <code>tsc</code> error about
-          an anonymous shape.
+          another file.
         </p>
         <p>
           The query engine in <code>examples/apps/csvql</code> is where this surfaced.
@@ -245,85 +356,46 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
           error message come out wrong. All three are deleted and the app prints
           byte-identical output for all twelve queries.
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">table.glyph: the hoists and the comment explaining them are gone</span>
-<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
-<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
-<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
-<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
-<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
-<span class="del">for i, raw_row in raw_rows {</span>
-<span class="add">for i, raw_row in sheet.rows {</span>
-  let typed: Array&lt;Value&gt; = []
-<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
-<span class="del">  for j, col in cols {</span>
-<span class="add">  for j, col in spec.columns {</span>
-    …
-  }
-}
-
-<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
-<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, on a typo'd field of an imported record</span>
-<pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span>
-<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>One thing still stops at the boundary. Passing a <code>catalog.Sheet</code> where a
           <code>table.Row</code> is expected is E0211 naming both types, but an
           <code>interface</code>'s member list does not cross, so a record passed where an
           imported interface is expected is compared against nothing. Giving it the
           treatment a record's field set gets would quietly change what structural
-          satisfaction means, which is a language decision rather than a fix.
-        </p>
-      </div>
+          satisfaction means, which is a language decision rather than a fix.</p></div>
 
-      <div class="detail">
-        <p>
-          That import list is where this came from. It was written by hand in every module of a
-          statechart engine, with a comment above it saying a union's constructors don't arrive
-          with its type. The comment was right about the syntax and wrong about the reason: the
-          list was there because the shorter spelling turned the check off, and nobody had
-          noticed, because turning it off is silent. Which form you pick is now a real choice
-          rather than a trap. The named one puts every variant you handle in the import list,
-          which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one
-          says at each arm which module the variant came from. Neither costs you the check.
-        </p>
-        <p>
-          The same "make it type-level, not convention" instinct covers PII. Put
-          <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a
-          <code>redact()</code> on its descriptor that masks those fields, so
-          <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't
-          have and it's a compile error (<code>E0219</code>), not a redaction that silently does
-          nothing.
-        </p>
-        <p>
-          A descriptor is only worth anything if it's the check the type declares, all the
-          way down. A <code>where</code> refinement runs its predicate wherever the type
-          appears, not just at a direct <code>Instant.parse</code>: as a record field, as an
-          <code>Array</code> element, as an <code>Option</code> payload, inside a union
-          variant, and through <code>json.parse&lt;T&gt;</code>. The same goes for a record
-          imported from another module. Until 0.1.41 both of those fell back to checking that
-          the key was present, which is not a check of anything.
-        </p>
-        <p>
-          The scheduling app below is where this surfaced. It reads calendars from a JSON file
-          and needs every timestamp to be a real ISO-8601 instant. Before, the refinement
-          stopped at the top level, so a hand-edited file with <code>"start": "no"</code>
-          parsed fine, the instant read as 0, and the app printed a confident schedule and
-          exited 0. The fix is four levels down from the boundary:
+      <h2 class="ak-h" id="redact">PII masking lives on the type<a class="ak-anchor" href="#redact" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The same "make it type-level, not convention" instinct covers PII. Put
+        <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a
+        <code>redact()</code> on its descriptor that masks those fields, so
+        <code>json.stringify(User.redact(u))</code> can't leak them.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0219 unknown field in @redact</span></div>
+      <p class="ak-lede">Name a field the type doesn't
+        have and it's a compile error (<code>E0219</code>), not a redaction that silently does
+        nothing.</p>
+
+      <h2 class="ak-h" id="refinements">Refinements are checked all the way down<a class="ak-anchor" href="#refinements" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A descriptor is only worth anything if it's the check the type declares, all the
+        way down. A <code>where</code> refinement runs its predicate wherever the type
+        appears, not just at a direct <code>Instant.parse</code>: as a record field, as an
+        <code>Array</code> element, as an <code>Option</code> payload, inside a union
+        variant, and through <code>json.parse&lt;T&gt;</code>.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="Where the predicate runs">
+          <li><span>Calendar</span></li>
+          <li><span>Array&lt;WireParticipant&gt;</span></li>
+          <li><span>busy</span></li>
+          <li><span>start</span></li>
+          <li><span>is_instant(value)</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>The fix is four levels down from the boundary:
           <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to
-          <code>busy</code> to <code>start</code> to the predicate.
-        </p>
-      </div>
-
+          <code>busy</code> to <code>start</code> to the predicate.</span></figcaption>
+      </figure>
       <div class="code">
         <span class="cap">schedule.glyph: the predicate follows the type into the field</span>
 <pre>fn is_instant(value: string) -&gt; bool {
@@ -342,12 +414,46 @@ type Calendar = { participants: Array&lt;WireParticipant&gt; }
 <span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
 <span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the confident wrong schedule before 0.1.41</span></summary><div class="body">
         <p>
-          Tests live next to the code and run as part of compiling it. An
-          <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside
-          a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.
+          The same goes for a record
+          imported from another module. Until 0.1.41 both of those fell back to checking that
+          the key was present, which is not a check of anything.
+        </p>
+        <p>
+          The scheduling app below is where this surfaced. It reads calendars from a JSON file
+          and needs every timestamp to be a real ISO-8601 instant. Before, the refinement
+          stopped at the top level, so a hand-edited file with <code>"start": "no"</code>
+          parsed fine, the instant read as 0, and the app printed a confident schedule and
+          exited 0.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="examples">Tests run as part of the build<a class="ak-anchor" href="#examples" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Tests live next to the code and run as part of compiling it. An
+        <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside
+        a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.
+      </p>
+      <div class="code term">
+        <span class="cap">bracket.glyph: break the seeding and the build stops</span>
+<pre>@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #16:</span>
+<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
+<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
+<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why it can't be skipped quietly, and the JSON channel</span></summary><div class="body">
+        <p>
           A false one fails the build the same way a type error does, which is the point: an
           agent rewriting a function body cannot pass the build by leaving the assertion behind.
           <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is
@@ -368,55 +474,38 @@ type Calendar = { participants: Array&lt;WireParticipant&gt; }
           wrong and easy to describe exactly. Change the doubling rule and the build stops,
           without a test file, a runner, or a flag.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
-        <span class="cap">bracket.glyph: break the seeding and the build stops</span>
-<pre>@example seed_order(2) == [1, 2]
-@example seed_order(4) == [1, 4, 2, 3]
-@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
-fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+      <p class="ak-kicker">Found by building with it</p>
+      <h2 class="ak-h" id="four-more-found-by-building-with-it">Four more, found by building with it<a class="ak-anchor" href="#four-more-found-by-building-with-it" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Each of these compiled clean and passed <code>tsc --strict</code>, and
+        each was found by writing an application rather than by reading the
+        compiler. They are the same failure in three places: the types said one
+        thing and the program did another.
+      </p>
 
-<span class="cm">// glyph build src --out dist</span>
-<span class="del">example failed: bracket example #16:</span>
-<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
-<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
-
-<span class="cm">// glyph build src --out dist --json</span>
-<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
-<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
-<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label">Four more, found by building with it</h2>
-        <p>
-          Each of these compiled clean and passed <code>tsc --strict</code>, and
-          each was found by writing an application rather than by reading the
-          compiler. They are the same failure in three places: the types said one
-          thing and the program did another.
-        </p>
-      </div>
-
+      <h3 class="ak-h3" id="map-keys">Reading a key that may not be there<a class="ak-anchor" href="#map-keys" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">reading a key that may not be there: now E0224</span>
 <pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
   return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
 }</pre>
       </div>
-
-      <div class="detail">
+      <p class="ak-lede">It is now a
+          compile error pointing at <code>record.get</code>, which returns
+          <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why a map read is different from array indexing</span></summary><div class="body">
         <p>
           A map's keys are arbitrary, so the compiler cannot know the key is
           there. Typing the read as <code>string</code> stated something it had
-          not checked, and the value printed as the text "undefined". It is now a
-          compile error pointing at <code>record.get</code>, which returns
-          <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.
+          not checked, and the value printed as the text "undefined".
           Writing a key is untouched, and so is array indexing: a bound is a
           value a program can check, a map key is not.
         </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="equality"><code>==</code> is value equality everywhere<a class="ak-anchor" href="#equality" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a test that passed while the code failed</span>
 <pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
@@ -424,19 +513,19 @@ fn same() -&gt; bool {
   return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
 }</pre>
       </div>
-
-      <div class="detail">
+      <p class="ak-lede"><code>==</code> is now value equality everywhere; primitives still
+          compile to <code>===</code>, so ordinary comparisons are unchanged.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">how a test could pass on broken code</span></summary><div class="body">
         <p>
           <code>==</code> was documented as value equality and lowered to
           <code>===</code>, which is <em>reference</em> equality the moment either
           side is a record, a tagged union, or an array. The same expression
           compared structurally in a test and by identity in the program beside
           it, so a test could report success on code that did not work.
-          <code>==</code> is now value equality everywhere; primitives still
-          compile to <code>===</code>, so ordinary comparisons are unchanged.
         </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="loop-binding">A loop binding keeps its element type<a class="ak-anchor" href="#loop-binding" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">exhaustiveness that evaporated inside a loop</span>
 <pre>for t in tiers {
@@ -445,17 +534,18 @@ fn same() -&gt; bool {
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <p class="ak-lede">It now names the variant you
+          have not handled, which is advice to satisfy the check rather than to
+          switch it off.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the catch-all advice it used to give</span></summary><div class="body">
         <p>
           The loop binding carried no element type, so a <code>match</code> over a
           string-literal union degraded to a match over <code>string</code> and
-          the compiler advised adding a catch-all. It now names the variant you
-          have not handled, which is advice to satisfy the check rather than to
-          switch it off.
+          the compiler advised adding a catch-all.
         </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="imported-generic">Imported generic unions are checked<a class="ak-anchor" href="#imported-generic" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a variant left out of a match on an imported generic union</span>
 <pre>import tree { Tree, Node }
@@ -466,8 +556,9 @@ fn label(t: Tree&lt;string&gt;) -&gt; string {
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <p class="ak-lede">It is <code>E0200</code> either way now, at both import
+          spellings and at an open parameter or a concrete instantiation alike.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">why the check never started</span></summary><div class="body">
         <p>
           A union your own module declares is checked whether or not it takes type
           parameters. One imported from a sibling module was checked only when it took
@@ -476,19 +567,23 @@ fn label(t: Tree&lt;string&gt;) -&gt; string {
           the check was looking for the second, so the <code>match</code> was never
           counted at all: <code>tsc --strict</code> passed and a <code>Leaf</code> threw.
           Delete <code>&lt;K&gt;</code> from both files and the same program was
-          <code>E0200</code>. It is <code>E0200</code> either way now, at both import
-          spellings and at an open parameter or a concrete instantiation alike.
+          <code>E0200</code>.
         </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="unchecked-parse">A <code>parse</code> can't claim a check it didn't do<a class="ak-anchor" href="#unchecked-parse" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a <code>parse</code> that reported success without checking: now E0304</span>
 <pre>type Conn = { id: number, sock: Socket }
 
 Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
       </div>
-
-      <div class="detail">
+      <p class="ak-lede">Holding a socket in a record is ordinary and still compiles.
+          Validating one is now refused where it is written and in every module
+          that imports the record, naming the field and its type, and the refusal
+          follows the shape: through a nested record,
+          an <code>Array</code>, an <code>Option</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why presence is not a check, and the fix it asks for</span></summary><div class="body">
         <p>
           Every record type carries a runtime descriptor. For a field whose type
           the compiler cannot see into, a socket or anything reached through
@@ -499,29 +594,19 @@ Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the mes
           <code>parse</code> is the thing a boundary is told to trust.
         </p>
         <p>
-          Holding a socket in a record is ordinary and still compiles.
-          Validating one is now refused where it is written and in every module
-          that imports the record, naming the field and its type, and the refusal
-          follows the shape: through a nested record,
-          an <code>Array</code>, an <code>Option</code>. The fix it asks for is
+          The fix it asks for is
           the split you would have written anyway, a wire type whose fields are
           all checkable, then a domain record you build from it.
           <code>unknown</code> is not caught by this, because it claims nothing
           and presence really is the whole check.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">A signature change, invisible at the call site: closed in 0.1.116</h2>
-        <p>
-          A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to
-          accept a value of a declared union or record with no complaint at all, even though the
-          identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.
-          Change a function to take a payload instead of a raw string and every call still passing
-          the old shape built clean.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-signature-change-invisible-at-the-call-site-closed-in-0-1">A signature change, invisible at the call site: closed in 0.1.116<a class="ak-anchor" href="#a-signature-change-invisible-at-the-call-site-closed-in-0-1" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Change a function to take a payload instead of a raw string and every call still passing
+        the old shape built clean.
+      </p>
       <div class="code">
         <span class="cap">billing.glyph: a union crosses a `string` parameter unnoticed</span>
 <pre>type PaymentResult = Settled(string) | Declined(string)
@@ -533,13 +618,17 @@ fn charge(r: PaymentResult) -&gt; number {
 }</pre>
       </div>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph build, now</span>
 <pre><span class="del">[E0211] argument type mismatch: expected `string`, found `PaymentResult`</span>
    ╰─ Pass a value of the expected type, or change the parameter's type.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where the check fires, and where it stays quiet</span></summary><div class="body">
+        <p>
+          A parameter typed <code>string</code>, <code>number</code> or <code>bool</code> used to
+          accept a value of a declared union or record with no complaint at all, even though the
+          identical call with a mismatched <code>bool</code> argument was already <code>E0211</code>.
+        </p>
         <p>
           The check reads the declaration, so it only fires where the answer is certain. A
           primitive alias, a string-literal union (D30), an <code>extern_ts</code> or
@@ -548,14 +637,12 @@ fn charge(r: PaymentResult) -&gt; number {
           <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a
           <code>let</code> annotation alike, since all three share one relation.
         </p>
-        <p>
-          A <code>const</code> had the matching gap on the receiving side. A module-level
-          <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no
-          matter what the annotation said, so a field typo on it was invisible exactly where the
-          identical annotated <code>let</code> inside a function already reported it.
-        </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="const">An annotated <code>const</code> is typed<a class="ak-anchor" href="#const" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        A <code>const</code> had the matching gap on the receiving side.
+      </p>
       <div class="code">
         <span class="cap">catalog.glyph: an annotated const, and the field it does not have</span>
 <pre>type Sheet = { rows: number, cols: number }
@@ -566,12 +653,17 @@ fn f() -&gt; number {
 }</pre>
       </div>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph build, now</span>
 <pre><span class="del">[E0210] type `Sheet` has no field `rowz`; did you mean `rows`?</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">unannotated consts, and why both fixes are breaking</span></summary><div class="body">
+        <p>
+          A module-level
+          <code>const</code> carrying a type annotation lowered to <code>Ty::Unknown</code> no
+          matter what the annotation said, so a field typo on it was invisible exactly where the
+          identical annotated <code>let</code> inside a function already reported it.
+        </p>
         <p>
           An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on
           purpose: inferring one from the initializer is a different question with a different
@@ -580,15 +672,14 @@ fn f() -&gt; number {
           previous release accepted; a full <code>glyph build</code> was already red through
           <code>tsc</code> in both cases.
         </p>
-        <p>
-          One record-literal check is still <code>tsc</code>'s and not Glyph's. A literal with a
-          field the declared record does not have passes Glyph's checker, and <code>tsc</code>
-          refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the
-          literal. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the
-          language server and the playground say nothing (G273).
-        </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="extra-field">An extra field is still <code>tsc</code>'s to catch<a class="ak-anchor" href="#extra-field" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code>
+        stops on it; <code>glyph check --no-tsc</code>, the language server and the playground
+        say nothing (G273).
+      </p>
       <div class="code">
         <span class="cap">point.glyph: an extra field, left to tsc</span>
 <pre data-check="expect-error TS2353">module point
@@ -602,15 +693,146 @@ pub fn origin() -&gt; Point {
   return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
 }</pre>
       </div>
+      <div class="ak-chips"><span class="chip ts">TS2353 from tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how tsc reports it</span></summary><div class="body">
+        <p>
+          A literal with a
+          field the declared record does not have passes Glyph's checker, and <code>tsc</code>
+          refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the
+          literal.
+        </p>
+      </div></details>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <p class="h">Shipping today</p>
-          <p>Exhaustive <code>match</code> over sealed unions (yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code>) <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, reading a key out of a map rejected (E0224), <code>==</code> as value equality on every type, a <code>for</code> binding that keeps its element type, a variant in payload position dispatching on the payload's own tag rather than binding it, two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning, a declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected (<code>E0211</code>), a field typo on an annotated module-level <code>const</code> (<code>E0210</code>), and <code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included. Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant="nope" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames. Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229. Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.</p>
-        </div>
-        <div class="status-card next">
-          <p class="h">Getting sharper</p>
-          <p>A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273). A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types. Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name. A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it. Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>. A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs. A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">18</span></h3>
+
+          <p class="ak-st-group">Matching</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Exhaustive <code>match</code> over sealed unions: yours or a sibling module's, generic or not, and the standard library's, such as <code>fs.ErrorKind</code></span><span class="chip code">E0200</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Exhaustive <code>match</code> over <code>number</code>/<code>string</code></span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A typo'd variant arm caught as a compile error with a nearest-variant suggestion instead of a silent catch-all</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A variant in payload position dispatching on the payload's own tag rather than binding it</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A <code>for</code> binding that keeps its element type</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Errors and tests</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>Result</code> + the <code>?</code> operator with error-type checking</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A warning when a <code>Result</code> is discarded</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Types, records and literals</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A field typo on an annotated module-level <code>const</code></span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> as value equality on every type</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Reading a key out of a map rejected</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Object literals and JSX attributes checked against the declared type</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">since 0.1.124</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant="nope" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A missing required field or prop is named</span><span class="chip code">E0211</span><span class="chip code">E0229</span><span class="chip since">since 0.1.125</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Since 0.1.125 a record literal or a component element that leaves out a required field names it, in the message and in <code>missing_fields</code> on <code>--json</code>, and an element missing a required prop is E0211 even when it writes no attributes at all; a component whose one parameter is not a record is E0229.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Every field of a record compared by the same rule as the record</span><span class="chip since">since 0.1.127</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Since 0.1.127 every field of a record is compared by the same rule as the record, so a nested record, a declared type or a string-literal union inside one is refused where <code>tsc</code> refuses it, and so are an optional field where a required one is declared, a function whose return does not fit and a local interface's members. A record whose fields are all optional refuses a value that shares none of them, as TS2559 does. A function's parameters are still not compared.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Data boundaries</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Runtime type descriptors</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@redact</code> PII masking on the type descriptor</span><span class="chip code">E0219</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper <span class="count">13</span></h3>
+
+          <p class="ak-st-group">Matching</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Coverage of an imported union doesn't look inside a variant's payload yet</span><span class="chip">next to deepen</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A type parameter used to switch the check off: through 0.1.90 a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit a variant, build clean, pass <code>tsc --strict</code>, and throw at run time, where the same match on <code>Tree</code> was <code>E0200</code>. That is closed for a union your own module declares and, as of 0.1.95, for one an import away. What is still shallower on the imported path is the depth rather than the gate: the check that runs for an imported union never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> rather than reporting the missing <code>Y</code>, and no type parameter is involved. That is the next thing to deepen.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A lowercase payload variant of an imported union stops the build</span><span class="chip code">E0305</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A variant in payload position is read off the payload union's variant list now, so the capitalization of the name stops mattering for a union your module declares. For one imported from another module there is no list to read and the shape of the name still answers, which means <code>Err(Blank)</code> dispatches and <code>Err(blank)</code> stops the build at <code>E0305</code>: a loud failure on a valid program, and it needs the same imported-union registry the shallow coverage check above needs.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A constructor pattern over a record payload (<code>Ok(Point)</code>) fails in <code>tsc</code>, not Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic naming the type and the pattern.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A misspelled bare arm reports two lines for the same name</span><span class="chip code">E0220</span><span class="chip code">E0103</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike, constructor-shaped or bare: through 0.1.115 a bare misspelled head over an imported union (<code>Loadign</code>, no arguments) was credited as covering a variant and said nothing, where the same typo on a local union already reported <code>E0220</code>; both spellings report it now. A misspelled bare arm also trips <code>E0103</code>, one stage earlier, so you get both lines for the same name.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Types, records and literals</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A literal holding a spread has no type, and an extra field is still accepted</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is an <code>interface</code>'s member list, so a record passed where an imported interface is expected is compared against nothing; an imported <code>const</code> is the same shape one level over: it is still <code>Ty::Unknown</code>, so a field typo through a named or namespace import stays silent, whether or not the source module annotated it.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Deeper flow-narrowing is on the roadmap</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Data boundaries</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Maps from another module or the standard library are read unchecked</span><span class="chip code">E0224</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A type from a plain <code>.d.ts</code> has no descriptor; materialize it with <code>glyph gen dts</code></span><span class="chip code">E0304</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Tooling and the standard library</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Member access on primitives and arrays has no diagnostic where <code>tsc</code> doesn't run</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Member access and calls on <code>string</code>, <code>number</code>, <code>bool</code> and <code>Array&lt;T&gt;</code> are left to <code>tsc</code> by design, not by gap; Glyph permits raw JS members there, so <code>s.length</code> and <code>xs.length</code> compile and pass <code>tsc --strict</code>, and what stays missing is a diagnostic for the four surfaces that never run <code>tsc</code>: <code>glyph check --no-tsc</code>, the language server, the MCP server, and the playground.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">An offline build with examples needs <code>tsx</code> or <code>--no-test</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">An <code>await</code> in a plain <code>fn</code> is caught against your own source</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

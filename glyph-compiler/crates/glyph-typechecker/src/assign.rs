@@ -19068,7 +19068,7 @@ fn f(a: Answer) -> number {
     /// by the build: the emitter writes `json.parse<unknown>(body)`, so `tsc`
     /// refuses it (TS2322) where it used to infer `T = User` from the
     /// annotation and cast (record 89). Glyph refuses it itself once `unknown`
-    /// is assignable only to `unknown` (0.1.155), and this line flips to
+    /// is assignable only to `unknown` (0.1.157), and this line flips to
     /// E0204 then. With a type argument the `Ok` binding is the written type,
     /// so a misspelled field on it is a Glyph error.
     #[test]

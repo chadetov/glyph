@@ -8686,12 +8686,11 @@ land here until they're assigned a release.
   answers index and the `binary`, `embedding` and `upgrades` answers. Both
   were fixed for 0.1.93, and `check_site.py` now fails when a served page has
   no sitemap entry or an entry points at no page, so the coverage half cannot
-  drift again. The dates can. Keeping them true wants either a sitemap
-  generated at deploy time or git history, and the CI checkout is shallow, so
-  a git-based check would pass there by doing nothing. Three ways out:
-  generate the sitemap in the Pages build, check `lastmod` only in the local
-  ceremony run and print when it skips, or drop `lastmod` and let the crawler
-  date the pages itself. The other string is the `placeholder` in
+  drift again. The dates were the open half, and that is decided: the site
+  generator writes `sitemap.xml` and dates each page from a hash of its own
+  content, kept in the committed `site/lastmod.json`, so a page's `lastmod`
+  moves only when what it says changes and the build needs no git history.
+  The other string is the `placeholder` in
   `.github/ISSUE_TEMPLATE/bug_report.yml`, which read `0.1.9` from before
   0.1.10 existed and now reads `glyph 0.1.93`, the shape `glyph --version`
   prints. Pinning it in `check_versions.py` would stop it going stale and

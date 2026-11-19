@@ -8342,6 +8342,14 @@ concrete follow-ups, in priority order:
 
 ## Rolling · Ergonomics & polish
 
+**G383, renaming an import says only "expected `}`, found As"** (found 2026-11-19): the message should say Glyph keeps every name as declared and give the two spellings that work.
+
+**G382, `string + number` passes Glyph's own checker** (found 2026-11-19): `input + 1` on a string is accepted where a `number` is declared and only `tsc` refuses it. Refuse the mixed `+` or type it as `string`.
+
+**G381, a member read on `unknown` passes Glyph's own checker** (found 2026-11-19): `data.usr.name` on a parsed `unknown` is caught only by `tsc`, so the editor, MCP and the applyEdit gate miss it. Pairs with G325 (0.1.158), which refuses assigning an `unknown`; it may belong in the same release.
+
+**G380, a mutating method call needs no `mut`** (found 2026-11-19): `xs.push(4)` and `xs.sort(cmp)` compile without `mut`, so D5's claim that `grep "^\\s*mut "` audits every mutation is false, and a helper can reorder its caller's array. A verifiability hole and breaking to fix; it should take a numbered slot soon.
+
 **G368, the bare import a namespaced generic relies on is reported unused** (record 111): with `import model { Page }` and `import model as m`, `json.parse<m.Page<int>>` validates, but `Page` draws E0106 and `glyph fix` deletes it, after which the program is E0304. G369, the other half of that entry, is 0.1.150.
 
 **G372, G374 and G375, what 0.1.148's key check leaves** (record 113): Glyph's checker does not read a `Record`'s key type (missing, extra and written keys pass `--no-tsc`, breaking under `--no-tsc` only); a generic record keyed by its own type parameter is refused rather than checked (lift it by passing the argument's member set); and a `Record` check reports the whole map rather than the offending entry.

@@ -233,6 +233,11 @@
           root.classList.toggle("nav-locked", open);
           burger.setAttribute("aria-expanded", open ? "true" : "false");
           burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+          // While the panel is open the page behind it is out of reach: Tab
+          // cycles through the header and the panel only.
+          [].forEach.call(document.body.children, function (el) {
+            if (el !== header && el.tagName !== "SCRIPT") el.inert = open;
+          });
         }
         burger.addEventListener("click", function () {
           setPanel(!header.classList.contains("nav-open"));

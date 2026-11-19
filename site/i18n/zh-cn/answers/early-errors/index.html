@@ -1,0 +1,431 @@
+---
+title: 为什么 Glyph 能发现 tsc 能发现的问题，而且更早？ · Glyph
+description: Glyph 会针对你的源码报告 async fn 之外的 await、不产生值的 match 分支以及缺少的 mut，附上规则和修复方法，而且在 tsc 之前。
+source_hash: 117852a982fffaf4
+prev: /answers/tooling/ | &larr; 上一篇 | 编辑器、调试和报错的体验如何？
+next: /answers/parse-errors/ | 下一篇 &rarr; | 解析失败时，我能知道原因吗？
+---
+      <p class="q-eyebrow">26 &middot; 更早发现</p>
+      <h1 class="q-title">为什么 Glyph 能发现 tsc 能发现的问题，而且更早？</h1>
+
+      <p class="short-answer">
+        因为针对生成的 TypeScript 报告的错误，说的是你没写过的代码。Glyph 针对你的源码报告这些错误，并附上你违反的规则和修复它的编辑。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          Glyph 编译成 TypeScript，然后用 <code>tsc --strict</code> 对输出做类型检查，所以 Glyph 没有建模的错误不会丢失。它会在下一个阶段出现，用生成文件的说法来表述：一个 <code>TS1308</code> 指向某个你从没写过的函数里的 <code>await</code>，或者一个 <code>TS2366</code> 说的是你没写过的 <code>switch</code>。行号会映射回你的 <code>.glyph</code>，但解释不会。
+        </p>
+        <p>
+          编译器就是在这个缺口处不再起到教学作用的。所以 Glyph 能自行判定的每条规则都被提前了：<code>async fn</code> 之外的 <code>await</code>（<code>E0222</code>），<code>match</code> 被当作值使用时不产生值的 <code>match</code> 分支（<code>E0223</code>），以及没有写 <code>mut</code> 的赋值（<code>E0008</code>）。每条诊断都会说出规则，引用背后的设计决定，并给出修改前后的对比。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          分支这种情况以前会完全漏掉。分支位置上的 <code>{}</code> 是一个空的<em>代码块</em>，不是空记录，所以这个分支执行了，却什么也没产生：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph：一个什么也不产生的分支，处在需要值的位置</span>
+<pre>fn label(s: Status) -&gt; string {
+  let text = match s {
+<span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+  return text
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
+   ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
+      only where the `match` is a statement.
+   note: A value-position arm lowers to `case X: { break; }` when it yields
+         nothing, so the value would be `undefined` at run time.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          在此之前，生成的 <code>switch</code> 会从自己的各个 case 中掉出去，<code>text</code> 的值是 <code>undefined</code>，而它的类型写的是 <code>string</code>。<code>tsc</code> 能发现其中一些形态，漏掉另一些。现在只要位置可判定，Glyph 就会判定：<code>let</code>、<code>mut</code>、<code>return</code>，或者声明了返回类型的函数的末尾表达式。语句形式的 <code>match</code> 仍然把 <code>X =&gt; {}</code> 当作有意为之的空操作。
+        </p>
+        <p>
+          <code>await</code> 也是同样的处理。Glyph 没有用户可见的 <code>Promise</code>：<code>async fn -&gt; T</code> 被 await 后得到 <code>T</code>，所以在其他任何地方使用 <code>await</code> 都没有东西可挂起。这以前是生成文件上的 <code>tsc</code> 的 <code>TS1308</code>，现在是 <code>E0222</code>，由最内层的外围可调用体决定，所以 <code>async fn</code> 里的同步 lambda 是它自己的上下文，规则和 TypeScript 相同。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build，针对 `fn total() -&gt; number { return await fetch_count() }`</span>
+<pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
+   ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
+
+<span class="cm">// before: no Glyph diagnostic, then</span>
+<span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
+within async functions and at the top levels of modules.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          第三个规则，人们第一天就会违反。Glyph 会标记每一次修改，所以重新赋值一个绑定写作 <code>mut x = e</code>，引入一个绑定写作 <code>let x = e</code>。单独的 <code>x = e</code> 以前报告的是 "unexpected token: Equals"，说的是一个字符而不是规则。现在它是 <code>E0008</code>，<code>glyph --explain E0008</code> 会说明这个标记为什么存在：值发生变化的每个地方都以 <code>mut</code> 开头，所以 <code>grep "mut total"</code> 能把它们全部找出来。
+        </p>
+        <p>
+          <code>?</code> 运算符从另一个方向得到了同样的处理。<code>?</code> 会展开为一个绑定加上一个提前 <code>return</code>，放在它所在语句的前面，所以它需要一条可以展开进去的语句。它可以用在 <code>let</code>、<code>return</code>、参数中，现在也可以用在 <code>match</code> 分支体里。在不能使用的地方，报错会说明是哪个位置，以及怎样先绑定出来（<code>E0302</code> 和 <code>E0303</code>），而不是声称这个运算符尚未实现。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">更糟的情况：tsc 也没报错</h2>
+        <p>
+          <code>tsc</code> 的错误报在错误的位置令人烦恼。而一个意思已经变了的程序却构建通过，才是真正的问题，Glyph 就出现过一个。你声明的每个顶层名字都会原样进入生成的模块，包括标签联合的变体构造函数，所以一个名为 <code>Error</code> 的变体会在模块顶层生成 <code>export function Error(...)</code>。编译器在它下面写的 <code>new Error(...)</code> 随后调用的就是你的变体。
+        </p>
+        <p>
+          <code>type Key = string | number</code> 是同一个缺陷，只是看起来更友好。在 Glyph 中，<code>A | B</code> 声明的是一个标签联合，其成员是变体<em>构造函数</em>，所以这一行声明了名为 <code>string</code> 和 <code>number</code> 的变体。它能编译，能通过 <code>tsc --strict</code>，并生成了一个 <code>export const number</code>，遮蔽了 prelude 中的 <code>number</code> 命名空间。直到后来某次 <code>number.to_string</code> 调用失败之前，什么都没有报错。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build，针对带有 `Error` 变体的联合类型</span>
+<pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
+        references the JavaScript global `Error`, and this declaration would
+        shadow it</span>
+ 5 │   | Error(string)
+   │     ──────┬─────
+   ╰─ Rename it (e.g. `Error` -&gt; `Failure`). The name is legal TypeScript, so
+      nothing downstream catches the rebinding.
+
+<span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
+<span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
+assignable to parameter of type ...</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          报错范围是声明本身，也就是需要改名的地方。受保护的名字列表来自代码生成器，而不是一份通用的 JavaScript 全局名字列表，并且有一个测试会 grep 代码生成器，一旦出现新的全局引用却没有对应条目就失败。这个测试才是关键：<code>int</code> 发布并开始生成 <code>Number.isInteger</code> 之前，<code>Number</code> 一直是无害的，这个问题当初就是这样进入了一个版本。<code>Date</code>、<code>Math</code> 和 <code>JSON</code> 仍然可以使用，因为 Glyph 生成的代码从不提到它们。
+        </p>
+        <p>
+          原始类型联合的情况有自己的错误码 <code>E0111</code>，因为只拒绝而不解释，什么也教不会。它会说明这一行实际被解析成了什么，指向具名变体，并给出 <code>extern_ts("string | number")</code>，用于你在边界上需要原始 TypeScript 联合类型的情况。Glyph 不允许你使用的每个名字都列在 <code>docs/reference/reserved-words.md</code> 中：32 个关键字、<code>E0109</code> 背后的 33 个 TypeScript 保留字，以及遮蔽列表，每一项都写明了这个名字被占用的原因。
+        </p>
+        <p>
+          需要说清楚这不能做到什么。你仍然不能把类型或变体命名为 <code>Error</code>，发现这个问题的那个电子表格应用也因此把一个变体叫作 <code>Cellerr</code>。它原本想写的程序仍然写不出来；变化在于，编译器现在会在声明处直接指出这一点，而不是让构建通过却表达了别的意思。要让这个名字可用，就得在进入 TypeScript 时对 Glyph 名字做改写，这会改变堆栈跟踪、对 <code>dist/</code> 的 <code>grep</code> 以及手写的 <code>extern/</code> 适配层所看到的内容，所以这不是一个可以悄悄打上的补丁。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">错误的报错比没有报错更糟</h2>
+        <p>
+          遮蔽列表最初只包含代码生成器作为<em>值</em>写出的名字，漏掉了它作为<em>类型</em>写出的名字，而这造成了整个问题中最尖锐的一个版本。每个描述符的 <code>parse</code> 都返回 <code>Result&lt;T, Issue[]&gt;</code>，所以无论你写没写，生成的模块里都会出现 <code>Issue</code>。如果在你自己的模块里声明 <code>type Issue = { path: Array&lt;string&gt;, message: string }</code>，你的声明就会胜出，生成的 <code>Issue</code> 对象带着一个你的类型从未听说过的 <code>code</code> 字段，构建失败时给出的是一个关于生成代码的 <code>tsc</code> 错误，位置指向别处。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build，修改前：十五条这样的报错，没有一条靠近原因</span>
+<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build，现在</span>
+<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global `Issue`, and this declaration
+        would shadow it</span>
+   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Record</code> 也在同一时间加入了列表，归在 JavaScript 全局名字下而不是 prelude 名字下，因为它是 TypeScript 内置类型，归错了会让报错在名字来源上说错话。grep 代码生成器的那个偏差测试现在也覆盖了环境类型，而且它必须学会在类型位置上识别 <code>Issue[]</code>，这正是这个问题进入版本的原因。<code>Schema</code>、<code>Component</code> 和 <code>Option</code> 仍然合法，依据的是让 <code>Date</code> 可用的同一条规则：代码生成器只是因为你在注解里写了它们才会写出它们，所以声明其中一个不会遮蔽任何东西。
+        </p>
+        <p>
+          这一类中的另一个是导入。本地导入路径从构建根目录解析，也就是你交给 <code>glyph build</code> 的那个目录，而不是从发起导入的文件所在目录解析。构建一个外层目录树时，<code>import catalog</code> 什么也找不到，而直到现在都没有任何提示。类型退化成 unknown，对它的 <code>match</code> 丢失了要匹配的变体，你得到的是 <code>E0218</code>（match 不穷尽），而这个 <code>match</code> 其实覆盖了所有情况。照着那条报错去做，会给正确的代码加上一个永远不会执行的 <code>else</code> 分支。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build examples/apps，针对 csvql/ 中的 `import catalog`</span>
+<pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
+        root `examples/apps`. There is a `csvql/catalog.glyph` under the
+        root; a local import path is resolved from the build root, not from
+        the importing file's directory (D15)</span>
+   ╰─ Build that module's own directory as the root, or spell the import path
+      as it reads from the root.
+
+<span class="cm">// before: no import diagnostic, then</span>
+<span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这类检查的风险在于对没问题的东西也报错，而一个对每个 npm 包都喊“狼来了”的导入检查器，比它取代的沉默还要糟。所以构建会先收集不需要 <code>.glyph</code> 文件就能解析的模块名：<code>&lt;root&gt;/.types/</code> 下和内置 Node 适配层中的每个 <code>declare module "X"</code>，以及项目 <code>node_modules</code> 中的每个包。这个列表上的名字永远不会被报告，即使某个本地文件恰好和它同名。如果项目根本没有 <code>node_modules</code>，编译器无法区分未安装的依赖和拼写错误，所以只报告它能证明的情况：根目录下确实有某个 <code>.glyph</code> 文件与之对应的导入。
+        </p>
+        <p>
+          解析本身没有变化。能构建的程序还是那些，失败的程序也还是那些。变化在于失败时报错会指出导入，而不是去指责两个文件之外的一个 <code>match</code>，全部改动就是这些：一个报错原因说错的编译器，会让你花一个小时去追查，之后的每条报错你也不会再轻易相信。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">说出规则，而不是记号</h2>
+        <p>
+          同一个问题更隐蔽的版本，是一个正确却什么也没告诉你的错误。一个编写红黑树的智能体使用了每个 ML 系语言都有的位置参数构造函数，解析器在第一个逗号处停下，报出 &ldquo;expected <code>)</code>&rdquo;，并建议 &ldquo;add the expected token&rdquo;。在那里加一个 <code>)</code> 只会得到另一个程序，而不是一个能工作的程序。Glyph 的变体只携带一个负载，含有多个字段的负载是一个记录。这两句话在输出中都找不到。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check，修改前与现在</span>
+<pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
+   ╰─ Add the expected token.</span>
+
+<span class="del">[E0010] a union variant carries one payload, but `Node` lists 6 positional
+        fields</span>
+   ╰─ Glyph has no tuple payload. Put the fields in one record and name them:
+      `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
+              /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
+      and destructure it by those names in a match arm.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          为了说出这些，解析器必须先读完整个列表再拒绝它，这也让它能够计数。报错范围标出全部六个字段，而不是它恰好停下的那个分隔符；建议的记录是根据变体名和文件中的六个类型构造的，所以修复方法用的是你的程序，而不是别人的示例。字段名是编译器唯一无法提供的东西，所以它把这些留作空位。
+        </p>
+        <p>
+          这条报错背后的规则是一个选择，而不是缺口。<code>Node(Black, l, x, b, h, r)</code> 是那种参数调换后照样能通过类型检查的写法，第四个位置对读者来说什么也没说明。记录写法给每个字段命名，match 分支只命名它用到的字段，这两者都是 <code>grep</code> 能找到的。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">0.1.121 中检查器接手的另外两项</h2>
+        <p>
+          <code>Order { id: "a", total: 1 }</code> 是从 TypeScript 过来的人构造记录时会写的，而 Glyph 没有这种形式：值单独书写，类型写在注解上。编译器以前对这一行报告的是 <code>E0108</code>（不可达代码），而构建退出码为 0，因为这个名字解析成了类型，花括号被解析成 <code>return</code> 之后的一个代码块。把类型名当作值来写现在是 <code>E0228</code>，报错内容从声明中读取，所以记录会列出它的字段，标签联合会列出它的变体及负载形态，字符串字面量联合会列出它的字面量。<code>Order.parse(raw)</code> 和 <code>Order.is(v)</code> 仍然合法，因为类型自身描述符的接收者，是类型名唯一应该出现的表达式位置。
+        </p>
+        <p>
+          这修复了名字是类型的情况，但没有改变解析，所以 <code>return h() { k: 2 }</code> 仍然返回 <code>h()</code>，并带着一条警告丢掉花括号。从 0.1.146 起，在一条语句结束的那一行上出现的 <code>{</code> 在解析阶段就是 <code>E0013</code>，无论它前面的名字是什么，帮助信息给出同样的改写。从 0.1.149 起，这条规则覆盖所有语句，而不只是以花括号开头的语句：<code>let s = "a" "b"</code> 以前会绑定 <code>"a"</code> 并丢掉 <code>"b"</code>，<code>return x as User</code> 则是三条语句，因为 Glyph 没有类型断言。代码块中的每条语句都要另起一行。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check，针对按 TypeScript 方式构造的记录</span>
+<pre><span class="del">[E0013] a statement cannot begin on the line where
+        `return Order` ends</span>
+   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
+      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
+
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          另一项是把 prelude 容器赋给原始类型。<code>o: Option&lt;int&gt;</code> 时，<code>let x: string = o</code> 在 Glyph 检查器那里没有任何报错，把 <code>Nullable&lt;int&gt;</code> 传给声明为 <code>int</code> 的参数也没有。现在五种容器在两个方向上都有覆盖：<code>Option</code>、<code>Result</code>、<code>Array</code>、<code>Record</code> 和 <code>Nullable</code> 无论类型参数是什么，都绝不是 <code>string</code>、<code>number</code> 或 <code>bool</code>；<code>Nullable&lt;T&gt;</code> 与标量比较时会深入一层，针对 <code>T</code> 判定，所以 <code>let v: Nullable&lt;int&gt; = 3</code> 仍然正确，而 <code>let v: Nullable&lt;int&gt; = "three"</code> 是 <code>E0204</code>。<code>Nullable</code> 这种情况比其他几种更应该放在这一页，因为它是 <code>tsc</code> 无法判定的：生成的 <code>const v: number | null = 3</code> 在检查调用之前就收窄回了 <code>number</code>，所以一个本来为了让 <code>null</code> 可见而存在的边界类型，在声明为 <code>int</code> 的地方悄无声息地通过了，而 Glyph 检查器是唯一能发现它的地方。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          接下来是同样这些容器与声明的记录或联合类型的比较。从 0.1.130 起，<code>let user: User = json.parse(body)</code> 是 <code>E0204</code>，期望 <code>User</code>，实际是 <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>。以前只有 <code>tsc</code> 会指出这一点，也就是说 <code>glyph check --no-tsc</code>、编辑器和 playground 在边界最需要写对的那一行上显示的是一个干净的文件。
+        </p>
+        <p>
+          数组或字符串上拼错的成员名，是另一种以前要等 <code>tsc</code> 才发现的情况。<code>xs.lenght</code> 是 <code>E0210</code>，并提示 "did you mean <code>length</code>"，检查依据是 TypeScript 库为数组和字符串声明的成员，就像读取记录字段时依据它的字段来检查一样。<code>tsc</code> 本来也会拒绝这两种情况，所以运行它的构建本来就已经失败；变化在于检查器以及构建在它之上的一切会先看到它们。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">从 0.1.133 起，还有三项</h2>
+        <p>
+          <code>let up = s.toUpperCase</code> 在 TypeScript 中能通过类型检查，但运行 <code>up()</code> 时会抛出异常，因为这次读取丢掉了方法所属的字符串。Glyph 以 <code>E0234</code> 拒绝它，也拒绝对它调用 <code>.bind(s)</code>：改为把调用包在一个 lambda 里。检查器现在知道每个数组和字符串方法的返回类型，依据是一张从 TypeScript 自身声明生成的表。
+        </p>
+        <p>
+          <code>Result</code> 上的 <code>r?.label</code> 读起来像是“传播错误，然后读取字段”。实际上它是可选链，而 <code>Result</code> 永远不是 null，所以它从 <code>Result</code> 对象上读取字段，什么也没有传播。一个智能体在构建 CSV 查询工具时就写了这样的代码。现在它是 <code>E0236</code>，对 <code>Option</code> 也一样，帮助信息会提示先用 <code>?</code> 绑定。
+        </p>
+        <p>
+          不带类型参数的 <code>json.parse(body)</code> 是未经检查的读取，得到 <code>Result&lt;unknown, ...&gt;</code>。把它写在声明为 <code>Result&lt;User, ...&gt;</code> 的地方时，<code>tsc</code> 以前会根据声明推断出 <code>User</code>，程序在第一次读取字段时崩溃。代码生成器现在会把 <code>unknown</code> 写出来，所以 <code>glyph check</code> 会通过 <code>tsc</code> 拒绝它。Glyph 自己的检查器还发现不了出现在声明类型内部的 <code>unknown</code>，所以 <code>--no-tsc</code> 和编辑器仍然会漏掉写在声明为 <code>Result&lt;User, ...&gt;</code> 处的 <code>Result&lt;unknown, ...&gt;</code>。（单独的 <code>let user: User = json.parse(body)</code> 由 Glyph 自己的检查器报告为 <code>E0204</code>，因为外层类型已经不对了。）在任意深度拒绝 <code>unknown</code> 是 G325，计划在 0.1.158 中完成。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">0.1.122 中还有两项</h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> 声明了一个有限的字符串集合，而 Glyph 检查器在把值与它比较时根本没有做任何比较。数字、<code>bool</code>、记录以及集合之外的字符串，都能通过 <code>glyph check --no-tsc</code>，只有未使用变量的警告，而 <code>tsc</code> 在生成的 TypeScript 上会拒绝其中每一个。所以完整的 <code>glyph build</code> 在这一点上从未出错，但不经过 <code>tsc</code> 的四个地方会出错：<code>--no-tsc</code>、语言服务器、MCP 工具和 playground。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc，针对一个列出其合法字符串的类型</span>
+<pre>type Mode = "read" | "write"
+
+let a: Mode = 3
+let b: Mode = "rw"
+let c: Mode = takes_mode(true)
+let d: Mode = { x: 1 }
+<span class="cm">// before: four unused-variable warnings, exit 0</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `number`
+[E0204] type mismatch: expected `Mode`, found `"rw"`
+[E0211] argument type mismatch: expected `Mode`, found `bool`
+[E0204] type mismatch: expected `Mode`, found `record`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这就是 <code>tsc</code> 报告的那四条，在相同的四条语句上，而且不需要运行 <code>tsc</code>。这条规则把联合类型按它在运行时的本来面目看待，也就是一个 <code>string</code>，并在每个方向上向检查器提出相应的 <code>string</code> 问题，所以它继承了已有的、拒绝把记录或容器当作 <code>string</code> 的规则，而不是逐个形态重新陈述一遍。两个字面量集合按集合比较，所以更窄的联合类型可以放在声明为更宽联合类型的地方；别名链在两侧都会被追踪；导入的联合类型和本地的一样判定；<code>Nullable&lt;Mode&gt;</code> 会被展开，联合类型保持不变。
+        </p>
+        <p>
+          嵌套在记录字段或泛型参数中的联合类型，在 0.1.122 中留给了 <code>tsc</code>，在 0.1.123 中由 Glyph 判定。见下文。
+        </p>
+        <p>
+          第二项与 <code>tsc</code> 完全无关。解析器是递归下降的，没有深度保护，所以嵌套两千层的表达式会耗尽进程的栈，以退出码 134 中止。这在 <code>glyph check</code> 上很糟，在 <code>glyph lsp</code> 和 <code>glyph mcp</code> 上更糟，因为它们会读取根目录下的每个文件：一个病态文件就能让整个工作区的服务器崩溃。现在它是 <code>E0011</code>，在本会打开第 65 层的那个记号处报告。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">0.1.123：值本身是哪个字面量，而不是它生成后的 <code>string</code></h2>
+        <p>
+          <code>type Mode = "read" | "write"</code> 把集合放在声明上，而值上什么也没有，所以 <code>"read"</code> 是 <code>string</code>，<code>["read", "write"]</code> 是 <code>Array&lt;string&gt;</code>。这让两个程序无法区分：在声明为 <code>Array&lt;Mode&gt;</code> 的地方 <code>return ["read", "write"]</code>，<code>tsc</code> 能编译通过；而对 <code>xs: Array&lt;string&gt;</code> 写 <code>return xs</code>，它会拒绝。0.1.122 选择不判定这种配对，而不是判错，这样保住了正确的程序，代价是放过了错误的程序：<code>{ mode: "nope" }</code> 对照 <code>{ mode: Mode }</code> 不会有任何报错。
+        </p>
+        <p>
+          现在写出的字符串字面量具有它所写的那个单一字面量类型，数组字面量的元素类型是其各元素类型的并，写出的数组或对象字面量会针对声明的类型逐个元素、逐个字段地检查，所以诊断会指出那个字面量并给它加上下划线。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc，针对容器内一层的字面量</span>
+<pre>type Mode = "read" | "write"
+type Cfg = { mode: Mode }
+
+fn ok() -&gt; Array&lt;Mode&gt; { return ["read", "write"] }
+fn bad() -&gt; Array&lt;Mode&gt; { return ["read", "nope"] }
+fn wrong() -&gt; Cfg { return { mode: "nope" } }
+<span class="cm">// 0.1.122: nothing, on all three</span>
+<span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          字面量在 TypeScript 放宽它的地方也会放宽回 <code>string</code>：在没有注解的 <code>let</code> 处，它生成的 TypeScript <code>let</code> 也以同样的方式放宽；以及在遍历写出的数组的 <code>for</code> 的元素绑定处。所以 <code>let l = "read"</code> 之后接 <code>takes_mode(l)</code> 在这里被拒绝，在那边是 <code>TS2345</code>。<code>const</code> 生成 TypeScript 的 <code>const</code>，保留其字面量，所以 <code>takes_mode(CM)</code> 在两边都能编译。通过名字传来的字面量类型不会被放宽，这是 TypeScript 自己的新鲜度规则。上面的每一条都是通过对等价的 TypeScript 运行 <code>tsc --strict</code> 确定的，而不是推理出来的。
+        </p>
+        <p>
+          仍有一种配对不做判定：一个 <code>Record</code> 的键类型参数与另一个 <code>Record</code> 的键类型参数的比较。TypeScript 把 <code>Record&lt;string, V&gt;</code> 写成一个索引签名，覆盖 <code>Record&lt;Mode, V&gt;</code> 声明的每个键，并且在两个方向上都接受，所以拒绝它就会拒绝一个能编译的程序。检查器还有两种形态什么也不说：<code>Some(...)</code> 里的字面量，因为 prelude 构造函数在这里还没有类型；以及绑定到无注解 <code>let</code> 的记录字面量，因为不会为对象字面量合成记录类型。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>std/</code> 下的模块成了没有诊断的死代码</h2>
+        <p>
+          <code>std/</code> 和 <code>extern/</code> 指的是编译器自带的模块，解析器为导入保留了它们。但没有任何东西阻止项目文件<em>声明</em>这样一个模块。在你自己的 <code>src/io.glyph</code> 中写 <code>module std/io</code> 能干净地编译，然后 <code>import std/io { shout }</code> 解析到了内置的存根，并报告 <code>shout</code> 没有被导出：你的文件从来没被读取。一个不产生任何诊断、也不运行任何代码的文件，是编译器能留给你的最糟的局面，因为它看起来没有任何问题。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc，针对声明了 `module std/io` 的 src/io.glyph</span>
+<pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
+
+<span class="del">[E0113] `std/io` declares a module under `std/`, a prefix reserved for the
+        modules the compiler carries (D15)</span>
+ 1 &#9474; module std/io
+   &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+   &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          前缀按完整的第一段匹配，所以 <code>standard</code>、<code>externals/io</code>、<code>app/std</code> 和 <code>app/extern/helper</code> 不受影响，在这两个前缀下的导入也和以前一样工作。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check，针对 `const x = ` 后跟 2,000 层嵌套括号</span>
+<pre><span class="cm">// before: thread 'main' has overflowed its stack
+//         fatal runtime error: stack overflow, aborting   (exit 134)</span>
+
+<span class="del">[E0011] this array literal nests deeper than the parser's limit of 64 levels</span>
+   &#9584;&#9472; Name the inner levels: pull them out into `let` bindings, or into a
+      `fn` that returns one of them, so no single expression, type or
+      pattern is more than 64 levels deep.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          上限是 64，这个数字是测量出来的，而不是随便选的。最耗栈的构造是嵌套数组字面量，每一层在 release 构建中消耗 7,792 字节栈空间，在 debug 构建中消耗 8,810 字节，这是通过二分查找给定深度能够解析所需的最小线程栈得出的。解析器运行时最小的栈是新建线程的 2 MiB，也就是语言服务器工作线程得到的大小，64 层在更耗栈的构建中用掉的不到其三分之一。本仓库 343 个 <code>.glyph</code> 文件中最深的嵌套是 16 层。这个上限同样适用于表达式、类型、模式、代码块和 JSX 子节点，一千个并列的数组仍然可以解析，因为深度指的是单个构造的嵌套层数，而不是整个文件共用的额度。
+        </p>
+      </div>
+
+      <h2 class="block-label">当两个编译器都没错时</h2>
+      <div class="detail">
+        <p>
+          还有第三种形态，读起来最糟。Glyph 什么也不报，<code>tsc</code> 报告的内容是真的，而你写的程序没有问题。出错的是两者之间的翻译。
+        </p>
+        <p>
+          在 Glyph 中，一个绑定在整个生命周期内只有一种类型。TypeScript 会把绑定收窄成它最后看到的赋值，它的 <code>boolean</code> 是联合类型 <code>true | false</code>，所以 <code>let done = false</code> 到达 <code>tsc</code> 时类型是 <code>false</code>，生成的 <code>switch</code> 中 <code>true</code> 那个分支就没有东西可匹配了。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">poll.glyph，以及 0.1.89 之前 tsc 对它的报错</span>
+<pre>fn classify() -&gt; int {
+  let done = false
+  match done {
+    true =&gt; { return 1 },
+    false =&gt; { return 0 },
+  }
+}
+
+<span class="cm">// no Glyph diagnostic, then</span>
+<span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          声明为字符串字面量集合的类型也以同样的方式失败，<code>==</code> 也是，只是报的是 <code>TS2367</code>：两条报错，两个错误码，一个原因。遇到这个问题的应用在轮询一个由定时器回调设置的标志，在 Glyph 没有可手动构造的 <code>Promise</code> 的情况下，这就是把基于事件的 API 变成一个值的做法。后来发现回调与此无关：四行没有回调的代码就能复现。
+        </p>
+        <p>
+          修复不是一条新诊断，因为没有什么可诊断的。代码生成器现在会在对值做区分的两个地方，重新写出检查器已经判定的类型：<code>match</code> 的被匹配值，以及 <code>==</code> 或 <code>!=</code> 的两侧。每一侧都由它自己的类型决定，不管旁边是什么，所以两个绑定之间的比较和与字面量的比较一样被覆盖。
+        </p>
+        <p>
+          你需要的检查仍然会触发。<code>m</code> 是 <code>Mode</code> 时，<code>m == "nope"</code> 仍然会被拒绝，而且现在报错指出的是 <code>Mode</code>，而不是 <code>m</code> 碰巧持有的那个单一成员。在赋值处做这件事代码会更少，但会把这一点丢掉：在带注解的赋值不被接受的地方，转换到 <code>Mode</code> 的类型断言会被接受，而成员检查正是 Glyph 有意留给 <code>tsc</code> 的部分。
+        </p>
+        <p>
+          代价很小，但值得说明。类型断言既能确认类型，也能收窄类型，所以一个 Glyph 定为 <code>bool</code>、而 TypeScript 类型最终是 <code>unknown</code> 的值，现在能在 <code>switch</code> 以前报错的地方通过。两个类型仍然必须可比较，所以如果模型偏差大到真正有影响，比如 <code>string</code> 对 <code>bool</code>，就会报告 <code>TS2352</code>，而不是什么也不报。
+        </p>
+      </div>
+
+      <h2 class="block-label">同一个拼写错误，两种答案</h2>
+      <div class="detail">
+        <p>
+          拼错的标准库函数名，以前会因为导入写法不同而得到不同的答案，这种不一致会让你两个答案都不再信任。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">具名导入，一直是 E0105</span>
+<pre>import std/string { repeeat }
+<span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">命名空间读取，0.1.72 之前</span>
+<pre>import std/string
+string.repeeat(s, 2)
+<span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          第一种写法在解析阶段会对照模块的导出列表检查。第二种写法根本没有检查，所以落到了 <code>tsc</code> 那里，它看到的是对一个对象的属性访问，并以此作答。现在两种写法都会经过导出列表，都会报告 <code>E0105</code>，指出缺少的成员及其所在模块。
+        </p>
+        <p>
+          这项检查一启用，就发现了一个没人在找的问题：一个测试夹具一直在调用 <code>fs.write</code>，而函数名其实是 <code>write_text</code>。它通过了好几个月，因为那个夹具在关闭类型检查的情况下运行，而编译器中没有其他地方会查看命名空间成员。导出列表现在是两种写法的唯一依据，所以另有一项检查让它与运行时实际导出的内容保持一致。那项检查写好之后，又被故意弄坏以确认它会失败，我们正是这样发现它的第一版一直在悄无声息地什么也没检查。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p><code>E0222</code>：<code>async fn</code> 之外的 <code>await</code>；<code>E0223</code>：处于值位置、不产生值的 <code>match</code> 分支；<code>E0008</code>：缺少 <code>mut</code> 的赋值；<code>E0010</code>：给变体传了多个位置负载字段，而实际存在的是记录形式；<code>E0302</code>/<code>E0303</code>：<code>?</code> 处在无法传播的位置；<code>E0110</code>/<code>E0111</code>：声明会遮蔽生成模块已经依赖的名字；<code>E0104</code>：本地导入在构建根目录下找不到对应模块；<code>E0105</code>：模块没有导出的名字，无论你是通过具名导入还是从命名空间上访问它；<code>E0228</code>：在需要值的地方写了类型名；<code>E0013</code>：一条语句从另一条语句结束的那一行开始，以前会丢掉后面的值；<code>E0204</code>/<code>E0211</code>：把 prelude 容器赋给或传给原始类型、声明的记录或联合类型，包括 <code>tsc</code> 会收窄掉的 <code>Nullable&lt;T&gt;</code> 情况；<code>E0210</code>：数组或字符串没有的成员；同样这两个错误码也用于不在字符串字面量联合声明集合中的值；<code>E0011</code>：嵌套超过 64 层的构造；<code>E0101</code>：相对导入路径，以前会在解析器中以笼统的 "expected module path segment" 停下；<code>E0113</code>：在 <code>std/</code> 或 <code>extern/</code> 下声明的项目模块，以前能干净地编译却无法访问。遮蔽列表覆盖了代码生成器自行写出的类型，所以 <code>Issue</code> 和 <code>Record</code> 会在声明处被发现。每个错误码都有一行修复建议、一段解释规则的说明，以及一份完整的 <code>glyph --explain</code> 正文；<code>docs/error-codes.md</code> 列出了完整目录，并有一个测试让两者保持一致。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在改进</h3>
+          <p><code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调，并返回一个由待定值组成的数组，打印出来是 <code>[object Promise]</code>；五个接受谓词的数组函数确实会阻止这种情况，在回调处报告 <code>E0211</code>。用同样方式为另外三个建模，也会拒绝 <code>par.all(array.map(items, async fn ...))</code>，而这正是 Glyph 并发执行任务的方式，因为由待定值组成的数组在语言中没有写法。这是一个类型系统层面的决定，而不是少了一个条目，所以它仍是开放问题。模块级 <code>const</code> 初始化表达式没有外围可调用体，所以顶层 <code>await</code> 是允许的，生成的 ESM 会执行它；Glyph 是否需要隐式的异步模块初始化，仍是一个开放的规范问题。<code>E0223</code> 只有在函数声明了返回类型时才能判断末尾的 <code>match</code>，所以无注解 lambda 内的分支仍然会落到 <code>tsc</code>。在遮蔽这一边，有两件事只做了一半。<code>E0110</code> 让你改名，而不是让你保留这个名字，所以 <code>Error</code>、<code>Number</code>、<code>Object</code>、<code>Array</code> 和 <code>Promise</code> 仍然不能用作类型或变体名。<code>E0111</code> 阻止了 <code>type Key = string | number</code> 表达错误的意思，却没有给你正确表达的方法：两个原始类型的联合在 Glyph 中除了 <code>extern_ts</code> 之外没有写法，而它的内容对 Glyph 自己的检查器是不透明的。非标签联合涉及穷尽性、运行时描述符和 <code>is</code>，所以这是一个类型系统层面的决定，尚未排期。<code>E0104</code> 会出现在 <code>glyph build</code> 和 <code>glyph check</code> 中，但不会出现在编辑器中：LSP 分析文档文本时没有构建根目录，工作区文件夹也不是构建根目录，靠猜测只会产生这项检查本来要避免的误报。另外，保留字参数仍然会被同一文件中一个无关的错误掩盖，因为收集阶段的失败会跳过本可以发现它的解析阶段。此外，让 <code>bool</code> 或字符串字面量联合绑定保持可匹配的读取点类型固定，只在正在生成的模块内部追踪类型别名，所以一个模块中的 <code>pub type Ready = bool</code> 加上另一个模块中的 <code>let r: catalog.Ready = false</code>，仍然会以 <code>TS2678</code> 落到 <code>tsc</code>。字符串字面量联合在三种导入写法下都能跨模块覆盖，并且从 0.1.123 起，无论哪种写法，诊断都会指出声明（期望 <code>Mode</code>），而不是在其中一种写法下打印它的字面量集合。</p>
+        </div>
+      </div>

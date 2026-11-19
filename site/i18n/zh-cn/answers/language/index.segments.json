@@ -1,0 +1,398 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/language/index.html",
+  "locale": "zh-cn",
+  "source_hash": "5ef4512407bef58a",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Is this a real language, or a toy with gaps? · Glyph",
+      "tr": "这是一门真正的语言，还是一个有很多缺口的玩具？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.",
+      "tr": "模块可见性、用于泛型约束的结构化接口、defer、结构化并发、可以当作值使用的 match，以及它从 JavaScript 继承的语义。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "How do I share mutable state between functions?",
+      "tr": "怎样在函数之间共享可变状态？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "涉及金额、以及我无法控制的输入时，能信任它吗？"
+    },
+    {
+      "id": "h-496114c3",
+      "kind": "html",
+      "en": "15 &middot; Language completeness",
+      "tr": "15 &middot; 语言完整性"
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "这是一门真正的语言，还是一个有很多缺口的玩具？"
+    },
+    {
+      "id": "h-5e5186b9",
+      "kind": "html",
+      "en": "It has the things you reach for in a real codebase: <strong>module visibility</strong>, <strong>interfaces</strong> to constrain generics, <strong>defer</strong> for cleanup, and <strong>concurrency</strong> helpers. Where it leans on JavaScript, it says so instead of pretending otherwise.",
+      "tr": "它具备你在真实代码库中会用到的东西：<strong>模块可见性</strong>、约束泛型的<strong>接口</strong>、用于清理的 <strong>defer</strong>，以及<strong>并发</strong>辅助函数。在依赖 JavaScript 的地方，它会直接说明，而不是假装不是这样。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "h-7139f60a",
+      "kind": "html",
+      "en": "A language you can write one file in but not structure a project in isn't one you'll bet a codebase on. The gaps that matter aren't exotic: can I hide a helper, can a generic require a capability, can I release a file handle on every exit path, can I run two things at once and wait for both. Glyph answers those four, and it does it without reopening the annotation-heavy direction it deliberately dropped.",
+      "tr": "一门能写单个文件、却无法组织一个项目的语言，你不会把代码库押在它身上。真正要紧的缺口并不罕见：能不能隐藏一个辅助函数，泛型能不能要求某种能力，能不能在每条退出路径上释放文件句柄，能不能同时运行两件事并等待两者完成。Glyph 回答了这四个问题，而且没有重新走回它有意放弃的大量注解的方向。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-eaa34178",
+      "kind": "html",
+      "en": "Declarations are private to their module until you mark them <code>pub</code>, so the public surface is one search (<code>grep '^pub'</code>) and a helper never leaks by accident:",
+      "tr": "声明在被标记为 <code>pub</code> 之前都是模块私有的，所以公开接口只需一次搜索（<code>grep '^pub'</code>）就能找到，辅助函数也不会意外泄露出去："
+    },
+    {
+      "id": "h-45b4debe",
+      "kind": "html",
+      "en": "visibility: private by default",
+      "tr": "可见性：默认私有"
+    },
+    {
+      "id": "h-a581c329",
+      "kind": "html",
+      "en": "An <code>interface</code> is structural, like a TypeScript one: it's a set of member signatures a generic can require. No <code>implements</code>, no nominal ceremony. Any value with the members qualifies, and <code>tsc</code> enforces it.",
+      "tr": "<code>interface</code> 是结构化的，和 TypeScript 一样：它是一组泛型可以要求的成员签名。没有 <code>implements</code>，没有名义类型的繁琐手续。任何具有这些成员的值都符合要求，由 <code>tsc</code> 强制检查。"
+    },
+    {
+      "id": "h-b42c746e",
+      "kind": "html",
+      "en": "interfaces constrain generics",
+      "tr": "接口约束泛型"
+    },
+    {
+      "id": "h-1bf73ee3",
+      "kind": "html",
+      "en": "<code>defer</code> runs cleanup when the block exits, on every path, including an early return or a thrown error. Multiple defers run last-in-first-out, and it composes with <code>owned</code> handles. And <code>std/task</code> joins concurrent work with one lifetime instead of leaving detached promises.",
+      "tr": "<code>defer</code> 在代码块退出时运行清理，覆盖每条路径，包括提前返回和抛出错误。多个 defer 按后进先出的顺序运行，并且能与 <code>owned</code> 句柄组合使用。<code>std/task</code> 让并发任务共享同一个生命周期并汇合，而不是留下游离的 promise。"
+    },
+    {
+      "id": "h-4e202025",
+      "kind": "html",
+      "en": "defer + structured concurrency",
+      "tr": "defer + 结构化并发"
+    },
+    {
+      "id": "h-21d0fec4",
+      "kind": "html",
+      "en": "The honest part: Glyph compiles to TypeScript and runs on a JavaScript engine, so evaluation order, value-versus-reference, equality (<code>==</code> is <code>===</code>, no overloading), and the single-threaded garbage-collected model are inherited, not invented. The spec now states them as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "需要说明的是：Glyph 编译成 TypeScript，运行在 JavaScript 引擎上，所以求值顺序、值与引用、相等性（<code>==</code> 就是 <code>===</code>，没有重载）以及单线程、带垃圾回收的模型，都是继承来的，而不是新发明的。规范现在把它们作为保证写明，而不是留给你自己去发现。手动内存管理和非 GC 模型不在路线图上；它们超出了一门转译到 TypeScript 的语言的范围。"
+    },
+    {
+      "id": "h-173a357c",
+      "kind": "html",
+      "en": "There's no <code>if</code>, so <code>match</code> has to carry everything",
+      "tr": "没有 <code>if</code>，所以 <code>match</code> 必须承担一切"
+    },
+    {
+      "id": "h-6de61157",
+      "kind": "html",
+      "en": "The first thing a TypeScript developer asks after the exhaustiveness pitch is whether <code>match</code> is really a general-purpose conditional or just a nice way to destructure a union. It's the former, and the place that proves it is assignment. A <code>match</code> that is the whole value of a <code>let</code> or a <code>mut</code> takes anything a statement takes: an arm can be a block, an arm can <code>await</code>, an arm can <code>break</code> out of the surrounding loop, and an arm can read the binding it is assigning, which is how you fold state through a loop without an <code>if</code>.",
+      "tr": "听完穷尽性的介绍之后，TypeScript 开发者问的第一个问题是：<code>match</code> 真的是一个通用条件结构，还是只是解构联合类型的一种好看写法？答案是前者，而最能证明这一点的地方是赋值。作为 <code>let</code> 或 <code>mut</code> 完整值的 <code>match</code> 可以接受语句能接受的任何东西：分支可以是代码块，分支可以 <code>await</code>，分支可以 <code>break</code> 跳出外层循环，分支还可以读取它正在赋值的那个绑定，这就是在没有 <code>if</code> 的情况下在循环中累积状态的方法。"
+    },
+    {
+      "id": "h-9f6b1d3a",
+      "kind": "html",
+      "en": "from the link checker: fence tracking, and an awaited arm",
+      "tr": "来自链接检查器：代码围栏跟踪，以及一个被 await 的分支"
+    },
+    {
+      "id": "h-037b924c",
+      "kind": "html",
+      "en": "Both compile to a plain <code>switch</code> that assigns the binding per arm, so the <code>await</code> sits in the enclosing async function and the accumulator is a normal variable TypeScript can infer. A <code>match</code> used <em>inside</em> a larger expression, as an argument or an operand, still becomes a closure, which means its arms have to be single expressions. Hoisting it to its own <code>let</code> lifts that. Both snippets are from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>, a Markdown link checker written to find exactly this kind of thing.",
+      "tr": "两者都编译成一个普通的 <code>switch</code>，在每个分支中为绑定赋值，所以 <code>await</code> 位于外层的 async 函数中，累加器是一个 TypeScript 可以推断的普通变量。在更大的表达式<em>内部</em>使用的 <code>match</code>，比如作为参数或操作数，仍然会变成一个闭包，这意味着它的分支必须是单个表达式。把它提到单独的 <code>let</code> 中就没有这个限制了。两段代码都来自 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>，这是一个 Markdown 链接检查器，写它正是为了发现这类问题。"
+    },
+    {
+      "id": "h-bc837f41",
+      "kind": "html",
+      "en": "A pattern can name a shape more than one level down",
+      "tr": "模式可以描述不止一层深的形态"
+    },
+    {
+      "id": "h-a4d66d53",
+      "kind": "html",
+      "en": "A variant with several fields carries a record, so an arm that wants to recognise a shape has to reach through the record's fields. Until 0.1.90 the field position took a name and nothing else: you could rename it, and that was all. Matching a tag there was a compile error, and a nested constructor fell off the parser. The workaround was to bind every field and write a nested <code>match</code> per level, which for anything like a red-black tree rebalance is a different program: the arms stop lining up with the cases and each level re-threads the bindings above it.",
+      "tr": "带多个字段的变体携带的是一个记录，所以想识别某种形态的分支必须深入记录的字段。在 0.1.90 之前，字段位置只能写一个名字：你可以给它改名，仅此而已。在那里匹配标签是编译错误，嵌套的构造函数会让解析器失败。变通做法是绑定每个字段，然后每一层写一个嵌套的 <code>match</code>，而对于红黑树再平衡这样的代码，这就成了另一个程序：分支不再与各种情况一一对应，每一层都要重新传递上一层的绑定。"
+    },
+    {
+      "id": "h-98315c48",
+      "kind": "html",
+      "en": "one rotation case of a red-black rebalance, as one arm",
+      "tr": "红黑树再平衡中的一种旋转情况，写成一个分支"
+    },
+    {
+      "id": "h-c9876574",
+      "kind": "html",
+      "en": "A field takes any pattern now: a variant tag, a nested constructor, a nested destructure, a literal, an array pattern. There is a consequence worth knowing before you write one. A field that tests a value can fail, so the arm no longer counts as covering its variant, and a match whose only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is reported non-exhaustive until a sibling arm or an <code>else</code> takes the rest. The checker proves coverage over a set of tags, not over a product of fields, so it will not work out that a <code>Red</code> arm and a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the catch-all is the reading that cannot let a match fall off its end at run time. The same applies where there are no variants to count at all: a match on a plain record whose every arm tests a field needs an <code>else</code> behind it.",
+      "tr": "现在字段可以接受任何模式：变体标签、嵌套构造函数、嵌套解构、字面量、数组模式。写之前有一个后果值得了解。检测值的字段可能匹配失败，所以这个分支不再被算作覆盖了它的变体；如果一个 match 中唯一的 <code>Node</code> 分支是 <code>Node({ color: Red, ... })</code>，它会被报告为不穷尽，直到有兄弟分支或 <code>else</code> 处理其余情况。检查器证明的是对一组标签的覆盖，而不是对字段乘积的覆盖，所以它不会推断出一个 <code>Red</code> 分支和一个 <code>Black</code> 分支合起来穷尽了 <code>Node</code>。要求兜底分支，是唯一不会让 match 在运行时从末尾掉出去的解读。在根本没有变体可数的地方也一样：对一个普通记录做 match，如果每个分支都检测某个字段，后面就需要一个 <code>else</code>。"
+    },
+    {
+      "id": "h-c4fa5941",
+      "kind": "html",
+      "en": "One place this reaches that you may not expect is the array position. <code>[Black]</code> as a whole arm used to count as matching any one-element array, so a match that leaned on it certified as exhaustive and then took that arm for <code>[Red]</code> as well. A PascalCase element is a variant reference here too, so such a match is now <code>E0208</code> on arrays of length 1. Bind the element and match it on its own. The lowering underneath is still the old one, which is why the check is the half that shipped first.",
+      "tr": "它延伸到的一个可能出乎意料的地方是数组位置。以前 <code>[Black]</code> 作为整个分支会被当作匹配任意单元素数组，所以依赖它的 match 被认证为穷尽，然后对 <code>[Red]</code> 也走了这个分支。PascalCase 的元素在这里同样是变体引用，所以这样的 match 现在在长度为 1 的数组上报告 <code>E0208</code>。先绑定元素，再单独对它做匹配。底层的降级实现仍然是旧的，这也是为什么检查是先发布的那一半。"
+    },
+    {
+      "id": "h-64ab5717",
+      "kind": "html",
+      "en": "And the compiler knows what the <code>match</code> produced",
+      "tr": "编译器也知道 <code>match</code> 产生了什么"
+    },
+    {
+      "id": "h-cffe8865",
+      "kind": "html",
+      "en": "The follow-up question is the one that decides whether any of this is load-bearing: once you bind a value out of a branch, does Glyph know its type, or does it shrug and let <code>tsc</code> sort it out later? Until 0.1.45 it shrugged. Every <code>match</code> expression typed as unknown, so a value that came out of the only branching construct in the language was untyped from that point on. A <code>match</code> now takes its arms' type when they agree, and <code>T.parse</code> is known to return <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most real code branches on.",
+      "tr": "接下来的问题决定了这一切是否真的起作用：一旦你从某个分支中绑定出一个值，Glyph 知道它的类型吗，还是耸耸肩，让 <code>tsc</code> 以后再处理？在 0.1.45 之前它就是耸耸肩。每个 <code>match</code> 表达式的类型都是 unknown，所以从语言中唯一的分支结构里出来的值，从那一刻起就没有类型了。现在当各分支的类型一致时，<code>match</code> 就采用这个类型，并且已知 <code>T.parse</code> 返回 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>，这正是大多数真实代码会据以分支的形态。"
+    },
+    {
+      "id": "h-b03ef1aa",
+      "kind": "html",
+      "en": "from the expense splitter: no annotation, and <code>i</code> is a number",
+      "tr": "来自费用分摊应用：没有注解，<code>i</code> 也是 number"
+    },
+    {
+      "id": "h-9a162c5e",
+      "kind": "html",
+      "en": "Both halves of that are things that used to go wrong quietly. The loop emits <code>wire.expenses.entries()</code>; when the iterand's type is unknown it emits <code>Object.entries(...)</code> instead and <code>i</code> is the <em>string</em> <code>\"0\"</code>, which is legal TypeScript, so the build was clean and the program printed <code>01:a</code> where it meant <code>1:a</code>. And <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no field expensez</code> from Glyph, on the <code>.glyph</code> line, rather than a <code>TS2339</code> on generated TypeScript. The join is equality at the head: an arm that ends in <code>return</code> doesn't vote, and arms whose types disagree leave the result unknown the way it was before. It looks one level deeper only at a type argument, so <code>None =&gt; []</code> agrees with an <code>Array&lt;string&gt;</code> arm instead of sinking the whole <code>match</code>, and the loop after it still binds a number. The same chain over <code>record.get</code> works for the same reason: all six <code>std/record</code> functions carry the value type off the record you pass. The snippet is from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>, which carried the annotation this deleted.",
+      "tr": "这两部分以前都会悄无声息地出错。这个循环生成的是 <code>wire.expenses.entries()</code>；当被迭代对象的类型未知时，它会改为生成 <code>Object.entries(...)</code>，<code>i</code> 就成了<em>字符串</em> <code>\"0\"</code>，这在 TypeScript 中是合法的，所以构建是干净的，而程序在本该打印 <code>1:a</code> 的地方打印了 <code>01:a</code>。而 <code>wire.expensez</code> 现在由 Glyph 在 <code>.glyph</code> 那一行报告为 <code>[E0210] type WireLedger has no field expensez</code>，而不是生成的 TypeScript 上的 <code>TS2339</code>。合并规则是比较类型头部是否相等：以 <code>return</code> 结束的分支不参与，类型不一致的分支会让结果和以前一样是 unknown。它只在类型参数处多看一层，所以 <code>None =&gt; []</code> 与一个 <code>Array&lt;string&gt;</code> 分支是一致的，而不会拖垮整个 <code>match</code>，之后的循环仍然绑定一个 number。基于 <code>record.get</code> 的同样链条也出于同样的原因能工作：<code>std/record</code> 的全部六个函数都会从你传入的记录上带出值的类型。这段代码来自 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>，它原本带着这次删掉的那个注解。"
+    },
+    {
+      "id": "h-3d9615c4",
+      "kind": "html",
+      "en": "from the dependency resolver: a lookup, an empty fallback, an indexed walk",
+      "tr": "来自依赖解析器：一次查找，一个空的回退值，一次按索引遍历"
+    },
+    {
+      "id": "h-360bca16",
+      "kind": "html",
+      "en": "That is the shape this cost the most. <code>record.get</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an array of nothing in particular, so the two arms agree on <code>Array</code> and the element type comes from the arm that has one. Until 0.1.55 they were compared for equality, <code>[]</code> counted as a disagreement, and the loop below printed <code>01:x</code> on a build with no diagnostics that <code>tsc --strict</code> passed. The code is <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>, where it used to open with <code>let path: Array&lt;string&gt;</code> under a three-line comment explaining that the annotation was load-bearing.",
+      "tr": "这是代价最大的形态。对 <code>Record&lt;string, Array&lt;string&gt;&gt;</code> 调用 <code>record.get</code> 得到 <code>Option&lt;Array&lt;string&gt;&gt;</code>，而 <code>[]</code> 是一个元素类型不确定的数组，所以两个分支在 <code>Array</code> 上一致，元素类型来自有元素类型的那个分支。在 0.1.55 之前，它们是按相等比较的，<code>[]</code> 被算作不一致，下面的循环在一个没有诊断、通过了 <code>tsc --strict</code> 的构建上打印出 <code>01:x</code>。代码在 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a> 中，它以前以 <code>let path: Array&lt;string&gt;</code> 开头，上面还有三行注释解释这个注解不可或缺。"
+    },
+    {
+      "id": "h-2a137295",
+      "kind": "html",
+      "en": "Do I have to write <code>pad_start</code> myself?",
+      "tr": "<code>pad_start</code> 要我自己写吗？"
+    },
+    {
+      "id": "h-7e935433",
+      "kind": "html",
+      "en": "The gap you hit first in a real program isn't a type-system feature. It's reaching for <code>string.slice</code> and finding nothing there. Five dogfooding trips in a row filed the same list, and until 0.1.47 six apps in this repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and all of them had a loop where a fold belonged. Those eleven names ship now, and the copies are deleted from all seven apps that had them.",
+      "tr": "在真实程序中最先碰到的缺口不是类型系统特性，而是想用 <code>string.slice</code> 却发现什么也没有。连续五轮内部试用都提交了同样的清单，在 0.1.47 之前，本仓库有六个应用自带 <code>repeat</code>，五个自带 <code>pad_start</code>，而且每个应用都有一个本该用 fold 的循环。这十一个函数现在都已提供，七个应用中的副本也已全部删除。"
+    },
+    {
+      "id": "h-c1723870",
+      "kind": "html",
+      "en": "what landed",
+      "tr": "新增内容"
+    },
+    {
+      "id": "h-7b497297",
+      "kind": "html",
+      "en": "Three of them part ways with their TypeScript namesakes on purpose. <code>repeat</code> returns <code>\"\"</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe on a string that's already too long. Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of <code>-1</code>, because <code>-1</code> is a number that type-checks everywhere a real index does and fails a long way from the call. Replacement ships only as <code>replace_all</code>, so there's no first-only form to confuse with <code>String.prototype.replace</code>, which quietly does one occurrence.",
+      "tr": "其中三个有意与同名的 TypeScript 函数不同。<code>repeat</code> 在次数为负时返回 <code>\"\"</code>，而 TS 会抛出异常，这让 <code>repeat(pad, width - len(s))</code> 在字符串已经过长时也是安全的。两个 <code>index_of</code> 函数都返回 <code>Option&lt;number&gt;</code> 而不是 <code>-1</code>，因为 <code>-1</code> 是一个在所有真实索引能出现的地方都能通过类型检查的数字，出错的地方离调用处很远。替换只提供 <code>replace_all</code>，所以没有只替换第一处的形式，不会与 <code>String.prototype.replace</code> 混淆，后者只会悄悄替换一处。"
+    },
+    {
+      "id": "h-93945406",
+      "kind": "html",
+      "en": "<code>fold</code> is the one that buys a pillar rather than saving typing. <code>mut</code> is the greppable record of every place state changes, and with no fold, <code>grep mut</code> comes back full of counting loops that mutate nothing a reviewer cares about. Deleting the hand-rolled versions took <code>examples/apps/</code> from 192 mutation sites to 161. The rewrite was checked by output, not by review: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.",
+      "tr": "<code>fold</code> 换来的是一个支柱，而不只是少打几个字。<code>mut</code> 是每个状态变化位置的可检索记录，没有 fold 的话，<code>grep mut</code> 返回的结果里满是计数循环，它们修改的东西审查者根本不关心。删掉手写版本后，<code>examples/apps/</code> 中的修改位置从 192 个减少到 161 个。这次改写是通过输出验证的，而不是靠审查：七个应用在改写前后都用固定输入运行，26 个文件的 stdout、退出码和 HTTP 响应，全部逐字节相同。"
+    },
+    {
+      "id": "h-0e58d55a",
+      "kind": "html",
+      "en": "Can I walk a directory and tell what broke?",
+      "tr": "能遍历目录并知道哪里出错了吗？"
+    },
+    {
+      "id": "h-37004ae4",
+      "kind": "html",
+      "en": "<code>std/fs</code> shipped six functions and none of them listed a directory. The link checker in this repo reached past the stdlib into node's <code>readdirSync</code>, and worked out which paths were directories by trying to read them and inspecting the <code>errno</code> that came back. Both halves of that are fixed. <code>fs.read_dir</code> returns the entry names one level down, <code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does, and <code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds, which <code>time.format_iso</code> renders directly. There is no recursive <code>walk</code> and no glob; a walk is those three plus <code>path.join</code> in about ten lines.",
+      "tr": "<code>std/fs</code> 最初提供了六个函数，没有一个能列出目录。本仓库中的链接检查器绕过标准库，直接调用 node 的 <code>readdirSync</code>，并通过尝试读取路径、检查返回的 <code>errno</code> 来判断哪些路径是目录。这两部分都已修复。<code>fs.read_dir</code> 返回下一层的条目名，<code>fs.is_dir</code> 像 <code>fs.exists</code> 一样返回一个 <code>bool</code>，<code>fs.stat</code> 返回一个 <code>FileInfo</code>，包含 <code>is_dir</code>、<code>is_file</code>、以字节计的 <code>size</code>，以及以纪元毫秒计的 <code>modified</code>，可以直接交给 <code>time.format_iso</code> 格式化。没有递归的 <code>walk</code>，也没有 glob；用这三个函数加上 <code>path.join</code>，大约十行就能写出遍历。"
+    },
+    {
+      "id": "h-a937d20c",
+      "kind": "html",
+      "en": "The failure side changed more. <code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the whole taxonomy, so telling &ldquo;that path is a directory&rdquo; from &ldquo;that path is missing&rdquo; meant comparing an errno string. Now the five kinds a program actually recovers from have names, and an errno with no name arrives intact on the <code>Other</code> tail.",
+      "tr": "失败这一侧的变化更大。<code>FsError.kind</code> 以前是 <code>{ tag: string }</code>，整个分类只有 <code>NotFound</code>，所以要区分 &ldquo;该路径是目录&rdquo; 和 &ldquo;该路径不存在&rdquo;，就得比较 errno 字符串。现在程序真正会从中恢复的五种错误都有了名字，没有名字的 errno 会完整地放在 <code>Other</code> 这个兜底变体上。"
+    },
+    {
+      "id": "h-f6e4f77c",
+      "kind": "html",
+      "en": "The checker knows that taxonomy is closed, so a <code>match</code> on <code>err.kind</code> is held to the same bar as a union you declared yourself: cover the six and you need no <code>else</code>, leave one out and the build fails with <code>E0200</code> naming <code>fs.ErrorKind</code>. <code>fs.FsError</code> and <code>fs.FileInfo</code> have checked fields too, so <code>err.mesage</code> is <code>E0210</code> against your Glyph source rather than a <code>tsc</code> error against generated TypeScript.",
+      "tr": "检查器知道这个分类是封闭的，所以对 <code>err.kind</code> 的 <code>match</code> 和对你自己声明的联合类型要求一样：覆盖全部六种就不需要 <code>else</code>，漏掉一种，构建就会失败，报告指出 <code>fs.ErrorKind</code> 的 <code>E0200</code>。<code>fs.FsError</code> 和 <code>fs.FileInfo</code> 的字段也会被检查，所以 <code>err.mesage</code> 是针对你的 Glyph 源码的 <code>E0210</code>，而不是针对生成的 TypeScript 的 <code>tsc</code> 错误。"
+    },
+    {
+      "id": "h-3202b4ab",
+      "kind": "html",
+      "en": "walk a tree, and name what went wrong",
+      "tr": "遍历目录树，并说出哪里出了错"
+    },
+    {
+      "id": "h-43fd3e55",
+      "kind": "html",
+      "en": "Two smaller ones landed with it, both from the same app. <code>regex.captures_all</code> gives you the capture groups of every match instead of just the matched text, so a flat <code>key=value</code> scan stops being a hand-rolled loop. And <code>task.pool_settled</code> is <code>task.pool</code> with <code>all_settled</code>&rsquo;s failure behaviour: bounded concurrency, one outcome per task, and one dead host costs you that host's result rather than every result the pool had collected.",
+      "tr": "同时还加入了两个较小的功能，都来自同一个应用。<code>regex.captures_all</code> 返回每次匹配的捕获组，而不只是匹配到的文本，所以扁平的 <code>key=value</code> 扫描不再需要手写循环。<code>task.pool_settled</code> 是带有 <code>all_settled</code> 失败行为的 <code>task.pool</code>：并发数有上限，每个任务一个结果，一个挂掉的主机只会让你失去这个主机的结果，而不是池子已经收集到的所有结果。"
+    },
+    {
+      "id": "h-c44fd9b3",
+      "kind": "html",
+      "en": "That check is live. Delete the <code>PermissionDenied</code> arm from the <code>match</code> above and <code>glyph check --no-tsc</code> stops with <code>E0200</code>: non-exhaustive match on <code>fs.ErrorKind</code>, missing variants <code>PermissionDenied</code>. When the stdlib model was first written it covered return types only, and a match like this one compiled clean and threw at run time; the field and variant shapes of <code>fs.FsError</code>, <code>fs.FileInfo</code> and <code>fs.ErrorKind</code> are modeled now.",
+      "tr": "这项检查是生效的。把上面 <code>match</code> 中的 <code>PermissionDenied</code> 分支删掉，<code>glyph check --no-tsc</code> 就会以 <code>E0200</code> 停下：对 <code>fs.ErrorKind</code> 的 match 不穷尽，缺少变体 <code>PermissionDenied</code>。标准库模型最初编写时只覆盖返回类型，像这样的 match 能干净地编译，却在运行时抛出异常；现在 <code>fs.FsError</code>、<code>fs.FileInfo</code> 和 <code>fs.ErrorKind</code> 的字段和变体形态都已建模。"
+    },
+    {
+      "id": "h-9250d380",
+      "kind": "html",
+      "en": "How do you know the functions are the right ones?",
+      "tr": "怎么知道这些函数选得对？"
+    },
+    {
+      "id": "h-86ed6abf",
+      "kind": "html",
+      "en": "Because the app that asked for them had to stop working around them before the release counted as done. A library function that ships and a workaround that outlives it are different claims, so the same change that added these four deleted the link checker's copies: the <code>readdirSync</code> import, both <code>errno</code> string comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool. 122 lines came out.",
+      "tr": "因为提出需求的那个应用必须停止绕开它们，这个版本才算完成。一个库函数发布了，和一个变通写法在它发布后仍然存在，是两回事，所以加入这四个函数的同一次改动也删掉了链接检查器里的副本：<code>readdirSync</code> 导入、两处 <code>errno</code> 字符串比较、97 行手写的扫描器，以及遇错即停的任务池。一共删掉了 122 行。"
+    },
+    {
+      "id": "h-23121e09",
+      "kind": "html",
+      "en": "Two of those deletions changed what the program does, and the difference was measured rather than argued. Point the old and new versions at a tree containing a directory you cannot read: the new one prints <code>permission denied</code> and counts the path as unreadable, and the old one, which could only ask whether the errno was <code>EISDIR</code>, left it out of the report entirely. Make one of three URLs throw: <code>pool_settled</code> printed all three rows and named the failure, and <code>pool</code> printed nothing and died on an unhandled rejection, taking the two good results with it.",
+      "tr": "其中两处删除改变了程序的行为，而这种差别是测量出来的，而不是争论出来的。把新旧两个版本指向一个包含不可读目录的目录树：新版本打印 <code>permission denied</code>，并把该路径计为不可读；旧版本只能判断 errno 是否为 <code>EISDIR</code>，于是把它完全排除在报告之外。让三个 URL 中的一个抛出异常：<code>pool_settled</code> 打印了全部三行，并指出了失败的那个；<code>pool</code> 什么也没打印，因一个未处理的 rejection 而退出，两个正常的结果也随之丢失。"
+    },
+    {
+      "id": "h-28994342",
+      "kind": "html",
+      "en": "The scanner rewrite settled a design worry too. Since a capture group that did not participate reads as <code>\"\"</code>, the same as one that matched empty, <code>captures_all</code> looked unable to tell you which branch of an alternation fired. It can, if you write each branch's group around the whole construct rather than around the part you want: a group that fired then starts with <code>`</code>, <code>[</code>, <code>!</code>, or <code>&lt;</code>, and cannot be empty. The possibly-empty piece, the link target, nests inside and is never the thing you ask about. That turned a 180-line character walk into two patterns and a 12-line dispatch, with byte-identical output on the repo's own docs and on a fixture built to break it.",
+      "tr": "扫描器的改写也解决了一个设计上的顾虑。由于没有参与匹配的捕获组读出来是 <code>\"\"</code>，和匹配到空串的捕获组一样，<code>captures_all</code> 看起来无法告诉你多选结构中哪个分支命中了。其实可以，只要把每个分支的捕获组包在整个结构外面，而不是只包住你想要的那部分：命中的组就会以 <code>`</code>、<code>[</code>、<code>!</code> 或 <code>&lt;</code> 开头，不可能为空。可能为空的那部分，也就是链接目标，嵌套在里面，从来不是你要判断的对象。这把一个 180 行的逐字符遍历变成了两个模式加上 12 行的分派代码，在仓库自己的文档和一个专门用来破坏它的测试夹具上，输出都逐字节相同。"
+    },
+    {
+      "id": "h-5e9d4aa9",
+      "kind": "html",
+      "en": "Money doesn't run on floats",
+      "tr": "金额不用浮点数计算"
+    },
+    {
+      "id": "h-859647ed",
+      "kind": "html",
+      "en": "The gap that would end a fintech evaluation on the spot is doing money on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt: an arbitrary-precision integer with a fixed number of fractional digits, so addition, subtraction, and multiplication are exact and division takes an explicit scale and rounding. A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "能当场终结一次金融科技评估的缺口，是用 IEEE-754 的 <code>number</code> 处理金额：<code>0.1 + 0.2</code> 不等于 <code>0.3</code>，超过 2<sup>53</sup> 的值会悄悄丢失精度。<code>std/decimal</code> 是基于 BigInt 的精确十进制定点数：一个任意精度整数加上固定的小数位数，所以加、减、乘都是精确的，除法则需要显式指定小数位数和舍入方式。格式错误的金额会解析为 <code>Err</code>，绝不会悄悄变成 <code>NaN</code>。"
+    },
+    {
+      "id": "h-e374ef99",
+      "kind": "html",
+      "en": "For exact large <em>whole</em> numbers, account ids and counters, there is the <code>bigint</code> type: literals are <code>123n</code>, it emits to a real TypeScript <code>bigint</code>, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id sent as a JSON <code>number</code> is rejected rather than silently rounded past 2<sup>53</sup>.",
+      "tr": "对于精确的大<em>整数</em>，比如账户 id 和计数器，有 <code>bigint</code> 类型：字面量写作 <code>123n</code>，生成真正的 TypeScript <code>bigint</code>，类型为 <code>bigint</code> 的记录字段会在边界上校验 <code>typeof === \"bigint\"</code>，所以以 JSON <code>number</code> 发送的 id 会被拒绝，而不是在超过 2<sup>53</sup> 后被悄悄舍入。"
+    },
+    {
+      "id": "h-78490aad",
+      "kind": "html",
+      "en": "An async callback finally has a type",
+      "tr": "异步回调终于有了类型"
+    },
+    {
+      "id": "h-886579ed",
+      "kind": "html",
+      "en": "A function type was <code>fn(A) -&gt; T</code> and nothing else, which emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a function returning a deferred task, or a record of async handlers, had to go unannotated and the checker stopped looking. <code>async fn(A) -&gt; T</code> is that missing type. It emits <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits <code>() =&gt; Promise&lt;void&gt;</code>.",
+      "tr": "函数类型以前只有 <code>fn(A) -&gt; T</code> 一种，生成 <code>(a: A) =&gt; T</code>。async 函数体不符合这个类型，所以返回延迟任务的函数，或者由 async 处理函数组成的记录，只能不写注解，检查器也就不再检查。<code>async fn(A) -&gt; T</code> 就是缺少的那个类型。它生成 <code>(a0: A) =&gt; Promise&lt;T&gt;</code>，没有返回值的 <code>async fn()</code> 生成 <code>() =&gt; Promise&lt;void&gt;</code>。"
+    },
+    {
+      "id": "h-f88409c6",
+      "kind": "html",
+      "en": "Glyph holds the two apart itself rather than leaving it to <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument, and the message names both sides. The one case it doesn't judge is a <code>void</code> return, where TypeScript lets any function stand.",
+      "tr": "Glyph 自己区分这两者，而不是留给 <code>tsc</code>：在需要 async 函数的地方给出普通函数，在 return 处是 <code>E0204</code>，在调用参数处是 <code>E0211</code>，报错会同时指出两边的类型。它唯一不判断的情况是 <code>void</code> 返回，在那里 TypeScript 允许任何函数。"
+    },
+    {
+      "id": "h-c1b08369",
+      "kind": "html",
+      "en": "a deferred task, and a map of handlers",
+      "tr": "一个延迟任务，以及一个处理函数映射"
+    },
+    {
+      "id": "h-9348ac56",
+      "kind": "html",
+      "en": "A recursive type, matched all the way down",
+      "tr": "递归类型，一直匹配到底"
+    },
+    {
+      "id": "h-0f62e9c9",
+      "kind": "html",
+      "en": "A union can name itself inside its own payload, with its type parameters, and a match arm can nest a constructor pattern inside another constructor pattern&rsquo;s field. Put those together and the balancing rules of a red-black tree are four arms: each one names the exact shape it rewrites, and the compiler is the thing checking the shape rather than a comment above it claiming it. <code>examples/apps/leaderboard/main.glyph</code> is the whole program, a leaderboard that keeps every score in the tree and answers rank, top-N and range queries by walking it instead of re-sorting a log.",
+      "tr": "联合类型可以在自己的负载中连同类型参数引用自身，match 分支可以在一个构造函数模式的字段中嵌套另一个构造函数模式。把这两点结合起来，红黑树的平衡规则就是四个分支：每个分支都写出它要改写的确切形态，由编译器检查这个形态，而不是由上方的一段注释声称它是什么。<code>examples/apps/leaderboard/main.glyph</code> 是完整程序，一个把所有分数保存在树中的排行榜，通过遍历树来回答排名、前 N 名和区间查询，而不是重新排序一份日志。"
+    },
+    {
+      "id": "h-f43b9a36",
+      "kind": "html",
+      "en": "one of the four rotation cases",
+      "tr": "四种旋转情况之一"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-1a261fdc",
+      "kind": "html",
+      "en": "<code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, a union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.",
+      "tr": "对引用兄弟模块类型的两种写法（具名导入和 <code>lib.Secret</code> 注解）都强制执行的 <code>pub</code> 可见性，结构化的 <code>interface</code> 约束，<code>defer</code>，<code>std/task</code>（<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>），作为可书写类型的 <code>async fn(A) -&gt; T</code>，在自己的负载中引用自身的联合类型，以及在另一个构造函数模式的字段中嵌套构造函数模式的分支，作为 <code>let</code> 或 <code>mut</code> 的值、分支中可以使用代码块、<code>await</code> 和循环控制的 <code>match</code>，各分支类型一致时把类型带入程序其余部分的 <code>match</code>，有类型的 <code>T.parse</code>，用于精确金额计算的 <code>std/decimal</code>，用于精确大整数的 <code>bigint</code>，数字分隔符，规范中专门说明继承自 JS 的语义的一节，以及包含 <code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> 和 <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code> 的标准库，再加上 <code>fs.read_dir</code>、<code>fs.is_dir</code>、<code>fs.stat</code>、检查器会强制你遵守的 <code>FsError.kind</code> 分类，以及 <code>regex.captures_all</code>。<code>std/string</code> 和 <code>std/array</code> 的大部分函数现在会把返回类型带入你的程序，所以 <code>string.split</code> 是 <code>Array&lt;string&gt;</code>，遍历它的循环绑定的是数字索引。<code>std/record</code> 也已建模，值的类型从你传入的记录上读取：对 <code>Record&lt;string, Array&lt;string&gt;&gt;</code> 调用 <code>record.get(t, k)</code> 得到 <code>Option&lt;Array&lt;string&gt;&gt;</code>，<code>record.keys(t)</code> 是 <code>Array&lt;string&gt;</code>，所以 <code>array.sort(record.keys(t), cmp)</code> 保留了元素类型。"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "边界在哪里"
+    },
+    {
+      "id": "h-02415819",
+      "kind": "html",
+      "en": "A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible. A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union. The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>. Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time. One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics. Binding a field, or matching a tag with no payload in one, works in every case.",
+      "tr": "导入私有名字时报告的是 &ldquo;not exported by M&rdquo;，和名字不存在时的报错相同；区分 &ldquo;私有，请标记为 <code>pub</code>&rdquo; 和 &ldquo;没有这个名字&rdquo; 是一项已排队的改进。可见性在类型注解上检查，而不检查通过命名空间读取的值：<code>helper</code> 是私有的时候，<code>lib.helper()</code> 仍然是 <code>tsc</code> 错误，而不是 Glyph 错误。异步上下文现在会检查（<code>E0222</code>），只有一处例外：模块级 <code>const</code> 初始化表达式没有外围可调用体，所以那里允许顶层 <code>await</code>，生成的 ESM 会执行它。分支类型合并仍然要求各分支的类型头部一致：当它们产生不同类型时，结果对 Glyph 来说是未知的，只有 <code>tsc</code> 会检查你怎样使用它。九个标准库函数处于同样的境地。其中六个接受一个可选的末尾参数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>），而参数个数检查只是拿一个数字和一个数字比较，所以为它们建模会在每个省略最后一个参数的调用上报出误报；<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 的元素类型来自回调，而检查器不会深入回调。直接从这九个函数得到的值，在按索引遍历之前需要加注解，对 <code>string.index_of</code> 的 <code>match</code> 如果没有 <code>None</code> 分支，仍然能干净地构建，并在运行时抛出异常。<code>array.index_of</code> 已经建模，确实会报告 <code>E0200</code>。对检查器无法确定类型的值，成员和调用参数个数在这个边界上仍不检查，而不是报错。在库这一侧，<code>string</code> 按 UTF-16 码元索引，和 <code>len</code> 与 <code>split</code> 一直以来的做法一样，这一点已经定下来：没有 <code>chars</code> 或 <code>char_at</code>，也不打算提供，因为返回的半个代理对在被写出之前看起来都像一个字符。用 <code>encoding.hex_encode</code> 编码，然后每次读取两个十六进制数字。<code>captures_all</code> 只返回捕获组，不返回偏移量，所以需要知道匹配从行中哪个位置开始的扫描器仍然要自己写循环；<code>fs.read_dir</code> 按操作系统的顺序返回条目，当输出需要可复现时请自行排序。嵌套字段模式还剩一个边界情况：通过命名空间导入访问的联合类型上，位于字段中、携带负载的构造函数。<code>import tree { Node }</code> 之后写 <code>Node({ left: Node({ key: k }) })</code> 能编译，而 <code>import tree</code> 之后写 <code>tree.Node({ left: tree.Node({ key: k }) })</code> 在同一个联合类型上报告 <code>E0300</code>。另一个边界情况已经解决：对自身类型参数泛型的联合类型（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）以前会拒绝不带参数的同一联合类型所接受的嵌套分支，现在无论是开放的类型参数还是具体的实例化都能接受。同一个查找过程还决定着 match 是否会检查缺少的变体，所以在这个版本之前，对 <code>Tree&lt;K&gt;</code> 的 <code>match</code> 可以省略 <code>Leaf</code>，干净地构建，通过 <code>tsc --strict</code>，然后在运行时抛出异常，而非泛型写法会报告 <code>E0200</code>。现在两种写法都会报告，而且把联合类型移到另一个模块再导入也不会改变答案：对导入的 <code>Tree&lt;string&gt;</code> 做 <code>match</code> 而省略 <code>Leaf</code>，会报告指出 <code>Leaf</code> 的 <code>E0200</code>，和导入的非泛型 <code>Tree</code> 一样。那是另一条代码路径，单独检查，在这个版本之前结果正好相反：干净地构建，在运行时抛出异常。关于导入的联合类型的覆盖检查，在依赖它之前还有一点值得了解：它的变体负载也从不检查，所以当 <code>X</code> 是负载自身联合类型的一个变体时，<code>B(X)</code> 会匹配每个 <code>B</code>，而不是报告缺少 <code>Y</code>，这一点与泛型无关。绑定字段，或者在字段中匹配不带负载的标签，在所有情况下都能工作。"
+    }
+  ]
+}

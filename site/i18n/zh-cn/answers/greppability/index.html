@@ -1,0 +1,72 @@
+---
+title: 智能体（或者我）能找到任何东西的定义位置吗？ · Glyph
+description: Glyph 中的每种结构都只有一种可供搜索的形式，所以 grep（或智能体的搜索）会落在唯一的定义上，而不是五十个似是而非的结果。
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; 上一篇 | 智能体的编辑会保持干净，还是会把整个文件重新格式化？
+next: /answers/why-typescript/ | 下一篇 &rarr; | 为什么是 TypeScript，而不是 Go 或者一门全新的语言？
+---
+      <p class="q-eyebrow">03 &middot; 靠搜索导航</p>
+      <h1 class="q-title">智能体（或者我）能找到任何东西的定义位置吗？</h1>
+
+      <p class="short-answer">
+        每种结构都<strong>只有一种形式</strong>可供搜索。普通的 <code>grep</code>（智能体实际导航代码的方式）会落在唯一的定义上，<strong>而不是五十个似是而非的结果</strong>。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么重要</h2>
+        <p>
+          智能体不会把整个仓库记在脑子里，它靠<strong>搜索</strong>。如果一个概念有五种写法，搜索就会漏掉一些情况，而一个找不到现有定义却很自信的智能体会再造一个。一个概念只有一种形式，意味着搜索是完整的，所以智能体会修改已有的东西，而不是复制一份。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>Glyph 把修改限制为两种形式（<code>mut x = &hellip;</code> 和 <code>mut x.method(&hellip;)</code>），所以状态发生变化的<em>每一个</em>地方都能通过一次搜索找到：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/（代码库中的每一处修改）</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          三处修改，全部在一次搜索中找到。在 TypeScript 中，修改可能藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开运算之后。没有一个能 grep 的标记，所以&ldquo;有没有东西会改动它？&rdquo;这个问题没有可靠的答案。同样的单一形式规则让许多类别都可以审计：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">一次搜索 = 一个完整的答案</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          没有对象字面量简写，没有声明组件的第二种方式，也没有需要消歧的重载语法。写法更少确实是一种约束，而这正是目的：它让智能体的搜索和你的搜索都值得信赖。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph 为了让搜索可信而舍弃了哪些结构，以及为什么 lint 规则不能提供同样的保证，见<a href="/pillars/greppability/">可检索性支柱页面</a>。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>每种结构只有一种标准形式，修改限制为两种可以 grep 的形式（<code>mut</code>），并且用一个关键字就能完成审计（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">在此之上</h3>
+          <p>语言服务器增加了覆盖整个工作区的跳转到定义和查找引用：同样的保证，现在可以在编辑器中交互使用。</p>
+        </div>
+      </div>

@@ -1,0 +1,1212 @@
+{
+  "_about": "The texts of each case in catches/ as the generated pages show them. Translate each \"tr\" from its \"en\"; keep tags, <code> content and placeholders. A case whose English changes shows in English until its \"tr\" is redone. See site/i18n/README.md.",
+  "locale": "zh-cn",
+  "cases": {
+    "absent-map-key": {
+      "page_title": {
+        "en": "A key that may not be there",
+        "tr": "可能不存在的键"
+      },
+      "why": {
+        "en": "Reading a field from a row of strings, with the name misspelled.",
+        "tr": "从一行字符串里读取字段，字段名拼错了。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints undefined",
+        "tr": "能编译，运行时打印 undefined"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>Any key reads as a <code>string</code>,</b> even one that is not there, so the misspelled field prints <code>undefined</code>.",
+        "tr": "<b>任何键读出来都是 <code>string</code>，</b>即使键根本不存在，所以拼错的字段打印出 <code>undefined</code>。"
+      },
+      "glyph_result": {
+        "en": "<b>A map read says it might be empty,</b> so the code has to say what happens then.",
+        "tr": "<b>从 map 读取时会表明结果可能为空，</b>所以代码必须写明为空时怎么办。"
+      },
+      "page_note": {
+        "en": "TypeScript's <code>Record&lt;string, string&gt;</code> claims every possible key has a string. Glyph treats it as a map, where a lookup can find nothing, so it refuses the correctly spelled <code>row.name</code> too.",
+        "tr": "TypeScript 的 <code>Record&lt;string, string&gt;</code> 声称每个可能的键都有一个字符串。Glyph 把它当作 map，查找可能什么都找不到，所以连拼写正确的 <code>row.name</code> 也会被拒绝。"
+      }
+    },
+    "array-covariance": {
+      "page_title": {
+        "en": "Array covariance",
+        "tr": "数组协变"
+      },
+      "why": {
+        "en": "Passing a list of dogs where a list of animals is expected.",
+        "tr": "在需要动物列表的地方传入了狗的列表。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "能编译，运行时崩溃"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>A cat ends up in the list of dogs.</b>",
+        "tr": "<b>一只猫进了狗的列表。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A list of dogs is not a writable list of animals.</b>",
+        "tr": "<b>狗的列表不是可写的动物列表。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript lets <code>Dog[]</code> stand in for <code>Animal[]</code> even when the function adds to it.",
+        "tr": "即使函数会往数组里添加元素，TypeScript 也允许用 <code>Dog[]</code> 代替 <code>Animal[]</code>。"
+      }
+    },
+    "arrow-function-returns-nothing": {
+      "page_title": {
+        "en": "An arrow function that returns nothing",
+        "tr": "什么都不返回的箭头函数"
+      },
+      "why": {
+        "en": "Mapping users to rows.",
+        "tr": "把用户映射成表格行。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "能编译，但结果是错的"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "根本写不出来"
+      },
+      "ts_result": {
+        "en": "<b>The braces are a function body,</b> and <code>label:</code> is a statement label.",
+        "tr": "<b>这对花括号是函数体，</b>而 <code>label:</code> 是语句标签。"
+      },
+      "glyph_result": {
+        "en": "<b>The ambiguous form is not valid Glyph.</b>",
+        "tr": "<b>这种有歧义的写法在 Glyph 中不合法。</b>"
+      },
+      "page_note": {
+        "en": "To return an object from a TypeScript arrow function, the braces need parentheses: <code>u =&gt; ({ ... })</code>.",
+        "tr": "要在 TypeScript 箭头函数里返回对象，花括号外面需要加括号：<code>u =&gt; ({ ... })</code>。"
+      }
+    },
+    "as-unknown-as": {
+      "page_title": {
+        "en": "<code>as unknown as T</code>",
+        "tr": "<code>as unknown as T</code>"
+      },
+      "why": {
+        "en": "Forcing a value into the type you want.",
+        "tr": "把一个值强行变成想要的类型。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "能编译，运行时崩溃"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "根本写不出来"
+      },
+      "ts_result": {
+        "en": "<b>A double cast switches checking off.</b>",
+        "tr": "<b>两次类型断言就把检查关掉了。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>There is no cast to write.</b> The help says what to do instead.",
+        "tr": "<b>根本没有类型断言可写。</b>帮助信息会告诉你该怎么做。"
+      },
+      "page_note": {
+        "en": "<code>as unknown as T</code> is how agents silence a type error they can't fix.",
+        "tr": "智能体修不好类型错误时，就用 <code>as unknown as T</code> 让它闭嘴。"
+      }
+    },
+    "change-hidden-in-a-helper": {
+      "page_title": {
+        "en": "A change hidden in a helper",
+        "tr": "藏在辅助函数里的修改"
+      },
+      "why": {
+        "en": "A function that edits the object it was given.",
+        "tr": "一个会修改传入对象的函数。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "refused until it is marked",
+        "tr": "标注之前一直被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The caller's user is renamed.</b> Nothing at the call site says so.",
+        "tr": "<b>调用方的用户被改了名。</b>调用处看不出任何迹象。"
+      },
+      "glyph_result": {
+        "en": "<b>Changing a field takes <code>mut</code>.</b>",
+        "tr": "<b>修改字段需要 <code>mut</code>。</b>"
+      },
+      "page_note": {
+        "en": "Glyph does not forbid the change. It makes it visible: searching for <code>mut</code> lists every field a function writes.",
+        "tr": "Glyph 并不禁止这种修改，而是让它可见：搜索 <code>mut</code> 就能列出函数写入的每个字段。"
+      }
+    },
+    "code-after-return": {
+      "page_title": {
+        "en": "Code after <code>return</code>",
+        "tr": "<code>return</code> 之后的代码"
+      },
+      "why": {
+        "en": "Adding tax after the function already returned.",
+        "tr": "函数已经返回之后才加税。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "给出警告"
+      },
+      "ts_result": {
+        "en": "<b>The tax line never runs.</b>",
+        "tr": "<b>加税那一行永远不会执行。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dead line.</b>",
+        "tr": "<b>Glyph 会指出这行死代码。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only shows unreachable code as a faded hint in the editor by default.",
+        "tr": "默认情况下，TypeScript 只在编辑器里把不可达代码显示成淡色提示。"
+      }
+    },
+    "comparing-records-with-triple-equals": {
+      "page_title": {
+        "en": "Comparing two records with <code>===</code>",
+        "tr": "用 <code>===</code> 比较两个记录"
+      },
+      "why": {
+        "en": "Skipping a save when nothing changed.",
+        "tr": "没有变化时跳过保存。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then compares identity, not data",
+        "tr": "能编译，但比较的是引用而不是数据"
+      },
+      "glyph_verdict": {
+        "en": "compares the data",
+        "tr": "比较的是数据"
+      },
+      "ts_result": {
+        "en": "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs.",
+        "tr": "<b>数据相同，但 <code>===</code> 问的是它们是不是同一个对象。</b>每次都会保存。"
+      },
+      "glyph_result": {
+        "en": "<b>Two records with the same fields are equal.</b>",
+        "tr": "<b>字段相同的两个记录相等。</b>"
+      },
+      "page_note": {
+        "en": "This is JavaScript working as designed: <code>===</code> on objects compares identity, and comparing data needs a helper such as lodash's <code>isEqual</code>. The mistake is reaching for <code>===</code> when the data was meant. In Glyph <code>==</code> on records compares the data, so the obvious spelling is the right one.",
+        "tr": "这是 JavaScript 的设计本意：对象上的 <code>===</code> 比较的是引用，比较数据需要 lodash 的 <code>isEqual</code> 之类的辅助函数。错误在于本想比较数据，却用了 <code>===</code>。在 Glyph 中，记录上的 <code>==</code> 比较的是数据，所以最直观的写法就是正确的写法。"
+      }
+    },
+    "computed-value-never-used": {
+      "page_title": {
+        "en": "A computed value that is never used",
+        "tr": "算出来却从没用过的值"
+      },
+      "why": {
+        "en": "Cleaning an input, then returning the original by mistake.",
+        "tr": "清洗了输入，却不小心返回了原始值。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "给出警告"
+      },
+      "ts_result": {
+        "en": "<b>The cleaning never happens.</b>",
+        "tr": "<b>清洗根本没有生效。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the unused value.</b>",
+        "tr": "<b>Glyph 会指出这个没用到的值。</b>"
+      },
+      "page_note": {
+        "en": "<code>noUnusedLocals</code> is not part of <code>--strict</code>, so TypeScript says nothing by default.",
+        "tr": "<code>noUnusedLocals</code> 不属于 <code>--strict</code>，所以 TypeScript 默认什么也不说。"
+      }
+    },
+    "config-with-a-setting-missing": {
+      "page_title": {
+        "en": "A config with a setting missing",
+        "tr": "缺了一项设置的配置"
+      },
+      "why": {
+        "en": "A limit for each plan, loaded from a file someone forgot to update.",
+        "tr": "每个套餐的限额，从一个有人忘了更新的文件加载。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "数据到达时检查"
+      },
+      "ts_result": {
+        "en": "<b>The type promises every plan has a limit.</b> The file does not.",
+        "tr": "<b>类型承诺每个套餐都有限额。</b>文件里却没有。"
+      },
+      "glyph_result": {
+        "en": "<b>Every plan must be there, and nothing else.</b>",
+        "tr": "<b>每个套餐都必须存在，且不能有多余的。</b>"
+      },
+      "page_note": {
+        "en": "<code>Record&lt;Plan, number&gt;</code> promises a value for every plan, and <code>as</code> never looks. Glyph requires every key in the type and refuses extra ones.",
+        "tr": "<code>Record&lt;Plan, number&gt;</code> 承诺每个套餐都有值，而 <code>as</code> 从来不检查。Glyph 要求类型里的每个键都存在，并拒绝多余的键。"
+      }
+    },
+    "connection-left-open": {
+      "page_title": {
+        "en": "A connection left open",
+        "tr": "没关闭的连接"
+      },
+      "why": {
+        "en": "Returning early before cleanup.",
+        "tr": "在清理之前提前返回。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then leaks a connection",
+        "tr": "能编译，运行时泄漏连接"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>Every rejected request leaks a connection.</b>",
+        "tr": "<b>每个被拒绝的请求都会泄漏一个连接。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Every path must close it.</b>",
+        "tr": "<b>每条路径都必须关闭它。</b>"
+      },
+      "page_note": {
+        "en": "This check applies to values declared <code>owned</code>. A resource without it is not tracked.",
+        "tr": "这项检查只针对声明为 <code>owned</code> 的值。没有声明的资源不会被跟踪。"
+      }
+    },
+    "data-from-outside-the-program": {
+      "page_title": {
+        "en": "Data from outside the program",
+        "tr": "来自程序外部的数据"
+      },
+      "why": {
+        "en": "A request body, a file, an API response.",
+        "tr": "请求体、文件、API 响应。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "数据到达时检查"
+      },
+      "ts_result": {
+        "en": "<b>Nothing checks the data.</b> <code>undefined</code> travels on as a plan.",
+        "tr": "<b>没有任何东西检查数据。</b><code>undefined</code> 被当作套餐一路传下去。"
+      },
+      "glyph_result": {
+        "en": "<b>A body that is not a real <code>User</code> is an <code>Err</code>.</b> The program never holds a fake one.",
+        "tr": "<b>不是真正 <code>User</code> 的请求体会得到 <code>Err</code>。</b>程序里永远不会出现假的 User。"
+      },
+      "page_note": {
+        "en": "<code>as User</code> does not check anything. It tells the compiler to trust you. Glyph has no <code>as</code>.",
+        "tr": "<code>as User</code> 什么都不检查，只是让编译器相信你。Glyph 没有 <code>as</code>。"
+      }
+    },
+    "duplicate-case": {
+      "page_title": {
+        "en": "A duplicate case",
+        "tr": "重复的 case"
+      },
+      "why": {
+        "en": "Deciding which orders can be refunded.",
+        "tr": "判断哪些订单可以退款。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The second rule is dead.</b> Nobody notices.",
+        "tr": "<b>第二条规则是死代码。</b>没人注意到。"
+      },
+      "glyph_result": {
+        "en": "<b>An arm that can never run is an error.</b>",
+        "tr": "<b>永远不会执行的分支是错误。</b>"
+      },
+      "page_note": {
+        "en": "tsc does not flag a <code>case</code> label that appears twice.",
+        "tr": "tsc 不会标出出现两次的 <code>case</code> 标签。"
+      }
+    },
+    "error-nobody-looked-at": {
+      "page_title": {
+        "en": "An error nobody looked at",
+        "tr": "没人看的错误"
+      },
+      "why": {
+        "en": "Calling something that can fail and moving on.",
+        "tr": "调用一个可能失败的函数，然后就不管了。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "warned",
+        "tr": "给出警告"
+      },
+      "ts_result": {
+        "en": "<b>The failure is dropped</b> and the user is told it worked.",
+        "tr": "<b>失败被丢掉了，</b>用户却被告知操作成功。"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph points at the dropped failure.</b>",
+        "tr": "<b>Glyph 会指出被丢掉的失败。</b>"
+      },
+      "page_note": {
+        "en": "A warning, not an error. To drop it on purpose, say so: <code>let _ = save(user)</code>.",
+        "tr": "这是警告，不是错误。要有意丢弃，就明确写出来：<code>let _ = save(user)</code>。"
+      }
+    },
+    "error-the-signature-hides": {
+      "page_title": {
+        "en": "An error the signature hides",
+        "tr": "函数签名隐藏的错误"
+      },
+      "why": {
+        "en": "A function that can fail, called by code that does not know it can.",
+        "tr": "一个可能失败的函数，调用它的代码却不知道它会失败。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "能编译，运行时崩溃"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The type says <code>Config</code>.</b> Nothing says it can throw.",
+        "tr": "<b>类型写的是 <code>Config</code>。</b>没有任何地方说明它会抛异常。"
+      },
+      "glyph_result": {
+        "en": "<b>Failure is part of the return type,</b> so the caller has to handle it.",
+        "tr": "<b>失败是返回类型的一部分，</b>所以调用方必须处理它。"
+      },
+      "page_note": {
+        "en": "A TypeScript function's type lists what it returns, never what it throws. In Glyph, failure is part of the return type, so every caller can see it.",
+        "tr": "TypeScript 函数的类型只列出它返回什么，从不列出它抛出什么。在 Glyph 中，失败是返回类型的一部分，每个调用方都能看到。"
+      }
+    },
+    "filter-that-keeps-everyone": {
+      "page_title": {
+        "en": "A filter that keeps everyone",
+        "tr": "谁都能通过的过滤器"
+      },
+      "why": {
+        "en": "Checking each user against an async permission call.",
+        "tr": "对每个用户调用异步的权限检查。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "能编译，但结果是错的"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>Nothing is filtered out.</b>",
+        "tr": "<b>什么都没被过滤掉。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>An async function is not a yes/no answer.</b>",
+        "tr": "<b>异步函数不是一个是/否的答案。</b>"
+      },
+      "page_note": {
+        "en": "An async function returns a Promise, and any Promise counts as true. A permission filter built this way lets everyone through.",
+        "tr": "异步函数返回 Promise，而任何 Promise 都算作 true。这样写的权限过滤器会放所有人通过。"
+      }
+    },
+    "gap-g380-mutation-without-mut": {
+      "summary": {
+        "en": "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it.",
+        "tr": "辅助函数里的 <code>xs.sort(...)</code> 会重排调用方的数组，却没有 <code>mut</code> 标记。"
+      }
+    },
+    "gap-g381-member-read-on-unknown": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "对字符串做 <code>input + 1</code>、<code>users.find(...).name</code>，以及在 <code>unknown</code> 上读取字段，这些只有 <code>tsc</code> 这一步能发现，Glyph 自己的检查器发现不了，所以编辑器和智能体工具都会漏掉。"
+      }
+    },
+    "gap-g382-string-plus-number": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "对字符串做 <code>input + 1</code>、<code>users.find(...).name</code>，以及在 <code>unknown</code> 上读取字段，这些只有 <code>tsc</code> 这一步能发现，Glyph 自己的检查器发现不了，所以编辑器和智能体工具都会漏掉。"
+      }
+    },
+    "gap-g384-dropped-async-call": {
+      "summary": {
+        "en": "<code>forEach(async ...)</code> drops every promise, so the work finishes after the code that depends on it, and nothing warns.",
+        "tr": "<code>forEach(async ...)</code> 会丢掉每个 promise，于是这些工作在依赖它的代码之后才完成，而且没有任何警告。"
+      }
+    },
+    "gap-g385-record-in-template": {
+      "summary": {
+        "en": "<code>\"Welcome back, ${user}!\"</code> with a record prints <code>[object Object]</code>.",
+        "tr": "把记录放进 <code>\"Welcome back, ${user}!\"</code> 会打印出 <code>[object Object]</code>。"
+      }
+    },
+    "gap-g386-or-on-a-number": {
+      "summary": {
+        "en": "<code>requested || 3</code> turns a real <code>0</code> into <code>3</code>.",
+        "tr": "<code>requested || 3</code> 会把真实的 <code>0</code> 变成 <code>3</code>。"
+      }
+    },
+    "gap-g387-sql-by-interpolation": {
+      "summary": {
+        "en": "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>.",
+        "tr": "用 <code>${name}</code> 拼出来的 SQL 查询会被 <code>std/sqlite</code> 接受。"
+      }
+    },
+    "gap-g388-sort-as-text": {
+      "summary": {
+        "en": "<code>.sort()</code> on numbers sorts them as text: <code>100,25,9</code>.",
+        "tr": "对数字调用 <code>.sort()</code> 会按文本排序：<code>100,25,9</code>。"
+      }
+    },
+    "gap-g390-index-update-across-await": {
+      "summary": {
+        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
+        "tr": "在 <code>c[0]</code> 上跨 <code>await</code> 的丢失更新，而对字段做同样的写入会被拒绝。"
+      }
+    },
+    "gap-g391-null-in-optional-field": {
+      "summary": {
+        "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",
+        "tr": "可选字段里的 JSON <code>null</code> 能通过检查，所以用展开覆盖默认值时会留下 <code>null</code>。"
+      }
+    },
+    "gap-g392-find-method-option": {
+      "summary": {
+        "en": "<code>input + 1</code> on a string, <code>users.find(...).name</code>, and a field read on <code>unknown</code> are caught only by the <code>tsc</code> step, not by Glyph's own checker, so the editor and agent tools miss them.",
+        "tr": "对字符串做 <code>input + 1</code>、<code>users.find(...).name</code>，以及在 <code>unknown</code> 上读取字段，这些只有 <code>tsc</code> 这一步能发现，Glyph 自己的检查器发现不了，所以编辑器和智能体工具都会漏掉。"
+      }
+    },
+    "invalid-date": {
+      "page_title": {
+        "en": "An invalid date",
+        "tr": "无效日期"
+      },
+      "why": {
+        "en": "Parsing a date from a form.",
+        "tr": "从表单解析日期。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives a wrong date or crashes",
+        "tr": "能编译，但得到错误的日期或者崩溃"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "根本写不出来"
+      },
+      "ts_result": {
+        "en": "<b>Bad dates roll over</b> into real ones.",
+        "tr": "<b>无效日期会顺延</b>成真实的日期。"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing can fail, and the type says so.</b>",
+        "tr": "<b>解析可能失败，类型会说明这一点。</b>"
+      },
+      "page_note": {
+        "en": "JavaScript's <code>Date</code> turns February 30 into March 2 without complaint. Glyph has no <code>Date</code>; <code>time.parse_iso</code> returns <code>None</code>.",
+        "tr": "JavaScript 的 <code>Date</code> 会把 2 月 30 日一声不吭地变成 3 月 2 日。Glyph 没有 <code>Date</code>；<code>time.parse_iso</code> 返回 <code>None</code>。"
+      }
+    },
+    "lost-update-across-await": {
+      "page_title": {
+        "en": "A lost update across <code>await</code>",
+        "tr": "跨 <code>await</code> 的丢失更新"
+      },
+      "why": {
+        "en": "Two requests charge the same account at once.",
+        "tr": "两个请求同时向同一个账户扣款。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then loses money at run time",
+        "tr": "能编译，运行时丢钱"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>One charge vanishes.</b> No test reliably catches it.",
+        "tr": "<b>有一笔扣款消失了。</b>没有哪个测试能稳定地发现它。"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph spots the read-then-write around the wait.</b>",
+        "tr": "<b>Glyph 能发现跨等待的先读后写。</b>"
+      },
+      "page_note": {
+        "en": "While one call waits on <code>fee()</code>, another can update the balance. The first then writes back a stale value.",
+        "tr": "一个调用在等待 <code>fee()</code> 时，另一个调用可能更新了余额。随后第一个调用写回的是过期的值。"
+      }
+    },
+    "median-with-a-fractional-index": {
+      "page_title": {
+        "en": "A median with a fractional index",
+        "tr": "用小数下标求中位数"
+      },
+      "why": {
+        "en": "Taking the middle of a sorted list.",
+        "tr": "取排序后列表的中间值。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "能编译，但结果是错的"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "运行时拦下"
+      },
+      "ts_result": {
+        "en": "<b>Reading index 1.5 gives <code>undefined</code>,</b> and the caller's arithmetic turns it into <code>NaN</code>.",
+        "tr": "<b>读取下标 1.5 得到 <code>undefined</code>，</b>调用方的算术运算又把它变成 <code>NaN</code>。"
+      },
+      "glyph_result": {
+        "en": "<b>A bad index stops the program</b> instead of spreading <code>NaN</code>.",
+        "tr": "<b>错误的下标会让程序停下，</b>而不是让 <code>NaN</code> 扩散。"
+      },
+      "page_note": {
+        "en": "Glyph checks every array index when the code runs. This one is not caught at build time.",
+        "tr": "Glyph 在代码运行时检查每个数组下标。这个问题在构建时发现不了。"
+      }
+    },
+    "method-forgets-its-object": {
+      "page_title": {
+        "en": "A method that forgets its object",
+        "tr": "忘了自己对象的方法"
+      },
+      "why": {
+        "en": "Passing a method around as a value.",
+        "tr": "把方法当作值传来传去。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "能编译，运行时崩溃"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The method is pulled off its string</b> and loses track of it.",
+        "tr": "<b>方法从它的字符串上被取了下来，</b>不再知道自己属于谁。"
+      },
+      "glyph_result": {
+        "en": "<b>A method has to be called where it is read.</b> Pass a function instead.",
+        "tr": "<b>方法必须在读取的地方调用。</b>请改为传函数。"
+      },
+      "page_note": {
+        "en": "A TypeScript method depends on the object it is called on (<code>this</code>). Taken out of <code>name.toUpperCase()</code> as a value, it no longer knows which string to use.",
+        "tr": "TypeScript 的方法依赖于调用它的对象（<code>this</code>）。从 <code>name.toUpperCase()</code> 中取出来当值用时，它就不知道该用哪个字符串了。"
+      }
+    },
+    "negative-age": {
+      "page_title": {
+        "en": "A negative age",
+        "tr": "负数年龄"
+      },
+      "why": {
+        "en": "A rule about a value, not just its type.",
+        "tr": "关于值的规则，而不只是关于类型。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "数据到达时检查"
+      },
+      "ts_result": {
+        "en": "<b>The rule lives in a comment,</b> where nothing enforces it.",
+        "tr": "<b>规则写在注释里，</b>没有任何东西强制执行它。"
+      },
+      "glyph_result": {
+        "en": "<b>The rule is part of the type,</b> and checked with it.",
+        "tr": "<b>规则是类型的一部分，</b>和类型一起检查。"
+      },
+      "page_note": {
+        "en": "In TypeScript, a rule like \"never negative\" lives in a comment or a separate validator. In Glyph it is part of the type, so every check of the type enforces it.",
+        "tr": "在 TypeScript 中，“不能为负”这样的规则只能写在注释或单独的校验器里。在 Glyph 中它是类型的一部分，所以每次对该类型的检查都会执行它。"
+      }
+    },
+    "non-exhaustive-match": {
+      "page_title": {
+        "en": "A case nobody handled",
+        "tr": "没人处理的情况"
+      },
+      "why": {
+        "en": "An agent adds an <code>\"archived\"</code> status. The handler that announces each status was written before it existed.",
+        "tr": "智能体新增了 <code>\"archived\"</code> 状态。负责通报每种状态的处理函数写于它出现之前。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>Archiving an item logs nothing.</b> Nothing says the <code>switch</code> is out of date.",
+        "tr": "<b>归档一个条目时什么日志都没有。</b>没有任何提示说这个 <code>switch</code> 已经过时。"
+      },
+      "glyph_result": {
+        "en": "<b>The build stops and names the case.</b>",
+        "tr": "<b>构建停止，并指出是哪种情况。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript checks that a <code>switch</code> covers every case only when the function returns a value from every branch, or with the <code>assertNever</code> idiom. A handler that returns nothing gets neither. In Glyph every <code>match</code> must cover every case, so adding a variant lists each place that has to change.",
+        "tr": "只有当函数在每个分支都返回值，或者使用 <code>assertNever</code> 惯用法时，TypeScript 才会检查 <code>switch</code> 是否覆盖了每种情况。不返回任何值的处理函数两者都得不到。在 Glyph 中每个 <code>match</code> 都必须覆盖所有情况，所以新增一个变体就会列出每个需要修改的地方。"
+      }
+    },
+    "number-accepted-as-enum": {
+      "page_title": {
+        "en": "A number accepted as an enum",
+        "tr": "被当作枚举接受的数字"
+      },
+      "why": {
+        "en": "A status code read from the database.",
+        "tr": "从数据库读出的状态码。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then picks the wrong state",
+        "tr": "能编译，但选中了错误的状态"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>An unknown code becomes a real status.</b>",
+        "tr": "<b>未知的状态码变成了一个真实的状态。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>A number is not a <code>Status</code>.</b>",
+        "tr": "<b>数字不是 <code>Status</code>。</b>"
+      },
+      "page_note": {
+        "en": "Any number is assignable to a numeric enum in TypeScript, even one with no matching member.",
+        "tr": "在 TypeScript 中，任何数字都能赋给数字枚举，即使没有对应的成员。"
+      }
+    },
+    "number-that-is-not-a-number": {
+      "page_title": {
+        "en": "A number that is not a number",
+        "tr": "不是数字的数字"
+      },
+      "why": {
+        "en": "User input, a query string, a CSV cell.",
+        "tr": "用户输入、查询字符串、CSV 单元格。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b><code>NaN</code> spreads</b> through every sum it touches.",
+        "tr": "<b><code>NaN</code> 会扩散到</b>它碰到的每一个求和里。"
+      },
+      "glyph_result": {
+        "en": "<b>Parsing returns a <code>Result</code>:</b> a number, or a reason it failed.",
+        "tr": "<b>解析返回 <code>Result</code>：</b>要么是数字，要么是失败原因。"
+      },
+      "page_note": {
+        "en": "The error points at this line, before <code>total</code> is ever called. To compile, the code has to say what a bad input means: <code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>",
+        "tr": "错误指向这一行，那时 <code>total</code> 还根本没被调用。要通过编译，代码必须写明错误输入意味着什么：<code>match number.parse(input) { Ok(qty) =&gt; qty * 10, Err(_) =&gt; 0, }</code>"
+      }
+    },
+    "one-function-many-names": {
+      "page_title": {
+        "en": "One function, many names",
+        "tr": "一个函数，好多名字"
+      },
+      "why": {
+        "en": "Finding every caller before you change something.",
+        "tr": "修改之前先找出所有调用方。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "one name everywhere",
+        "tr": "到处都是同一个名字"
+      },
+      "ts_result": {
+        "en": "<b><code>grep getUser</code> misses two of three callers.</b>",
+        "tr": "<b><code>grep getUser</code> 漏掉了三个调用方中的两个。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>No default exports, no renaming.</b> <code>grep get_user</code> finds every caller.",
+        "tr": "<b>没有默认导出，也不能重命名。</b><code>grep get_user</code> 能找到每个调用方。"
+      },
+      "page_note": {
+        "en": "This is what lets an agent change a function safely: it can find every place that uses it with a plain text search.",
+        "tr": "正是这一点让智能体能安全地修改函数：用普通文本搜索就能找到每个用到它的地方。"
+      }
+    },
+    "one-step-past-the-end": {
+      "page_title": {
+        "en": "One step past the end",
+        "tr": "越过末尾一步"
+      },
+      "why": {
+        "en": "Summing a list with a loop.",
+        "tr": "用循环对列表求和。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then gives the wrong answer",
+        "tr": "能编译，但结果是错的"
+      },
+      "glyph_verdict": {
+        "en": "stopped when it runs",
+        "tr": "运行时拦下"
+      },
+      "ts_result": {
+        "en": "<b><code>&lt;=</code> reads one past the end.</b>",
+        "tr": "<b><code>&lt;=</code> 多读了末尾之后的一个。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program.",
+        "tr": "<b>Glyph 没有 C 风格的 <code>for</code>。</b>越界读取会让程序停下。"
+      },
+      "page_note": {
+        "en": "Out-of-range reads return <code>undefined</code> in TypeScript, and arithmetic turns that into <code>NaN</code>.",
+        "tr": "在 TypeScript 中，越界读取返回 <code>undefined</code>，算术运算再把它变成 <code>NaN</code>。"
+      }
+    },
+    "quantity-of-one-and-a-half": {
+      "page_title": {
+        "en": "A quantity of 1.5",
+        "tr": "数量为 1.5"
+      },
+      "why": {
+        "en": "An order line that can only be a whole number.",
+        "tr": "一个只能是整数的订单行。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "数据到达时检查"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript has one <code>number</code>.</b> Half an item ships.",
+        "tr": "<b>TypeScript 只有一个 <code>number</code>。</b>结果发出了半件商品。"
+      },
+      "glyph_result": {
+        "en": "<b><code>int</code> is its own type,</b> and it is checked.",
+        "tr": "<b><code>int</code> 是单独的类型，</b>并且会被检查。"
+      },
+      "page_note": {
+        "en": "TypeScript has one <code>number</code> type for whole numbers and fractions alike. Glyph has <code>int</code>, and checks it when the data arrives.",
+        "tr": "TypeScript 的整数和小数共用一个 <code>number</code> 类型。Glyph 有 <code>int</code>，并在数据到达时检查它。"
+      }
+    },
+    "split-into-a-pair": {
+      "page_title": {
+        "en": "Destructuring a <code>split</code>",
+        "tr": "解构 <code>split</code> 的结果"
+      },
+      "why": {
+        "en": "Splitting an address into a user and a host.",
+        "tr": "把邮箱地址拆成用户名和主机。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "能编译，但打印出错误的文本"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>TypeScript assumes the second part exists.</b> Without an <code>@</code>, the text reads \"nobody at undefined\".",
+        "tr": "<b>TypeScript 假定第二部分一定存在。</b>没有 <code>@</code> 时，文本显示为“nobody at undefined”。"
+      },
+      "glyph_result": {
+        "en": "<b>The missing part has to be handled.</b>",
+        "tr": "<b>缺失的部分必须处理。</b>"
+      },
+      "page_note": {
+        "en": "<code>split</code> can return one piece. TypeScript types <code>host</code> as <code>string</code> anyway.",
+        "tr": "<code>split</code> 可能只返回一段。TypeScript 却照样把 <code>host</code> 的类型定为 <code>string</code>。"
+      }
+    },
+    "switch-fallthrough": {
+      "page_title": {
+        "en": "Switch fallthrough",
+        "tr": "switch 贯穿"
+      },
+      "why": {
+        "en": "A discount per plan.",
+        "tr": "按套餐打折。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then charges the wrong price",
+        "tr": "能编译，但收错了价格"
+      },
+      "glyph_verdict": {
+        "en": "can't be written",
+        "tr": "根本写不出来"
+      },
+      "ts_result": {
+        "en": "<b>The missing <code>break</code> runs the next case.</b>",
+        "tr": "<b>漏掉的 <code>break</code> 会接着执行下一个 case。</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>match</code> arms never fall through.</b>",
+        "tr": "<b><code>match</code> 的分支永远不会贯穿。</b>"
+      },
+      "page_note": {
+        "en": "<code>noFallthroughCasesInSwitch</code> is not part of <code>--strict</code>.",
+        "tr": "<code>noFallthroughCasesInSwitch</code> 不属于 <code>--strict</code>。"
+      }
+    },
+    "template-prints-undefined": {
+      "page_title": {
+        "en": "A template that prints \"undefined\"",
+        "tr": "打印出“undefined”的模板"
+      },
+      "why": {
+        "en": "Showing an optional relation.",
+        "tr": "显示一个可选的关联对象。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then prints the wrong text",
+        "tr": "能编译，但打印出错误的文本"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The user sees the word \"undefined\".</b>",
+        "tr": "<b>用户看到了“undefined”这个词。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The missing case needs a default.</b>",
+        "tr": "<b>缺失的情况需要一个默认值。</b>"
+      },
+      "page_note": {
+        "en": "<code>?.</code> stops the crash, but the <code>undefined</code> it produces still gets printed.",
+        "tr": "<code>?.</code> 能避免崩溃，但它产生的 <code>undefined</code> 照样会被打印出来。"
+      }
+    },
+    "trap-array-holes": {
+      "summary": {
+        "en": "<code>Array(3).map(...)</code> returns three holes, because <code>map</code> skips them. Glyph has no <code>Array(n)</code>; arrays are written as literals.",
+        "tr": "<code>Array(3).map(...)</code> 返回三个空位，因为 <code>map</code> 会跳过空位。Glyph 没有 <code>Array(n)</code>；数组用字面量书写。"
+      }
+    },
+    "trap-foreach-method-this": {
+      "summary": {
+        "en": "<code>[1, 2, 3].forEach(counter.increment)</code> runs the method without its object. Glyph has no classes and no <code>this</code>.",
+        "tr": "<code>[1, 2, 3].forEach(counter.increment)</code> 在没有对象的情况下执行方法。Glyph 没有类，也没有 <code>this</code>。"
+      }
+    },
+    "trap-map-parseint": {
+      "summary": {
+        "en": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> is <code>[10, NaN, NaN]</code>, because <code>map</code> passes the index as the number base. Glyph has <code>number.parse</code>, which returns a <code>Result</code>.",
+        "tr": "<code>\"10,20,30\".split(\",\").map(parseInt)</code> 的结果是 <code>[10, NaN, NaN]</code>，因为 <code>map</code> 把下标当作进制传了进去。Glyph 有 <code>number.parse</code>，它返回 <code>Result</code>。"
+      }
+    },
+    "trap-math-max-empty": {
+      "summary": {
+        "en": "<code>Math.max(...[])</code> is <code>-Infinity</code>. Glyph's <code>array.max</code> returns an <code>Option</code>, empty for an empty list.",
+        "tr": "<code>Math.max(...[])</code> 是 <code>-Infinity</code>。Glyph 的 <code>array.max</code> 返回 <code>Option</code>，空列表得到空值。"
+      }
+    },
+    "trap-regex-lastindex": {
+      "summary": {
+        "en": "A <code>/g</code> regex reused with <code>.test</code> fails every second match, because it remembers <code>lastIndex</code>. Glyph has no regex objects; <code>regex.matches(pattern, text)</code> has no state.",
+        "tr": "用 <code>.test</code> 重复使用带 <code>/g</code> 的正则，每隔一次匹配就会失败，因为它记住了 <code>lastIndex</code>。Glyph 没有正则对象；<code>regex.matches(pattern, text)</code> 没有状态。"
+      }
+    },
+    "trusting-find-with-bang": {
+      "page_title": {
+        "en": "Trusting <code>find</code> with <code>!</code>",
+        "tr": "用 <code>!</code> 信任 <code>find</code> 的结果"
+      },
+      "why": {
+        "en": "Looking a record up by id.",
+        "tr": "按 id 查找一条记录。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "能编译，运行时崩溃"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b><code>!</code> tells the compiler \"trust me\".</b> At run time it does nothing.",
+        "tr": "<b><code>!</code> 告诉编译器“相信我”。</b>运行时它什么也不做。"
+      },
+      "glyph_result": {
+        "en": "<b><code>find</code> returns an <code>Option</code>,</b> so the empty case must be handled.",
+        "tr": "<b><code>find</code> 返回 <code>Option</code>，</b>所以必须处理为空的情况。"
+      },
+      "page_note": {
+        "en": "Without the <code>!</code>, <code>tsc --strict</code> refuses this line. The <code>!</code> is what switches that check off, and it does nothing at run time. Glyph has no <code>!</code>.",
+        "tr": "没有 <code>!</code> 时，<code>tsc --strict</code> 会拒绝这一行。正是 <code>!</code> 关掉了这项检查，而它在运行时什么也不做。Glyph 没有 <code>!</code>。"
+      }
+    },
+    "two-types-same-shape": {
+      "page_title": {
+        "en": "Two types with the same shape",
+        "tr": "结构相同的两个类型"
+      },
+      "why": {
+        "en": "Verified and unverified email addresses.",
+        "tr": "已验证和未验证的邮箱地址。"
+      },
+      "ts_verdict": {
+        "en": "compiles with no warning",
+        "tr": "能编译，没有任何警告"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>An unverified address gets the invoice.</b>",
+        "tr": "<b>发票发到了未验证的地址。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>Two named types are different types.</b>",
+        "tr": "<b>两个具名类型就是不同的类型。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript compares object types by shape, so same-shaped types are interchangeable whatever they are called.",
+        "tr": "TypeScript 按结构比较对象类型，所以结构相同的类型无论叫什么名字都可以互换。"
+      }
+    },
+    "type-guard-that-checks-less": {
+      "page_title": {
+        "en": "A type guard that checks less than it claims",
+        "tr": "检查得比它声称的少的类型守卫"
+      },
+      "why": {
+        "en": "Validating a request body by hand.",
+        "tr": "手工校验请求体。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then crashes at run time",
+        "tr": "能编译，运行时崩溃"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "数据到达时检查"
+      },
+      "ts_result": {
+        "en": "<b>The guard says \"User\" after checking one field.</b>",
+        "tr": "<b>守卫只检查了一个字段就说这是“User”。</b>"
+      },
+      "glyph_result": {
+        "en": "<b><code>User.is</code> checks every field.</b> Glyph has no hand-written guards.",
+        "tr": "<b><code>User.is</code> 会检查每个字段。</b>Glyph 没有手写的守卫。"
+      },
+      "page_note": {
+        "en": "TypeScript trusts a <code>x is User</code> function completely, whatever its body actually checks.",
+        "tr": "TypeScript 完全信任 <code>x is User</code> 函数，不管它的函数体到底检查了什么。"
+      }
+    },
+    "typo-in-an-options-object": {
+      "page_title": {
+        "en": "A typo in an options object",
+        "tr": "选项对象里的拼写错误"
+      },
+      "why": {
+        "en": "Building the options in a variable, then passing them.",
+        "tr": "先在变量里构造选项，再传进去。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then uses the wrong setting",
+        "tr": "能编译，但用了错误的设置"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The misspelled option is silently dropped.</b>",
+        "tr": "<b>拼错的选项被悄悄丢掉了。</b>"
+      },
+      "glyph_result": {
+        "en": "<b>The wrong name is an error.</b>",
+        "tr": "<b>名字写错就是错误。</b>"
+      },
+      "page_note": {
+        "en": "TypeScript only checks for unknown keys on a literal written directly in the call, not on one built in a variable first.",
+        "tr": "TypeScript 只对直接写在调用里的字面量检查未知的键，对先在变量里构造好的对象不检查。"
+      }
+    },
+    "typo-nobody-sees": {
+      "page_title": {
+        "en": "A typo nobody sees",
+        "tr": "没人发现的拼写错误"
+      },
+      "why": {
+        "en": "Reading a field from a response.",
+        "tr": "从响应里读取字段。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then fails at run time",
+        "tr": "能编译，运行时失败"
+      },
+      "glyph_verdict": {
+        "en": "refused by glyph check",
+        "tr": "被 glyph check 拒绝"
+      },
+      "ts_result": {
+        "en": "<b><code>res.json()</code> is <code>any</code>,</b> so nothing about it is checked.",
+        "tr": "<b><code>res.json()</code> 是 <code>any</code>，</b>所以它的任何部分都不会被检查。"
+      },
+      "glyph_result": {
+        "en": "<b>There is no <code>any</code>.</b> Data nobody has checked is <code>unknown</code>; <code>json.parse&lt;User&gt;</code> gives it a type.",
+        "tr": "<b>没有 <code>any</code>。</b>没人检查过的数据是 <code>unknown</code>；<code>json.parse&lt;User&gt;</code> 给它一个类型。"
+      },
+      "page_note": {
+        "en": "<code>any</code> switches type checking off for everything it touches, and it spreads: <code>data.usr</code> is <code>any</code> too. Glyph has no <code>any</code>. The refusal here comes from the <code>tsc</code> step that <code>glyph check</code> and <code>glyph build</code> run; Glyph's own checker does not see it yet (G381).",
+        "tr": "<code>any</code> 会关掉它碰到的一切的类型检查，而且会扩散：<code>data.usr</code> 也是 <code>any</code>。Glyph 没有 <code>any</code>。这里的拒绝来自 <code>glyph check</code> 和 <code>glyph build</code> 运行的 <code>tsc</code> 步骤；Glyph 自己的检查器目前还看不到它（G381）。"
+      }
+    },
+    "unvalidated-boundary-read": {
+      "page_title": {
+        "en": "A parsed body given a type without a check",
+        "tr": "未经检查就被赋予类型的解析结果"
+      },
+      "why": {
+        "en": "Reading a request body into a typed variable.",
+        "tr": "把请求体读进一个有类型的变量。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The annotation is a promise nothing keeps.</b> <code>JSON.parse</code> returns <code>any</code>, so a body of any shape gets through.",
+        "tr": "<b>类型标注是一个没人兑现的承诺。</b><code>JSON.parse</code> 返回 <code>any</code>，所以任何结构的请求体都能通过。"
+      },
+      "glyph_result": {
+        "en": "<b><code>json.parse</code> returns a <code>Result</code> of <code>unknown</code>,</b> and that is not a <code>User</code>.",
+        "tr": "<b><code>json.parse</code> 返回 <code>unknown</code> 的 <code>Result</code>，</b>而它不是 <code>User</code>。"
+      },
+      "page_note": {
+        "en": "Writing <code>const user: User</code> looks like a check and is not one. In Glyph, <code>json.parse&lt;User&gt;(body)</code> checks the body and returns a <code>Result</code> to match on.",
+        "tr": "写 <code>const user: User</code> 看起来像检查，其实不是。在 Glyph 中，<code>json.parse&lt;User&gt;(body)</code> 会检查请求体，并返回一个可以 match 的 <code>Result</code>。"
+      }
+    },
+    "unverifiable-parse": {
+      "page_title": {
+        "en": "A validator that cannot check what it claims",
+        "tr": "无法检查它所声称内容的校验器"
+      },
+      "why": {
+        "en": "A record holding a socket, checked by a hand-written guard.",
+        "tr": "一个持有 socket 的记录，用手写的守卫检查。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then accepts a string as a socket",
+        "tr": "能编译，但把字符串当作 socket 接受了"
+      },
+      "glyph_verdict": {
+        "en": "refused when you build",
+        "tr": "构建时被拒绝"
+      },
+      "ts_result": {
+        "en": "<b>The guard says <code>Conn</code> after checking that <code>sock</code> exists.</b> A string passes as a socket.",
+        "tr": "<b>守卫检查了 <code>sock</code> 存在就说这是 <code>Conn</code>。</b>一个字符串被当作 socket 放行了。"
+      },
+      "glyph_result": {
+        "en": "<b>A socket has no runtime check,</b> so Glyph refuses <code>Conn.parse</code> instead of generating a check that cannot hold.",
+        "tr": "<b>socket 没有运行时检查，</b>所以 Glyph 拒绝 <code>Conn.parse</code>，而不是生成一个站不住的检查。"
+      },
+      "page_note": {
+        "en": "Split the wire type from the domain type: parse the fields that can be checked, then build the record around the socket.",
+        "tr": "把传输类型和领域类型分开：先解析能检查的字段，再围绕 socket 构造记录。"
+      }
+    },
+    "value-outside-the-list": {
+      "page_title": {
+        "en": "A value outside the list",
+        "tr": "列表之外的值"
+      },
+      "why": {
+        "en": "An API starts sending a status your code has never seen.",
+        "tr": "某个 API 开始返回你的代码从没见过的状态。"
+      },
+      "ts_verdict": {
+        "en": "compiles, then runs on bad data",
+        "tr": "能编译，运行时用的是错误数据"
+      },
+      "glyph_verdict": {
+        "en": "checked when the data arrives",
+        "tr": "数据到达时检查"
+      },
+      "ts_result": {
+        "en": "<b><code>\"deleted\"</code> is treated as one of the two.</b> Every check on <code>status</code> is now wrong.",
+        "tr": "<b><code>\"deleted\"</code> 被当作两者之一。</b>此后每一处对 <code>status</code> 的检查都是错的。"
+      },
+      "glyph_result": {
+        "en": "<b>Only the listed values get through.</b>",
+        "tr": "<b>只有列出的值才能通过。</b>"
+      },
+      "page_note": {
+        "en": "In TypeScript a union like <code>\"active\" | \"banned\"</code> exists only while compiling. At run time nothing stops a third value. Glyph checks it when the data comes in.",
+        "tr": "在 TypeScript 中，<code>\"active\" | \"banned\"</code> 这样的联合类型只在编译时存在。运行时没有任何东西能阻止第三个值。Glyph 在数据进来时检查它。"
+      }
+    }
+  }
+}

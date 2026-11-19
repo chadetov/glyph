@@ -1,0 +1,128 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/state/index.html",
+  "locale": "zh-cn",
+  "source_hash": "59f9695c32448ee8",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "How do I share mutable state between functions? · Glyph",
+      "tr": "怎样在函数之间共享可变状态？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.",
+      "tr": "Glyph 没有可变的全局变量。共享状态放在 std/store 中：一个模块级的 const，它的 get、set 和 update 是唯一的写入方式，一次搜索就能全部找到。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Does it work with React: components, hooks, and Context?",
+      "tr": "能和 React 一起用吗：组件、hooks 和 Context？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "这是一门真正的语言，还是一个有很多缺口的玩具？"
+    },
+    {
+      "id": "h-3cfc3cc8",
+      "kind": "html",
+      "en": "14 &middot; Shared state",
+      "tr": "14 &middot; 共享状态"
+    },
+    {
+      "id": "h-d14ef0f9",
+      "kind": "html",
+      "en": "How do I share mutable state between functions?",
+      "tr": "怎样在函数之间共享可变状态？"
+    },
+    {
+      "id": "h-ed0c2fbf",
+      "kind": "html",
+      "en": "With a <strong>store</strong>. Glyph has no mutable global variables. Module bindings are <code>const</code>. Shared state lives in a <code>std/store</code>: a module-level <code>const</code> holding a value you read with <code>get()</code> and change with <code>set()</code>/<code>update()</code>. The binding never moves; only the value inside it does, through a method call, so every write is a literal <code>.set(</code> or <code>.update(</code> you can grep for.",
+      "tr": "用 <strong>store</strong>。Glyph 没有可变的全局变量，模块绑定都是 <code>const</code>。共享状态放在 <code>std/store</code> 中：一个模块级的 <code>const</code>，持有一个值，用 <code>get()</code> 读取，用 <code>set()</code>/<code>update()</code> 修改。绑定本身永远不变，变的只有它里面的值，而且只能通过方法调用，所以每一次写入都是一个可以 grep 到的 <code>.set(</code> 或 <code>.update(</code>。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-3ba2ac81",
+      "kind": "html",
+      "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
+      "tr": "在模块作用域声明一次 store，模块中的每个函数都共享它。不需要在 <code>main</code> 里层层传递 <code>let</code>，也不需要捕获变量的闭包："
+    },
+    {
+      "id": "h-333b6247",
+      "kind": "html",
+      "en": "the whole write-surface, in one grep",
+      "tr": "全部写入点，一次 grep 就能找到"
+    },
+    {
+      "id": "h-d1af17c7",
+      "kind": "html",
+      "en": "Why a store, and not a mutable global",
+      "tr": "为什么用 store，而不用可变的全局变量"
+    },
+    {
+      "id": "h-3b512acb",
+      "kind": "html",
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "这是有意的设计选择。Glyph 把 <code>mut</code> 限制在局部赋值上，并让模块绑定保持 <code>const</code>，因为散落各处的可写全局变量正是让状态难以推理、难以<em>找到</em>的原因。store 不需要放宽其中任何一条规则：<code>const s</code> 绑定是不可变的，里面的值只能通过 <code>set</code>/<code>update</code> 改变。所以共享状态是以<strong>库而不是新语法</strong>的形式提供的（没有线性类型，也没有放宽修改规则），修改集中在一个经过审查的地方，而不是分散在整个程序中。"
+    },
+    {
+      "id": "h-90f9eefd",
+      "kind": "html",
+      "en": "One sharp edge, shared with TypeScript: an empty collection can't infer its element type, so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. A scalar store (<code>create(0)</code>) infers fine.",
+      "tr": "有一个和 TypeScript 相同的坑：空集合无法推断元素类型，所以要用显式的类型参数来初始化：<code>create&lt;Array&lt;Task&gt;&gt;([])</code>。标量 store（<code>create(0)</code>）可以正常推断。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-fe78aabc",
+      "kind": "html",
+      "en": "<code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.",
+      "tr": "<code>std/store</code>，提供 <code>create</code>、<code>get</code>、<code>set</code> 和 <code>update</code>：共享可变状态唯一的、可以 grep 的归属地。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "正在进行"
+    },
+    {
+      "id": "h-e4b5e189",
+      "kind": "html",
+      "en": "Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.",
+      "tr": "基于同一个基础构件的便利功能（派生/计算 store、订阅），叠加在上层，不改变语言本身。"
+    }
+  ]
+}

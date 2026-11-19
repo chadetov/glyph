@@ -1,0 +1,236 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "start/index.html",
+  "locale": "zh-cn",
+  "source_hash": "0967efaee1e51c6b",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Start Here · your first Glyph program in 10 minutes · Glyph",
+      "tr": "从这里开始 · 10 分钟写出第一个 Glyph 程序 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.",
+      "tr": "用 npx 创建一个 Glyph 项目并运行它，再故意把它改错，读懂编译器报错并修好。只要十分钟，不需要全局安装任何东西。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Home",
+      "tr": "&larr; 首页"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "TypeScript your agents can't quietly break",
+      "tr": "智能体没法悄悄改坏的 TypeScript"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "What stops an agent from silently breaking my code?",
+      "tr": "什么能防止智能体悄悄改坏我的代码？"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "From here",
+      "tr": "接下来"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Next &middot; no install",
+      "tr": "下一步 &middot; 无需安装"
+    },
+    {
+      "id": "ns./playground/.title",
+      "kind": "ns.title",
+      "en": "The playground",
+      "tr": "Playground"
+    },
+    {
+      "id": "ns./playground/.desc",
+      "kind": "ns.desc",
+      "en": "Try Glyph in your browser, no install.",
+      "tr": "在浏览器里试用 Glyph，无需安装。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the playground",
+      "tr": "打开 Playground"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.title",
+      "kind": "ns.title",
+      "en": "The five-minute tour",
+      "tr": "五分钟速览"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md.desc",
+      "kind": "ns.desc",
+      "en": "The whole language, quickly.",
+      "tr": "快速过一遍整门语言。"
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "The answers",
+      "tr": "问答"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Worked answers about React, typed APIs, npm and tooled TypeScript.",
+      "tr": "关于 React、类型化 API、npm 和配齐工具的 TypeScript 的详细解答。"
+    },
+    {
+      "id": "h-046417a2",
+      "kind": "html",
+      "en": "Start here &middot; ~10 minutes",
+      "tr": "从这里开始 &middot; 约 10 分钟"
+    },
+    {
+      "id": "h-ce040163",
+      "kind": "html",
+      "en": "Your first Glyph program",
+      "tr": "你的第一个 Glyph 程序"
+    },
+    {
+      "id": "h-af332234",
+      "kind": "html",
+      "en": "Scaffold a project, run it, then <strong>break it on purpose</strong> and read the error the compiler gives you. No prior Glyph knowledge assumed. If you've written a little TypeScript, you'll follow every line.",
+      "tr": "创建一个项目并运行，然后<strong>故意把它改错</strong>，读一读编译器给出的报错。不需要任何 Glyph 基础。只要写过一点 TypeScript，每一行你都能看懂。"
+    },
+    {
+      "id": "h-86a4f8cb",
+      "kind": "html",
+      "en": "1 &middot; Create a project",
+      "tr": "1 &middot; 创建项目"
+    },
+    {
+      "id": "h-355a40de",
+      "kind": "html",
+      "en": "Glyph ships on npm as a prebuilt binary for macOS and Linux (x64 and ARM) and Windows (x64), and needs Node 18 or later. This path installs nothing globally: <code>npx</code> fetches the compiler to scaffold the project, and the project pins its own copy along with <code>tsx</code> and <code>typescript</code>, which Glyph uses to run and type-check.",
+      "tr": "Glyph 以预编译二进制的形式发布在 npm 上，支持 macOS 和 Linux（x64 和 ARM）以及 Windows（x64），需要 Node 18 或更高版本。这种方式不会全局安装任何东西：<code>npx</code> 临时获取编译器来创建项目，项目自己固定一份编译器副本，以及 Glyph 用来运行和类型检查的 <code>tsx</code> 和 <code>typescript</code>。"
+    },
+    {
+      "id": "h-4e686af7",
+      "kind": "html",
+      "en": "terminal",
+      "tr": "终端"
+    },
+    {
+      "id": "h-ba09e82e",
+      "kind": "html",
+      "en": "If you'd rather have <code>glyph</code> on your PATH, install it globally with the two tools it runs through, and drop the <code>npx</code> from the commands on this page:",
+      "tr": "如果你更想让 <code>glyph</code> 出现在 PATH 里，可以把它和它依赖的两个工具一起全局安装，然后去掉本页命令里的 <code>npx</code>："
+    },
+    {
+      "id": "h-5c1d388d",
+      "kind": "html",
+      "en": "terminal, the global alternative",
+      "tr": "终端，全局安装的方式"
+    },
+    {
+      "id": "h-377cd0d0",
+      "kind": "html",
+      "en": "2 &middot; Look at what it made",
+      "tr": "2 &middot; 看看它生成了什么"
+    },
+    {
+      "id": "h-3694bb2c",
+      "kind": "html",
+      "en": "<code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining that a typed npm package needs nothing there and the directory is for one that ships no types, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.",
+      "tr": "<code>glyph init</code> 会创建一个可以直接运行的起始项目：<code>src/main.glyph</code>；<code>src/.types/README.md</code>，说明带类型的 npm 包在这里什么都不需要，这个目录是给不带类型的包用的；一个 <code>package.json</code>；一个 <code>.gitignore</code>；以及两个编码智能体会自己读取的文件：<code>AGENTS.md</code>，它指向 <code>glyph llms</code> 以获取完整的语言参考，和 <code>.mcp.json</code>，它注册了 <code>glyph mcp</code>，让智能体可以直接向编译器查询类型和引用，而不用自己去搜索。在已有的项目里，<code>glyph agents</code> 会写入这两个文件。<code>package.json</code> 在 <code>devDependencies</code> 中固定了编译器、<code>typescript</code> 和 <code>tsx</code> 的版本，所以任何人克隆项目后，只需 <code>npm install</code> 就能构建，不需要全局安装。"
+    },
+    {
+      "id": "h-915bf352",
+      "kind": "html",
+      "en": "Open <code>src/main.glyph</code>. It's a hello-world:",
+      "tr": "打开 <code>src/main.glyph</code>。这是一个 hello-world："
+    },
+    {
+      "id": "h-71deb346",
+      "kind": "html",
+      "en": "Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code> returns a <code>number</code>, the process exit code. Returning sets that code without forcing the process to stop, so a program that starts a server keeps serving.",
+      "tr": "有两点值得注意：程序运行的是它的 <code>main(argv)</code>，而 <code>main</code> 返回一个 <code>number</code>，也就是进程的退出码。返回只是设置退出码，并不会强制进程停止，所以启动了服务器的程序会继续提供服务。"
+    },
+    {
+      "id": "h-574233d5",
+      "kind": "html",
+      "en": "3 &middot; Run it",
+      "tr": "3 &middot; 运行"
+    },
+    {
+      "id": "h-168ebd5f",
+      "kind": "html",
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
+      "tr": "<code>glyph run</code> 对它做了类型检查，编译成 TypeScript，然后执行。本页接下来就是重复这个循环。"
+    },
+    {
+      "id": "h-e7d3d489",
+      "kind": "html",
+      "en": "4 &middot; Add something real",
+      "tr": "4 &middot; 加点真东西"
+    },
+    {
+      "id": "h-f1d8aa48",
+      "kind": "html",
+      "en": "Now replace the body with a tiny bit of logic: a task status and a function that labels it. This introduces the two things you'll use constantly: a <em>tagged union</em> (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.",
+      "tr": "现在把函数体换成一小段逻辑：一个任务状态，以及一个给它打标签的函数。这里引入了两个你会经常用到的东西：<em>标签联合</em>（<code>type Status = ...</code>）和 <code>match</code>，后者是 Glyph 唯一的条件分支结构。"
+    },
+    {
+      "id": "h-227acdb7",
+      "kind": "html",
+      "en": "5 &middot; Break it on purpose",
+      "tr": "5 &middot; 故意改错"
+    },
+    {
+      "id": "h-08f96fcf",
+      "kind": "html",
+      "en": "Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm from the <code>match</code> (the kind of thing an agent does when it adds a case somewhere and forgets to handle it), and run again.",
+      "tr": "这一部分会告诉你 Glyph 是<em>用来做什么的</em>。从 <code>match</code> 中删掉 <code>Done</code> 分支（智能体在某处新增了一种情况却忘了处理时，做的就是这种事），然后再运行一次。"
+    },
+    {
+      "id": "h-4f6a6f0d",
+      "kind": "html",
+      "en": "src/main.glyph (with the Done arm deleted)",
+      "tr": "src/main.glyph（删掉了 Done 分支）"
+    },
+    {
+      "id": "h-31c09e63",
+      "kind": "html",
+      "en": "It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A <code>switch</code> that only logs or updates state, or one with a <code>default:</code>, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run <code>glyph --explain E0200</code> any time you want the long version.",
+      "tr": "它没有运行。在 TypeScript 中，写明了返回类型的同一个函数也会被拒绝（TS2366）。但只记日志或更新状态、或者带有 <code>default:</code> 的 <code>switch</code> 能顺利编译，并悄悄跳过新增的情况。在这里，每个不穷尽的 match 都是编译错误，带有稳定的错误码（<code>E0200</code>）、准确的位置和一行修复建议。想看详细说明时，随时运行 <code>glyph --explain E0200</code>。"
+    },
+    {
+      "id": "h-a205e0c5",
+      "kind": "html",
+      "en": "6 &middot; Fix it",
+      "tr": "6 &middot; 修好它"
+    },
+    {
+      "id": "h-1995de51",
+      "kind": "html",
+      "en": "Put the arm back (or add an <code>else</code>), and it runs again.",
+      "tr": "把分支加回去（或者加一个 <code>else</code>），它就又能运行了。"
+    },
+    {
+      "id": "h-25ed8d45",
+      "kind": "html",
+      "en": "That's the core loop: write, run, and when something's wrong the compiler tells you exactly what and how, before your code ships, not after.",
+      "tr": "这就是核心循环：写代码、运行，出问题时编译器会在代码上线之前，而不是之后，准确告诉你哪里错了、该怎么改。"
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "contribute/index.html",
+  "locale": "zh-cn",
+  "source_hash": "98fd22506cb2f943",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Contribute · how the compiler is built, how to help · Glyph",
+      "tr": "参与贡献 · 编译器的实现方式，以及如何参与 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How the Glyph compiler is built (a Rust workspace: lex, parse, resolve, typecheck, emit), how to build and test it, and how issues and pull requests work.",
+      "tr": "Glyph 编译器是怎样实现的（一个 Rust 工作区：词法分析、语法分析、名称解析、类型检查、代码生成），如何构建和测试它，以及 issue 和 pull request 的流程。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "接下来去哪里"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "从这里开始"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.title",
+      "kind": "ns.title",
+      "en": "The repository",
+      "tr": "代码仓库"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph.desc",
+      "kind": "ns.desc",
+      "en": "Source, issues, discussions and releases.",
+      "tr": "源代码、issue、讨论和发布版本。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open it on GitHub",
+      "tr": "在 GitHub 上打开"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "The design",
+      "tr": "设计"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars and the decision record every change is judged against.",
+      "tr": "四大支柱，以及评判每个改动所依据的决策记录。"
+    },
+    {
+      "id": "h-97b0c61b",
+      "kind": "html",
+      "en": "Contribute",
+      "tr": "参与贡献"
+    },
+    {
+      "id": "h-f8152d5e",
+      "kind": "html",
+      "en": "How the compiler is built, and how to help",
+      "tr": "编译器的实现方式，以及如何参与"
+    },
+    {
+      "id": "h-874a5023",
+      "kind": "html",
+      "en": "The compiler is a Rust workspace of twelve crates in one public repository, licensed MIT or Apache-2.0. Bug reports with a small reproduction help most today. A change to the language starts as an issue, because every rule traces to a numbered design decision.",
+      "tr": "编译器是一个由十二个 crate 组成的 Rust 工作区，放在一个公开仓库中，许可证为 MIT 或 Apache-2.0。目前最有帮助的是附带小型复现的 bug 报告。对语言本身的改动要先从 issue 开始，因为每条规则都对应一项带编号的设计决策。"
+    },
+    {
+      "id": "h-940e5ca3",
+      "kind": "html",
+      "en": "The pipeline",
+      "tr": "编译流水线"
+    },
+    {
+      "id": "h-a19553e3",
+      "kind": "html",
+      "en": "<code>glyph build</code> lexes, parses, resolves names, type-checks and emits TypeScript, then runs <code>tsc --strict</code> on what it wrote. The middle stages run as incremental queries on <a href=\"https://github.com/salsa-rs/salsa\">salsa</a>, so a re-check reuses the results an edit did not invalidate.",
+      "tr": "<code>glyph build</code> 进行词法分析、语法分析、名称解析、类型检查并生成 TypeScript，然后对生成的代码运行 <code>tsc --strict</code>。中间几个阶段在 <a href=\"https://github.com/salsa-rs/salsa\">salsa</a> 上以增量查询的方式运行，所以重新检查时会复用没有因编辑而失效的结果。"
+    },
+    {
+      "id": "h-546976e1",
+      "kind": "html",
+      "en": "one .glyph file, through the crates",
+      "tr": "一个 .glyph 文件依次经过各个 crate"
+    },
+    {
+      "id": "h-ef90fcdd",
+      "kind": "html",
+      "en": "Crate",
+      "tr": "Crate"
+    },
+    {
+      "id": "h-c74ea9dc",
+      "kind": "html",
+      "en": "What it does",
+      "tr": "作用"
+    },
+    {
+      "id": "h-0ef08b51",
+      "kind": "html",
+      "en": "Tokens, keywords, significant newlines, template literals",
+      "tr": "词法单元、关键字、有意义的换行、模板字面量"
+    },
+    {
+      "id": "h-9dcac089",
+      "kind": "html",
+      "en": "Syntax tree types, with a source span on every node",
+      "tr": "语法树类型，每个节点都带有源码范围"
+    },
+    {
+      "id": "h-9883c2af",
+      "kind": "html",
+      "en": "Pratt parser for every decision in the spec, JSX included",
+      "tr": "Pratt 解析器，覆盖规范中的每项决策，包括 JSX"
+    },
+    {
+      "id": "h-e4e07009",
+      "kind": "html",
+      "en": "Name resolution, the module graph, cross-module import checks, the prelude",
+      "tr": "名称解析、模块图、跨模块导入检查、prelude"
+    },
+    {
+      "id": "h-52d65da7",
+      "kind": "html",
+      "en": "The salsa query pipeline and cross-file invalidation",
+      "tr": "salsa 查询流水线和跨文件失效"
+    },
+    {
+      "id": "h-0fbf280c",
+      "kind": "html",
+      "en": "Exhaustiveness, <code>?</code>, generics, <code>owned</code>, runtime descriptors, the stdlib model",
+      "tr": "穷尽性检查、<code>?</code>、泛型、<code>owned</code>、运行时描述符、标准库模型"
+    },
+    {
+      "id": "h-12794c13",
+      "kind": "html",
+      "en": "The TypeScript writer, descriptor generation, expression-level source maps",
+      "tr": "TypeScript 代码生成、描述符生成、表达式级别的 source map"
+    },
+    {
+      "id": "h-eea25fb5",
+      "kind": "html",
+      "en": "<code>glyph fmt</code>: one layout, comment-preserving, idempotent",
+      "tr": "<code>glyph fmt</code>：一种排版，保留注释，幂等"
+    },
+    {
+      "id": "h-01d7f937",
+      "kind": "html",
+      "en": "The language server and the MCP server, sharing one analysis layer",
+      "tr": "语言服务器和 MCP 服务器，共用一个分析层"
+    },
+    {
+      "id": "h-97f50295",
+      "kind": "html",
+      "en": "The <code>glyph</code> binary and every subcommand",
+      "tr": "<code>glyph</code> 可执行文件和所有子命令"
+    },
+    {
+      "id": "h-7692d295",
+      "kind": "html",
+      "en": "The compiler in WebAssembly, which runs the playground",
+      "tr": "编译成 WebAssembly 的编译器，用于运行 Playground"
+    },
+    {
+      "id": "h-5a430b53",
+      "kind": "html",
+      "en": "A stub; tests run through the emitter and <code>tsx</code> instead",
+      "tr": "一个占位 crate；测试改为通过代码生成器和 <code>tsx</code> 运行"
+    },
+    {
+      "id": "h-47c936c4",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> has the full crate notes and the current test count.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md\">glyph-compiler/README.md</a> 有完整的 crate 说明和当前的测试数量。"
+    },
+    {
+      "id": "h-ae97f6f1",
+      "kind": "html",
+      "en": "Build and test",
+      "tr": "构建和测试"
+    },
+    {
+      "id": "h-ad0fde9e",
+      "kind": "html",
+      "en": "Rust 1.95 is pinned in <code>rust-toolchain.toml</code>. Some tests shell out to <code>tsc</code> and <code>tsx</code>, so install those too. CI runs clippy with warnings as errors, and neither <code>cargo build</code> nor <code>cargo test</code> runs it, so run the script before you push.",
+      "tr": "<code>rust-toolchain.toml</code> 固定了 Rust 1.95。有些测试会调用 <code>tsc</code> 和 <code>tsx</code>，所以也要安装它们。CI 会以“警告即错误”的方式运行 clippy，而 <code>cargo build</code> 和 <code>cargo test</code> 都不会运行它，所以推送之前请先运行这个脚本。"
+    },
+    {
+      "id": "h-07e9fc9b",
+      "kind": "html",
+      "en": "from a clone",
+      "tr": "在克隆的仓库中"
+    },
+    {
+      "id": "h-b879e6fa",
+      "kind": "html",
+      "en": "A new diagnostic comes with a program under <code>tests/negative/</code> that must fail with that code. A claim that Glyph catches something TypeScript misses goes in <code>catches/</code>, where <a href=\"/evidence/\">a gate runs both halves</a>.",
+      "tr": "新增的诊断要附带一个放在 <code>tests/negative/</code> 下的程序，它必须以该错误码失败。声称 Glyph 能发现某个 TypeScript 漏掉的问题，要放进 <code>catches/</code>，在那里<a href=\"/evidence/\">有一个检查会运行两半程序</a>。"
+    },
+    {
+      "id": "h-ead58161",
+      "kind": "html",
+      "en": "What is planned, and what is broken",
+      "tr": "计划了什么，哪些还有问题"
+    },
+    {
+      "id": "h-574361b1",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> is the release roadmap: what each shipped release did and what the next ones are for. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> is the gap ledger, every limitation found by building real apps, each numbered (<code>G</code> plus a number) with a status marker. An open gap with a reproduction is a good place to start.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">docs/roadmap/releases.md</a> 是发布路线图：每个已发布版本做了什么，接下来的版本要做什么。<a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> 是 gap 清单，记录了构建真实应用时发现的每项限制，每项都有编号（<code>G</code> 加数字）和状态标记。一个带复现的未解决 gap 是很好的切入点。"
+    },
+    {
+      "id": "h-55f877d3",
+      "kind": "html",
+      "en": "Issues and pull requests",
+      "tr": "Issue 和 pull request"
+    },
+    {
+      "id": "h-1be0f32e",
+      "kind": "html",
+      "en": "Toolchain fixes, diagnostics, docs and examples can go straight to a pull request. A change to syntax or semantics starts with an issue, and larger ones go through the RFC process in <code>docs/rfcs/</code>; a PR that relaxes a rule \"to be helpful\" will probably be declined, because the restriction is the point. Keep a pull request to one gap, usually one to three commits, and sign each commit (<code>git commit -s</code>). <code>main</code> is protected and merges are rebase-only. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a> has the full rules, and issues labelled <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> are scoped for a first change.",
+      "tr": "工具链修复、诊断、文档和示例可以直接提 pull request。对语法或语义的改动要从 issue 开始，较大的改动要走 <code>docs/rfcs/</code> 中的 RFC 流程；为了“方便”而放宽某条规则的 PR 很可能会被拒绝，因为限制本身就是目的。一个 pull request 只处理一个 gap，通常一到三个提交，并给每个提交签名（<code>git commit -s</code>）。<code>main</code> 是受保护分支，只允许 rebase 合并。完整规则见 <a href=\"https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md\">CONTRIBUTING.md</a>，标有 <a href=\"https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\">good first issue</a> 的 issue 适合作为第一次贡献。"
+    },
+    {
+      "id": "h-f3ec8e88",
+      "kind": "html",
+      "en": "Licence",
+      "tr": "许可证"
+    },
+    {
+      "id": "h-2e7bb863",
+      "kind": "html",
+      "en": "MIT or Apache-2.0, at your option (<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>, <a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>). Contributions are accepted under the same dual licence, certified by the sign-off line.",
+      "tr": "MIT 或 Apache-2.0，任你选择（<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-MIT\">LICENSE-MIT</a>、<a href=\"https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE\">LICENSE-APACHE</a>）。贡献按同样的双许可证接受，由 sign-off 行确认。"
+    }
+  ]
+}

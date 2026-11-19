@@ -1,0 +1,968 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/typed-apis/index.html",
+  "locale": "zh-cn",
+  "source_hash": "e5583b6a5d857445",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Do I have to hand-write a validator for every API? · Glyph",
+      "tr": "每个 API 都要手写校验器吗？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.",
+      "tr": "不用。在 Glyph 中，类型本身就是它的运行时校验器，所以请求体和响应体无需编写校验器就会被检查，而且类型可以来自 OpenAPI 规范或 .d.ts 文件。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "能在现有应用里引入 Glyph 吗，还是必须全部改写？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "能根据 API 规范生成类型化的客户端和服务端吗？"
+    },
+    {
+      "id": "h-58ac443b",
+      "kind": "html",
+      "en": "11 &middot; Data boundaries",
+      "tr": "11 &middot; 数据边界"
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "每个 API 都要手写校验器吗？"
+    },
+    {
+      "id": "h-4f149dea",
+      "kind": "html",
+      "en": "No. In Glyph a <strong>type is its own validator</strong>. Declare a <code>type</code> and the compiler generates a runtime descriptor beside it, so an untrusted request or response body validates with one call, no separate <code>zod</code> schema to write and keep in sync.",
+      "tr": "不用。在 Glyph 中，<strong>类型本身就是它的校验器</strong>。声明一个 <code>type</code>，编译器会在旁边生成一个运行时描述符，所以不可信的请求体或响应体一次调用就能校验，不需要另外编写并同步维护一份 <code>zod</code> schema。"
+    },
+    {
+      "id": "h-54e32a63",
+      "kind": "html",
+      "en": "Untrusted body",
+      "tr": "不可信的请求体"
+    },
+    {
+      "id": "h-d0cdd397",
+      "kind": "html",
+      "en": "unknown, e.g. {\"title\": 123}",
+      "tr": "unknown，例如 {\"title\": 123}"
+    },
+    {
+      "id": "h-219915ba",
+      "kind": "html",
+      "en": "Descriptor",
+      "tr": "描述符"
+    },
+    {
+      "id": "h-f830662c",
+      "kind": "html",
+      "en": "generated from <code>type NewTask</code>",
+      "tr": "由 <code>type NewTask</code> 生成"
+    },
+    {
+      "id": "h-843ac011",
+      "kind": "html",
+      "en": "Ok",
+      "tr": "Ok"
+    },
+    {
+      "id": "h-0931505e",
+      "kind": "html",
+      "en": "NewTask",
+      "tr": "NewTask"
+    },
+    {
+      "id": "h-d84444a0",
+      "kind": "html",
+      "en": "a typed value, every field checked",
+      "tr": "一个有类型的值，每个字段都经过检查"
+    },
+    {
+      "id": "h-f265d4d8",
+      "kind": "html",
+      "en": "Err",
+      "tr": "Err"
+    },
+    {
+      "id": "h-8471a8b6",
+      "kind": "html",
+      "en": "the bad body stops here",
+      "tr": "错误的请求体在这里被拦下"
+    },
+    {
+      "id": "h-724d7fd8",
+      "kind": "html",
+      "en": "<span>One declaration, one check. The descriptor is generated from the type, so the two can't disagree, and the only way to a <code>NewTask</code> is through it.</span>",
+      "tr": "<span>一个声明，一次检查。描述符由类型生成，所以两者不会不一致，而得到 <code>NewTask</code> 的唯一途径就是经过它。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-3fca475a",
+      "kind": "html",
+      "en": "<a href=\"#see-it\">See it</a>",
+      "tr": "<a href=\"#see-it\">看看实际效果</a>"
+    },
+    {
+      "id": "h-83bec415",
+      "kind": "html",
+      "en": "<a href=\"#the-parse-result-is-an-ordinary-result\">An ordinary Result</a>",
+      "tr": "<a href=\"#the-parse-result-is-an-ordinary-result\">普通的 Result</a>"
+    },
+    {
+      "id": "h-9c0a6e93",
+      "kind": "html",
+      "en": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">Combinators</a>",
+      "tr": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">组合子</a>"
+    },
+    {
+      "id": "h-c4c8771e",
+      "kind": "html",
+      "en": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">Dates</a>",
+      "tr": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">日期</a>"
+    },
+    {
+      "id": "h-153170fe",
+      "kind": "html",
+      "en": "<a href=\"#you-don-t-even-have-to-write-the-types\">Generated types</a>",
+      "tr": "<a href=\"#you-don-t-even-have-to-write-the-types\">生成的类型</a>"
+    },
+    {
+      "id": "h-5a6809fd",
+      "kind": "html",
+      "en": "<a href=\"#the-database-is-a-boundary-too\">Databases</a>",
+      "tr": "<a href=\"#the-database-is-a-boundary-too\">数据库</a>"
+    },
+    {
+      "id": "h-b639c008",
+      "kind": "html",
+      "en": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhooks</a>",
+      "tr": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhook</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-3ee97857",
+      "kind": "html",
+      "en": "In most TypeScript stacks every payload is described <em>twice</em>: once as a <code>type</code> for the compiler, and again as a hand-written validator so the value is actually that shape at runtime.",
+      "tr": "在大多数 TypeScript 技术栈中，每个负载都要描述<em>两次</em>：一次是给编译器看的 <code>type</code>，另一次是手写的校验器，确保这个值在运行时真的是这个形状。"
+    },
+    {
+      "id": "h-4f479c04",
+      "kind": "html",
+      "en": "The two drift, and the drift is exactly where bad data slips in. Glyph collapses them into one declaration: the type <em>produces</em> the validator, so they cannot disagree.",
+      "tr": "两者会逐渐偏离，而偏离之处正是坏数据溜进来的地方。Glyph 把它们合并成一个声明：类型<em>产生</em>校验器，所以两者不可能不一致。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-17ed9f60",
+      "kind": "html",
+      "en": "Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted value into the type) and <code>.is</code> (a type guard), with nothing else to write:",
+      "tr": "DTO 只需声明一次。它的描述符提供 <code>.parse</code>（把不可信的值校验为该类型）和 <code>.is</code>（类型守卫），不需要再写别的："
+    },
+    {
+      "id": "h-aed6522a",
+      "kind": "html",
+      "en": "what you did <em>not</em> write",
+      "tr": "你<em>没有</em>写的东西"
+    },
+    {
+      "id": "h-e2d225d4",
+      "kind": "html",
+      "en": "Keep the typed value after the <code>match</code>",
+      "tr": "在 <code>match</code> 之后保留有类型的值"
+    },
+    {
+      "id": "h-fbc6c868",
+      "kind": "html",
+      "en": "You can also pull the value out instead of doing the work inside the arm.",
+      "tr": "你也可以把值取出来，而不是在分支里完成所有工作。"
+    },
+    {
+      "id": "h-2f288262",
+      "kind": "html",
+      "en": "api.glyph: the value leaves the match typed",
+      "tr": "api.glyph：值离开 match 时仍带着类型"
+    },
+    {
+      "id": "h-90be60e1",
+      "kind": "html",
+      "en": "since 0.1.45",
+      "tr": "自 0.1.45 起"
+    },
+    {
+      "id": "h-896bc2d4",
+      "kind": "html",
+      "en": "generic types: not yet",
+      "tr": "泛型类型：尚未支持"
+    },
+    {
+      "id": "h-8cb9b8d1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the type is carried, and the generic exception</span>",
+      "tr": "详情 <span class=\"hint\">类型如何传递，以及泛型的例外</span>"
+    },
+    {
+      "id": "h-546a2fe9",
+      "kind": "html",
+      "en": "<code>T.parse</code> is typed as <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> and a <code>match</code> whose arms agree carries their type, so <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> gives you a <code>NewTask</code> for the rest of the function, with field names checked by Glyph rather than by <code>tsc</code> on the generated TypeScript. That landed in 0.1.45; before it, the value went untyped once it left the <code>match</code>. A generic type's <code>parse</code> is the one that still doesn't, because its descriptor takes a runtime checker per type parameter.",
+      "tr": "<code>T.parse</code> 的类型是 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>，而各分支类型一致的 <code>match</code> 会带着这个类型，所以 <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> 在函数的剩余部分给你一个 <code>NewTask</code>，字段名由 Glyph 检查，而不是由 <code>tsc</code> 在生成的 TypeScript 上检查。这在 0.1.45 中落地；在此之前，值一离开 <code>match</code> 就没有类型了。泛型类型的 <code>parse</code> 仍然做不到，因为它的描述符需要为每个类型参数传入一个运行时检查器。"
+    },
+    {
+      "id": "h-fcc2b50a",
+      "kind": "html",
+      "en": "The parse result is an ordinary <code>Result</code>",
+      "tr": "解析结果是普通的 <code>Result</code>"
+    },
+    {
+      "id": "h-debf3e49",
+      "kind": "html",
+      "en": "In Glyph <code>T.parse</code> returns the same <code>Result</code> every fallible function in the language returns, so you hand it straight back, run it through <code>map_err</code> to turn validation issues into your own error type, or propagate it with <code>?</code>.",
+      "tr": "在 Glyph 中，<code>T.parse</code> 返回的 <code>Result</code> 和语言中每个可能失败的函数返回的一样，所以你可以直接把它返回，用 <code>map_err</code> 把校验问题转成你自己的错误类型，或者用 <code>?</code> 向上传递。"
+    },
+    {
+      "id": "h-d7353c82",
+      "kind": "html",
+      "en": "what this replaced",
+      "tr": "它替代了什么"
+    },
+    {
+      "id": "h-cb13e42e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the runtime cost of using Result here</span>",
+      "tr": "详情 <span class=\"hint\">在这里使用 Result 的运行时开销</span>"
+    },
+    {
+      "id": "h-b84ab010",
+      "kind": "html",
+      "en": "A validator that gives you back a value in its own private shape is only half useful, because the rest of your error handling can't touch it. Nothing about a parse result is special.",
+      "tr": "一个以自己私有形状返回值的校验器只有一半用处，因为你其余的错误处理碰不到它。解析结果没有任何特殊之处。"
+    },
+    {
+      "id": "h-202a257e",
+      "kind": "html",
+      "en": "The reason it was ever otherwise: a descriptor is generated next to your <code>type</code>, and emitting the bare object kept a module that declares a type from depending on <code>std/result</code> at runtime. That trade is now made the other way. A module with a <code>pub type</code> in it carries an import of <code>std/result</code> whether or not it ever writes <code>Result</code>, and a <code>parse</code> call allocates the combinator closures any <code>Ok(...)</code> allocates. What you get for it is that the validated boundary and the rest of your error handling are the same API.",
+      "tr": "它曾经不是这样的原因：描述符生成在你的 <code>type</code> 旁边，输出一个裸对象可以让声明类型的模块在运行时不依赖 <code>std/result</code>。现在这个取舍反了过来。含有 <code>pub type</code> 的模块无论是否写过 <code>Result</code>，都会带上对 <code>std/result</code> 的导入，而一次 <code>parse</code> 调用会分配任何 <code>Ok(...)</code> 都会分配的组合子闭包。换来的是：经过校验的边界和其余的错误处理使用同一套 API。"
+    },
+    {
+      "id": "h-096368d0",
+      "kind": "html",
+      "en": "Composing your own: the output type is derived, not trusted",
+      "tr": "自己组合：输出类型是推导出来的，而不是被信任的"
+    },
+    {
+      "id": "h-53401471",
+      "kind": "html",
+      "en": "Glyph's <code>infer_output&lt;Shape&gt;</code> <strong>derives</strong> the output type from the shape, and <code>tsc</code> checks your annotation against it. A shape that omits a field of the type you claim doesn't compile:",
+      "tr": "Glyph 的 <code>infer_output&lt;Shape&gt;</code> 从形状<strong>推导</strong>出输出类型，并由 <code>tsc</code> 检查你的标注是否与之相符。如果形状漏掉了你声称的类型中的某个字段，就无法编译："
+    },
+    {
+      "id": "h-cdab955e",
+      "kind": "html",
+      "en": "the drift Glyph removes",
+      "tr": "Glyph 消除的偏离"
+    },
+    {
+      "id": "h-17758042",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the TypeScript trap, and the cast that follows the return since 0.1.92</span>",
+      "tr": "详情 <span class=\"hint\">TypeScript 的陷阱，以及自 0.1.92 起跟随 return 的类型断言</span>"
+    },
+    {
+      "id": "h-8f9b11ff",
+      "kind": "html",
+      "en": "Sometimes you want a <code>zod</code>-style combinator: build a validator by composing smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the <em>shape</em> you passed it drift apart. You write the shape, then repeat yourself in a second type parameter, and nothing checks that they agree.",
+      "tr": "有时你需要 <code>zod</code> 风格的组合子：把较小的校验器组合成一个校验器。TypeScript 中的陷阱是，组合子的<em>输出类型</em>和你传给它的<em>形状</em>会逐渐偏离。你写好形状，再在第二个类型参数里重复一遍，而没有任何东西检查两者是否一致。"
+    },
+    {
+      "id": "h-83a7d8e0",
+      "kind": "html",
+      "en": "The derived type holds however the combinator returns. <code>infer_output</code> needs one cast at the function's boundary, because the body builds a value the type system can't prove carries the shape-derived type, and the compiler writes that cast for you. Through 0.1.91 it was attached to a plain <code>return &lt;value&gt;</code>. Put a <code>match</code> between the <code>return</code> and the value, or end the body in <code>r?</code>, and the same function stopped compiling: a <code>TS2322</code> against generated TypeScript, over Glyph the compiler had already accepted. As of 0.1.92 the cast follows the return rather than its spelling, so <code>return match strict { ... }</code> type-checks the same as the single <code>return</code> spelling of the identical body.",
+      "tr": "无论组合子以什么方式返回，推导出的类型都成立。<code>infer_output</code> 需要在函数边界处做一次类型断言，因为函数体构造的值无法被类型系统证明带有由形状推导出的类型，这个类型断言由编译器替你写。在 0.1.91 及之前，它只附加在普通的 <code>return &lt;value&gt;</code> 上。如果在 <code>return</code> 和值之间放一个 <code>match</code>，或者让函数体以 <code>r?</code> 结尾，同一个函数就无法编译了：针对生成的 TypeScript 报出 <code>TS2322</code>，而对应的 Glyph 编译器早已接受。从 0.1.92 起，类型断言跟随的是 return 本身而不是它的写法，所以 <code>return match strict { ... }</code> 和同一函数体用单个 <code>return</code> 写出来的版本类型检查结果相同。"
+    },
+    {
+      "id": "h-78df86c8",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary",
+      "tr": "不可信边界的其余部分"
+    },
+    {
+      "id": "h-6969498d",
+      "kind": "html",
+      "en": "The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a JSON string and it parses <em>and</em> validates in one step.",
+      "tr": "让 <code>json.parse&lt;T&gt;</code> 变得安全的也是同一个描述符：给它一个 JSON 字符串，它会一步完成解析<em>和</em>校验。"
+    },
+    {
+      "id": "h-36ecb4f8",
+      "kind": "html",
+      "en": "Input",
+      "tr": "输入"
+    },
+    {
+      "id": "h-d6e645b7",
+      "kind": "html",
+      "en": "Call",
+      "tr": "调用"
+    },
+    {
+      "id": "h-16dcaa92",
+      "kind": "html",
+      "en": "Returns",
+      "tr": "返回"
+    },
+    {
+      "id": "h-8dd46ffe",
+      "kind": "html",
+      "en": "A JSON string",
+      "tr": "JSON 字符串"
+    },
+    {
+      "id": "h-f1b6cf5f",
+      "kind": "html",
+      "en": "A decoded body",
+      "tr": "已解码的请求体"
+    },
+    {
+      "id": "h-af8848ff",
+      "kind": "html",
+      "en": "A header",
+      "tr": "请求头"
+    },
+    {
+      "id": "h-2c7025a0",
+      "kind": "html",
+      "en": "A query parameter",
+      "tr": "查询参数"
+    },
+    {
+      "id": "h-eea770a1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">request bodies, headers and query parameters</span>",
+      "tr": "详情 <span class=\"hint\">请求体、请求头和查询参数</span>"
+    },
+    {
+      "id": "h-17daad44",
+      "kind": "html",
+      "en": "A request body arrives already decoded as an <code>unknown</code>, so there you reach for <code>T.parse(value)</code> instead: same guarantee, no cast.",
+      "tr": "请求体到达时已经解码为 <code>unknown</code>，所以这时你要用 <code>T.parse(value)</code>：同样的保证，不需要类型断言。"
+    },
+    {
+      "id": "h-751631d4",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
+      "tr": "不可信边界的其余部分也以同样方式定型：<code>header(req, name)</code> 和 <code>query_param(req, name)</code> 返回 <code>Option&lt;string&gt;</code>，所以缺失的请求头或查询参数是 <code>None</code>，而 <code>match</code> <em>强制</em>你处理它。省略 <code>None</code> 分支就无法编译。不存在的输入不可能被当作存在来读取。"
+    },
+    {
+      "id": "h-c5c56180",
+      "kind": "html",
+      "en": "Does a map keyed by an enum check its keys?",
+      "tr": "以枚举为键的映射会检查它的键吗？"
+    },
+    {
+      "id": "h-1343a23f",
+      "kind": "html",
+      "en": "Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with <code>type Tier = \"free\" | \"pro\"</code> parses only an object whose keys are exactly <code>free</code> and <code>pro</code>: a stray key and a missing one are both an <code>Err</code>, which is also what <code>tsc</code> says about the same object written as a literal.",
+      "tr": "会，自 0.1.148 起。对于 <code>type Tier = \"free\" | \"pro\"</code>，<code>Record&lt;Tier, int&gt;</code> 只会解析键恰好为 <code>free</code> 和 <code>pro</code> 的对象：多出一个键或缺少一个键都是 <code>Err</code>，这和 <code>tsc</code> 对同一个对象写成字面量时的判断一致。"
+    },
+    {
+      "id": "h-90bb1f8c",
+      "kind": "html",
+      "en": "Key type",
+      "tr": "键类型"
+    },
+    {
+      "id": "h-d87876b6",
+      "kind": "html",
+      "en": "What <code>parse</code> checks on each key",
+      "tr": "<code>parse</code> 对每个键检查什么"
+    },
+    {
+      "id": "h-3f0b83d0",
+      "kind": "html",
+      "en": "A string-literal union",
+      "tr": "字符串字面量联合类型"
+    },
+    {
+      "id": "h-ecab195d",
+      "kind": "html",
+      "en": "exactly the listed keys, none missing, none extra",
+      "tr": "恰好是列出的键，不缺也不多"
+    },
+    {
+      "id": "h-356bbed3",
+      "kind": "html",
+      "en": "A <code>where</code>-refined type",
+      "tr": "用 <code>where</code> 细化的类型"
+    },
+    {
+      "id": "h-d1db2150",
+      "kind": "html",
+      "en": "the predicate",
+      "tr": "谓词"
+    },
+    {
+      "id": "h-28ded56e",
+      "kind": "html",
+      "en": "the plain spelling of a whole number; <code>\"01\"</code> and <code>\"1.5\"</code> fail",
+      "tr": "整数的普通写法；<code>\"01\"</code> 和 <code>\"1.5\"</code> 不通过"
+    },
+    {
+      "id": "h-b61a7b5c",
+      "kind": "html",
+      "en": "nothing new",
+      "tr": "没有新变化"
+    },
+    {
+      "id": "h-14b46ac0",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
+      "tr": "详情 <span class=\"hint\">细化类型和 int 类型的键，以及仍然交给 tsc 的部分</span>"
+    },
+    {
+      "id": "h-906e9c5a",
+      "kind": "html",
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "用 <code>where</code> 细化的键类型会对每个键运行谓词，<code>int</code> 键必须是整数的普通写法，所以 <code>\"01\"</code> 和 <code>\"1.5\"</code> 被拒绝。<code>Record&lt;string, V&gt;</code> 的检查方式和以前完全一样。对于你在代码中写出的值，Glyph 自己的检查器仍然把键交给 <code>tsc</code> 检查；以自身类型参数为键的泛型记录会被拒绝，除非该参数是 <code>string</code>。"
+    },
+    {
+      "id": "h-efd6b0f9",
+      "kind": "html",
+      "en": "If I parse a date, do I get a real date?",
+      "tr": "解析一个日期，得到的是真正的日期吗？"
+    },
+    {
+      "id": "h-ba916739",
+      "kind": "html",
+      "en": "Yes, and the interesting part is what you get back for input that isn't one. <code>time.parse_iso</code> returns <code>Option&lt;number&gt;</code>, and it is <code>None</code> for everything that is not ISO-8601.",
+      "tr": "是的，更值得一看的是，对于不是日期的输入你会得到什么。<code>time.parse_iso</code> 返回 <code>Option&lt;number&gt;</code>，对任何不是 ISO-8601 的内容都返回 <code>None</code>。"
+    },
+    {
+      "id": "h-070c160a",
+      "kind": "html",
+      "en": "accepted",
+      "tr": "接受"
+    },
+    {
+      "id": "h-164ac8b3",
+      "kind": "html",
+      "en": "None, every one of them",
+      "tr": "全部返回 None"
+    },
+    {
+      "id": "h-1f74fd41",
+      "kind": "html",
+      "en": "The last one is the one that surprises people, and it is the whole point. A datetime with no <code>Z</code> and no <code>+HH:MM</code> offset is local time by the ECMAScript grammar, so accepting it would mean the same string names a different calendar day depending on which machine ran the program.",
+      "tr": "最后一个最让人意外，而它正是重点所在。按照 ECMAScript 语法，没有 <code>Z</code> 也没有 <code>+HH:MM</code> 偏移的日期时间是本地时间，所以接受它就意味着同一个字符串会因运行程序的机器不同而指向不同的日历日。"
+    },
+    {
+      "id": "h-77b099e1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what Date.parse does instead, and why UTC</span>",
+      "tr": "详情 <span class=\"hint\">Date.parse 会怎么做，以及为什么用 UTC</span>"
+    },
+    {
+      "id": "h-9aa02d61",
+      "kind": "html",
+      "en": "That is a stronger claim than JavaScript's <code>Date.parse</code>, which takes free-form text (<code>\"January 5 2026\"</code>), reads an unpadded date like <code>\"2026-1-3\"</code> in whatever timezone the process happens to run in, and reports an impossible day as a success by rolling it forward: <code>\"2026-02-31\"</code> becomes March 3, and you get a number back with no indication anything happened.",
+      "tr": "这比 JavaScript 的 <code>Date.parse</code> 要严格。后者接受自由格式的文本（<code>\"January 5 2026\"</code>），按进程碰巧所在的时区读取没有补零的日期，比如 <code>\"2026-1-3\"</code>，并且把不可能存在的日期向后滚动后当作成功：<code>\"2026-02-31\"</code> 变成 3 月 3 日，你拿到一个数字，没有任何迹象表明发生了什么。"
+    },
+    {
+      "id": "h-b163f00e",
+      "kind": "html",
+      "en": "Glyph's calendar accessors (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) are UTC and say so, and a validator that quietly imports the host's timezone would make them lie. So the string is rejected instead, and you decide what it meant.",
+      "tr": "Glyph 的日历访问函数（<code>time.year</code>、<code>time.month</code>、<code>time.day</code>）使用 UTC，并且明确说明这一点，而一个悄悄引入宿主时区的校验器会让它们给出错误结果。所以这样的字符串会被拒绝，由你来决定它的含义。"
+    },
+    {
+      "id": "h-43b29fed",
+      "kind": "html",
+      "en": "The guard moved into the primitive",
+      "tr": "守卫移进了基础函数"
+    },
+    {
+      "id": "h-0f07a9cf",
+      "kind": "html",
+      "en": "When an application writes a correctness guard around a standard-library primitive, the guard belongs in the primitive. Here is what the app deleted:",
+      "tr": "当应用在标准库的基础函数外面包一层正确性守卫时，这个守卫应该放进基础函数本身。下面是应用删掉的代码："
+    },
+    {
+      "id": "h-eb2994d4",
+      "kind": "html",
+      "en": "before: the app guards the stdlib",
+      "tr": "之前：应用为标准库加守卫"
+    },
+    {
+      "id": "h-5c103d6b",
+      "kind": "html",
+      "en": "after: the primitive holds the line",
+      "tr": "之后：由基础函数把关"
+    },
+    {
+      "id": "h-e6cf6833",
+      "kind": "html",
+      "en": "The <code>import std/regex</code> went with it. Same ledger, same rejected rows, same report byte for byte.",
+      "tr": "<code>import std/regex</code> 也一起删掉了。同样的账本，同样被拒绝的行，报告逐字节相同。"
+    },
+    {
+      "id": "h-6219c047",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the expense-report app this came from</span>",
+      "tr": "历史 <span class=\"hint\">这个改动来自的报销应用</span>"
+    },
+    {
+      "id": "h-dad8f232",
+      "kind": "html",
+      "en": "This one came out of writing an <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">expense-report CLI in Glyph</a>. Every ledger row carries a date, and filing a row under the wrong month is the bug that matters, so the app didn't trust the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped the timestamp back to text to catch a rolled-over day.",
+      "tr": "这个改动来自用 Glyph 编写的一个<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">报销单命令行工具</a>。每一行账目都带有日期，而把一行记到错误的月份是真正要紧的 bug，所以这个应用不信任旧的 <code>parse_iso</code>：它先用正则表达式检查格式，再把时间戳转回文本，以发现被滚动过的日期。"
+    },
+    {
+      "id": "h-48099e52",
+      "kind": "html",
+      "en": "You don't even have to write the types",
+      "tr": "连类型都不用自己写"
+    },
+    {
+      "id": "h-6d14409c",
+      "kind": "html",
+      "en": "If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate the Glyph types from it: real, committed, greppable <code>type</code> declarations, each with its descriptor, not an inferred phantom:",
+      "tr": "如果形状已经存在于 OpenAPI 规范或 TypeScript 声明文件中，就从中生成 Glyph 类型：真实的、提交到仓库的、可以 grep 的 <code>type</code> 声明，每个都带有描述符，而不是推断出来的虚影："
+    },
+    {
+      "id": "h-9b46e0d2",
+      "kind": "html",
+      "en": "from an OpenAPI / JSON Schema spec",
+      "tr": "从 OpenAPI / JSON Schema 规范生成"
+    },
+    {
+      "id": "h-1cba2c2c",
+      "kind": "html",
+      "en": "from an installed package, by name",
+      "tr": "按名字从已安装的包生成"
+    },
+    {
+      "id": "h-269e3a1d",
+      "kind": "html",
+      "en": "A wire type becomes a validated boundary, with nothing hand-written:",
+      "tr": "线上传输的类型变成经过校验的边界，不需要任何手写代码："
+    },
+    {
+      "id": "h-cd576e8d",
+      "kind": "html",
+      "en": "Generation is <strong>wire-faithful</strong>: what the spec says about a value is what <code>parse</code> checks.",
+      "tr": "生成过程<strong>忠实于线上格式</strong>：规范对一个值的描述，就是 <code>parse</code> 检查的内容。"
+    },
+    {
+      "id": "h-fc9a9e39",
+      "kind": "html",
+      "en": "In the spec or <code>.d.ts</code>",
+      "tr": "在规范或 <code>.d.ts</code> 中"
+    },
+    {
+      "id": "h-9b2c9870",
+      "kind": "html",
+      "en": "Generated Glyph",
+      "tr": "生成的 Glyph"
+    },
+    {
+      "id": "h-7de6a6c3",
+      "kind": "html",
+      "en": "A string enum",
+      "tr": "字符串枚举"
+    },
+    {
+      "id": "h-7bf9b670",
+      "kind": "html",
+      "en": "a string-literal union; <code>parse</code> checks membership",
+      "tr": "字符串字面量联合类型；<code>parse</code> 检查取值是否在其中"
+    },
+    {
+      "id": "h-8695f5b7",
+      "kind": "html",
+      "en": "An <code>integer</code> field",
+      "tr": "<code>integer</code> 字段"
+    },
+    {
+      "id": "h-9597570b",
+      "kind": "html",
+      "en": "<code>int</code>; a wire <code>3.5</code> fails",
+      "tr": "<code>int</code>；线上的 <code>3.5</code> 不通过"
+    },
+    {
+      "id": "h-616732ba",
+      "kind": "html",
+      "en": "An object schema",
+      "tr": "对象 schema"
+    },
+    {
+      "id": "h-405b027e",
+      "kind": "html",
+      "en": "a record marked <code>@open</code>; strict with <code>additionalProperties: false</code>",
+      "tr": "标记为 <code>@open</code> 的记录；有 <code>additionalProperties: false</code> 时为严格模式"
+    },
+    {
+      "id": "h-885a75b0",
+      "kind": "html",
+      "en": "<code>type Page&lt;T&gt;</code>, each item checked as <code>T</code>",
+      "tr": "<code>type Page&lt;T&gt;</code>，每一项都按 <code>T</code> 检查"
+    },
+    {
+      "id": "h-19a8e439",
+      "kind": "html",
+      "en": "An undiscriminated union",
+      "tr": "无判别字段的联合类型"
+    },
+    {
+      "id": "h-6d1b0ba7",
+      "kind": "html",
+      "en": "narrowed, with a printed note",
+      "tr": "收窄，并打印一条说明"
+    },
+    {
+      "id": "h-1f24311f",
+      "kind": "html",
+      "en": "A name in two reachable files",
+      "tr": "同一个名字出现在两个可达文件中"
+    },
+    {
+      "id": "h-f876bd7d",
+      "kind": "html",
+      "en": "flagged with a note, not bound",
+      "tr": "标记并附说明，不做绑定"
+    },
+    {
+      "id": "h-c79e1805",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what materializes today, regeneration, generic types</span>",
+      "tr": "详情 <span class=\"hint\">目前能生成什么、重新生成、泛型类型</span>"
+    },
+    {
+      "id": "h-c759d75a",
+      "kind": "html",
+      "en": "Point <code>glyph gen dts</code> at a <code>.d.ts</code> file, or, as above, at an installed npm package by name: it resolves the package's own declaration entry from <code>node_modules</code> and writes committed types you import.",
+      "tr": "把 <code>glyph gen dts</code> 指向一个 <code>.d.ts</code> 文件，或者像上面那样按名字指向一个已安装的 npm 包：它会从 <code>node_modules</code> 中解析出该包自己的声明入口，并写出供你导入的、提交到仓库的类型。"
+    },
+    {
+      "id": "h-7d241438",
+      "kind": "html",
+      "en": "What materializes today: <code>gen dts</code> reads the <code>interface</code> and <code>type</code> declarations a package exports, including those inside a <code>declare namespace</code> tree (bare cross-references resolve through the scope) and those in sibling files an <code>index</code> barrel re-exports (the entry <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type argument, not just for presence. Aliased and <code>export * as</code> re-exports resolve through a per-file binding map. The one case it can't make safe, a type name that collides across two reachable files, it <em>flags with a note</em> rather than bind the wrong shape silently. For anything the materializer can't reach, hand-write the shapes you cross the boundary with, or use the <code>extern_ts</code> escape hatch.",
+      "tr": "目前能生成的内容：<code>gen dts</code> 读取包导出的 <code>interface</code> 和 <code>type</code> 声明，包括 <code>declare namespace</code> 树中的声明（裸的交叉引用会通过作用域解析），以及 <code>index</code> 汇总文件重新导出的同级文件中的声明（会遍历入口 <code>.d.ts</code> 及其通过相对路径导入的每个 <code>.d.ts</code>）。泛型保持一等地位：<code>interface Page&lt;T&gt;</code> 生成为 <code>type Page&lt;T&gt;</code>，并得到一个按类型参数校验每一项的描述符，而不只是检查是否存在。带别名的重新导出和 <code>export * as</code> 重新导出通过每个文件的绑定映射解析。唯一无法保证安全的情况，即一个类型名在两个可达文件中冲突，它会<em>标记并附上说明</em>，而不是悄悄绑定到错误的形状。对于生成器处理不到的内容，就手写你在边界上用到的形状，或者使用 <code>extern_ts</code> 逃生口。"
+    },
+    {
+      "id": "h-9c95f2a9",
+      "kind": "html",
+      "en": "Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is <strong>wire-faithful</strong>: a string enum materializes as a string-literal union (<code>\"free\" | \"pro\"</code>), so <code>parse</code> checks membership, not just that the value is a string, and a <code>match</code> over it is exhaustive without an <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire <code>3.5</code> fails <code>parse</code> where a plain number would pass. Where a construct has no exact Glyph form (an undiscriminated union), it narrows and <em>prints a note</em> rather than emit a validator that would reject real data. Generated records also carry <code>@open</code>, so <code>parse</code> tolerates a field the API adds later while still validating every field it declares; a schema that sets <code>additionalProperties: false</code> stays strict. Records are strict by default in Glyph, and this is the same greppable declaration-site marker a hand-written record would use, so nothing about what a record means changes.",
+      "tr": "重新生成是幂等的，所以规范的改动会是一个干净、可审查的 diff。生成过程<strong>忠实于线上格式</strong>：字符串枚举生成为字符串字面量联合类型（<code>\"free\" | \"pro\"</code>），所以 <code>parse</code> 检查的是取值是否在其中，而不只是检查它是否为字符串，对它的 <code>match</code> 不需要 <code>else</code> 就是穷尽的。<code>integer</code> 字段变成 <code>int</code>，所以线上的 <code>3.5</code> 会让 <code>parse</code> 失败，而普通的 number 则会通过。如果某个结构没有完全对应的 Glyph 形式（比如无判别字段的联合类型），它会收窄并<em>打印一条说明</em>，而不是生成一个会拒绝真实数据的校验器。生成的记录还带有 <code>@open</code>，所以 <code>parse</code> 能容忍 API 以后新增的字段，同时仍然校验它声明的每个字段；设置了 <code>additionalProperties: false</code> 的 schema 保持严格。Glyph 中的记录默认是严格的，而这和手写记录使用的是同一个可以 grep 的声明处标记，所以记录的含义没有任何变化。"
+    },
+    {
+      "id": "h-209f2afc",
+      "kind": "html",
+      "en": "Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code> checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way. This holds across module boundaries: define <code>Paginated&lt;T&gt;</code> in one file, <code>import</code> it into another, and both <code>Paginated.parse&lt;User&gt;(body)</code> and <code>is Paginated&lt;User&gt;</code> there still check each element as a <code>User</code>. The compiler builds the per-element check from the type argument at the call site, so which file the generic type lives in makes no difference to what gets validated.",
+      "tr": "泛型类型同样会被校验。<code>Paginated&lt;T&gt;</code> 得到的描述符，其 <code>parse</code> 接受类型参数：<code>Paginated.parse&lt;User&gt;(body)</code> 会把 <code>items</code> 的每一项<em>按 <code>User</code></em> 检查，而不只是检查是否存在，<code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> 也以同样方式收窄。这一点跨模块边界同样成立：在一个文件中定义 <code>Paginated&lt;T&gt;</code>，在另一个文件中 <code>import</code> 它，那里的 <code>Paginated.parse&lt;User&gt;(body)</code> 和 <code>is Paginated&lt;User&gt;</code> 仍然会把每个元素按 <code>User</code> 检查。编译器在调用处根据类型参数构造逐元素检查，所以泛型类型位于哪个文件，不影响校验的内容。"
+    },
+    {
+      "id": "h-d242942f",
+      "kind": "html",
+      "en": "Where it stops: descriptors cover the shapes most payloads are made of: objects, primitives, arrays, references, optional and nullable fields, and now generic types at a given instantiation. A type Glyph did not generate (an external package or <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you materialize it, which is now one command against the installed package (<code>glyph gen dts &lt;package&gt;</code>, for the top-level interfaces and type aliases it exports). That boundary is deliberate: a type Glyph didn't emit can't promise runtime validation, so you opt in per package and the result is committed and greppable, not conjured on every build.",
+      "tr": "它的边界：描述符覆盖了大多数负载所由构成的形状：对象、基本类型、数组、引用、可选和可空字段，以及现在在具体实例化下的泛型类型。不是由 Glyph 生成的类型（你只是导入的外部包或 <code>.d.ts</code>）会被类型检查，但在你把它生成出来之前没有描述符，而现在这只需要对已安装的包运行一条命令（<code>glyph gen dts &lt;package&gt;</code>，针对它导出的顶层 interface 和类型别名）。这个边界是有意的：一个不是 Glyph 生成的类型无法承诺运行时校验，所以你按包逐个选择加入，结果被提交到仓库且可以 grep，而不是每次构建时凭空变出来。"
+    },
+    {
+      "id": "h-babaa99b",
+      "kind": "html",
+      "en": "The database is a boundary too",
+      "tr": "数据库也是边界"
+    },
+    {
+      "id": "h-d85b8f86",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is. The same <code>.parse</code> you use on a request body validates a row.",
+      "tr": "从数据库读出的一行，和请求体一样不可信。你在请求体上用的 <code>.parse</code> 同样可以校验一行数据。"
+    },
+    {
+      "id": "h-92b13790",
+      "kind": "html",
+      "en": "the bug this removes",
+      "tr": "它消除的 bug"
+    },
+    {
+      "id": "h-542d9186",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">std/sqlite, and the 0-or-1 boolean</span>",
+      "tr": "详情 <span class=\"hint\">std/sqlite，以及值为 0 或 1 的布尔</span>"
+    },
+    {
+      "id": "h-92b9397f",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is: the database schema and your code's idea of the row can disagree, and a cast (<code>row as Task</code>) papers over it. <code>std/sqlite</code>, the DB module over Node's built-in SQLite, leans into that. A query returns <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, so there is no way to treat a row as a <code>Task</code> without validating it first.",
+      "tr": "从数据库读出的一行，和请求体一样不可信：数据库 schema 和你的代码对这一行的理解可能不一致，而类型断言（<code>row as Task</code>）会把这种不一致掩盖掉。<code>std/sqlite</code> 是基于 Node 内置 SQLite 的数据库模块，它正是按这个思路设计的。查询返回 <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>，所以不先校验就没有办法把一行当作 <code>Task</code> 使用。"
+    },
+    {
+      "id": "h-d6878367",
+      "kind": "html",
+      "en": "This catches a bug people ship constantly. SQLite has no boolean type, so a <code>done</code> column comes back as the integer <code>0</code> or <code>1</code>. Cast the row to a record with a <code>bool</code> field and <code>task.done === true</code> is quietly never true. In Glyph the storage shape and the domain shape are separate types, and the mapping between them is one line you actually see:",
+      "tr": "这能抓住一个人们经常上线的 bug。SQLite 没有布尔类型，所以 <code>done</code> 列返回的是整数 <code>0</code> 或 <code>1</code>。把这一行断言成带 <code>bool</code> 字段的记录，<code>task.done === true</code> 就悄无声息地永远不成立。在 Glyph 中，存储形状和领域形状是两个不同的类型，两者之间的映射是你能直接看到的一行代码："
+    },
+    {
+      "id": "h-bdebab37",
+      "kind": "html",
+      "en": "The whole thing is a working example: <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for routes, with data that survives a restart and validation on both the wire and the database side. No hand-written validators anywhere in it.",
+      "tr": "完整的可运行示例：<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> 是一个持久化的任务 API，用 <code>std/sqlite</code> 存储，用 <code>std/http</code> 定义路由，数据在重启后依然存在，线上传输和数据库两侧都有校验。整个示例中没有任何手写的校验器。"
+    },
+    {
+      "id": "h-874af20b",
+      "kind": "html",
+      "en": "A signed webhook is a boundary too",
+      "tr": "带签名的 webhook 也是边界"
+    },
+    {
+      "id": "h-bae4d501",
+      "kind": "html",
+      "en": "Verifying a webhook signature needs the exact bytes the sender signed, not a re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check stays in Glyph:",
+      "tr": "校验 webhook 签名需要发送方签名时的原始字节，而不是重新序列化的副本（把解析后的请求体重新转成字符串会改变空白和键的顺序，HMAC 就永远对不上）。<code>http.raw(req)</code> 把这些字节交给你，所以校验可以留在 Glyph 中完成："
+    },
+    {
+      "id": "h-5eeadc33",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">raw bytes for the signature, parsed body for the shape</span>",
+      "tr": "详情 <span class=\"hint\">签名用原始字节，形状用解析后的请求体</span>"
+    },
+    {
+      "id": "h-7f5b9685",
+      "kind": "html",
+      "en": "<code>req.body</code> is still the parsed value for the shape check; <code>raw</code> is the untampered payload the signature is computed over. A receiver that verifies a signature and validates the body needs no hand-written TypeScript.",
+      "tr": "<code>req.body</code> 仍然是用于形状检查的解析值；<code>raw</code> 是计算签名所依据的未经改动的负载。一个既校验签名又校验请求体的接收端不需要任何手写的 TypeScript。"
+    },
+    {
+      "id": "h-4516c359",
+      "kind": "html",
+      "en": "A type can validate its invariants, not just its shape",
+      "tr": "类型不仅能校验形状，还能校验不变式"
+    },
+    {
+      "id": "h-a7168d78",
+      "kind": "html",
+      "en": "A shape check tells you a field is a number. It does not tell you the amount is non-negative or the rating is between 1 and 5. A <code>where</code> refinement puts that invariant in the type, and the descriptor enforces it at the boundary:",
+      "tr": "形状检查告诉你某个字段是数字，但不会告诉你金额非负，或者评分在 1 到 5 之间。<code>where</code> 细化把这个不变式放进类型，由描述符在边界处强制执行："
+    },
+    {
+      "id": "h-5398192b",
+      "kind": "html",
+      "en": "what you're not writing",
+      "tr": "你不用写的东西"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-79cfac13",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">10</span>",
+      "tr": "现已提供 <span class=\"count\">10</span>"
+    },
+    {
+      "id": "h-3e77e7bf",
+      "kind": "html",
+      "en": "Descriptors",
+      "tr": "描述符"
+    },
+    {
+      "id": "h-495b8283",
+      "kind": "html",
+      "en": "Every declared record and tagged union carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), generic records included",
+      "tr": "每个声明的记录和标签联合都带有运行时描述符（<code>.parse</code>、<code>.is</code>、<code>.schema</code>），泛型记录也包括在内"
+    },
+    {
+      "id": "h-922c7825",
+      "kind": "html",
+      "en": "a generic tagged union does not",
+      "tr": "泛型标签联合没有"
+    },
+    {
+      "id": "h-14ac7bef",
+      "kind": "html",
+      "en": "<code>.parse</code> returns the same <code>Result</code> the rest of the language uses, so it composes with <code>map_err</code>, with <code>?</code>, and with any function that returns one",
+      "tr": "<code>.parse</code> 返回语言其余部分使用的同一个 <code>Result</code>，所以它能与 <code>map_err</code>、<code>?</code> 以及任何返回 Result 的函数组合"
+    },
+    {
+      "id": "h-d53b22f1",
+      "kind": "html",
+      "en": "A <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape",
+      "tr": "<code>where</code> 细化（<code>int where value &gt;= 0</code>）在边界处校验不变式，而不只是形状"
+    },
+    {
+      "id": "h-e28e5c01",
+      "kind": "html",
+      "en": "<code>json.parse&lt;T&gt;</code> validates JSON",
+      "tr": "<code>json.parse&lt;T&gt;</code> 校验 JSON"
+    },
+    {
+      "id": "h-d8236d9b",
+      "kind": "html",
+      "en": "<code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift",
+      "tr": "<code>infer_output&lt;Shape&gt;</code> 从组合子的形状推导其输出类型，所以两者不会偏离"
+    },
+    {
+      "id": "h-40536dd8",
+      "kind": "html",
+      "en": "Generation",
+      "tr": "生成"
+    },
+    {
+      "id": "h-62ff4789",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name",
+      "tr": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> 从规范、<code>.d.ts</code> 或按名字指定的已安装包生成提交到仓库、带描述符的类型"
+    },
+    {
+      "id": "h-b0079f0f",
+      "kind": "html",
+      "en": "Boundaries",
+      "tr": "边界"
+    },
+    {
+      "id": "h-24cc6cd4",
+      "kind": "html",
+      "en": "<code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other",
+      "tr": "<code>std/sqlite</code> 以 <code>unknown</code> 返回各行，所以数据库和其他边界一样是经过校验的边界"
+    },
+    {
+      "id": "h-de257c28",
+      "kind": "html",
+      "en": "A signed-webhook receiver stays entirely in Glyph",
+      "tr": "带签名的 webhook 接收端完全用 Glyph 编写"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-ba1e90b3",
+      "kind": "html",
+      "en": "<code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph.",
+      "tr": "<code>http.raw(req)</code> 暴露未解析的请求体，所以 webhook 签名是在原始字节上校验的，带签名的 webhook 接收端完全用 Glyph 编写。"
+    },
+    {
+      "id": "h-9816d858",
+      "kind": "html",
+      "en": "Untrusted input can't reach a SQL or shell sink without <code>sanitize</code>",
+      "tr": "不可信输入不经过 <code>sanitize</code> 就无法到达 SQL 或 shell"
+    },
+    {
+      "id": "h-bc0f3aaa",
+      "kind": "html",
+      "en": "<code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time.",
+      "tr": "<code>std/taint</code> 的 <code>Tainted</code>/<code>Trusted</code> 类型阻止不可信输入在没有显式 <code>sanitize</code> 的情况下到达 SQL 或 shell，所以 <code>tsc</code> 会在编译期拒绝注入路径。"
+    },
+    {
+      "id": "h-390c07d2",
+      "kind": "html",
+      "en": "<code>time.parse_iso</code> takes ISO-8601 and nothing else",
+      "tr": "<code>time.parse_iso</code> 只接受 ISO-8601"
+    },
+    {
+      "id": "h-d94882d2",
+      "kind": "html",
+      "en": "The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.",
+      "tr": "较小的边界基础函数也守着同样的底线：<code>time.parse_iso</code> 只接受 ISO-8601，对自由格式文本、不可能存在的日期，以及原本会按宿主本地时区读取的无偏移日期时间，都返回 <code>None</code>。"
+    },
+    {
+      "id": "h-50fb9df6",
+      "kind": "html",
+      "en": "On the way <span class=\"count\">3</span>",
+      "tr": "正在进行 <span class=\"count\">3</span>"
+    },
+    {
+      "id": "h-b84bd62f",
+      "kind": "html",
+      "en": "Discriminated unions generate from a spec and from a <code>.d.ts</code>; enum and mapped-type coverage next",
+      "tr": "可辨识联合可以从规范和 <code>.d.ts</code> 生成；接下来是枚举和映射类型的覆盖"
+    },
+    {
+      "id": "h-7a50add2",
+      "kind": "html",
+      "en": "Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage.",
+      "tr": "可辨识联合现在既可以从 OpenAPI 的 <code>discriminator</code> 生成，也可以从 TypeScript <code>.d.ts</code> 中的联合类型生成（一个 <code>parse_&lt;Name&gt;</code> 分派函数读取标签并校验为对应的变体）。下一步：更完整的枚举和映射类型覆盖。"
+    },
+    {
+      "id": "h-5c6a5727",
+      "kind": "html",
+      "en": "Typed client and server code from a spec already ships",
+      "tr": "根据规范生成类型化的客户端和服务端代码，现已提供"
+    },
+    {
+      "id": "h-2fd0b96e",
+      "kind": "html",
+      "en": "See client &amp; server",
+      "tr": "查看客户端与服务端"
+    },
+    {
+      "id": "h-a0fb7da6",
+      "kind": "html",
+      "en": "A timestamp and a duration are both <code>number</code>",
+      "tr": "时间戳和时长都是 <code>number</code>"
+    },
+    {
+      "id": "h-e32f0f0c",
+      "kind": "html",
+      "en": "On dates, the strictness is the whole feature and it stops at the parse: <code>parse_iso</code> hands back epoch milliseconds, so a timestamp and a duration are both <code>number</code> and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.",
+      "tr": "在日期方面，严格性就是这个功能的全部，并且只到解析为止：<code>parse_iso</code> 返回纪元毫秒数，所以时间戳和时长都是 <code>number</code>，没有什么能阻止你把两者相加。独立的日期类型是以后的决定，而且不是一个小决定。"
+    }
+  ]
+}

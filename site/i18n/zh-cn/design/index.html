@@ -1,0 +1,76 @@
+---
+title: 设计 · 四大支柱与各项决策 · Glyph
+description: Glyph 的设计思路：每项决策都要经受检验的四大支柱，规范中带编号的决策，以及语言有意没有做的部分。
+source_hash: 28891a173ca9e4a0
+next_steps: |
+  接下来去哪里
+  推荐 | https://github.com/chadetov/glyph/blob/main/docs/language/spec.md | spec | 阅读规范 | 每项带编号的决策，结尾都写明它服务于哪个支柱。 | 打开规范
+  /catches/ | catches | Glyph 拒绝什么 | 每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下检查过。
+  /start/ | start | 写第一个程序 | 安装、创建项目、运行、故意改错、读报错。大约十分钟。
+---
+      <p class="q-eyebrow">设计</p>
+      <h1 class="q-title">四大支柱，每条规则都有决策记录</h1>
+
+      <p class="short-answer">
+        Glyph 的每条规则都要用四项特性来检验，每条规则都是规范中一项带编号的决策，并注明它服务于哪个支柱。这些支柱是语言本身的特性，而不是某个项目的配置，所以智能体打开一个陌生的 Glyph 代码库时，不必先弄清它选了哪些设置，就可以依赖它们。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">支柱</h2>
+        <p>
+          按重要程度排序。前两个是切入点，解决你每天都能感受到的问题。后两个是打磨，让它用起来更舒服。两者冲突时，切入点优先。
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/pillars/verifiability/"><span class="n">支柱 01</span><span class="q">可验证性</span><p>没有可以写的 <code>any</code> 和 <code>as</code>；<code>match</code> 必须覆盖每种情况；你的记录类型和联合类型会生成严格的运行时校验器，所以边界上的值是经过检查的，而不是假定的。这是 <code>tsc</code> 之上一层关不掉的严格检查。许多 <code>tsc --strict</code> 接受的错误在这里无法编译；仍然能编译的那些列在<a href="/catches/#not-yet">尚未覆盖的问题</a>中。</p></a>
+        <a class="a-card" href="/pillars/greppability/"><span class="n">支柱 02</span><span class="q">可检索性</span><p>一个名字，一个位置。每个符号在声明处都只有一种语法形式，没有重载、装饰器、隐式 <code>this</code> 或命名空间合并。<code>grep "fn parseUser"</code> 就能找到定义。</p></a>
+        <a class="a-card" href="/pillars/diff-stability/"><span class="n">支柱 03</span><span class="q">稳定的 diff</span><p>改一行就是一行 diff。只有一种标准排版：列表放得下时写在一行，放不下时每个元素一行，从不重新打包，使用尾随逗号，没有 barrel 文件，也没有选项，所以同样的代码在每个项目里打印出来都一样。审查者看到的是改动本身，而不是无关的变动。</p></a>
+        <a class="a-card" href="/pillars/abstraction/"><span class="n">支柱 04</span><span class="q">抽象</span><p>表达你的本意：用模式匹配代替一长串 switch，用 <code>Result</code> 代替抛出异常，用具名记录代替元组，建立在一个小而正交的核心之上，而不是 TypeScript 那样层层堆积的特性。</p></a>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">规范是一份决策清单</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">docs/language/spec.md</a> 包含 49 项带编号的决策，从 D1 到 D49，每项结尾都写明它服务于哪个支柱。语法遵循规范：有歧义时先在规范中解决，再写进解析器。<code>glyph llms --json</code> 从规范中解析出这份清单，所以智能体读到的决策和你读到的是同一份。其中一项（有删节）：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">D9，摘自 docs/language/spec.md（有删节）</span>
+<pre>D9. `else` is a catch-all arm; `_` is a position-level wildcard;
+a PascalCase arm head is a variant reference, not a binding.
+
+... a PascalCase head that names no variant of that union is a
+compile error (E0220, with a nearest-variant suggestion), never a
+silent catch-all that would mask a missing variant (E0200) and
+misroute values at runtime. ...
+
+*[verifiability, abstraction]*</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">有意没有做的部分</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">宣言</a>阐述了基本立场，简单说就是每项限制都要对照某个支柱证明自己的价值。Glyph 没有 <code>if</code>/<code>else</code>（<code>match</code> 是唯一的条件结构），没有类，没有重载和装饰器，没有类型断言，没有 <code>any</code>，没有相对导入，也没有格式化选项。它也不可配置：一种格式化方式，一种模块解析方式，一个严格级别。对于让人不舒服的限制，我们补充文档，而不是放宽规则。
+        </p>
+
+        <h2 class="block-label">比较</h2>
+        <p>
+          Glyph 和好几个现有方案都很接近，下面的每项比较都会说明另一方在哪些方面做得更好。
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">为什么是 TypeScript，而不是 Go 或者一门全新的语言？</span><p>为什么目标是 TypeScript，以及这带来了什么：可以一个文件一个文件地引入。</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">为什么不用严格模式的 TypeScript + zod + eslint + ts-pattern？</span><p>同样的检查，作为配置和作为语言有什么区别，以及配齐工具的 TypeScript 仍然领先的地方。</p></a>
+        <a class="a-card" href="/design/vs-effect/"><span class="q">和 Effect 比起来怎么样？</span><p>一个带类型化错误和庞大生态的 TypeScript 库，对比一门去掉了逃生口的语言。</p></a>
+        <a class="a-card" href="/design/vs-rescript-gleam-elm/"><span class="q">为什么不用 ReScript、Gleam 或 Elm？</span><p>三门更早的、编译到 JavaScript 的类型化语言，各自领先在哪里，以及 Glyph 有什么不同。</p></a>
+        <a class="a-card" href="/answers/language/"><span class="q">这是一门真正的语言，还是一个有很多缺口的玩具？</span><p>模块可见性、接口、defer、标准库，以及它仍然存在的边界。</p></a>
+      </div>
+
+      <div class="detail">
+        <p>
+          这一切背后的假设（目前还不是结论）：面对同样的任务，智能体用 Glyph 写出正确代码比用 TypeScript 更可靠，审查者确认它所花的时间也更少。这项研究还没有做，所以本站没有给出任何数字。<a href="/benchmarks/">基准测试</a>说明了目前测量了什么。
+        </p>
+      </div>

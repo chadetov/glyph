@@ -1,0 +1,136 @@
+---
+title: 为什么不用配齐工具的 TypeScript：tsc、zod、eslint？ · Glyph
+description: 配齐工具的 TypeScript 能走很远，但每一项保证都是可选的，智能体可以绕过去。在 Glyph 中，严格性就是语言本身，而不是一个配置文件。
+source_hash: d0694478c32b0491
+prev: /answers/why-typescript/ | &larr; 上一篇 | 为什么是 TypeScript，而不是 Go 或者一门全新的语言？
+next: /answers/human-value/ | 下一篇 &rarr; | 如果我不用 AI，Glyph 还值得用吗？
+---
+      <p class="q-eyebrow">05 &middot; 对比</p>
+      <h1 class="q-title">为什么不直接用严格模式的 TypeScript + zod + eslint + ts-pattern？</h1>
+
+      <p class="short-answer">
+        因为这些保证每一项都是<strong>可选的</strong>，智能体用一行代码就能绕过其中任何一项。Glyph 的严格性不是一个智能体能修改的配置文件，而是语言本身。执行点从“我们有没有记得对这个文件跑 lint”变成了“它能不能编译通过”。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">配齐工具的 TypeScript 已经覆盖了什么</h2>
+        <p>
+          配置良好的 TypeScript 能帮你走很远，如果你的团队在 CI 中把这些全部跑起来，Glyph 针对的大部分 gap 你已经补上了。这是值得认真对待的替代方案，下面是对照：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">配齐工具的 TypeScript 已经提供的东西</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          如果这些你都接好了并且强制执行，你已经完成了大半。TypeScript 有这些思路。一门语言把它们变成不可选的，额外带来的东西归结为三点。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> 不可选胜过可选</h2>
+        <p>
+          你的 eslint 配置只保护智能体<em>经过</em>它的代码，而智能体可以写 <code>as unknown as User</code>、<code>@ts-ignore</code>、<code>// eslint-disable-next-line</code>，或者干脆忘了 <code>.exhaustive()</code>，代码照样能编译、照样能合并。这些逃生口每一个都是智能体可以修改的配置。Glyph 没有这样的逃生口可用：没有 <code>as</code>，没有忽略检查的指令，不经过编译器能看到的检查，就没有办法从 <code>unknown</code> 中得到一个有类型的值。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript：逃生口就在那里</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：没有可以关掉的东西</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          智能体<strong>无法通过配置关掉</strong>的严格性，与它能关掉的严格性，处在不同的执行点上。Glyph 就建立在这个区别之上。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> 类型就是校验器：没有第二份产物</h2>
+        <p>
+          zod 颠倒了你的唯一事实来源：你写的是 <em>schema</em>，从中推导出类型，然后手动让类型、schema 以及任何序列化器保持同步。保持它们一致，恰恰是智能体引入偏差的地方：它在类型里改了字段名，却没改 schema，两者仍然都能编译。在 Glyph 中，类型<em>就是</em>校验器：声明 <code>type User = {...}</code> 时会同时生成 <code>User.parse</code>。只有一份产物，没有需要同步的东西，也没有可以忘掉的东西。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> 可检索的修改</h2>
+        <p>
+          在 TypeScript 中，状态变化可以藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开语法后面。没有一个可以搜索的单一记号，也没有哪条 lint 规则能彻底解决。在 Glyph 中，共享状态放在 store 里，每次修改都是字面上的 <code>.set(</code>/<code>.update(</code>；<code>grep 'mut '</code> 能找到每一处局部修改。原生 TypeScript 没有对应的东西。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">出错方式的对比</h2>
+        <p>
+          同样的任务：智能体给联合类型加了一个变体，却在三处中的一处忘了处理它：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">配齐工具的 TS</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a default: case or a</span>
+<span class="cm">// switch that only logs. Those</span>
+<span class="cm">// compile green and skip the new case.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">配齐工具的 TypeScript 仍然领先的地方</h2>
+        <p>
+          目前它在四个方面领先 Glyph：
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>更丰富的校验。</strong>Glyph 的描述符默认是严格的（会拒绝未声明的键），<code>where</code> 精化可以给基本类型加上谓词（<code>type Email = string where value.includes("@")</code>），描述符会在这个类型到达的每个边界上运行它。zod 仍在两方面领先：它自带现成的检查，例如 <code>.email()</code> 和 <code>.url()</code>，而在 Glyph 中你要自己写；它还能对整个对象做精化，而记录上的 <code>where</code>（跨两个字段的 <code>lo &lt;= hi</code>）目前是 <code>E0300</code>。</li>
+          <li><strong>更深入的匹配。</strong>ts-pattern 的守卫和深层结构模式，超出了 Glyph 的 <code>match</code> 能表达的范围。</li>
+          <li><strong>“可证明不存在”止于 <code>.ts</code> 边界。</strong>Glyph 的保证只对 Glyph 写出的代码成立；npm 依赖抛出的异常仍然会绕过 <code>Result</code>，导入的 <code>.d.ts</code> 类型也不带运行时描述符。</li>
+          <li><strong>生态与招聘。</strong>TypeScript 的工具、社区和招聘人才池要大得多，背后还有多年的生产使用经验。Glyph 还是早期预览版。</li>
+        </ul>
+        <p>
+          如果你已经把配齐工具的 TypeScript 完全接好，而且你的智能体一直待在它的范围之内，你已经拥有了其中的大部分。Glyph 的论点是，“一直待在范围之内”才是关键所在，而这恰恰是智能体会打破的。不可选、单一产物的校验和可检索的修改，是你靠添加更多可选工具得不到的部分。
+        </p>
+        <p>
+          如果你愿意离开 TypeScript，改用一门编译到 JavaScript 的、更成熟的类型化语言，<a href="/design/vs-rescript-gleam-elm/">为什么不用 ReScript、Gleam 或 Elm？</a>对比了 Glyph 与它们。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>没有 <code>any</code>/<code>as</code>，穷尽的 <code>match</code>（<code>E0200</code>/<code>E0218</code>），丢弃 <code>Result</code> 时的警告（<code>E0217</code>），由类型生成的校验器，以及可检索的修改：全都不可选，没有一项是可以关掉的 eslint 规则。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">正在测量</h3>
+          <p>“智能体用 Glyph 产生的漏网缺陷比用<em>配置良好的</em>严格模式 TS 更少”，这个论断正是我们在构建的基准测试，对比的是配齐工具的 TS，而不是未经配置的 TS。见<a href="/benchmarks/">基准测试</a>。</p>
+        </div>
+      </div>

@@ -1,0 +1,168 @@
+---
+title: 编译器会告诉智能体怎么修吗？ · Glyph
+description: 每条诊断都带有相关类型、出错的符号和合法的替代写法，编译器能自行确定的修复由 glyph fix 直接写入。
+source_hash: 4b15cc7a1cc4e288
+prev: /answers/ask-the-compiler/ | &larr; 上一篇 | 我的智能体能在写代码之前问编译器某个符号是什么吗？
+next: /answers/generated-docs/ | 下一篇 &rarr; | 智能体读的文档是生成的，还是手写的、已经过时的？
+---
+      <p class="q-eyebrow">23 &middot; 修复失败的构建</p>
+      <h1 class="q-title">构建失败时，编译器会告诉智能体怎么修吗？</h1>
+
+      <p class="short-answer">
+        它以数据的形式告诉你哪里错了，而不是一句需要解析的话：两个类型，以 <code>module::name</code> 表示的出错符号，以及能合法放在出错位置上的有限候选列表。<code>glyph check --agent</code> 还会加上修复性编辑不能破坏的东西。当答案完全确定时，<code>glyph fix</code> 会直接写入。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么重要</h2>
+        <p>
+          智能体围绕编译器的循环是：读错误，猜编辑，重新构建。损害就发生在猜的这一步，而之所以会发生，是因为错误只是一个字符串。读到“non-exhaustive match on <code>OrderStatus</code>”的智能体知道某个 match 少了几个分支，但不知道缺少的变体携带什么，于是写出 <code>Paid("tx_1")</code>，等下一条诊断才发现不对。或者它读到“exhaustive”这个词，加一个 <code>else</code> 分支，构建通过了，却丢掉了这条诊断本来要保护的保证。
+        </p>
+        <p>
+          这些编译器全都知道。它知道联合类型的各个变体和它们的负载，也知道 <code>else</code> 会放弃封闭性保证，却在回复前一行把这两样都丢掉了。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          一个两模块的项目。<code>orders</code> 声明联合类型；<code>main</code> 对它写了一个 <code>match</code>，只处理了一种情况。<code>glyph check --agent</code> 的输出，删减到这里相关的键：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --agent --no-tsc src</span>
+<pre>{
+  "code": "E0200",
+  "severity": "error",
+  "stage": "typecheck",
+  "message": "non-exhaustive match on `OrderStatus`: missing variants
+              `Paid`, `Cancelled`",
+  "help": "Add an arm for each missing variant.",
+  "file":   "main.glyph",
+  "module": "main",
+  "entity": "main::describe",
+  "cause":  "orders::OrderStatus",
+  "related": ["Pending", "Paid", "Cancelled"],
+  "missing_variants": ["Paid", "Cancelled"],
+  "expected": null, "actual": null, "alternatives": null,
+
+  "constraints": [
+    "preserve exhaustiveness: this match must name every case of
+     `OrderStatus`, so add one arm for each of `Paid`, `Cancelled`.",
+    "do not add an `else` arm: `OrderStatus` is declared in this project,
+     and a catch-all forfeits the guarantee that adding a variant to it
+     later forces this match to be updated (D9)."
+  ],
+
+  "symbols": [
+    { "entity": "orders::OrderStatus", "kind": "union", "pub": true,
+      "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+      "exhaustive_match": true,
+      "variants": [
+        { "name": "Pending", "payload": null, "construct": "Pending" },
+        { "name": "Paid",    "payload": "{ transaction_id: string }",
+          "construct": "Paid({ transaction_id: string })" },
+        { "name": "Cancelled", "payload": null, "construct": "Cancelled" }
+      ] }
+  ],
+  "symbols_absent": [],
+
+  "explain": { "command": "glyph --explain E0200",
+               "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          有三点值得单独说明。<code>cause</code> 是出错的符号，它和 <code>entity</code> 不是一回事，后者是诊断所在的声明：这里编辑发生在 <code>main::describe</code> 中，而它必须匹配的形状来自 <code>orders::OrderStatus</code>。两者都是其他工具接受的地址，所以答案可以直接串联，不需要重新推导任何东西。
+        </p>
+        <p>
+          <code>constraints</code> 不是修复方案。每一条都是编译器已经在强制执行的东西，把它写出来，是为了让满足诊断的编辑不会破坏诊断背后的保证。第二条约束说明了这个键存在的原因：<code>else</code> 分支是合法的，它能让构建通过，而这条约束说明了这样做的代价。
+        </p>
+        <p>
+          <code>symbols</code> 是诊断中提到的每个符号的 <code>glyph_symbol</code> 答案，所以智能体的下一次编辑不需要再调用一次。工具拒绝回答的符号会出现在 <code>symbols_absent</code> 中并附上原因，这样“我们没有查”和“我们查了，它不存在”就能区分开。
+        </p>
+        <p>
+          每个键总是存在。编译器不掌握的事实会以显式的 <code>null</code> 出现，而不会缺少这个键，所以“缺失”在每个错误码上、在命令行和 MCP 两种方式上都只有一种写法。
+        </p>
+
+        <h2 class="block-label">答案确定时，由编译器写入</h2>
+        <p>
+          <code>glyph fix</code> 只应用编译器能自行确定的修复：未使用的导入；不是变体的分支头，且检查器恰好算出一个建议；以及记录没有声明的字段，且恰好有一个已声明字段与它只差一个字符。上面的 <code>match</code> 不属于其中任何一种。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">对上面的 match 运行 glyph fix src</span>
+<pre>glyph fix: removed 0 unused import(s) across 0 file(s).
+glyph fix: declined E0200 in src/main.glyph: the compiler does not
+           determine what a missing arm should do, so `glyph fix`
+           writes none: add an arm for each of `Paid`, `Cancelled`.
+           `glyph check --agent` gives the pattern each case takes.
+
+<span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          编译器知道缺少哪些情况，以及每种情况的模式怎么写。它不知道订单为 <code>Paid</code> 时程序应该做什么，它写出的任何分支体都只是一个能通过编译的猜测。在 0.1.128 及之前，<code>glyph fix</code> 会写出这种猜测：每种情况一个分支，分支体打印这种情况并调用 <code>process.exit(1)</code>。这样程序能通过 <code>check</code>、<code>tsc</code> 和 <code>build</code>，<code>glyph query variants</code> 也会报告这个 match 是穷尽的，于是缺少的情况从编译错误变成了运行时崩溃，再也没有任何东西会标记它。
+        </p>
+        <p>
+          所以这条规则会拒绝修复，并列出这些情况。写这些分支需要的信息都已经在上面的 <code>--agent</code> 答案里：<code>missing_variants</code>，以及 <code>symbols</code> 下每个变体的 <code>construct</code> 写法。这些分支由你或你的智能体来写，就像其他任何编译器无法推断其行为的代码一样。
+        </p>
+        <p>
+          <code>glyph fix</code> 写入的东西都不靠猜测，每条无法确定答案的规则都会把拒绝及原因打印在与已应用修改相同的输出中。如果有两个字段都与拼写错误只差一个字符，那就是两个而不是一个，它会如实说明，而不是从中挑一个。
+        </p>
+
+        <h2 class="block-label">错误码自己的解释，以数据形式提供</h2>
+        <p>
+          <code>glyph --explain &lt;CODE&gt; --json</code> 会返回详细解释、一行的 <code>help</code>、文档 URL，以及编译器反例语料库中的一个错误程序，并附上本编译器对它给出的诊断。这条诊断是在你询问时现场编译得到的，而不是存储下来的，所以不会与编译器的实际输出产生偏差。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --explain E0200 --json</span>
+<pre>{
+  "code": "E0200",
+  "title": "non-exhaustive match",
+  "explanation": "A `match` over a tagged union must handle every variant.
+    Unions are sealed (D9): adding a variant later forces every match to be
+    updated, so a missing variant cannot silently fall through at runtime ...",
+  "help": "Add an arm for each missing variant.",
+  "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200",
+  "counter_example": {
+    "name": "alias_of_local_union_not_exhaustive",
+    "expected_error": "E0200",
+    "files": [ { "path": "alias_of_local_union_not_exhaustive.glyph",
+                 "source": "module main\n\ntype Shape =\n  | Circle\n ..." } ],
+    "diagnostic": { "code": "E0200",
+                    "message": "non-exhaustive match on `Shape`: missing variants `Tri`",
+                    "cause": "alias_of_local_union_not_exhaustive::Shape",
+                    "related": ["Circle", "Square", "Tri"],
+                    "missing_variants": ["Tri"] },
+    "corrected": null,
+    "corrected_absent": "`tests/negative/` pairs no repaired program with a case:
+      an entry is a wrong program and the code it draws. A fix invented here would
+      compile nowhere and be checked by nothing."
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          语料库没有覆盖的错误码会返回 <code>counter_example: null</code>，并附一句话说明语料库中没有它的案例，而不是编一个示例。语料库只声明它覆盖了什么，对其余部分不做任何声明。
+        </p>
+        <p>
+          <code>glyph --explain</code> 为每个错误码给出一个案例。整个语料库也可以读取：<code>glyph llms --negative E0200</code> 会打印触发这个错误码的每一个错误程序，每个都在你询问时现场编译；如果另一个语料库里有一个被 <code>tsc --strict</code> 接受、而对应的 Glyph 版本被拒绝的程序，也会一并返回。不指定错误码时，它列出覆盖 70 个错误码中 46 个的 102 个案例，并列出没有案例的 24 个，所以覆盖范围是明确声明的，而不是从返回结果中推断出来的。这一点以及编译器发布的关于它自身的其他信息，见<a href="/answers/generated-docs/">单独的一页</a>。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>每条诊断都带有 <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（由 <code>alternatives_kind</code> 说明它列出的是 <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code> 还是 <code>exports</code>，在报错处设置）、<code>related</code>、<code>module</code>、<code>file</code> 和 <code>explain</code>，这些值来自编译器抛出的错误本身，而不是重新推导的；编译器不掌握的事实一律是显式的 <code>null</code>。<code>file</code> 是相对于解析根目录的路径，报告会在 <code>project_root</code> 中给出这个根目录，所以可以直接打开。<code>glyph check --agent</code> 为每条诊断加上 <code>constraints</code> 和 <code>symbols</code>。<code>glyph fix</code> 应用三条规则（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>），并说明每一次拒绝及其原因，包括每一个 <code>E0200</code>：它只报告，从不写入。<code>glyph --explain &lt;CODE&gt; --json</code> 返回带有现场编译反例的解释，<code>glyph llms --negative &lt;CODE&gt;</code> 返回触发该错误码的完整错误程序语料库。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">它的边界</h3>
+          <p><code>E0211</code> 上的 <code>cause</code> 是 <code>null</code>：调用参数处的出错符号是一个参数，而标识词汇无法表达 <code>module::fn.param</code>，所以这个 null 是有意为之，而不是遗漏。反例上的 <code>corrected</code> 总是 <code>null</code>，因为反例语料库没有为案例配上修复后的程序，而且 70 个错误码中有 24 个根本没有案例。<code>glyph fix</code> 只写三条规则，别的都不写，它也不会为不穷尽的 <code>match</code> 写分支：这些留给你或你的智能体，诊断中已给出各个情况及其模式。它拒绝的每一项，都会明确说出来。</p>
+        </div>
+      </div>

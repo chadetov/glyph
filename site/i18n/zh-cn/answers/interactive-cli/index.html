@@ -1,0 +1,99 @@
+---
+title: 能写一个让人输入命令的程序吗？ · Glyph
+description: io.read_line 在一行到达时就返回，而不是等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会在你输入的同时作出回应。
+source_hash: a2332eec4a663662
+prev: /answers/web-serving/ | &larr; 上一篇 | 能提供网页，还是只能做 JSON API？
+next: /answers/long-running/ | 下一篇 &rarr; | 能写服务器吗，还是进程直接就退出了？
+---
+      <p class="q-eyebrow">18 &middot; 交互式程序</p>
+      <h1 class="q-title">能写一个让人输入命令的程序吗？</h1>
+
+      <p class="short-answer">
+        能。<code>io.read_line</code> <strong>在完整的一行到达时就返回</strong>，不会等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会先回应每一行，再读取下一行。在 0.1.62 之前它确实会等，这一点值得明说，因为它让所有交互式程序都无法实现。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          只在输入结束时才返回的行读取器，其实是顶着行读取器名字的文件读取器。用管道传入一个文件时它工作得很好，所以一直没人发现：仓库里每个读取 stdin 的应用读的都是管道。后来有人写了一个聊天客户端，它在用户输入时毫无反应，直到按下 Ctrl-D 才一次性打印所有回复。
+        </p>
+        <p>
+          那个应用最终是以回放录制好的 JSON 文件的会话回放器形式发布的，源码里有一条注释说明原因。另外三个应用也围绕同一个问题调整了形态，只是没人点明：扫雷无法在两步之间重绘，文字冒险游戏无法回应 <code>look</code>，REPL 在你挂断之前什么都不求值。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>聊天应用的整个实时会话循环。读取、应用、打印、重复：</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/main.glyph</span>
+<pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
+  let state = server.empty()
+  io.println(LIVE_BANNER)
+  loop {
+    let text = match io.read_line() {
+      Some(l) =&gt; l,
+      None =&gt; { break },
+    }
+    match client_line(text) {
+      None =&gt; { io.println(LIVE_HINT) },
+      Some(sent) =&gt; {
+        let done = turn(state, sent.from, sent.line)
+        report(done.lines)
+        mut state = done.state
+      },
+    }
+  }
+  return state
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          在真实终端上驱动，每行输入间隔约 0.6 秒，stdin 保持打开。左列是进程启动以来的毫秒数：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+<pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
+1826ms |    1  #general &lt;bob&gt; hey, is the build green?
+2434ms | <span class="cm">alice: green since 9am</span>
+2435ms |    2  #general &lt;alice&gt; green since 9am
+3042ms | <span class="cm">bob: /who</span>
+3044ms |       * #general: alice, bob (2)
+3648ms | <span class="cm">carol: hello?</span>
+3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          从输入一行到得到回应只需一到两毫秒。修复之前，直到 6460ms 才有输出，也就是 stdin 关闭的时刻。完整运行时第一个回应大约出现在 1.6 秒处，那是 <code>tsx</code> 启动的时间，而不是读取延迟。
+        </p>
+
+        <h2 class="block-label">实际使用中容易踩坑的地方</h2>
+        <p>
+          末尾的 <code>\r</code> 会被去掉，所以 CRLF 文件和 LF 文件得到相同的行，你不用在 Windows 输入上调试一个看不见的字符。没有以换行结尾的输入，仍会在返回 <code>None</code> 之前把最后一行交还一次，所以没有结尾换行的文件的最后一行不会被悄悄丢掉。跨读取边界被拆开的多字节 UTF-8 会被暂存并补全，而不是变成替换字符。
+        </p>
+        <p>
+          <code>read_to_string</code> 读取的是同一个缓冲区，所以两者可以组合：先用 <code>read_line</code> 读标题行，再用 <code>read_to_string</code> 读正文，得到的是剩下的内容，而不是第二份副本，也不是空字符串。如果先调用它，它仍然返回整个 stdin。通过管道传入 200,000 行，计数大约需要 20ms，所以逐行读取不需要牺牲吞吐量。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">先读一行标题，再读正文</span>
+<pre>let header = io.read_line()
+let body = io.read_to_string()</pre>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p><code>io.read_line</code> 在一行到达时返回，而不是在流关闭时返回，所以“提示/读取/回应”循环在终端上和通过管道时都能工作。CRLF 会被规范化，没有终止符的最后一行会交付一次，多字节字符能跨越分块边界保持完整，<code>read_to_string</code> 读取同一缓冲区中剩下的内容。有一个回归测试会保持 stdin 打开并要求得到回显，因为用管道传入文件的测试在有问题的实现上也能通过。<code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行，所以 REPL 的 <code>&gt; </code> 提示符和用户输入的答案在同一行；<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道，所以像聊天应用的 <code>--stdin</code> 这样的 flag 不再是唯一的判断方式。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">仍不完善</h3>
+          <p>想要重绘屏幕的程序没有光标控制：<code>std/io</code> 没有光标或屏幕函数，也没有其他标准库模块提供，所以全屏终端界面仍然需要自己写转义序列。</p>
+        </div>
+      </div>

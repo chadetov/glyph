@@ -1,0 +1,158 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/finance/index.html",
+  "locale": "zh-cn",
+  "source_hash": "890e758a8ba38ece",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I trust it with money and untrusted input? · Glyph",
+      "tr": "涉及金额和不可信输入时，能信任它吗？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Money is exact (decimals and integers past 2^53), invariants are types the boundary enforces, and untrusted input cannot reach a SQL or shell sink unsanitized.",
+      "tr": "金额计算是精确的（小数，以及超过 2^53 的整数），不变式是由边界强制检查的类型，不可信输入未经清洗无法到达 SQL 或 shell 汇点。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "这是一门真正的语言，还是一个有很多缺口的玩具？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "能提供网页，还是只能做 JSON API？"
+    },
+    {
+      "id": "h-4ffa9bda",
+      "kind": "html",
+      "en": "16 &middot; Money &amp; safety",
+      "tr": "16 &middot; 金额 &amp; 安全"
+    },
+    {
+      "id": "h-a3ec390e",
+      "kind": "html",
+      "en": "Can I trust it with money, and with input I don't control?",
+      "tr": "涉及金额、以及我无法控制的输入时，能信任它吗？"
+    },
+    {
+      "id": "h-6d9773aa",
+      "kind": "html",
+      "en": "Yes. Money is <strong>exact</strong>, an invariant like non-negative is a <strong>type the boundary enforces</strong>, and untrusted input <strong>cannot reach a SQL or shell sink</strong> without being sanitized. Each of these is a compile-or-parse error if you get it wrong, not a convention someone has to remember three functions away.",
+      "tr": "能。金额计算是<strong>精确的</strong>，像“非负”这样的不变式是<strong>由边界强制检查的类型</strong>，不可信输入未经清洗<strong>无法到达 SQL 或 shell 汇点</strong>。其中任何一项写错，都会是编译错误或解析错误，而不是一条需要有人在三个函数之外记住的约定。"
+    },
+    {
+      "id": "h-f57cd228",
+      "kind": "html",
+      "en": "Money is not a float",
+      "tr": "金额不是浮点数"
+    },
+    {
+      "id": "h-318aa8fb",
+      "kind": "html",
+      "en": "A financial system on IEEE-754 <code>number</code> is a bug waiting to be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value past 2<sup>53</sup> silently loses precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt. Add, subtract, and multiply are exact; division takes an explicit scale and rounds half away from zero; a malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "基于 IEEE-754 <code>number</code> 的金融系统，是一个迟早会被报告的 bug：<code>0.1 + 0.2</code> 不等于 <code>0.3</code>，超过 2<sup>53</sup> 的值会悄悄丢失精度。<code>std/decimal</code> 是基于 BigInt 的精确十进制定点数。加、减、乘都是精确的；除法需要显式指定小数位数，并按四舍五入（远离零）舍入；格式错误的金额会解析为 <code>Err</code>，绝不会悄悄变成 <code>NaN</code>。"
+    },
+    {
+      "id": "h-73ae9568",
+      "kind": "html",
+      "en": "the bug it removes",
+      "tr": "它消除的 bug"
+    },
+    {
+      "id": "h-24b27366",
+      "kind": "html",
+      "en": "Ids and counters stay exact past 2<sup>53</sup>",
+      "tr": "id 和计数器在超过 2<sup>53</sup> 后仍然精确"
+    },
+    {
+      "id": "h-3a0b55f8",
+      "kind": "html",
+      "en": "An account id or a ledger counter that overflows the float range and rounds is a different kind of catastrophe. <code>bigint</code> is an exact arbitrary-precision integer with <code>123n</code> literals, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id arriving as a JSON <code>number</code> is rejected rather than quietly truncated.",
+      "tr": "账户 id 或账本计数器超出浮点数范围后被舍入，是另一种灾难。<code>bigint</code> 是精确的任意精度整数，字面量写作 <code>123n</code>，类型为 <code>bigint</code> 的记录字段会在边界上校验 <code>typeof === \"bigint\"</code>，所以以 JSON <code>number</code> 到达的 id 会被拒绝，而不是被悄悄截断。"
+    },
+    {
+      "id": "h-66804ead",
+      "kind": "html",
+      "en": "An invariant is a type, not a comment",
+      "tr": "不变式是类型，不是注释"
+    },
+    {
+      "id": "h-a4555080",
+      "kind": "html",
+      "en": "\"The amount is non-negative\" and \"the rating is 1 to 5\" are the checks that get written once and forgotten later. A <code>where</code> refinement puts the invariant in the type, and the descriptor enforces it at the boundary. A value that fails the predicate never becomes an <code>Amount</code> in the first place.",
+      "tr": "“金额非负”和“评分在 1 到 5 之间”是那种写过一次就被遗忘的检查。<code>where</code> 精化把不变式放进类型，描述符在边界上强制检查它。不满足谓词的值从一开始就不会成为 <code>Amount</code>。"
+    },
+    {
+      "id": "h-791f6228",
+      "kind": "html",
+      "en": "Injection is a compile error",
+      "tr": "注入是编译错误"
+    },
+    {
+      "id": "h-0f83c921",
+      "kind": "html",
+      "en": "The classic remote-code path is untrusted input reaching a SQL query, a shell command, or an HTML template. <code>std/taint</code> makes that a type error. A value from outside is <code>Tainted</code>; a sink you want to protect takes <code>Trusted</code>. The two are structurally distinct, so the only way from one to the other is an explicit <code>sanitize</code>. Hand a sink the tainted value directly and <code>tsc</code> refuses to compile it.",
+      "tr": "典型的远程代码执行路径，是不可信输入到达 SQL 查询、shell 命令或 HTML 模板。<code>std/taint</code> 把这变成了类型错误。来自外部的值是 <code>Tainted</code>；你想保护的汇点接受 <code>Trusted</code>。两者在结构上不同，所以从一个变成另一个的唯一途径是显式的 <code>sanitize</code>。直接把被污染的值交给汇点，<code>tsc</code> 会拒绝编译。"
+    },
+    {
+      "id": "h-8aff8559",
+      "kind": "html",
+      "en": "the safe path compiles",
+      "tr": "安全的路径能编译"
+    },
+    {
+      "id": "h-a469e7bc",
+      "kind": "html",
+      "en": "the injection path does not",
+      "tr": "注入的路径不能"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-0571eb2f",
+      "kind": "html",
+      "en": "<code>std/decimal</code> for exact money, <code>bigint</code> for exact large integers, <code>where</code> refinements so an invariant is validated at the boundary, and <code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>. Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.",
+      "tr": "用于精确金额的 <code>std/decimal</code>，用于精确大整数的 <code>bigint</code>，让不变式在边界上被校验的 <code>where</code> 精化，以及让不可信输入在没有显式 <code>sanitize</code> 的情况下无法到达受保护汇点的 <code>std/taint</code>。每一项都会被检查：错误的金额或 id 会在 <code>parse</code> 时失败，违反不变式会在 <code>parse</code> 时失败，未经清洗的值会在 <code>tsc</code> 时失败。"
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "边界在哪里"
+    },
+    {
+      "id": "h-b6c3fdb9",
+      "kind": "html",
+      "en": "A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension. Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.",
+      "tr": "目前 <code>where</code> 精化只覆盖原始基础类型；记录级和跨字段的不变式（<code>where value.paid &lt;= value.total</code>）是计划中的扩展。污点检查是一种你通过把汇点类型声明为 <code>Trusted</code> 而主动采用的约束，而不是自动的数据流分析：编译器强制执行你声明的边界，但不会替你在整个程序中推断污点。"
+    }
+  ]
+}

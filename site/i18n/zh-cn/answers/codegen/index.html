@@ -1,0 +1,123 @@
+---
+title: 能根据 API 规范生成类型化的客户端吗？ · Glyph
+description: 能。glyph gen openapi 把规范转换为类型化的 HTTP 客户端，或者带路由的服务端桩代码，gen zod 则从 zod schema 生成。输出是普通的 Glyph 代码。
+source_hash: 6bd6413e23269b0f
+prev: /answers/typed-apis/ | &larr; 上一篇 | 每个 API 都要手写校验器吗？
+next: /answers/react/ | 下一篇 &rarr; | 能和 React 一起用吗：组件、hooks 和 Context？
+---
+      <p class="q-eyebrow">12 &middot; 从你的规范生成</p>
+      <h1 class="q-title">能根据 API 规范生成类型化的客户端和服务端吗？</h1>
+
+      <p class="short-answer">
+        能。把 <code>glyph gen openapi</code> 指向一份 OpenAPI 规范：<code>--client</code> 生成类型化的 HTTP 客户端，每个操作一个函数；<code>--handlers</code> 生成服务端桩代码和一个可用的 <code>route</code> 分派器。如果你的权威数据源是 <code>zod</code> schema，<code>glyph gen zod</code> 也能做同样的事。所有输出都是<strong>提交到仓库、可以 grep 的 Glyph 代码</strong>，归你所有，由你编辑，而不是一个隐藏的代码生成步骤。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          手写的 API 客户端及其 DTO 会与规范逐渐偏离，这种偏离是一类没人喜欢的 bug。由于 Glyph 生成的是<em>真正的</em>代码（类型化的函数、带运行时描述符的真正 <code>type</code> 声明），规范始终是权威来源，重新生成是一个幂等、可审查的 diff，而不是一个黑盒。
+        </p>
+
+        <h2 class="block-label">看看实际效果：客户端</h2>
+        <p>
+          每个操作都会变成一个 <code>async fn</code>，带有类型化的路径参数和类型化的请求体，返回 HTTP <code>Response</code>：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+<pre>async fn createTask(
+  base: string,
+  body: NewTask,
+) -&gt; Result&lt;Response, HttpError&gt; {
+  return await post(
+    "${base}/tasks",
+    body,
+  )
+}
+
+async fn getTask(base: string, id: number)
+  -&gt; Result&lt;Response, HttpError&gt; {
+  return await get("${base}/tasks/${id}")
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+<pre>fn route(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match req.method {
+    "GET" =&gt; match segments(req) {
+      ["tasks"] =&gt; listTasks(req),
+      // id captured from the path:
+      ["tasks", id] =&gt; getTask(req, id),
+      else =&gt; Ok(json(404, {
+        error: "not found",
+      })),
+    },
+    else =&gt; Ok(json(405, {
+      error: "method not allowed",
+    })),
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>--handlers</code> 生成的路由器用数组模式匹配路径，所以 <code>/tasks/{id}</code> 变成 <code>["tasks", id]</code>，并替你绑定参数。每个桩函数一开始返回 <code>501</code>，并带有一段展示如何解析请求体的注释；你把它们填写完整，再用 <code>await serve(PORT, route)</code> 接上即可。
+        </p>
+        <h2 class="block-label">改为从 zod schema 生成</h2>
+        <p>
+          如果你的团队已经用 <code>zod</code> 定义数据形态，可以直接从它们生成。schema 会变成一个一等的 Glyph 类型，带有自己的描述符：
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schemas.ts</span>
+<pre>export const Task = z.object({
+  id: z.number(),
+  title: z.string(),
+  done: z.boolean(),
+})</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen zod schemas.ts --out src/</span>
+<pre>type Task = {
+  id: number,
+  title: string,
+  done: bool,
+}
+// + a runtime descriptor, so
+// Task.parse(value) validates.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          多态的<strong>可辨识联合</strong>（OpenAPI 的 <code>discriminator</code>）会生成一个真正的 Glyph 标签联合，外加一个生成的 <code>parse_&lt;Name&gt;</code>，它读取判别属性并校验为正确的变体。由于 Glyph 按构造函数名而不是任意属性来打标签，生成的分派器会替你把传输对象桥接到联合类型。
+        </p>
+        <p>
+          不足之处：生成忠实于传输格式，所以它映射的是常见的 80%：对象、原始类型、数组、引用、可选和可为空的字段，以及可辨识联合。对于无法精确表示的内容（字符串枚举、<em>不</em>可辨识的联合），它会收窄处理并打印一条说明，而不是生成一个会拒绝真实数据的校验器。下一步是更丰富的枚举。工具链也有实际的依赖：<code>gen dts</code>/<code>gen zod</code> 需要 Node 加上 <code>typescript</code>/<code>zod</code>。<code>gen dts</code> 支持任何 TypeScript（5、6 或 7.x 原生移植版），优先从你的项目中解析，缺少时会明确告诉你需要安装什么。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">保持同步</h2>
+        <p>
+          每个生成的文件都会在文件头中记录生成它的确切命令。规范变化时，你不需要去找该重新运行哪些命令：<code>glyph regen</code> 会扫描这些文件头，逐个重新运行并重写输出。它是幂等的，所以规范没有变化时 regen 不会改动任何东西；它可以直接放进 pre-commit hook，或者放进一个在提交的代码偏离规范时失败的 CI 检查。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p><code>glyph gen openapi</code>（类型、<code>--client</code>、带真正路由器的 <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>，以及从源头刷新全部生成代码的 <code>glyph regen</code>：每个命令生成的都是提交到仓库、带描述符、可幂等重新生成的 Glyph 代码。</p>
+         如果两个类型会以同一个 Glyph 名字写出，生成器会停下，而不是产出一个无法编译的文件：它列出每个冲突的来源，不写任何文件，用 <code>--rename Source=GlyphName</code> 即可解决。这个选择会记录在生成的文件头中，所以 <code>glyph regen</code> 会重放它。</div>
+        <div class="status-card next">
+          <h3 class="h">正在进行</h3>
+          <p>更丰富的枚举映射和更广的 OpenAPI 覆盖，每一项都遵循同样的规则：忠实于传输格式，收窄时给出说明。从包自带的 <code>.d.ts</code> 生成时，读取的是其中的 <code>interface</code> 和 <code>type</code> 声明，所以如果一个库的 API 是类，或者字段使用了 <code>Omit</code> 这样的计算类型，就会留下一些引用，生成器会在说明中列出它们，<code>glyph build</code> 会把它们报告为未解析。导入这样的类并用 <code>new</code> 构造它不需要生成，由 <code>tsc</code> 检查，所以这条路径不受影响。</p>
+        </div>
+      </div>

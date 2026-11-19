@@ -1,0 +1,141 @@
+---
+title: 我的智能体能先向编译器询问某个符号吗？ · Glyph
+description: glyph_symbol 一次调用就能回答：联合类型的各个变体、记录的字段、函数的签名，以及对它的 match 是否必须穷尽。
+source_hash: 49fea6335f3e735f
+prev: /answers/impact/ | &larr; 上一篇 | 编译器能在我改动之前告诉我改动会破坏什么吗？
+next: /answers/repair-protocol/ | 下一篇 &rarr; | 构建失败时，编译器会告诉智能体怎么修吗？
+---
+      <p class="q-eyebrow">22 &middot; 询问编译器</p>
+      <h1 class="q-title">我的智能体能在写代码之前问编译器某个符号是什么吗？</h1>
+
+      <p class="short-answer">
+        一次调用就够。<code>glyph_symbol</code> 接受诊断里已经打印出来的 <code>module::name</code>，或者文件中的一个位置，然后回答：记录的字段及其类型，联合类型的各个变体及其负载<em>以及构造每个变体的语法</em>，可调用对象的参数和返回值，接口的成员，以及对它的 <code>match</code> 是否必须穷尽。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么重要</h2>
+        <p>
+          智能体被要求在一个不是它声明的联合类型中处理新的情况时，必须知道各个变体携带什么。读声明意味着先要找到那个文件。符号搜索以前只给它一个名字和一个字节范围，变体列表以前只给它 <code>["Pending", "Paid", "Cancelled"]</code>。智能体据此写出 <code>Paid("tx_1")</code>，而这并不是正确的形状，要等诊断出来才知道。编译器一直掌握着负载信息，工具却在回复前一行把它丢掉了。
+        </p>
+        <p>
+          面向智能体的这套接口就是为了消除这种模式：编译器已经计算并缓存了的事实，却没有任何工具交出来。对一个三模块项目的审查发现，悬停信息在十四个位置中只能回答两个，而且每个联合类型到达时都没有负载。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          一个三文件的项目，<code>OrderStatus</code> 声明在 <code>orders.glyph</code> 中。从没有导入它的 <code>main.glyph</code> 发起询问：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
+<pre>{
+  "entity": "orders::OrderStatus",
+  "kind": "union",
+  "pub": true,
+  "type": "Pending | Paid({ transaction_id: string }) | Cancelled",
+  "exhaustive_match": true,
+  "variants": [
+    { "name": "Pending",   "payload": null, "construct": "Pending",
+      "payload_absent": "`Pending` is declared with no payload." },
+    { "name": "Paid",      "payload": "{ transaction_id: string }",
+      "construct": "Paid({ transaction_id: string })" },
+    { "name": "Cancelled", "payload": null, "construct": "Cancelled",
+      "payload_absent": "`Cancelled` is declared with no payload." }
+  ],
+  "fields": null,
+  "fields_absent": "`orders::OrderStatus` is a union and declares no record fields.",
+  "path": "src/orders.glyph",
+  "range": { "start": { "line": 2, "character": 4 },
+             "end":   { "line": 5, "character": 13 } },
+  "origin": "glyph",
+  "origin_detail": "`orders::OrderStatus` is declared in src/orders.glyph, a Glyph
+    module this project holds, and the compiler parsed and resolved that declaration"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这里做了删减：答案还包含 <code>generics</code>、<code>parameters</code>、<code>returns</code>、<code>members</code>、<code>literals</code>、<code>owner</code>、<code>async</code> 和 <code>examples</code>。它们每一个都是成对出现的。一个键只有在旁边附有说明原因的 <code>&lt;key&gt;_absent</code> 句子时才会为 null，所以智能体永远不必猜测缺失的答案是表示符号没有这项信息，还是工具没有去查。按照这条规则，没有类型标注的 <code>const</code> 不报告类型：检查器有意不从初始化表达式推断声明的类型，所以如果打印初始化表达式的类型，就等于告诉调用方这个名字的使用处是针对某个类型检查的，而那个类型实际上什么都不检查。
+        </p>
+
+        <h2 class="block-label">智能体问的第二个问题</h2>
+        <p>
+          知道了形状之后，它接下来想知道的是：手里的值能不能放到它打算放的地方。<code>glyph_assignable</code> 直接询问检查器自己的比较逻辑。两边各是一个 <code>module::name</code> 或一个 Glyph 类型写法，在你指定的文件的作用域中解读，结论会说明发生的是三种情况中的哪一种。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
+<pre>{
+  "verdict": "WILL_FAIL",
+  "because": "the checker's own comparison
+    refuses a `Nullable&lt;number&gt;` value where a
+    `number` is declared, so every site that
+    writes this pairing is a diagnostic",
+  "diagnostics": [
+    { "code": "E0204",
+      "at": "an annotated `let` or `const`,
+             and a `return`" },
+    { "code": "E0211", "at": "a call argument" }
+  ],
+  "from": { "asked": "Nullable&lt;int&gt;",
+            "form": "spelling",
+            "read_as": "Nullable&lt;number&gt;" },
+  "to":   { "asked": "int", "form": "spelling",
+            "read_as": "number" }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
+<pre>{
+  "verdict": "COMPATIBLE",
+  "because": "two generic applications are
+    compared by arity, by base and by argument,
+    and every one of those pairings is itself
+    accepted, so the checker accepts a
+    `Option&lt;number&gt;` value where a
+    `Option&lt;number&gt;` is declared. This is a rule
+    accepting rather than a rule staying silent",
+  "diagnostics": null,
+  "diagnostics_absent": "the checker refuses
+    nothing for this pairing, so no code is
+    raised for it anywhere"
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          这里用的词是 <code>COMPATIBLE</code>，而不是 <code>SAFE</code>，这个区别值得解释一句。<code>SAFE</code> 是 <code>glyph_impact</code> 的用词，意思是某个具体位置在某次具体编辑之后仍然正确。而这个答案讨论的是两个类型，问题里既没有位置也没有编辑。第三种结论是 <code>UNDETERMINED</code>，只要没有规则覆盖这一组类型就会给出：两个函数类型就会得到这个结论，因为底层的关系只比较返回值，对参数什么也不说。它在这一点上的沉默并不是接受，工具也不会把它报告成接受。
+        </p>
+
+        <h2 class="block-label">另一个方向：它依赖什么，那个模块又提供了什么</h2>
+        <p>
+          <code>glyph_references</code> 回答谁在使用一个符号。<code>glyph_dependencies</code> 是从另一端读同一批表：一个声明依赖什么，也就是它自己的源码中提到的每一个声明，分为 <code>CALLS</code>、<code>REFERENCES</code> 和 <code>FIELD_ACCESS</code>，每条边都带有两端以及它所在的位置。<code>glyph_exports</code> 回答一个模块对导入方可见的内容，来自编译器自己的导出查询，而不是扫描：每个 <code>pub</code> 声明，以及每个 <code>pub</code> 联合类型提升出来的变体，每一项都带有它的标识、种类和签名。准备写 import 的智能体可以直接问另一边有什么，而不用打开文件。
+        </p>
+        <p>
+          正是在构建一个关系的反向版本时，发现了原版中的一个 bug。每条边都带有来源标记，<code>PROVED</code> 的意思是编译器读过两端。它曾经对一条指向无法解析的模块的边回答 <code>PROVED</code>，而那里什么都没有读过。现在它回答 <code>UNDETERMINED</code> 并附上原因。由于 <code>glyph_references</code> 和 <code>glyph_impact</code> 调用的是同一个函数，两者以同样的方式出错，也都已修复。
+        </p>
+
+        <h2 class="block-label">十一个工具，不需要客户端</h2>
+        <p>
+          <code>glyph mcp</code> 提供十一个工具：<code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_diagnostics</code>、<code>glyph_hover</code>、<code>glyph_definition</code>、<code>glyph_references</code>、<code>glyph_variants</code>、<code>glyph_symbols</code>、<code>glyph_dependencies</code> 和 <code>glyph_exports</code>。每个工具都有一个 <code>glyph query</code> 子命令，把相同的参数作为 flag，打印相同的 JSON，并走客户端调用的同一个入口，所以只会运行 shell 命令的智能体也能问同样的问题。<code>glyph_diagnostics</code> 在文件所属的项目内检查它，返回 <code>glyph check --json</code> 打印的诊断，二者来自同一个 Rust 类型，还有一个测试会在六个项目上运行这两种方式并逐个键比较 JSON。完整细节见 <a href="/mcp/">MCP 页面</a>。
+        </p>
+        <p>
+          以上这些都是在编辑之前问的。编辑之后，编译器从另一个方向回答：<code>glyph check --agent</code> 打印每条诊断时，会附上修复性编辑必须保持的不变式，以及诊断中提到的每个符号的 <code>glyph_symbol</code> 描述，所以智能体需要的形状会随着要求它的错误一起到达。这部分有<a href="/answers/repair-protocol/">单独的一页</a>。
+        </p>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>通过 MCP 提供的十一个只读工具，每个都有对应的 <code>glyph query</code> 子命令。<code>glyph_symbol</code> 可以按标识或按位置回答，它不掌握的每项事实都为 null，旁边附一句说明原因。标识能追溯到标准库：prelude 中的 <code>Result</code> 是 <code>std/result::Result</code>，也就是解析器注册它所用的模块，以及代码生成器生成导入时引用的模块，所以 <code>glyph query symbol --entity std/result::Result</code> 会回答 <code>Ok(T)</code> 和 <code>Err(E)</code>，<code>glyph query exports --module std/result</code> 会列出它的接口，而针对它的 <code>E0200</code> 会在 <code>cause</code> 中带上这个标识。它背后没有 Glyph 源码，所以 <code>path</code> 和 <code>range</code> 为 null 并附上原因，而不是直接缺失。在一个三模块项目上，审查探测的十四个位置悬停信息全部能回答，而这项工作开始之前只有两个：在另一个模块中声明的名字，会根据那个模块自己的声明回答，所以导入绑定、调用处的导入函数、作为值使用的导入变体，以及从导入记录上读取的字段，都有类型。<code>glyph_dependencies</code> 和 <code>glyph_exports</code> 补齐了 G221 要求的那一组。<code>glyph_variants</code> 带有每个负载及其构造语法；<code>glyph_definition</code> 和 <code>glyph_symbols</code> 带有 <code>module::name</code>，所以一个答案可以直接接到 <code>glyph_impact</code>，不需要重新推导任何东西。<code>glyph_impact</code> 的签名类型表可以判定容器对容器、结构化记录对结构化或已声明的记录（本地的、导入的、泛型的，或者另一个名字），把 JSX 元素当作它降级后的调用来判定，并且对任一边的字符串字面量联合类型使用与 <code>glyph_assignable</code> 相同的比较，所以这两个工具对同一组类型不可能给出不同结论。如果某个参数的类型组合被关系完整读取，那么无论比较结果如何，它都是 <code>WILL_FAIL</code>，因为 <code>change_signature_type</code> 没有指定替换类型，而一个被接受的组合也可能在某个替换类型下被拒绝；只有关系拒绝判定的组合才是 <code>UNDETERMINED</code>。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">它的边界</h3>
+          <p>这里的工具都不写入：不能重命名，也不能应用编辑。写入功能是命令行上的 <code>glyph fix</code>，它只修复三类问题，而不是你要求的任何修改：未使用的导入；检查器恰好只有一个建议的分支头；以及与恰好一个已声明字段只差一个字符的字段名。对于编译器既没有声明也没有签名模型的标准库导出，会回答 <code>kind: null</code> 并附上原因：<code>std/result::all</code> 和 <code>std/io::println</code> 的类型写在编译器放置的 TypeScript 中，没有任何 Glyph 阶段会去读。<code>glyph_diagnostics</code> 会跳过 <code>glyph check</code> 做的三项检查：<code>tsc</code>；<code>E0104</code> 检查（导入了不存在的模块），它需要构建所看到的 <code>node_modules</code>；以及针对失败的 <code>@example</code> 的 <code>E0400</code>，它需要运行生成的项目。它会在 <code>not_run</code> 中列出这三项，而不是假装做过。</p>
+        </div>
+      </div>

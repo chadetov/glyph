@@ -1,0 +1,173 @@
+---
+title: 加固 · Glyph 如何接受压力测试，以及发现了什么
+description: AI 智能体扮演多疑的工程师，用 Glyph 构建应用，并尝试打破它的保证。这个循环是怎样运作的，以及它发现的 bug。
+source_hash: 39150fb233f95dbe
+---
+      <header class="page-hero">
+        <p class="eyebrow">Glyph 如何加固</p>
+        <h1>智能体尝试攻破它，<span class="accent">我们记下它们的发现</span>。</h1>
+        <p class="lede">
+          一门声称智能体没法悄悄改坏它的语言，必须经受这方面的检验。我们让 AI 智能体扮演多疑的工程师（一个受够了的 React 开发者、一个爱唱反调的后端工程师、一个专挑安全漏洞的对手），让它们构建应用并尝试打破这些保证，然后修复它们的发现，或者记为未解决的 gap。下面是这个循环，以及它的发现。
+        </p>
+      </header>
+
+      <!-- ============ THE REFUSED CASES ============ -->
+      <section>
+        <h2 class="group-head">能通过 <code>tsc --strict</code>、在 Glyph 中却无法编译的案例</h2>
+        <p class="group-sub">
+          每个案例都是两个文件：一个在 <code>tsc --strict</code> 下类型检查干净的 <code>.ts</code>，以及同一个程序的 Glyph 版本，它无法编译。构建检查 <code>scripts/check_catches.py</code> 会重新运行每个案例，只要任何一半的行为变了就会失败，所以一项悄悄消失的保证会连带让构建失败。下表列出了<a href="/catches/">案例页面</a>上 {{catches:count}} 个 TypeScript 错误中以这种方式被拒绝的 {{catches:refused}} 个；其余的见那个页面，Glyph 会在数据到达时检查它们、给出警告，或者在运行时拦下。{{catches:breakdown}}
+        </p>
+{{catches:refused-table}}
+        <p class="group-sub" style="margin-top:24px">
+          后来发现 TypeScript 也能发现的案例，或者两半其实不是同一个程序的案例，都被删除了，而不是被弱化；<code>catches/README.md</code> 列出了每一个及其原因。
+        </p>
+        <p class="group-sub">
+          即使键拼写正确，map 读取也会被拒绝，因为 <code>Record&lt;string, string&gt;</code> 并没有说明哪些键存在。TypeScript 可以用 <code>noUncheckedIndexedAccess</code> 发现它，但 <code>--strict</code> 不会打开这个选项。缺失的联合类型情况在 TypeScript 中也能发现，只要项目采用 typescript-eslint 的 <code>switch-exhaustiveness-check</code> 或 <code>assertNever</code> 默认分支。在 Glyph 中，这两项检查都不是可选的。
+        </p>
+        <p class="group-sub">
+          在解析请求体的案例中，Glyph 的 <code>json.parse</code> 返回的是 <code>Result</code>，不是 <code>User</code>，所以在请求体被检查之前，这个赋值都是类型不匹配。TypeScript 的 <code>JSON.parse</code> 返回 <code>any</code>，<code>user</code> 上的类型标注把它“洗白”了。
+        </p>
+      </section>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">对抗循环</h2>
+        <p class="group-sub">每项发现都要针对编译器复现，从根源修复，并经过独立的再次验证，才算数。</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>探索</h3>
+            <p>扮演不同角色的智能体构建程序（表单、后端、有状态的 UI），并记录语言给它们添堵的每一处。</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>复现</h3>
+            <p>每项发现都被缩减成最小的失败程序，再针对编译器重新运行。无法复现的一律丢弃。</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>修复</h3>
+            <p>在 Rust 编译器中从根源修复，并附带一个修复前失败、修复后通过的回归测试。完整测试套件必须保持全绿，否则改动会被回退。</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>验证</h3>
+            <p>一轮独立的检查会针对新构建的编译器重新运行每个复现，在发布之前揪出“智能体以为已经修好了”的漏洞。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">最重要的一类：悄无声息的正确性漏洞</h2>
+        <p class="group-sub">
+          下面每一个都能干净地编译，并且可能发布出<em>通过了类型检查的错误代码</em>：这正是 Glyph 要防止的那一类 bug。现在每一个都会在编译时被发现。
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">严重，已修复</span>
+            <h3><code>Result</code> match 中无负载的错误变体</h3>
+            <p>对 <code>Result&lt;T, Empty | BadQty(...)&gt;</code> 的 <code>match</code> 被转换成两个重复的 <code>case&nbsp;"Err"</code> 分支；第一个吞掉了所有错误，并悄悄地分派到了错误的分支。</p>
+            <p class="now">现在：合并成一个 case，内部有正确的 switch；每个变体都能正确分派。</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">严重，已修复</span>
+            <h3>拼错的构造器变成了悄无声息的兜底分支</h3>
+            <p>match 分支中拼错的变体（把 <code>Loaded</code> 写成 <code>Loded</code>）被悄悄当作不可反驳的兜底绑定，掩盖了不穷尽的问题，运行时分派错误，而且没有任何诊断。</p>
+            <p class="now">现在：未知的构造器会在拼错的地方被拒绝，和真实的名字一样处理。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高，已修复</span>
+            <h3>不完整的 <code>bool</code> match 绕过了穷尽性检查</h3>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code>（缺少 <code>false</code> 分支）能编译并通过 <code>tsc</code>，然后在运行时抛出异常。</p>
+            <p class="now">现在：编译时报出不穷尽 match 错误。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高，已修复</span>
+            <h3>多参数组件绑错了 props</h3>
+            <p><code>component C(a, b)</code> 生成的是位置参数，但 React 调用组件时第一个参数是 props，所以 <code>a</code> 悄悄绑定到了整个 props 对象。它通过了 <code>tsc</code>。</p>
+            <p class="now">现在：清晰的编译错误，指向单个 props 记录的写法。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高，已修复</span>
+            <h3>JSX <code>&lt;match&gt;</code> 跳过了穷尽性检查</h3>
+            <p>缺少某个 <code>&lt;case&gt;</code> 的 JSX <code>&lt;match&gt;</code> 能顺利编译，然后在运行时抛出异常；而值层面的 <code>match</code> 是有检查的。</p>
+            <p class="now">现在：适用同样的穷尽性检查；缺少的情况是编译错误。</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">高，已修复</span>
+            <h3>记录负载绑定到了错误的字段</h3>
+            <p>把带记录负载的变体绑定到一个名字上（<code>BadQty(b)</code>）时，会从展平后的负载上读取一个不存在的 <code>.value</code>。</p>
+            <p class="now">现在：负载能正确绑定，所以 <code>b.sku</code> 可以正常使用。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">检查器现在强制执行的规则</h2>
+        <p class="group-sub">编译器过去交给 <code>tsc</code> 的可靠性检查，现在由 Glyph 自己发现。</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">已修复</span>
+            <h3>调用参数个数</h3>
+            <p>参数过少或过多都会被接受（运行结果是 <code>NaN</code>）。现在 <code>E0213</code> 会拒绝错误的参数个数。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>跨标准库边界的 <code>?</code> 错误类型</h3>
+            <p>当错误来自标准库包装函数时，精确错误类型规则会被跳过。现在那里也会强制执行。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>给 <code>owned</code> 句柄起别名</h3>
+            <p>对资源句柄写 <code>let g = f</code> 会创建第二个绑定，可能导致重复关闭。现在会被拒绝（<code>E0215</code>）。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>不可达分支与更深入的校验</h3>
+            <p>兜底分支之后的分支现在会被标出；<code>json.parse&lt;T&gt;</code> 现在会按结构校验 <code>Record</code> 字段，而不只是检查是否存在。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">初次使用时的阻碍，已移除</h2>
+        <p class="group-sub">那些给人留下糟糕第一印象、又毫无用处的小问题。</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>无障碍属性与 data 属性</h3>
+            <p><code>aria-label</code> 和 <code>data-*</code> 被解析成了减法。现在它们能正常工作，并生成正确的 React props。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>npm 包名</h3>
+            <p>带连字符和带作用域的说明符（<code>react-hook-form</code>、<code>@hookform/resolvers/zod</code>）会被拒绝。现在可以直接导入。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>浏览器打包后的首次运行</h3>
+            <p>浏览器构建中没有加载运行时引导代码，首次运行就崩溃。现在每个生成的模块都会引入它。</p>
+          </div>
+          <div class="fix">
+            <span class="sev">已修复</span>
+            <h3>误导人的错误信息</h3>
+            <p>写 <code>if</code> 现在会提示使用 <code>match</code>；范围模式会直接说明；JSX 中的空白和文本中单独的 <code>$</code> 都能正确处理。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">仍未解决：记录在案</h2>
+        <p class="group-sub">加固也意味着说清楚哪些还没做。下面这些都是已知并在跟踪的问题，没有隐瞒。</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>有意推迟，或者在等待设计决策：</strong></p>
+          <p style="margin:0;">
+            要在 Glyph 自己的检查器中拒绝隐式 <code>any</code> 的闭包，需要上下文推断，以免对类型正确的回调误报。易用的 FFI，也就是不为每个库写适配层就能使用类型复杂的 TS 库，是仍未解决的最大互操作问题，记录在<a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">未决问题</a>中。来自其他模块或标准库的 map 仍然会被不加检查地读取，所以 E0224 还管不到 <code>sqlite.Row</code>；双绑定的 <code>for i, x in xs</code> 仍会丢失元素类型。
+            </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; 查看引出这些修复的工程师问题</a>
+      </section>

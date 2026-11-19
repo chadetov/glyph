@@ -1,0 +1,146 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/greppability/index.html",
+  "locale": "zh-cn",
+  "source_hash": "cb5e3e02dc597369",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can an agent (or I) find where anything is defined? · Glyph",
+      "tr": "智能体（或者我）能找到任何东西的定义位置吗？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition, not fifty near-misses.",
+      "tr": "Glyph 中的每种结构都只有一种可供搜索的形式，所以 grep（或智能体的搜索）会落在唯一的定义上，而不是五十个似是而非的结果。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Will agent edits stay clean, or reformat my whole file?",
+      "tr": "智能体的编辑会保持干净，还是会把整个文件重新格式化？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "为什么是 TypeScript，而不是 Go 或者一门全新的语言？"
+    },
+    {
+      "id": "h-3acdba59",
+      "kind": "html",
+      "en": "03 &middot; Navigation by search",
+      "tr": "03 &middot; 靠搜索导航"
+    },
+    {
+      "id": "h-546a7b11",
+      "kind": "html",
+      "en": "Can an agent (or I) find where anything is defined?",
+      "tr": "智能体（或者我）能找到任何东西的定义位置吗？"
+    },
+    {
+      "id": "h-0104db85",
+      "kind": "html",
+      "en": "Every construct has <strong>exactly one shape</strong> to search for. A plain <code>grep</code> (the way agents actually navigate) lands on the one definition, <strong>not fifty near-misses</strong>.",
+      "tr": "每种结构都<strong>只有一种形式</strong>可供搜索。普通的 <code>grep</code>（智能体实际导航代码的方式）会落在唯一的定义上，<strong>而不是五十个似是而非的结果</strong>。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "h-5ddea4d2",
+      "kind": "html",
+      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
+      "tr": "智能体不会把整个仓库记在脑子里，它靠<strong>搜索</strong>。如果一个概念有五种写法，搜索就会漏掉一些情况，而一个找不到现有定义却很自信的智能体会再造一个。一个概念只有一种形式，意味着搜索是完整的，所以智能体会修改已有的东西，而不是复制一份。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-534265e6",
+      "kind": "html",
+      "en": "Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:",
+      "tr": "Glyph 把修改限制为两种形式（<code>mut x = &hellip;</code> 和 <code>mut x.method(&hellip;)</code>），所以状态发生变化的<em>每一个</em>地方都能通过一次搜索找到："
+    },
+    {
+      "id": "h-f3493d94",
+      "kind": "html",
+      "en": "grep -rn \"mut \" src/ (every mutation in the codebase)",
+      "tr": "grep -rn \"mut \" src/（代码库中的每一处修改）"
+    },
+    {
+      "id": "h-92a8e9f7",
+      "kind": "html",
+      "en": "Three mutations, all of them, in one search. In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer. The same one-shape rule makes whole categories auditable:",
+      "tr": "三处修改，全部在一次搜索中找到。在 TypeScript 中，修改可能藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开运算之后。没有一个能 grep 的标记，所以&ldquo;有没有东西会改动它？&rdquo;这个问题没有可靠的答案。同样的单一形式规则让许多类别都可以审计："
+    },
+    {
+      "id": "h-62e795f5",
+      "kind": "html",
+      "en": "one search = one complete answer",
+      "tr": "一次搜索 = 一个完整的答案"
+    },
+    {
+      "id": "h-4ae95bd1",
+      "kind": "html",
+      "en": "There's no object-literal shorthand, no second way to declare a component, no overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint, and it's the point: it's what makes an agent's search, and yours, trustworthy.",
+      "tr": "没有对象字面量简写，没有声明组件的第二种方式，也没有需要消歧的重载语法。写法更少确实是一种约束，而这正是目的：它让智能体的搜索和你的搜索都值得信赖。"
+    },
+    {
+      "id": "h-127e49f1",
+      "kind": "html",
+      "en": "The constructs Glyph leaves out so that a search can be trusted, and why a lint rule is not the same guarantee, are on the <a href=\"/pillars/greppability/\">greppability pillar page</a>.",
+      "tr": "Glyph 为了让搜索可信而舍弃了哪些结构，以及为什么 lint 规则不能提供同样的保证，见<a href=\"/pillars/greppability/\">可检索性支柱页面</a>。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-b95960cf",
+      "kind": "html",
+      "en": "One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
+      "tr": "每种结构只有一种标准形式，修改限制为两种可以 grep 的形式（<code>mut</code>），并且用一个关键字就能完成审计（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。"
+    },
+    {
+      "id": "h-b19d96e0",
+      "kind": "html",
+      "en": "Layered on top",
+      "tr": "在此之上"
+    },
+    {
+      "id": "h-87fdbb44",
+      "kind": "html",
+      "en": "The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.",
+      "tr": "语言服务器增加了覆盖整个工作区的跳转到定义和查找引用：同样的保证，现在可以在编辑器中交互使用。"
+    }
+  ]
+}

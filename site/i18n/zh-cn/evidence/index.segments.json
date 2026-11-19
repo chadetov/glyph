@@ -1,0 +1,260 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "evidence/index.html",
+  "locale": "zh-cn",
+  "source_hash": "22fcc8a3d8e611cf",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Evidence · how each claim on this site is checked · Glyph",
+      "tr": "证据 · 本站的每条说法是怎样验证的 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How each claim on this site is checked: the catches fixtures and the CI gate behind them, the TypeScript setup they are compared with, and how to reproduce one.",
+      "tr": "本站的每条说法是怎样验证的：catches 中的测试用例及其背后的 CI 检查，用来对比的 TypeScript 配置，以及如何复现一个案例。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "The rest of the record",
+      "tr": "其余记录"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "推荐"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "Catches",
+      "tr": "案例"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Every case: the TypeScript, the Glyph, the error, and whether tooled TypeScript would catch it.",
+      "tr": "每个案例：TypeScript 版、Glyph 版、报错，以及配齐工具的 TypeScript 能否发现。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See every case",
+      "tr": "查看所有案例"
+    },
+    {
+      "id": "ns./hardening/.title",
+      "kind": "ns.title",
+      "en": "Hardening",
+      "tr": "加固"
+    },
+    {
+      "id": "ns./hardening/.desc",
+      "kind": "ns.desc",
+      "en": "How agents playing skeptical engineers attack the compiler, and the bugs that found.",
+      "tr": "扮演多疑工程师的智能体如何攻击编译器，以及由此发现的 bug。"
+    },
+    {
+      "id": "ns./benchmarks/.title",
+      "kind": "ns.title",
+      "en": "Benchmarks",
+      "tr": "基准测试"
+    },
+    {
+      "id": "ns./benchmarks/.desc",
+      "kind": "ns.desc",
+      "en": "What is measured (token density, grep, diffs) and the reliability study that isn't done yet.",
+      "tr": "测量了什么（token 密度、grep、diff），以及尚未完成的可靠性研究。"
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "版本"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "Every release, what it changed, and which ones are Breaking.",
+      "tr": "每个版本、它改了什么，以及哪些是 Breaking。"
+    },
+    {
+      "id": "h-03867aea",
+      "kind": "html",
+      "en": "Evidence",
+      "tr": "证据"
+    },
+    {
+      "id": "h-dc5eb7de",
+      "kind": "html",
+      "en": "How each claim on this site is checked",
+      "tr": "本站的每条说法是怎样验证的"
+    },
+    {
+      "id": "h-e3358e09",
+      "kind": "html",
+      "en": "A claim that Glyph catches something is a pair of programs in the repository, one in TypeScript and one in Glyph, and a CI gate runs both on every change. If the TypeScript stops compiling or the Glyph stops being refused, the build fails. You can run any case yourself in two commands.",
+      "tr": "“Glyph 能发现某个问题”这样的说法，对应仓库中的一对程序，一个用 TypeScript 写，一个用 Glyph 写，每次改动 CI 检查都会运行这两个程序。如果 TypeScript 版不再能编译，或者 Glyph 版不再被拒绝，构建就会失败。你可以用两条命令自己运行任何一个案例。"
+    },
+    {
+      "id": "h-1fc65ae1",
+      "kind": "html",
+      "en": "The fixtures",
+      "tr": "测试用例"
+    },
+    {
+      "id": "h-d916d7bf",
+      "kind": "html",
+      "en": "Each directory under <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> holds <code>ts.ts</code>, <code>glyph.glyph</code> and a <code>case.toml</code> saying what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. {{catches:breakdown}} By the kind the gate checks:",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> 下的每个目录都包含 <code>ts.ts</code>、<code>glyph.glyph</code>，以及一个说明两者各自行为的 <code>case.toml</code>。<code>scripts/check_catches.py</code> 在 CI 中运行。它要求每个 <code>ts.ts</code> 都能通过 <code>tsc --strict</code>，因为不能编译的 TypeScript 程序什么也证明不了；然后按案例的类型检查 Glyph 那一半。{{catches:breakdown}} 按检查的类型划分："
+    },
+    {
+      "id": "h-f5387f9b",
+      "kind": "html",
+      "en": "Kind",
+      "tr": "类型"
+    },
+    {
+      "id": "h-2249bd50",
+      "kind": "html",
+      "en": "Cases",
+      "tr": "案例数"
+    },
+    {
+      "id": "h-cdb22e2c",
+      "kind": "html",
+      "en": "What the gate requires of the Glyph",
+      "tr": "检查对 Glyph 版的要求"
+    },
+    {
+      "id": "h-eb9256d3",
+      "kind": "html",
+      "en": "The build fails with the code in <code>case.toml</code>",
+      "tr": "构建失败，并报出 <code>case.toml</code> 中的错误码"
+    },
+    {
+      "id": "h-ca67701b",
+      "kind": "html",
+      "en": "The build passes and reports that code as a warning",
+      "tr": "构建通过，并把该错误码作为警告报告"
+    },
+    {
+      "id": "h-1ee000e2",
+      "kind": "html",
+      "en": "The program runs, and the check at the boundary turns the bad data into an <code>Err</code>",
+      "tr": "程序能运行，边界处的检查把错误数据变成 <code>Err</code>"
+    },
+    {
+      "id": "h-16733f99",
+      "kind": "html",
+      "en": "The program builds, then stops when it runs, with the stated output",
+      "tr": "程序能构建，运行时停下，并给出指定的输出"
+    },
+    {
+      "id": "h-822949d7",
+      "kind": "html",
+      "en": "Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case",
+      "tr": "Glyph 接受这个程序，而它的行为是错的。漏洞堵上时，检查会失败并提示把案例移走"
+    },
+    {
+      "id": "h-92bc404d",
+      "kind": "html",
+      "en": "A case that stops being demonstrable is deleted rather than softened, and the <a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">catches README</a> lists the six that were deleted and why. One of them turned out to be caught by <code>tsc</code> too; another only worked because its TypeScript took a value as <code>any</code>.",
+      "tr": "不再能演示的案例会被删除，而不是被弱化，<a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">catches README</a> 列出了被删除的六个案例及原因。其中一个后来发现 <code>tsc</code> 也能发现；另一个之所以成立，只是因为它的 TypeScript 版把某个值当作了 <code>any</code>。"
+    },
+    {
+      "id": "h-db083445",
+      "kind": "html",
+      "en": "The TypeScript it is compared against",
+      "tr": "用来对比的 TypeScript"
+    },
+    {
+      "id": "h-4d9ff34c",
+      "kind": "html",
+      "en": "Each case also says whether a fully configured TypeScript project would have caught the mistake, which is where the \"would TypeScript catch it\" tag comes from. \"Fully configured\" is <code>tsc --strict</code> plus every option that makes it stricter, and a typescript-eslint run. The gate installs the packages fresh on each run (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 and the latest <code>@types/node</code>) and fails, rather than skips, without the network.",
+      "tr": "每个案例还会说明一个配置拉满的 TypeScript 项目能否发现这个错误，“TypeScript 能否发现”这个标签就来自这里。“配置拉满”指 <code>tsc --strict</code>，加上所有能让它更严格的选项，再运行一次 typescript-eslint。检查每次运行都会重新安装这些包（TypeScript 6、eslint 9、typescript-eslint 8、tsx 4 和最新的 <code>@types/node</code>），没有网络时会失败，而不是跳过。"
+    },
+    {
+      "id": "h-f909a15d",
+      "kind": "html",
+      "en": "tsconfig options on top of strict",
+      "tr": "在 strict 之上额外打开的 tsconfig 选项"
+    },
+    {
+      "id": "h-e79273f1",
+      "kind": "html",
+      "en": "A case's tag is <code>none</code>, <code>flag:</code> plus the one option that reports it, or <code>lint:</code> plus the rule. When the corrected program also trips a rule for an unrelated reason, the case carries <code>ts_ok.ts</code> and the tag only counts what fires on the mistake. For example, <code>non-exhaustive-match</code> is <code>lint:switch-exhaustiveness-check</code>: typescript-eslint catches it if you turn that rule on, and the page says so.",
+      "tr": "案例的标签是 <code>none</code>、<code>flag:</code> 加上能报出它的那个选项，或者 <code>lint:</code> 加上对应的规则。如果改正后的程序也因为无关的原因触发了某条规则，案例会带一个 <code>ts_ok.ts</code>，标签只统计因这个错误而触发的部分。例如，<code>non-exhaustive-match</code> 是 <code>lint:switch-exhaustiveness-check</code>：只要打开这条规则，typescript-eslint 就能发现它，页面上也是这么写的。"
+    },
+    {
+      "id": "h-e4bf87e8",
+      "kind": "html",
+      "en": "Reproduce one case",
+      "tr": "复现一个案例"
+    },
+    {
+      "id": "h-1e0de939",
+      "kind": "html",
+      "en": "Run the gate on a single case from a clone of the repository, or do it by hand. Both halves of <code>non-exhaustive-match</code>, as they ran for this page:",
+      "tr": "在仓库的克隆中对单个案例运行检查，或者手动运行。下面是 <code>non-exhaustive-match</code> 的两半，就是为本页运行时的结果："
+    },
+    {
+      "id": "h-41fe29d9",
+      "kind": "html",
+      "en": "the gate, one case",
+      "tr": "检查，单个案例"
+    },
+    {
+      "id": "h-fa9e17d5",
+      "kind": "html",
+      "en": "the TypeScript half, by hand",
+      "tr": "TypeScript 那一半，手动运行"
+    },
+    {
+      "id": "h-ddaaa114",
+      "kind": "html",
+      "en": "the Glyph half, by hand",
+      "tr": "Glyph 那一半，手动运行"
+    },
+    {
+      "id": "h-6672a1cf",
+      "kind": "html",
+      "en": "The snippets on this site compile",
+      "tr": "本站的代码片段都能编译"
+    },
+    {
+      "id": "h-994c5a78",
+      "kind": "html",
+      "en": "<code>scripts/check_docs_compile.py</code> runs in CI and compiles every Glyph snippet on the site that stands on its own (it opens with <code>module</code> and declares something), plus the ones in the docs and <code>llms.txt</code>. A snippet that is meant to fail has to name the error it draws, and it has to draw exactly that one. Snippets that need React or an npm package are compiled against those packages' real types. Fragments are counted and skipped, and the count is printed so the skipped share stays visible.",
+      "tr": "<code>scripts/check_docs_compile.py</code> 在 CI 中运行，编译本站上每个独立的 Glyph 代码片段（以 <code>module</code> 开头并声明了内容的片段），以及文档和 <code>llms.txt</code> 中的片段。本来就应该失败的片段必须注明它触发的错误，而且必须恰好触发那一个错误。需要 React 或某个 npm 包的片段会对照这些包的真实类型编译。不完整的片段会被计数并跳过，计数会打印出来，让跳过的比例一直可见。"
+    },
+    {
+      "id": "h-260fe982",
+      "kind": "html",
+      "en": "What it does not catch yet",
+      "tr": "它还发现不了的问题"
+    },
+    {
+      "id": "h-e4a785b3",
+      "kind": "html",
+      "en": "The {{catches:gap-cases}} <code>gap</code> cases are on <a href=\"/catches/#not-yet\">the catches page</a>, each with its gap number. Every gap found by building apps in Glyph is in the ledger, <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>, where a bracketed marker is the only live status (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, or none for open) and <code>scripts/check_gaps.py</code> fails CI when an open entry was last reproduced more than five releases ago.",
+      "tr": "{{catches:gap-cases}} 个 <code>gap</code> 案例在<a href=\"/catches/#not-yet\">案例页面</a>上，每个都带有 gap 编号。用 Glyph 构建应用时发现的每个漏洞都记录在清单 <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a> 中，其中方括号标记是唯一有效的状态（<code>[FIXED]</code>、<code>[HALF FIXED]</code>，没有标记表示未解决）；如果某个未解决条目的最近一次复现已经是五个版本以前，<code>scripts/check_gaps.py</code> 会让 CI 失败。"
+    },
+    {
+      "id": "h-ae7fa29b",
+      "kind": "html",
+      "en": "How a release is marked Breaking",
+      "tr": "版本如何被标记为 Breaking"
+    },
+    {
+      "id": "h-d28e217b",
+      "kind": "html",
+      "en": "A release is marked Breaking when it rejects a program the previous version accepted. That is decided by writing the smallest affected program and running it under the published previous release and the new binary, then comparing exit codes. It is not inferred from the wording of the notes. Releases before 0.1.99 were never tested this way, so an unmarked one is untested rather than safe. The record is on <a href=\"/versions/\">the versions page</a>.",
+      "tr": "如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking。判断方法是写出受影响的最小程序，分别用已发布的上一版本和新的二进制文件运行，然后比较退出码。不是根据说明的措辞推断出来的。0.1.99 之前的版本从未这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。记录见<a href=\"/versions/\">版本页面</a>。"
+    }
+  ]
+}

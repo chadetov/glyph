@@ -1,0 +1,206 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "benchmarks/index.html",
+  "locale": "zh-cn",
+  "source_hash": "c2635229de656794",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Benchmarks · measured, not asserted · Glyph",
+      "tr": "基准测试 · 用测量说话，而不是断言 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's four pillars as numbers: errors caught at compile time, one grep per symbol, one-line diffs, and about 9% fewer tokens than TypeScript, with caveats.",
+      "tr": "用数字衡量 Glyph 的四大支柱：编译时发现的错误，每个符号一次 grep，一行改动一行 diff，比 TypeScript 少约 9% 的 token，附注意事项。"
+    },
+    {
+      "id": "h-9f2e7732",
+      "kind": "html",
+      "en": "Benchmarks",
+      "tr": "基准测试"
+    },
+    {
+      "id": "h-9c3743c9",
+      "kind": "html",
+      "en": "Two kinds of <span class=\"accent\">evidence</span>.",
+      "tr": "两类<span class=\"accent\">证据</span>。"
+    },
+    {
+      "id": "h-b3331cb8",
+      "kind": "html",
+      "en": "There are two questions worth measuring, and we keep them separate. <strong>Structural:</strong> what does Glyph reject by construction that TypeScript accepts? That's provable today, shown below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and we don't have it yet. It's a study we're building, and we won't dress up a proxy as if it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs <a href=\"/answers/vs-tooled-ts/\">strict TS + zod + eslint + ts-pattern</a>.)",
+      "tr": "有两个值得测量的问题，我们把它们分开。<strong>结构性的：</strong>哪些 TypeScript 接受的东西被 Glyph 从构造上拒绝了？这在今天就能证明，见下文。<strong>可靠性的：</strong>与一套<em>配置良好</em>的严格模式 TypeScript 相比，智能体用 Glyph 交付的缺陷真的更少吗？这个数字决定是否值得采用，而我们还没有它。这是一项我们正在搭建的研究，我们不会把某个替代指标包装成这个答案。（真正的比较不是 Glyph 对比随便写的 TS，而是 Glyph 对比<a href=\"/answers/vs-tooled-ts/\">严格模式 TS + zod + eslint + ts-pattern</a>。）"
+    },
+    {
+      "id": "h-cae40d7f",
+      "kind": "html",
+      "en": "Structural: provable by construction",
+      "tr": "结构性：从构造上就可证明"
+    },
+    {
+      "id": "h-2f56c6d4",
+      "kind": "html",
+      "en": "Not a statistic: paired demonstrations. Each is a case Glyph rejects and <code>tsc --strict</code> accepts, reproducible from the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory.",
+      "tr": "不是统计数据，而是成对的演示。每一个都是 Glyph 拒绝而 <code>tsc --strict</code> 接受的案例，可以在 <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> 目录中复现。"
+    },
+    {
+      "id": "h-7d361f00",
+      "kind": "html",
+      "en": "Verifiability: the bugs that cost you",
+      "tr": "可验证性：真正让你付出代价的 bug"
+    },
+    {
+      "id": "h-b9c29918",
+      "kind": "html",
+      "en": "<span class=\"accent\">Both</span> caught at compile time",
+      "tr": "<span class=\"accent\">两者</span>都在编译时被发现"
+    },
+    {
+      "id": "h-d9a4c68e",
+      "kind": "html",
+      "en": "Two mistakes agents make constantly (a missing <code>match</code> variant and a cast through <code>as unknown as</code>) are rejected by Glyph and accepted by <code>tsc --strict</code>. Both are checked cases in <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), re-run by the build gate. Wrong code that compiles is the expensive failure. Glyph won't let it.",
+      "tr": "智能体经常犯的两种错误（漏掉 <code>match</code> 的一个变体，以及通过 <code>as unknown as</code> 做类型断言）会被 Glyph 拒绝，而 <code>tsc --strict</code> 接受。两者都是 <code>catches/</code> 中经过检验的案例（<code>non-exhaustive-match</code>，<code>E0200</code>；<code>as-unknown-as</code>，<code>E0013</code>），由构建检查重新运行。能编译的错误代码是代价最高的失败，Glyph 不允许它出现。"
+    },
+    {
+      "id": "h-18ef286e",
+      "kind": "html",
+      "en": "Greppability: one name, one place",
+      "tr": "可检索性：一个名字，一个位置"
+    },
+    {
+      "id": "h-7d95f946",
+      "kind": "html",
+      "en": "<span class=\"accent\">1</span> match, every time",
+      "tr": "每次都只有 <span class=\"accent\">1</span> 个匹配"
+    },
+    {
+      "id": "h-c195e0eb",
+      "kind": "html",
+      "en": "Every symbol has exactly one declaration form: no overloads, decorators, or merged namespaces to scatter it.",
+      "tr": "每个符号都只有一种声明形式：没有重载、装饰器或合并的命名空间把它分散开。"
+    },
+    {
+      "id": "h-395c7a50",
+      "kind": "html",
+      "en": "Diff stability: reviewable by default",
+      "tr": "稳定的 diff：天然便于审查"
+    },
+    {
+      "id": "h-eb7a3918",
+      "kind": "html",
+      "en": "1 line &rarr; 1 line",
+      "tr": "1 行 &rarr; 1 行"
+    },
+    {
+      "id": "h-78c7e9a8",
+      "kind": "html",
+      "en": "A one-line Glyph edit produces a one-line TypeScript diff through the transpiler, and <code>glyph fmt</code> adds no churn. The diff is the change, not the noise around it.",
+      "tr": "一行 Glyph 编辑经过转译后产生一行 TypeScript diff，<code>glyph fmt</code> 也不会引入无关变动。diff 就是改动本身，而不是周围的噪音。"
+    },
+    {
+      "id": "h-6b841d3c",
+      "kind": "html",
+      "en": "And the safety does not cost length",
+      "tr": "而且安全不以篇幅为代价"
+    },
+    {
+      "id": "h-c31998ef",
+      "kind": "html",
+      "en": "Tokens for the same three functions",
+      "tr": "同样三个函数的 token 数"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-18885f27",
+      "kind": "html",
+      "en": "Python",
+      "tr": "Python"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-6cc8519b",
+      "kind": "html",
+      "en": "Go",
+      "tr": "Go"
+    },
+    {
+      "id": "h-d9aa89fd",
+      "kind": "html",
+      "en": "Rust",
+      "tr": "Rust"
+    },
+    {
+      "id": "h-df8eac6d",
+      "kind": "html",
+      "en": "Safety usually costs length: Go and Rust, the other rows with static types and explicit error handling, are the longest. Glyph has both and is not longer for it: 436 tokens to TypeScript's 478, about 9% fewer, level with Python, about 23% fewer than Go and 30% fewer than Rust, on real <code>cl100k_base</code> counts of programs that pass <code>glyph check</code> with <code>tsc</code>. The lead is in the function with real control flow (<code>parse_user</code>, 132 to 174); on the one-line <code>slugify</code> Glyph is longer (67 to 47) because it has no regex literal. Three functions, a small sample. An earlier figure of 341 was measured on fixtures the compiler did not accept and is withdrawn. <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">See the methodology and caveats &rarr;</a>",
+      "tr": "安全通常意味着更长：Go 和 Rust 这两行同样有静态类型和显式错误处理，也是最长的。Glyph 两者兼备，却没有因此变长：436 个 token，TypeScript 是 478 个，少了约 9%，与 Python 持平，比 Go 少约 23%，比 Rust 少 30%；这些都是用真实的 <code>cl100k_base</code> 对能通过 <code>glyph check</code>（含 <code>tsc</code>）的程序计数得到的。优势体现在有真实控制流的函数上（<code>parse_user</code>，132 对 174）；在一行的 <code>slugify</code> 上 Glyph 更长（67 对 47），因为它没有正则字面量。只有三个函数，样本很小。早先的 341 这个数字是在编译器不接受的测试用例上测得的，已撤回。<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">查看方法和注意事项 &rarr;</a>"
+    },
+    {
+      "id": "h-8ac5b0ca",
+      "kind": "html",
+      "en": "Reliability: the study we're building",
+      "tr": "可靠性：我们正在搭建的研究"
+    },
+    {
+      "id": "h-a81f267c",
+      "kind": "html",
+      "en": "The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof that it does. The proof is a differential study: the same agent, the same realistic tasks, written once in Glyph and once in a fully-tooled strict-TypeScript setup (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number five different reviewers told us would move them, so we're building it, and until it exists these bars are a placeholder, not a claim.",
+      "tr": "上面的结构性结果是<em>预期</em> Glyph 会有帮助的理由，并不是它确实有帮助的证明。证明需要一项对照研究：同一个智能体、同样贴近实际的任务，一次用 Glyph 写，一次用配齐工具的严格模式 TypeScript 写（<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod），按<strong>漏到线上的语义缺陷</strong>和一次构建通过率打分。五位不同的审阅者告诉我们，这个数字才能说服他们，所以我们正在搭建它；在它出来之前，这些柱状图只是占位，不是结论。"
+    },
+    {
+      "id": "h-dcf46d14",
+      "kind": "html",
+      "en": "Escaped defects per task &middot; lower is better &middot; <span style=\"color:var(--amber)\">not measured yet</span>",
+      "tr": "每项任务漏出的缺陷数 &middot; 越低越好 &middot; <span style=\"color:var(--amber)\">尚未测量</span>"
+    },
+    {
+      "id": "h-bce540e4",
+      "kind": "html",
+      "en": "Glyph vs fully-tooled strict TypeScript",
+      "tr": "Glyph 对比配齐工具的严格模式 TypeScript"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "待定"
+    },
+    {
+      "id": "h-e82e7273",
+      "kind": "html",
+      "en": "tooled TS",
+      "tr": "配齐工具的 TS"
+    },
+    {
+      "id": "h-57cc1ce7",
+      "kind": "html",
+      "en": "The apparatus (a task corpus, a run/replay harness, and the pinned strongest-honest TS baseline) is in the <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the label) publishes here the moment it runs. Whatever it shows.",
+      "tr": "实验装置（任务语料、运行/回放工具，以及固定版本的、尽可能强又公平的 TS 基线）在 <a href=\"https://github.com/chadetov/glyph/tree/main/benchmarks\">benchmarks</a> 目录中；第一次真正的试点（标注上 <em>n</em>、所用模型和成本）一运行就会在这里公布，无论结果如何。"
+    },
+    {
+      "id": "h-88029d8d",
+      "kind": "html",
+      "en": "Why the comparison is against tooled TS &rarr;",
+      "tr": "为什么要和配齐工具的 TS 比较 &rarr;"
+    },
+    {
+      "id": "h-c0b5c819",
+      "kind": "html",
+      "en": "&larr; Back to home",
+      "tr": "&larr; 回到首页"
+    }
+  ]
+}

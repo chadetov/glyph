@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "mcp/index.html",
+  "locale": "zh-cn",
+  "source_hash": "9b8dc9db4173cc83",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Wire your agent into Glyph over MCP · Glyph",
+      "tr": "通过 MCP 把智能体接入 Glyph · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph mcp runs an MCP server with eleven tools: what a symbol is, what a change breaks, diagnostics, references and more. Each is also a glyph query verb.",
+      "tr": "glyph mcp 运行一个提供十一个工具的 MCP 服务器：符号是什么、改动会破坏什么、诊断、引用等等。每个工具同时也是一个 glyph query 子命令。"
+    },
+    {
+      "id": "h-3e836396",
+      "kind": "html",
+      "en": "For agents &middot; Model Context Protocol",
+      "tr": "面向智能体 &middot; Model Context Protocol"
+    },
+    {
+      "id": "h-09d8dc95",
+      "kind": "html",
+      "en": "Wire your agent into Glyph's compiler",
+      "tr": "把智能体接入 Glyph 的编译器"
+    },
+    {
+      "id": "h-06f85893",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> with eleven tools over your project: what a symbol is, what breaks if you change it, whether a value of one type can go where another is declared, what a declaration depends on, what a module exports, diagnostics checked inside the project, the type at a cursor, where a name is defined, every reference to it, every <code>match</code> site over a union, and symbol search. Each one is also a <code>glyph query</code> verb, so an agent with no MCP client asks the same questions and gets the same bytes.",
+      "tr": "<code>glyph mcp</code> 运行一个 <strong>Model Context Protocol 服务器</strong>，针对你的项目提供十一个工具：某个符号是什么；改了它会破坏什么；某个类型的值能否放到声明为另一个类型的地方；一个声明依赖什么；一个模块导出什么；在项目范围内检查的诊断；光标处的类型；名字在哪里定义；它的每一处引用；对某个联合类型的每一处 <code>match</code>；以及符号搜索。每个工具同时也是一个 <code>glyph query</code> 子命令，所以没有 MCP 客户端的智能体也能问同样的问题，得到逐字节相同的结果。"
+    },
+    {
+      "id": "h-77095b90",
+      "kind": "html",
+      "en": "Why an agent wants this",
+      "tr": "智能体为什么需要它"
+    },
+    {
+      "id": "h-5041d57e",
+      "kind": "html",
+      "en": "An agent editing a codebase usually works blind. It reads files, guesses at types, and finds out whether it broke something only after a build. Glyph already answers those questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight from the compiler, without scraping build output or reading every file to find who calls what. Two of the tools answer questions an editor never asks: <code>glyph_symbol</code> returns a union's variants with the syntax that constructs each, which is what an agent needs before it writes the <code>match</code>, and <code>glyph_impact</code> answers what an edit breaks before the edit exists.",
+      "tr": "在代码库里做编辑的智能体，通常是在摸黑工作。它读文件、猜类型，直到构建之后才知道有没有改坏东西。Glyph 本来就会为编辑器回答这些问题。<code>glyph mcp</code> 让智能体直接从编译器拿到同样的答案，不用去抓取构建输出，也不用为了搞清谁调用了谁而读遍每个文件。其中两个工具回答的是编辑器从不会问的问题：<code>glyph_symbol</code> 返回联合类型的各个变体以及构造每个变体的语法，这正是智能体写 <code>match</code> 之前需要的；<code>glyph_impact</code> 在编辑发生之前就回答它会破坏什么。"
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "配置"
+    },
+    {
+      "id": "h-7418b107",
+      "kind": "html",
+      "en": "Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the <code>mcp</code> subcommand, and pass your project root as an argument or run it from the project directory. It speaks MCP over stdio, so there's no port and no daemon.",
+      "tr": "任何 MCP 客户端都能启动它。把客户端指向 <code>glyph</code> 可执行文件和 <code>mcp</code> 子命令，并把项目根目录作为参数传入，或者在项目目录下运行。它通过 stdio 使用 MCP，所以没有端口，也没有守护进程。"
+    },
+    {
+      "id": "h-1c9558ae",
+      "kind": "html",
+      "en": "mcp client config (generic)",
+      "tr": "MCP 客户端配置（通用）"
+    },
+    {
+      "id": "h-14f598ae",
+      "kind": "html",
+      "en": "On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the server reports the eleven tools below. Positions you send follow the LSP convention: a 0-based <code>line</code> and a 0-based <code>character</code> in UTF-16 code units. Diagnostic ranges come back the way <code>glyph check --json</code> prints them, with a 1-based <code>line</code> and <code>col</code> plus the byte <code>offset</code>.",
+      "tr": "首次连接时，客户端会调用 <code>initialize</code> 和 <code>tools/list</code>；服务器报告下面的十一个工具。你发送的位置遵循 LSP 约定：从 0 开始的 <code>line</code>，以及从 0 开始、以 UTF-16 码元计的 <code>character</code>。诊断范围的返回格式和 <code>glyph check --json</code> 打印的一样：从 1 开始的 <code>line</code> 和 <code>col</code>，外加字节 <code>offset</code>。"
+    },
+    {
+      "id": "h-d2740b17",
+      "kind": "html",
+      "en": "Each tool's description carries the contract you need at the moment of the call, and the full manual lives in <code>glyph llms --json</code> under <code>tools</code>, keyed by tool name, with each tool's <code>glyph query</code> verb beside it. That reply used to carry every manual: eleven tools, 31,446 bytes of description in a 45,509-byte reply. It is 8,627 in a 20,386-byte reply now, and nothing was deleted. Every session pays for <code>tools/list</code> on connect and pays for the manual only when it asks. <a href=\"/answers/generated-docs/\">That document</a> is generated from the compiler's own tables, and a test fails the build if it names a tool this server does not serve.",
+      "tr": "每个工具的描述里写着调用时需要知道的约定，完整手册在 <code>glyph llms --json</code> 的 <code>tools</code> 下，按工具名索引，每个工具旁边还附有对应的 <code>glyph query</code> 子命令。这个回复以前会带上所有手册：十一个工具，45,509 字节的回复中有 31,446 字节是描述。现在是 20,386 字节的回复中占 8,627 字节，而且什么都没删。每个会话在连接时都要为 <code>tools/list</code> 付出代价，而手册只有在主动请求时才需要付出。<a href=\"/answers/generated-docs/\">那份文档</a>由编译器自己的表生成，如果它提到了这个服务器不提供的工具，会有测试让构建失败。"
+    },
+    {
+      "id": "h-1323cb30",
+      "kind": "html",
+      "en": "The eleven tools",
+      "tr": "十一个工具"
+    },
+    {
+      "id": "h-65beb4ac",
+      "kind": "html",
+      "en": "tools exposed by glyph mcp",
+      "tr": "glyph mcp 提供的工具"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-a75b63e1",
+      "kind": "html",
+      "en": "A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo returns the compiler's own diagnostic, the same Rust type <code>glyph check --json</code> serializes, inside an envelope that also says what the check did not cover.",
+      "tr": "对一个有字段拼写错误的文件，调用 <code>glyph_diagnostics</code> 的 <code>tools/call</code> 会返回编译器自己的诊断，与 <code>glyph check --json</code> 序列化的是同一个 Rust 类型，外面包了一层，还会说明这次检查没有覆盖什么。"
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "请求"
+    },
+    {
+      "id": "h-3841873d",
+      "kind": "html",
+      "en": "result (the tool's JSON content)",
+      "tr": "结果（工具的 JSON 内容）"
+    },
+    {
+      "id": "h-a4f1eb83",
+      "kind": "html",
+      "en": "The file is checked inside its project, so a wrong field on an imported record and a <code>match</code> missing arms over an imported union are reported here the way <code>glyph check</code> reports them. What the tool could not cover is on the answer rather than left for you to assume: <code>member</code> says whether the project walk reaches the file, <code>unindexed</code> names project files that don't parse, and <code>not_run</code> names the three checks <code>glyph check</code> makes and this one doesn't: <code>tsc</code>, <code>E0104</code> for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which is decided by running the emitted project. A test runs both surfaces on six projects and compares the JSON key for key, so the two can't drift.",
+      "tr": "文件是在它所属的项目内检查的，所以导入的记录上的错误字段，以及对导入的联合类型缺少分支的 <code>match</code>，在这里的报告方式和 <code>glyph check</code> 一样。工具没能覆盖的部分会写在答案里，而不是留给你去猜：<code>member</code> 说明项目遍历是否覆盖到这个文件，<code>unindexed</code> 列出无法解析的项目文件，<code>not_run</code> 列出 <code>glyph check</code> 会做而这里不做的三项检查：<code>tsc</code>；<code>E0104</code>（导入了不存在的模块），它需要构建所看到的 <code>node_modules</code>；以及 <code>E0400</code>（<code>@example</code> 失败），它要运行生成的项目才能判定。有一个测试会在六个项目上同时运行这两种方式，并逐个键比较 JSON，所以两者不会出现偏差。"
+    },
+    {
+      "id": "h-26714f00",
+      "kind": "html",
+      "en": "<code>glyph_references</code> is workspace-wide: ask about a symbol and you get its declaration, every use, and each importing module's <code>import</code> binding, across every file. It uses the same cross-file identity the editor's rename does, so the answer covers the whole project, not just the file you asked from.",
+      "tr": "<code>glyph_references</code> 覆盖整个工作区：问一个符号，你会得到它的声明、每一处使用，以及每个导入它的模块的 <code>import</code> 绑定，跨越所有文件。它使用的跨文件标识和编辑器重命名用的是同一套，所以答案覆盖整个项目，而不只是你发起询问的那个文件。"
+    },
+    {
+      "id": "h-9d3b62a6",
+      "kind": "html",
+      "en": "No MCP client? Same questions on the command line",
+      "tr": "没有 MCP 客户端？在命令行上问同样的问题"
+    },
+    {
+      "id": "h-132d1fdb",
+      "kind": "html",
+      "en": "Every tool has a <code>glyph query</code> verb taking the tool's own arguments as flags and printing the tool's JSON on stdout. An answered question exits 0; a refused one writes the reason to stderr and exits 2. The verbs route through the same entry point an MCP client reaches, and an integration test asks both surfaces the same question and compares the answers as text, so a verb that reformatted or summarized would fail it.",
+      "tr": "每个工具都有一个 <code>glyph query</code> 子命令，把工具自己的参数作为 flag，并在 stdout 上打印工具的 JSON。问题得到回答时退出码为 0；被拒绝时把原因写到 stderr，退出码为 2。这些子命令走的是 MCP 客户端调用的同一个入口，有一个集成测试会向两种方式问同一个问题并按文本比较答案，所以任何会重新格式化或做摘要的子命令都过不了这个测试。"
+    },
+    {
+      "id": "h-33fc2c51",
+      "kind": "html",
+      "en": "the same eleven questions, without a client",
+      "tr": "同样的十一个问题，无需客户端"
+    },
+    {
+      "id": "h-4090bfff",
+      "kind": "html",
+      "en": "When the build is already red",
+      "tr": "构建已经失败时"
+    },
+    {
+      "id": "h-fababe9f",
+      "kind": "html",
+      "en": "The tools answer questions asked before an edit. After one, the thing to read is <code>glyph check --agent</code>, which prints <code>check --json</code>'s diagnostics with two more keys on each: <code>constraints</code>, the invariants a repairing edit has to keep, and <code>symbols</code>, the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. On a <code>match</code> missing arms that means the union's variants with their payloads arrive with the error that asked for them, along with the sentence saying an <code>else</code> arm would forfeit the guarantee the diagnostic exists to protect. Where the repair is fully determined, <code>glyph fix</code> writes it and says what it declined. There is a <a href=\"/answers/repair-protocol/\">walkthrough of the whole loop</a> with real output.",
+      "tr": "这些工具回答的是编辑之前的问题。编辑之后，要读的是 <code>glyph check --agent</code>，它打印 <code>check --json</code> 的诊断，并在每条诊断上多加两个键：<code>constraints</code>，修复性编辑必须保持的不变式；<code>symbols</code>，诊断中提到的每个符号的 <code>glyph_symbol</code> 结果，所以下一次编辑不需要再调用一次。对于缺少分支的 <code>match</code>，这意味着联合类型的各个变体及其负载会随着要求它们的错误一起到达，同时附上一句说明：使用 <code>else</code> 分支就会放弃这条诊断所要保护的保证。修复方式完全确定时，<code>glyph fix</code> 会直接写入，并说明它拒绝做了哪些修改。这里有一份带真实输出的<a href=\"/answers/repair-protocol/\">完整流程演练</a>。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-4fbc90ec",
+      "kind": "html",
+      "en": "A <code>glyph mcp [root]</code> server over stdio with eleven tools: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb printing the same JSON. Answers come from the compiler's own queries, and every fact a tool does not hold is null beside a <code>&lt;key&gt;_absent</code> sentence saying why. Hover answers at a name declared in another module, so an imported function at its call site and a field read off an imported record both have a type. An entity identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph_symbol</code> on it answers with <code>Ok(T)</code> and <code>Err(E)</code> and <code>glyph_exports</code> on <code>std/result</code> lists the surface. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "一个通过 stdio 运行的 <code>glyph mcp [root]</code> 服务器，提供十一个工具：<code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_diagnostics</code>、<code>glyph_hover</code>、<code>glyph_definition</code>、<code>glyph_references</code>（覆盖整个工作区）、<code>glyph_variants</code>、<code>glyph_symbols</code>、<code>glyph_dependencies</code> 和 <code>glyph_exports</code>。每个工具都有一个打印相同 JSON 的 <code>glyph query</code> 子命令。答案来自编译器自己的查询，工具不掌握的每项信息都为 null，旁边附一句 <code>&lt;key&gt;_absent</code> 说明原因。悬停信息对其他模块中声明的名字也有效，所以调用处的导入函数和从导入记录上读取的字段都有类型。实体标识能追溯到标准库：prelude 中的 <code>Result</code> 是 <code>std/result::Result</code>，也就是解析器注册它所用的模块，以及生成代码时导入它的模块，所以对它调用 <code>glyph_symbol</code> 会得到 <code>Ok(T)</code> 和 <code>Err(E)</code>，对 <code>std/result</code> 调用 <code>glyph_exports</code> 会列出它的接口。它背后没有 Glyph 源码，所以 <code>path</code> 和 <code>range</code> 为 null 并附上原因，而不是直接缺失。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "正在进行"
+    },
+    {
+      "id": "h-16a6d6db",
+      "kind": "html",
+      "en": "The tools only read: you can't rename or apply an edit through MCP. The write side lives on the command line instead, as <code>glyph fix</code>. The server rescans the project on each call instead of keeping a cached index, and it skips any file that doesn't parse. The <code>tools/list</code> reply is 20,386 bytes, down from 45,509, and that is still context every session pays for on connect.",
+      "tr": "这些工具只读：你不能通过 MCP 重命名或应用编辑。写入能力放在命令行上，即 <code>glyph fix</code>。服务器每次调用都会重新扫描项目，而不是保留缓存的索引，并且会跳过任何无法解析的文件。<code>tools/list</code> 的回复是 20,386 字节，比原来的 45,509 字节少了，但这仍然是每个会话在连接时都要付出的上下文。"
+    },
+    {
+      "id": "h-51177984",
+      "kind": "html",
+      "en": "Beside the tools, an agent can read the language and the diagnostic surface offline: <a href=\"/llms.txt\">llms.txt</a> is the prose, <code>glyph llms --json</code> the same knowledge as data out of the compiler's own tables, and <code>glyph build --json</code> the batch path for coded diagnostics across a whole tree.",
+      "tr": "除了这些工具，智能体还可以离线阅读语言和诊断信息：<a href=\"/llms.txt\">llms.txt</a> 是文字版，<code>glyph llms --json</code> 是来自编译器自己的表的同一份知识的数据版，<code>glyph build --json</code> 则是对整个目录树批量获取带错误码诊断的方式。"
+    }
+  ]
+}

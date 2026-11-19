@@ -1,0 +1,170 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/debugging/index.html",
+  "locale": "zh-cn",
+  "source_hash": "23c0350a6befa9fd",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What does on-call see when it breaks at 3am? · Glyph",
+      "tr": "凌晨 3 点出问题时，值班的人会看到什么？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph compiles to readable TypeScript with a v3 source map back to each .glyph file, so stack traces and tsc errors point at the Glyph you wrote.",
+      "tr": "Glyph 编译成可读的 TypeScript，并为每个 .glyph 文件生成指回源码的 v3 source map，所以堆栈和 tsc 报错都指向你写的 Glyph。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "解析失败时，我能知道原因吗？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "You've seen it &rarr;",
+      "tr": "看完了 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Now write some Glyph in the playground",
+      "tr": "现在去 Playground 写点 Glyph"
+    },
+    {
+      "id": "h-23445c04",
+      "kind": "html",
+      "en": "28 &middot; Operations",
+      "tr": "28 &middot; 运维"
+    },
+    {
+      "id": "h-2a9e070d",
+      "kind": "html",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "凌晨 3 点在生产环境出问题时，值班的人会看到什么？"
+    },
+    {
+      "id": "h-22efd66d",
+      "kind": "html",
+      "en": "Readable TypeScript you own, with a <strong>source map back to your <code>.glyph</code></strong> beside every emitted file. A debugger, a bundler, or an error tracker traces the running code to your source, and even someone who's never seen Glyph can read the generated TS. Before any of that, <code>glyph build</code> and <code>glyph run</code> report the same diagnostics on the same tree, so the quick loop can't hide something the build would have caught. Two limitations, both on the <code>glyph run</code> path, are called out below.",
+      "tr": "你自己掌握的可读 TypeScript，每个生成的文件旁边都有<strong>指回你的 <code>.glyph</code> 的 source map</strong>。调试器、打包工具或错误追踪服务能把运行中的代码追溯到你的源码，即使从没见过 Glyph 的人也能读懂生成的 TS。在这一切之前，<code>glyph build</code> 和 <code>glyph run</code> 对同一棵目录树报告相同的诊断，所以快速迭代的循环不会藏住构建本来能发现的问题。下面列出了两个限制，都在 <code>glyph run</code> 这条路径上。"
+    },
+    {
+      "id": "h-ddc2261b",
+      "kind": "html",
+      "en": "1 &middot; The generated TypeScript is yours to read",
+      "tr": "1 &middot; 生成的 TypeScript 由你来读"
+    },
+    {
+      "id": "h-d332c631",
+      "kind": "html",
+      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS. So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
+      "tr": "Glyph 不附带不透明的运行时。它生成普通的、格式化好的 TypeScript，你像对待其他 TS 一样提交和部署它。所以最坏的情况（凌晨 3 点，一个不懂 Glyph 的值班工程师）读的仍然是普通的 TypeScript，而不是某种方言。从你的源码到生产环境之间没有黑盒。"
+    },
+    {
+      "id": "h-a717c0e5",
+      "kind": "html",
+      "en": "2 &middot; Source maps back to <code>.glyph</code>",
+      "tr": "2 &middot; 指回 <code>.glyph</code> 的 source map"
+    },
+    {
+      "id": "h-8bb7e6b3",
+      "kind": "html",
+      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>). Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
+      "tr": "每个生成的 <code>.ts</code> 旁边都有一个标准的 v3 source map（<code>.ts.map</code>），带有 <code>sourceMappingURL</code> 注释，并嵌入了你的 Glyph 源码（<code>sourcesContent</code>）。任何使用 source map 的工具（Chrome DevTools、Node 调试器、Sentry 这样的错误追踪服务、你的打包工具）都能沿着它串起来，显示 <code>.glyph</code> 的行，而不是生成代码的行。"
+    },
+    {
+      "id": "h-8723e53b",
+      "kind": "html",
+      "en": "dist/main.ts (tail)",
+      "tr": "dist/main.ts（末尾）"
+    },
+    {
+      "id": "h-00ec273b",
+      "kind": "html",
+      "en": "3 &middot; Build and type errors already point at Glyph",
+      "tr": "3 &middot; 构建和类型错误本来就指向 Glyph"
+    },
+    {
+      "id": "h-a164aaf9",
+      "kind": "html",
+      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved). The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it. And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
+      "tr": "带着类型错误进入生产环境的情况很少见，因为 <code>glyph build</code> 会运行 <code>tsc --strict</code>，并<strong>把每个 <code>tsc</code> 错误映射回你的 <code>.glyph</code> 源码</strong>（同样的插入符，保留 TypeScript 错误码）。插入符落在 <code>tsc</code> 拒绝的代码所对应的最小 Glyph 表达式上：参数错误时标出那个参数，JSX 事件处理器里拼错的字段标出那次成员访问，而不是包住它的整个 <code>return</code>。<code>glyph build --json</code> 则把每条诊断输出为结构化 JSON（错误码、严重程度、文件、从 1 开始的行/列、帮助），供你的 CI 或工具使用。"
+    },
+    {
+      "id": "h-e0bf31b5",
+      "kind": "html",
+      "en": "4 &middot; <code>glyph run</code> tells you the same things",
+      "tr": "4 &middot; <code>glyph run</code> 告诉你同样的东西"
+    },
+    {
+      "id": "h-52859b2b",
+      "kind": "html",
+      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count. The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
+      "tr": "你每天都在敲的命令是 <code>glyph run</code>，而在 0.1.40 之前，它比构建安静。它编译整个目录，从报告里取出生成的文件列表，然后把诊断丢掉。一棵被 <code>glyph build</code> 指出问题的目录树，用它运行却毫无提示，退出码为 0。现在它报告同样的一组诊断：包括警告，覆盖你指定的文件及其同级文件，显示在程序输出之后，并附一行计数。运行缓存会保存这些诊断，所以对未改动的源码第二次运行时，说的和第一次一样，不会变得沉默；缺少诊断的缓存条目算作未命中，会重新构建。"
+    },
+    {
+      "id": "h-136e8e91",
+      "kind": "html",
+      "en": "an unused import, added a step before the code that would have used it",
+      "tr": "一个未使用的导入，在会用到它的代码之前一步加入"
+    },
+    {
+      "id": "h-4ffc5345",
+      "kind": "html",
+      "en": "Two current limitations",
+      "tr": "当前的两个限制"
+    },
+    {
+      "id": "h-2e9a04df",
+      "kind": "html",
+      "en": "<strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
+      "tr": "<strong><code>glyph run</code> 自身的崩溃堆栈仍然显示 <code>.ts</code> 行号。</strong><code>glyph run</code> 通过 <code>tsx</code> 执行，而 <code>tsx</code> 不会把 source map 串过它自己的 <code>.ts</code>&rarr;<code>.js</code> 转换，所以 <code>glyph run</code> 期间未捕获的异常报告的是生成代码的行。重新映射这个堆栈是后续工作。它影响本地的 <code>run</code> 循环；在实际部署中，你用 <code>glyph build</code> 生成 <code>.ts</code>，用常规工具链打包，<code>.ts.map</code> 照常串起来，所以真正让你被呼叫的生产堆栈能映射回 <code>.glyph</code>。"
+    },
+    {
+      "id": "h-853b7c0e",
+      "kind": "html",
+      "en": "<strong>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</strong> A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned. Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
+      "tr": "<strong>同级模块中的错误不会改变 <code>glyph run</code> 的退出码。</strong>编译失败的模块无法被导入，而从没导入它的程序照常运行。现在你能看到这个错误，但进程的退出码仍然是 <code>main</code> 返回的值。让它以非零退出，会使今天运行正常的目录树失败，所以这是一个尚未做出的决定，而不是疏忽。如果你希望由目录树的健康状况决定退出码，那就用 <code>glyph build</code>。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-5da7231a",
+      "kind": "html",
+      "en": "Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. <code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
+      "tr": "提交到仓库的可读 TS，每个文件一个 v3 <code>.ts.map</code>，<code>tsc</code> 错误重新映射到 <code>.glyph</code>，以及 <code>--json</code> 诊断。<code>glyph run</code> 报告的内容和 <code>glyph build</code> 一致，缓存命中时也一样。你的部署工具链的 source map 链能追溯到 <code>.glyph</code>。"
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "正在进行"
+    },
+    {
+      "id": "h-bd6c0e1c",
+      "kind": "html",
+      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.",
+      "tr": "重新映射 <code>glyph run</code> 自身的崩溃堆栈（让本地运行循环也显示 <code>.glyph</code> 帧），决定同级模块的错误是否应让 <code>glyph run</code> 以非零退出，以及通过 LSP 提供更丰富的编辑器调试。"
+    }
+  ]
+}

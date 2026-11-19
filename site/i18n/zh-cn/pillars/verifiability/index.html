@@ -1,0 +1,219 @@
+---
+title: 可验证性 · 没有 any，match 必须穷尽 · Glyph
+description: Glyph 的第一个支柱：没有 any 和 as，match 必须穷尽，你声明的类型自带运行时校验器。这是 tsc 之上的一层严格检查，并写明了它的边界。
+source_hash: b8ae04a4b3228182
+prev: / | &larr; 首页 | Glyph 为什么胜出
+next: /pillars/greppability/ | 下一个支柱 &rarr; | 可检索性：一个名字，一个位置
+---
+      <p class="q-eyebrow">支柱 01 &middot; <span class="wedge">切入点</span></p>
+      <h1 class="q-title">可验证性</h1>
+
+      <p class="short-answer">
+        Glyph 堵上了智能体会掉进去的漏洞：<strong>没有可以写的 <code>any</code> 和 <code>as</code></strong>，<code>match</code> <strong>可证明是穷尽的</strong>，你声明的类型会得到<strong>严格的运行时校验器</strong>，这些都作为 <code>tsc</code> 之上的一层严格检查来强制执行。它并不自己验证一切，下文会明确说明保证在哪里止步。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">类型会说的谎</h2>
+        <p class="lede">
+          在 TypeScript 中，类型是一个编译时的承诺，代码运行之前就蒸发了。<code>User</code> 标注会被擦除得一干二净；你从网络调用、JSON 解析或表单字段实际拿到的对象，可能是任何结构。更糟的是，语言还给了你三种合法的方式就此向检查器撒谎：<code>any</code>、<code>as</code> 类型断言，以及非空断言 <code>!</code>。赶进度的智能体三种都会用，而 <code>tsc --strict</code> 一直是绿的，bug 就这样上线了。
+        </p>
+        <p class="lede">
+          Glyph 的首要任务就是堵上这些漏洞。不是靠更多的标注，而是去掉逃生口，让每个类型把它的证明一直带到运行时。下面逐条说明这意味着什么。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> 没有 <code>any</code></h2>
+        <p>
+          <code>any</code> 是 TypeScript 中代价最高的关键字：它会对一个值<em>以及这个值碰到的一切</em>关掉类型系统。边界上的一个 <code>any</code> 会悄悄污染下游的整个调用图。Glyph 没有它。顶层类型是 <code>unknown</code>，而 <code>unknown</code> 是惰性的：在你<em>证明</em>它是什么之前，不能调用它、不能索引它，也不能把它传给任何有类型的地方。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript：能编译，然后崩溃</span>
+          <span class="cap">handler.ts</span>
+<pre>function handle(body: any) {
+  <span class="cm">// tsc --strict: fine.</span>
+  <span class="cm">// runtime: throws on {}.</span>
+  return body.user.name.toUpperCase();
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph：收窄本身就是证明</span>
+          <span class="cap">handler.glyph</span>
+<pre>fn handle(body: unknown) -&gt; string {
+  return match User.parse(body) {
+    Ok(u) =&gt; string.upper(u.name),
+    Err(_) =&gt; "unknown",
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          不经过编译器看得见的检查，你就无法从 <code>unknown</code> 中得到有类型的值。在 Glyph 中，收窄<strong>就是</strong>运行时证明。没有任何语法可以跳过它。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> 类型在运行时是真实存在的</h2>
+        <p>
+          <code>User.parse</code> 是怎么来的？因为每个记录类型，以及每个非泛型的标签联合，都会同时生成一个<strong>运行时描述符</strong>：一个 <code>is</code> 守卫，一个把 <code>unknown</code> 校验成 <code>Result</code> 的 <code>parse</code>，以及一个可组合的 <code>schema</code>。记录的结构在运行时会被真正检查，而不是假定，所以 <code>is User</code> 检查是真正的检查，而不是被擦除的空操作。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">你写的类型，以及由它生成的描述符</span>
+<pre>type User = {
+  id: number,
+  name: string,
+  email: string,
+}
+
+<span class="cm">// generated: User.is(v), User.parse(v) -&gt; Result&lt;User, ...&gt;, User.schema</span>
+
+fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match User.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
+    Ok(user) =&gt; Ok(json(201, user)),
+    Err(issues) =&gt; Ok(json(400, issues)),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这就是对“每个 API 都要手写校验器”的回答。类型本身就是校验器。边界（请求体、配置文件、第三方响应）只有通过一个真正能拒绝错误数据的检查，才会获得类型。
+        </p>
+        <p>
+          它在哪里止步：记录的描述符默认是严格的。它确认声明的字段，并拒绝带有未声明键的值（在类型上加 <code>@open</code> 可以允许额外的键）。记录类型都有描述符，包括泛型记录，所以 <code>Paginated&lt;User&gt;</code> 会把每个元素当作 <code>User</code> 来检查；标签联合的描述符先检查标签，再检查该变体的负载字段。仍然没有描述符的是泛型标签联合（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> 没有 <code>Box.parse</code>），以及只是引用的 <code>.d.ts</code> 中导入的类型。如果某个检查只能证明结构的一部分，编译器会直接说明，而不是暗示一个它做不到的保证。
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> 覆盖每种情况，否则无法编译</h2>
+        <p>
+          对封闭联合类型的 <code>match</code> 必须处理每个变体。以后新增一个变体，<em>每一个</em>没有考虑它的 match 都会停止编译（<code>E0200</code>）。新情况不会像遗漏的 <code>switch</code> 分支那样悄悄落到 <code>undefined</code>。而且不只是联合类型：对 <code>number</code> 或 <code>string</code> 按字面值匹配时必须有 <code>else</code>（<code>E0218</code>），因为这些取值范围是无界的，一组字面值永远不可能完整。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">status.glyph</span>
+<pre>type Status = Active | Paused | Cancelled
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Active =&gt; "on",
+    Paused =&gt; "hold",
+    <span class="cm">// forgot Cancelled...</span>
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-bad">编译错误，而不是运行时的 undefined</span>
+          <span class="cap">$ glyph build</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Status`: missing variant `Cancelled`</span>
+
+<span class="cm"># the equivalent TS switch returns
+# undefined at runtime and compiles
+# clean. here it does not build.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">04</span> 错误是值，不是意外</h2>
+        <p>
+          可能失败的函数返回 <code>Result&lt;T, E&gt;</code>。你用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递，而且错误类型必须对得上（没有隐式转换来掩盖不匹配）。如果完全忽略一个 <code>Result</code>（只为了副作用调用它，丢掉返回值），Glyph 会给出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。你只能用 <code>let _ = ...</code> 有意地让它安静，绝不会是无意的。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">pipeline.glyph</span>
+<pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
+  let raw = fetch_user(id)?           <span class="cm">// Err short-circuits to the caller</span>
+  let user = User.parse(raw.body)?    <span class="cm">// validation Err propagates too</span>
+  return Ok(user)
+}
+
+fn main() -&gt; number {
+  save(user)   <span class="cm">// E0217: this returns a Result whose Err is dropped</span>
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> 连 PII 也在类型层面处理</h2>
+        <p>
+          同样是“交给编译器，而不是靠约定”的思路，一直延伸到敏感数据。在类型上加 <code>@redact</code>，它的描述符就会多一个屏蔽这些字段的 <code>redact()</code>，所以随手写的 <code>json.stringify(User.redact(u))</code> 不会泄露它们。如果写了类型中不存在的字段，就是编译错误（<code>E0219</code>），而不是一个悄悄什么都没保护的屏蔽。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">patient.glyph</span>
+<pre>@redact fields: [diagnosis, notes]
+type Patient = {
+  name: string,
+  diagnosis: string,
+  notes: string,
+}
+
+<span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
+<span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          五种不同的失败方式（未检查的输入、漏掉的情况、丢掉的错误、泄露的机密、未校验的键），每一种的修复都是同一个形状：<strong>编译器拒绝假装。</strong>
+        </p>
+
+        <h2 class="block-label">如何强制执行，以及保证在哪里止步</h2>
+        <p>
+          这里要说得准确，因为区别很重要：Glyph 是<strong>建立在 <code>tsc</code> 之上、强制执行的严格方言</strong>，而不是一个独立的验证器。有些东西它自己证明：穷尽性、<code>?</code> 的错误类型、源码中不存在 <code>any</code>/<code>as</code>、严格的键校验。其余的类型兼容性，它通过生成 TypeScript 并运行 <code>tsc --strict</code> 来强制执行，不通过就让构建失败。切入点在于这些检查就是<em>语言本身</em>，而不是智能体可以关掉的可选 lint，并不在于 Glyph 重新实现了一个类型检查器。
+        </p>
+        <p>
+          这里早先的两个边界在 0.1.10 中已经堵上。代码生成器过去会在<em>每个</em>泛型函数中插入一个由 Glyph 而不是 <code>tsc</code> 检查的返回值类型断言；现在只有在校验器组合子组装一个由结构推导出的类型（<code>infer_output&lt;Shape&gt;</code>）的值时才会插入，所有正常的泛型生成的代码都完全没有类型断言。另外，校验器的输出类型不再被无条件信任：<code>infer_output</code> 根据你传入的结构推导它，<code>tsc</code> 会拿你的标注去对照：如果结构缺少你所声称类型中的某个字段，现在就无法编译。
+        </p>
+        <p>
+          泛型类型现在也会深度校验：<code>Paginated&lt;User&gt;</code> 的描述符会<em>把每个元素当作 <code>User</code></em> 来检查，而不只是检查是否存在。还剩一个边界，直接说明：从外部 <code>.d.ts</code> <em>导入</em>、你只是引用的类型，在你用 <code>glyph gen dts</code> 把它具体化之前没有描述符，所以这种类型的字段只检查是否存在，不检查结构。这个边界是有意的（Glyph 没有生成的类型无法承诺运行时校验），把它具体化就能堵上。
+        </p>
+
+        <h2 class="block-label">基准测试：即将进行</h2>
+        <p>
+          这个说法是经验性的，所以我们打算测量它：取一批真实的、由智能体编写的改动，分别用 <code>tsc --strict</code> 和 Glyph 检查，统计各自真正发现了什么。Glyph 还没有在实际项目中使用，所以没有数字可以报告。下面的图表是占位，一旦有了真实使用，就会填入真实数据。
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">发现的智能体引入的 bug &middot; 越高越好</span>
+        <h3>tsc --strict 对比 Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 64%;">待定</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">tsc --strict</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 34%;">待定</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">尚未测量</span> 方法已经确定；语料需要来自真实的 Glyph 使用。数字一旦出来（无论结果如何），我们就会在这里公布。
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          这一切都不靠繁琐的仪式换来。没有证明标注，没有契约，没有需要满足的验证器。上面的代码就是普通的 Glyph。可验证性不是一个需要打开的特性；它是撒谎的途径都被去掉之后剩下的东西。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">“严格模式的 TypeScript 加一套 lint 配置也能做到”</h2>
+        <p>
+          在程序内部，它们很接近。<code>strict</code>、<code>noUncheckedIndexedAccess</code> 和一条禁止显式 <code>any</code> 的规则，能拦住智能体原本会溜过去的大部分问题。它们在边界处止步。<code>JSON.parse(body) as User</code> 在任何设置下都能编译，而通常的修补办法 zod schema，是 <code>User</code> 的第二份描述，必须手动与第一份保持同步。在 Glyph 中，类型本身就是校验器：<code>json.parse&lt;User&gt;(body)</code> 直接对照 <code>User</code> 检查，而 Glyph 无法在运行时检查的类型会被拒绝，而不是被信任。
+        </p>
+        <p>
+          另一个区别在于谁能依赖它。lint 配置是某个仓库自己做的选择。打开一个陌生 TypeScript 代码库的智能体，不能假定那里禁止了 <code>any</code>；而在 Glyph 中，任何地方都写不出它。
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          同样的保证，从智能体会犯的错误以及拦住它们的报错的角度，在<a href="/answers/verifiability/">什么能防止智能体悄悄改坏我的代码？</a>中有解答。
+        </p>
+      </div>

@@ -1,0 +1,82 @@
+---
+title: 基准测试 · 用测量说话，而不是断言 · Glyph
+description: 用数字衡量 Glyph 的四大支柱：编译时发现的错误，每个符号一次 grep，一行改动一行 diff，比 TypeScript 少约 9% 的 token，附注意事项。
+source_hash: c2635229de656794
+---
+      <header class="page-hero">
+        <p class="eyebrow">基准测试</p>
+        <h1>两类<span class="accent">证据</span>。</h1>
+        <p class="lede">
+          有两个值得测量的问题，我们把它们分开。<strong>结构性的：</strong>哪些 TypeScript 接受的东西被 Glyph 从构造上拒绝了？这在今天就能证明，见下文。<strong>可靠性的：</strong>与一套<em>配置良好</em>的严格模式 TypeScript 相比，智能体用 Glyph 交付的缺陷真的更少吗？这个数字决定是否值得采用，而我们还没有它。这是一项我们正在搭建的研究，我们不会把某个替代指标包装成这个答案。（真正的比较不是 Glyph 对比随便写的 TS，而是 Glyph 对比<a href="/answers/vs-tooled-ts/">严格模式 TS + zod + eslint + ts-pattern</a>。）
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">结构性：从构造上就可证明</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          不是统计数据，而是成对的演示。每一个都是 Glyph 拒绝而 <code>tsc --strict</code> 接受的案例，可以在 <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> 目录中复现。
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">可验证性：真正让你付出代价的 bug</span>
+            <div class="big"><span class="accent">两者</span>都在编译时被发现</div>
+            <p>
+              智能体经常犯的两种错误（漏掉 <code>match</code> 的一个变体，以及通过 <code>as unknown as</code> 做类型断言）会被 Glyph 拒绝，而 <code>tsc --strict</code> 接受。两者都是 <code>catches/</code> 中经过检验的案例（<code>non-exhaustive-match</code>，<code>E0200</code>；<code>as-unknown-as</code>，<code>E0013</code>），由构建检查重新运行。能编译的错误代码是代价最高的失败，Glyph 不允许它出现。
+            </p>
+          </div>
+          <div class="card stat">
+            <span class="label">可检索性：一个名字，一个位置</span>
+            <div class="big">每次都只有 <span class="accent">1</span> 个匹配</div>
+            <p>
+              每个符号都只有一种声明形式：没有重载、装饰器或合并的命名空间把它分散开。
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
+            <span class="label">稳定的 diff：天然便于审查</span>
+            <div class="big"><span class="accent">1 行 &rarr; 1 行</span></div>
+            <p>
+              一行 Glyph 编辑经过转译后产生一行 TypeScript diff，<code>glyph fmt</code> 也不会引入无关变动。diff 就是改动本身，而不是周围的噪音。
+            </p>
+          </div>
+        </div>
+
+        <div class="chart">
+          <span class="label">而且安全不以篇幅为代价</span>
+          <h3>同样三个函数的 token 数</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill glyph" style="width: 70%">436</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Python</span><div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TypeScript</span><div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
+          <p class="bench-note">
+            安全通常意味着更长：Go 和 Rust 这两行同样有静态类型和显式错误处理，也是最长的。Glyph 两者兼备，却没有因此变长：436 个 token，TypeScript 是 478 个，少了约 9%，与 Python 持平，比 Go 少约 23%，比 Rust 少 30%；这些都是用真实的 <code>cl100k_base</code> 对能通过 <code>glyph check</code>（含 <code>tsc</code>）的程序计数得到的。优势体现在有真实控制流的函数上（<code>parse_user</code>，132 对 174）；在一行的 <code>slugify</code> 上 Glyph 更长（67 对 47），因为它没有正则字面量。只有三个函数，样本很小。早先的 341 这个数字是在编译器不接受的测试用例上测得的，已撤回。<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">查看方法和注意事项 &rarr;</a>
+          </p>
+        </div>
+
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">可靠性：我们正在搭建的研究</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          上面的结构性结果是<em>预期</em> Glyph 会有帮助的理由，并不是它确实有帮助的证明。证明需要一项对照研究：同一个智能体、同样贴近实际的任务，一次用 Glyph 写，一次用配齐工具的严格模式 TypeScript 写（<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod），按<strong>漏到线上的语义缺陷</strong>和一次构建通过率打分。五位不同的审阅者告诉我们，这个数字才能说服他们，所以我们正在搭建它；在它出来之前，这些柱状图只是占位，不是结论。
+        </p>
+        <div class="chart">
+          <span class="label">每项任务漏出的缺陷数 &middot; 越低越好 &middot; <span style="color:var(--amber)">尚未测量</span></span>
+          <h3>Glyph 对比配齐工具的严格模式 TypeScript</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">待定</div></div></div>
+          <div class="bar-row"><span class="bar-lang">配齐工具的 TS</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">待定</div></div></div>
+          <p class="bench-note">
+            实验装置（任务语料、运行/回放工具，以及固定版本的、尽可能强又公平的 TS 基线）在 <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> 目录中；第一次真正的试点（标注上 <em>n</em>、所用模型和成本）一运行就会在这里公布，无论结果如何。
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a class="btn" href="/answers/vs-tooled-ts/">为什么要和配齐工具的 TS 比较 &rarr;</a>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; 回到首页</a>

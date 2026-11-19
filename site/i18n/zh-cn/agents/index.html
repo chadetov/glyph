@@ -1,0 +1,127 @@
+---
+title: 面向智能体和工具开发者 · Glyph
+description: 智能体如何与 Glyph 配合：一个提供十一个工具的 MCP 服务器，命令行上的同一组查询，以及用于修复失败构建的 glyph check --agent。
+source_hash: 74db8e3bf226ba57
+next_steps: |
+  每一部分的详细说明
+  从这里开始 | /mcp/ | agents | MCP 服务器 | 配置方法、十一个工具及其参数、<code>glyph query</code> 的各个子命令，以及服务器目前还做不到的事。 | 配置服务器
+  /answers/ask-the-compiler/ | lookup | 我的智能体能问编译器某个符号是什么吗？ | <code>glyph_symbol</code>：一个联合类型的各种情况，以及构造每种情况的语法。
+  /answers/impact/ | impact | 编译器能事先说出一个改动会破坏什么吗？ | 六种改动类型，每个位置一个结论，以及上面 csvql 运行的完整结果。
+  /answers/repair-protocol/ | repair | 构建失败时，会告诉智能体怎么修吗？ | <code>check --agent</code>、<code>glyph fix</code>，以及一个带真实输出的演练。
+  /answers/generated-docs/ | docs | 给智能体的文档是生成的吗？ | <code>glyph llms</code> 输出什么，每个数字从哪里来，还缺什么。
+  /answers/ai-authoring/ | spark | AI 能写一门它几乎没见过的语言吗？ | 哪些能从 TypeScript 沿用，编译器又如何补上其余部分。
+---
+      <p class="q-eyebrow">面向智能体和工具开发者</p>
+      <h1 class="q-title">编译器面向智能体的接口</h1>
+
+      <p class="short-answer">
+        智能体可以问 Glyph 编译器：某个符号是什么，一次编辑会破坏什么，构建为什么失败，并得到 JSON 结果。<code>glyph mcp</code> 通过 stdio 提供十一个工具，每个工具同时也是一个 <code>glyph query</code> 子命令；<code>glyph llms</code> 可以离线打印语言参考。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">配置</h2>
+        <p>
+          <code>glyph init</code> 会在新项目里写入这个 <code>.mcp.json</code>，<code>glyph agents</code> 会把它（连同指向 <code>glyph llms</code> 的 <code>AGENTS.md</code>）写入已有项目。任何读取这个文件的 MCP 客户端都会启动服务器；没有端口，也没有守护进程。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">.mcp.json，glyph init 写入的内容</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">一次调用，附真实结果</h2>
+        <p>
+          某个文件读取了记录中没有声明的字段（<code>u.naem</code>）。智能体调用 <code>glyph_diagnostics</code>，得到编译器自己的诊断，其中列出该记录确实声明的字段，以及拥有这些字段的记录。这是该工具在 0.1.149 上的输出，只在标注处有删节。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">请求</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": {
+      "path": "src/user.glyph"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">结果</span>
+<pre>{
+  "diagnostics": [ {
+    "code": "E0210",
+    "severity": "error",
+    "stage": "typecheck",
+    "message": "type `U` has no field
+      `naem`; did you mean `name`?",
+    "alternatives": ["name", "email"],
+    "alternatives_kind": "fields",
+    "cause": "user::U",
+    "entity": "user::greet",
+    "file": "user.glyph",
+    "range": {
+      "start": { "line": 9, "col": 10 },
+      "end": { "line": 9, "col": 16 } },
+    ...
+  } ],
+  "member": true,
+  "module": "user",
+  "not_run": [
+    { "what": "tsc", ... },
+    { "what": "E0104, ...", ... },
+    { "what": "E0400, ...", ... } ],
+  "path": "src/user.glyph",
+  "project_root": "src",
+  "unindexed": []
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>not_run</code> 列出这次检查没有覆盖的部分，所以空的 <code>diagnostics</code> 列表不会被误认为是完整的构建。没有 MCP 客户端时，<code>glyph query diagnostics --path src/user.glyph</code> 会打印同样的 JSON。完整的工具列表及所有子命令见 <a href="/mcp/">MCP 页面</a>。
+        </p>
+
+        <h2 class="block-label">编辑之前：它会破坏什么？</h2>
+        <p>
+          <code>examples/apps/csvql</code> 是一个由十一个文件组成的 CSV 查询引擎，其中有一个包含四种情况的联合类型 <code>Value</code>。问它新增第五种情况会怎样，<code>glyph_impact</code> 列出了 4 个文件中的 10 处 <code>match</code>：8 处 <code>WILL_FAIL</code>，2 处 <code>ABSORBS</code>，后者是兜底分支会吞掉新情况并继续编译的地方。真正加上这种情况后，恰好在这 8 处出现 8 个 <code>E0200</code> 错误。那 2 处吞掉新情况的位置不会报错，这正是答案要把它们点出来的原因。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">在命令行上问同一个问题</span>
+<pre>glyph query impact --path value.glyph --entity value::Value \
+  --change add_variant --variant Blob</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">构建失败之后：修复必须保持什么？</h2>
+        <p>
+          <code>glyph check --agent</code> 打印 <code>check --json</code> 的诊断，并在每条诊断上多加两个键。<code>constraints</code> 列出修复性编辑不能破坏的东西；对上面的拼写错误，它写的是“the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others”。<code>symbols</code> 带有诊断中提到的每个符号的 <code>glyph_symbol</code> 结果，所以下一次编辑不需要再调用一次。修复方式完全确定时，<code>glyph fix</code> 会直接写入。
+        </p>
+
+        <h2 class="block-label">离线阅读语言</h2>
+        <p>
+          <code>glyph llms</code> 打印语言参考，本站的 <code>/llms.txt</code> 是同一份文档。<code>glyph llms --json</code> 把这些知识以数据形式给出，读自编译器自己的表：77 个诊断码、24 个 prelude 名称、40 个标准库模块共 340 个导出、49 项语言决策，以及十一个工具。<code>glyph llms --negative</code> 在 0.1.149 中返回 117 个错误程序（从下一个版本起是 139 个），附上每个程序触发的错误码，在你请求时编译。<code>scripts/check_llms_sync.py</code> 会在参考文档中的诊断表和保留字表与编译器自己的表不一致时失败。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">离线入口</span>
+<pre>glyph llms                  <span class="cm"># the reference, as prose</span>
+glyph llms --json           <span class="cm"># the same, as data from the compiler's tables</span>
+glyph llms --negative E0200 <span class="cm"># wrong programs that draw E0200</span>
+glyph --explain E0200       <span class="cm"># the long explanation of one code</span></pre>
+      </div>

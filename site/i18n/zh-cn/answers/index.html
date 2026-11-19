@@ -1,0 +1,86 @@
+---
+title: 问答 · 工程师关于 Glyph 的常见问题 · Glyph
+description: 针对工程师关于 Glyph 的问题的具体回答：什么能防止悄无声息的破坏，React 和 npm，为什么不用配齐工具的 TypeScript，以及生产环境中的调试。
+source_hash: f574b9ebcd22635e
+---
+      <header class="page-hero">
+        <p class="eyebrow">问答</p>
+        <h1>工程师<span class="accent">关于 Glyph 的问题</span>。</h1>
+        <p class="lede">
+          每个回答都有一个完整示例，并在结尾说明还有哪些做不到。从你最有疑问的地方开始读。第一次接触 Glyph？<a href="/start/">10 分钟上手</a>是最快的入门方式。
+        </p>
+      </header>
+
+      <div class="ans-group">
+        <h2 class="block-label">它解决的问题</h2>
+        <p class="ans-group-sub">智能体的编辑会在不知不觉中破坏什么，以及 Glyph 对每一种如何应对。</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">什么能防止智能体悄悄改坏我的代码？</span><p>没有 <code>any</code>，没有类型断言，<code>match</code> 必须穷尽，类型带运行时检查，以及每次构建都会运行的就近测试。</p></a>
+          <a class="a-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">智能体的编辑会保持干净，还是会把整个文件重新格式化？</span><p>改一行就是一行 diff。只有一种标准排版，不会重新打包。</p></a>
+          <a class="a-card" href="/answers/greppability/"><span class="n">03</span><span class="q">智能体（或者我）能找到任何东西的定义位置吗？</span><p>一个名字，一种声明形式。<code>grep</code> 总能找到它。</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">决定是否采用</h2>
+        <p class="ans-group-sub">为什么是一门语言而不是更多的工具，以及引入它的成本。</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/why-typescript/"><span class="n">04</span><span class="q">为什么是 TypeScript，而不是 Go 或者一门全新的语言？</span><p>因为你的生态就在那里，这也是为什么可以按文件引入。</p></a>
+          <a class="a-card" href="/answers/vs-tooled-ts/"><span class="n">05</span><span class="q">为什么不直接用严格模式的 TypeScript + zod + eslint + ts-pattern？</span><p>不可选：智能体无法通过配置关掉的语言。</p></a>
+          <a class="a-card" href="/answers/human-value/"><span class="n">06</span><span class="q">如果我不用 AI，Glyph 还值得用吗？</span><p>值得：这些保证本身就是实实在在的工程收益，人也能直接受益。</p></a>
+          <a class="a-card" href="/answers/ai-authoring/"><span class="n">07</span><span class="q">AI 能可靠地写一门它几乎没见过的语言吗？</span><p>模型对 TypeScript 的了解大多能直接沿用，编译器会指出那些不能沿用的地方。</p></a>
+          <a class="a-card" href="/answers/upgrades/"><span class="n">08</span><span class="q">新的 Glyph 版本会破坏我的构建吗？</span><p>项目会精确固定编译器版本，所以不会有版本意外进来。<code>glyph doctor</code> 告诉你有新版本；<code>glyph upgrade</code> 负责升级。</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">配合你的技术栈使用</h2>
+        <p class="ans-group-sub">npm 包、现有应用、API 边界、React。</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/imports/"><span class="n">09</span><span class="q">我能使用现有的 TypeScript、JavaScript 和 npm 库吗？</span><p>能：导入任何 npm 包，需要时保留手写的 <code>.ts</code> 适配层，还能在 <code>.ts</code> 中反过来导入 Glyph。</p></a>
+          <a class="a-card" href="/answers/embedding/"><span class="n">10</span><span class="q">能在现有应用里引入 Glyph 吗，还是必须全部改写？</span><p>不需要重写：领域核心用 Glyph，其余用 TypeScript。生成的 TypeScript 可以像其他模块一样被标准的 Vite 应用导入。</p></a>
+          <a class="a-card" href="/answers/typed-apis/"><span class="n">11</span><span class="q">每个 API 都要手写校验器吗？</span><p>不用。声明类型就会生成它的校验器。</p></a>
+          <a class="a-card" href="/answers/codegen/"><span class="n">12</span><span class="q">能根据 API 规范生成类型化的客户端和服务端吗？</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>：提交到仓库、可以 grep 的代码。</p></a>
+          <a class="a-card" href="/answers/react/"><span class="n">13</span><span class="q">能和 React 一起用吗：组件、hooks 和 Context？</span><p>一等支持 JSX、hooks，以及必须穷尽的 reducer action。</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">14</span><span class="q">怎样在函数之间共享可变状态？</span><p>用 store：一个 <code>const</code>，它的 <code>.set</code>/<code>.update</code> 就是写入接口。</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">能用它构建什么</h2>
+        <p class="ans-group-sub">按程序类型介绍语言和标准库。</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">这是一门真正的语言，还是一个有很多缺口的玩具？</span><p>模块可见性、接口约束、defer、可以当作任意值使用并带有类型的 <code>match</code>，以及包含 <code>slice</code>、<code>pad_start</code> 和 <code>fold</code> 的标准库。</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">涉及金额、以及我无法控制的输入时，能信任它吗？</span><p>精确的小数和 id，不变式即类型，注入是编译错误。</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">能提供网页，还是只能做 JSON API？</span><p>HTML、重定向、响应头和表单提交，不需要手写服务器。</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">18</span><span class="q">能写一个让人输入命令的程序吗？</span><p><code>io.read_line</code> 在每行到达时就返回，而不是等 stdin 关闭，所以 REPL 或游戏循环都能工作。</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">19</span><span class="q">能写服务器吗，还是进程直接就退出了？</span><p><code>main</code> 做完初始化就返回；只要还有挂起的 socket 和定时器，进程就保持运行，和 Node 的规则一样。</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">20</span><span class="q">能处理二进制数据吗，还是一切都是字符串？</span><p><code>std/bytes</code> 是字节序列，编解码器会拒绝格式错误的输入而不是跳过，HMAC 使用真正的密钥。</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">与智能体协作</h2>
+        <p class="ans-group-sub">智能体在编辑前后向编译器提出的问题。</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/impact/"><span class="n">21</span><span class="q">编译器能在我改动之前告诉我改动会破坏什么吗？</span><p><code>glyph_impact</code>：在你动文件之前，为每个位置给出一个来自固定列表的结论，并附上原因。</p></a>
+          <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">我的智能体能在写代码之前问编译器某个符号是什么吗？</span><p><code>glyph_symbol</code>：一次调用就能拿到联合类型的各个变体，以及构造每个变体的语法。共十一个工具，每个都有对应的 <code>glyph query</code> 子命令。</p></a>
+          <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">构建失败时，编译器会告诉智能体怎么修吗？</span><p>诊断会带上出错的符号、合法的替代写法，以及修复性编辑不能破坏的东西。编译器能自行确定的修复，由 <code>glyph fix</code> 直接写入。</p></a>
+          <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">智能体读的文档是生成的，还是手写的、已经过时的？</span><p><code>glyph llms --json</code> 从编译器自己的表中输出诊断、prelude、标准库签名和工具手册，手写的副本与之不一致时检查会失败。</p></a>
+        </div>
+      </div>
+
+      <div class="ans-group">
+        <h2 class="block-label">错误、编辑器与生产环境</h2>
+        <p class="ans-group-sub">出问题时你会看到什么，从编辑器到值班。</p>
+        <div class="ans-cards">
+          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">编辑器、调试和报错的体验如何？</span><p>适用于任何 LSP 编辑器的语言服务器，以及带稳定错误码、会指出修复方法的报错。</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">为什么 Glyph 能发现 tsc 能发现的问题，而且更早？</span><p><code>await</code> 上下文、没有值的 <code>match</code> 分支、缺少的 <code>mut</code>，都针对你的源码报告，而不是针对生成的 TypeScript。</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">解析失败时，我能知道原因吗？</span><p>哪个字段、违反了哪条规则、违反了哪个 <code>where</code> 谓词，以及一个可以用来分支处理的 <code>code</code>。</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">凌晨 3 点在生产环境出问题时，值班的人会看到什么？</span><p>你自己掌握的可读 TS，指回 <code>.glyph</code> 的 source map，以及报告内容与 <code>build</code> 一致的 <code>run</code>。</p></a>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 44px;">
+        <a class="btn primary" href="/answers/verifiability/">按顺序阅读 &rarr;</a>
+      </div>

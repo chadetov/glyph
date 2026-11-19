@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-rescript-gleam-elm/index.html",
+  "locale": "zh-cn",
+  "source_hash": "c1473253c170e78d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why not ReScript, Gleam or Elm? · Glyph",
+      "tr": "为什么不用 ReScript、Gleam 或 Elm？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Three typed languages that compile to JavaScript and are older and more proven than Glyph. Where each is ahead, and the four things Glyph does differently.",
+      "tr": "三门编译到 JavaScript 的类型化语言，比 Glyph 更早，也更经过检验。它们各自领先在哪里，以及 Glyph 有哪四点不同。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "接下来去哪里"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "推荐"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Glyph 拒绝什么"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下检查过。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "查看案例"
+    },
+    {
+      "id": "ns./design/vs-effect/.title",
+      "kind": "ns.title",
+      "en": "Glyph and Effect",
+      "tr": "Glyph 与 Effect"
+    },
+    {
+      "id": "ns./design/vs-effect/.desc",
+      "kind": "ns.desc",
+      "en": "A TypeScript library compared with a language.",
+      "tr": "一个 TypeScript 库与一门语言的比较。"
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "回到设计"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "四大支柱、规范，以及其他比较。"
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "设计 &middot; 比较"
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "为什么不用 ReScript、Gleam 或 Elm？"
+    },
+    {
+      "id": "h-af688b28",
+      "kind": "html",
+      "en": "All three are typed languages that compile to JavaScript, and all three are older, more widely used and more settled than Glyph. If you are choosing a language for a new codebase and don't need to stay close to TypeScript, they deserve a look first. Glyph's differences are narrower: it emits TypeScript source rather than JavaScript, it imports npm packages typed from their own <code>.d.ts</code>, it generates runtime validators from your types, and its compiler answers impact queries for an agent.",
+      "tr": "这三门都是编译到 JavaScript 的类型化语言，都比 Glyph 更早、用的人更多、也更稳定。如果你在为一个新代码库选语言，又不需要贴近 TypeScript，应该先看看它们。Glyph 的不同之处更窄一些：它生成的是 TypeScript 源码而不是 JavaScript，它导入 npm 包时使用包自带的 <code>.d.ts</code> 类型，它根据你的类型生成运行时校验器，它的编译器还能为智能体回答影响范围查询。"
+    },
+    {
+      "id": "h-9db697b1",
+      "kind": "html",
+      "en": "How each describes itself",
+      "tr": "它们如何描述自己"
+    },
+    {
+      "id": "h-50946247",
+      "kind": "html",
+      "en": "ReScript's home page leads with \"JavaScript Made Simple for Humans and AI\" and \"Types &gt; Vibes\", and says it \"compiles to clean, efficient JavaScript\" with \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" It offers to \"automatically generate TypeScript types\" (<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>).",
+      "tr": "ReScript 首页的标题是 \"JavaScript Made Simple for Humans and AI\" 和 \"Types &gt; Vibes\"，并称它 \"compiles to clean, efficient JavaScript\"，\"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\"。它还提供 \"automatically generate TypeScript types\"（<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>）。"
+    },
+    {
+      "id": "h-07f5d70c",
+      "kind": "html",
+      "en": "Gleam's home page calls it \"a friendly language for building type-safe systems that scale\" with \"No null values, no exceptions, clear error messages\". It runs on the Erlang VM and \"can additionally compile to JavaScript\", and \"also generates TypeScript definitions\" (<a href=\"https://gleam.run/\">gleam.run</a>).",
+      "tr": "Gleam 首页称它是 \"a friendly language for building type-safe systems that scale\"，并且 \"No null values, no exceptions, clear error messages\"。它运行在 Erlang VM 上，\"can additionally compile to JavaScript\"，并且 \"also generates TypeScript definitions\"（<a href=\"https://gleam.run/\">gleam.run</a>）。"
+    },
+    {
+      "id": "h-2b945603",
+      "kind": "html",
+      "en": "Elm's home page describes \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\", for \"reliable web applications\", and says Elm \"detects all API changes automatically\" to \"guarantee that every single Elm package follows semantic versioning\" (<a href=\"https://elm-lang.org/\">elm-lang.org</a>).",
+      "tr": "Elm 首页描述的是 \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\"，用于 \"reliable web applications\"，并称 Elm \"detects all API changes automatically\"，以 \"guarantee that every single Elm package follows semantic versioning\"（<a href=\"https://elm-lang.org/\">elm-lang.org</a>）。"
+    },
+    {
+      "id": "h-01ac98c4",
+      "kind": "html",
+      "en": "These quotes were read on 2026-11-19.",
+      "tr": "这些引文读取于 2026-11-19。"
+    },
+    {
+      "id": "h-cb1468cf",
+      "kind": "html",
+      "en": "Where they are ahead",
+      "tr": "它们领先的地方"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "方面"
+    },
+    {
+      "id": "h-13abaeff",
+      "kind": "html",
+      "en": "ReScript, Gleam, Elm",
+      "tr": "ReScript、Gleam、Elm"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "成熟度"
+    },
+    {
+      "id": "h-1114b65a",
+      "kind": "html",
+      "en": "Years of production use. ReScript's home page shows a wall of company logos; Elm's cites NoRedInk with 300k+ lines and no confusing runtime exception in production",
+      "tr": "多年的生产环境使用。ReScript 首页展示了一整墙的公司标志；Elm 首页提到 NoRedInk 有 30 万行以上的代码，生产环境中没有出现过令人困惑的运行时异常"
+    },
+    {
+      "id": "h-d39753e9",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person, and many releases are Breaking",
+      "tr": "早期预览版，尚未到 1.0，主要由一个人维护，很多版本是 Breaking"
+    },
+    {
+      "id": "h-5ca778bb",
+      "kind": "html",
+      "en": "Guarantees",
+      "tr": "保证"
+    },
+    {
+      "id": "h-37779cbd",
+      "kind": "html",
+      "en": "Elm claims no runtime exceptions; Gleam no null values and no exceptions; ReScript no <code>any</code> and no surprise <code>undefined</code>",
+      "tr": "Elm 声称没有运行时异常；Gleam 没有 null 值、没有异常；ReScript 没有 <code>any</code>、没有意外的 <code>undefined</code>"
+    },
+    {
+      "id": "h-85bd0f64",
+      "kind": "html",
+      "en": "No <code>any</code> and no cast, but {{catches:gap-cases}} known holes are <a href=\"/catches/#not-yet\">listed</a>, and an exception thrown inside an npm package still bypasses <code>Result</code>",
+      "tr": "没有 <code>any</code>，没有类型断言，但有 {{catches:gap-cases}} 个已知漏洞<a href=\"/catches/#not-yet\">已列出</a>，而且 npm 包内部抛出的异常仍会绕过 <code>Result</code>"
+    },
+    {
+      "id": "h-40429184",
+      "kind": "html",
+      "en": "Error messages",
+      "tr": "错误信息"
+    },
+    {
+      "id": "h-c755cb73",
+      "kind": "html",
+      "en": "Elm's home page leads with \"friendly error messages\" and Gleam's promises \"clear error messages\", both with years of users behind them",
+      "tr": "Elm 首页以 \"friendly error messages\" 开头，Gleam 承诺 \"clear error messages\"，两者背后都有多年的用户"
+    },
+    {
+      "id": "h-1d2e725c",
+      "kind": "html",
+      "en": "Every error has a stable code and a help line, but they have had far less use",
+      "tr": "每个错误都有稳定的错误码和一行帮助，但用的人要少得多"
+    },
+    {
+      "id": "h-e0472088",
+      "kind": "html",
+      "en": "Tooling and ecosystem",
+      "tr": "工具与生态"
+    },
+    {
+      "id": "h-c2efa572",
+      "kind": "html",
+      "en": "Gleam ships \"compiler, build tool, formatter, editor integrations, and package manager all built in\"; Elm enforces semantic versioning on its packages",
+      "tr": "Gleam 提供 \"compiler, build tool, formatter, editor integrations, and package manager all built in\"；Elm 对它的包强制执行语义化版本"
+    },
+    {
+      "id": "h-dd64be5b",
+      "kind": "html",
+      "en": "npm for packages; the VS Code extension is built from source",
+      "tr": "包来自 npm；VS Code 扩展需要从源码构建"
+    },
+    {
+      "id": "h-27445f6a",
+      "kind": "html",
+      "en": "Targets",
+      "tr": "目标平台"
+    },
+    {
+      "id": "h-449df469",
+      "kind": "html",
+      "en": "Gleam also runs on the Erlang VM",
+      "tr": "Gleam 还能运行在 Erlang VM 上"
+    },
+    {
+      "id": "h-216bd394",
+      "kind": "html",
+      "en": "TypeScript only, for Node and the browser",
+      "tr": "只有 TypeScript，面向 Node 和浏览器"
+    },
+    {
+      "id": "h-939c7737",
+      "kind": "html",
+      "en": "What Glyph does differently",
+      "tr": "Glyph 有什么不同"
+    },
+    {
+      "id": "h-3e2381c1",
+      "kind": "html",
+      "en": "Each of these was run on Glyph 0.1.149 for this page.",
+      "tr": "下面每一项都是为本页在 Glyph 0.1.149 上运行过的。"
+    },
+    {
+      "id": "h-d2f85608",
+      "kind": "html",
+      "en": "It emits TypeScript source",
+      "tr": "它生成 TypeScript 源码"
+    },
+    {
+      "id": "h-a5acbd44",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes one <code>.ts</code> file per module, which <code>tsc --strict</code> then checks, and which you keep if you stop using Glyph. ReScript and Gleam emit JavaScript and generate type definitions next to it. The <a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">emitted TypeScript</a> is shown on the TypeScript page.",
+      "tr": "<code>glyph build</code> 为每个模块写出一个 <code>.ts</code> 文件，随后由 <code>tsc --strict</code> 检查，你停用 Glyph 后也可以保留这些文件。ReScript 和 Gleam 生成 JavaScript，并在旁边生成类型定义。<a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">生成的 TypeScript</a> 在 TypeScript 页面上有展示。"
+    },
+    {
+      "id": "h-7f79a4f0",
+      "kind": "html",
+      "en": "It imports npm packages typed from their own declarations",
+      "tr": "它导入 npm 包时使用包自带的声明作为类型"
+    },
+    {
+      "id": "h-0c3ce6cd",
+      "kind": "html",
+      "en": "A module imports a package by name, and the package's <code>.d.ts</code> types every use. There is no binding to write first. In ReScript, \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\" (<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>), with the types declared on the ReScript side. Gleam's externals need type annotations, and the compiler \"cannot verify that the function implemented in the other language returns the specified types\" (<a href=\"https://gleam.run/documentation/externals/\">externals</a>). Elm talks to JavaScript through flags, ports and custom elements (<a href=\"https://guide.elm-lang.org/interop/\">interop</a>). With <code>pg</code> and <code>@types/pg</code> installed, this is refused:",
+      "tr": "模块按名字导入包，包的 <code>.d.ts</code> 为每处使用提供类型。不需要先写绑定。在 ReScript 中，\"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\"（<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>），类型在 ReScript 一侧声明。Gleam 的 external 需要类型标注，而编译器 \"cannot verify that the function implemented in the other language returns the specified types\"（<a href=\"https://gleam.run/documentation/externals/\">externals</a>）。Elm 通过 flags、ports 和自定义元素与 JavaScript 交互（<a href=\"https://guide.elm-lang.org/interop/\">interop</a>）。装好 <code>pg</code> 和 <code>@types/pg</code> 后，下面这段会被拒绝："
+    },
+    {
+      "id": "h-8d75025c",
+      "kind": "html",
+      "en": "The code is <code>TS2322</code> because <code>tsc</code> is what checks a library's values, mapped back onto the Glyph line. Glyph's own checker does not see them, so <code>glyph check --no-tsc</code>, the editor and the MCP tools miss this error (G257). A type imported from a <code>.d.ts</code> also has no runtime check.",
+      "tr": "错误码是 <code>TS2322</code>，因为检查库中的值的是 <code>tsc</code>，结果再映射回 Glyph 的那一行。Glyph 自己的检查器看不到这些值，所以 <code>glyph check --no-tsc</code>、编辑器和 MCP 工具都会漏掉这个错误（G257）。从 <code>.d.ts</code> 导入的类型也没有运行时检查。"
+    },
+    {
+      "id": "h-7d263a14",
+      "kind": "html",
+      "en": "It generates the validator from the type",
+      "tr": "它根据类型生成校验器"
+    },
+    {
+      "id": "h-af555a20",
+      "kind": "html",
+      "en": "Every record and union carries a runtime check generated from its declaration, so <code>json.parse&lt;User&gt;</code> returns <code>Err</code> when the data does not match. In Elm you write a decoder for each shape, and its guide notes that \"the decoders people write end up working as a validation phase\" (<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>).",
+      "tr": "每个记录和联合类型都带有根据声明生成的运行时检查，所以数据不匹配时 <code>json.parse&lt;User&gt;</code> 返回 <code>Err</code>。在 Elm 中你要为每种结构写一个解码器，它的指南写道：\"the decoders people write end up working as a validation phase\"（<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>）。"
+    },
+    {
+      "id": "h-e12a02b6",
+      "kind": "html",
+      "en": "main.glyph: prints \"refused\", because the JSON has no email",
+      "tr": "main.glyph：打印 \"refused\"，因为 JSON 中没有 email"
+    },
+    {
+      "id": "h-0b211920",
+      "kind": "html",
+      "en": "Its compiler answers what a change will break",
+      "tr": "它的编译器能回答一个改动会破坏什么"
+    },
+    {
+      "id": "h-e65ec874",
+      "kind": "html",
+      "en": "Before an edit, an agent can ask which places a change reaches, over MCP (<code>glyph_impact</code>) or with <code>glyph query impact</code>. On a union <code>Plan = Free | Pro | Team</code> with one exhaustive <code>match</code> and one that ends in <code>else</code>, asking about a new variant answers per site:",
+      "tr": "编辑之前，智能体可以通过 MCP（<code>glyph_impact</code>）或 <code>glyph query impact</code> 询问一个改动会波及哪些地方。对于联合类型 <code>Plan = Free | Pro | Team</code>，其中一个 <code>match</code> 是穷尽的，另一个以 <code>else</code> 结尾，询问新增一个变体会得到每个位置的回答："
+    },
+    {
+      "id": "h-4227f025",
+      "kind": "html",
+      "en": "The second site would fail to compile after the change, which any of these compilers would also tell you once the change is made. The first would keep compiling and send the new case to its <code>else</code>, and the query is what names it. <a href=\"/agents/\">For agent builders</a> lists the other tools.",
+      "tr": "改动之后，第二个位置将无法编译，改动一旦做出，这几个编译器中任何一个也都会告诉你这一点。第一个位置会继续编译，并把新情况送进它的 <code>else</code>，正是这个查询把它点了出来。<a href=\"/agents/\">面向智能体开发者</a>列出了其他工具。"
+    },
+    {
+      "id": "h-738097d0",
+      "kind": "html",
+      "en": "What this page does not claim",
+      "tr": "本页没有断言的内容"
+    },
+    {
+      "id": "h-9acaa78c",
+      "kind": "html",
+      "en": "It has not compared error messages, compile speed or runtime performance, and it has not tried calling any of the three from Glyph or the other way round. The quotes describe each project in its own words; how well each lives up to them is for you to check, as it is for Glyph's own claims on <a href=\"/evidence/\">the evidence page</a>.",
+      "tr": "本页没有比较错误信息、编译速度或运行时性能，也没有尝试从 Glyph 调用这三门语言中的任何一门，或者反过来调用。引文是各个项目用自己的话对自己的描述；它们做得如何，需要你自己去检验，就像 Glyph 自己的说法也需要你在<a href=\"/evidence/\">证据页面</a>上检验一样。"
+    }
+  ]
+}

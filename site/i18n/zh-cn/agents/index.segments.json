@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "agents/index.html",
+  "locale": "zh-cn",
+  "source_hash": "74db8e3bf226ba57",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "For agents and tool builders · Glyph",
+      "tr": "面向智能体和工具开发者 · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.",
+      "tr": "智能体如何与 Glyph 配合：一个提供十一个工具的 MCP 服务器，命令行上的同一组查询，以及用于修复失败构建的 glyph check --agent。"
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Each piece in depth",
+      "tr": "每一部分的详细说明"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Start here",
+      "tr": "从这里开始"
+    },
+    {
+      "id": "ns./mcp/.title",
+      "kind": "ns.title",
+      "en": "The MCP server",
+      "tr": "MCP 服务器"
+    },
+    {
+      "id": "ns./mcp/.desc",
+      "kind": "ns.desc",
+      "en": "Setup, the eleven tools with their arguments, the <code>glyph query</code> verbs, and what the server doesn't do yet.",
+      "tr": "配置方法、十一个工具及其参数、<code>glyph query</code> 的各个子命令，以及服务器目前还做不到的事。"
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Set up the server",
+      "tr": "配置服务器"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.title",
+      "kind": "ns.title",
+      "en": "Can my agent ask the compiler what a symbol is?",
+      "tr": "我的智能体能问编译器某个符号是什么吗？"
+    },
+    {
+      "id": "ns./answers/ask-the-compiler/.desc",
+      "kind": "ns.desc",
+      "en": "<code>glyph_symbol</code>: a union's cases with the syntax that constructs each.",
+      "tr": "<code>glyph_symbol</code>：一个联合类型的各种情况，以及构造每种情况的语法。"
+    },
+    {
+      "id": "ns./answers/impact/.title",
+      "kind": "ns.title",
+      "en": "Can the compiler say what a change breaks first?",
+      "tr": "编译器能事先说出一个改动会破坏什么吗？"
+    },
+    {
+      "id": "ns./answers/impact/.desc",
+      "kind": "ns.desc",
+      "en": "Six change kinds, one verdict per site, and the csvql run above in full.",
+      "tr": "六种改动类型，每个位置一个结论，以及上面 csvql 运行的完整结果。"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.title",
+      "kind": "ns.title",
+      "en": "Does a failed build tell my agent how to fix it?",
+      "tr": "构建失败时，会告诉智能体怎么修吗？"
+    },
+    {
+      "id": "ns./answers/repair-protocol/.desc",
+      "kind": "ns.desc",
+      "en": "<code>check --agent</code>, <code>glyph fix</code>, and a walkthrough with real output.",
+      "tr": "<code>check --agent</code>、<code>glyph fix</code>，以及一个带真实输出的演练。"
+    },
+    {
+      "id": "ns./answers/generated-docs/.title",
+      "kind": "ns.title",
+      "en": "Is the agent's documentation generated?",
+      "tr": "给智能体的文档是生成的吗？"
+    },
+    {
+      "id": "ns./answers/generated-docs/.desc",
+      "kind": "ns.desc",
+      "en": "What <code>glyph llms</code> emits, where each number comes from, and what is still missing.",
+      "tr": "<code>glyph llms</code> 输出什么，每个数字从哪里来，还缺什么。"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.title",
+      "kind": "ns.title",
+      "en": "Can an AI write a language it has barely seen?",
+      "tr": "AI 能写一门它几乎没见过的语言吗？"
+    },
+    {
+      "id": "ns./answers/ai-authoring/.desc",
+      "kind": "ns.desc",
+      "en": "What carries over from TypeScript, and how the compiler covers the rest.",
+      "tr": "哪些能从 TypeScript 沿用，编译器又如何补上其余部分。"
+    },
+    {
+      "id": "h-753824bb",
+      "kind": "html",
+      "en": "For agents and tool builders",
+      "tr": "面向智能体和工具开发者"
+    },
+    {
+      "id": "h-035437e3",
+      "kind": "html",
+      "en": "The compiler's interface for agents",
+      "tr": "编译器面向智能体的接口"
+    },
+    {
+      "id": "h-59e0f1f6",
+      "kind": "html",
+      "en": "An agent can ask Glyph's compiler what a symbol is, what an edit will break, and why a build failed, and get JSON back. <code>glyph mcp</code> serves eleven tools over stdio, each one also a <code>glyph query</code> verb, and <code>glyph llms</code> prints the language reference offline.",
+      "tr": "智能体可以问 Glyph 编译器：某个符号是什么，一次编辑会破坏什么，构建为什么失败，并得到 JSON 结果。<code>glyph mcp</code> 通过 stdio 提供十一个工具，每个工具同时也是一个 <code>glyph query</code> 子命令；<code>glyph llms</code> 可以离线打印语言参考。"
+    },
+    {
+      "id": "h-a044b673",
+      "kind": "html",
+      "en": "Set it up",
+      "tr": "配置"
+    },
+    {
+      "id": "h-f72d5056",
+      "kind": "html",
+      "en": "<code>glyph init</code> writes this <code>.mcp.json</code> into a new project, and <code>glyph agents</code> writes it (with an <code>AGENTS.md</code> pointing at <code>glyph llms</code>) into an existing one. Any MCP client that reads the file launches the server; there is no port and no daemon.",
+      "tr": "<code>glyph init</code> 会在新项目里写入这个 <code>.mcp.json</code>，<code>glyph agents</code> 会把它（连同指向 <code>glyph llms</code> 的 <code>AGENTS.md</code>）写入已有项目。任何读取这个文件的 MCP 客户端都会启动服务器；没有端口，也没有守护进程。"
+    },
+    {
+      "id": "h-95651357",
+      "kind": "html",
+      "en": ".mcp.json, as glyph init writes it",
+      "tr": ".mcp.json，glyph init 写入的内容"
+    },
+    {
+      "id": "h-bef1632c",
+      "kind": "html",
+      "en": "One call, with its real answer",
+      "tr": "一次调用，附真实结果"
+    },
+    {
+      "id": "h-d90f4a66",
+      "kind": "html",
+      "en": "A file reads a field that its record doesn't declare (<code>u.naem</code>). The agent calls <code>glyph_diagnostics</code> and gets the compiler's own diagnostic, with the fields the record does declare and the record that owns them. This is the tool's output on 0.1.149, trimmed only where marked.",
+      "tr": "某个文件读取了记录中没有声明的字段（<code>u.naem</code>）。智能体调用 <code>glyph_diagnostics</code>，得到编译器自己的诊断，其中列出该记录确实声明的字段，以及拥有这些字段的记录。这是该工具在 0.1.149 上的输出，只在标注处有删节。"
+    },
+    {
+      "id": "h-1f58b914",
+      "kind": "html",
+      "en": "request",
+      "tr": "请求"
+    },
+    {
+      "id": "h-f6a214f7",
+      "kind": "html",
+      "en": "result",
+      "tr": "结果"
+    },
+    {
+      "id": "h-7039cad1",
+      "kind": "html",
+      "en": "<code>not_run</code> names what this check did not cover, so an empty <code>diagnostics</code> list can't be mistaken for a full build. Without an MCP client, <code>glyph query diagnostics --path src/user.glyph</code> prints the same JSON. The full tool list, with every verb, is on <a href=\"/mcp/\">the MCP page</a>.",
+      "tr": "<code>not_run</code> 列出这次检查没有覆盖的部分，所以空的 <code>diagnostics</code> 列表不会被误认为是完整的构建。没有 MCP 客户端时，<code>glyph query diagnostics --path src/user.glyph</code> 会打印同样的 JSON。完整的工具列表及所有子命令见 <a href=\"/mcp/\">MCP 页面</a>。"
+    },
+    {
+      "id": "h-1fb11ce5",
+      "kind": "html",
+      "en": "Before an edit: what will it break?",
+      "tr": "编辑之前：它会破坏什么？"
+    },
+    {
+      "id": "h-ada15b5d",
+      "kind": "html",
+      "en": "<code>examples/apps/csvql</code> is an eleven-file CSV query engine with a four-case union, <code>Value</code>. Asked what adding a fifth case does, <code>glyph_impact</code> lists 10 <code>match</code> sites in 4 files: 8 <code>WILL_FAIL</code> and 2 <code>ABSORBS</code>, where a catch-all arm will swallow the new case and keep compiling. Adding the case for real gives exactly 8 <code>E0200</code> errors, at those 8 sites. The 2 absorbing sites stay silent, which is why the answer names them.",
+      "tr": "<code>examples/apps/csvql</code> 是一个由十一个文件组成的 CSV 查询引擎，其中有一个包含四种情况的联合类型 <code>Value</code>。问它新增第五种情况会怎样，<code>glyph_impact</code> 列出了 4 个文件中的 10 处 <code>match</code>：8 处 <code>WILL_FAIL</code>，2 处 <code>ABSORBS</code>，后者是兜底分支会吞掉新情况并继续编译的地方。真正加上这种情况后，恰好在这 8 处出现 8 个 <code>E0200</code> 错误。那 2 处吞掉新情况的位置不会报错，这正是答案要把它们点出来的原因。"
+    },
+    {
+      "id": "h-1b4a94d5",
+      "kind": "html",
+      "en": "the same question on the command line",
+      "tr": "在命令行上问同一个问题"
+    },
+    {
+      "id": "h-e02ae173",
+      "kind": "html",
+      "en": "After a red build: what does the fix have to keep?",
+      "tr": "构建失败之后：修复必须保持什么？"
+    },
+    {
+      "id": "h-fd59d326",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> prints <code>check --json</code>'s diagnostics with two more keys on each. <code>constraints</code> lists what a repairing edit must not break; for the typo above it reads \"the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others\". <code>symbols</code> carries the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the next edit needs no second call. Where the fix is fully determined, <code>glyph fix</code> writes it.",
+      "tr": "<code>glyph check --agent</code> 打印 <code>check --json</code> 的诊断，并在每条诊断上多加两个键。<code>constraints</code> 列出修复性编辑不能破坏的东西；对上面的拼写错误，它写的是“the record's fields are closed: <code>user::U</code> declares <code>name</code>, <code>email</code> and no others”。<code>symbols</code> 带有诊断中提到的每个符号的 <code>glyph_symbol</code> 结果，所以下一次编辑不需要再调用一次。修复方式完全确定时，<code>glyph fix</code> 会直接写入。"
+    },
+    {
+      "id": "h-b85dc276",
+      "kind": "html",
+      "en": "Reading the language offline",
+      "tr": "离线阅读语言"
+    },
+    {
+      "id": "h-1f29991a",
+      "kind": "html",
+      "en": "<code>glyph llms</code> prints the language reference, and <code>/llms.txt</code> on this site is the same document. <code>glyph llms --json</code> is that knowledge as data, read from the compiler's own tables: 77 diagnostic codes, 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions, and the eleven tools. <code>glyph llms --negative</code> returns 117 wrong programs in 0.1.149 (139 from the next release) with the code each one draws, compiled when you ask. <code>scripts/check_llms_sync.py</code> fails when the diagnostic and reserved-word tables in the reference drift from the compiler's own.",
+      "tr": "<code>glyph llms</code> 打印语言参考，本站的 <code>/llms.txt</code> 是同一份文档。<code>glyph llms --json</code> 把这些知识以数据形式给出，读自编译器自己的表：77 个诊断码、24 个 prelude 名称、40 个标准库模块共 340 个导出、49 项语言决策，以及十一个工具。<code>glyph llms --negative</code> 在 0.1.149 中返回 117 个错误程序（从下一个版本起是 139 个），附上每个程序触发的错误码，在你请求时编译。<code>scripts/check_llms_sync.py</code> 会在参考文档中的诊断表和保留字表与编译器自己的表不一致时失败。"
+    },
+    {
+      "id": "h-d7b19eb8",
+      "kind": "html",
+      "en": "offline entry points",
+      "tr": "离线入口"
+    }
+  ]
+}

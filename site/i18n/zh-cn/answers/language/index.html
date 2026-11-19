@@ -1,0 +1,348 @@
+---
+title: 这是一门真正的语言，还是一个有很多缺口的玩具？ · Glyph
+description: 模块可见性、用于泛型约束的结构化接口、defer、结构化并发、可以当作值使用的 match，以及它从 JavaScript 继承的语义。
+source_hash: 5ef4512407bef58a
+prev: /answers/state/ | &larr; 上一篇 | 怎样在函数之间共享可变状态？
+next: /answers/finance/ | 下一篇 &rarr; | 涉及金额、以及我无法控制的输入时，能信任它吗？
+---
+      <p class="q-eyebrow">15 &middot; 语言完整性</p>
+      <h1 class="q-title">这是一门真正的语言，还是一个有很多缺口的玩具？</h1>
+
+      <p class="short-answer">
+        它具备你在真实代码库中会用到的东西：<strong>模块可见性</strong>、约束泛型的<strong>接口</strong>、用于清理的 <strong>defer</strong>，以及<strong>并发</strong>辅助函数。在依赖 JavaScript 的地方，它会直接说明，而不是假装不是这样。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">为什么这很重要</h2>
+        <p>
+          一门能写单个文件、却无法组织一个项目的语言，你不会把代码库押在它身上。真正要紧的缺口并不罕见：能不能隐藏一个辅助函数，泛型能不能要求某种能力，能不能在每条退出路径上释放文件句柄，能不能同时运行两件事并等待两者完成。Glyph 回答了这四个问题，而且没有重新走回它有意放弃的大量注解的方向。
+        </p>
+
+        <h2 class="block-label">看看实际效果</h2>
+        <p>
+          声明在被标记为 <code>pub</code> 之前都是模块私有的，所以公开接口只需一次搜索（<code>grep '^pub'</code>）就能找到，辅助函数也不会意外泄露出去：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">可见性：默认私有</span>
+<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+
+<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>interface</code> 是结构化的，和 TypeScript 一样：它是一组泛型可以要求的成员签名。没有 <code>implements</code>，没有名义类型的繁琐手续。任何具有这些成员的值都符合要求，由 <code>tsc</code> 强制检查。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">接口约束泛型</span>
+<pre><span class="add">interface</span> Named {
+  fn name() -&gt; string
+}
+
+pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>defer</code> 在代码块退出时运行清理，覆盖每条路径，包括提前返回和抛出错误。多个 defer 按后进先出的顺序运行，并且能与 <code>owned</code> 句柄组合使用。<code>std/task</code> 让并发任务共享同一个生命周期并汇合，而不是留下游离的 promise。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer + 结构化并发</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          需要说明的是：Glyph 编译成 TypeScript，运行在 JavaScript 引擎上，所以求值顺序、值与引用、相等性（<code>==</code> 就是 <code>===</code>，没有重载）以及单线程、带垃圾回收的模型，都是继承来的，而不是新发明的。规范现在把它们作为保证写明，而不是留给你自己去发现。手动内存管理和非 GC 模型不在路线图上；它们超出了一门转译到 TypeScript 的语言的范围。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">没有 <code>if</code>，所以 <code>match</code> 必须承担一切</h2>
+        <p>
+          听完穷尽性的介绍之后，TypeScript 开发者问的第一个问题是：<code>match</code> 真的是一个通用条件结构，还是只是解构联合类型的一种好看写法？答案是前者，而最能证明这一点的地方是赋值。作为 <code>let</code> 或 <code>mut</code> 完整值的 <code>match</code> 可以接受语句能接受的任何东西：分支可以是代码块，分支可以 <code>await</code>，分支可以 <code>break</code> 跳出外层循环，分支还可以读取它正在赋值的那个绑定，这就是在没有 <code>if</code> 的情况下在循环中累积状态的方法。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">来自链接检查器：代码围栏跟踪，以及一个被 await 的分支</span>
+<pre>for raw in lines {
+  let fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    true =&gt; !in_fence,
+    false =&gt; in_fence,
+  }
+}
+
+let cache = <span class="add">match</span> args.offline {
+  true =&gt; no_cache(),
+  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          两者都编译成一个普通的 <code>switch</code>，在每个分支中为绑定赋值，所以 <code>await</code> 位于外层的 async 函数中，累加器是一个 TypeScript 可以推断的普通变量。在更大的表达式<em>内部</em>使用的 <code>match</code>，比如作为参数或操作数，仍然会变成一个闭包，这意味着它的分支必须是单个表达式。把它提到单独的 <code>let</code> 中就没有这个限制了。两段代码都来自 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>，这是一个 Markdown 链接检查器，写它正是为了发现这类问题。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">模式可以描述不止一层深的形态</h2>
+        <p>
+          带多个字段的变体携带的是一个记录，所以想识别某种形态的分支必须深入记录的字段。在 0.1.90 之前，字段位置只能写一个名字：你可以给它改名，仅此而已。在那里匹配标签是编译错误，嵌套的构造函数会让解析器失败。变通做法是绑定每个字段，然后每一层写一个嵌套的 <code>match</code>，而对于红黑树再平衡这样的代码，这就成了另一个程序：分支不再与各种情况一一对应，每一层都要重新传递上一层的绑定。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">红黑树再平衡中的一种旋转情况，写成一个分支</span>
+<pre>type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+match t {
+  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+  other =&gt; other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          现在字段可以接受任何模式：变体标签、嵌套构造函数、嵌套解构、字面量、数组模式。写之前有一个后果值得了解。检测值的字段可能匹配失败，所以这个分支不再被算作覆盖了它的变体；如果一个 match 中唯一的 <code>Node</code> 分支是 <code>Node({ color: Red, ... })</code>，它会被报告为不穷尽，直到有兄弟分支或 <code>else</code> 处理其余情况。检查器证明的是对一组标签的覆盖，而不是对字段乘积的覆盖，所以它不会推断出一个 <code>Red</code> 分支和一个 <code>Black</code> 分支合起来穷尽了 <code>Node</code>。要求兜底分支，是唯一不会让 match 在运行时从末尾掉出去的解读。在根本没有变体可数的地方也一样：对一个普通记录做 match，如果每个分支都检测某个字段，后面就需要一个 <code>else</code>。
+        </p>
+        <p>
+          它延伸到的一个可能出乎意料的地方是数组位置。以前 <code>[Black]</code> 作为整个分支会被当作匹配任意单元素数组，所以依赖它的 match 被认证为穷尽，然后对 <code>[Red]</code> 也走了这个分支。PascalCase 的元素在这里同样是变体引用，所以这样的 match 现在在长度为 1 的数组上报告 <code>E0208</code>。先绑定元素，再单独对它做匹配。底层的降级实现仍然是旧的，这也是为什么检查是先发布的那一半。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">编译器也知道 <code>match</code> 产生了什么</h2>
+        <p>
+          接下来的问题决定了这一切是否真的起作用：一旦你从某个分支中绑定出一个值，Glyph 知道它的类型吗，还是耸耸肩，让 <code>tsc</code> 以后再处理？在 0.1.45 之前它就是耸耸肩。每个 <code>match</code> 表达式的类型都是 unknown，所以从语言中唯一的分支结构里出来的值，从那一刻起就没有类型了。现在当各分支的类型一致时，<code>match</code> 就采用这个类型，并且已知 <code>T.parse</code> 返回 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>，这正是大多数真实代码会据以分支的形态。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">来自费用分摊应用：没有注解，<code>i</code> 也是 number</span>
+<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
+  Ok(w) =&gt; w,
+  Err(issues) =&gt; {
+    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+  },
+}
+
+for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这两部分以前都会悄无声息地出错。这个循环生成的是 <code>wire.expenses.entries()</code>；当被迭代对象的类型未知时，它会改为生成 <code>Object.entries(...)</code>，<code>i</code> 就成了<em>字符串</em> <code>"0"</code>，这在 TypeScript 中是合法的，所以构建是干净的，而程序在本该打印 <code>1:a</code> 的地方打印了 <code>01:a</code>。而 <code>wire.expensez</code> 现在由 Glyph 在 <code>.glyph</code> 那一行报告为 <code>[E0210] type WireLedger has no field expensez</code>，而不是生成的 TypeScript 上的 <code>TS2339</code>。合并规则是比较类型头部是否相等：以 <code>return</code> 结束的分支不参与，类型不一致的分支会让结果和以前一样是 unknown。它只在类型参数处多看一层，所以 <code>None =&gt; []</code> 与一个 <code>Array&lt;string&gt;</code> 分支是一致的，而不会拖垮整个 <code>match</code>，之后的循环仍然绑定一个 number。基于 <code>record.get</code> 的同样链条也出于同样的原因能工作：<code>std/record</code> 的全部六个函数都会从你传入的记录上带出值的类型。这段代码来自 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>，它原本带着这次删掉的那个注解。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">来自依赖解析器：一次查找，一个空的回退值，一次按索引遍历</span>
+<pre>let path = <span class="add">match</span> record.get(res.reached, name) {
+  Some(p) =&gt; p,
+  None =&gt; [],
+}
+
+for i, hop in path {               <span class="cm"># i is a number, so the indent nests</span>
+  let indent = string.repeat(STEP, i + 1)
+  mut out = array.push(out, "${indent}${hop}")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          这是代价最大的形态。对 <code>Record&lt;string, Array&lt;string&gt;&gt;</code> 调用 <code>record.get</code> 得到 <code>Option&lt;Array&lt;string&gt;&gt;</code>，而 <code>[]</code> 是一个元素类型不确定的数组，所以两个分支在 <code>Array</code> 上一致，元素类型来自有元素类型的那个分支。在 0.1.55 之前，它们是按相等比较的，<code>[]</code> 被算作不一致，下面的循环在一个没有诊断、通过了 <code>tsc --strict</code> 的构建上打印出 <code>01:x</code>。代码在 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a> 中，它以前以 <code>let path: Array&lt;string&gt;</code> 开头，上面还有三行注释解释这个注解不可或缺。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><code>pad_start</code> 要我自己写吗？</h2>
+        <p>
+          在真实程序中最先碰到的缺口不是类型系统特性，而是想用 <code>string.slice</code> 却发现什么也没有。连续五轮内部试用都提交了同样的清单，在 0.1.47 之前，本仓库有六个应用自带 <code>repeat</code>，五个自带 <code>pad_start</code>，而且每个应用都有一个本该用 fold 的循环。这十一个函数现在都已提供，七个应用中的副本也已全部删除。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">新增内容</span>
+<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
+string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
+string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
+io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          其中三个有意与同名的 TypeScript 函数不同。<code>repeat</code> 在次数为负时返回 <code>""</code>，而 TS 会抛出异常，这让 <code>repeat(pad, width - len(s))</code> 在字符串已经过长时也是安全的。两个 <code>index_of</code> 函数都返回 <code>Option&lt;number&gt;</code> 而不是 <code>-1</code>，因为 <code>-1</code> 是一个在所有真实索引能出现的地方都能通过类型检查的数字，出错的地方离调用处很远。替换只提供 <code>replace_all</code>，所以没有只替换第一处的形式，不会与 <code>String.prototype.replace</code> 混淆，后者只会悄悄替换一处。
+        </p>
+        <p>
+          <code>fold</code> 换来的是一个支柱，而不只是少打几个字。<code>mut</code> 是每个状态变化位置的可检索记录，没有 fold 的话，<code>grep mut</code> 返回的结果里满是计数循环，它们修改的东西审查者根本不关心。删掉手写版本后，<code>examples/apps/</code> 中的修改位置从 192 个减少到 161 个。这次改写是通过输出验证的，而不是靠审查：七个应用在改写前后都用固定输入运行，26 个文件的 stdout、退出码和 HTTP 响应，全部逐字节相同。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">能遍历目录并知道哪里出错了吗？</h2>
+        <p>
+          <code>std/fs</code> 最初提供了六个函数，没有一个能列出目录。本仓库中的链接检查器绕过标准库，直接调用 node 的 <code>readdirSync</code>，并通过尝试读取路径、检查返回的 <code>errno</code> 来判断哪些路径是目录。这两部分都已修复。<code>fs.read_dir</code> 返回下一层的条目名，<code>fs.is_dir</code> 像 <code>fs.exists</code> 一样返回一个 <code>bool</code>，<code>fs.stat</code> 返回一个 <code>FileInfo</code>，包含 <code>is_dir</code>、<code>is_file</code>、以字节计的 <code>size</code>，以及以纪元毫秒计的 <code>modified</code>，可以直接交给 <code>time.format_iso</code> 格式化。没有递归的 <code>walk</code>，也没有 glob；用这三个函数加上 <code>path.join</code>，大约十行就能写出遍历。
+        </p>
+        <p>
+          失败这一侧的变化更大。<code>FsError.kind</code> 以前是 <code>{ tag: string }</code>，整个分类只有 <code>NotFound</code>，所以要区分 &ldquo;该路径是目录&rdquo; 和 &ldquo;该路径不存在&rdquo;，就得比较 errno 字符串。现在程序真正会从中恢复的五种错误都有了名字，没有名字的 errno 会完整地放在 <code>Other</code> 这个兜底变体上。
+        </p>
+        <p>
+          检查器知道这个分类是封闭的，所以对 <code>err.kind</code> 的 <code>match</code> 和对你自己声明的联合类型要求一样：覆盖全部六种就不需要 <code>else</code>，漏掉一种，构建就会失败，报告指出 <code>fs.ErrorKind</code> 的 <code>E0200</code>。<code>fs.FsError</code> 和 <code>fs.FileInfo</code> 的字段也会被检查，所以 <code>err.mesage</code> 是针对你的 Glyph 源码的 <code>E0210</code>，而不是针对生成的 TypeScript 的 <code>tsc</code> 错误。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">遍历目录树，并说出哪里出了错</span>
+<pre>let names = fs.<span class="add">read_dir</span>(dir)?
+for name in names {
+  let child = path.join([dir, name])
+  match fs.<span class="add">is_dir</span>(child) {
+    true  =&gt; visit(child),
+    false =&gt; {
+      let info = fs.<span class="add">stat</span>(child)?
+      report_size(child, info.size)
+    },
+  }
+}
+
+match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
+  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
+  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
+  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
+  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
+  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          同时还加入了两个较小的功能，都来自同一个应用。<code>regex.captures_all</code> 返回每次匹配的捕获组，而不只是匹配到的文本，所以扁平的 <code>key=value</code> 扫描不再需要手写循环。<code>task.pool_settled</code> 是带有 <code>all_settled</code> 失败行为的 <code>task.pool</code>：并发数有上限，每个任务一个结果，一个挂掉的主机只会让你失去这个主机的结果，而不是池子已经收集到的所有结果。
+        </p>
+        <p>
+          这项检查是生效的。把上面 <code>match</code> 中的 <code>PermissionDenied</code> 分支删掉，<code>glyph check --no-tsc</code> 就会以 <code>E0200</code> 停下：对 <code>fs.ErrorKind</code> 的 match 不穷尽，缺少变体 <code>PermissionDenied</code>。标准库模型最初编写时只覆盖返回类型，像这样的 match 能干净地编译，却在运行时抛出异常；现在 <code>fs.FsError</code>、<code>fs.FileInfo</code> 和 <code>fs.ErrorKind</code> 的字段和变体形态都已建模。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">怎么知道这些函数选得对？</h2>
+        <p>
+          因为提出需求的那个应用必须停止绕开它们，这个版本才算完成。一个库函数发布了，和一个变通写法在它发布后仍然存在，是两回事，所以加入这四个函数的同一次改动也删掉了链接检查器里的副本：<code>readdirSync</code> 导入、两处 <code>errno</code> 字符串比较、97 行手写的扫描器，以及遇错即停的任务池。一共删掉了 122 行。
+        </p>
+        <p>
+          其中两处删除改变了程序的行为，而这种差别是测量出来的，而不是争论出来的。把新旧两个版本指向一个包含不可读目录的目录树：新版本打印 <code>permission denied</code>，并把该路径计为不可读；旧版本只能判断 errno 是否为 <code>EISDIR</code>，于是把它完全排除在报告之外。让三个 URL 中的一个抛出异常：<code>pool_settled</code> 打印了全部三行，并指出了失败的那个；<code>pool</code> 什么也没打印，因一个未处理的 rejection 而退出，两个正常的结果也随之丢失。
+        </p>
+        <p>
+          扫描器的改写也解决了一个设计上的顾虑。由于没有参与匹配的捕获组读出来是 <code>""</code>，和匹配到空串的捕获组一样，<code>captures_all</code> 看起来无法告诉你多选结构中哪个分支命中了。其实可以，只要把每个分支的捕获组包在整个结构外面，而不是只包住你想要的那部分：命中的组就会以 <code>`</code>、<code>[</code>、<code>!</code> 或 <code>&lt;</code> 开头，不可能为空。可能为空的那部分，也就是链接目标，嵌套在里面，从来不是你要判断的对象。这把一个 180 行的逐字符遍历变成了两个模式加上 12 行的分派代码，在仓库自己的文档和一个专门用来破坏它的测试夹具上，输出都逐字节相同。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">金额不用浮点数计算</h2>
+        <p>
+          能当场终结一次金融科技评估的缺口，是用 IEEE-754 的 <code>number</code> 处理金额：<code>0.1 + 0.2</code> 不等于 <code>0.3</code>，超过 2<sup>53</sup> 的值会悄悄丢失精度。<code>std/decimal</code> 是基于 BigInt 的精确十进制定点数：一个任意精度整数加上固定的小数位数，所以加、减、乘都是精确的，除法则需要显式指定小数位数和舍入方式。格式错误的金额会解析为 <code>Err</code>，绝不会悄悄变成 <code>NaN</code>。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          对于精确的大<em>整数</em>，比如账户 id 和计数器，有 <code>bigint</code> 类型：字面量写作 <code>123n</code>，生成真正的 TypeScript <code>bigint</code>，类型为 <code>bigint</code> 的记录字段会在边界上校验 <code>typeof === "bigint"</code>，所以以 JSON <code>number</code> 发送的 id 会被拒绝，而不是在超过 2<sup>53</sup> 后被悄悄舍入。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">异步回调终于有了类型</h2>
+        <p>
+          函数类型以前只有 <code>fn(A) -&gt; T</code> 一种，生成 <code>(a: A) =&gt; T</code>。async 函数体不符合这个类型，所以返回延迟任务的函数，或者由 async 处理函数组成的记录，只能不写注解，检查器也就不再检查。<code>async fn(A) -&gt; T</code> 就是缺少的那个类型。它生成 <code>(a0: A) =&gt; Promise&lt;T&gt;</code>，没有返回值的 <code>async fn()</code> 生成 <code>() =&gt; Promise&lt;void&gt;</code>。
+        </p>
+        <p>
+          Glyph 自己区分这两者，而不是留给 <code>tsc</code>：在需要 async 函数的地方给出普通函数，在 return 处是 <code>E0204</code>，在调用参数处是 <code>E0211</code>，报错会同时指出两边的类型。它唯一不判断的情况是 <code>void</code> 返回，在那里 TypeScript 允许任何函数。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">一个延迟任务，以及一个处理函数映射</span>
+<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
+  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+type Handler = <span class="add">async fn(string) -&gt; string</span>
+
+async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
+  return match record.get(routes, name) {
+    Some(h) =&gt; await h(arg),
+    None    =&gt; "no route",
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">递归类型，一直匹配到底</h2>
+        <p>
+          联合类型可以在自己的负载中连同类型参数引用自身，match 分支可以在一个构造函数模式的字段中嵌套另一个构造函数模式。把这两点结合起来，红黑树的平衡规则就是四个分支：每个分支都写出它要改写的确切形态，由编译器检查这个形态，而不是由上方的一段注释声称它是什么。<code>examples/apps/leaderboard/main.glyph</code> 是完整程序，一个把所有分数保存在树中的排行榜，通过遍历树来回答排名、前 N 名和区间查询，而不是重新排序一份日志。
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">四种旋转情况之一</span>
+<pre>type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other =&gt; other,
+  }
+}</pre>
+      </div>
+
+      <h2 class="block-label">当前状态</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">现已提供</h3>
+          <p>对引用兄弟模块类型的两种写法（具名导入和 <code>lib.Secret</code> 注解）都强制执行的 <code>pub</code> 可见性，结构化的 <code>interface</code> 约束，<code>defer</code>，<code>std/task</code>（<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>），作为可书写类型的 <code>async fn(A) -&gt; T</code>，在自己的负载中引用自身的联合类型，以及在另一个构造函数模式的字段中嵌套构造函数模式的分支，作为 <code>let</code> 或 <code>mut</code> 的值、分支中可以使用代码块、<code>await</code> 和循环控制的 <code>match</code>，各分支类型一致时把类型带入程序其余部分的 <code>match</code>，有类型的 <code>T.parse</code>，用于精确金额计算的 <code>std/decimal</code>，用于精确大整数的 <code>bigint</code>，数字分隔符，规范中专门说明继承自 JS 的语义的一节，以及包含 <code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> 和 <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code> 的标准库，再加上 <code>fs.read_dir</code>、<code>fs.is_dir</code>、<code>fs.stat</code>、检查器会强制你遵守的 <code>FsError.kind</code> 分类，以及 <code>regex.captures_all</code>。<code>std/string</code> 和 <code>std/array</code> 的大部分函数现在会把返回类型带入你的程序，所以 <code>string.split</code> 是 <code>Array&lt;string&gt;</code>，遍历它的循环绑定的是数字索引。<code>std/record</code> 也已建模，值的类型从你传入的记录上读取：对 <code>Record&lt;string, Array&lt;string&gt;&gt;</code> 调用 <code>record.get(t, k)</code> 得到 <code>Option&lt;Array&lt;string&gt;&gt;</code>，<code>record.keys(t)</code> 是 <code>Array&lt;string&gt;</code>，所以 <code>array.sort(record.keys(t), cmp)</code> 保留了元素类型。</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">边界在哪里</h3>
+          <p>导入私有名字时报告的是 &ldquo;not exported by M&rdquo;，和名字不存在时的报错相同；区分 &ldquo;私有，请标记为 <code>pub</code>&rdquo; 和 &ldquo;没有这个名字&rdquo; 是一项已排队的改进。可见性在类型注解上检查，而不检查通过命名空间读取的值：<code>helper</code> 是私有的时候，<code>lib.helper()</code> 仍然是 <code>tsc</code> 错误，而不是 Glyph 错误。异步上下文现在会检查（<code>E0222</code>），只有一处例外：模块级 <code>const</code> 初始化表达式没有外围可调用体，所以那里允许顶层 <code>await</code>，生成的 ESM 会执行它。分支类型合并仍然要求各分支的类型头部一致：当它们产生不同类型时，结果对 Glyph 来说是未知的，只有 <code>tsc</code> 会检查你怎样使用它。九个标准库函数处于同样的境地。其中六个接受一个可选的末尾参数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>），而参数个数检查只是拿一个数字和一个数字比较，所以为它们建模会在每个省略最后一个参数的调用上报出误报；<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 的元素类型来自回调，而检查器不会深入回调。直接从这九个函数得到的值，在按索引遍历之前需要加注解，对 <code>string.index_of</code> 的 <code>match</code> 如果没有 <code>None</code> 分支，仍然能干净地构建，并在运行时抛出异常。<code>array.index_of</code> 已经建模，确实会报告 <code>E0200</code>。对检查器无法确定类型的值，成员和调用参数个数在这个边界上仍不检查，而不是报错。在库这一侧，<code>string</code> 按 UTF-16 码元索引，和 <code>len</code> 与 <code>split</code> 一直以来的做法一样，这一点已经定下来：没有 <code>chars</code> 或 <code>char_at</code>，也不打算提供，因为返回的半个代理对在被写出之前看起来都像一个字符。用 <code>encoding.hex_encode</code> 编码，然后每次读取两个十六进制数字。<code>captures_all</code> 只返回捕获组，不返回偏移量，所以需要知道匹配从行中哪个位置开始的扫描器仍然要自己写循环；<code>fs.read_dir</code> 按操作系统的顺序返回条目，当输出需要可复现时请自行排序。嵌套字段模式还剩一个边界情况：通过命名空间导入访问的联合类型上，位于字段中、携带负载的构造函数。<code>import tree { Node }</code> 之后写 <code>Node({ left: Node({ key: k }) })</code> 能编译，而 <code>import tree</code> 之后写 <code>tree.Node({ left: tree.Node({ key: k }) })</code> 在同一个联合类型上报告 <code>E0300</code>。另一个边界情况已经解决：对自身类型参数泛型的联合类型（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）以前会拒绝不带参数的同一联合类型所接受的嵌套分支，现在无论是开放的类型参数还是具体的实例化都能接受。同一个查找过程还决定着 match 是否会检查缺少的变体，所以在这个版本之前，对 <code>Tree&lt;K&gt;</code> 的 <code>match</code> 可以省略 <code>Leaf</code>，干净地构建，通过 <code>tsc --strict</code>，然后在运行时抛出异常，而非泛型写法会报告 <code>E0200</code>。现在两种写法都会报告，而且把联合类型移到另一个模块再导入也不会改变答案：对导入的 <code>Tree&lt;string&gt;</code> 做 <code>match</code> 而省略 <code>Leaf</code>，会报告指出 <code>Leaf</code> 的 <code>E0200</code>，和导入的非泛型 <code>Tree</code> 一样。那是另一条代码路径，单独检查，在这个版本之前结果正好相反：干净地构建，在运行时抛出异常。关于导入的联合类型的覆盖检查，在依赖它之前还有一点值得了解：它的变体负载也从不检查，所以当 <code>X</code> 是负载自身联合类型的一个变体时，<code>B(X)</code> 会匹配每个 <code>B</code>，而不是报告缺少 <code>Y</code>，这一点与泛型无关。绑定字段，或者在字段中匹配不带负载的标签，在所有情况下都能工作。</p>
+        </div>
+      </div>

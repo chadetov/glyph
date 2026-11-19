@@ -1,0 +1,107 @@
+---
+title: 面向团队 · Glyph 保证什么、成本是什么 · Glyph
+description: 写给正在评估 Glyph 的负责人：编译器保证什么、在哪里止步，如何在 TypeScript 应用中引入它，如何退出，版本固定，以及 1.0 之前的状态。
+source_hash: d4a38356fad5c816
+next_steps: |
+  接下来去哪里
+  推荐 | /catches/ | catches | 看看 TypeScript 放过了什么 | 严格模式的 TypeScript 项目会接受的案例，按排名列出，每个都分别在 <code>tsc --strict</code> 和 Glyph 下运行。 | 查看案例
+  /start/ | start | 写第一个程序 | 安装、创建项目、运行、故意改错、读报错。大约十分钟。
+  /playground/ | playground | 在浏览器里试试 | 编译器直接在页面里运行，什么都不用安装。
+---
+      <p class="q-eyebrow">面向团队</p>
+      <h1 class="q-title">它保证什么，引入它的成本是什么，以及如何退出</h1>
+
+      <p class="short-answer">
+        Glyph 会拒绝一份具体的、经过检验的案例清单，这些案例在严格模式的 TypeScript 项目中都能通过；它编译出的 TypeScript 在你停用 Glyph 后也可以保留。它还是早期预览版：尚未到 1.0，主要由一个人维护，每周发布好几次。
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">它保证什么</h2>
+        <p>
+          关于 Glyph 能发现什么的每一条说法，都对应仓库 <code>catches/</code> 目录中的一个案例：同一个程序的 TypeScript 版和 Glyph 版，都由 CI 检查运行。{{catches:breakdown}} 在它不拒绝的错误中，{{catches:warned-all}} 个会给出警告，{{catches:boundary-all}} 个是在运行时边界检查处被拦下的错误数据，{{catches:runtime-all}} 个在运行时停下。审查智能体所写代码的人最依赖的是这些：
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>代码</th><th>被拒绝的内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>E0200</code></td><td data-label="What is refused">漏掉联合类型某种情况的 <code>match</code>，所以新增一种情况就会列出每个需要修改的地方</td></tr>
+            <tr><td data-label="Code"><code>E0013</code></td><td data-label="What is refused">类型断言（<code>as</code>、<code>as unknown as</code>）；没有类型断言，也没有 <code>any</code></td></tr>
+            <tr><td data-label="Code"><code>E0204</code></td><td data-label="What is refused">未经检查就赋给有类型的名字的 JSON 解析结果</td></tr>
+            <tr><td data-label="Code"><code>E0224</code></td><td data-label="What is refused">从 map 中读取，却当作键一定存在来对待</td></tr>
+            <tr><td data-label="Code"><code>E0217</code></td><td data-label="What is refused">被直接丢掉的 <code>Result</code>（警告；<code>let _ =</code> 表示是有意为之）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="/catches/">案例页面</a>列出了每个案例的 TypeScript 版、Glyph 版和报错，并说明哪些用配置拉满的 typescript-eslint 也能发现。
+        </p>
+
+        <h2 class="block-label">它在哪里止步</h2>
+        <p>
+          这些保证只覆盖用 Glyph 写的代码。npm 依赖内部抛出的异常仍然会绕过 <code>Result</code>，从包的 <code>.d.ts</code> 导入的类型也没有运行时检查。在 Glyph 内部，{{catches:gap-cases}} 个尚未堵上的漏洞连同 gap 编号都列在<a href="/catches/#not-yet">还发现不了的问题</a>中，完整清单见 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>。与严格模式 TypeScript 加 zod、eslint 和 ts-pattern 的比较（包括那套方案仍然领先的地方），见<a href="/answers/vs-tooled-ts/">为什么不用配齐工具的 TypeScript</a>。
+        </p>
+
+        <h2 class="block-label">在现有应用中引入</h2>
+        <p>
+          不需要重写。你把最不能出错的部分（模型、权限、状态转换、金额）用 Glyph 写，应用的其余部分仍是 TypeScript，像导入本地文件一样导入生成的模块。演示用的是一个标准的 Vite 脚手架：<a href="/answers/embedding/">能在现有应用里引入 Glyph 吗？</a>
+        </p>
+
+        <h2 class="block-label">如何退出</h2>
+        <p>
+          <code>glyph build</code> 写出普通的 TypeScript，每个模块一个文件，能通过 <code>tsc --strict</code>。如果你不再使用 Glyph，就把这些输出提交，然后继续用 <code>tsc</code>。许可证是 MIT 或 Apache-2.0，所以随时都可以 fork。<a href="/from-typescript/">从 TypeScript 迁移过来</a>展示了一个模块和它生成的文件。
+        </p>
+
+        <h2 class="block-label">版本固定与升级</h2>
+        <p>
+          <code>glyph init</code> 会在 <code>package.json</code> 中把编译器固定到确切版本，不带 <code>^</code>，所以不会有哪个版本意外进入你的构建。剩下的由三条命令处理：
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">有意识地升级</span>
+<pre>glyph doctor     <span class="cm"># your version against the latest release; never fails CI for that</span>
+glyph upgrade    <span class="cm"># moves the project's pin, runs npm install, links the notes</span>
+glyph --update   <span class="cm"># moves the installed compiler itself</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          详见<a href="/answers/upgrades/">新的 Glyph 版本会破坏我的构建吗？</a>
+        </p>
+
+        <h2 class="block-label">发布节奏和 Breaking 标记</h2>
+        <p>
+          <a href="/versions/">版本页面</a>为从 0.1.0 到 {{releases:latest}} 的每个版本都写了条目，共 {{releases:count}} 个，其中 22 个发布于 2026 年 11 月（截至 19 日）。如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking，大多数正确性修复都是这样落地的。共有 {{releases:breaking}} 个条目带有这个标记。标记的依据是在两个版本下分别运行受影响的最小程序，而不是阅读 diff；0.1.99 之前的版本没有这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。
+        </p>
+        <p>
+          Breaking 版本在实践中造成了多少影响：最近的每条说明都写了用新旧两个版本运行仓库示例应用时发生了什么。下面是最新的几个 Breaking 版本，引自它们的说明：
+        </p>
+{{releases:breaking-cost}}
+        <p>
+          示例应用是项目自己的代码，每个版本都保持能编译，所以新拒绝的写法出现在它们里面的可能性，比出现在你的代码里要小。每条说明都会列出它拒绝的写法，升级前请先读一读。
+        </p>
+
+        <h2 class="block-label">状态</h2>
+        <p>
+          Glyph 还在 1.0 之前。1.0 之前，语法、标准库和生成的 TypeScript 的形式都可能变化，某个版本也可能拒绝以前能编译的代码。<a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a> 说明了哪些可能变化、哪些保持稳定。<a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a> 直接写明，项目目前主要由一个人维护。
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">常见顾虑</h2>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/human-value/"><span class="q">我们不怎么用 AI，还值得用吗？</span><p>无论代码是谁写的，检查都一样：更少的运行时意外，更小的 diff，可以 grep 的代码。</p></a>
+        <a class="a-card" href="/answers/vs-tooled-ts/"><span class="q">我们已经在用严格模式的 TypeScript 和 lint 了。</span><p>那些检查每一项都需要主动打开，而且一行就能关掉。Glyph 的检查关不掉。</p></a>
+        <a class="a-card" href="/answers/ai-authoring/"><span class="q">我们的智能体能写一门它们几乎没见过的语言吗？</span><p>模型对 TypeScript 的了解大多能直接沿用，其余的由编译器指出来。</p></a>
+        <a class="a-card" href="/answers/why-typescript/"><span class="q">为什么要编译到 TypeScript？</span><p>npm、React 和 Node 都在那里，这也是为什么可以一个文件一个文件地引入。</p></a>
+        <a class="a-card" href="/answers/debugging/"><span class="q">出问题时，值班的人会看到什么？</span><p>可读的 TypeScript，指回 <code>.glyph</code> 文件的 source map，以及稳定的错误码。</p></a>
+        <a class="a-card" href="/evidence/"><span class="q">我们怎么知道这些都是真的？</span><p>本站每条说法是怎样验证的，以及如何自己复现。</p></a>
+      </div>

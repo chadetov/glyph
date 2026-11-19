@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/long-running/index.html",
+  "locale": "zh-cn",
+  "source_hash": "babc2c3ac5bb52bc",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a server, or does the process just exit? · Glyph",
+      "tr": "能写服务器吗，还是进程直接就退出了？ · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.",
+      "tr": "Glyph 程序可以是长时间运行的服务器。main 完成初始化后返回；只要还有挂起的 socket 和定时器，进程就保持运行，和 Node 的做法完全一样。"
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; 上一篇"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "能写一个让人输入命令的程序吗？"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "下一篇 &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "能处理二进制数据吗，还是一切都是字符串？"
+    },
+    {
+      "id": "h-d7b98512",
+      "kind": "html",
+      "en": "19 &middot; Servers &amp; daemons",
+      "tr": "19 &middot; 服务器与守护进程"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "能写服务器吗，还是进程直接就退出了？"
+    },
+    {
+      "id": "h-357d442e",
+      "kind": "html",
+      "en": "You can write a server. <code>main</code> sets things up and returns, and the process <strong>stays alive while sockets and timers are still pending</strong>, the same rule Node uses. Until 0.1.63 it did not: the runner tore the process down the moment <code>main</code> returned, so a server bound its port and died in the same tick.",
+      "tr": "可以写服务器。<code>main</code> 完成初始化后返回，<strong>只要还有挂起的 socket 和定时器，进程就保持运行</strong>，和 Node 用的是同一条规则。在 0.1.63 之前并非如此：<code>main</code> 一返回，运行器就结束进程，所以服务器绑定端口后在同一个 tick 里就退出了。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "h-802abf2b",
+      "kind": "html",
+      "en": "This is the difference between a language that can run a script and one that can run a service. A server, a file watcher, a bot holding a gateway connection, a job runner: none of them finish inside <code>main</code>. They set up handlers and hand the process over to events.",
+      "tr": "这就是能运行脚本的语言和能运行服务的语言之间的区别。服务器、文件监视器、保持网关连接的机器人、任务运行器：它们都不会在 <code>main</code> 里结束。它们设置好处理函数，然后把进程交给事件。"
+    },
+    {
+      "id": "h-ddc1b8fa",
+      "kind": "html",
+      "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
+      "tr": "旧的行为以最糟糕的方式失败，也就是悄无声息。<code>glyph run app.glyph --serve 4100</code> 什么都不打印，连 <code>listen</code> 回调里的那一行都没有，然后以 0 退出。源码看起来没有任何问题，类型检查也通过了。遇到这种情况的智能体没有错误可报告，也没有理由认为有什么失败了。"
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "看看实际效果"
+    },
+    {
+      "id": "h-fbc29a6a",
+      "kind": "html",
+      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
+      "tr": "一个完整的 TCP 服务器。<code>main</code> 立即返回；只要进程还在，回调就会运行："
+    },
+    {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "一个服务器，从头到尾"
+    },
+    {
+      "id": "h-4c1b7d58",
+      "kind": "html",
+      "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
+      "tr": "<code>net</code> 是 Node 内置模块，所以它是普通的导入，但它不在编译器自带环境类型的六个模块（<code>fs</code>、<code>http</code>、<code>path</code>、<code>os</code>、<code>crypto</code>、<code>url</code>）之列。你可以安装 <code>@types/node</code>，构建会优先使用它；也可以在源码旁边放一个 <code>.types/net.d.ts</code> 声明，聊天应用就是这么做的，所以它完全不需要依赖。"
+    },
+    {
+      "id": "h-4c982701",
+      "kind": "html",
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "有两点值得了解。<code>return 0</code> 在第一个客户端连接之前就执行了：它是进程最终退出时使用的退出码，而不是说明进程何时退出。另外，任何在 <code>main</code> 返回<em>之后</em>才失败的东西都必须自己设置退出码，因为 <code>main</code> 的返回值已经用掉了。<code>error</code> 处理函数就是为此而设。没有它，一个无法绑定端口的服务器会在事件循环清空后以 0 退出，报告成功。"
+    },
+    {
+      "id": "h-b957e585",
+      "kind": "html",
+      "en": "A real one",
+      "tr": "一个真实的例子"
+    },
+    {
+      "id": "h-e196848d",
+      "kind": "html",
+      "en": "<code>examples/apps/chat</code> is a chat server holding several TCP clients at once. The parts that do not touch the network stay separate and testable: line reassembly, routing, and the room engine are pure functions checked by <code>@example</code>, and one file talks to sockets.",
+      "tr": "<code>examples/apps/chat</code> 是一个同时连接多个 TCP 客户端的聊天服务器。不涉及网络的部分保持独立、可测试：行重组、路由和聊天室引擎都是纯函数，由 <code>@example</code> 检查，只有一个文件与 socket 打交道。"
+    },
+    {
+      "id": "h-bfe5fdf1",
+      "kind": "html",
+      "en": "Three clients connected at once",
+      "tr": "三个客户端同时连接"
+    },
+    {
+      "id": "h-6ad09c69",
+      "kind": "html",
+      "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
+      "tr": "TCP 传递的不是消息，而是字节，所以一个数据块的末尾通常是半行。行重组是一个纯函数，棘手的情况都以示例的形式写下来，而不是通过 socket 去触发："
+    },
+    {
+      "id": "h-02e0830c",
+      "kind": "html",
+      "en": "The other direction: a long-running client",
+      "tr": "反方向：长时间运行的客户端"
+    },
+    {
+      "id": "h-468113df",
+      "kind": "html",
+      "en": "A bot is the same shape pointed outward. <code>examples/apps/discord</code> is a Discord gateway client: it connects over a WebSocket, identifies, heartbeats on the interval the server dictates, tracks a sequence number so a dropped connection resumes rather than starting over, notices when the connection is open but dead, and backs off between reconnects.",
+      "tr": "机器人是同样的结构，只是方向朝外。<code>examples/apps/discord</code> 是一个 Discord 网关客户端：它通过 WebSocket 连接、发送身份信息、按服务器指定的间隔发送心跳、记录序列号以便断线后恢复而不是从头开始、发现连接虽然打开但已经失效的情况，并在重连之间退避。"
+    },
+    {
+      "id": "h-39d6dc9e",
+      "kind": "html",
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "值得借鉴的是逻辑放在哪里。如何应对 <code>RECONNECT</code>、错过的心跳或被拒绝的令牌，是一个纯函数：输入一个会话和一个事件，输出新的会话和一组动作。由一个模块在真实的 socket 上执行这些动作。正因如此，重连逻辑这个最难写对的部分是由 <code>@example</code> 检查的，而不是靠拔网线："
+    },
+    {
+      "id": "h-eb9066f0",
+      "kind": "html",
+      "en": "Those three examples are each a bug that was in the code first. Writing a mock gateway and pointing the bot at it caught one of them. The other two were caught by a second mock written from Discord's documentation instead of from the client, which sends the things a cooperative mock never does: an unprompted heartbeat request, and a close code that means \"your token is wrong, stop asking\". A mock written by the author of the client only tests the parts of the protocol the author read.",
+      "tr": "这三个示例原本都是代码中的 bug。编写一个模拟网关并让机器人连接它，发现了其中一个。另外两个是由第二个模拟网关发现的，它依据 Discord 的文档编写，而不是依据客户端编写，因此会发送配合型的模拟网关从不发送的东西：一个未经请求的心跳请求，以及一个意思是“你的令牌不对，别再问了”的关闭码。由客户端作者编写的模拟网关，只能测试作者读过的那部分协议。"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "当前状态"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "现已提供"
+    },
+    {
+      "id": "h-3954ea38",
+      "kind": "html",
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "从 <code>main</code> 返回会设置退出码，但不会停止进程，所以服务器、监视器和事件循环都能运行。只做计算的程序仍然在 <code>main</code> 返回时以同样的退出码立即退出，所以短程序的行为没有任何变化。像 <code>net</code> 这样的 Node 内置模块是普通导入；在初始化期间抛出异常的程序仍然会终止，而且现在会在它的诊断写入管道连接的 stderr 之后才终止，而不是可能被退出截断。<code>std/timers</code> 负责调度工作（<code>after</code>、<code>every</code>、<code>cancel</code>、<code>unref</code>），<code>std/websocket</code> 负责打开连接，所以两者都不需要手写声明。"
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "正在改进"
+    },
+    {
+      "id": "h-5f8ed8fa",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "在 <code>main</code> 返回后才绑定失败的监听器会以 0 退出，除非程序另行指定：<code>process.set_exit_code(1)</code> 记录失败而不中断仍在进行的工作，<code>process.exit(1)</code> 则立即停止。编译器目前还不能提醒你忘了这一步。另外，现在仍然无法声明一个函数不会返回，所以服务器的 <code>main</code> 带着一个永远执行不到的 <code>return 0</code>。"
+    }
+  ]
+}

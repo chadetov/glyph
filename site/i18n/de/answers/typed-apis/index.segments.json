@@ -1,0 +1,968 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/typed-apis/index.html",
+  "locale": "de",
+  "source_hash": "e5583b6a5d857445",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Do I have to hand-write a validator for every API? · Glyph",
+      "tr": "Muss ich für jede API einen Validator von Hand schreiben? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "No. In Glyph a type is its own runtime validator, so request and response bodies are checked with no validator to write, and the types can come from an OpenAPI spec or a .d.ts.",
+      "tr": "Nein. In Glyph ist ein Typ sein eigener Laufzeitvalidator, also werden Request- und Response-Bodys geprüft, ohne dass du einen Validator schreibst, und die Typen können aus einer OpenAPI-Spezifikation oder einer .d.ts kommen."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Zurück"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I adopt Glyph inside my existing app, or is it all-or-nothing?",
+      "tr": "Kann ich Glyph in meiner bestehenden App einführen, oder heißt es alles oder nichts?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Weiter &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I generate a typed client and server from my API spec?",
+      "tr": "Kann ich aus meiner API-Spezifikation einen typisierten Client und Server generieren?"
+    },
+    {
+      "id": "h-58ac443b",
+      "kind": "html",
+      "en": "11 &middot; Data boundaries",
+      "tr": "11 &middot; Datengrenzen"
+    },
+    {
+      "id": "h-01f55cfa",
+      "kind": "html",
+      "en": "Do I have to hand-write a validator for every API?",
+      "tr": "Muss ich für jede API einen Validator von Hand schreiben?"
+    },
+    {
+      "id": "h-4f149dea",
+      "kind": "html",
+      "en": "No. In Glyph a <strong>type is its own validator</strong>. Declare a <code>type</code> and the compiler generates a runtime descriptor beside it, so an untrusted request or response body validates with one call, no separate <code>zod</code> schema to write and keep in sync.",
+      "tr": "Nein. In Glyph ist ein <strong>Typ sein eigener Validator</strong>. Deklariere einen <code>type</code>, und der Compiler erzeugt daneben einen Laufzeit-Deskriptor, also validiert ein nicht vertrauenswürdiger Request- oder Response-Body mit einem Aufruf, ohne separates <code>zod</code>-Schema, das du schreiben und synchron halten musst."
+    },
+    {
+      "id": "h-54e32a63",
+      "kind": "html",
+      "en": "Untrusted body",
+      "tr": "Nicht vertrauenswürdiger Body"
+    },
+    {
+      "id": "h-d0cdd397",
+      "kind": "html",
+      "en": "unknown, e.g. {\"title\": 123}",
+      "tr": "unknown, z. B. {\"title\": 123}"
+    },
+    {
+      "id": "h-219915ba",
+      "kind": "html",
+      "en": "Descriptor",
+      "tr": "Deskriptor"
+    },
+    {
+      "id": "h-f830662c",
+      "kind": "html",
+      "en": "generated from <code>type NewTask</code>",
+      "tr": "erzeugt aus <code>type NewTask</code>"
+    },
+    {
+      "id": "h-843ac011",
+      "kind": "html",
+      "en": "Ok",
+      "tr": "Ok"
+    },
+    {
+      "id": "h-0931505e",
+      "kind": "html",
+      "en": "NewTask",
+      "tr": "NewTask"
+    },
+    {
+      "id": "h-d84444a0",
+      "kind": "html",
+      "en": "a typed value, every field checked",
+      "tr": "ein typisierter Wert, jedes Feld geprüft"
+    },
+    {
+      "id": "h-f265d4d8",
+      "kind": "html",
+      "en": "Err",
+      "tr": "Err"
+    },
+    {
+      "id": "h-8471a8b6",
+      "kind": "html",
+      "en": "the bad body stops here",
+      "tr": "der fehlerhafte Body endet hier"
+    },
+    {
+      "id": "h-724d7fd8",
+      "kind": "html",
+      "en": "<span>One declaration, one check. The descriptor is generated from the type, so the two can't disagree, and the only way to a <code>NewTask</code> is through it.</span>",
+      "tr": "<span>Eine Deklaration, eine Prüfung. Der Deskriptor wird aus dem Typ erzeugt, also können die beiden sich nicht widersprechen, und der einzige Weg zu einem <code>NewTask</code> führt durch ihn.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-3fca475a",
+      "kind": "html",
+      "en": "<a href=\"#see-it\">See it</a>",
+      "tr": "<a href=\"#see-it\">So sieht es aus</a>"
+    },
+    {
+      "id": "h-83bec415",
+      "kind": "html",
+      "en": "<a href=\"#the-parse-result-is-an-ordinary-result\">An ordinary Result</a>",
+      "tr": "<a href=\"#the-parse-result-is-an-ordinary-result\">Ein gewöhnliches Result</a>"
+    },
+    {
+      "id": "h-9c0a6e93",
+      "kind": "html",
+      "en": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">Combinators</a>",
+      "tr": "<a href=\"#composing-your-own-the-output-type-is-derived-not-trusted\">Kombinatoren</a>"
+    },
+    {
+      "id": "h-c4c8771e",
+      "kind": "html",
+      "en": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">Dates</a>",
+      "tr": "<a href=\"#if-i-parse-a-date-do-i-get-a-real-date\">Datumswerte</a>"
+    },
+    {
+      "id": "h-153170fe",
+      "kind": "html",
+      "en": "<a href=\"#you-don-t-even-have-to-write-the-types\">Generated types</a>",
+      "tr": "<a href=\"#you-don-t-even-have-to-write-the-types\">Generierte Typen</a>"
+    },
+    {
+      "id": "h-5a6809fd",
+      "kind": "html",
+      "en": "<a href=\"#the-database-is-a-boundary-too\">Databases</a>",
+      "tr": "<a href=\"#the-database-is-a-boundary-too\">Datenbanken</a>"
+    },
+    {
+      "id": "h-b639c008",
+      "kind": "html",
+      "en": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhooks</a>",
+      "tr": "<a href=\"#a-signed-webhook-is-a-boundary-too\">Webhooks</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Wo es steht</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
+      "id": "h-3ee97857",
+      "kind": "html",
+      "en": "In most TypeScript stacks every payload is described <em>twice</em>: once as a <code>type</code> for the compiler, and again as a hand-written validator so the value is actually that shape at runtime.",
+      "tr": "In den meisten TypeScript-Stacks wird jeder Payload <em>zweimal</em> beschrieben: einmal als <code>type</code> für den Compiler und noch einmal als handgeschriebener Validator, damit der Wert zur Laufzeit tatsächlich diese Form hat."
+    },
+    {
+      "id": "h-4f479c04",
+      "kind": "html",
+      "en": "The two drift, and the drift is exactly where bad data slips in. Glyph collapses them into one declaration: the type <em>produces</em> the validator, so they cannot disagree.",
+      "tr": "Die beiden laufen auseinander, und genau dort rutschen fehlerhafte Daten durch. Glyph legt sie zu einer Deklaration zusammen: Der Typ <em>erzeugt</em> den Validator, also können sie sich nicht widersprechen."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "So sieht es aus"
+    },
+    {
+      "id": "h-17ed9f60",
+      "kind": "html",
+      "en": "Declare the DTO once. Its descriptor gives you <code>.parse</code> (validate an untrusted value into the type) and <code>.is</code> (a type guard), with nothing else to write:",
+      "tr": "Deklariere das DTO einmal. Sein Deskriptor gibt dir <code>.parse</code> (einen nicht vertrauenswürdigen Wert in den Typ validieren) und <code>.is</code> (einen Type Guard), ohne dass du sonst etwas schreiben musst:"
+    },
+    {
+      "id": "h-aed6522a",
+      "kind": "html",
+      "en": "what you did <em>not</em> write",
+      "tr": "was du <em>nicht</em> geschrieben hast"
+    },
+    {
+      "id": "h-e2d225d4",
+      "kind": "html",
+      "en": "Keep the typed value after the <code>match</code>",
+      "tr": "Den typisierten Wert nach dem <code>match</code> behalten"
+    },
+    {
+      "id": "h-fbc6c868",
+      "kind": "html",
+      "en": "You can also pull the value out instead of doing the work inside the arm.",
+      "tr": "Du kannst den Wert auch herausziehen, statt die Arbeit im Arm zu erledigen."
+    },
+    {
+      "id": "h-2f288262",
+      "kind": "html",
+      "en": "api.glyph: the value leaves the match typed",
+      "tr": "api.glyph: Der Wert verlässt das match typisiert"
+    },
+    {
+      "id": "h-90be60e1",
+      "kind": "html",
+      "en": "since 0.1.45",
+      "tr": "seit 0.1.45"
+    },
+    {
+      "id": "h-896bc2d4",
+      "kind": "html",
+      "en": "generic types: not yet",
+      "tr": "generische Typen: noch nicht"
+    },
+    {
+      "id": "h-8cb9b8d1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the type is carried, and the generic exception</span>",
+      "tr": "Details <span class=\"hint\">wie der Typ mitgetragen wird, und die generische Ausnahme</span>"
+    },
+    {
+      "id": "h-546a2fe9",
+      "kind": "html",
+      "en": "<code>T.parse</code> is typed as <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> and a <code>match</code> whose arms agree carries their type, so <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> gives you a <code>NewTask</code> for the rest of the function, with field names checked by Glyph rather than by <code>tsc</code> on the generated TypeScript. That landed in 0.1.45; before it, the value went untyped once it left the <code>match</code>. A generic type's <code>parse</code> is the one that still doesn't, because its descriptor takes a runtime checker per type parameter.",
+      "tr": "<code>T.parse</code> ist als <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> typisiert, und ein <code>match</code>, dessen Arme übereinstimmen, trägt ihren Typ, also gibt dir <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues) =&gt; { return bad_request(issues) }, }</code> ein <code>NewTask</code> für den Rest der Funktion, mit Feldnamen, die von Glyph geprüft werden statt von <code>tsc</code> am erzeugten TypeScript. Das kam in 0.1.45; davor war der Wert untypisiert, sobald er das <code>match</code> verließ. Das <code>parse</code> eines generischen Typs ist dasjenige, bei dem es noch nicht so ist, weil sein Deskriptor pro Typparameter einen Laufzeit-Checker nimmt."
+    },
+    {
+      "id": "h-fcc2b50a",
+      "kind": "html",
+      "en": "The parse result is an ordinary <code>Result</code>",
+      "tr": "Das Parse-Ergebnis ist ein gewöhnliches <code>Result</code>"
+    },
+    {
+      "id": "h-debf3e49",
+      "kind": "html",
+      "en": "In Glyph <code>T.parse</code> returns the same <code>Result</code> every fallible function in the language returns, so you hand it straight back, run it through <code>map_err</code> to turn validation issues into your own error type, or propagate it with <code>?</code>.",
+      "tr": "In Glyph gibt <code>T.parse</code> dasselbe <code>Result</code> zurück wie jede andere Funktion der Sprache, die fehlschlagen kann, also reichst du es direkt zurück, schickst es durch <code>map_err</code>, um Validierungsprobleme in deinen eigenen Fehlertyp zu verwandeln, oder reichst es mit <code>?</code> weiter."
+    },
+    {
+      "id": "h-d7353c82",
+      "kind": "html",
+      "en": "what this replaced",
+      "tr": "was das ersetzt hat"
+    },
+    {
+      "id": "h-cb13e42e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the runtime cost of using Result here</span>",
+      "tr": "Details <span class=\"hint\">die Laufzeitkosten, hier Result zu verwenden</span>"
+    },
+    {
+      "id": "h-b84ab010",
+      "kind": "html",
+      "en": "A validator that gives you back a value in its own private shape is only half useful, because the rest of your error handling can't touch it. Nothing about a parse result is special.",
+      "tr": "Ein Validator, der dir einen Wert in seiner eigenen privaten Form zurückgibt, ist nur halb nützlich, weil der Rest deiner Fehlerbehandlung nichts damit anfangen kann. An einem Parse-Ergebnis ist nichts Besonderes."
+    },
+    {
+      "id": "h-202a257e",
+      "kind": "html",
+      "en": "The reason it was ever otherwise: a descriptor is generated next to your <code>type</code>, and emitting the bare object kept a module that declares a type from depending on <code>std/result</code> at runtime. That trade is now made the other way. A module with a <code>pub type</code> in it carries an import of <code>std/result</code> whether or not it ever writes <code>Result</code>, and a <code>parse</code> call allocates the combinator closures any <code>Ok(...)</code> allocates. What you get for it is that the validated boundary and the rest of your error handling are the same API.",
+      "tr": "Der Grund, warum es je anders war: Ein Deskriptor wird neben deinem <code>type</code> erzeugt, und das bloße Objekt auszugeben hielt ein Modul, das einen Typ deklariert, frei von einer Laufzeitabhängigkeit auf <code>std/result</code>. Dieser Tausch wird jetzt andersherum gemacht. Ein Modul mit einem <code>pub type</code> trägt einen Import von <code>std/result</code>, ob es je <code>Result</code> schreibt oder nicht, und ein Aufruf von <code>parse</code> allokiert die Kombinator-Closures, die jedes <code>Ok(...)</code> allokiert. Was du dafür bekommst: Die validierte Grenze und der Rest deiner Fehlerbehandlung sind dieselbe API."
+    },
+    {
+      "id": "h-096368d0",
+      "kind": "html",
+      "en": "Composing your own: the output type is derived, not trusted",
+      "tr": "Eigene Kombinatoren: Der Ausgabetyp wird abgeleitet, nicht blind übernommen"
+    },
+    {
+      "id": "h-53401471",
+      "kind": "html",
+      "en": "Glyph's <code>infer_output&lt;Shape&gt;</code> <strong>derives</strong> the output type from the shape, and <code>tsc</code> checks your annotation against it. A shape that omits a field of the type you claim doesn't compile:",
+      "tr": "Glyphs <code>infer_output&lt;Shape&gt;</code> <strong>leitet</strong> den Ausgabetyp aus der Form ab, und <code>tsc</code> prüft deine Annotation dagegen. Eine Form, der ein Feld des behaupteten Typs fehlt, kompiliert nicht:"
+    },
+    {
+      "id": "h-cdab955e",
+      "kind": "html",
+      "en": "the drift Glyph removes",
+      "tr": "das Auseinanderlaufen, das Glyph beseitigt"
+    },
+    {
+      "id": "h-17758042",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the TypeScript trap, and the cast that follows the return since 0.1.92</span>",
+      "tr": "Details <span class=\"hint\">die TypeScript-Falle, und der Cast, der seit 0.1.92 dem Return folgt</span>"
+    },
+    {
+      "id": "h-8f9b11ff",
+      "kind": "html",
+      "en": "Sometimes you want a <code>zod</code>-style combinator: build a validator by composing smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the <em>shape</em> you passed it drift apart. You write the shape, then repeat yourself in a second type parameter, and nothing checks that they agree.",
+      "tr": "Manchmal willst du einen Kombinator im Stil von <code>zod</code>: einen Validator, der aus kleineren zusammengesetzt wird. Die Falle in TypeScript ist, dass der <em>Ausgabetyp</em> des Kombinators und die <em>Form</em>, die du ihm übergeben hast, auseinanderlaufen. Du schreibst die Form und wiederholst dich dann in einem zweiten Typparameter, und nichts prüft, ob sie übereinstimmen."
+    },
+    {
+      "id": "h-83a7d8e0",
+      "kind": "html",
+      "en": "The derived type holds however the combinator returns. <code>infer_output</code> needs one cast at the function's boundary, because the body builds a value the type system can't prove carries the shape-derived type, and the compiler writes that cast for you. Through 0.1.91 it was attached to a plain <code>return &lt;value&gt;</code>. Put a <code>match</code> between the <code>return</code> and the value, or end the body in <code>r?</code>, and the same function stopped compiling: a <code>TS2322</code> against generated TypeScript, over Glyph the compiler had already accepted. As of 0.1.92 the cast follows the return rather than its spelling, so <code>return match strict { ... }</code> type-checks the same as the single <code>return</code> spelling of the identical body.",
+      "tr": "Der abgeleitete Typ gilt, egal wie der Kombinator zurückkehrt. <code>infer_output</code> braucht einen Cast an der Grenze der Funktion, weil der Rumpf einen Wert baut, von dem das Typsystem nicht beweisen kann, dass er den aus der Form abgeleiteten Typ hat, und der Compiler schreibt diesen Cast für dich. Bis 0.1.91 hing er an einem einfachen <code>return &lt;value&gt;</code>. Setz ein <code>match</code> zwischen das <code>return</code> und den Wert, oder lass den Rumpf mit <code>r?</code> enden, und dieselbe Funktion kompilierte nicht mehr: ein <code>TS2322</code> am erzeugten TypeScript, für Glyph, das der Compiler schon akzeptiert hatte. Seit 0.1.92 folgt der Cast dem Return statt seiner Schreibweise, also besteht <code>return match strict { ... }</code> die Typprüfung genauso wie die Schreibweise mit einem einzigen <code>return</code> desselben Rumpfs."
+    },
+    {
+      "id": "h-78df86c8",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary",
+      "tr": "Der Rest der nicht vertrauenswürdigen Grenze"
+    },
+    {
+      "id": "h-6969498d",
+      "kind": "html",
+      "en": "The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a JSON string and it parses <em>and</em> validates in one step.",
+      "tr": "Der Deskriptor ist derselbe, der <code>json.parse&lt;T&gt;</code> sicher macht: Gib ihm einen JSON-String, und er parst <em>und</em> validiert in einem Schritt."
+    },
+    {
+      "id": "h-36ecb4f8",
+      "kind": "html",
+      "en": "Input",
+      "tr": "Eingabe"
+    },
+    {
+      "id": "h-d6e645b7",
+      "kind": "html",
+      "en": "Call",
+      "tr": "Aufruf"
+    },
+    {
+      "id": "h-16dcaa92",
+      "kind": "html",
+      "en": "Returns",
+      "tr": "Gibt zurück"
+    },
+    {
+      "id": "h-8dd46ffe",
+      "kind": "html",
+      "en": "A JSON string",
+      "tr": "Ein JSON-String"
+    },
+    {
+      "id": "h-f1b6cf5f",
+      "kind": "html",
+      "en": "A decoded body",
+      "tr": "Ein dekodierter Body"
+    },
+    {
+      "id": "h-af8848ff",
+      "kind": "html",
+      "en": "A header",
+      "tr": "Ein Header"
+    },
+    {
+      "id": "h-2c7025a0",
+      "kind": "html",
+      "en": "A query parameter",
+      "tr": "Ein Query-Parameter"
+    },
+    {
+      "id": "h-eea770a1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">request bodies, headers and query parameters</span>",
+      "tr": "Details <span class=\"hint\">Request-Bodys, Header und Query-Parameter</span>"
+    },
+    {
+      "id": "h-17daad44",
+      "kind": "html",
+      "en": "A request body arrives already decoded as an <code>unknown</code>, so there you reach for <code>T.parse(value)</code> instead: same guarantee, no cast.",
+      "tr": "Ein Request-Body kommt schon dekodiert als <code>unknown</code> an, also greifst du dort stattdessen zu <code>T.parse(value)</code>: dieselbe Garantie, kein Cast."
+    },
+    {
+      "id": "h-751631d4",
+      "kind": "html",
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
+      "tr": "Der Rest der nicht vertrauenswürdigen Grenze ist genauso typisiert: <code>header(req, name)</code> und <code>query_param(req, name)</code> geben <code>Option&lt;string&gt;</code> zurück, also ist ein fehlender Header oder Query-Parameter <code>None</code>, und das <code>match</code> <em>zwingt</em> dich, das zu behandeln. Lass den <code>None</code>-Arm weg, und es kompiliert nicht. Eine fehlende Eingabe lässt sich nicht so lesen, als wäre sie vorhanden."
+    },
+    {
+      "id": "h-c5c56180",
+      "kind": "html",
+      "en": "Does a map keyed by an enum check its keys?",
+      "tr": "Prüft eine Map mit einem Enum als Schlüssel ihre Schlüssel?"
+    },
+    {
+      "id": "h-1343a23f",
+      "kind": "html",
+      "en": "Yes, since 0.1.148. A <code>Record&lt;Tier, int&gt;</code> with <code>type Tier = \"free\" | \"pro\"</code> parses only an object whose keys are exactly <code>free</code> and <code>pro</code>: a stray key and a missing one are both an <code>Err</code>, which is also what <code>tsc</code> says about the same object written as a literal.",
+      "tr": "Ja, seit 0.1.148. Ein <code>Record&lt;Tier, int&gt;</code> mit <code>type Tier = \"free\" | \"pro\"</code> parst nur ein Objekt, dessen Schlüssel genau <code>free</code> und <code>pro</code> sind: Ein überzähliger und ein fehlender Schlüssel sind beide ein <code>Err</code>, und genau das sagt auch <code>tsc</code> über dasselbe Objekt, wenn es als Literal geschrieben ist."
+    },
+    {
+      "id": "h-90bb1f8c",
+      "kind": "html",
+      "en": "Key type",
+      "tr": "Schlüsseltyp"
+    },
+    {
+      "id": "h-d87876b6",
+      "kind": "html",
+      "en": "What <code>parse</code> checks on each key",
+      "tr": "Was <code>parse</code> bei jedem Schlüssel prüft"
+    },
+    {
+      "id": "h-3f0b83d0",
+      "kind": "html",
+      "en": "A string-literal union",
+      "tr": "Eine Union aus String-Literalen"
+    },
+    {
+      "id": "h-ecab195d",
+      "kind": "html",
+      "en": "exactly the listed keys, none missing, none extra",
+      "tr": "genau die aufgeführten Schlüssel, keiner fehlt, keiner zu viel"
+    },
+    {
+      "id": "h-356bbed3",
+      "kind": "html",
+      "en": "A <code>where</code>-refined type",
+      "tr": "Ein mit <code>where</code> verfeinerter Typ"
+    },
+    {
+      "id": "h-d1db2150",
+      "kind": "html",
+      "en": "the predicate",
+      "tr": "das Prädikat"
+    },
+    {
+      "id": "h-28ded56e",
+      "kind": "html",
+      "en": "the plain spelling of a whole number; <code>\"01\"</code> and <code>\"1.5\"</code> fail",
+      "tr": "die einfache Schreibweise einer ganzen Zahl; <code>\"01\"</code> und <code>\"1.5\"</code> scheitern"
+    },
+    {
+      "id": "h-b61a7b5c",
+      "kind": "html",
+      "en": "nothing new",
+      "tr": "nichts Neues"
+    },
+    {
+      "id": "h-14b46ac0",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
+      "tr": "Details <span class=\"hint\">verfeinerte und int-Schlüssel, und was noch tsc überlassen bleibt</span>"
+    },
+    {
+      "id": "h-906e9c5a",
+      "kind": "html",
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "Ein mit <code>where</code> verfeinerter Schlüsseltyp führt sein Prädikat auf jedem Schlüssel aus, und ein <code>int</code>-Schlüssel muss die einfache Schreibweise einer ganzen Zahl sein, also werden <code>\"01\"</code> und <code>\"1.5\"</code> abgelehnt. Ein <code>Record&lt;string, V&gt;</code> wird genau wie vorher geprüft. Glyphs eigener Checker überlässt die Schlüssel eines Werts, den du im Code schreibst, weiterhin <code>tsc</code>, und ein generischer Record, dessen Schlüssel sein eigener Typparameter ist, wird abgelehnt, es sei denn, dieser Parameter ist <code>string</code>."
+    },
+    {
+      "id": "h-efd6b0f9",
+      "kind": "html",
+      "en": "If I parse a date, do I get a real date?",
+      "tr": "Wenn ich ein Datum parse, bekomme ich ein echtes Datum?"
+    },
+    {
+      "id": "h-ba916739",
+      "kind": "html",
+      "en": "Yes, and the interesting part is what you get back for input that isn't one. <code>time.parse_iso</code> returns <code>Option&lt;number&gt;</code>, and it is <code>None</code> for everything that is not ISO-8601.",
+      "tr": "Ja, und der interessante Teil ist, was du für eine Eingabe zurückbekommst, die keins ist. <code>time.parse_iso</code> gibt <code>Option&lt;number&gt;</code> zurück, und es ist <code>None</code> für alles, was nicht ISO-8601 ist."
+    },
+    {
+      "id": "h-070c160a",
+      "kind": "html",
+      "en": "accepted",
+      "tr": "akzeptiert"
+    },
+    {
+      "id": "h-164ac8b3",
+      "kind": "html",
+      "en": "None, every one of them",
+      "tr": "None, für jede davon"
+    },
+    {
+      "id": "h-1f74fd41",
+      "kind": "html",
+      "en": "The last one is the one that surprises people, and it is the whole point. A datetime with no <code>Z</code> and no <code>+HH:MM</code> offset is local time by the ECMAScript grammar, so accepting it would mean the same string names a different calendar day depending on which machine ran the program.",
+      "tr": "Die letzte überrascht die Leute, und genau darum geht es. Ein Datum mit Uhrzeit ohne <code>Z</code> und ohne <code>+HH:MM</code>-Offset ist nach der ECMAScript-Grammatik Ortszeit, also hieße es zu akzeptieren, dass derselbe String je nach Rechner, auf dem das Programm lief, einen anderen Kalendertag bezeichnet."
+    },
+    {
+      "id": "h-77b099e1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what Date.parse does instead, and why UTC</span>",
+      "tr": "Details <span class=\"hint\">was Date.parse stattdessen tut, und warum UTC</span>"
+    },
+    {
+      "id": "h-9aa02d61",
+      "kind": "html",
+      "en": "That is a stronger claim than JavaScript's <code>Date.parse</code>, which takes free-form text (<code>\"January 5 2026\"</code>), reads an unpadded date like <code>\"2026-1-3\"</code> in whatever timezone the process happens to run in, and reports an impossible day as a success by rolling it forward: <code>\"2026-02-31\"</code> becomes March 3, and you get a number back with no indication anything happened.",
+      "tr": "Das ist eine stärkere Aussage als bei JavaScripts <code>Date.parse</code>, das Freitext nimmt (<code>\"January 5 2026\"</code>), ein Datum ohne führende Nullen wie <code>\"2026-1-3\"</code> in der Zeitzone liest, in der der Prozess gerade läuft, und einen unmöglichen Tag als Erfolg meldet, indem es ihn weiterrollt: <code>\"2026-02-31\"</code> wird zum 3. März, und du bekommst eine Zahl zurück, ohne Hinweis darauf, dass etwas passiert ist."
+    },
+    {
+      "id": "h-b163f00e",
+      "kind": "html",
+      "en": "Glyph's calendar accessors (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) are UTC and say so, and a validator that quietly imports the host's timezone would make them lie. So the string is rejected instead, and you decide what it meant.",
+      "tr": "Glyphs Kalender-Zugriffe (<code>time.year</code>, <code>time.month</code>, <code>time.day</code>) sind UTC und sagen das, und ein Validator, der still die Zeitzone des Hosts übernimmt, würde sie lügen lassen. Also wird der String stattdessen abgelehnt, und du entscheidest, was er bedeuten sollte."
+    },
+    {
+      "id": "h-43b29fed",
+      "kind": "html",
+      "en": "The guard moved into the primitive",
+      "tr": "Die Absicherung ist in den Grundbaustein gewandert"
+    },
+    {
+      "id": "h-0f07a9cf",
+      "kind": "html",
+      "en": "When an application writes a correctness guard around a standard-library primitive, the guard belongs in the primitive. Here is what the app deleted:",
+      "tr": "Wenn eine Anwendung eine Korrektheits-Absicherung um einen Grundbaustein der Standardbibliothek schreibt, gehört die Absicherung in den Grundbaustein. Hier ist, was die App gelöscht hat:"
+    },
+    {
+      "id": "h-eb2994d4",
+      "kind": "html",
+      "en": "before: the app guards the stdlib",
+      "tr": "vorher: Die App sichert die Stdlib ab"
+    },
+    {
+      "id": "h-5c103d6b",
+      "kind": "html",
+      "en": "after: the primitive holds the line",
+      "tr": "nachher: Der Grundbaustein hält die Linie"
+    },
+    {
+      "id": "h-e6cf6833",
+      "kind": "html",
+      "en": "The <code>import std/regex</code> went with it. Same ledger, same rejected rows, same report byte for byte.",
+      "tr": "Das <code>import std/regex</code> fiel mit weg. Dasselbe Hauptbuch, dieselben abgelehnten Zeilen, derselbe Bericht Byte für Byte."
+    },
+    {
+      "id": "h-6219c047",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the expense-report app this came from</span>",
+      "tr": "Geschichte <span class=\"hint\">die Spesenabrechnungs-App, aus der das kam</span>"
+    },
+    {
+      "id": "h-dad8f232",
+      "kind": "html",
+      "en": "This one came out of writing an <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">expense-report CLI in Glyph</a>. Every ledger row carries a date, and filing a row under the wrong month is the bug that matters, so the app didn't trust the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped the timestamp back to text to catch a rolled-over day.",
+      "tr": "Das kam beim Schreiben einer <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph\">CLI für Spesenabrechnungen in Glyph</a> heraus. Jede Zeile im Hauptbuch trägt ein Datum, und eine Zeile unter dem falschen Monat abzulegen ist der Bug, auf den es ankommt, also traute die App dem alten <code>parse_iso</code> nicht: Sie prüfte die Form zuerst mit einer Regex und wandelte dann den Zeitstempel zurück in Text, um einen weitergerollten Tag zu erkennen."
+    },
+    {
+      "id": "h-48099e52",
+      "kind": "html",
+      "en": "You don't even have to write the types",
+      "tr": "Du musst die Typen nicht einmal schreiben"
+    },
+    {
+      "id": "h-6d14409c",
+      "kind": "html",
+      "en": "If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate the Glyph types from it: real, committed, greppable <code>type</code> declarations, each with its descriptor, not an inferred phantom:",
+      "tr": "Wenn die Form schon in einer OpenAPI-Spezifikation oder einer TypeScript-Deklarationsdatei existiert, generier die Glyph-Typen daraus: echte, committete, durchsuchbare <code>type</code>-Deklarationen, jede mit ihrem Deskriptor, kein abgeleitetes Phantom:"
+    },
+    {
+      "id": "h-9b46e0d2",
+      "kind": "html",
+      "en": "from an OpenAPI / JSON Schema spec",
+      "tr": "aus einer OpenAPI- / JSON-Schema-Spezifikation"
+    },
+    {
+      "id": "h-1cba2c2c",
+      "kind": "html",
+      "en": "from an installed package, by name",
+      "tr": "aus einem installierten Paket, über seinen Namen"
+    },
+    {
+      "id": "h-269e3a1d",
+      "kind": "html",
+      "en": "A wire type becomes a validated boundary, with nothing hand-written:",
+      "tr": "Ein Wire-Typ wird zu einer validierten Grenze, ohne etwas Handgeschriebenes:"
+    },
+    {
+      "id": "h-cd576e8d",
+      "kind": "html",
+      "en": "Generation is <strong>wire-faithful</strong>: what the spec says about a value is what <code>parse</code> checks.",
+      "tr": "Die Generierung ist <strong>treu zum Wire-Format</strong>: Was die Spezifikation über einen Wert sagt, ist das, was <code>parse</code> prüft."
+    },
+    {
+      "id": "h-fc9a9e39",
+      "kind": "html",
+      "en": "In the spec or <code>.d.ts</code>",
+      "tr": "In der Spezifikation oder <code>.d.ts</code>"
+    },
+    {
+      "id": "h-9b2c9870",
+      "kind": "html",
+      "en": "Generated Glyph",
+      "tr": "Generiertes Glyph"
+    },
+    {
+      "id": "h-7de6a6c3",
+      "kind": "html",
+      "en": "A string enum",
+      "tr": "Ein String-Enum"
+    },
+    {
+      "id": "h-7bf9b670",
+      "kind": "html",
+      "en": "a string-literal union; <code>parse</code> checks membership",
+      "tr": "eine Union aus String-Literalen; <code>parse</code> prüft die Mitgliedschaft"
+    },
+    {
+      "id": "h-8695f5b7",
+      "kind": "html",
+      "en": "An <code>integer</code> field",
+      "tr": "Ein <code>integer</code>-Feld"
+    },
+    {
+      "id": "h-9597570b",
+      "kind": "html",
+      "en": "<code>int</code>; a wire <code>3.5</code> fails",
+      "tr": "<code>int</code>; ein <code>3.5</code> auf der Leitung scheitert"
+    },
+    {
+      "id": "h-616732ba",
+      "kind": "html",
+      "en": "An object schema",
+      "tr": "Ein Objekt-Schema"
+    },
+    {
+      "id": "h-405b027e",
+      "kind": "html",
+      "en": "a record marked <code>@open</code>; strict with <code>additionalProperties: false</code>",
+      "tr": "ein mit <code>@open</code> markierter Record; strikt bei <code>additionalProperties: false</code>"
+    },
+    {
+      "id": "h-885a75b0",
+      "kind": "html",
+      "en": "<code>type Page&lt;T&gt;</code>, each item checked as <code>T</code>",
+      "tr": "<code>type Page&lt;T&gt;</code>, jedes Element als <code>T</code> geprüft"
+    },
+    {
+      "id": "h-19a8e439",
+      "kind": "html",
+      "en": "An undiscriminated union",
+      "tr": "Eine Union ohne Diskriminator"
+    },
+    {
+      "id": "h-6d1b0ba7",
+      "kind": "html",
+      "en": "narrowed, with a printed note",
+      "tr": "eingeengt, mit einer ausgegebenen Notiz"
+    },
+    {
+      "id": "h-1f24311f",
+      "kind": "html",
+      "en": "A name in two reachable files",
+      "tr": "Ein Name in zwei erreichbaren Dateien"
+    },
+    {
+      "id": "h-f876bd7d",
+      "kind": "html",
+      "en": "flagged with a note, not bound",
+      "tr": "mit einer Notiz markiert, nicht gebunden"
+    },
+    {
+      "id": "h-c79e1805",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what materializes today, regeneration, generic types</span>",
+      "tr": "Details <span class=\"hint\">was heute materialisiert wird, Neugenerierung, generische Typen</span>"
+    },
+    {
+      "id": "h-c759d75a",
+      "kind": "html",
+      "en": "Point <code>glyph gen dts</code> at a <code>.d.ts</code> file, or, as above, at an installed npm package by name: it resolves the package's own declaration entry from <code>node_modules</code> and writes committed types you import.",
+      "tr": "Richte <code>glyph gen dts</code> auf eine <code>.d.ts</code>-Datei oder, wie oben, auf ein installiertes npm-Paket über seinen Namen: Es löst den eigenen Deklarations-Einstieg des Pakets aus <code>node_modules</code> auf und schreibt committete Typen, die du importierst."
+    },
+    {
+      "id": "h-7d241438",
+      "kind": "html",
+      "en": "What materializes today: <code>gen dts</code> reads the <code>interface</code> and <code>type</code> declarations a package exports, including those inside a <code>declare namespace</code> tree (bare cross-references resolve through the scope) and those in sibling files an <code>index</code> barrel re-exports (the entry <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type argument, not just for presence. Aliased and <code>export * as</code> re-exports resolve through a per-file binding map. The one case it can't make safe, a type name that collides across two reachable files, it <em>flags with a note</em> rather than bind the wrong shape silently. For anything the materializer can't reach, hand-write the shapes you cross the boundary with, or use the <code>extern_ts</code> escape hatch.",
+      "tr": "Was heute materialisiert wird: <code>gen dts</code> liest die <code>interface</code>- und <code>type</code>-Deklarationen, die ein Paket exportiert, auch die innerhalb eines <code>declare namespace</code>-Baums (bloße Querverweise werden über den Scope aufgelöst) und die in Geschwisterdateien, die ein <code>index</code>-Barrel re-exportiert (die Einstiegs-<code>.d.ts</code> plus jede relativ importierte <code>.d.ts</code> wird durchlaufen). Ein Generic bleibt vollwertig: <code>interface Page&lt;T&gt;</code> wird zu <code>type Page&lt;T&gt;</code> und bekommt einen Deskriptor, der jedes Element als sein Typargument validiert, nicht nur auf Vorhandensein. Re-Exports per Alias und <code>export * as</code> werden über eine Binding-Map pro Datei aufgelöst. Den einen Fall, den es nicht sicher machen kann, einen Typnamen, der in zwei erreichbaren Dateien kollidiert, <em>markiert es mit einer Notiz</em>, statt still die falsche Form zu binden. Für alles, was der Materialisierer nicht erreicht, schreib die Formen, mit denen du die Grenze überquerst, von Hand, oder nimm die Hintertür <code>extern_ts</code>."
+    },
+    {
+      "id": "h-9c95f2a9",
+      "kind": "html",
+      "en": "Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is <strong>wire-faithful</strong>: a string enum materializes as a string-literal union (<code>\"free\" | \"pro\"</code>), so <code>parse</code> checks membership, not just that the value is a string, and a <code>match</code> over it is exhaustive without an <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire <code>3.5</code> fails <code>parse</code> where a plain number would pass. Where a construct has no exact Glyph form (an undiscriminated union), it narrows and <em>prints a note</em> rather than emit a validator that would reject real data. Generated records also carry <code>@open</code>, so <code>parse</code> tolerates a field the API adds later while still validating every field it declares; a schema that sets <code>additionalProperties: false</code> stays strict. Records are strict by default in Glyph, and this is the same greppable declaration-site marker a hand-written record would use, so nothing about what a record means changes.",
+      "tr": "Neugenerierung ist idempotent, also ist eine Änderung der Spezifikation ein sauberer, reviewbarer Diff. Die Generierung ist <strong>treu zum Wire-Format</strong>: Ein String-Enum wird zu einer Union aus String-Literalen (<code>\"free\" | \"pro\"</code>), also prüft <code>parse</code> die Mitgliedschaft und nicht nur, ob der Wert ein String ist, und ein <code>match</code> darüber ist ohne <code>else</code> erschöpfend. Ein <code>integer</code>-Feld wird zu <code>int</code>, also scheitert ein <code>3.5</code> auf der Leitung an <code>parse</code>, wo eine einfache Zahl durchginge. Wo ein Konstrukt keine exakte Glyph-Form hat (eine Union ohne Diskriminator), engt es ein und <em>gibt eine Notiz aus</em>, statt einen Validator zu erzeugen, der echte Daten ablehnen würde. Generierte Records tragen außerdem <code>@open</code>, also toleriert <code>parse</code> ein Feld, das die API später hinzufügt, und validiert trotzdem jedes Feld, das sie deklariert; ein Schema, das <code>additionalProperties: false</code> setzt, bleibt strikt. Records sind in Glyph standardmäßig strikt, und das ist dieselbe durchsuchbare Markierung an der Deklaration, die ein handgeschriebener Record verwenden würde, also ändert sich nichts daran, was ein Record bedeutet."
+    },
+    {
+      "id": "h-209f2afc",
+      "kind": "html",
+      "en": "Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code> checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way. This holds across module boundaries: define <code>Paginated&lt;T&gt;</code> in one file, <code>import</code> it into another, and both <code>Paginated.parse&lt;User&gt;(body)</code> and <code>is Paginated&lt;User&gt;</code> there still check each element as a <code>User</code>. The compiler builds the per-element check from the type argument at the call site, so which file the generic type lives in makes no difference to what gets validated.",
+      "tr": "Generische Typen werden auch validiert. Ein <code>Paginated&lt;T&gt;</code> bekommt einen Deskriptor, dessen <code>parse</code> das Typargument nimmt: <code>Paginated.parse&lt;User&gt;(body)</code> prüft jeden Eintrag in <code>items</code> <em>als <code>User</code></em>, nicht nur auf Vorhandensein, und <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> engt genauso ein. Das gilt über Modulgrenzen hinweg: Definier <code>Paginated&lt;T&gt;</code> in einer Datei, <code>import</code>iere es in eine andere, und dort prüfen sowohl <code>Paginated.parse&lt;User&gt;(body)</code> als auch <code>is Paginated&lt;User&gt;</code> weiterhin jedes Element als <code>User</code>. Der Compiler baut die Prüfung pro Element aus dem Typargument an der Aufrufstelle, also macht es keinen Unterschied für das, was validiert wird, in welcher Datei der generische Typ lebt."
+    },
+    {
+      "id": "h-d242942f",
+      "kind": "html",
+      "en": "Where it stops: descriptors cover the shapes most payloads are made of: objects, primitives, arrays, references, optional and nullable fields, and now generic types at a given instantiation. A type Glyph did not generate (an external package or <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you materialize it, which is now one command against the installed package (<code>glyph gen dts &lt;package&gt;</code>, for the top-level interfaces and type aliases it exports). That boundary is deliberate: a type Glyph didn't emit can't promise runtime validation, so you opt in per package and the result is committed and greppable, not conjured on every build.",
+      "tr": "Wo es aufhört: Deskriptoren decken die Formen ab, aus denen die meisten Payloads bestehen: Objekte, Primitive, Arrays, Referenzen, optionale und nullbare Felder und jetzt auch generische Typen bei einer gegebenen Instanziierung. Ein Typ, den Glyph nicht erzeugt hat (ein externes Paket oder eine <code>.d.ts</code>, die du nur importierst), wird typgeprüft, hat aber keinen Deskriptor, bis du ihn materialisierst, was jetzt ein Befehl gegen das installierte Paket ist (<code>glyph gen dts &lt;package&gt;</code>, für die Interfaces und Typ-Aliase auf oberster Ebene, die es exportiert). Diese Grenze ist Absicht: Ein Typ, den Glyph nicht erzeugt hat, kann keine Validierung zur Laufzeit versprechen, also entscheidest du dich pro Paket dafür, und das Ergebnis ist committet und durchsuchbar, nicht bei jedem Build herbeigezaubert."
+    },
+    {
+      "id": "h-babaa99b",
+      "kind": "html",
+      "en": "The database is a boundary too",
+      "tr": "Auch die Datenbank ist eine Grenze"
+    },
+    {
+      "id": "h-d85b8f86",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is. The same <code>.parse</code> you use on a request body validates a row.",
+      "tr": "Eine Zeile, die aus einer Datenbank gelesen wird, ist genauso wenig vertrauenswürdig wie ein Request-Body. Dasselbe <code>.parse</code>, das du für einen Request-Body verwendest, validiert eine Zeile."
+    },
+    {
+      "id": "h-92b13790",
+      "kind": "html",
+      "en": "the bug this removes",
+      "tr": "der Bug, den es beseitigt"
+    },
+    {
+      "id": "h-542d9186",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">std/sqlite, and the 0-or-1 boolean</span>",
+      "tr": "Details <span class=\"hint\">std/sqlite und das Boolean als 0 oder 1</span>"
+    },
+    {
+      "id": "h-92b9397f",
+      "kind": "html",
+      "en": "A row read out of a database is untrusted in exactly the way a request body is: the database schema and your code's idea of the row can disagree, and a cast (<code>row as Task</code>) papers over it. <code>std/sqlite</code>, the DB module over Node's built-in SQLite, leans into that. A query returns <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, so there is no way to treat a row as a <code>Task</code> without validating it first.",
+      "tr": "Eine Zeile, die aus einer Datenbank gelesen wird, ist genauso wenig vertrauenswürdig wie ein Request-Body: Das Datenbankschema und die Vorstellung deines Codes von der Zeile können sich widersprechen, und ein Cast (<code>row as Task</code>) kleistert das zu. <code>std/sqlite</code>, das DB-Modul über Nodes eingebautem SQLite, setzt genau da an. Eine Abfrage gibt <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code> zurück, also gibt es keinen Weg, eine Zeile als <code>Task</code> zu behandeln, ohne sie vorher zu validieren."
+    },
+    {
+      "id": "h-d6878367",
+      "kind": "html",
+      "en": "This catches a bug people ship constantly. SQLite has no boolean type, so a <code>done</code> column comes back as the integer <code>0</code> or <code>1</code>. Cast the row to a record with a <code>bool</code> field and <code>task.done === true</code> is quietly never true. In Glyph the storage shape and the domain shape are separate types, and the mapping between them is one line you actually see:",
+      "tr": "Das findet einen Bug, den Leute ständig ausliefern. SQLite hat keinen Boolean-Typ, also kommt eine Spalte <code>done</code> als Ganzzahl <code>0</code> oder <code>1</code> zurück. Cast die Zeile in einen Record mit einem <code>bool</code>-Feld, und <code>task.done === true</code> ist still nie wahr. In Glyph sind die Speicherform und die Domänenform getrennte Typen, und die Abbildung zwischen ihnen ist eine Zeile, die du tatsächlich siehst:"
+    },
+    {
+      "id": "h-bdebab37",
+      "kind": "html",
+      "en": "The whole thing is a working example: <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for routes, with data that survives a restart and validation on both the wire and the database side. No hand-written validators anywhere in it.",
+      "tr": "Das Ganze ist ein funktionierendes Beispiel: <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph\"><code>examples/apps/tasks/main.glyph</code></a> ist eine persistente Aufgaben-API, <code>std/sqlite</code> für die Speicherung und <code>std/http</code> für die Routen, mit Daten, die einen Neustart überleben, und Validierung sowohl auf der Leitungs- als auch auf der Datenbankseite. Nirgends ein handgeschriebener Validator."
+    },
+    {
+      "id": "h-874af20b",
+      "kind": "html",
+      "en": "A signed webhook is a boundary too",
+      "tr": "Auch ein signierter Webhook ist eine Grenze"
+    },
+    {
+      "id": "h-bae4d501",
+      "kind": "html",
+      "en": "Verifying a webhook signature needs the exact bytes the sender signed, not a re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check stays in Glyph:",
+      "tr": "Die Signatur eines Webhooks zu prüfen braucht genau die Bytes, die der Absender signiert hat, keine neu serialisierte Kopie (einen geparsten Body erneut zu stringifizieren ändert Leerraum und Schlüsselreihenfolge, also würde der HMAC nie passen). <code>http.raw(req)</code> gibt dir diese Bytes, also bleibt die Prüfung in Glyph:"
+    },
+    {
+      "id": "h-5eeadc33",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">raw bytes for the signature, parsed body for the shape</span>",
+      "tr": "Details <span class=\"hint\">rohe Bytes für die Signatur, geparster Body für die Form</span>"
+    },
+    {
+      "id": "h-7f5b9685",
+      "kind": "html",
+      "en": "<code>req.body</code> is still the parsed value for the shape check; <code>raw</code> is the untampered payload the signature is computed over. A receiver that verifies a signature and validates the body needs no hand-written TypeScript.",
+      "tr": "<code>req.body</code> ist weiterhin der geparste Wert für die Prüfung der Form; <code>raw</code> ist der unveränderte Payload, über den die Signatur berechnet wird. Ein Empfänger, der eine Signatur prüft und den Body validiert, braucht kein handgeschriebenes TypeScript."
+    },
+    {
+      "id": "h-4516c359",
+      "kind": "html",
+      "en": "A type can validate its invariants, not just its shape",
+      "tr": "Ein Typ kann seine Invarianten validieren, nicht nur seine Form"
+    },
+    {
+      "id": "h-a7168d78",
+      "kind": "html",
+      "en": "A shape check tells you a field is a number. It does not tell you the amount is non-negative or the rating is between 1 and 5. A <code>where</code> refinement puts that invariant in the type, and the descriptor enforces it at the boundary:",
+      "tr": "Eine Prüfung der Form sagt dir, dass ein Feld eine Zahl ist. Sie sagt dir nicht, dass der Betrag nicht negativ ist oder die Bewertung zwischen 1 und 5 liegt. Eine <code>where</code>-Verfeinerung legt diese Invariante in den Typ, und der Deskriptor setzt sie an der Grenze durch:"
+    },
+    {
+      "id": "h-5398192b",
+      "kind": "html",
+      "en": "what you're not writing",
+      "tr": "was du nicht schreibst"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Wo es steht"
+    },
+    {
+      "id": "h-79cfac13",
+      "kind": "html",
+      "en": "Shipping today <span class=\"count\">10</span>",
+      "tr": "Heute verfügbar <span class=\"count\">10</span>"
+    },
+    {
+      "id": "h-3e77e7bf",
+      "kind": "html",
+      "en": "Descriptors",
+      "tr": "Deskriptoren"
+    },
+    {
+      "id": "h-495b8283",
+      "kind": "html",
+      "en": "Every declared record and tagged union carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), generic records included",
+      "tr": "Jeder deklarierte Record und jede Tagged Union trägt einen Laufzeit-Deskriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), generische Records eingeschlossen"
+    },
+    {
+      "id": "h-922c7825",
+      "kind": "html",
+      "en": "a generic tagged union does not",
+      "tr": "eine generische Tagged Union nicht"
+    },
+    {
+      "id": "h-14ac7bef",
+      "kind": "html",
+      "en": "<code>.parse</code> returns the same <code>Result</code> the rest of the language uses, so it composes with <code>map_err</code>, with <code>?</code>, and with any function that returns one",
+      "tr": "<code>.parse</code> gibt dasselbe <code>Result</code> zurück, das der Rest der Sprache verwendet, also lässt es sich mit <code>map_err</code>, mit <code>?</code> und mit jeder Funktion kombinieren, die eins zurückgibt"
+    },
+    {
+      "id": "h-d53b22f1",
+      "kind": "html",
+      "en": "A <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape",
+      "tr": "Eine <code>where</code>-Verfeinerung (<code>int where value &gt;= 0</code>) validiert eine Invariante an der Grenze, nicht nur eine Form"
+    },
+    {
+      "id": "h-e28e5c01",
+      "kind": "html",
+      "en": "<code>json.parse&lt;T&gt;</code> validates JSON",
+      "tr": "<code>json.parse&lt;T&gt;</code> validiert JSON"
+    },
+    {
+      "id": "h-d8236d9b",
+      "kind": "html",
+      "en": "<code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift",
+      "tr": "<code>infer_output&lt;Shape&gt;</code> leitet den Ausgabetyp eines Kombinators aus seiner Form ab, damit die beiden nicht auseinanderlaufen"
+    },
+    {
+      "id": "h-40536dd8",
+      "kind": "html",
+      "en": "Generation",
+      "tr": "Generierung"
+    },
+    {
+      "id": "h-62ff4789",
+      "kind": "html",
+      "en": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name",
+      "tr": "<code>glyph gen openapi</code> / <code>glyph gen dts</code> erzeugen committete Typen mit Deskriptoren aus einer Spezifikation, einer <code>.d.ts</code> oder einem installierten Paket über seinen Namen"
+    },
+    {
+      "id": "h-b0079f0f",
+      "kind": "html",
+      "en": "Boundaries",
+      "tr": "Grenzen"
+    },
+    {
+      "id": "h-24cc6cd4",
+      "kind": "html",
+      "en": "<code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other",
+      "tr": "<code>std/sqlite</code> liefert Zeilen als <code>unknown</code>, also ist die Datenbank eine validierte Grenze wie jede andere"
+    },
+    {
+      "id": "h-de257c28",
+      "kind": "html",
+      "en": "A signed-webhook receiver stays entirely in Glyph",
+      "tr": "Ein Empfänger für signierte Webhooks bleibt vollständig in Glyph"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Details"
+    },
+    {
+      "id": "h-ba1e90b3",
+      "kind": "html",
+      "en": "<code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph.",
+      "tr": "<code>http.raw(req)</code> stellt den ungeparsten Request-Body bereit, also wird eine Webhook-Signatur über genau die Bytes geprüft, und ein Empfänger für signierte Webhooks bleibt vollständig in Glyph."
+    },
+    {
+      "id": "h-9816d858",
+      "kind": "html",
+      "en": "Untrusted input can't reach a SQL or shell sink without <code>sanitize</code>",
+      "tr": "Nicht vertrauenswürdige Eingaben erreichen kein SQL- oder Shell-Ziel ohne <code>sanitize</code>"
+    },
+    {
+      "id": "h-bc0f3aaa",
+      "kind": "html",
+      "en": "<code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time.",
+      "tr": "Die Typen <code>Tainted</code>/<code>Trusted</code> aus <code>std/taint</code> verhindern, dass nicht vertrauenswürdige Eingaben ein SQL- oder Shell-Ziel ohne explizites <code>sanitize</code> erreichen, also lehnt <code>tsc</code> einen Injection-Pfad beim Kompilieren ab."
+    },
+    {
+      "id": "h-390c07d2",
+      "kind": "html",
+      "en": "<code>time.parse_iso</code> takes ISO-8601 and nothing else",
+      "tr": "<code>time.parse_iso</code> nimmt ISO-8601 und sonst nichts"
+    },
+    {
+      "id": "h-d94882d2",
+      "kind": "html",
+      "en": "The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.",
+      "tr": "Die kleineren Grundbausteine an der Grenze halten dieselbe Linie: <code>time.parse_iso</code> nimmt ISO-8601 und gibt <code>None</code> für Freitext, einen unmöglichen Tag und ein Datum mit Uhrzeit ohne Offset zurück, das sonst in der lokalen Zeitzone des Hosts gelesen würde."
+    },
+    {
+      "id": "h-50fb9df6",
+      "kind": "html",
+      "en": "On the way <span class=\"count\">3</span>",
+      "tr": "In Arbeit <span class=\"count\">3</span>"
+    },
+    {
+      "id": "h-b84bd62f",
+      "kind": "html",
+      "en": "Discriminated unions generate from a spec and from a <code>.d.ts</code>; enum and mapped-type coverage next",
+      "tr": "Discriminated Unions werden aus einer Spezifikation und aus einer <code>.d.ts</code> generiert; Enums und Mapped Types als Nächstes"
+    },
+    {
+      "id": "h-7a50add2",
+      "kind": "html",
+      "en": "Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage.",
+      "tr": "Discriminated Unions werden jetzt sowohl aus einem OpenAPI-<code>discriminator</code> als auch aus einer TypeScript-<code>.d.ts</code>-Union generiert (ein <code>parse_&lt;Name&gt;</code>-Dispatcher liest den Tag und validiert in die richtige Variante). Als Nächstes: bessere Abdeckung von Enums und Mapped Types."
+    },
+    {
+      "id": "h-5c6a5727",
+      "kind": "html",
+      "en": "Typed client and server code from a spec already ships",
+      "tr": "Typisierter Client- und Server-Code aus einer Spezifikation wird schon ausgeliefert"
+    },
+    {
+      "id": "h-2fd0b96e",
+      "kind": "html",
+      "en": "See client &amp; server",
+      "tr": "Client &amp; Server ansehen"
+    },
+    {
+      "id": "h-a0fb7da6",
+      "kind": "html",
+      "en": "A timestamp and a duration are both <code>number</code>",
+      "tr": "Ein Zeitstempel und eine Dauer sind beide <code>number</code>"
+    },
+    {
+      "id": "h-e32f0f0c",
+      "kind": "html",
+      "en": "On dates, the strictness is the whole feature and it stops at the parse: <code>parse_iso</code> hands back epoch milliseconds, so a timestamp and a duration are both <code>number</code> and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.",
+      "tr": "Bei Datumswerten ist die Strenge das ganze Feature, und sie hört beim Parsen auf: <code>parse_iso</code> liefert Epoch-Millisekunden, also sind ein Zeitstempel und eine Dauer beide <code>number</code>, und nichts hindert dich daran, das eine zum anderen zu addieren. Ein eigener Datumstyp ist eine spätere Entscheidung, keine kleine."
+    }
+  ]
+}

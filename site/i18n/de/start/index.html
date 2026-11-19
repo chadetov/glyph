@@ -1,0 +1,154 @@
+---
+title: Hier anfangen · dein erstes Glyph-Programm in 10 Minuten · Glyph
+description: Ein Glyph-Projekt mit npx anlegen, ausführen, absichtlich kaputtmachen, den Compiler-Fehler lesen und beheben. Zehn Minuten, nichts global installiert.
+source_hash: 0967efaee1e51c6b
+prev: / | &larr; Startseite | TypeScript, das deine Agenten nicht unbemerkt kaputtmachen können
+next: /answers/verifiability/ | Weiter &rarr; | Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?
+next_steps: |
+  Von hier aus
+  Weiter &middot; ohne Installation | /playground/ | playground | Der Playground | Glyph im Browser ausprobieren, ohne Installation. | Playground öffnen
+  https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md | spec | Die Fünf-Minuten-Tour | Die ganze Sprache, im Schnelldurchlauf.
+  /answers/ | answers | Die Antworten | Durchgearbeitete Antworten zu React, typisierten APIs, npm und TypeScript mit vollem Tooling.
+---
+      <p class="q-eyebrow">Hier anfangen &middot; ~10 Minuten</p>
+      <h1 class="q-title">Dein erstes Glyph-Programm</h1>
+
+      <p class="short-answer">
+        Ein Projekt anlegen, ausführen, dann <strong>absichtlich kaputtmachen</strong> und den Fehler lesen, den der Compiler ausgibt. Glyph-Vorkenntnisse sind nicht nötig. Wenn du schon ein bisschen TypeScript geschrieben hast, kannst du jeder Zeile folgen.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; Ein Projekt anlegen</h2>
+        <p>
+          Glyph wird über npm als vorkompiliertes Binary für macOS und Linux (x64 und ARM) und Windows (x64) ausgeliefert und braucht Node 18 oder neuer. Auf diesem Weg wird nichts global installiert: <code>npx</code> holt den Compiler, um das Projekt anzulegen, und das Projekt pinnt seine eigene Kopie zusammen mit <code>tsx</code> und <code>typescript</code>, die Glyph zum Ausführen und für die Typprüfung verwendet.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">Terminal</span>
+<pre>npx -y @glyphlang/glyph init hello
+cd hello
+npm install</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Wenn du <code>glyph</code> lieber im PATH haben willst, installiere es global zusammen mit den beiden Tools, über die es läuft, und lass in den Befehlen auf dieser Seite das <code>npx</code> weg:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">Terminal, die globale Alternative</span>
+<pre>npm install -g @glyphlang/glyph tsx typescript
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span>
+glyph init hello
+cd hello</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">2 &middot; Ansehen, was angelegt wurde</h2>
+        <p><code>glyph init</code> legt ein lauffähiges Grundgerüst an: <code>src/main.glyph</code>, <code>src/.types/README.md</code>, das erklärt, dass ein typisiertes npm-Paket dort nichts braucht und das Verzeichnis für eines ohne eigene Typen gedacht ist, eine <code>package.json</code>, eine <code>.gitignore</code> und zwei Dateien, die Coding-Agenten von sich aus lesen: <code>AGENTS.md</code>, das auf <code>glyph llms</code> für die vollständige Sprachreferenz verweist, und <code>.mcp.json</code>, das <code>glyph mcp</code> registriert, damit ein Agent den Compiler nach Typen und Referenzen fragen kann, statt danach zu suchen. In einem bestehenden Projekt schreibt <code>glyph agents</code> diese beiden. Die <code>package.json</code> pinnt den Compiler, <code>typescript</code> und <code>tsx</code> in den <code>devDependencies</code>, sodass jeder, der das Projekt klont, es mit <code>npm install</code> ohne globale Installation bauen kann.</p>
+        <p>Öffne <code>src/main.glyph</code>. Es ist ein Hello World:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+import std/io
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  io.println("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Zwei Dinge fallen auf: Ein Programm führt seine <code>main(argv)</code> aus, und <code>main</code> gibt eine <code>number</code> zurück, den Exit-Code des Prozesses. Die Rückgabe setzt diesen Code, ohne den Prozess zum Beenden zu zwingen, also läuft ein Programm, das einen Server startet, weiter.
+        </p>
+
+        <h2 class="block-label">3 &middot; Ausführen</h2>
+      </div>
+      <div class="code">
+        <span class="cap">Terminal</span>
+<pre>npx glyph run
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> hat es typgeprüft, zu TypeScript kompiliert und ausgeführt. Das ist die Schleife, die du für den Rest dieser Seite wiederholst.
+        </p>
+
+        <h2 class="block-label">4 &middot; Etwas Echtes hinzufügen</h2>
+        <p>
+          Ersetze jetzt den Rumpf durch ein bisschen Logik: einen Aufgabenstatus und eine Funktion, die ihm ein Label gibt. Damit lernst du die beiden Dinge kennen, die du ständig benutzen wirst: eine <em>Tagged Union</em> (<code>type Status = ...</code>) und <code>match</code>, die einzige Bedingung in Glyph.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">Terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">5 &middot; Absichtlich kaputtmachen</h2>
+        <p>
+          Jetzt kommt der Teil, der zeigt, <em>wofür</em> Glyph da ist. Lösch den Arm <code>Done</code> aus dem <code>match</code> (so etwas macht ein Agent, wenn er irgendwo einen Fall hinzufügt und vergisst, ihn zu behandeln), und führ es noch einmal aus.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (ohne den Done-Arm)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ npx glyph run</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Es lief nicht. In TypeScript wird genau diese Funktion mit ausgeschriebenem Rückgabetyp ebenfalls abgelehnt (TS2366). Ein <code>switch</code>, der nur loggt oder Zustand aktualisiert, oder einer mit <code>default:</code>, kompiliert sauber und überspringt den neuen Fall stillschweigend. Hier ist jedes nicht erschöpfende match ein Compile-Fehler mit einem stabilen Code (<code>E0200</code>), der genauen Stelle und einem einzeiligen Fix. Führ <code>glyph --explain E0200</code> aus, wann immer du die ausführliche Fassung willst.
+        </p>
+
+        <h2 class="block-label">6 &middot; Beheben</h2>
+        <p>Setz den Arm wieder ein (oder füg ein <code>else</code> hinzu), und es läuft wieder.</p>
+      </div>
+      <div class="code">
+        <span class="cap">Terminal</span>
+<pre>npx glyph run
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Das ist die Kernschleife: schreiben, ausführen, und wenn etwas falsch ist, sagt dir der Compiler genau was und wie, bevor dein Code ausgeliefert wird, nicht danach.
+        </p>
+      </div>

@@ -1,0 +1,176 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/parse-errors/index.html",
+  "locale": "de",
+  "source_hash": "7f1a8b2bd45c7f9e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "When a parse fails, do I find out why? · Glyph",
+      "tr": "Wenn das Parsen fehlschlägt, erfahre ich warum? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.",
+      "tr": "Ein fehlgeschlagenes Parsen nennt das Feld, sagt, welche Regel der Wert verletzt hat, zitiert das verletzte where-Prädikat und versieht das Problem mit einem Code, auf den du verzweigen kannst."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Zurück"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "Warum findet Glyph, was tsc findet, nur früher?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Weiter &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When it breaks in production at 3am, what does on-call see?",
+      "tr": "Wenn es um 3 Uhr nachts in Produktion kaputtgeht, was sieht die Rufbereitschaft?"
+    },
+    {
+      "id": "h-24923701",
+      "kind": "html",
+      "en": "27 &middot; Parse failures",
+      "tr": "27 &middot; Parse-Fehler"
+    },
+    {
+      "id": "h-f32168df",
+      "kind": "html",
+      "en": "When a parse fails, do I find out why?",
+      "tr": "Wenn das Parsen fehlschlägt, erfahre ich warum?"
+    },
+    {
+      "id": "h-dc11cff3",
+      "kind": "html",
+      "en": "Yes. Every issue names the field, says <strong>which rule the value broke</strong>, and carries a <code>code</code> you can branch on. A field constrained by a <code>where</code> predicate reports the predicate itself, so the rejection greps back to the line that imposed it.",
+      "tr": "Ja. Jedes Problem nennt das Feld, sagt, <strong>welche Regel der Wert verletzt hat</strong>, und enthält einen <code>code</code>, auf den du verzweigen kannst. Ein Feld, das durch ein <code>where</code>-Prädikat eingeschränkt ist, meldet das Prädikat selbst, also führt die Ablehnung per grep zurück zu der Zeile, die es festgelegt hat."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "h-2b8c51b7",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "Ein Validator, der sagt \"dieser Payload ist ungültig\", hat die halbe Arbeit gemacht. Der Handler muss trotzdem entscheiden: Ist das ein Client, der ein Feld vergessen hat, oder ein Client, der ein Passwort mit vier Zeichen geschickt hat? Das eine ist ein 400, das andere ein 422, und wenn der Validator es nicht sagt, parst du am Ende denselben Body zweimal mit zwei verschiedenen Typen, um eine Information zurückzugewinnen, die der Validator schon hatte."
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Genau das ist beim Bau einer Auth-API in Glyph passiert. Eine Registrierung ganz ohne <code>password</code>-Schlüssel kam als <code>weak_password</code> zurück, weil fehlend und zu kurz denselben String erzeugten."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "So sieht es aus"
+    },
+    {
+      "id": "h-bddd14ad",
+      "kind": "html",
+      "en": "One type, one constraint:",
+      "tr": "Ein Typ, eine Einschränkung:"
+    },
+    {
+      "id": "h-66999642",
+      "kind": "html",
+      "en": "Four bad payloads, four different answers. Each is one <code>Issue</code>, shown as <code>code | path | message</code>:",
+      "tr": "Vier ungültige Payloads, vier verschiedene Antworten. Jede ist ein <code>Issue</code>, dargestellt als <code>code | path | message</code>:"
+    },
+    {
+      "id": "h-cb372fc2",
+      "kind": "html",
+      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "Auf die zweite kommt es an. <code>value.length &gt;= 8</code> wird einmal geschrieben, am Typ, und die Ablehnung zitiert es wörtlich. Kopier diesen String aus einem HTTP-422-Body in <code>grep</code>, und du landest bei der Deklaration, die ihn erzeugt hat. Niemand muss eine Kopie der Regel in der Schicht für Fehlermeldungen pflegen, und genau so laufen die beiden auseinander."
+    },
+    {
+      "id": "h-c1b3d39f",
+      "kind": "html",
+      "en": "The fourth one used to be worse than a bad message. An array is an object to <code>typeof</code>, so a record with no required fields accepted one outright, and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared field, none of them mentioning that you had sent a list.",
+      "tr": "Die vierte war früher schlimmer als nur eine schlechte Meldung. Für <code>typeof</code> ist ein Array ein Objekt, also akzeptierte ein Record ohne Pflichtfelder eins ohne Weiteres, und ein gepostetes <code>[1, 2, 3]</code> kam als ein verwirrendes Problem pro deklariertem Feld zurück, von denen keins erwähnte, dass du eine Liste geschickt hattest."
+    },
+    {
+      "id": "h-f15fe14d",
+      "kind": "html",
+      "en": "Nested types answer for themselves",
+      "tr": "Verschachtelte Typen sprechen für sich selbst"
+    },
+    {
+      "id": "h-1c1f349a",
+      "kind": "html",
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
+      "tr": "Ein Feld, dessen Typ einen eigenen Deskriptor hat, wird vom <code>parse</code> dieses Typs validiert, und seine Probleme kommen mit dem Feldnamen vorn im Pfad zurück. Ein <code>Password</code> zwei Ebenen tief meldet also <code>[\"body\", \"password\"]</code> und bringt trotzdem seine eigene Meldung mit. Ort und Grund bekommst du aus demselben Problem, ohne etwas erneut auszuführen."
+    },
+    {
+      "id": "h-f4063e91",
+      "kind": "html",
+      "en": "The code, not the string",
+      "tr": "Der Code, nicht der String"
+    },
+    {
+      "id": "h-0696faed",
+      "kind": "html",
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> enthält ein optionales <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code> oder <code>\"unexpected\"</code>. Verzweige darauf. Auf den Meldungstext zu matchen ist genau die Fragilität, die Glyph beseitigen soll, und die Meldung ist für den Menschen, der den Response-Body liest."
+    },
+    {
+      "id": "h-d38a3f61",
+      "kind": "html",
+      "en": "A 400/422 split that does not read the message",
+      "tr": "Eine Aufteilung in 400/422, die die Meldung nicht liest"
+    },
+    {
+      "id": "h-4e6a1d50",
+      "kind": "html",
+      "en": "<code>code</code> is optional, so an <code>Issue</code> you build by hand, and every consumer written before it existed, still compiles unchanged.",
+      "tr": "<code>code</code> ist optional, also kompilieren ein <code>Issue</code>, das du von Hand baust, und jeder Konsument, der vor seiner Einführung geschrieben wurde, weiterhin unverändert."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Wo es steht"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Heute verfügbar"
+    },
+    {
+      "id": "h-7654d152",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "Records und <code>where</code>-Typen melden die verletzte Regel, nicht nur das fehlerhafte Feld: <code>\"missing\"</code> für ein fehlendes Pflichtfeld, <code>\"type\"</code> für die falsche Form (einschließlich eines Nicht-Objekts oder eines Arrays), <code>\"refinement\"</code> für einen Wert, der seinen Basistyp bestanden und das Prädikat verfehlt hat, und <code>\"unexpected\"</code> für einen Schlüssel, den der Typ nicht deklariert. Eine Verfeinerung zitiert ihr Prädikat. Ein Feld, dessen Typ einen Deskriptor hat, delegiert an ihn, also kommen verschachtelte Probleme mit dem vollständigen Pfad an. Optionale Felder (<code>f?: T</code>) werden nie als fehlend gemeldet."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Wird schärfer"
+    },
+    {
+      "id": "h-7339349c",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "Zwei Grenzen. Ein Feld, dessen Typ keinen eigenen Deskriptor hat, ein uneingeschränkter Typparameter oder ein Typ aus einer handgeschriebenen <code>.d.ts</code>, bekommt weiterhin die flache Prüfung und ein <code>\"type\"</code>-Problem; der Compiler erzeugt für diese keinen Deskriptor, und <code>glyph gen dts</code> auf der Deklaration auszuführen gibt ihnen einen. Ein Modul, das einen eigenen Typ namens <code>Issue</code> deklariert, überdeckte früher den aus dem Prelude in der erzeugten Datei und machte jeden Deskriptor in diesem Modul kaputt; seit 0.1.60 ist diese Deklaration <code>E0110</code> an der Zeile, die den Typ nennt, also erfährst du, wo das Problem liegt, statt einen <code>tsc</code>-Fehler über generierten Code zu lesen."
+    }
+  ]
+}

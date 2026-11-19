@@ -1,0 +1,72 @@
+---
+title: Kann ein Agent (oder ich) finden, wo etwas definiert ist? · Glyph
+description: Jedes Konstrukt in Glyph hat eine einzige Form, nach der man sucht, also landet grep (oder die Suche eines Agenten) auf der einen Definition statt auf fünfzig Beinahe-Treffern.
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; Zurück | Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?
+next: /answers/why-typescript/ | Weiter &rarr; | Warum TypeScript und nicht Go oder eine neue Sprache?
+---
+      <p class="q-eyebrow">03 &middot; Navigation per Suche</p>
+      <h1 class="q-title">Kann ein Agent (oder ich) finden, wo etwas definiert ist?</h1>
+
+      <p class="short-answer">
+        Jedes Konstrukt hat <strong>genau eine Form</strong>, nach der man sucht. Ein einfaches <code>grep</code> (so navigieren Agenten tatsächlich) landet auf der einen Definition, <strong>nicht auf fünfzig Beinahe-Treffern</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Ein Agent hat nicht dein ganzes Repo im Kopf; er <strong>sucht</strong>. Wenn sich ein Konzept auf fünf verschiedene Arten schreiben lässt, übersieht die Suche Fälle, und ein selbstsicherer Agent, der die bestehende Definition nicht findet, erfindet eine zweite. Eine Form pro Konzept heißt, die Suche ist vollständig, also bearbeitet der Agent, was da ist, statt es zu duplizieren.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>Glyph beschränkt Mutation auf zwei Formen (<code>mut x = &hellip;</code> und <code>mut x.method(&hellip;)</code>), also beantwortet eine einzige Suche <em>jede</em> Stelle, an der sich Zustand ändert:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (jede Mutation in der Codebasis)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Drei Mutationen, alle davon, in einer Suche. In TypeScript kann sich eine Mutation hinter <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, einem Setter oder einem Spread verstecken. Es gibt kein einzelnes Token zum Greppen, also hat &ldquo;ändert irgendetwas das hier?&rdquo; keine verlässliche Antwort. Dieselbe Regel einer einzigen Form macht ganze Kategorien prüfbar:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eine Suche = eine vollständige Antwort</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Es gibt keine Kurzschreibweise für Objektliterale, keinen zweiten Weg, eine Komponente zu deklarieren, keine überladene Syntax, die man auflösen müsste. Weniger Wege, etwas zu schreiben, ist eine echte Einschränkung, und genau darum geht es: Das macht die Suche eines Agenten, und deine, vertrauenswürdig.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Konstrukte, die Glyph weglässt, damit man einer Suche vertrauen kann, und warum eine Lint-Regel nicht dieselbe Garantie ist, stehen auf der <a href="/pillars/greppability/">Seite zur Säule Durchsuchbarkeit</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Eine kanonische Form pro Konstrukt, Mutation auf zwei durchsuchbare Formen beschränkt (<code>mut</code>), und Prüfungen über ein einziges Schlüsselwort (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Darauf aufbauend</h3>
+          <p>Der Language Server ergänzt Go-to-Definition und Find-References über den ganzen Workspace: dieselbe Garantie, jetzt interaktiv in deinem Editor.</p>
+        </div>
+      </div>

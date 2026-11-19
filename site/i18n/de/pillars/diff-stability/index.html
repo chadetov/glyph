@@ -1,0 +1,140 @@
+---
+title: Stabile Diffs · einzeilige Änderung, einzeiliger Diff · Glyph
+description: Glyphs dritte Säule: ein kanonisches Format, Trailing Commas, Listen, die nie neu umbrochen werden, keine Barrel-Dateien und idempotente Codegenerierung. Der Diff zeigt die Änderung, nicht das Rauschen.
+source_hash: b485401a000696d8
+prev: /pillars/greppability/ | &larr; Vorherige Säule | Durchsuchbarkeit: ein Name, eine Stelle
+next: /pillars/abstraction/ | Nächste Säule &rarr; | Abstraktion: ein kleiner, orthogonaler Kern
+---
+      <p class="q-eyebrow">Säule 03 &middot; <span class="polish">Der Feinschliff</span></p>
+      <h1 class="q-title">Stabile Diffs</h1>
+
+      <p class="short-answer">
+        Eine einzeilige Änderung ist ein <strong>einzeiliger Diff</strong>. Ein kanonisches Format, Trailing Commas und eine Liste, die entweder ganz in einer Zeile oder ganz mit einem Element pro Zeile steht, nie neu umbrochen, sodass ein Review die Änderung zeigt, die gemacht wurde, und nicht das Rauschen drumherum.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Review heißt Diffs lesen</h2>
+        <p class="lede">
+          Fast alles, worauf wir uns bei einer Änderung verlassen (das Review, blame, revert, bisect), baut auf dem Diff auf. Das Verhältnis von Signal zu Rauschen im Diff ist also die eigentliche Währung. In den meisten Codebasen ist es furchtbar: Ein Formatter bricht eine umbrochene Zeile neu um, ein Import-Sortierer mischt einen Block durch, eine Umbenennung berührt den Leerraum jeder Aufrufstelle, und die eine Zeile, auf die es <em>ankommt</em>, ist unter fünfzig begraben, auf die es nicht ankommt.
+        </p>
+        <p class="lede">
+          Agenten machen das deutlich schlimmer. Bei einer kleinen Aufgabe schreibt ein Modell bereitwillig eine ganze Funktion oder eine ganze Datei neu, um eine Sache zu ändern, weil Neugenerieren für es leichter ist als chirurgisches Bearbeiten. Dem Reviewer bleibt, einen Rewrite mit dem Original zu vergleichen und zu <em>hoffen</em>, dass die einzige echte Änderung die beabsichtigte ist. Glyph ist so gebaut, dass das Layout dem Modell nichts zum Umrühren gibt.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Ein kanonisches Layout, keine Wahl</h2>
+        <p>
+          <code>glyph fmt</code> gibt jede Datei in einem einzigen festen Layout neu aus: zwei Leerzeichen Einrückung, ein Trailing Comma an jeder mehrzeiligen Liste und eine Liste, die in einer Zeile bleibt, solange sie in 100 Spalten passt, und ein Element pro Zeile bekommt, wenn nicht. Die Wahl ist alles oder nichts. Der Formatter packt deine Elemente nie neu, um eine Zeile zu füllen, also steht eine Liste nie teils in einer Zeile und teils in der nächsten, und ein neues Feld ist eine einzige hinzugefügte Zeile. Weil es genau eine zulässige Form gibt, gibt es nichts zu diskutieren und nichts, was ein Tool nebenbei "reparieren" könnte.
+        </p>
+        <p>
+          Der Preis dafür ist die Breitenschwelle. Benenne ein Binding so um, dass ein Aufruf über 100 Spalten geht, und der Aufruf wird auf ein Argument pro Zeile aufgeklappt: eine Änderung an einem Token, ein Diff über vier Zeilen. Der Ausgleich ist, dass das Layout vom Code und der Spalte, in der er beginnt, abhängt und von nichts anderem, also landen zwei Agenten, die dieselbe Datei bearbeiten, bei denselben Bytes.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">Neu umbrochener Stil: eine Änderung, drei berührte Zeilen</span>
+          <span class="cap">git diff (gepackte Formatierung)</span>
+<pre><span class="del">- type User = { id: number, name:</span>
+<span class="del">-   string }</span>
+<span class="add">+ type User = { id: number, name:</span>
+<span class="add">+   string, email: string }</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: eine Änderung, eine hinzugefügte Zeile</span>
+          <span class="cap">git diff (kanonisch)</span>
+<pre>  type User = {
+    id: number,
+    name: string,
+<span class="add">+   email: string,</span>
+  }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Das Trailing Comma leistet stille Arbeit: Weil das letzte Element schon mit einem Komma endet, <strong>verändert ein neues Geschwisterelement nie die Zeile darüber.</strong> Eine Einfügung, eine Zeile.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> Die Reihenfolge ist stabil, also bleibt die Historie lesbar</h2>
+        <p>
+          Ein Element pro Zeile heißt, dass Umordnen, Einfügen oder Entfernen eines Eintrags nur die Zeilen dieses Eintrags berührt, nie die seiner Nachbarn. <code>git blame</code> bleibt aussagekräftig: Der letzte Commit, der eine Zeile berührt hat, ist der Commit, der <em>dieses</em> Element tatsächlich geändert hat, nicht der Formatierungsdurchlauf, der zufällig die Zeile neu gepackt hat, die es sich mit anderen teilte.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Keine Barrel-Dateien: kein Import-Rauschen</h2>
+        <p>
+          Weil Imports nie re-exportieren und es keine aggregierenden <code>index.ts</code>-Schichten gibt (<code>E0102</code>), zieht das Hinzufügen oder Verschieben eines Symbols keine Kreise durch ein Barrel, das jeder Konsument importiert. Die Abhängigkeitskanten, die du bearbeitest, sind die, die du gemeint hast; der Rest des Importgraphen bewegt sich nicht.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> Generierung ist idempotent, kein Klumpen</h2>
+        <p>
+          Dieselbe Disziplin gilt für generierten Code. <code>glyph gen</code> und <code>glyph regen</code> geben ihre Ausgabe über den kanonischen Formatter aus, also erzeugt das Neugenerieren nach einer Änderung der Spezifikation einen <em>minimalen</em> Diff, den du tatsächlich reviewen kannst, ein paar geänderte Zeilen statt eines vollständigen Austauschs einer maschinell geschriebenen Datei. Und jede erzeugte <code>.ts</code> bringt eine Source Map mit, also führt selbst die kompilierte Ausgabe sauber zurück zu der Zeile, die du geändert hast.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">ein Feld zur Spezifikation hinzugefügt &rarr; der neu generierte Diff</span>
+<pre>  type Task = {
+    id: number,
+    title: string,
+<span class="add">+   done: bool,</span>
+  }
+<span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> "TypeScript kann das mit Prettier"</h2>
+        <p>
+          Bei vielem an der Formatierung, ja. Prettier mit <code>trailingComma: "all"</code> setzt ein Komma ans letzte Element und gibt lange Listen mit einem Element pro Zeile aus, und das bringt dich durch den Großteil von Abschnitt 01. Die Unterschiede liegen an drei Stellen.
+        </p>
+        <p>
+          <strong>Das Layout hängt nur vom Code ab.</strong> Prettier lässt ein Objektliteral aufgeklappt, wenn sein Autor nach der <code>{</code> einen Zeilenumbruch gesetzt hat, und klappt es zu, wenn nicht, also kann dasselbe Objekt auf zwei Arten ausgegeben werden, je nachdem, wie es zuerst getippt wurde. Zwei Agenten, die dasselbe schreiben, erzeugen zwei Layouts, und die nächste Änderung an einem davon taucht als Umbruch auf. <code>glyph fmt</code> gibt <code>{ a: 1, b: 2 }</code> gleich aus, egal wie die Eingabe umbrochen war.
+        </p>
+        <p>
+          <strong>Es gibt nichts zu konfigurieren.</strong> Prettiers Ausgabe ist das, was die Konfigurationsdatei des Repositorys sagt, und manche Repositorys haben keine. Ein Agent, der zwischen TypeScript-Projekten wechselt, trifft in jedem auf ein anderes Layout. Eine Glyph-Datei hat in jedem Projekt dasselbe Layout, weil der Formatter keine Optionen hat.
+        </p>
+        <p>
+          <strong>Der Formatter kann nicht ändern, was eine Datei sagt.</strong> <code>glyph fmt</code> wird getestet, indem seine eigene Ausgabe geparst und der Syntaxbaum mit dem der Eingabe verglichen wird, an jedem Beispiel im Repository und unter einem Fuzzer. Wenn ein Kommentar an einer Stelle steht, für die das Layout keine Zeile hat, lehnt er die Datei ab (<code>E0500</code>), statt den Kommentar neben Code zu verschieben, den er nicht beschreibt.
+        </p>
+        <p>
+          Ein Punkt auf der Liste ist noch nicht erledigt: <code>glyph fmt</code> sortiert keine Imports, also erzeugen zwei Agenten, die an verschiedenen Stellen einen Import hinzufügen, weiterhin verschiedene Import-Blöcke (G358).
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Stabile Diffs machen aus "der Agent hat etwas geändert" ein "der Agent hat <strong>genau das</strong> geändert". Wenn das Grundrauschen null ist, geht das Review schnell und Vertrauen ist billig.
+        </p>
+
+        <h2 class="block-label">Der Benchmark: kommt noch</h2>
+        <p>
+          Die Zahl, die das erfasst, ist die Diff-Größe pro logischer Änderung: wie viele Zeilen sich bewegen, wenn du eine beabsichtigte Änderung machst, in Glyph im Vergleich zu einer gleichwertigen TypeScript-Änderung, die durch einen üblichen Formatter läuft. Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, der sich mit echten Messungen füllt, sobald es eine echte Historie gibt, aus der man schöpfen kann.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Diff-Zeilen pro Änderung an einem Feld &middot; weniger ist besser</span>
+        <h3>TypeScript gegen Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 22%;">ausstehend</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 58%;">ausstehend</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Noch nicht gemessen</span> Wir ziehen Zahlen zur Diff-Größe aus der Historie eines echten Glyph-Repos und veröffentlichen sie hier, egal was sie zeigen.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Es kostet ein wenig Freiheit (du darfst eine Zeile nicht von Hand so packen, wie es dir gefällt) und bringt dafür viel Lesbarkeit. Das ist der Tausch, den jede Feinschliff-Säule macht: eine Wahl aufgeben, die keine Rolle spielte, um ein Signal zu behalten, das eine spielt.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Was das für die Änderungen eines Agenten im Review bedeutet, mit einem Diff vorher und nachher, steht unter <a href="/answers/diff-stability/">Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?</a>
+        </p>
+      </div>

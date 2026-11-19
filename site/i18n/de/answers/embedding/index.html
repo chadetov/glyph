@@ -1,0 +1,54 @@
+---
+title: Kann ich Glyph in meiner bestehenden App einführen? · Glyph
+description: Kein Rewrite: Die App bleibt in TypeScript, der Domänenkern wird in Glyph geschrieben, und die kompilierten Module importierst du wie jede lokale Datei. Es funktioniert mit einem normalen Vite.
+source_hash: 4dc0a3c1d0f26ab3
+prev: /answers/imports/ | &larr; Zurück | Kann ich meine bestehenden TypeScript-, JavaScript- und npm-Bibliotheken verwenden?
+next: /answers/typed-apis/ | Weiter &rarr; | Muss ich für jede API einen Validator von Hand schreiben?
+---
+      <p class="q-eyebrow">10 &middot; In deiner App</p>
+      <h1 class="q-title">Kann ich Glyph in meiner bestehenden App einführen, oder heißt es alles oder nichts?</h1>
+
+      <p class="short-answer">
+        Kein Rewrite. Die App bleibt in TypeScript, und den Teil, bei dem du dir keinen Fehler leisten kannst (Modelle, Berechtigungen, Zustandsübergänge, Geldberechnungen), schreibst du in Glyph. <code>glyph build</code> erzeugt Module, die deine App <strong>wie jede lokale Datei</strong> importiert, ohne Bundler-Konfiguration und ohne Pfad-Aliase.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Die meisten Teams können eine Anwendung nicht neu schreiben, und der Großteil einer Anwendung braucht Glyph nicht. Der Teil, der es braucht, ist der Domänenkern: die Regeln, die ein KI-Agent nächsten Monat bearbeitet und bei denen niemand stille Fehler will. Wenn dieser Kern in Glyph bleibt, bekommst du erschöpfendes <code>match</code>, keine Casts und validierte Systemgrenzen genau dort, wo es sich lohnt, während React-Komponenten, Styling und Infrastruktur einfaches TypeScript bleiben.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>Ein Verzeichnis mit Glyph-Quellen, in die App kompiliert, von der UI importiert:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Ein hybrides Layout: Domänenkern in Glyph, alles andere in TypeScript</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Alles, was der erzeugte Code braucht, reist mit ihm. Imports sind relativ, auch die der mitgelieferten Standardbibliothek, also müssen die <code>tsconfig.json</code> und der Bundler deines Projekts nichts dazubekommen: Ein normales Vite-Grundgerüst kompiliert und bundelt die Ausgabe unverändert, und dieselben Dateien bestehen ein <code>tsc --strict</code> im Host-Projekt. Markiere, was die App importiert, mit <code>pub</code>; eine Deklaration ohne das ist privat in ihrem Modul. Das ist nicht hypothetisch: Ein externer Entwickler <a href="https://github.com/yildizadem/glyph-kanban">hat auf diese Weise ein React-Kanban-Board gebaut</a>, mit der RBAC-Matrix, den Analyse-Formeln und den Statusübergängen in vier Glyph-Modulen unter einer handgeschriebenen React-UI.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Die erzeugte Ausgabe passt unverändert in ein Host-Projekt: durchgehend relative Specifier, Prelude-Typen im Code selbst mitgeliefert, geprüft mit einem normalen Vite-Grundgerüst, <code>tsc --strict</code> im Host, esbuild und <code>tsx</code>. Der <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deployment-Guide</a> dokumentiert das hybride Layout.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">In Arbeit</h3>
+          <p>Noch kein Watch-Modus: Führ <code>glyph build</code> nach dem Bearbeiten von <code>.glyph</code>-Quellen erneut aus (bind es in dein <code>dev</code>-Skript ein). Module, die <code>std/fs</code> oder <code>std/net</code> verwenden, brauchen <code>@types/node</code> im Host, wie jedes TypeScript, das Node anfasst.</p>
+        </div>
+      </div>

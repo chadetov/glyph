@@ -1,0 +1,284 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/index.html",
+  "locale": "de",
+  "source_hash": "28891a173ca9e4a0",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Design · the four pillars and the decisions · Glyph",
+      "tr": "Design · die vier Säulen und die Entscheidungen · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "The design argument for Glyph: four pillars every decision is tested against, the numbered decisions in the spec, and what the language leaves out on purpose.",
+      "tr": "Die Begründung hinter Glyph: vier Säulen, an denen jede Entscheidung gemessen wird, die nummerierten Entscheidungen in der Spezifikation und was die Sprache bewusst weglässt."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "Wie es weitergeht"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "Empfohlen"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/language/spec.md.title",
+      "kind": "ns.title",
+      "en": "Read the spec",
+      "tr": "Die Spezifikation lesen"
+    },
+    {
+      "id": "ns.https://github.com/chadetov/glyph/blob/main/docs/language/spec.md.desc",
+      "kind": "ns.desc",
+      "en": "Every numbered decision, each ending with the pillar it serves.",
+      "tr": "Jede nummerierte Entscheidung, jede endet mit der Säule, der sie dient."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Open the spec",
+      "tr": "Spezifikation öffnen"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Was Glyph ablehnt"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "Jeder Fall, geprüft unter <code>tsc --strict</code> und unter Glyph."
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Write your first program",
+      "tr": "Dein erstes Programm schreiben"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install, scaffold, run, break it on purpose, read the error. About ten minutes.",
+      "tr": "Installieren, Projekt anlegen, ausführen, absichtlich kaputtmachen, den Fehler lesen. Etwa zehn Minuten."
+    },
+    {
+      "id": "h-0072e6b9",
+      "kind": "html",
+      "en": "Design",
+      "tr": "Design"
+    },
+    {
+      "id": "h-32e01c38",
+      "kind": "html",
+      "en": "Four pillars, and a decision record for every rule",
+      "tr": "Vier Säulen und eine dokumentierte Entscheidung für jede Regel"
+    },
+    {
+      "id": "h-00bba438",
+      "kind": "html",
+      "en": "Every rule in Glyph is tested against four properties, and each rule is a numbered decision in the spec with the pillar it serves. The pillars are properties of the language rather than of a project's configuration, so an agent opening an unfamiliar Glyph codebase can rely on them without first finding out which settings it chose.",
+      "tr": "Jede Regel in Glyph wird an vier Eigenschaften gemessen, und jede Regel ist eine nummerierte Entscheidung in der Spezifikation, mit der Säule, der sie dient. Die Säulen sind Eigenschaften der Sprache und nicht der Konfiguration eines Projekts, also kann sich ein Agent, der eine unbekannte Glyph-Codebasis öffnet, auf sie verlassen, ohne erst herauszufinden, welche Einstellungen sie gewählt hat."
+    },
+    {
+      "id": "h-9336e2ad",
+      "kind": "html",
+      "en": "The pillars",
+      "tr": "Die Säulen"
+    },
+    {
+      "id": "h-2b73560f",
+      "kind": "html",
+      "en": "In order of what matters most. The first two are the wedge, the problems you feel every day. The last two are the polish that makes it pleasant. When they conflict, the wedge wins.",
+      "tr": "Nach Wichtigkeit geordnet. Die ersten beiden sind der Kern, die Probleme, die du jeden Tag spürst. Die letzten beiden sind der Feinschliff, der die Arbeit angenehm macht. Wenn sie sich widersprechen, gewinnt der Kern."
+    },
+    {
+      "id": "h-5cbfc52e",
+      "kind": "html",
+      "en": "Pillar 01",
+      "tr": "Säule 01"
+    },
+    {
+      "id": "h-a33b81eb",
+      "kind": "html",
+      "en": "Verifiability",
+      "tr": "Überprüfbarkeit"
+    },
+    {
+      "id": "h-833bdc5b",
+      "kind": "html",
+      "en": "No <code>any</code> and no <code>as</code> you can write; <code>match</code> must cover every case; and your record and union types generate strict runtime validators, so a boundary value is checked, not assumed. A strict layer over <code>tsc</code> that can't be switched off. Many mistakes <code>tsc --strict</code> accepts don't compile here; the ones that still do are listed under <a href=\"/catches/#not-yet\">not caught yet</a>.",
+      "tr": "Kein <code>any</code> und kein <code>as</code>, das du schreiben könntest; <code>match</code> muss jeden Fall abdecken; und deine Record- und Union-Typen erzeugen strikte Laufzeitvalidatoren, also wird ein Wert an der Systemgrenze geprüft statt angenommen. Eine strikte Schicht über <code>tsc</code>, die sich nicht abschalten lässt. Viele Fehler, die <code>tsc --strict</code> akzeptiert, kompilieren hier nicht; die, bei denen es noch geht, stehen unter <a href=\"/catches/#not-yet\">noch nicht erkannt</a>."
+    },
+    {
+      "id": "h-340b6574",
+      "kind": "html",
+      "en": "Pillar 02",
+      "tr": "Säule 02"
+    },
+    {
+      "id": "h-6b14954f",
+      "kind": "html",
+      "en": "Greppability",
+      "tr": "Durchsuchbarkeit"
+    },
+    {
+      "id": "h-13800ac1",
+      "kind": "html",
+      "en": "One name, one place. Every symbol has exactly one syntactic form at its declaration, with no overloads, decorators, implicit <code>this</code>, or namespace merging. <code>grep \"fn parseUser\"</code> finds the definition.",
+      "tr": "Ein Name, eine Stelle. Jedes Symbol hat an seiner Deklaration genau eine syntaktische Form, ohne Overloads, Decorators, implizites <code>this</code> oder zusammengeführte Namespaces. <code>grep \"fn parseUser\"</code> findet die Definition."
+    },
+    {
+      "id": "h-7eb86103",
+      "kind": "html",
+      "en": "Pillar 03",
+      "tr": "Säule 03"
+    },
+    {
+      "id": "h-93a58670",
+      "kind": "html",
+      "en": "Diff stability",
+      "tr": "Stabile Diffs"
+    },
+    {
+      "id": "h-0a940571",
+      "kind": "html",
+      "en": "A one-line change is a one-line diff. One canonical layout: a list is inline while it fits and one element per line when it doesn't, never repacked, with trailing commas, no barrel files and no options, so the same code prints the same way in every project. Reviewers read the change, not the churn.",
+      "tr": "Eine einzeilige Änderung ist ein einzeiliger Diff. Ein kanonisches Layout: Eine Liste steht in einer Zeile, solange sie passt, und ein Element pro Zeile, wenn nicht, wird nie neu umbrochen, mit Trailing Commas, ohne Barrel-Dateien und ohne Optionen, sodass derselbe Code in jedem Projekt gleich formatiert wird. Reviewer lesen die Änderung, nicht das Rauschen."
+    },
+    {
+      "id": "h-80299b6d",
+      "kind": "html",
+      "en": "Pillar 04",
+      "tr": "Säule 04"
+    },
+    {
+      "id": "h-6e4fdd69",
+      "kind": "html",
+      "en": "Abstraction",
+      "tr": "Abstraktion"
+    },
+    {
+      "id": "h-f3e218e0",
+      "kind": "html",
+      "en": "Say what you mean: pattern matching over switch ladders, <code>Result</code> over thrown exceptions, named records over tuples, from a small orthogonal core rather than TypeScript's accreted layers.",
+      "tr": "Sag, was du meinst: Pattern Matching statt switch-Kaskaden, <code>Result</code> statt geworfener Exceptions, benannte Records statt Tupel, aus einem kleinen, orthogonalen Kern statt aus den angesammelten Schichten von TypeScript."
+    },
+    {
+      "id": "h-8bfd62a3",
+      "kind": "html",
+      "en": "The spec is a list of decisions",
+      "tr": "Die Spezifikation ist eine Liste von Entscheidungen"
+    },
+    {
+      "id": "h-74c34d82",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/language/spec.md\">docs/language/spec.md</a> holds 49 numbered decisions, D1 to D49, each ending with the pillar it serves. The grammar follows the spec: an ambiguity is resolved there first, then encoded in the parser. <code>glyph llms --json</code> parses the list out of the spec, so an agent reads the same decisions you do. One of them, shortened:",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/language/spec.md\">docs/language/spec.md</a> enthält 49 nummerierte Entscheidungen, D1 bis D49, jede endet mit der Säule, der sie dient. Die Grammatik folgt der Spezifikation: Eine Mehrdeutigkeit wird zuerst dort aufgelöst und dann im Parser umgesetzt. <code>glyph llms --json</code> liest die Liste aus der Spezifikation aus, also liest ein Agent dieselben Entscheidungen wie du. Eine davon, gekürzt:"
+    },
+    {
+      "id": "h-943e1539",
+      "kind": "html",
+      "en": "D9, from docs/language/spec.md (shortened)",
+      "tr": "D9, aus docs/language/spec.md (gekürzt)"
+    },
+    {
+      "id": "h-269321eb",
+      "kind": "html",
+      "en": "What it deliberately leaves out",
+      "tr": "Was es bewusst weglässt"
+    },
+    {
+      "id": "h-256e589c",
+      "kind": "html",
+      "en": "The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/manifesto.md\">manifesto</a> states the stance, and the short version is that each restriction earns its place against a pillar. Glyph has no <code>if</code>/<code>else</code> (<code>match</code> is the only conditional), no classes, no overloads or decorators, no casts, no <code>any</code>, no relative imports and no formatter options. It is also not configurable: one formatter, one module resolution, one strictness level. Annoying restrictions get documentation, not a looser rule.",
+      "tr": "Das <a href=\"https://github.com/chadetov/glyph/blob/main/docs/manifesto.md\">Manifest</a> legt die Haltung dar, und kurz gesagt muss sich jede Einschränkung gegenüber einer Säule rechtfertigen. Glyph hat kein <code>if</code>/<code>else</code> (<code>match</code> ist die einzige Bedingung), keine Klassen, keine Overloads oder Decorators, keine Casts, kein <code>any</code>, keine relativen Imports und keine Formatter-Optionen. Es ist auch nicht konfigurierbar: ein Formatter, eine Modulauflösung, eine Strenge. Lästige Einschränkungen bekommen Dokumentation, keine gelockerte Regel."
+    },
+    {
+      "id": "h-3f7ad4a6",
+      "kind": "html",
+      "en": "Comparisons",
+      "tr": "Vergleiche"
+    },
+    {
+      "id": "h-e86ec61c",
+      "kind": "html",
+      "en": "Glyph is close to several existing things, and each comparison below names what the other option does better.",
+      "tr": "Glyph ähnelt mehreren bestehenden Dingen, und jeder Vergleich unten nennt, was die andere Option besser macht."
+    },
+    {
+      "id": "h-7db27878",
+      "kind": "html",
+      "en": "Why TypeScript, and not Go or a new language?",
+      "tr": "Warum TypeScript und nicht Go oder eine neue Sprache?"
+    },
+    {
+      "id": "h-8999c8e3",
+      "kind": "html",
+      "en": "Why the target is TypeScript, and what that makes possible: adoption one file at a time.",
+      "tr": "Warum das Ziel TypeScript ist und was das möglich macht: Einführung Datei für Datei."
+    },
+    {
+      "id": "h-d07c7b07",
+      "kind": "html",
+      "en": "Why not strict TypeScript + zod + eslint + ts-pattern?",
+      "tr": "Warum nicht striktes TypeScript + zod + eslint + ts-pattern?"
+    },
+    {
+      "id": "h-dd5c3905",
+      "kind": "html",
+      "en": "The same checks as configuration versus as language, and where tooled TypeScript is still ahead.",
+      "tr": "Dieselben Prüfungen als Konfiguration oder als Sprache, und wo TypeScript mit Tooling noch vorn liegt."
+    },
+    {
+      "id": "h-f04f0272",
+      "kind": "html",
+      "en": "How does it compare with Effect?",
+      "tr": "Wie schlägt es sich im Vergleich zu Effect?"
+    },
+    {
+      "id": "h-6fe0c507",
+      "kind": "html",
+      "en": "A TypeScript library with typed errors and a large ecosystem, against a language that removes the escape hatches.",
+      "tr": "Eine TypeScript-Bibliothek mit typisierten Fehlern und großem Ökosystem gegen eine Sprache, die die Hintertüren entfernt."
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "Warum nicht ReScript, Gleam oder Elm?"
+    },
+    {
+      "id": "h-d8c3b4ac",
+      "kind": "html",
+      "en": "Three older typed languages that compile to JavaScript, where each is ahead, and what Glyph does differently.",
+      "tr": "Drei ältere typisierte Sprachen, die zu JavaScript kompilieren, wo jede vorn liegt und was Glyph anders macht."
+    },
+    {
+      "id": "h-49ee7f98",
+      "kind": "html",
+      "en": "Is this a real language, or a toy with gaps?",
+      "tr": "Ist das eine echte Sprache oder ein Spielzeug mit Lücken?"
+    },
+    {
+      "id": "h-30b39c82",
+      "kind": "html",
+      "en": "Module visibility, interfaces, defer, the standard library, and the edges it still has.",
+      "tr": "Modul-Sichtbarkeit, Interfaces, defer, die Standardbibliothek und die Grenzen, die es noch hat."
+    },
+    {
+      "id": "h-c0af297f",
+      "kind": "html",
+      "en": "The hypothesis behind all of it, which is not a result yet: an agent given the same task produces correct code more reliably in Glyph than in TypeScript, and the reviewer spends less time confirming it. That study has not been run, so this site puts no number on it. <a href=\"/benchmarks/\">Benchmarks</a> says what is measured so far.",
+      "tr": "Die Hypothese hinter all dem, die noch kein Ergebnis ist: Ein Agent, der dieselbe Aufgabe bekommt, schreibt in Glyph zuverlässiger korrekten Code als in TypeScript, und der Reviewer braucht weniger Zeit, das zu bestätigen. Diese Studie wurde noch nicht durchgeführt, also nennt diese Website keine Zahl dafür. <a href=\"/benchmarks/\">Benchmarks</a> sagt, was bisher gemessen wird."
+    }
+  ]
+}

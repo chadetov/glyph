@@ -1,0 +1,144 @@
+---
+title: Abstraktion · ein kleiner, orthogonaler Kern · Glyph
+description: Glyphs vierte Säule: ein Weg pro Konzept. Pattern Matching statt switch-Kaskaden, Result statt Exceptions, Records statt Tupel und match als Bedingung.
+source_hash: e8827b54becde411
+prev: /pillars/diff-stability/ | &larr; Vorherige Säule | Stabile Diffs: Eine einzeilige Änderung ist ein einzeiliger Diff
+next: /pillars/verifiability/ | Zurück zum Anfang &rarr; | Überprüfbarkeit: wahr zur Laufzeit
+---
+      <p class="q-eyebrow">Säule 04 &middot; <span class="polish">Der Feinschliff</span></p>
+      <h1 class="q-title">Abstraktion</h1>
+
+      <p class="short-answer">
+        Sag, was du meinst, mit einem <strong>kleinen, orthogonalen Kern</strong>: Pattern Matching statt switch-Kaskaden, <code>Result</code> statt geworfener Exceptions, benannte Records statt Tupel. Ein guter Weg pro Konzept, nicht die angesammelten Schichten von TypeScript.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Zu viele Wege, dasselbe zu sagen</h2>
+        <p class="lede">
+          TypeScript ist durch Anlagerung gewachsen und hat jede Schicht behalten. Eine feste Menge von Fällen kannst du als <code>enum</code>, als Union von String-Literalen oder als <code>const</code>-Objekt modellieren. Eine Form kannst du mit einem <code>interface</code>, einem <code>type</code> oder einer <code>class</code> beschreiben. Es gibt <code>namespace</code>s und Module, Decorators und Funktionen höherer Ordnung, fünf Idiome für fast alles, jedes mit eigenen Sonderfällen.
+        </p>
+        <p class="lede">
+          Für einen Menschen ist das Flexibilität. Für einen <strong>Agenten</strong> ist es ein Minenfeld: Mehr Wege, etwas auszudrücken, heißt mehr Wege, den mit der Falle zu erwischen, und mehr Idiome, die man dabei auseinanderhalten muss. Glyphs Säule Abstraktion ist eine bewusste Subtraktion: ein scharfes Werkzeug pro Aufgabe, so gewählt, dass der naheliegende Weg auch der sichere ist.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code> ist die einzige Bedingung</h2>
+        <p>
+          Es gibt keine <code>if</code>/<code>else</code>-Anweisung. Verzweigen ist überall <code>match</code>, und <code>match</code> ist ein Ausdruck: Es erzeugt einen Wert. Ein Konstrukt deckt einen Boolean-Test, eine Union-Verzweigung und eine Wertetabelle ab, also musst du nicht entscheiden, <em>welche</em> Form der Verzweigung du nimmst.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: Anweisung, kein Wert</span>
+          <span class="cap">grade.ts</span>
+<pre>let label: string;
+if (score &gt; 90) label = "A";
+else if (score &gt; 80) label = "B";
+else label = "C";</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: ein Ausdruck</span>
+          <span class="cap">grade.glyph</span>
+<pre>let label = match score &gt; 90 {
+  true =&gt; "A",
+  false =&gt; match score &gt; 80 {
+    true =&gt; "B",
+    else =&gt; "C",
+  },
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">02</span> Tagged Unions und Pattern Matching</h2>
+        <p>
+          "Eine dieser Formen" modelliert man mit einer Tagged Union, und zerlegt wird sie mit <code>match</code>, das den Payload im selben Schritt destrukturiert, in dem es den Fall auswählt. Kein Diskriminator-Feld, das von Hand gepflegt werden muss, keine <code>switch</code>-Kaskade über einen String-Tag, kein Cast in jedem Zweig, um die Form zurückzugewinnen.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">feed.glyph</span>
+<pre>type Feed =
+  | Loading
+  | Loaded(Array&lt;Post&gt;)
+  | Failed(string)
+
+fn view(feed: Feed) -&gt; string {
+  return match feed {
+    Loading =&gt; "...",
+    Loaded(posts) =&gt; render(posts),   <span class="cm">// posts is Array&lt;Post&gt; here</span>
+    Failed(msg) =&gt; msg,               <span class="cm">// msg is string here</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">03</span> <code>Result</code> statt Exceptions</h2>
+        <p>
+          Ein Fehlschlag ist ein Wert, kein versteckter Sprung im Kontrollfluss. Eine Funktion, die fehlschlagen kann, sagt das in ihrem Rückgabetyp (<code>Result&lt;T, E&gt;</code>), und du setzt Fehlschläge mit dem Operator <code>?</code> zusammen, statt Aufrufstellen in <code>try</code>/<code>catch</code> zu packen und zu hoffen, dass das Richtige die richtige Klasse wirft. Der Fehlerpfad ist so sichtbar wie der Normalfall.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> Benannte Records statt positionaler Tupel</h2>
+        <p>
+          Daten werden immer mit benannten Feldern beschrieben. Es gibt keine Kurzschreibweise für Objektliterale und kein anonymes Tupel, bei dem du dir merken musst, was <code>[0]</code> und <code>[1]</code> sind. Die Form liest sich an der Definition, bei der Konstruktion und bei der Verwendung gleich.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: Was sind [0] und [1]?</span>
+          <span class="cap">point.ts</span>
+<pre>function origin(): [number, number] {
+  return [0, 0];
+}
+const p = origin();
+p[0]; p[1];  <span class="cm">// x? y? row? col?</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: Die Namen reisen mit dem Wert</span>
+          <span class="cap">point.glyph</span>
+<pre>type Point = { x: number, y: number }
+
+fn origin() -&gt; Point {
+  return { x: 0, y: 0 }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> Ein Grundbaustein pro Aufgabe</h2>
+        <p>
+          Wenn ein Konzept ein eigenes Werkzeug braucht, gibt Glyph ihm genau eins. Gemeinsamer veränderlicher Zustand lebt in einem <code>std/store</code>. Ein Datei- oder Socket-Handle, das genau einmal geschlossen werden muss, ist eine <code>owned</code>-Ressource. Iteration ist <code>for x in xs</code>. Jedes ist ein einzelner, benannter, zweckgebauter Grundbaustein, kein Muster, das du dir aus einer Kiste allgemeiner Teile neu herleitest und dabei subtil falsch machst.
+        </p>
+
+        <p class="pull-quote">
+          Abstraktion heißt hier <strong>weniger, schärfere Werkzeuge</strong>, nicht mehr. Jedes Konzept hat eine naheliegende Form, und die naheliegende Form ist die, die du verwenden sollst.
+        </p>
+
+        <h2 class="block-label">Der Benchmark: kommt noch</h2>
+        <p>
+          Gemessen wird das über die Oberfläche: wie viele verschiedene Konzepte ein Leser im Kopf behalten muss, um ein Programm zu verstehen, und wie viel Code es braucht, eine übliche Aufgabe sauber auszudrücken. Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, der sich mit echten Messungen füllt, sobald es genug echte Programme zum Vergleichen gibt.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Verschiedene Konzepte, um ein typisches Modul zu lesen &middot; weniger ist besser</span>
+        <h3>TypeScript gegen Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 30%;">ausstehend</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 62%;">ausstehend</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Noch nicht gemessen</span> Wir veröffentlichen hier Vergleiche der Konzeptanzahl und der Zeilen, die man braucht, um X auszudrücken, aus echten Programmen, sobald es genug zum Messen gibt.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Ein kleinerer Kern ist für einen Menschen leichter einmal zu lernen und für ein Modell leichter jedes Mal richtig zu treffen. Das ist die ganze Feinschliff-Schicht in einem Satz: Nimm die Wahlmöglichkeiten weg, die nur Risiko hinzugefügt haben, und übrig bleibt eine Sprache, die sagt, was sie meint.
+        </p>
+      </div>

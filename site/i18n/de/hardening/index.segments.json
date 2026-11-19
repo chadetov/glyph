@@ -1,0 +1,416 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "hardening/index.html",
+  "locale": "de",
+  "source_hash": "39150fb233f95dbe",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Hardening · how Glyph is stress-tested, and what it found",
+      "tr": "Härtung · wie Glyph unter Belastung getestet wird und was dabei herauskam"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "AI agents role-play skeptical engineers, build apps in Glyph and try to break its guarantees. The loop, and the bugs it found.",
+      "tr": "KI-Agenten spielen skeptische Entwickler, bauen Apps in Glyph und versuchen, seine Garantien zu brechen. Die Schleife und die Bugs, die sie gefunden hat."
+    },
+    {
+      "id": "h-897a3805",
+      "kind": "html",
+      "en": "How Glyph is hardened",
+      "tr": "Wie Glyph gehärtet wird"
+    },
+    {
+      "id": "h-d1b07b17",
+      "kind": "html",
+      "en": "Agents try to break it, <span class=\"accent\">and we keep what they find</span>.",
+      "tr": "Agenten versuchen, es kaputtzumachen, <span class=\"accent\">und wir behalten, was sie finden</span>."
+    },
+    {
+      "id": "h-e264bea0",
+      "kind": "html",
+      "en": "A language that says your agents can't quietly break it has to be tested against that. We run AI agents that role-play skeptical engineers (a frustrated React developer, a backend contrarian, a safety adversary), have them build apps and try to break the guarantees, then fix what they find or file it as an open gap. Here is that loop, and what it found.",
+      "tr": "Eine Sprache, die verspricht, dass deine Agenten sie nicht unbemerkt kaputtmachen können, muss genau daran getestet werden. Wir lassen KI-Agenten skeptische Entwickler spielen (einen frustrierten React-Entwickler, einen Backend-Querdenker, einen Sicherheits-Gegenspieler), lassen sie Apps bauen und versuchen, die Garantien zu brechen, und beheben dann, was sie finden, oder erfassen es als offene Lücke. Hier ist diese Schleife und was sie gefunden hat."
+    },
+    {
+      "id": "h-26b9b9ba",
+      "kind": "html",
+      "en": "Cases that pass <code>tsc --strict</code> and do not compile in Glyph",
+      "tr": "Fälle, die <code>tsc --strict</code> bestehen und in Glyph nicht kompilieren"
+    },
+    {
+      "id": "h-4b26fd30",
+      "kind": "html",
+      "en": "Each is two files: a <code>.ts</code> that type-checks clean under <code>tsc --strict</code>, and the same program in Glyph that does not compile. A build gate, <code>scripts/check_catches.py</code>, re-runs every one and fails if either half stops behaving, so a guarantee that quietly disappears takes the build with it. The table lists the {{catches:refused}} of the {{catches:count}} TypeScript mistakes on <a href=\"/catches/\">the catches page</a> that are refused this way; the page has the rest, which Glyph checks when the data arrives, warns about, or stops at run time. {{catches:breakdown}}",
+      "tr": "Jeder besteht aus zwei Dateien: einer <code>.ts</code>, die unter <code>tsc --strict</code> sauber durch die Typprüfung kommt, und demselben Programm in Glyph, das nicht kompiliert. Ein Build-Gate, <code>scripts/check_catches.py</code>, führt jeden erneut aus und schlägt fehl, wenn sich eine der beiden Hälften anders verhält, also reißt eine Garantie, die stillschweigend verschwindet, den Build mit. Die Tabelle listet die {{catches:refused}} der {{catches:count}} TypeScript-Fehler auf <a href=\"/catches/\">der Seite mit den Fällen</a>, die so abgelehnt werden; die Seite hat den Rest, den Glyph beim Eintreffen der Daten prüft, mit einer Warnung meldet oder zur Laufzeit stoppt. {{catches:breakdown}}"
+    },
+    {
+      "id": "h-e8999e82",
+      "kind": "html",
+      "en": "Cases that turned out to be caught by TypeScript too, or whose two halves were not the same program, were deleted rather than softened; <code>catches/README.md</code> lists each one and why.",
+      "tr": "Fälle, die sich als auch von TypeScript gefunden herausstellten oder deren zwei Hälften nicht dasselbe Programm waren, wurden gelöscht statt abgeschwächt; <code>catches/README.md</code> listet jeden davon und warum."
+    },
+    {
+      "id": "h-c3a6a081",
+      "kind": "html",
+      "en": "The map read is refused even when the key is spelled right, because a <code>Record&lt;string, string&gt;</code> says nothing about which keys exist. TypeScript catches it with <code>noUncheckedIndexedAccess</code>, which <code>--strict</code> does not turn on. The missing union case can be caught in TypeScript too, with typescript-eslint's <code>switch-exhaustiveness-check</code> or an <code>assertNever</code> default, if the project adopts them. In Glyph neither check is optional.",
+      "tr": "Der Lesezugriff auf die Map wird auch abgelehnt, wenn der Schlüssel richtig geschrieben ist, weil ein <code>Record&lt;string, string&gt;</code> nichts darüber sagt, welche Schlüssel existieren. TypeScript findet es mit <code>noUncheckedIndexedAccess</code>, das <code>--strict</code> nicht einschaltet. Der fehlende Union-Fall lässt sich in TypeScript ebenfalls finden, mit <code>switch-exhaustiveness-check</code> von typescript-eslint oder einem <code>assertNever</code>-Default, wenn das Projekt sie einsetzt. In Glyph ist keine der beiden Prüfungen optional."
+    },
+    {
+      "id": "h-9c37f555",
+      "kind": "html",
+      "en": "In the parsed-body case, Glyph's <code>json.parse</code> returns a <code>Result</code>, not a <code>User</code>, so the assignment is a type mismatch until the body is checked. TypeScript's <code>JSON.parse</code> returns <code>any</code>, and the annotation on <code>user</code> launders it.",
+      "tr": "Im Fall mit dem geparsten Body gibt Glyphs <code>json.parse</code> ein <code>Result</code> zurück, keinen <code>User</code>, also ist die Zuweisung ein Typfehler, bis der Body geprüft ist. TypeScripts <code>JSON.parse</code> gibt <code>any</code> zurück, und die Annotation an <code>user</code> wäscht es rein."
+    },
+    {
+      "id": "h-d39e3998",
+      "kind": "html",
+      "en": "The adversarial loop",
+      "tr": "Die Schleife der Gegenspieler"
+    },
+    {
+      "id": "h-27dc16d9",
+      "kind": "html",
+      "en": "Every finding is reproduced against the compiler, fixed at the root, and independently re-verified before it counts.",
+      "tr": "Jeder Fund wird gegen den Compiler reproduziert, an der Ursache behoben und unabhängig erneut verifiziert, bevor er zählt."
+    },
+    {
+      "id": "h-3b73900b",
+      "kind": "html",
+      "en": "Explore",
+      "tr": "Erkunden"
+    },
+    {
+      "id": "h-5539289f",
+      "kind": "html",
+      "en": "Persona agents build programs (forms, backends, stateful UI) and record every place the language fought them.",
+      "tr": "Persona-Agenten bauen Programme (Formulare, Backends, UI mit Zustand) und halten jede Stelle fest, an der die Sprache sich gegen sie gesträubt hat."
+    },
+    {
+      "id": "h-5efe5e51",
+      "kind": "html",
+      "en": "Reproduce",
+      "tr": "Reproduzieren"
+    },
+    {
+      "id": "h-3fb71d14",
+      "kind": "html",
+      "en": "Each finding is minimized to the smallest failing program and re-run against the compiler. Anything that can't be reproduced is dropped.",
+      "tr": "Jeder Fund wird auf das kleinste fehlschlagende Programm reduziert und erneut gegen den Compiler ausgeführt. Was sich nicht reproduzieren lässt, wird verworfen."
+    },
+    {
+      "id": "h-21f1595b",
+      "kind": "html",
+      "en": "Fix",
+      "tr": "Beheben"
+    },
+    {
+      "id": "h-ffc4b518",
+      "kind": "html",
+      "en": "Root-cause fix in the Rust compiler with a regression test that fails before and passes after. The full suite must stay green, or the change reverts.",
+      "tr": "Fix an der Ursache im Rust-Compiler, mit einem Regressionstest, der vorher fehlschlägt und danach besteht. Die vollständige Suite muss grün bleiben, sonst wird die Änderung zurückgenommen."
+    },
+    {
+      "id": "h-eea2745e",
+      "kind": "html",
+      "en": "Verify",
+      "tr": "Verifizieren"
+    },
+    {
+      "id": "h-955632b2",
+      "kind": "html",
+      "en": "An independent pass re-runs every repro against the freshly built compiler, catching &ldquo;the agent thought it was fixed&rdquo; gaps before anything ships.",
+      "tr": "Ein unabhängiger Durchgang führt jede Reproduktion gegen den frisch gebauten Compiler erneut aus und fängt Lücken der Art &ldquo;der Agent dachte, es sei behoben&rdquo; ab, bevor etwas ausgeliefert wird."
+    },
+    {
+      "id": "h-dc5f2d3c",
+      "kind": "html",
+      "en": "The ones that mattered most: silent-correctness holes",
+      "tr": "Die wichtigsten: stille Korrektheitslücken"
+    },
+    {
+      "id": "h-ff0ab30c",
+      "kind": "html",
+      "en": "Each of these compiled clean and could ship <em>wrong code that passed the type check</em>: exactly the class of bug Glyph exists to prevent. Every one is now caught at compile time.",
+      "tr": "Jede davon kompilierte sauber und konnte <em>falschen Code ausliefern, der die Typprüfung bestand</em>: genau die Art von Bug, die Glyph verhindern soll. Jede wird jetzt beim Kompilieren gefunden."
+    },
+    {
+      "id": "h-1904c499",
+      "kind": "html",
+      "en": "Critical, fixed",
+      "tr": "Kritisch, behoben"
+    },
+    {
+      "id": "h-a0fa8f92",
+      "kind": "html",
+      "en": "Nullary error variants in a <code>Result</code> match",
+      "tr": "Fehlervarianten ohne Payload in einem <code>Result</code>-match"
+    },
+    {
+      "id": "h-3ccd1c17",
+      "kind": "html",
+      "en": "A <code>match</code> over <code>Result&lt;T, Empty | BadQty(...)&gt;</code> lowered to two duplicate <code>case&nbsp;\"Err\"</code> branches; the first swallowed every error and silently dispatched to the wrong arm.",
+      "tr": "Ein <code>match</code> über <code>Result&lt;T, Empty | BadQty(...)&gt;</code> wurde zu zwei doppelten Zweigen <code>case&nbsp;\"Err\"</code> übersetzt; der erste schluckte jeden Fehler und verzweigte stillschweigend in den falschen Arm."
+    },
+    {
+      "id": "h-1564b8d2",
+      "kind": "html",
+      "en": "Now: one grouped case with a correct inner switch; each variant routes right.",
+      "tr": "Jetzt: ein gruppierter Fall mit einem korrekten inneren switch; jede Variante landet richtig."
+    },
+    {
+      "id": "h-d8932e62",
+      "kind": "html",
+      "en": "Misspelled constructor as a silent catch-all",
+      "tr": "Falsch geschriebener Konstruktor als stiller Catch-all"
+    },
+    {
+      "id": "h-dc4e0e22",
+      "kind": "html",
+      "en": "A typo'd variant in a match arm (<code>Loded</code> for <code>Loaded</code>) was silently bound as an irrefutable catch-all, masking non-exhaustiveness and misrouting at runtime, with no diagnostic.",
+      "tr": "Eine Variante mit Tippfehler in einem match-Arm (<code>Loded</code> statt <code>Loaded</code>) wurde stillschweigend als unwiderlegbarer Catch-all gebunden, was fehlende Erschöpfendheit verdeckte und zur Laufzeit falsch verzweigte, ohne Diagnose."
+    },
+    {
+      "id": "h-67755759",
+      "kind": "html",
+      "en": "Now: an unknown constructor is rejected at the typo, like a real name.",
+      "tr": "Jetzt: Ein unbekannter Konstruktor wird am Tippfehler abgelehnt, wie ein echter Name."
+    },
+    {
+      "id": "h-dc9c4611",
+      "kind": "html",
+      "en": "High, fixed",
+      "tr": "Hoch, behoben"
+    },
+    {
+      "id": "h-7908974b",
+      "kind": "html",
+      "en": "Partial <code>bool</code> match slipped past exhaustiveness",
+      "tr": "Unvollständiges <code>bool</code>-match rutschte an der Erschöpfendheitsprüfung vorbei"
+    },
+    {
+      "id": "h-c9b71a04",
+      "kind": "html",
+      "en": "<code>match n &gt; 0 { true =&gt; ... }</code> (missing the <code>false</code> arm) compiled and passed <code>tsc</code>, then threw at runtime.",
+      "tr": "<code>match n &gt; 0 { true =&gt; ... }</code> (ohne den Arm <code>false</code>) kompilierte, bestand <code>tsc</code> und warf dann zur Laufzeit."
+    },
+    {
+      "id": "h-073647a0",
+      "kind": "html",
+      "en": "Now: a compile-time non-exhaustive-match error.",
+      "tr": "Jetzt: ein Fehler wegen nicht erschöpfendem match beim Kompilieren."
+    },
+    {
+      "id": "h-f1e07109",
+      "kind": "html",
+      "en": "Multi-parameter components mis-bound props",
+      "tr": "Komponenten mit mehreren Parametern banden Props falsch"
+    },
+    {
+      "id": "h-f9edcc6d",
+      "kind": "html",
+      "en": "<code>component C(a, b)</code> emitted positional params, but React calls components props-first, so <code>a</code> silently bound to the whole props object. It passed <code>tsc</code>.",
+      "tr": "<code>component C(a, b)</code> erzeugte positionale Parameter, aber React ruft Komponenten mit den Props als erstem Argument auf, also wurde <code>a</code> stillschweigend an das ganze Props-Objekt gebunden. Es bestand <code>tsc</code>."
+    },
+    {
+      "id": "h-314299cb",
+      "kind": "html",
+      "en": "Now: a clear compile error pointing to the single props-record form.",
+      "tr": "Jetzt: ein klarer Compile-Fehler, der auf die Form mit einem einzigen Props-Record verweist."
+    },
+    {
+      "id": "h-4f19f2a4",
+      "kind": "html",
+      "en": "JSX <code>&lt;match&gt;</code> skipped exhaustiveness",
+      "tr": "JSX-<code>&lt;match&gt;</code> übersprang die Erschöpfendheitsprüfung"
+    },
+    {
+      "id": "h-928f72e4",
+      "kind": "html",
+      "en": "A JSX <code>&lt;match&gt;</code> with a missing <code>&lt;case&gt;</code> compiled green and threw at runtime, unlike value-level <code>match</code>, which was checked.",
+      "tr": "Ein JSX-<code>&lt;match&gt;</code> mit fehlendem <code>&lt;case&gt;</code> kompilierte grün und warf zur Laufzeit, anders als das <code>match</code> auf Wertebene, das geprüft wurde."
+    },
+    {
+      "id": "h-5314dfa1",
+      "kind": "html",
+      "en": "Now: the same exhaustiveness check applies; a missing case is a compile error.",
+      "tr": "Jetzt: Es gilt dieselbe Erschöpfendheitsprüfung; ein fehlender Fall ist ein Compile-Fehler."
+    },
+    {
+      "id": "h-8918c1fb",
+      "kind": "html",
+      "en": "Record payload bound to the wrong field",
+      "tr": "Record-Payload an das falsche Feld gebunden"
+    },
+    {
+      "id": "h-cc48b904",
+      "kind": "html",
+      "en": "Binding a record-payload variant to a name (<code>BadQty(b)</code>) read a nonexistent <code>.value</code> off the flattened payload.",
+      "tr": "Das Binden einer Variante mit Record-Payload an einen Namen (<code>BadQty(b)</code>) las ein nicht existierendes <code>.value</code> aus dem flachgeklopften Payload."
+    },
+    {
+      "id": "h-af14bf62",
+      "kind": "html",
+      "en": "Now: the payload binds correctly, so <code>b.sku</code> works.",
+      "tr": "Jetzt: Der Payload wird korrekt gebunden, also funktioniert <code>b.sku</code>."
+    },
+    {
+      "id": "h-ef70f209",
+      "kind": "html",
+      "en": "Rules the checker now enforces",
+      "tr": "Regeln, die der Checker jetzt durchsetzt"
+    },
+    {
+      "id": "h-3b3d737b",
+      "kind": "html",
+      "en": "Soundness the compiler used to leave to <code>tsc</code>, now caught by Glyph itself.",
+      "tr": "Korrektheit, die der Compiler früher <code>tsc</code> überließ, wird jetzt von Glyph selbst geprüft."
+    },
+    {
+      "id": "h-1246fc93",
+      "kind": "html",
+      "en": "Fixed",
+      "tr": "Behoben"
+    },
+    {
+      "id": "h-fda12b22",
+      "kind": "html",
+      "en": "Call arity",
+      "tr": "Anzahl der Argumente"
+    },
+    {
+      "id": "h-42270c66",
+      "kind": "html",
+      "en": "Too few or too many arguments were accepted (and ran to <code>NaN</code>). Now <code>E0213</code> rejects a wrong argument count.",
+      "tr": "Zu wenige oder zu viele Argumente wurden akzeptiert (und liefen auf <code>NaN</code> hinaus). Jetzt lehnt <code>E0213</code> eine falsche Anzahl ab."
+    },
+    {
+      "id": "h-b0a75b13",
+      "kind": "html",
+      "en": "The <code>?</code> error type, across the stdlib boundary",
+      "tr": "Der Fehlertyp von <code>?</code> über die Stdlib-Grenze hinweg"
+    },
+    {
+      "id": "h-15376345",
+      "kind": "html",
+      "en": "The exact-error-type rule was skipped when the error came from a stdlib wrapper. Now it's enforced there too.",
+      "tr": "Die Regel zum exakten Fehlertyp wurde übersprungen, wenn der Fehler aus einem Stdlib-Wrapper kam. Jetzt wird sie auch dort durchgesetzt."
+    },
+    {
+      "id": "h-83ce394b",
+      "kind": "html",
+      "en": "Aliasing an <code>owned</code> handle",
+      "tr": "Aliasing eines <code>owned</code>-Handles"
+    },
+    {
+      "id": "h-01563e55",
+      "kind": "html",
+      "en": "<code>let g = f</code> on a resource handle created a second binding that could double-close. Now rejected (<code>E0215</code>).",
+      "tr": "<code>let g = f</code> auf einem Ressourcen-Handle erzeugte ein zweites Binding, das doppelt schließen konnte. Wird jetzt abgelehnt (<code>E0215</code>)."
+    },
+    {
+      "id": "h-e7fbcea4",
+      "kind": "html",
+      "en": "Unreachable arms &amp; deeper validation",
+      "tr": "Unerreichbare Arme &amp; tiefere Validierung"
+    },
+    {
+      "id": "h-687519f2",
+      "kind": "html",
+      "en": "An arm after a catch-all is now flagged; <code>json.parse&lt;T&gt;</code> now structurally validates <code>Record</code> fields instead of only checking presence.",
+      "tr": "Ein Arm nach einem Catch-all wird jetzt gemeldet; <code>json.parse&lt;T&gt;</code> validiert jetzt die Struktur von <code>Record</code>-Feldern, statt nur ihr Vorhandensein zu prüfen."
+    },
+    {
+      "id": "h-f95c66d5",
+      "kind": "html",
+      "en": "First-contact friction, removed",
+      "tr": "Reibung beim ersten Kontakt, beseitigt"
+    },
+    {
+      "id": "h-639f4987",
+      "kind": "html",
+      "en": "The small things that made a bad first impression, none of which served any purpose.",
+      "tr": "Die Kleinigkeiten, die einen schlechten ersten Eindruck machten und keinem Zweck dienten."
+    },
+    {
+      "id": "h-914bb39e",
+      "kind": "html",
+      "en": "Accessibility &amp; data attributes",
+      "tr": "Barrierefreiheit &amp; Data-Attribute"
+    },
+    {
+      "id": "h-15cc52bd",
+      "kind": "html",
+      "en": "<code>aria-label</code> and <code>data-*</code> parsed as subtraction. Now they work, and emit as proper React props.",
+      "tr": "<code>aria-label</code> und <code>data-*</code> wurden als Subtraktion geparst. Jetzt funktionieren sie und werden als richtige React-Props ausgegeben."
+    },
+    {
+      "id": "h-983e63bd",
+      "kind": "html",
+      "en": "npm package names",
+      "tr": "Namen von npm-Paketen"
+    },
+    {
+      "id": "h-054b5a73",
+      "kind": "html",
+      "en": "Hyphenated and scoped specifiers (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) were rejected. Now they import directly.",
+      "tr": "Specifier mit Bindestrich und Scope (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) wurden abgelehnt. Jetzt lassen sie sich direkt importieren."
+    },
+    {
+      "id": "h-93adf1e9",
+      "kind": "html",
+      "en": "Browser-bundle first run",
+      "tr": "Erster Start eines Browser-Bundles"
+    },
+    {
+      "id": "h-1f8e379a",
+      "kind": "html",
+      "en": "The runtime bootstrap wasn't loaded in a browser build, crashing on first run. Every emitted module now pulls it in.",
+      "tr": "Der Laufzeit-Bootstrap wurde in einem Browser-Build nicht geladen und stürzte beim ersten Start ab. Jedes erzeugte Modul zieht ihn jetzt ein."
+    },
+    {
+      "id": "h-3e7cde99",
+      "kind": "html",
+      "en": "Error messages that misdirect",
+      "tr": "Fehlermeldungen, die in die Irre führen"
+    },
+    {
+      "id": "h-e017695a",
+      "kind": "html",
+      "en": "Writing <code>if</code> now points at <code>match</code>; a range pattern says so directly; JSX whitespace and a bare <code>$</code> in text are handled.",
+      "tr": "Wer <code>if</code> schreibt, wird jetzt auf <code>match</code> verwiesen; ein Range-Pattern sagt das direkt; Leerraum in JSX und ein einzelnes <code>$</code> im Text werden behandelt."
+    },
+    {
+      "id": "h-35a0d2fd",
+      "kind": "html",
+      "en": "Still open: on the record",
+      "tr": "Noch offen: offiziell festgehalten"
+    },
+    {
+      "id": "h-6a151a97",
+      "kind": "html",
+      "en": "Hardening means naming what isn't done, too. These are known and tracked, not hidden.",
+      "tr": "Härtung heißt auch, zu benennen, was nicht fertig ist. Diese Punkte sind bekannt und werden verfolgt, nicht versteckt."
+    },
+    {
+      "id": "h-e750b9a3",
+      "kind": "html",
+      "en": "<strong>Deliberately deferred or awaiting a design decision:</strong>",
+      "tr": "<strong>Bewusst zurückgestellt oder wartet auf eine Design-Entscheidung:</strong>"
+    },
+    {
+      "id": "h-a27057f5",
+      "kind": "html",
+      "en": "Rejecting implicit-<code>any</code> closures in Glyph's own checker needs contextual inference to avoid false positives on validly-typed callbacks. Ergonomic FFI, using a complex-typed TS library without a per-library adapter, is the largest interop question still open, tracked in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/open-questions.md\">open questions</a>. A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet reach a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its element types.",
+      "tr": "Closures mit implizitem <code>any</code> in Glyphs eigenem Checker abzulehnen, braucht kontextuelle Inferenz, um Fehlalarme bei korrekt typisierten Callbacks zu vermeiden. Ergonomisches FFI, also eine TS-Bibliothek mit komplexen Typen ohne Adapter pro Bibliothek zu verwenden, ist die größte noch offene Interop-Frage, verfolgt unter <a href=\"https://github.com/chadetov/glyph/blob/main/docs/open-questions.md\">offene Fragen</a>. Eine Map, die aus einem anderen Modul oder der Standardbibliothek kommt, wird weiterhin ungeprüft gelesen, also erreicht E0224 noch kein <code>sqlite.Row</code>, und das <code>for i, x in xs</code> mit zwei Bindings verliert weiterhin seine Elementtypen."
+    },
+    {
+      "id": "h-922ee9b1",
+      "kind": "html",
+      "en": "&larr; See the engineer questions these fixes came from",
+      "tr": "&larr; Die Fragen von Entwicklern ansehen, aus denen diese Fixes kamen"
+    }
+  ]
+}

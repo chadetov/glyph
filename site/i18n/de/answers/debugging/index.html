@@ -1,0 +1,78 @@
+---
+title: Was sieht die Rufbereitschaft, wenn es um 3 Uhr nachts kaputtgeht? · Glyph
+description: Glyph kompiliert zu lesbarem TypeScript mit einer v3-Source-Map zurück zu jeder .glyph-Datei, also zeigen Stacktraces und tsc-Fehler auf das Glyph, das du geschrieben hast.
+source_hash: 23c0350a6befa9fd
+prev: /answers/parse-errors/ | &larr; Zurück | Wenn das Parsen fehlschlägt, erfahre ich warum?
+next: /playground/ | Du hast es gesehen &rarr; | Jetzt schreib etwas Glyph im Playground
+---
+      <p class="q-eyebrow">28 &middot; Betrieb</p>
+      <h1 class="q-title">Wenn es um 3 Uhr nachts in Produktion kaputtgeht, was sieht die Rufbereitschaft?</h1>
+
+      <p class="short-answer">
+        Lesbares TypeScript, das dir gehört, mit einer <strong>Source Map zurück zu deiner <code>.glyph</code></strong> neben jeder erzeugten Datei. Ein Debugger, ein Bundler oder ein Error-Tracker verfolgt den laufenden Code bis zu deinem Quellcode zurück, und selbst jemand, der Glyph nie gesehen hat, kann das erzeugte TS lesen. Vor all dem melden <code>glyph build</code> und <code>glyph run</code> dieselben Diagnosen für denselben Baum, also kann die schnelle Schleife nichts verstecken, was der Build gefunden hätte. Zwei Einschränkungen, beide auf dem Weg über <code>glyph run</code>, werden unten genannt.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">1 &middot; Das erzeugte TypeScript kannst du lesen</h2>
+        <p>
+          Glyph liefert keine undurchsichtige Laufzeit aus. Es erzeugt gewöhnliches, formatiertes TypeScript, das du committest und deployst wie jedes andere TS. Der schlimmste Fall (eine Person in Rufbereitschaft, die Glyph nicht kennt, um 3 Uhr nachts) liest also immer noch einfaches TypeScript, keinen Dialekt. Zwischen deinem Quellcode und der Produktion gibt es keine Blackbox.
+        </p>
+
+        <h2 class="block-label">2 &middot; Source Maps zurück zu <code>.glyph</code></h2>
+        <p>
+          Jede erzeugte <code>.ts</code> bringt eine Standard-v3-Source-Map (<code>.ts.map</code>) daneben mit, mit einem <code>sourceMappingURL</code>-Kommentar und deinem eingebetteten Glyph-Quellcode (<code>sourcesContent</code>). Alles, was Source Maps verarbeitet (Chrome DevTools, ein Node-Debugger, ein Error-Tracker wie Sentry, dein Bundler), kann sie verketten und dir die <code>.glyph</code>-Zeile zeigen statt der erzeugten.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">dist/main.ts (Ende)</span>
+<pre>// ...emitted TypeScript...
+//# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">3 &middot; Build- und Typfehler zeigen schon auf Glyph</h2>
+        <p>
+          Mit einem Typfehler kommst du selten bis in die Produktion, weil <code>glyph build</code> <code>tsc --strict</code> ausführt und <strong>jeden <code>tsc</code>-Fehler zurück auf deine <code>.glyph</code>-Quelle abbildet</strong> (derselbe Caret, der TypeScript-Fehlercode bleibt erhalten). Der Caret steht auf dem kleinsten Glyph-Ausdruck, dessen Code <code>tsc</code> abgelehnt hat: Ein falsches Argument unterstreicht dieses Argument, ein falsch geschriebenes Feld in einem JSX-Event-Handler unterstreicht diesen Member-Zugriff, nicht das ganze <code>return</code> drumherum. Und <code>glyph build --json</code> gibt jede Diagnose als strukturiertes JSON aus (Code, Schweregrad, Datei, 1-basierte Zeile/Spalte, Hilfe), damit deine CI oder dein Tooling darauf reagieren kann.
+        </p>
+
+        <h2 class="block-label">4 &middot; <code>glyph run</code> sagt dir dasselbe</h2>
+        <p>
+          Der Befehl, den du den ganzen Tag tippst, ist <code>glyph run</code>, und bis 0.1.40 war er stiller als der Build. Er kompilierte das ganze Verzeichnis, nahm die Liste der erzeugten Dateien aus dem Bericht und warf die Diagnosen weg. Ein Baum, den <code>glyph build</code> bemängelte, lief sauber und endete mit 0. Jetzt meldet er dieselbe Menge: Warnungen eingeschlossen, für die Datei, die du genannt hast, und für ihre Geschwister, nach der Ausgabe des Programms, mit einer einzeiligen Zählung. Der Run-Cache speichert sie, also sagt ein zweiter Lauf über unveränderte Quellen dasselbe wie der erste, statt zu verstummen, und ein Cache-Eintrag ohne Diagnosen zählt als Fehltreffer und wird neu gebaut.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">ein unbenutzter Import, einen Schritt vor dem Code hinzugefügt, der ihn verwendet hätte</span>
+<pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
+<span class="cm">...the game plays and exits 0...</span>
+
+[E0106] Warning: lint: unused import `math`
+    ╭─[adventure:21:1]
+    │
+ 21 │ import std/math
+    │         ╰─────── unused import `math`
+    │ Help: Remove the import. Nothing in this module references it.
+
+glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Zwei aktuelle Einschränkungen</h2>
+        <p>
+          <strong>Der eigene Absturz-Stack von <code>glyph run</code> zeigt noch <code>.ts</code>-Zeilennummern.</strong> <code>glyph run</code> führt über <code>tsx</code> aus, und <code>tsx</code> verkettet die Source Map nicht durch seine eigene Transformation <code>.ts</code>&rarr;<code>.js</code>, also meldet ein nicht abgefangener Throw während <code>glyph run</code> die erzeugte Zeile. Diesen Stack umzurechnen ist ein Folgeschritt. Es betrifft die lokale <code>run</code>-Schleife; in einem echten Deployment machst du <code>glyph build</code> zu <code>.ts</code>, bundelst es mit deiner normalen Toolchain, und die <code>.ts.map</code> wird wie üblich verkettet, also zeigt der Produktions-Stack, wegen dem du tatsächlich alarmiert wirst, zurück auf <code>.glyph</code>.
+        </p>
+        <p>
+          <strong>Ein Fehler in einem Geschwistermodul ändert den Exit-Code von <code>glyph run</code> nicht.</strong> Ein Modul, das nicht kompiliert werden konnte, lässt sich nicht importieren, und ein Programm, das es nie importiert hat, läuft trotzdem. Du siehst den Fehler jetzt, aber der Prozess endet weiterhin mit dem, was <code>main</code> zurückgegeben hat. Ihn mit einem Wert ungleich null enden zu lassen, würde Bäume scheitern lassen, die heute problemlos laufen, also ist das eine offene Entscheidung und kein Versehen. Wenn der Zustand des Baums über den Exit-Code entscheiden soll, ist das <code>glyph build</code>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Lesbares, committetes TS, eine v3-<code>.ts.map</code> pro Datei, <code>tsc</code>-Fehler auf <code>.glyph</code> zurückgebildet und Diagnosen per <code>--json</code>. <code>glyph run</code> meldet, was <code>glyph build</code> meldet, auch mit warmem Cache. Die Source-Map-Kette deiner Deployment-Toolchain reicht bis <code>.glyph</code>.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">In Arbeit</h3>
+          <p>Den Absturz-Stack von <code>glyph run</code> selbst umzurechnen (damit auch die lokale Run-Schleife <code>.glyph</code>-Frames zeigt), eine Entscheidung, ob der Fehler eines Geschwistermoduls <code>glyph run</code> mit einem Wert ungleich null enden lassen soll, und besseres Debugging im Editor über den LSP.</p>
+        </div>
+      </div>

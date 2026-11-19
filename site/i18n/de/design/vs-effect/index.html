@@ -1,0 +1,121 @@
+---
+title: Glyph und Effect · eine Bibliothek und eine Sprache im Vergleich · Glyph
+description: Effect ist eine TypeScript-Bibliothek mit typisierten Fehlern und großem Ökosystem; Glyph ist eine Sprache, die zu TypeScript kompiliert. Was jedes besser macht, mit Code.
+source_hash: f62ac4a8fc9859e6
+next_steps: |
+  Wie es weitergeht
+  Empfohlen | /catches/ | catches | Was Glyph ablehnt | Jeder Fall, geprüft unter <code>tsc --strict</code> und unter Glyph. | Die Fälle ansehen
+  /design/ | design | Zurück zum Design | Die vier Säulen, die Spezifikation und die anderen Vergleiche.
+---
+      <p class="q-eyebrow">Design &middot; Vergleich</p>
+      <h1 class="q-title">Glyph und Effect</h1>
+
+      <p class="short-answer">
+        Beide zielen auf TypeScript, auf das sich Menschen und Agenten verlassen können. Effect ist eine Bibliothek: Du schreibst weiter TypeScript und bekommst typisierte Fehler, verfolgte Abhängigkeiten und einen großen Werkzeugkasten. Glyph ist eine Sprache, die zu TypeScript kompiliert, und kann deshalb ablehnen, was TypeScript erlaubt, einschließlich der Casts, die die Garantien einer Bibliothek aushebeln. Effect ist sehr viel ausgereifter.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Wie Effect sich selbst beschreibt</h2>
+        <p>
+          Die Startseite von Effect beginnt mit "Reliable TypeScript for the AI era" und sagt, dass seine "declarative patterns and strong type system make it easier for LLMs to generate correct, production-ready code" (<a href="https://effect.website">effect.website</a>). Die Dokumentation nennt es "an ecosystem of tools that help you build better applications and libraries", aufgebaut um einen Typ <code>Effect&lt;Success, Error, Requirements&gt;</code>, der festhält, was eine Berechnung zurückgibt, wie sie fehlschlagen kann und was sie braucht (<a href="https://effect.website/docs/getting-started/why-effect/">Why Effect</a>). Es verlangt TypeScript 5.4 oder neuer mit eingeschaltetem <code>strict</code> (<a href="https://effect.website/docs/getting-started/installation/">Installation</a>). Diese Zitate wurden am 2026-11-19 gelesen.
+        </p>
+
+        <h2 class="block-label">Der Unterschied, der aus Bibliothek gegenüber Sprache folgt</h2>
+        <p>
+          Die Typen von Effect werden von <code>tsc</code> geprüft, also ist alles, was <code>tsc</code> erlaubt, daneben weiterhin erlaubt. Das hier kompiliert unter <code>tsc --strict</code> mit effect 4.1.4 und TypeScript 6. Der Cast entfernt <code>NotFound</code> aus dem Fehlerkanal, und das Programm meldet einen Fehlschlag aus einem Effect, dessen Typ sagt, dass er nicht fehlschlagen kann.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">eff.ts: tsc --strict endet mit 0; die Ausführung gibt "Failure undefined" aus</span>
+<pre>import { Effect } from "effect"
+
+class NotFound {
+  readonly _tag = "NotFound"
+}
+
+const find = (id: string): Effect.Effect&lt;number, NotFound&gt; =&gt;
+  id === "1" ? Effect.succeed(1) : Effect.fail(new NotFound())
+
+<span class="cm">// The error channel says NotFound can happen. A cast erases it.</span>
+const quiet = find("2") as unknown as Effect.Effect&lt;number, never&gt;
+
+<span class="cm">// And a parsed body still takes any type you name.</span>
+type User = { email: string }
+const user = JSON.parse("{}") as User
+
+console.log(Effect.runSyncExit(quiet)._tag, user.email)</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Dieselbe Funktion gibt in Glyph ein <code>Result</code> zurück, und es gibt keinen Cast, den man schreiben könnte. Das zweite Modul wird abgelehnt, bevor irgendein TypeScript erzeugt wird.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">find.glyph: baut, besteht tsc --strict</span>
+<pre>module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">einen Cast hinzufügen: abgelehnt</span>
+<pre data-check="expect-error E0013">module find
+
+pub type NotFound = { id: string }
+
+pub fn find(id: string) -&gt; Result&lt;number, NotFound&gt; {
+  return match id == "1" {
+    true =&gt; Ok(1),
+    false =&gt; Err({ id: id }),
+  }
+}
+
+pub fn quiet() -&gt; number {
+  let n = find("2") as number
+  return n
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Hilfe von <code>E0013</code> lautet: "Glyph has no <code>as</code> cast ... to turn an <code>unknown</code> into a type, validate it with <code>T.parse(v)</code> or narrow it with <code>match</code> and <code>is</code>." Ein Team kann in einer Effect-Codebasis mit Lint-Regeln nah herankommen, und <a href="/answers/vs-tooled-ts/">dieser Vergleich</a> erklärt, warum eine Regel, die jemand abschalten kann, eine andere Garantie ist.
+        </p>
+
+        <h2 class="block-label">Was Effect besser macht</h2>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Bereich</th><th>Effect</th><th>Glyph</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Area">Reife</td><td data-label="Effect">In Produktion im Einsatz; die Startseite nennt Cloudflare unter den Unternehmen</td><td data-label="Glyph">Frühe Vorschau, vor 1.0, hauptsächlich von einer Person gepflegt</td></tr>
+            <tr><td data-label="Area">Ökosystem</td><td data-label="Effect">HTTP-APIs, Workflows, Clustering, Schema, Scheduling, Tracing und Dependency Injection, alles aus einem Projekt</td><td data-label="Glyph">Eine Standardbibliothek mit 40 Modulen; alles andere kommt aus npm</td></tr>
+            <tr><td data-label="Area">Abhängigkeiten im Typ</td><td data-label="Effect">Der Parameter <code>Requirements</code> hält fest, was eine Berechnung braucht</td><td data-label="Glyph">Keine Entsprechung; die Signatur einer Funktion hält nur ihr Ergebnis und ihren Fehler fest</td></tr>
+            <tr><td data-label="Area">Einführung</td><td data-label="Effect">Ein npm-Paket; du kapselst bestehenden Code und refaktorierst schrittweise nach oben, ohne neuen Compiler</td><td data-label="Glyph">Ein zweiter Compiler im Build, Modul für Modul eingeführt</td></tr>
+            <tr><td data-label="Area">Nebenläufigkeit</td><td data-label="Effect">Strukturierte Nebenläufigkeit, Retries und Scheduling eingebaut</td><td data-label="Glyph"><code>par</code> und Helfer aus <code>std/task</code>, deutlich kleiner</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Was Glyph kann und eine Bibliothek nicht</h2>
+        <p>
+          Eine Sprache entscheidet, was geschrieben werden kann. Glyph hat kein <code>any</code>, keinen Cast, keine Non-Null-Assertion und keinen Kommentar, der einen Fehler stummschaltet, und jedes <code>match</code> über einer Union muss jeden Fall abdecken. Records und Unions bringen eine Laufzeitprüfung mit, die aus der Deklaration erzeugt wird, also validiert <code>json.parse&lt;User&gt;(body)</code>. Auch Effects Schema leitet einen Typ aus einer einzigen Beschreibung ab (<code>Schema.Schema.Type&lt;typeof Person&gt;</code> in <a href="https://effect.website/docs/schema/introduction/">seiner Einführung</a>), sodass Typ und Validator auch dort nicht auseinanderlaufen; der Unterschied ist, dass nichts in TypeScript eine Codebasis zwingt, es zu verwenden. Der Compiler beantwortet für einen Agenten außerdem Fragen über ein Programm, etwa was eine Änderung kaputtmachen wird, <a href="/agents/">über MCP oder die Kommandozeile</a>.
+        </p>
+        <p>
+          Diese Seite hat nicht getestet, Effect aus einem Glyph-Modul heraus zu verwenden, und macht deshalb keine Aussage über die Kombination der beiden.
+        </p>
+      </div>

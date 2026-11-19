@@ -1,0 +1,132 @@
+---
+title: Kann ich einen Server schreiben, oder beendet sich der Prozess einfach? · Glyph
+description: Ein Glyph-Programm kann ein lange laufender Server sein. main richtet alles ein und kehrt zurück; der Prozess bleibt am Leben, solange Sockets und Timer ausstehen, genau wie bei Node.
+source_hash: babc2c3ac5bb52bc
+prev: /answers/interactive-cli/ | &larr; Zurück | Kann ich ein Programm schreiben, in das jemand etwas eintippt?
+next: /answers/binary/ | Weiter &rarr; | Kann ich Binärdaten verarbeiten, oder ist alles ein String?
+---
+      <p class="q-eyebrow">19 &middot; Server &amp; Daemons</p>
+      <h1 class="q-title">Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?</h1>
+
+      <p class="short-answer">
+        Du kannst einen Server schreiben. <code>main</code> richtet alles ein und kehrt zurück, und der Prozess <strong>bleibt am Leben, solange Sockets und Timer noch ausstehen</strong>, dieselbe Regel, die Node verwendet. Bis 0.1.63 war das nicht so: Der Runner beendete den Prozess in dem Moment, in dem <code>main</code> zurückkehrte, also band ein Server seinen Port und starb im selben Tick.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Das ist der Unterschied zwischen einer Sprache, die ein Skript ausführen kann, und einer, die einen Dienst ausführen kann. Ein Server, ein Datei-Watcher, ein Bot mit einer Gateway-Verbindung, ein Job-Runner: Keiner davon wird innerhalb von <code>main</code> fertig. Sie richten Handler ein und übergeben den Prozess an Events.
+        </p>
+        <p>
+          Das alte Verhalten scheiterte auf die schlimmstmögliche Art, nämlich still. <code>glyph run app.glyph --serve 4100</code> gab nichts aus, nicht einmal die Zeile im <code>listen</code>-Callback, und endete mit 0. Nichts im Quellcode sah falsch aus, und die Typprüfung lief durch. Ein Agent, der darauf trifft, hat keinen Fehler zu melden und keinen Grund anzunehmen, dass etwas schiefgegangen ist.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>
+          Ein vollständiger TCP-Server. <code>main</code> kehrt sofort zurück; die Callbacks laufen, solange der Prozess lebt:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Ein Server, von Anfang bis Ende</span>
+<pre>module main
+
+import std/io
+import std/process
+import net { createServer }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let server = createServer(fn(socket) {
+    mut socket.write("hello\n")
+    mut socket.end()
+  })
+
+  mut server.on("error", fn(err) {
+    io.eprintln("cannot listen: ${err.message}")
+    process.exit(1)
+  })
+
+  mut server.listen(4000, fn() {
+    io.println("listening on 4000")
+  })
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>net</code> ist ein Node-Builtin, also ein ganz normaler Import, aber es gehört nicht zu den sechs, für die der Compiler ambiente Typen mitliefert (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Installier entweder <code>@types/node</code>, dann bevorzugt der Build das, oder leg eine Deklaration in <code>.types/net.d.ts</code> neben deinen Quellcode, und genau das macht die Chat-App, damit sie überhaupt keine Abhängigkeiten braucht.
+        </p>
+        <p>
+          Zwei Dinge, die man wissen sollte. Das <code>return 0</code> läuft, bevor sich der erste Client überhaupt verbindet: Es ist der Code, mit dem der Prozess irgendwann endet, keine Aussage darüber, wann er endet. Und alles, was <em>nach</em> der Rückkehr von <code>main</code> fehlschlägt, muss seinen eigenen Exit-Code setzen, weil der Rückgabewert von <code>main</code> schon verbraucht ist. Dafür ist der <code>error</code>-Handler da. Ohne ihn leert ein Server, der seinen Port nicht binden kann, seine Event-Loop und endet mit 0, also mit einer Erfolgsmeldung.
+        </p>
+
+        <h2 class="block-label">Ein echter</h2>
+        <p>
+          <code>examples/apps/chat</code> ist ein Chat-Server, der mehrere TCP-Clients gleichzeitig hält. Die Teile, die das Netzwerk nicht berühren, bleiben getrennt und testbar: Zeilenzusammensetzung, Routing und die Raum-Engine sind reine Funktionen, die von <code>@example</code> geprüft werden, und eine Datei spricht mit Sockets.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Drei gleichzeitig verbundene Clients</span>
+<pre><span class="cm">alice&gt;</span> /join #general
+<span class="cm">bob&gt;</span>   /join #general
+<span class="cm">carol&gt;</span> /join #random
+<span class="cm">alice&gt;</span> hello everyone
+
+alice sees:  1  #general &lt;alice&gt; hello everyone
+bob sees:    1  #general &lt;alice&gt; hello everyone
+carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          TCP liefert keine Nachrichten, sondern Bytes, also ist das Ende eines Chunks meistens eine halbe Zeile. Diese Zusammensetzung ist eine reine Funktion, deren schwierige Fälle als Beispiele aufgeschrieben sind, statt sie über einen Socket zu provozieren:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/framing.glyph</span>
+<pre>@example feed("", "hel").lines == []
+@example feed("hel", "lo\n").lines == ["hello"]
+@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
+@example feed("", "a\nb").rest == "b"
+@example feed("", "hi\r\n").lines == ["hi"]
+pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Die andere Richtung: ein lange laufender Client</h2>
+        <p>
+          Ein Bot hat dieselbe Form, nur nach außen gerichtet. <code>examples/apps/discord</code> ist ein Discord-Gateway-Client: Er verbindet sich über einen WebSocket, identifiziert sich, sendet Heartbeats im Intervall, das der Server vorgibt, verfolgt eine Sequenznummer, damit eine abgebrochene Verbindung fortgesetzt statt neu begonnen wird, bemerkt, wenn die Verbindung offen, aber tot ist, und wartet zwischen Wiederverbindungen zunehmend länger.
+        </p>
+        <p>
+          Kopierenswert ist, wo die Logik lebt. Zu entscheiden, was bei einem <code>RECONNECT</code>, einem verpassten Heartbeat oder einem abgelehnten Token zu tun ist, ist eine reine Funktion von einer Session und einem Event zu einer neuen Session und einer Liste von Aktionen. Ein Modul führt diese Aktionen auf einem echten Socket aus. Deshalb wird die Wiederverbindungslogik, der schwer richtig zu machende Teil, von <code>@example</code> geprüft statt durch das Ziehen eines Netzwerkkabels:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/discord/session.glyph</span>
+<pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
+@example a_failed_attempt_schedules_another()
+@example a_rejected_token_stops_rather_than_retrying()
+pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Diese drei Beispiele sind jeweils ein Bug, der zuerst im Code war. Ein Mock-Gateway zu schreiben und den Bot darauf zu richten, hat einen davon gefunden. Die anderen beiden wurden von einem zweiten Mock gefunden, der nach der Discord-Dokumentation statt nach dem Client geschrieben wurde und Dinge schickt, die ein kooperativer Mock nie schickt: eine unaufgeforderte Heartbeat-Anfrage und einen Close-Code, der bedeutet "dein Token ist falsch, hör auf zu fragen". Ein Mock, den der Autor des Clients schreibt, testet nur die Teile des Protokolls, die der Autor gelesen hat.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Die Rückkehr aus <code>main</code> setzt den Exit-Code, ohne den Prozess zu stoppen, also laufen Server, Watcher und Event-Loops. Ein Programm, das nur rechnet, endet weiterhin in dem Moment, in dem <code>main</code> zurückkehrt, mit demselben Code, also hat sich an kurzen Programmen nichts geändert. Node-Builtins wie <code>net</code> sind ganz normale Imports, und ein Programm, das beim Einrichten wirft, beendet sich weiterhin, jetzt aber erst, nachdem seine Diagnose ein umgeleitetes stderr erreicht hat, statt möglicherweise durch das Beenden abgeschnitten zu werden. <code>std/timers</code> plant Arbeit ein (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>), und <code>std/websocket</code> öffnet eine Verbindung, also braucht keins davon eine handgeschriebene Deklaration.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Wird schärfer</h3>
+          <p>Ein Listener, der nach der Rückkehr von <code>main</code> nicht binden kann, endet mit 0, wenn das Programm nichts anderes sagt: <code>process.set_exit_code(1)</code> hält den Fehlschlag fest, ohne laufende Arbeit abzubrechen, und <code>process.exit(1)</code> stoppt sofort. Der Compiler kann noch nicht warnen, dass du es vergessen hast. Und es gibt weiterhin keinen Weg aufzuschreiben, dass eine Funktion nicht zurückkehrt, also trägt das <code>main</code> eines Servers ein <code>return 0</code>, das nie erreicht wird.</p>
+        </div>
+      </div>

@@ -1,0 +1,82 @@
+---
+title: Benchmarks · gemessen, nicht behauptet · Glyph
+description: Glyphs vier Säulen in Zahlen: Fehler, die beim Kompilieren gefunden werden, ein grep pro Symbol, einzeilige Diffs und etwa 9% weniger Tokens als TypeScript, mit Einschränkungen.
+source_hash: c2635229de656794
+---
+      <header class="page-hero">
+        <p class="eyebrow">Benchmarks</p>
+        <h1>Zwei Arten von <span class="accent">Belegen</span>.</h1>
+        <p class="lede">
+          Es gibt zwei Fragen, die sich zu messen lohnen, und wir halten sie getrennt. <strong>Strukturell:</strong> Was lehnt Glyph konstruktionsbedingt ab, das TypeScript akzeptiert? Das lässt sich heute beweisen, siehe unten. <strong>Zuverlässigkeit:</strong> Liefern Agenten in Glyph tatsächlich weniger Fehler aus als in einem <em>gut konfigurierten</em> strikten TypeScript-Setup? Das ist die Zahl, die über eine Einführung entscheidet, und wir haben sie noch nicht. Es ist eine Studie, die wir aufbauen, und wir werden keinen Ersatzwert so verkleiden, als wäre er diese Antwort. (Der eigentliche Vergleich ist nicht Glyph gegen naives TS, sondern Glyph gegen <a href="/answers/vs-tooled-ts/">striktes TS + zod + eslint + ts-pattern</a>.)
+        </p>
+      </header>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">Strukturell: konstruktionsbedingt beweisbar</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          Keine Statistik, sondern gegenübergestellte Vorführungen. Jede ist ein Fall, den Glyph ablehnt und <code>tsc --strict</code> akzeptiert, reproduzierbar aus dem Verzeichnis <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a>.
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">Überprüfbarkeit: die Bugs, die dich etwas kosten</span>
+            <div class="big"><span class="accent">Beide</span> beim Kompilieren gefunden</div>
+            <p>
+              Zwei Fehler, die Agenten ständig machen (eine fehlende <code>match</code>-Variante und ein Cast über <code>as unknown as</code>), werden von Glyph abgelehnt und von <code>tsc --strict</code> akzeptiert. Beide sind geprüfte Fälle in <code>catches/</code> (<code>non-exhaustive-match</code>, <code>E0200</code>; <code>as-unknown-as</code>, <code>E0013</code>), die das Build-Gate erneut ausführt. Falscher Code, der kompiliert, ist der teure Fehlschlag. Glyph lässt ihn nicht zu.
+            </p>
+          </div>
+          <div class="card stat">
+            <span class="label">Durchsuchbarkeit: ein Name, eine Stelle</span>
+            <div class="big"><span class="accent">1</span> Treffer, jedes Mal</div>
+            <p>
+              Jedes Symbol hat genau eine Deklarationsform: keine Overloads, Decorators oder zusammengeführten Namespaces, die es verstreuen.
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
+            <span class="label">Stabile Diffs: standardmäßig reviewbar</span>
+            <div class="big"><span class="accent">1 Zeile &rarr; 1 Zeile</span></div>
+            <p>
+              Eine einzeilige Änderung in Glyph erzeugt über den Transpiler einen einzeiligen TypeScript-Diff, und <code>glyph fmt</code> fügt kein Rauschen hinzu. Der Diff ist die Änderung, nicht das Drumherum.
+            </p>
+          </div>
+        </div>
+
+        <div class="chart">
+          <span class="label">Und die Sicherheit kostet keine Länge</span>
+          <h3>Tokens für dieselben drei Funktionen</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill glyph" style="width: 70%">436</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Python</span><div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TypeScript</span><div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
+          <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
+          <p class="bench-note">
+            Sicherheit kostet normalerweise Länge: Go und Rust, die anderen Zeilen mit statischen Typen und expliziter Fehlerbehandlung, sind am längsten. Glyph hat beides und ist dadurch nicht länger: 436 Tokens gegenüber 478 bei TypeScript, etwa 9% weniger, gleichauf mit Python, etwa 23% weniger als Go und 30% weniger als Rust, gezählt mit echtem <code>cl100k_base</code> an Programmen, die <code>glyph check</code> mit <code>tsc</code> bestehen. Der Vorsprung liegt in der Funktion mit echtem Kontrollfluss (<code>parse_user</code>, 132 zu 174); beim einzeiligen <code>slugify</code> ist Glyph länger (67 zu 47), weil es kein Regex-Literal hat. Drei Funktionen, eine kleine Stichprobe. Ein früherer Wert von 341 wurde an Fixtures gemessen, die der Compiler nicht akzeptierte, und ist zurückgezogen. <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">Zur Methodik und den Einschränkungen &rarr;</a>
+          </p>
+        </div>
+
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">Zuverlässigkeit: die Studie, die wir aufbauen</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          Die strukturellen Ergebnisse oben sind <em>Gründe zu erwarten</em>, dass Glyph hilft; sie beweisen es nicht. Der Beweis ist eine Vergleichsstudie: derselbe Agent, dieselben realistischen Aufgaben, einmal in Glyph und einmal in einem strikten TypeScript-Setup mit vollem Tooling geschrieben (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), bewertet nach <strong>durchgerutschten semantischen Fehlern</strong> und der Quote grüner Builds im ersten Versuch. Das ist die Zahl, von der uns fünf verschiedene Reviewer gesagt haben, dass sie sie überzeugen würde, also bauen wir sie auf, und bis es sie gibt, sind diese Balken ein Platzhalter und keine Aussage.
+        </p>
+        <div class="chart">
+          <span class="label">Durchgerutschte Fehler pro Aufgabe &middot; weniger ist besser &middot; <span style="color:var(--amber)">noch nicht gemessen</span></span>
+          <h3>Glyph gegen striktes TypeScript mit vollem Tooling</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">ausstehend</div></div></div>
+          <div class="bar-row"><span class="bar-lang">TS mit Tooling</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">ausstehend</div></div></div>
+          <p class="bench-note">
+            Der Versuchsaufbau (ein Aufgabenkorpus, ein Harness für Ausführung und Wiederholung und die gepinnte stärkste ehrliche TS-Baseline) liegt im Verzeichnis <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a>; der erste echte Pilot (mit seinem <em>n</em>, dem Modell und den Kosten auf dem Etikett) wird hier veröffentlicht, sobald er läuft. Egal, was er zeigt.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <a class="btn" href="/answers/vs-tooled-ts/">Warum der Vergleich gegen TS mit Tooling läuft &rarr;</a>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; Zurück zur Startseite</a>

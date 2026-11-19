@@ -1,0 +1,99 @@
+---
+title: Kann ich ein Programm schreiben, in das jemand etwas eintippt? · Glyph
+description: io.read_line kehrt zurück, sobald eine Zeile ankommt, statt zu warten, bis stdin geschlossen wird, also antwortet eine REPL, eine Spielschleife oder ein Chat-Client, während du tippst.
+source_hash: a2332eec4a663662
+prev: /answers/web-serving/ | &larr; Zurück | Kann ich eine Webseite ausliefern oder nur eine JSON-API?
+next: /answers/long-running/ | Weiter &rarr; | Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?
+---
+      <p class="q-eyebrow">18 &middot; Programme, in die man tippt</p>
+      <h1 class="q-title">Kann ich ein Programm schreiben, in das jemand etwas eintippt?</h1>
+
+      <p class="short-answer">
+        Ja. <code>io.read_line</code> kehrt zurück, <strong>sobald eine vollständige Zeile ankommt</strong>, und wartet nicht darauf, dass stdin geschlossen wird, also beantwortet eine REPL, eine Spielschleife oder ein Chat-Client jede Zeile, bevor er die nächste liest. Bis 0.1.62 hat es gewartet, und das sollte man offen sagen, weil es jedes interaktive Programm unmöglich gemacht hat.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Ein Zeilenleser, der erst am Ende der Eingabe zurückkehrt, ist ein Dateileser, der den Namen eines Zeilenlesers trägt. Eine Datei hindurchzuleiten funktioniert einwandfrei, und deshalb hat es nichts bemerkt: Jede App im Repository, die stdin las, las eine Pipe. Dann schrieb jemand einen Chat-Client, und der blieb still, während getippt wurde, und gab nach Ctrl-D alle Antworten auf einmal aus.
+        </p>
+        <p>
+          Diese App wurde als Session-Replayer über eine aufgezeichnete JSON-Datei ausgeliefert, mit einem Kommentar im Quellcode, der sagte, warum. Drei andere Apps waren um dasselbe Problem herum gebaut worden, ohne dass jemand es benannt hatte: Minesweeper konnte zwischen den Zügen nicht neu zeichnen, das Textadventure konnte nicht auf <code>look</code> antworten, und eine REPL wertete nichts aus, bis man auflegte.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>Die ganze Live-Session-Schleife der Chat-App. Lesen, anwenden, ausgeben, wiederholen:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/main.glyph</span>
+<pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
+  let state = server.empty()
+  io.println(LIVE_BANNER)
+  loop {
+    let text = match io.read_line() {
+      Some(l) =&gt; l,
+      None =&gt; { break },
+    }
+    match client_line(text) {
+      None =&gt; { io.println(LIVE_HINT) },
+      Some(sent) =&gt; {
+        let done = turn(state, sent.from, sent.line)
+        report(done.lines)
+        mut state = done.state
+      },
+    }
+  }
+  return state
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          An einem echten Terminal gesteuert, jede Zeile etwa 0,6 Sekunden nacheinander getippt und stdin offen gelassen. Die linke Spalte sind Millisekunden seit dem Start des Prozesses:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+<pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
+1826ms |    1  #general &lt;bob&gt; hey, is the build green?
+2434ms | <span class="cm">alice: green since 9am</span>
+2435ms |    2  #general &lt;alice&gt; green since 9am
+3042ms | <span class="cm">bob: /who</span>
+3044ms |       * #general: alice, bob (2)
+3648ms | <span class="cm">carol: hello?</span>
+3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Ein bis zwei Millisekunden von der getippten Zeile bis zur Antwort. Vor dem Fix wurde bis 6460ms nichts ausgegeben, dem Moment, in dem stdin geschlossen wurde. Die erste Antwort kommt bei einem vollständigen Lauf nach etwa 1,6 Sekunden, und das ist der Start von <code>tsx</code>, nicht die Leselatenz.
+        </p>
+
+        <h2 class="block-label">Was in der Praxis beißt</h2>
+        <p>
+          Ein abschließendes <code>\r</code> wird entfernt, also bekommst du aus einer CRLF-Datei und einer LF-Datei dieselben Zeilen und debuggst kein unsichtbares Zeichen in einer Windows-Eingabe. Eine Eingabe, die ohne abschließenden Zeilenumbruch endet, liefert diese letzte Zeile trotzdem einmal vor <code>None</code>, also geht die letzte Zeile einer Datei ohne abschließenden Zeilenumbruch nicht stillschweigend verloren. Mehrbyte-UTF-8, das über eine Lesegrenze hinweg geteilt wird, wird festgehalten und vervollständigt, statt zu Ersatzzeichen zu werden.
+        </p>
+        <p>
+          <code>read_to_string</code> leert denselben Puffer, also lassen sich die beiden kombinieren: <code>read_line</code> für eine Kopfzeile und dann <code>read_to_string</code> für den Body liefert dir den Rest, keine zweite Kopie und keinen leeren String. Zuerst aufgerufen, gibt es weiterhin das ganze stdin zurück. 200.000 durchgeleitete Zeilen werden in etwa 20ms gezählt, also ist zeilenweises Lesen kein Kompromiss beim Durchsatz.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Eine Kopfzeile, dann der Body</span>
+<pre>let header = io.read_line()
+let body = io.read_to_string()</pre>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p><code>io.read_line</code> kehrt zurück, wenn eine Zeile ankommt, nicht wenn der Stream geschlossen wird, also funktionieren Prompt/Lesen/Antworten-Schleifen am Terminal und über eine Pipe gleichermaßen. CRLF wird normalisiert, eine letzte Zeile ohne Abschluss wird einmal geliefert, Mehrbyte-Zeichen überstehen Chunk-Grenzen, und <code>read_to_string</code> nimmt den Rest desselben Puffers. Ein Regressionstest hält stdin offen und verlangt das Echo, weil ein Test, der eine Datei durchleitet, auch mit der kaputten Implementierung besteht. <code>io.print</code> und <code>io.eprint</code> schreiben ohne Zeilenumbruch, sodass der Prompt <code>&gt; </code> einer REPL auf der Zeile steht, auf der die Antwort getippt wird, und <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> sagen einem Programm, ob es mit einer Person oder einer Pipe spricht, also ist ein Flag wie <code>--stdin</code> der Chat-App nicht mehr der einzige Weg, das zu erfragen.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Noch holprig</h3>
+          <p>Ein Programm, das einen Bildschirm neu zeichnen will, hat keine Cursorsteuerung: <code>std/io</code> hat keine Cursor- oder Bildschirmfunktionen, und kein anderes Stdlib-Modul ergänzt sie, also heißt eine Vollbild-Terminal-UI weiterhin, die Escape-Codes selbst zu schreiben.</p>
+        </div>
+      </div>

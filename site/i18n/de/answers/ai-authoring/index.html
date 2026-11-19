@@ -1,0 +1,51 @@
+---
+title: Kann eine KI eine Sprache schreiben, die sie kaum gesehen hat? · Glyph
+description: Glyph liest sich wie TypeScript, ist aber keine Teilmenge davon. Das meiste, was ein Modell über TypeScript weiß, lässt sich übertragen, und der Compiler benennt die Stellen, an denen es nicht so ist.
+source_hash: dc044819d67c5db7
+prev: /answers/human-value/ | &larr; Zurück | Lohnt sich Glyph, wenn ich keine KI verwende?
+next: /answers/upgrades/ | Weiter &rarr; | Macht ein neues Glyph-Release meinen Build kaputt?
+---
+      <p class="q-eyebrow">07 &middot; Die Prämisse</p>
+      <h1 class="q-title">Kann eine KI zuverlässig eine Sprache schreiben, die sie kaum gesehen hat?</h1>
+
+      <p class="short-answer">
+        Größtenteils. Glyph liest sich wie TypeScript: dieselben primitiven und generischen Typen (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), größtenteils dieselben Ausdrücke und npm-Pakete, die über ihren Namen importiert werden. Es ist keine Teilmenge von TypeScript: <code>match</code>, <code>Result</code> und <code>fn name(x: T) -&gt; R</code> sind Syntax, die TypeScript nicht hat, und <code>if</code>, der ternäre Operator und Casts sind kein Glyph. Das meiste, was ein Modell schon weiß, lässt sich übertragen, und der Compiler benennt die Stellen, an denen es nicht so ist.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum das wichtig ist</h2>
+        <p>
+          Das ist die berechtigte Frage eines Skeptikers: Ein LLM sagt das nächste Token aus der riesigen Menge an Code in bestehenden Sprachen vorher, also müsste eine Sprache fast ohne Trainingsdaten schwer zu schreiben sein. Die Antwort ist strukturell: Glyph ist nicht fremd. Es sieht aus wie TypeScript, also kennt das Modell das meiste schon; die Unterschiede sind wenige, aufzählbar, und jeder schlägt beim Kompilieren <em>sofort</em> fehl, statt stillschweigend durchzugehen.
+        </p>
+
+        <h2 class="block-label">So sieht es aus</h2>
+        <p>Ein Agent, der falsch rät, liefert die Vermutung nicht aus. Er bekommt einen präzisen, behebbaren Fehler und korrigiert in derselben Schleife:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">die Korrekturschleife, in einem Schritt</span>
+<pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
+if user.admin { grant() }
+
+<span class="del">[E0006] Glyph has no `if`</span>
+   ╰─ `match` is the only conditional:
+      match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Der Fehler nennt das Glyph-Konstrukt und zeigt die Form, also ist der Fix eine Änderung entfernt: kein Wühlen im Quellcode, kein Raten. Diese enge Schleife gleicht die fehlenden Trainingsdaten aus. Ein einziges Dokument, <a href="/llms.txt">llms.txt</a>, gibt einem Agenten die Form eines Programms, die Standardbibliothek und jede Diagnose mit ihrem Fix, und <code>glyph llms</code> gibt dieselbe Referenz offline aus.
+        </p>
+      </div>
+
+      <h2 class="block-label">Wo es steht</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Heute verfügbar</h3>
+          <p>Eine Syntax in der Form von TypeScript, Fehler mit stabilem Code, die den Fix nennen, und <code>llms.txt</code> / <code>glyph llms</code> als ein einziges Referenzdokument für jeden Agenten.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Wird belegt</h3>
+          <p>Ein Benchmark zur Erfolgsquote (Versuche bis zur Korrektur, verglichen mit TypeScript bei derselben Aufgabe), um aus &ldquo;es hat gehalten&rdquo; eine gemessene Zahl zu machen.</p>
+        </div>
+      </div>

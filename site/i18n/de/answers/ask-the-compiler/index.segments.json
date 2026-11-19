@@ -1,0 +1,200 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/ask-the-compiler/index.html",
+  "locale": "de",
+  "source_hash": "49fea6335f3e735f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can my agent ask the compiler about a symbol first? · Glyph",
+      "tr": "Kann mein Agent den Compiler zuerst nach einem Symbol fragen? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "glyph_symbol answers in one call: a union's variants, a record's fields, a function's signature, and whether a match over it must be exhaustive.",
+      "tr": "glyph_symbol antwortet in einem Aufruf: die Varianten einer Union, die Felder eines Records, die Signatur einer Funktion und ob ein match darüber erschöpfend sein muss."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Zurück"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can the compiler tell me what a change will break before I make it?",
+      "tr": "Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird, bevor ich sie mache?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Weiter &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "When the build fails, does the compiler tell my agent how to fix it?",
+      "tr": "Wenn der Build fehlschlägt, sagt der Compiler meinem Agenten, wie er es behebt?"
+    },
+    {
+      "id": "h-1722502c",
+      "kind": "html",
+      "en": "22 &middot; Ask the compiler",
+      "tr": "22 &middot; Den Compiler fragen"
+    },
+    {
+      "id": "h-d339a2b7",
+      "kind": "html",
+      "en": "Can my agent ask the compiler what a symbol is before it writes code?",
+      "tr": "Kann mein Agent den Compiler fragen, was ein Symbol ist, bevor er Code schreibt?"
+    },
+    {
+      "id": "h-11f2ff30",
+      "kind": "html",
+      "en": "In one call. <code>glyph_symbol</code> takes the <code>module::name</code> a diagnostic already printed, or a position in a file, and answers with a record's fields and their types, a union's variants with their payloads <em>and the syntax that constructs each</em>, a callable's parameters and return, an interface's members, and whether a <code>match</code> over it must be exhaustive.",
+      "tr": "In einem Aufruf. <code>glyph_symbol</code> nimmt das <code>module::name</code>, das eine Diagnose schon ausgegeben hat, oder eine Position in einer Datei und antwortet mit den Feldern eines Records und ihren Typen, den Varianten einer Union mit ihren Payloads <em>und der Syntax, die jede erzeugt</em>, den Parametern und dem Rückgabetyp von etwas Aufrufbarem, den Membern eines Interfaces und damit, ob ein <code>match</code> darüber erschöpfend sein muss."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "h-219d5bd7",
+      "kind": "html",
+      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first. Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic. The compiler had the payload the whole time. The tool dropped it one line before the reply.",
+      "tr": "Ein Agent, der einen neuen Fall in einer Union behandeln soll, die er nicht deklariert hat, muss wissen, was die Varianten mitbringen. Die Deklaration zu lesen heißt, zuerst die Datei zu finden. Die Symbolsuche gab ihm früher einen Namen und einen Bytebereich, und eine Liste der Varianten gab ihm <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. Daraus schreibt ein Agent <code>Paid(\"tx_1\")</code>, was nicht die Form ist, und erfährt es aus einer Diagnose. Der Compiler hatte den Payload die ganze Zeit. Das Tool ließ ihn eine Zeile vor der Antwort fallen."
+    },
+    {
+      "id": "h-792dfc1e",
+      "kind": "html",
+      "en": "That's the pattern the agent surface was built to remove: facts the compiler already computes and memoizes, that no tool hands over. An audit of a three-module project found hover answering two of fourteen positions and every union arriving without its payloads.",
+      "tr": "Genau dieses Muster sollte die Agenten-Schnittstelle beseitigen: Informationen, die der Compiler schon berechnet und speichert und die kein Tool herausgibt. Eine Prüfung an einem Projekt mit drei Modulen ergab, dass Hover an zwei von vierzehn Positionen antwortete und jede Union ohne ihre Payloads ankam."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "So sieht es aus"
+    },
+    {
+      "id": "h-8933304a",
+      "kind": "html",
+      "en": "A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it:",
+      "tr": "Ein Projekt mit drei Dateien, in dem <code>OrderStatus</code> in <code>orders.glyph</code> deklariert ist. Gefragt aus <code>main.glyph</code>, das es nicht importiert:"
+    },
+    {
+      "id": "h-5a61b662",
+      "kind": "html",
+      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
+      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+    },
+    {
+      "id": "h-02fdd57a",
+      "kind": "html",
+      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look. An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
+      "tr": "Gekürzt: Die Antwort enthält außerdem <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> und <code>examples</code>. Jedes davon ist ein Paar. Ein Schlüssel ist nur dann null, wenn daneben ein Satz in <code>&lt;key&gt;_absent</code> sagt, warum, also muss ein Agent nie raten, ob eine fehlende Antwort heißt, dass das Symbol keine hat oder dass das Tool nicht nachgesehen hat. Eine nicht annotierte <code>const</code> meldet nach dieser Regel keinen Typ: Der Checker leitet den Typ einer Deklaration bewusst nicht aus ihrem Initialisierer ab, also würde die Ausgabe des Initialisierer-Typs einem Aufrufer sagen, dass Verwendungen des Namens gegen etwas geprüft werden, das nichts prüft."
+    },
+    {
+      "id": "h-cc83e6b0",
+      "kind": "html",
+      "en": "The second question an agent asks",
+      "tr": "Die zweite Frage, die ein Agent stellt"
+    },
+    {
+      "id": "h-2a8e6b09",
+      "kind": "html",
+      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
+      "tr": "Wenn er die Form hat, will er als Nächstes wissen, ob der Wert, den er hält, dort stehen darf, wo er ihn gleich hinsetzt. <code>glyph_assignable</code> fragt den eigenen Vergleich des Checkers. Jede Seite ist ein <code>module::name</code> oder eine Glyph-Typschreibweise, gelesen im Scope der Datei, die du nennst, und das Urteil sagt, welche von drei Möglichkeiten eingetreten ist."
+    },
+    {
+      "id": "h-e37be644",
+      "kind": "html",
+      "en": "--from 'Nullable&lt;int&gt;' --to int",
+      "tr": "--from 'Nullable&lt;int&gt;' --to int"
+    },
+    {
+      "id": "h-ef49c39d",
+      "kind": "html",
+      "en": "--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'",
+      "tr": "--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'"
+    },
+    {
+      "id": "h-0215b8b5",
+      "kind": "html",
+      "en": "The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular site stays correct after a particular edit. This answer is about two types with no site and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed whenever no rule covers the pairing: two function types come back that way, because the relation underneath compares the returns and says nothing about the parameters. Its silence there is not an acceptance, and the tool won't report it as one.",
+      "tr": "Das Wort ist <code>COMPATIBLE</code>, nicht <code>SAFE</code>, und der Unterschied ist einen Satz wert. <code>SAFE</code> ist das Wort von <code>glyph_impact</code> und heißt, dass eine bestimmte Stelle nach einer bestimmten Änderung korrekt bleibt. Diese Antwort betrifft zwei Typen, ohne Stelle und ohne Änderung in der Frage. Das dritte Urteil ist <code>UNDETERMINED</code>, gemeldet, wann immer keine Regel die Kombination abdeckt: Zwei Funktionstypen kommen so zurück, weil die darunterliegende Relation die Rückgabetypen vergleicht und nichts über die Parameter sagt. Ihr Schweigen dort ist keine Zustimmung, und das Tool meldet es auch nicht als solche."
+    },
+    {
+      "id": "h-5e1d718b",
+      "kind": "html",
+      "en": "The other direction: what does this depend on, and what does that module give me",
+      "tr": "Die andere Richtung: Wovon hängt das ab, und was gibt mir dieses Modul"
+    },
+    {
+      "id": "h-9ebb8917",
+      "kind": "html",
+      "en": "<code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits. <code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature. An agent about to write an import can ask what is on the other side instead of opening the file.",
+      "tr": "<code>glyph_references</code> beantwortet, wer ein Symbol verwendet. <code>glyph_dependencies</code> sind dieselben Tabellen vom anderen Ende gelesen: wovon eine Deklaration abhängt, jede Deklaration, die ihr eigener Quellcode nennt, aufgeteilt in <code>CALLS</code>, <code>REFERENCES</code> und <code>FIELD_ACCESS</code>, jede Kante mit beiden Enden und ihrer Position. <code>glyph_exports</code> beantwortet, was ein Modul für einen Importierenden sichtbar macht, aus der eigenen Export-Abfrage des Compilers statt aus einem Scan: jede <code>pub</code>-Deklaration und jede Variante, die eine <code>pub</code>-Union nach oben zieht, jeweils als Eintrag mit Identität, Art und Signatur. Ein Agent, der gleich einen Import schreibt, kann fragen, was auf der anderen Seite ist, statt die Datei zu öffnen."
+    },
+    {
+      "id": "h-09a3c3e6",
+      "kind": "html",
+      "en": "Building the mirror of a relation is what caught a bug in the original. Every edge carries a provenance, and <code>PROVED</code> is meant to say the compiler read both ends. It was answering <code>PROVED</code> for an edge into a module that does not parse, where nothing had been read. It answers <code>UNDETERMINED</code> with the reason now, and since <code>glyph_references</code> and <code>glyph_impact</code> call the same function, both were wrong the same way and both are fixed.",
+      "tr": "Das Spiegelbild einer Relation zu bauen hat einen Bug im Original gefunden. Jede Kante trägt eine Herkunft, und <code>PROVED</code> soll sagen, dass der Compiler beide Enden gelesen hat. Es antwortete <code>PROVED</code> für eine Kante in ein Modul, das sich nicht parsen lässt, wo nichts gelesen worden war. Jetzt antwortet es <code>UNDETERMINED</code> mit dem Grund, und da <code>glyph_references</code> und <code>glyph_impact</code> dieselbe Funktion aufrufen, waren beide auf dieselbe Weise falsch, und beide sind behoben."
+    },
+    {
+      "id": "h-fb980e29",
+      "kind": "html",
+      "en": "Eleven tools, and no client required",
+      "tr": "Elf Tools, und kein Client nötig"
+    },
+    {
+      "id": "h-20c89689",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
+      "tr": "<code>glyph mcp</code> stellt elf bereit: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> und <code>glyph_exports</code>. Jedes hat ein Verb von <code>glyph query</code>, das dieselben Argumente als Flags nimmt und dasselbe JSON ausgibt, über denselben Einstiegspunkt geleitet, den ein Client erreicht, also stellt ein Agent, der nur Shell-Befehle ausführt, dieselben Fragen. <code>glyph_diagnostics</code> prüft eine Datei innerhalb ihres Projekts und liefert die Diagnose, die <code>glyph check --json</code> ausgibt, aus demselben Rust-Typ, mit einem Test, der beide Schnittstellen auf sechs Projekten ausführt und das JSON Schlüssel für Schlüssel vergleicht. Alle Details auf der <a href=\"/mcp/\">MCP-Seite</a>."
+    },
+    {
+      "id": "h-8c970d25",
+      "kind": "html",
+      "en": "All of that is asked before an edit. After one, the compiler answers in the other direction: <code>glyph check --agent</code> prints each diagnostic with the invariants a repairing edit has to keep and the <code>glyph_symbol</code> description of every symbol it names, so the shape an agent needs arrives with the error that asked for it. That has <a href=\"/answers/repair-protocol/\">a page of its own</a>.",
+      "tr": "All das wird vor einer Änderung gefragt. Danach antwortet der Compiler in die andere Richtung: <code>glyph check --agent</code> gibt jede Diagnose mit den Invarianten aus, die eine reparierende Änderung erhalten muss, und mit der Beschreibung von <code>glyph_symbol</code> für jedes Symbol, das sie nennt, also kommt die Form, die ein Agent braucht, mit dem Fehler an, der nach ihr verlangt hat. Dazu gibt es <a href=\"/answers/repair-protocol/\">eine eigene Seite</a>."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Wo es steht"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Heute verfügbar"
+    },
+    {
+      "id": "h-ee58dc62",
+      "kind": "html",
+      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
+      "tr": "Elf lesende Tools über MCP, jedes mit einem Verb von <code>glyph query</code>. <code>glyph_symbol</code> antwortet nach Identität oder nach Position, und jede Information, die es nicht hat, ist null, neben dem Satz, der sagt, warum. Die Identität reicht bis in die Stdlib: Das <code>Result</code> aus dem Prelude ist <code>std/result::Result</code>, das Modul, unter dem der Resolver es registriert und aus dem der Emitter den Import schreibt, also antwortet <code>glyph query symbol --entity std/result::Result</code> mit <code>Ok(T)</code> und <code>Err(E)</code>, <code>glyph query exports --module std/result</code> listet die Schnittstelle, und ein <code>E0200</code> darüber trägt diese Identität in <code>cause</code>. Dahinter steht kein Glyph-Quellcode, also sind <code>path</code> und <code>range</code> null, mit diesem Grund, statt zu fehlen. Hover beantwortet alle vierzehn Positionen, die eine Prüfung an einem Projekt mit drei Modulen getestet hat, gegenüber zwei vor Beginn dieser Arbeit: Ein Name, der in einem anderen Modul deklariert ist, antwortet aus der Deklaration dieses Moduls, also haben das Import-Binding, eine importierte Funktion an einem Aufruf, eine importierte Variante als Wert und ein Feld, das aus einem importierten Record gelesen wird, alle einen Typ. <code>glyph_dependencies</code> und <code>glyph_exports</code> vervollständigen die Menge, nach der G221 gefragt hat. <code>glyph_variants</code> enthält jeden Payload und seine Konstruktionssyntax; <code>glyph_definition</code> und <code>glyph_symbols</code> enthalten das <code>module::name</code>, also lässt sich eine Antwort ohne neue Herleitung in <code>glyph_impact</code> weiterreichen. Die Signaturtyp-Tabelle von <code>glyph_impact</code> entscheidet einen Container gegen einen Container, einen strukturellen Record gegen einen strukturellen oder deklarierten Record (lokal, importiert, generisch oder ein zweiter Name), ein JSX-Element als den Aufruf, zu dem es übersetzt wird, und eine Union aus String-Literalen auf beiden Seiten mit demselben Vergleich, den <code>glyph_assignable</code> macht, also können die beiden Tools bei einer Kombination nicht unterschiedlicher Meinung sein. Ein Argument, dessen Kombination die Relation vollständig liest, ist <code>WILL_FAIL</code>, egal wie der Vergleich ausfiel, weil <code>change_signature_type</code> keinen Ersatztyp nennt und eine akzeptierte Kombination eine ist, bei der ein Ersatz abgelehnt werden kann; nur eine Kombination, die die Relation ablehnt, ist <code>UNDETERMINED</code>."
+    },
+    {
+      "id": "h-c647197d",
+      "kind": "html",
+      "en": "Where it stops",
+      "tr": "Wo es aufhört"
+    },
+    {
+      "id": "h-10bbc9ca",
+      "kind": "html",
+      "en": "No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
+      "tr": "Kein Tool hier schreibt: kein Umbenennen, keine angewendete Änderung. Die schreibende Seite ist <code>glyph fix</code> auf der Kommandozeile, und es repariert drei Dinge, nicht beliebige, nach denen du fragst: unbenutzte Imports, einen Arm-Kopf, für den der Checker genau einen Vorschlag hat, und einen Feldnamen, der ein Zeichen von genau einem deklarierten Feld entfernt ist. Ein Stdlib-Export, für den der Compiler weder eine Deklaration noch eine Signatur modelliert, antwortet mit <code>kind: null</code> und dem Grund: <code>std/result::all</code> und <code>std/io::println</code> sind in TypeScript typisiert, das der Compiler bereitstellt und das kein Glyph-Durchlauf liest. <code>glyph_diagnostics</code> überspringt drei Prüfungen, die <code>glyph check</code> macht: <code>tsc</code>, die Prüfung <code>E0104</code> für einen Import, der kein Modul nennt, wofür die Sicht des Builds auf <code>node_modules</code> nötig ist, und <code>E0400</code> für ein fehlschlagendes <code>@example</code>, wofür das erzeugte Projekt ausgeführt werden muss. Es nennt alle drei in <code>not_run</code>, statt so zu antworten, als hätte es sie ausgeführt."
+    }
+  ]
+}

@@ -1,0 +1,326 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "design/vs-rescript-gleam-elm/index.html",
+  "locale": "de",
+  "source_hash": "c1473253c170e78d",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Why not ReScript, Gleam or Elm? · Glyph",
+      "tr": "Warum nicht ReScript, Gleam oder Elm? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Three typed languages that compile to JavaScript and are older and more proven than Glyph. Where each is ahead, and the four things Glyph does differently.",
+      "tr": "Drei typisierte Sprachen, die zu JavaScript kompilieren und älter und erprobter sind als Glyph. Wo jede vorn liegt und die vier Dinge, die Glyph anders macht."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go next",
+      "tr": "Wie es weitergeht"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "Empfohlen"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What Glyph refuses",
+      "tr": "Was Glyph ablehnt"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Each case, checked under <code>tsc --strict</code> and under Glyph.",
+      "tr": "Jeder Fall, geprüft unter <code>tsc --strict</code> und unter Glyph."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See the catches",
+      "tr": "Die Fälle ansehen"
+    },
+    {
+      "id": "ns./design/vs-effect/.title",
+      "kind": "ns.title",
+      "en": "Glyph and Effect",
+      "tr": "Glyph und Effect"
+    },
+    {
+      "id": "ns./design/vs-effect/.desc",
+      "kind": "ns.desc",
+      "en": "A TypeScript library compared with a language.",
+      "tr": "Eine TypeScript-Bibliothek im Vergleich mit einer Sprache."
+    },
+    {
+      "id": "ns./design/.title",
+      "kind": "ns.title",
+      "en": "Back to design",
+      "tr": "Zurück zum Design"
+    },
+    {
+      "id": "ns./design/.desc",
+      "kind": "ns.desc",
+      "en": "The four pillars, the spec, and the other comparisons.",
+      "tr": "Die vier Säulen, die Spezifikation und die anderen Vergleiche."
+    },
+    {
+      "id": "h-33d40d52",
+      "kind": "html",
+      "en": "Design &middot; Comparison",
+      "tr": "Design &middot; Vergleich"
+    },
+    {
+      "id": "h-389767f5",
+      "kind": "html",
+      "en": "Why not ReScript, Gleam or Elm?",
+      "tr": "Warum nicht ReScript, Gleam oder Elm?"
+    },
+    {
+      "id": "h-af688b28",
+      "kind": "html",
+      "en": "All three are typed languages that compile to JavaScript, and all three are older, more widely used and more settled than Glyph. If you are choosing a language for a new codebase and don't need to stay close to TypeScript, they deserve a look first. Glyph's differences are narrower: it emits TypeScript source rather than JavaScript, it imports npm packages typed from their own <code>.d.ts</code>, it generates runtime validators from your types, and its compiler answers impact queries for an agent.",
+      "tr": "Alle drei sind typisierte Sprachen, die zu JavaScript kompilieren, und alle drei sind älter, weiter verbreitet und gefestigter als Glyph. Wenn du eine Sprache für eine neue Codebasis wählst und nicht nah an TypeScript bleiben musst, solltest du sie dir zuerst ansehen. Die Unterschiede von Glyph sind enger gefasst: Es erzeugt TypeScript-Quellcode statt JavaScript, es importiert npm-Pakete typisiert aus ihren eigenen <code>.d.ts</code>, es erzeugt Laufzeitvalidatoren aus deinen Typen, und sein Compiler beantwortet Impact-Abfragen für einen Agenten."
+    },
+    {
+      "id": "h-9db697b1",
+      "kind": "html",
+      "en": "How each describes itself",
+      "tr": "Wie sich jede selbst beschreibt"
+    },
+    {
+      "id": "h-50946247",
+      "kind": "html",
+      "en": "ReScript's home page leads with \"JavaScript Made Simple for Humans and AI\" and \"Types &gt; Vibes\", and says it \"compiles to clean, efficient JavaScript\" with \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" It offers to \"automatically generate TypeScript types\" (<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>).",
+      "tr": "Die Startseite von ReScript beginnt mit \"JavaScript Made Simple for Humans and AI\" und \"Types &gt; Vibes\" und sagt, es \"compiles to clean, efficient JavaScript\" mit \"No <code>any</code>, no magic types, no surprise <code>undefined</code>.\" Es bietet an, \"automatically generate TypeScript types\" (<a href=\"https://rescript-lang.org/\">rescript-lang.org</a>)."
+    },
+    {
+      "id": "h-07f5d70c",
+      "kind": "html",
+      "en": "Gleam's home page calls it \"a friendly language for building type-safe systems that scale\" with \"No null values, no exceptions, clear error messages\". It runs on the Erlang VM and \"can additionally compile to JavaScript\", and \"also generates TypeScript definitions\" (<a href=\"https://gleam.run/\">gleam.run</a>).",
+      "tr": "Die Startseite von Gleam nennt es \"a friendly language for building type-safe systems that scale\" mit \"No null values, no exceptions, clear error messages\". Es läuft auf der Erlang-VM und \"can additionally compile to JavaScript\", und es \"also generates TypeScript definitions\" (<a href=\"https://gleam.run/\">gleam.run</a>)."
+    },
+    {
+      "id": "h-2b945603",
+      "kind": "html",
+      "en": "Elm's home page describes \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\", for \"reliable web applications\", and says Elm \"detects all API changes automatically\" to \"guarantee that every single Elm package follows semantic versioning\" (<a href=\"https://elm-lang.org/\">elm-lang.org</a>).",
+      "tr": "Die Startseite von Elm beschreibt \"A delightful language with friendly error messages, great performance, small assets, and no runtime exceptions\" für \"reliable web applications\" und sagt, dass Elm \"detects all API changes automatically\", um zu \"guarantee that every single Elm package follows semantic versioning\" (<a href=\"https://elm-lang.org/\">elm-lang.org</a>)."
+    },
+    {
+      "id": "h-01ac98c4",
+      "kind": "html",
+      "en": "These quotes were read on 2026-11-19.",
+      "tr": "Diese Zitate wurden am 2026-11-19 gelesen."
+    },
+    {
+      "id": "h-cb1468cf",
+      "kind": "html",
+      "en": "Where they are ahead",
+      "tr": "Wo sie vorn liegen"
+    },
+    {
+      "id": "h-024dc204",
+      "kind": "html",
+      "en": "Area",
+      "tr": "Bereich"
+    },
+    {
+      "id": "h-13abaeff",
+      "kind": "html",
+      "en": "ReScript, Gleam, Elm",
+      "tr": "ReScript, Gleam, Elm"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-25e271b6",
+      "kind": "html",
+      "en": "Maturity",
+      "tr": "Reife"
+    },
+    {
+      "id": "h-1114b65a",
+      "kind": "html",
+      "en": "Years of production use. ReScript's home page shows a wall of company logos; Elm's cites NoRedInk with 300k+ lines and no confusing runtime exception in production",
+      "tr": "Jahre im Produktionseinsatz. Die Startseite von ReScript zeigt eine Wand aus Firmenlogos; die von Elm nennt NoRedInk mit über 300k Zeilen und keiner verwirrenden Laufzeit-Exception in Produktion"
+    },
+    {
+      "id": "h-d39753e9",
+      "kind": "html",
+      "en": "Early preview, pre-1.0, maintained mainly by one person, and many releases are Breaking",
+      "tr": "Frühe Vorschau, vor 1.0, hauptsächlich von einer Person gepflegt, und viele Releases sind Breaking"
+    },
+    {
+      "id": "h-5ca778bb",
+      "kind": "html",
+      "en": "Guarantees",
+      "tr": "Garantien"
+    },
+    {
+      "id": "h-37779cbd",
+      "kind": "html",
+      "en": "Elm claims no runtime exceptions; Gleam no null values and no exceptions; ReScript no <code>any</code> and no surprise <code>undefined</code>",
+      "tr": "Elm verspricht keine Laufzeit-Exceptions; Gleam keine Null-Werte und keine Exceptions; ReScript kein <code>any</code> und kein überraschendes <code>undefined</code>"
+    },
+    {
+      "id": "h-85bd0f64",
+      "kind": "html",
+      "en": "No <code>any</code> and no cast, but {{catches:gap-cases}} known holes are <a href=\"/catches/#not-yet\">listed</a>, and an exception thrown inside an npm package still bypasses <code>Result</code>",
+      "tr": "Kein <code>any</code> und kein Cast, aber {{catches:gap-cases}} bekannte Lücken sind <a href=\"/catches/#not-yet\">aufgelistet</a>, und eine Exception, die in einem npm-Paket geworfen wird, umgeht <code>Result</code> weiterhin"
+    },
+    {
+      "id": "h-40429184",
+      "kind": "html",
+      "en": "Error messages",
+      "tr": "Fehlermeldungen"
+    },
+    {
+      "id": "h-c755cb73",
+      "kind": "html",
+      "en": "Elm's home page leads with \"friendly error messages\" and Gleam's promises \"clear error messages\", both with years of users behind them",
+      "tr": "Die Startseite von Elm beginnt mit \"friendly error messages\", und die von Gleam verspricht \"clear error messages\", beide mit jahrelangen Nutzern dahinter"
+    },
+    {
+      "id": "h-1d2e725c",
+      "kind": "html",
+      "en": "Every error has a stable code and a help line, but they have had far less use",
+      "tr": "Jeder Fehler hat einen stabilen Code und eine Hilfezeile, aber sie wurden weit weniger genutzt"
+    },
+    {
+      "id": "h-e0472088",
+      "kind": "html",
+      "en": "Tooling and ecosystem",
+      "tr": "Tooling und Ökosystem"
+    },
+    {
+      "id": "h-c2efa572",
+      "kind": "html",
+      "en": "Gleam ships \"compiler, build tool, formatter, editor integrations, and package manager all built in\"; Elm enforces semantic versioning on its packages",
+      "tr": "Gleam liefert \"compiler, build tool, formatter, editor integrations, and package manager all built in\"; Elm erzwingt semantische Versionierung für seine Pakete"
+    },
+    {
+      "id": "h-dd64be5b",
+      "kind": "html",
+      "en": "npm for packages; the VS Code extension is built from source",
+      "tr": "npm für Pakete; die VS-Code-Erweiterung wird aus dem Quellcode gebaut"
+    },
+    {
+      "id": "h-27445f6a",
+      "kind": "html",
+      "en": "Targets",
+      "tr": "Zielplattformen"
+    },
+    {
+      "id": "h-449df469",
+      "kind": "html",
+      "en": "Gleam also runs on the Erlang VM",
+      "tr": "Gleam läuft außerdem auf der Erlang-VM"
+    },
+    {
+      "id": "h-216bd394",
+      "kind": "html",
+      "en": "TypeScript only, for Node and the browser",
+      "tr": "Nur TypeScript, für Node und den Browser"
+    },
+    {
+      "id": "h-939c7737",
+      "kind": "html",
+      "en": "What Glyph does differently",
+      "tr": "Was Glyph anders macht"
+    },
+    {
+      "id": "h-3e2381c1",
+      "kind": "html",
+      "en": "Each of these was run on Glyph 0.1.149 for this page.",
+      "tr": "Jedes davon wurde für diese Seite auf Glyph 0.1.149 ausgeführt."
+    },
+    {
+      "id": "h-d2f85608",
+      "kind": "html",
+      "en": "It emits TypeScript source",
+      "tr": "Es erzeugt TypeScript-Quellcode"
+    },
+    {
+      "id": "h-a5acbd44",
+      "kind": "html",
+      "en": "<code>glyph build</code> writes one <code>.ts</code> file per module, which <code>tsc --strict</code> then checks, and which you keep if you stop using Glyph. ReScript and Gleam emit JavaScript and generate type definitions next to it. The <a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">emitted TypeScript</a> is shown on the TypeScript page.",
+      "tr": "<code>glyph build</code> schreibt eine <code>.ts</code>-Datei pro Modul, die <code>tsc --strict</code> anschließend prüft und die du behältst, wenn du Glyph nicht mehr verwendest. ReScript und Gleam erzeugen JavaScript und generieren Typdefinitionen daneben. Das <a href=\"/from-typescript/#what-the-emitted-typescript-looks-like\">erzeugte TypeScript</a> wird auf der TypeScript-Seite gezeigt."
+    },
+    {
+      "id": "h-7f79a4f0",
+      "kind": "html",
+      "en": "It imports npm packages typed from their own declarations",
+      "tr": "Es importiert npm-Pakete typisiert aus ihren eigenen Deklarationen"
+    },
+    {
+      "id": "h-0c3ce6cd",
+      "kind": "html",
+      "en": "A module imports a package by name, and the package's <code>.d.ts</code> types every use. There is no binding to write first. In ReScript, \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\" (<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>), with the types declared on the ReScript side. Gleam's externals need type annotations, and the compiler \"cannot verify that the function implemented in the other language returns the specified types\" (<a href=\"https://gleam.run/documentation/externals/\">externals</a>). Elm talks to JavaScript through flags, ports and custom elements (<a href=\"https://guide.elm-lang.org/interop/\">interop</a>). With <code>pg</code> and <code>@types/pg</code> installed, this is refused:",
+      "tr": "Ein Modul importiert ein Paket über seinen Namen, und die <code>.d.ts</code> des Pakets typisiert jede Verwendung. Es gibt vorher kein Binding zu schreiben. In ReScript ist \"<code>external</code> is the primary ReScript feature for bringing in and using JavaScript values\" (<a href=\"https://rescript-lang.org/docs/manual/external\">external</a>), mit den Typen auf der ReScript-Seite deklariert. Die Externals von Gleam brauchen Typannotationen, und der Compiler \"cannot verify that the function implemented in the other language returns the specified types\" (<a href=\"https://gleam.run/documentation/externals/\">externals</a>). Elm spricht mit JavaScript über Flags, Ports und Custom Elements (<a href=\"https://guide.elm-lang.org/interop/\">interop</a>). Mit installiertem <code>pg</code> und <code>@types/pg</code> wird das hier abgelehnt:"
+    },
+    {
+      "id": "h-8d75025c",
+      "kind": "html",
+      "en": "The code is <code>TS2322</code> because <code>tsc</code> is what checks a library's values, mapped back onto the Glyph line. Glyph's own checker does not see them, so <code>glyph check --no-tsc</code>, the editor and the MCP tools miss this error (G257). A type imported from a <code>.d.ts</code> also has no runtime check.",
+      "tr": "Der Code ist <code>TS2322</code>, weil <code>tsc</code> die Werte einer Bibliothek prüft, zurückübertragen auf die Glyph-Zeile. Glyphs eigener Checker sieht sie nicht, also übersehen <code>glyph check --no-tsc</code>, der Editor und die MCP-Tools diesen Fehler (G257). Ein Typ, der aus einer <code>.d.ts</code> importiert wird, hat außerdem keine Laufzeitprüfung."
+    },
+    {
+      "id": "h-7d263a14",
+      "kind": "html",
+      "en": "It generates the validator from the type",
+      "tr": "Es erzeugt den Validator aus dem Typ"
+    },
+    {
+      "id": "h-af555a20",
+      "kind": "html",
+      "en": "Every record and union carries a runtime check generated from its declaration, so <code>json.parse&lt;User&gt;</code> returns <code>Err</code> when the data does not match. In Elm you write a decoder for each shape, and its guide notes that \"the decoders people write end up working as a validation phase\" (<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>).",
+      "tr": "Jeder Record und jede Union bringt eine Laufzeitprüfung mit, die aus ihrer Deklaration erzeugt wird, also gibt <code>json.parse&lt;User&gt;</code> <code>Err</code> zurück, wenn die Daten nicht passen. In Elm schreibst du für jede Form einen Decoder, und sein Guide merkt an, dass \"the decoders people write end up working as a validation phase\" (<a href=\"https://guide.elm-lang.org/effects/json.html\">JSON</a>)."
+    },
+    {
+      "id": "h-e12a02b6",
+      "kind": "html",
+      "en": "main.glyph: prints \"refused\", because the JSON has no email",
+      "tr": "main.glyph: gibt \"refused\" aus, weil das JSON keine E-Mail enthält"
+    },
+    {
+      "id": "h-0b211920",
+      "kind": "html",
+      "en": "Its compiler answers what a change will break",
+      "tr": "Sein Compiler beantwortet, was eine Änderung kaputtmachen wird"
+    },
+    {
+      "id": "h-e65ec874",
+      "kind": "html",
+      "en": "Before an edit, an agent can ask which places a change reaches, over MCP (<code>glyph_impact</code>) or with <code>glyph query impact</code>. On a union <code>Plan = Free | Pro | Team</code> with one exhaustive <code>match</code> and one that ends in <code>else</code>, asking about a new variant answers per site:",
+      "tr": "Vor einer Änderung kann ein Agent fragen, welche Stellen eine Änderung erreicht, über MCP (<code>glyph_impact</code>) oder mit <code>glyph query impact</code>. Bei einer Union <code>Plan = Free | Pro | Team</code> mit einem erschöpfenden <code>match</code> und einem, das mit <code>else</code> endet, antwortet die Frage nach einer neuen Variante pro Stelle:"
+    },
+    {
+      "id": "h-4227f025",
+      "kind": "html",
+      "en": "The second site would fail to compile after the change, which any of these compilers would also tell you once the change is made. The first would keep compiling and send the new case to its <code>else</code>, and the query is what names it. <a href=\"/agents/\">For agent builders</a> lists the other tools.",
+      "tr": "Die zweite Stelle würde nach der Änderung nicht mehr kompilieren, und das würde dir jeder dieser Compiler ebenfalls sagen, sobald die Änderung gemacht ist. Die erste würde weiter kompilieren und den neuen Fall an ihr <code>else</code> schicken, und genau die nennt die Abfrage. <a href=\"/agents/\">Für Entwickler von Agenten</a> listet die anderen Tools."
+    },
+    {
+      "id": "h-738097d0",
+      "kind": "html",
+      "en": "What this page does not claim",
+      "tr": "Was diese Seite nicht behauptet"
+    },
+    {
+      "id": "h-9acaa78c",
+      "kind": "html",
+      "en": "It has not compared error messages, compile speed or runtime performance, and it has not tried calling any of the three from Glyph or the other way round. The quotes describe each project in its own words; how well each lives up to them is for you to check, as it is for Glyph's own claims on <a href=\"/evidence/\">the evidence page</a>.",
+      "tr": "Sie hat weder Fehlermeldungen noch Kompiliergeschwindigkeit oder Laufzeit-Performance verglichen, und sie hat nicht versucht, eine der drei aus Glyph aufzurufen oder umgekehrt. Die Zitate beschreiben jedes Projekt in seinen eigenen Worten; wie gut jedes ihnen gerecht wird, musst du selbst prüfen, genau wie bei Glyphs eigenen Aussagen auf <a href=\"/evidence/\">der Seite mit den Belegen</a>."
+    }
+  ]
+}

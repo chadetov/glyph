@@ -1,0 +1,130 @@
+---
+title: Durchsuchbarkeit · ein Name, eine Stelle · Glyph
+description: Glyphs zweite Säule: Jedes Symbol hat an seiner Deklaration eine einzige Form. Keine Overloads, Decorators, zusammengeführten Namespaces oder Barrel-Re-Exports, also findet grep es.
+source_hash: dc081d192bed2b9f
+prev: /pillars/verifiability/ | &larr; Vorherige Säule | Überprüfbarkeit: wahr zur Laufzeit
+next: /pillars/diff-stability/ | Nächste Säule &rarr; | Stabile Diffs: Eine einzeilige Änderung ist ein einzeiliger Diff
+---
+      <p class="q-eyebrow">Säule 02 &middot; <span class="wedge">Der Kern</span></p>
+      <h1 class="q-title">Durchsuchbarkeit</h1>
+
+      <p class="short-answer">
+        <strong>Ein Name, eine Stelle.</strong> Jedes Symbol hat an der Stelle, an der es deklariert ist, genau eine syntaktische Form, also findet ein einfaches <code>grep</code> die Definition, immer, ohne Index, ohne Language Server und ohne Glück.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Warum "wo ist das definiert?" schwer ist</h2>
+        <p class="lede">
+          In einer ausgereiften TypeScript-Codebasis ist die einfachste Frage, <em>woher kommt dieser Name?</em>, oft die schwerste. Die Sprache bietet ein halbes Dutzend Wege, ein Symbol über viele Stellen zu verteilen: Overloads teilen eine Funktion in mehrere Signaturen auf, Decorators packen sie in etwas anderes, das Zusammenführen von <code>namespace</code> und <code>interface</code> verstreut einen Typ über Dateien, <code>declare module</code> erweitert Code, der dir nicht gehört, und Barrel-Dateien <code>index.ts</code> re-exportieren alles, sodass der Pfad, aus dem du importierst, nicht dort ist, wo tatsächlich etwas lebt.
+        </p>
+        <p class="lede">
+          Ein Mensch kommt mit einem LSP und Gewohnheit zurecht. Ein <strong>Agent</strong> greppt: Er liest das Repo als Text, und jedes dieser Konstrukte ist eine Stelle, an der der Text darüber lügt, wo der Code ist. Glyph entfernt sie. Das Ergebnis ist eine Sprache, in der die Suche ein verlässlicher Grundbaustein ist und keine Heuristik.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Eine Deklaration, eine Form</h2>
+        <p>
+          Eine Funktion, ein Typ oder eine Komponente wird genau einmal deklariert, mit einer Syntax. Es gibt keine Overloads, die eine Signatur aufteilen, und keinen Weg, einen Namen neu zu deklarieren: Zwei Dinge auf oberster Ebene mit demselben Namen sind ein harter Fehler (<code>E0100</code>). Die Suche nach einer Definition hat also genau eine Antwort.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript: vier Treffer, einer ist der Rumpf</span>
+          <span class="cap">$ grep -n "parseUser" src/</span>
+<pre><span class="cm">users.ts:4:  export function parseUser(</span>
+<span class="cm">users.ts:9:  export function parseUser(</span>
+<span class="cm">index.ts:2: export { parseUser } from</span>
+<span class="cm">api.ts:7:   import { parseUser } from</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: Der erste Treffer ist die Definition</span>
+          <span class="cap">$ grep -n "fn parseUser" src/</span>
+<pre>users.glyph:12:fn parseUser(
+  raw: unknown,
+) -&gt; Result&lt;User, string&gt; {</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Das Deklarationsschlüsselwort ist Teil des Namens, nach dem du suchst. <code>grep "fn parseUser"</code> kann keinen Aufruf, keinen Import und keinen Re-Export treffen, nur die eine Stelle, an der es <strong>definiert</strong> ist.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> Keine Barrel-Dateien: Der Importpfad ist der Ort</h2>
+        <p>
+          Glyph-Imports re-exportieren nie, und ein Modul, das nur aus Imports besteht, wird abgelehnt (<code>E0102</code>). Es gibt keine <code>index.ts</code>-Schicht, die die Herkunft verschleiert. Ein Import nennt also das Modul, in dem das Symbol tatsächlich lebt: Der Pfad <em>ist</em> die Adresse.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">der Import sagt dir genau, wo du suchen musst</span>
+<pre>import myapp/users { parseUser }
+<span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
+<span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">03</span> Keine versteckten Wege, Verhalten anzuhängen</h2>
+        <p>
+          Es gibt keine Decorators, die eine Funktion in eine unsichtbare Schicht packen, kein Zusammenführen von <code>namespace</code>, das Member aus dem ganzen Baum sammelt, kein <code>declare module</code>, das einen Fremdtyp aus einer Datei erweitert, die du nie öffnen würdest, und kein implizites <code>this</code>, das umbindet, worauf eine Methode sich bezieht. Ein Name löst sich zu einer Deklaration auf, und alles, was ihn formt, ist an dieser Deklaration sichtbar.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> Sogar Mutation ist durchsuchbar</h2>
+        <p>
+          Bei Durchsuchbarkeit geht es nicht nur darum, Definitionen zu finden, sondern auch <em>Wirkungen</em>. Gemeinsamer Zustand lebt in einem <code>std/store</code>, und jede Änderung daran ist ein wörtlicher Aufruf von <code>.set(</code> oder <code>.update(</code>. Eine Suche zählt also die gesamte Schreibschnittstelle eines Zustands auf, statt nach Zuweisungen zu jagen, die über die Datei verstreut sind.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
+<pre><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(fn(cur) { ... })
+<span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
+<span class="cm"># every place the task list can change, enumerated.</span>
+<span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          Eine Codebasis ist durchsuchbar, wenn <strong>ihr Text die Wahrheit über ihre Struktur sagt.</strong> Jede Einschränkung hier (eine Form pro Name, keine Re-Exports, kein Zusammenführen) ist dazu da, dass eine Suche die Antwort liefert und keinen Hinweis.
+        </p>
+
+        <h2 class="block-label">Der Benchmark: kommt noch</h2>
+        <p>
+          Die messbare Version dieser Aussage ist Präzision: Welcher Anteil der Treffer eines einfachen grep für ein bestimmtes Symbol ist das, was du tatsächlich gesucht hast, und wie viele Schritte braucht ein Agent bis zu einer Definition? Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, es füllt sich mit echten Zahlen, sobald es eine echte Codebasis zum Messen gibt.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Grep-Präzision für eine Definition &middot; höher ist besser</span>
+        <h3>TypeScript gegen Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 70%;">ausstehend</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 38%;">ausstehend</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Noch nicht gemessen</span> Wir berichten Grep-Präzision und Schritte bis zur Definition aus einer echten Glyph-Codebasis, sobald es eine gibt, und veröffentlichen die Zahlen hier, egal wie sie ausfallen.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Der Gewinn wächst mit der Größe und mit der Autonomie. Ein Mensch lernt die Verstecke einer Codebasis; ein Agent, der kalt startet, nicht. Durchsuchbarkeit lässt ein Tool (oder ein neues Teammitglied) durch Lesen navigieren, so wie das Repo tatsächlich ist.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">"Eine Lint-Regel kann Overloads und Decorators verbieten"</h2>
+        <p>
+          In deinem eigenen Repository, ja. ESLint kann Namespaces verbieten, und ein Team kann sich einigen, nicht zu überladen. Die Sprache erlaubt trotzdem alles davon, also hält die Garantie so lange wie die Konfiguration und gilt nur für den Code, auf dem sie läuft. Ein <code>grep</code> über eine Abhängigkeit, eine generierte Datei oder das Repository von jemand anderem kann sich nicht darauf verlassen. In Glyph gibt es die Konstrukte nicht, also funktioniert <code>grep</code> in jeder Glyph-Datei gleich, auch in denen, die niemand in deinem Team konfiguriert hat.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Wie das aus Sicht des Agenten aussieht, eine Definition oder jeden Schreibzugriff auf einen Wert mit einer Suche zu finden, beantwortet <a href="/answers/greppability/">Kann ein Agent (oder ich) finden, wo etwas definiert ist?</a>
+        </p>
+      </div>

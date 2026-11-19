@@ -11,8 +11,12 @@ web/ stays committed and is still what the Pages workflow deploys. This script
 owns every .html file in web/ (one per page under site/pages/, and a page
 whose source is gone is deleted), every stylesheet in site/ (site/style.css
 for every page, and the per-page ones such as site/catches.css, which a page
-links from its `head`), and web/sitemap.xml (generated from the page list). Everything else in web/
-(llms.txt, robots.txt, favicon.svg) is left alone, except web/versions/feed.xml, which it also writes. scripts/check_site_built.py fails when web/ and this script disagree.
+links from its `head`), web/sitemap.xml (generated from the page list), and
+every file under site/static/, copied to the same path under web/ byte for
+byte (the preview image, the raster icons; scripts/site_images.py draws them).
+Everything else in web/ (llms.txt, robots.txt, favicon.svg) is left alone,
+except web/versions/feed.xml, which it also writes. scripts/check_site_built.py
+fails when web/ and this script disagree.
 
     python3 scripts/build_site.py            # render into web/
     python3 scripts/build_site.py --out DIR  # render somewhere else
@@ -88,6 +92,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 PAGES = SITE / "pages"
 PARTIALS = SITE / "partials"
+STATIC = SITE / "static"
 ORIGIN = "https://glyphlang.io"
 EDIT_BASE = "https://github.com/chadetov/glyph/blob/main/site/pages/"
 
@@ -640,8 +645,9 @@ def page_files() -> list[pathlib.Path]:
                   key=lambda p: (p.relative_to(PAGES).parent.as_posix() != ".", p.relative_to(PAGES).as_posix()))
 
 
-def build() -> dict[str, str]:
-    """Every file the generator owns, as {path relative to web/: contents}."""
+def build() -> dict[str, str | bytes]:
+    """Every file the generator owns, as {path relative to web/: contents}.
+    Text files are str; the files copied from site/static/ are bytes."""
     site = json.loads((SITE / "site.json").read_text())
     version = workspace_version()
     files: dict[str, str] = {}
@@ -693,6 +699,8 @@ def build() -> dict[str, str]:
     # Language flags for the header's language menu, with their licence.
     for flag in sorted((SITE / "flags").glob("*")):
         files[f"flags/{flag.name}"] = flag.read_text()
+    for asset in sorted(p for p in STATIC.rglob("*") if p.is_file() and p.name != ".DS_Store"):
+        files[asset.relative_to(STATIC).as_posix()] = asset.read_bytes()
     return files
 
 
@@ -704,7 +712,7 @@ def stale_pages(out: pathlib.Path, files: dict[str, str]) -> list[str]:
                   if p.relative_to(out).as_posix() not in files)
 
 
-def write(out: pathlib.Path, files: dict[str, str]) -> None:
+def write(out: pathlib.Path, files: dict[str, str | bytes]) -> None:
     # Every HTML page in web/ is generated, so one with no source is a page
     # that was deleted or moved in site/; leaving it would keep serving it.
     for rel in stale_pages(out, files):
@@ -712,7 +720,10 @@ def write(out: pathlib.Path, files: dict[str, str]) -> None:
     for rel, text in files.items():
         dst = out / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
-        if not dst.exists() or dst.read_text() != text:
+        if isinstance(text, bytes):
+            if not dst.exists() or dst.read_bytes() != text:
+                dst.write_bytes(text)
+        elif not dst.exists() or dst.read_text() != text:
             dst.write_text(text)
 
 

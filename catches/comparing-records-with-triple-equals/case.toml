@@ -11,7 +11,7 @@ page_title = "Comparing two records with <code>===</code>"
 why = "Skipping a save when nothing changed."
 likelihood = 3
 severity = 3
-ts_verdict = "compiles, compares identity"
+ts_verdict = "compiles, then compares identity, not data"
 glyph_verdict = "compares the data"
 ts_result = "<b>Same data, but <code>===</code> asks whether they are the same object.</b> Every save runs."
 glyph_result = "<b>Two records with the same fields are equal.</b>"

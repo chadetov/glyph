@@ -312,7 +312,7 @@
           <figure class="c-hero">
             <figcaption><a href="/catches/#error-the-signature-hides">An error the signature hides</a>: A function that can fail, called by code that does not know it can.</figcaption>
             <div class="c-hero-side ts">
-              <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, crashes</span></div>
+              <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">compiles, then crashes at run time</span></div>
               <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
   <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"missing file"</span>);
 }
@@ -360,19 +360,19 @@
             <span class="c-card-n">1</span>
             <h3>Data from outside the program</h3>
             <p>A request body, a file, an API response.</p>
-            <p class="c-card-v"><span class="ts">TypeScript: compiles, runs</span><span class="gl">Glyph: checked when the data arrives</span></p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles, then runs on bad data</span><span class="gl">Glyph: checked when the data arrives</span></p>
           </a>
           <a class="c-card" href="/catches/#error-the-signature-hides">
             <span class="c-card-n">2</span>
             <h3>An error the signature hides</h3>
             <p>A function that can fail, called by code that does not know it can.</p>
-            <p class="c-card-v"><span class="ts">TypeScript: compiles, crashes</span><span class="gl">Glyph: refused when you build</span></p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles, then crashes at run time</span><span class="gl">Glyph: refused when you build</span></p>
           </a>
           <a class="c-card" href="/catches/#error-nobody-looked-at">
             <span class="c-card-n">3</span>
             <h3>An error nobody looked at</h3>
             <p>Calling something that can fail and moving on.</p>
-            <p class="c-card-v"><span class="ts">TypeScript: compiles</span><span class="gl">Glyph: warned</span></p>
+            <p class="c-card-v"><span class="ts">TypeScript: compiles with no warning</span><span class="gl">Glyph: warned</span></p>
           </a>
         </div>
 

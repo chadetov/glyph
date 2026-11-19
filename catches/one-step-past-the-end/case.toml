@@ -11,7 +11,7 @@ page_title = "One step past the end"
 why = "Summing a list with a loop."
 likelihood = 3
 severity = 3
-ts_verdict = "compiles, wrong answer"
+ts_verdict = "compiles, then gives the wrong answer"
 glyph_verdict = "stopped when it runs"
 ts_result = "<b><code>&lt;=</code> reads one past the end.</b>"
 glyph_result = "<b>Glyph has no C-style <code>for</code>.</b> Reading past the end stops the program."

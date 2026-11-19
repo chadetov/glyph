@@ -1,0 +1,194 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/upgrades/index.html",
+  "locale": "es",
+  "source_hash": "b4d1d08012358fef",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Will a new Glyph release break my build? · Glyph",
+      "tr": "¿Una nueva versión de Glyph va a romper mi build? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.",
+      "tr": "Un proyecto de Glyph fija la versión exacta de su compilador, así que una versión nunca te llega por accidente. glyph doctor te dice que existe una y glyph upgrade te pasa a ella."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can an AI reliably write a language it's barely seen?",
+      "tr": "¿Puede una IA escribir con fiabilidad un lenguaje que apenas ha visto?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Siguiente &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I use my existing TypeScript, JavaScript, and npm libraries?",
+      "tr": "¿Puedo usar mis librerías de TypeScript, JavaScript y npm?"
+    },
+    {
+      "id": "h-266e4a01",
+      "kind": "html",
+      "en": "08 &middot; Upgrades",
+      "tr": "08 &middot; Actualizaciones"
+    },
+    {
+      "id": "h-7af5847c",
+      "kind": "html",
+      "en": "Will a new Glyph release break my build?",
+      "tr": "¿Una nueva versión de Glyph va a romper mi build?"
+    },
+    {
+      "id": "h-f4dc288a",
+      "kind": "html",
+      "en": "Not without you asking for it. A Glyph project pins its compiler to an <strong>exact version</strong>, so a release published this morning does not reach your build this afternoon. Before 1.0 a release is allowed to add a diagnostic that rejects code which compiled yesterday, and that is usually the point of the release, so the decision to take one is yours and it is one command.",
+      "tr": "No sin que lo pidas. Un proyecto de Glyph fija su compilador a una <strong>versión exacta</strong>, así que una versión publicada esta mañana no llega a tu build esta tarde. Antes de la 1.0, una versión puede añadir un diagnóstico que rechace código que ayer compilaba, y normalmente ese es el objetivo de la versión, así que la decisión de adoptarla es tuya y es un solo comando."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por qué importa"
+    },
+    {
+      "id": "h-47c7a582",
+      "kind": "html",
+      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
+      "tr": "La mayoría de las herramientas las fijas con un acento circunflejo, porque una versión de parche es una corrección de bugs. Un compilador antes de la 1.0 no es eso. Todo el trabajo de Glyph es rechazar programas, y mejorar en eso significa errores nuevos: una comprobación más estricta en un import, un hueco de exhaustividad que antes se colaba, un número de argumentos que el checker no había modelado. Esas versiones son las buenas. También son justo las que no quieres que lleguen a través de un <code>npm install</code> que ejecutaste para añadir una librería de fechas."
+    },
+    {
+      "id": "h-d1c65588",
+      "kind": "html",
+      "en": "So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, which is the trap: <code>^0.1.9</code> quietly accepts every later 0.1.x.",
+      "tr": "Así que <code>glyph init</code> no escribe ningún <code>^</code>. En una versión <code>0.x</code> el circunflejo sigue dejando flotar el parche, y esa es la trampa: <code>^0.1.9</code> acepta sin avisar cualquier 0.1.x posterior."
+    },
+    {
+      "id": "h-5339eb44",
+      "kind": "html",
+      "en": "package.json, as scaffolded",
+      "tr": "package.json, tal como se crea"
+    },
+    {
+      "id": "h-9b0cc8ae",
+      "kind": "html",
+      "en": "Commit the <code>package-lock.json</code> next to it and a fresh clone builds with the toolchain you tested, not with whatever shipped since.",
+      "tr": "Haz commit del <code>package-lock.json</code> a su lado y un clon nuevo compila con el toolchain que probaste, no con lo que se haya publicado después."
+    },
+    {
+      "id": "h-ff0a175d",
+      "kind": "html",
+      "en": "The other half",
+      "tr": "La otra mitad"
+    },
+    {
+      "id": "h-9f122561",
+      "kind": "html",
+      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. Nothing on your machine would tell you, and a website you have to remember to visit is not a channel. So the compiler tells you, when you ask it anything about your setup:",
+      "tr": "Fijar la versión tiene un modo de fallo evidente: te quedas un año con un compilador viejo y nunca te enteras. Nada en tu máquina te lo diría, y una web que tienes que acordarte de visitar no es un canal. Así que te lo dice el compilador, cuando le preguntas cualquier cosa sobre tu configuración:"
+    },
+    {
+      "id": "h-42b52e59",
+      "kind": "html",
+      "en": "glyph doctor",
+      "tr": "glyph doctor"
+    },
+    {
+      "id": "h-2a126797",
+      "kind": "html",
+      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI. A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
+      "tr": "Encontrar una versión más reciente <em>nunca</em> cambia el código de salida, así que es seguro ejecutarlo en CI. Una versión publicada no es un toolchain roto, y un pipeline en verde no debería ponerse en rojo porque alguien publicara hace diez minutos. Si la máquina no tiene conexión, la comprobación lo dice y sigue; <code>--offline</code> se la salta por completo y no hace ninguna llamada de red."
+    },
+    {
+      "id": "h-193447d0",
+      "kind": "html",
+      "en": "Nothing else reaches the registry. <code>build</code>, <code>run</code> and <code>check</code> never do. A compiler that phones home on every build is a different product.",
+      "tr": "Nada más llega al registro. <code>build</code>, <code>run</code> y <code>check</code> nunca lo hacen. Un compilador que llama a casa en cada build es otro producto."
+    },
+    {
+      "id": "h-010eb101",
+      "kind": "html",
+      "en": "Taking the upgrade",
+      "tr": "Actualizar"
+    },
+    {
+      "id": "h-3b711bf0",
+      "kind": "html",
+      "en": "One line changes, and you decide when",
+      "tr": "Cambia una línea, y tú decides cuándo"
+    },
+    {
+      "id": "h-03df523e",
+      "kind": "html",
+      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet. <code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
+      "tr": "Reescribe una línea y ejecuta <code>npm install</code>. No toca tu código, y no finge que la actualización ha terminado: compilar después es justo lo importante, porque la versión que acabas de adoptar puede tener opiniones con las que tu código todavía no se ha encontrado. <code>--to &lt;version&gt;</code> indica una concreta, incluida una anterior cuando quieres volver atrás, y <code>--no-install</code> deja la instalación en tus manos."
+    },
+    {
+      "id": "h-acd610d7",
+      "kind": "html",
+      "en": "Moving the tool, not the project",
+      "tr": "Mover la herramienta, no el proyecto"
+    },
+    {
+      "id": "h-6a0faca9",
+      "kind": "html",
+      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have. <code>glyph --update</code> is the other half. The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code. <code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
+      "tr": "<code>upgrade</code> mueve una versión fijada en un <code>package.json</code>. Ese es el comando equivocado cuando lo que está desactualizado es el compilador de tu <code>PATH</code>, y durante un tiempo <code>doctor</code> lo mostraba igualmente, apuntando una instalación global a un manifiesto que quizá no tenía. <code>glyph --update</code> es la otra mitad. La separación ahora es una regla y no una casualidad: los flags actúan sobre la herramienta, como hacen <code>--version</code>, <code>--help</code> y <code>--explain</code>, y los subcomandos actúan sobre tu código. <code>--update-dry-run</code> se detiene después de imprimir el comando de <code>npm</code> que habría ejecutado."
+    },
+    {
+      "id": "h-c1acb4b2",
+      "kind": "html",
+      "en": "glyph --update",
+      "tr": "glyph --update"
+    },
+    {
+      "id": "h-e478c4dc",
+      "kind": "html",
+      "en": "It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose. It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
+      "tr": "Solo mueve una instalación que sabe identificar. A un compilador al que se llega por <code>npx</code>, compilado desde un árbol de fuentes de Glyph, o situado en una ruta que no reconoce, se le imprime el comando y no se sobrescribe nada, porque reemplazar a ciegas un binario de Homebrew o el <code>cargo build</code> de alguien deja el <code>PATH</code> apuntando a algo que nadie eligió. Tampoco llega a afirmar que la actualización se aplicó: npm puede salir con cero tras saltarse una <code>optionalDependency</code> que no pudo descargar, que es como una versión de Glyph se publicó una vez sin binario para la plataforma, así que la última línea indica <code>glyph --version</code> como comprobación en lugar de afirmar que funcionó."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Dónde está"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponible hoy"
+    },
+    {
+      "id": "h-b2838e1c",
+      "kind": "html",
+      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
+      "tr": "Los proyectos creados fijan la versión exacta, así que ninguna versión llega a un build por accidente. <code>glyph doctor</code> compara tu compilador con el registro y enlaza las notas de la versión, sin afectar nunca a su código de salida ni ser accesible desde <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> mueve la versión fijada, la instala y lee el circunflejo de un proyecto antiguo, para que los proyectos que ya existían también puedan pasar a una versión exacta. <code>glyph --update</code> mueve el propio compilador, para una instalación global de npm, e informa en lugar de adivinar para cualquier otra forma en que pudiera haber llegado ahí."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Afinándose"
+    },
+    {
+      "id": "h-72347421",
+      "kind": "html",
+      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
+      "tr": "Las notas de versión son una sola página para toda la línea, así que <code>glyph upgrade</code> enlaza la página y no la entrada de la versión a la que te mueves. Todavía nada te dice cuáles de los diagnósticos de la nueva versión va a disparar tu código: para saberlo hay que compilar, y por eso el comando te lo dice. Y actualizar saltando varias versiones a la vez es el mismo paso único que con una, sin un resumen de lo que se ha acumulado entre medias. <code>glyph --update</code> llama a npm y lee su código de salida, así que puede decirte que npm terminó pero no que el binario del <code>PATH</code> es la versión que pediste; por eso remite a <code>glyph --version</code> en lugar de decir que ha funcionado."
+    }
+  ]
+}

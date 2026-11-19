@@ -1,0 +1,260 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "evidence/index.html",
+  "locale": "es",
+  "source_hash": "22fcc8a3d8e611cf",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Evidence · how each claim on this site is checked · Glyph",
+      "tr": "Pruebas · cómo se comprueba cada afirmación de este sitio · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "How each claim on this site is checked: the catches fixtures and the CI gate behind them, the TypeScript setup they are compared with, and how to reproduce one.",
+      "tr": "Cómo se comprueba cada afirmación de este sitio: los casos de catches y la comprobación de CI que hay detrás, la configuración de TypeScript con la que se comparan y cómo reproducir uno."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "The rest of the record",
+      "tr": "El resto del registro"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Recommended",
+      "tr": "Recomendado"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "Catches",
+      "tr": "Casos"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "Every case: the TypeScript, the Glyph, the error, and whether tooled TypeScript would catch it.",
+      "tr": "Cada caso: el TypeScript, el Glyph, el error, y si TypeScript con herramientas lo detectaría."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "See every case",
+      "tr": "Ver todos los casos"
+    },
+    {
+      "id": "ns./hardening/.title",
+      "kind": "ns.title",
+      "en": "Hardening",
+      "tr": "Endurecimiento"
+    },
+    {
+      "id": "ns./hardening/.desc",
+      "kind": "ns.desc",
+      "en": "How agents playing skeptical engineers attack the compiler, and the bugs that found.",
+      "tr": "Cómo atacan el compilador agentes que hacen de ingenieros escépticos, y los bugs que han encontrado."
+    },
+    {
+      "id": "ns./benchmarks/.title",
+      "kind": "ns.title",
+      "en": "Benchmarks",
+      "tr": "Benchmarks"
+    },
+    {
+      "id": "ns./benchmarks/.desc",
+      "kind": "ns.desc",
+      "en": "What is measured (token density, grep, diffs) and the reliability study that isn't done yet.",
+      "tr": "Qué se mide (densidad de tokens, grep, diffs) y el estudio de fiabilidad que todavía no está hecho."
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "Versiones"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "Every release, what it changed, and which ones are Breaking.",
+      "tr": "Cada versión, qué cambió y cuáles son Breaking."
+    },
+    {
+      "id": "h-03867aea",
+      "kind": "html",
+      "en": "Evidence",
+      "tr": "Pruebas"
+    },
+    {
+      "id": "h-dc5eb7de",
+      "kind": "html",
+      "en": "How each claim on this site is checked",
+      "tr": "Cómo se comprueba cada afirmación de este sitio"
+    },
+    {
+      "id": "h-e3358e09",
+      "kind": "html",
+      "en": "A claim that Glyph catches something is a pair of programs in the repository, one in TypeScript and one in Glyph, and a CI gate runs both on every change. If the TypeScript stops compiling or the Glyph stops being refused, the build fails. You can run any case yourself in two commands.",
+      "tr": "Una afirmación de que Glyph detecta algo es un par de programas en el repositorio, uno en TypeScript y otro en Glyph, y una comprobación de CI ejecuta los dos en cada cambio. Si el TypeScript deja de compilar o el Glyph deja de ser rechazado, el build falla. Puedes ejecutar cualquier caso tú mismo con dos comandos."
+    },
+    {
+      "id": "h-1fc65ae1",
+      "kind": "html",
+      "en": "The fixtures",
+      "tr": "Los casos"
+    },
+    {
+      "id": "h-d916d7bf",
+      "kind": "html",
+      "en": "Each directory under <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> holds <code>ts.ts</code>, <code>glyph.glyph</code> and a <code>case.toml</code> saying what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. {{catches:breakdown}} By the kind the gate checks:",
+      "tr": "Cada directorio bajo <a href=\"https://github.com/chadetov/glyph/tree/main/catches\">catches/</a> contiene <code>ts.ts</code>, <code>glyph.glyph</code> y un <code>case.toml</code> que dice qué hace cada uno. <code>scripts/check_catches.py</code> se ejecuta en CI. Exige que cada <code>ts.ts</code> pase <code>tsc --strict</code>, ya que un programa TypeScript que no compila no demuestra nada, y comprueba la mitad de Glyph según el tipo de caso. {{catches:breakdown}} Según el tipo que comprueba:"
+    },
+    {
+      "id": "h-f5387f9b",
+      "kind": "html",
+      "en": "Kind",
+      "tr": "Tipo"
+    },
+    {
+      "id": "h-2249bd50",
+      "kind": "html",
+      "en": "Cases",
+      "tr": "Casos"
+    },
+    {
+      "id": "h-cdb22e2c",
+      "kind": "html",
+      "en": "What the gate requires of the Glyph",
+      "tr": "Qué exige la comprobación al Glyph"
+    },
+    {
+      "id": "h-eb9256d3",
+      "kind": "html",
+      "en": "The build fails with the code in <code>case.toml</code>",
+      "tr": "El build falla con el código de <code>case.toml</code>"
+    },
+    {
+      "id": "h-ca67701b",
+      "kind": "html",
+      "en": "The build passes and reports that code as a warning",
+      "tr": "El build pasa e informa de ese código como aviso"
+    },
+    {
+      "id": "h-1ee000e2",
+      "kind": "html",
+      "en": "The program runs, and the check at the boundary turns the bad data into an <code>Err</code>",
+      "tr": "El programa se ejecuta, y la comprobación en la frontera convierte los datos incorrectos en un <code>Err</code>"
+    },
+    {
+      "id": "h-16733f99",
+      "kind": "html",
+      "en": "The program builds, then stops when it runs, with the stated output",
+      "tr": "El programa compila y luego se detiene al ejecutarse, con la salida indicada"
+    },
+    {
+      "id": "h-822949d7",
+      "kind": "html",
+      "en": "Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case",
+      "tr": "Glyph acepta el programa y este hace lo incorrecto. Cuando el hueco se cierra, la comprobación falla y pide mover el caso"
+    },
+    {
+      "id": "h-92bc404d",
+      "kind": "html",
+      "en": "A case that stops being demonstrable is deleted rather than softened, and the <a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">catches README</a> lists the six that were deleted and why. One of them turned out to be caught by <code>tsc</code> too; another only worked because its TypeScript took a value as <code>any</code>.",
+      "tr": "Un caso que deja de poder demostrarse se borra en lugar de suavizarse, y el <a href=\"https://github.com/chadetov/glyph/blob/main/catches/README.md\">README de catches</a> lista los seis que se borraron y por qué. Resultó que uno también lo detectaba <code>tsc</code>; otro solo funcionaba porque su TypeScript recibía un valor como <code>any</code>."
+    },
+    {
+      "id": "h-db083445",
+      "kind": "html",
+      "en": "The TypeScript it is compared against",
+      "tr": "El TypeScript con el que se compara"
+    },
+    {
+      "id": "h-4d9ff34c",
+      "kind": "html",
+      "en": "Each case also says whether a fully configured TypeScript project would have caught the mistake, which is where the \"would TypeScript catch it\" tag comes from. \"Fully configured\" is <code>tsc --strict</code> plus every option that makes it stricter, and a typescript-eslint run. The gate installs the packages fresh on each run (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 and the latest <code>@types/node</code>) and fails, rather than skips, without the network.",
+      "tr": "Cada caso dice también si un proyecto TypeScript completamente configurado habría detectado el error, y de ahí sale la etiqueta \"¿lo detectaría TypeScript?\". \"Completamente configurado\" es <code>tsc --strict</code> más todas las opciones que lo hacen más estricto, y una ejecución de typescript-eslint. La comprobación instala los paquetes desde cero en cada ejecución (TypeScript 6, eslint 9, typescript-eslint 8, tsx 4 y el último <code>@types/node</code>) y, sin red, falla en lugar de saltarse el paso."
+    },
+    {
+      "id": "h-f909a15d",
+      "kind": "html",
+      "en": "tsconfig options on top of strict",
+      "tr": "opciones de tsconfig además de strict"
+    },
+    {
+      "id": "h-e79273f1",
+      "kind": "html",
+      "en": "A case's tag is <code>none</code>, <code>flag:</code> plus the one option that reports it, or <code>lint:</code> plus the rule. When the corrected program also trips a rule for an unrelated reason, the case carries <code>ts_ok.ts</code> and the tag only counts what fires on the mistake. For example, <code>non-exhaustive-match</code> is <code>lint:switch-exhaustiveness-check</code>: typescript-eslint catches it if you turn that rule on, and the page says so.",
+      "tr": "La etiqueta de un caso es <code>none</code>, <code>flag:</code> más la opción que lo informa, o <code>lint:</code> más la regla. Cuando el programa corregido también dispara una regla por un motivo que no tiene nada que ver, el caso lleva <code>ts_ok.ts</code> y la etiqueta solo cuenta lo que salta con el error. Por ejemplo, <code>non-exhaustive-match</code> es <code>lint:switch-exhaustiveness-check</code>: typescript-eslint lo detecta si activas esa regla, y la página lo dice."
+    },
+    {
+      "id": "h-e4bf87e8",
+      "kind": "html",
+      "en": "Reproduce one case",
+      "tr": "Reproduce un caso"
+    },
+    {
+      "id": "h-1e0de939",
+      "kind": "html",
+      "en": "Run the gate on a single case from a clone of the repository, or do it by hand. Both halves of <code>non-exhaustive-match</code>, as they ran for this page:",
+      "tr": "Ejecuta la comprobación sobre un solo caso desde un clon del repositorio, o hazlo a mano. Las dos mitades de <code>non-exhaustive-match</code>, tal como se ejecutaron para esta página:"
+    },
+    {
+      "id": "h-41fe29d9",
+      "kind": "html",
+      "en": "the gate, one case",
+      "tr": "la comprobación, un caso"
+    },
+    {
+      "id": "h-fa9e17d5",
+      "kind": "html",
+      "en": "the TypeScript half, by hand",
+      "tr": "la mitad de TypeScript, a mano"
+    },
+    {
+      "id": "h-ddaaa114",
+      "kind": "html",
+      "en": "the Glyph half, by hand",
+      "tr": "la mitad de Glyph, a mano"
+    },
+    {
+      "id": "h-6672a1cf",
+      "kind": "html",
+      "en": "The snippets on this site compile",
+      "tr": "Los fragmentos de código de este sitio compilan"
+    },
+    {
+      "id": "h-994c5a78",
+      "kind": "html",
+      "en": "<code>scripts/check_docs_compile.py</code> runs in CI and compiles every Glyph snippet on the site that stands on its own (it opens with <code>module</code> and declares something), plus the ones in the docs and <code>llms.txt</code>. A snippet that is meant to fail has to name the error it draws, and it has to draw exactly that one. Snippets that need React or an npm package are compiled against those packages' real types. Fragments are counted and skipped, and the count is printed so the skipped share stays visible.",
+      "tr": "<code>scripts/check_docs_compile.py</code> se ejecuta en CI y compila cada fragmento de Glyph del sitio que se sostiene por sí mismo (empieza con <code>module</code> y declara algo), más los de la documentación y <code>llms.txt</code>. Un fragmento pensado para fallar tiene que nombrar el error que produce, y tiene que producir exactamente ese. Los fragmentos que necesitan React o un paquete de npm se compilan contra los tipos reales de esos paquetes. Los fragmentos sueltos se cuentan y se saltan, y el recuento se imprime para que la parte saltada siga a la vista."
+    },
+    {
+      "id": "h-260fe982",
+      "kind": "html",
+      "en": "What it does not catch yet",
+      "tr": "Lo que todavía no detecta"
+    },
+    {
+      "id": "h-e4a785b3",
+      "kind": "html",
+      "en": "The {{catches:gap-cases}} <code>gap</code> cases are on <a href=\"/catches/#not-yet\">the catches page</a>, each with its gap number. Every gap found by building apps in Glyph is in the ledger, <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>, where a bracketed marker is the only live status (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, or none for open) and <code>scripts/check_gaps.py</code> fails CI when an open entry was last reproduced more than five releases ago.",
+      "tr": "Los {{catches:gap-cases}} casos <code>gap</code> están en <a href=\"/catches/#not-yet\">la página de casos</a>, cada uno con su número de gap. Cada gap encontrado al construir apps en Glyph está en el registro, <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">docs/dogfooding-gaps.md</a>, donde una marca entre corchetes es el único estado vigente (<code>[FIXED]</code>, <code>[HALF FIXED]</code>, o ninguna si está abierto) y <code>scripts/check_gaps.py</code> hace fallar el CI cuando una entrada abierta se reprodujo por última vez hace más de cinco versiones."
+    },
+    {
+      "id": "h-ae7fa29b",
+      "kind": "html",
+      "en": "How a release is marked Breaking",
+      "tr": "Cómo se marca una versión como Breaking"
+    },
+    {
+      "id": "h-d28e217b",
+      "kind": "html",
+      "en": "A release is marked Breaking when it rejects a program the previous version accepted. That is decided by writing the smallest affected program and running it under the published previous release and the new binary, then comparing exit codes. It is not inferred from the wording of the notes. Releases before 0.1.99 were never tested this way, so an unmarked one is untested rather than safe. The record is on <a href=\"/versions/\">the versions page</a>.",
+      "tr": "Una versión se marca como Breaking cuando rechaza un programa que la versión anterior aceptaba. Se decide escribiendo el programa afectado más pequeño y ejecutándolo con la versión anterior publicada y con el binario nuevo, y comparando los códigos de salida. No se deduce de la redacción de las notas. Las versiones anteriores a la 0.1.99 nunca se probaron así, así que una sin marcar no está probada, no es segura. El registro está en <a href=\"/versions/\">la página de versiones</a>."
+    }
+  ]
+}

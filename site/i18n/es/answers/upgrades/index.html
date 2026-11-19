@@ -1,0 +1,125 @@
+---
+title: ¿Una nueva versión de Glyph va a romper mi build? · Glyph
+description: Un proyecto de Glyph fija la versión exacta de su compilador, así que una versión nunca te llega por accidente. glyph doctor te dice que existe una y glyph upgrade te pasa a ella.
+source_hash: b4d1d08012358fef
+prev: /answers/ai-authoring/ | &larr; Anterior | ¿Puede una IA escribir con fiabilidad un lenguaje que apenas ha visto?
+next: /answers/imports/ | Siguiente &rarr; | ¿Puedo usar mis librerías de TypeScript, JavaScript y npm?
+---
+      <p class="q-eyebrow">08 &middot; Actualizaciones</p>
+      <h1 class="q-title">¿Una nueva versión de Glyph va a romper mi build?</h1>
+
+      <p class="short-answer">
+        No sin que lo pidas. Un proyecto de Glyph fija su compilador a una <strong>versión exacta</strong>, así que una versión publicada esta mañana no llega a tu build esta tarde. Antes de la 1.0, una versión puede añadir un diagnóstico que rechace código que ayer compilaba, y normalmente ese es el objetivo de la versión, así que la decisión de adoptarla es tuya y es un solo comando.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué importa</h2>
+        <p>
+          La mayoría de las herramientas las fijas con un acento circunflejo, porque una versión de parche es una corrección de bugs. Un compilador antes de la 1.0 no es eso. Todo el trabajo de Glyph es rechazar programas, y mejorar en eso significa errores nuevos: una comprobación más estricta en un import, un hueco de exhaustividad que antes se colaba, un número de argumentos que el checker no había modelado. Esas versiones son las buenas. También son justo las que no quieres que lleguen a través de un <code>npm install</code> que ejecutaste para añadir una librería de fechas.
+        </p>
+        <p>
+          Así que <code>glyph init</code> no escribe ningún <code>^</code>. En una versión <code>0.x</code> el circunflejo sigue dejando flotar el parche, y esa es la trampa: <code>^0.1.9</code> acepta sin avisar cualquier 0.1.x posterior.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">package.json, tal como se crea</span>
+<pre>"devDependencies": {
+  <span class="cm">// exact. no caret, no tilde.</span>
+  "@glyphlang/glyph": "0.1.72",
+  "typescript": "^6.0.0",
+  "tsx": "^4.19.0"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Haz commit del <code>package-lock.json</code> a su lado y un clon nuevo compila con el toolchain que probaste, no con lo que se haya publicado después.
+        </p>
+
+        <h2 class="block-label">La otra mitad</h2>
+        <p>
+          Fijar la versión tiene un modo de fallo evidente: te quedas un año con un compilador viejo y nunca te enteras. Nada en tu máquina te lo diría, y una web que tienes que acordarte de visitar no es un canal. Así que te lo dice el compilador, cuando le preguntas cualquier cosa sobre tu configuración:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph doctor</span>
+<pre>glyph &mdash; 0.1.72
+  [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
+             what changed: https://glyphlang.io/versions/
+
+glyph doctor &mdash; JavaScript toolchain
+  [ok]       node: v22.1.0
+  [ok]       tsx: tsx v4.19.0
+  [ok]       tsc: Version 6.0.2
+All good. `glyph run` and `glyph build --check` are ready.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Encontrar una versión más reciente <em>nunca</em> cambia el código de salida, así que es seguro ejecutarlo en CI. Una versión publicada no es un toolchain roto, y un pipeline en verde no debería ponerse en rojo porque alguien publicara hace diez minutos. Si la máquina no tiene conexión, la comprobación lo dice y sigue; <code>--offline</code> se la salta por completo y no hace ninguna llamada de red.
+        </p>
+        <p>
+          Nada más llega al registro. <code>build</code>, <code>run</code> y <code>check</code> nunca lo hacen. Un compilador que llama a casa en cada build es otro producto.
+        </p>
+
+        <h2 class="block-label">Actualizar</h2>
+      </div>
+
+      <div class="code">
+        <span class="cap">Cambia una línea, y tú decides cuándo</span>
+<pre>$ glyph upgrade --dry-run
+glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
+
+$ glyph upgrade
+glyph upgrade: /app/package.json now pins 0.1.73 (was 0.1.72).
+glyph upgrade: what changed: https://glyphlang.io/versions/
+glyph upgrade: build before you commit; a new release may report diagnostics
+               this project did not have.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Reescribe una línea y ejecuta <code>npm install</code>. No toca tu código, y no finge que la actualización ha terminado: compilar después es justo lo importante, porque la versión que acabas de adoptar puede tener opiniones con las que tu código todavía no se ha encontrado. <code>--to &lt;version&gt;</code> indica una concreta, incluida una anterior cuando quieres volver atrás, y <code>--no-install</code> deja la instalación en tus manos.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Mover la herramienta, no el proyecto</h2>
+        <p>
+          <code>upgrade</code> mueve una versión fijada en un <code>package.json</code>. Ese es el comando equivocado cuando lo que está desactualizado es el compilador de tu <code>PATH</code>, y durante un tiempo <code>doctor</code> lo mostraba igualmente, apuntando una instalación global a un manifiesto que quizá no tenía. <code>glyph --update</code> es la otra mitad. La separación ahora es una regla y no una casualidad: los flags actúan sobre la herramienta, como hacen <code>--version</code>, <code>--help</code> y <code>--explain</code>, y los subcomandos actúan sobre tu código. <code>--update-dry-run</code> se detiene después de imprimir el comando de <code>npm</code> que habría ejecutado.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --update</span>
+<pre>$ glyph --update
+glyph 0.1.72 is installed; 0.1.73 is published.
+Release notes: https://glyphlang.io/versions/
+A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.
+
+Running: npm install -g @glyphlang/glyph@0.1.73
+<span class="cm">   ... npm output ...</span>
+
+npm finished. Confirm with:
+    glyph --version</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Solo mueve una instalación que sabe identificar. A un compilador al que se llega por <code>npx</code>, compilado desde un árbol de fuentes de Glyph, o situado en una ruta que no reconoce, se le imprime el comando y no se sobrescribe nada, porque reemplazar a ciegas un binario de Homebrew o el <code>cargo build</code> de alguien deja el <code>PATH</code> apuntando a algo que nadie eligió. Tampoco llega a afirmar que la actualización se aplicó: npm puede salir con cero tras saltarse una <code>optionalDependency</code> que no pudo descargar, que es como una versión de Glyph se publicó una vez sin binario para la plataforma, así que la última línea indica <code>glyph --version</code> como comprobación en lugar de afirmar que funcionó.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p>Los proyectos creados fijan la versión exacta, así que ninguna versión llega a un build por accidente. <code>glyph doctor</code> compara tu compilador con el registro y enlaza las notas de la versión, sin afectar nunca a su código de salida ni ser accesible desde <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> mueve la versión fijada, la instala y lee el circunflejo de un proyecto antiguo, para que los proyectos que ya existían también puedan pasar a una versión exacta. <code>glyph --update</code> mueve el propio compilador, para una instalación global de npm, e informa en lugar de adivinar para cualquier otra forma en que pudiera haber llegado ahí.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Afinándose</h3>
+          <p>Las notas de versión son una sola página para toda la línea, así que <code>glyph upgrade</code> enlaza la página y no la entrada de la versión a la que te mueves. Todavía nada te dice cuáles de los diagnósticos de la nueva versión va a disparar tu código: para saberlo hay que compilar, y por eso el comando te lo dice. Y actualizar saltando varias versiones a la vez es el mismo paso único que con una, sin un resumen de lo que se ha acumulado entre medias. <code>glyph --update</code> llama a npm y lee su código de salida, así que puede decirte que npm terminó pero no que el binario del <code>PATH</code> es la versión que pediste; por eso remite a <code>glyph --version</code> en lugar de decir que ha funcionado.</p>
+        </div>
+      </div>

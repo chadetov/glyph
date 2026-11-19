@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/tooling/index.html",
+  "locale": "es",
+  "source_hash": "d0791fdb41f61a1e",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "What's the editor, debugging, and error experience? · Glyph",
+      "tr": "¿Cómo es la experiencia con el editor, la depuración y los errores? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A language server for any editor, a VS Code extension, error messages with stable codes and glyph --explain. You debug the readable TypeScript it emits.",
+      "tr": "Un servidor de lenguaje para cualquier editor, una extensión de VS Code, mensajes de error con códigos estables y glyph --explain. Depuras el TypeScript legible que genera."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Is the documentation my agent reads generated, or written by hand and out of date?",
+      "tr": "¿La documentación que lee mi agente se genera, o está escrita a mano y desactualizada?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Siguiente &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Why does Glyph catch what tsc catches, but earlier?",
+      "tr": "¿Por qué Glyph detecta lo mismo que tsc, pero antes?"
+    },
+    {
+      "id": "h-ccc1ce81",
+      "kind": "html",
+      "en": "25 &middot; Day-to-day",
+      "tr": "25 &middot; El día a día"
+    },
+    {
+      "id": "h-173622d8",
+      "kind": "html",
+      "en": "What's the editor, debugging, and error experience?",
+      "tr": "¿Cómo es la experiencia con el editor, la depuración y los errores?"
+    },
+    {
+      "id": "h-cfd8c6fd",
+      "kind": "html",
+      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.",
+      "tr": "<code>glyph lsp</code> habla el Language Server Protocol por stdio, así que cualquier editor con un cliente LSP tiene diagnósticos, tipos al pasar el ratón, ir a la definición, autocompletado y formateo al guardar. Hay una extensión de VS Code en el repositorio; todavía no está en el Marketplace, así que la compilas desde el código fuente. Cada error lleva un código estable, el arreglo y el motivo."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por qué importa"
+    },
+    {
+      "id": "h-ff6f4a0b",
+      "kind": "html",
+      "en": "Editing a language your editor doesn't understand feels like a step backward, and early on that was a fair complaint. It isn't anymore: your editor gives you the modern niceties, and the errors are written to teach, not just to reject.",
+      "tr": "Editar en un lenguaje que tu editor no entiende se siente como un paso atrás, y al principio era una queja justa. Ya no lo es: tu editor te da las comodidades modernas, y los errores están escritos para enseñar, no solo para rechazar."
+    },
+    {
+      "id": "h-0fcb8516",
+      "kind": "html",
+      "en": "Is it a real LSP, or just a VS Code plugin?",
+      "tr": "¿Es un LSP de verdad, o solo un plugin de VS Code?"
+    },
+    {
+      "id": "h-45403764",
+      "kind": "html",
+      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands). The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
+      "tr": "De verdad. El compilador incluye un servidor de lenguaje que lanzas como <code>glyph lsp</code>, que habla el Language Server Protocol por stdio (el transporte JSON-RPC estándar que entiende cualquier cliente LSP). La extensión de VS Code incluida es un cliente ligero a su alrededor, pero nada es específico de VS Code: apunta <strong>cualquier</strong> editor con soporte LSP, Neovim, Helix, Zed, Emacs (eglot), a <code>glyph lsp</code> y se comporta igual. Es el mismo binario que ya instalaste (<code>npx @glyphlang/glyph lsp</code>), así que no hay un servidor aparte que descargar."
+    },
+    {
+      "id": "h-83dcf965",
+      "kind": "html",
+      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save. Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything. Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
+      "tr": "El servidor implementa lo que necesita un editor: diagnósticos en vivo con los códigos estables de abajo, tipos al pasar el ratón, ir a la definición (entre módulos a través de un import con nombre; a través de un namespace, <code>ui.Button</code> todavía no responde nada), autocompletado, símbolos del documento y del workspace para el esquema y la búsqueda de símbolos, buscar referencias en todo el workspace, renombrar y formatear con el formato canónico de <code>glyph fmt</code> para el formateo al guardar. El renombrado es completo: renombrar una declaración de nivel de módulo edita su definición, cada referencia y el binding de <code>import</code> de cada módulo que la importa en todo el workspace, y comprueba el nombre nuevo (un identificador válido, no una palabra clave) antes de tocar nada. Dos límites que conviene conocer: el índice entre archivos se reconstruye en cada petición en lugar de guardarse en caché (bien para un proyecto normal, merecerá la pena acelerarlo más adelante), y un archivo que en ese momento no se puede parsear se salta, así que un renombrado no llegará a las referencias dentro de un archivo que esté roto."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Míralo"
+    },
+    {
+      "id": "h-f168aa2b",
+      "kind": "html",
+      "en": "Every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them:",
+      "tr": "Cada diagnóstico lleva un código estable, un arreglo de una línea y a menudo el motivo de diseño. <code>glyph --explain</code> imprime la versión larga de cualquiera de ellos:"
+    },
+    {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-f4269bfb",
+      "kind": "html",
+      "en": "We tightened the messages exactly where agents and newcomers stumble most: writing <code>if</code> now points you at <code>match</code> instead of a generic &ldquo;unexpected token,&rdquo; and a wrong argument count, a non-exhaustive <code>match</code>, or a mistyped variant each get their own coded, fixable error.",
+      "tr": "Ajustamos los mensajes justo donde más tropiezan los agentes y quienes empiezan: escribir <code>if</code> ahora te remite a <code>match</code> en lugar de dar un &ldquo;token inesperado&rdquo; genérico, y un número de argumentos incorrecto, un <code>match</code> no exhaustivo o una variante mal escrita tienen cada uno su propio error con código y arreglable."
+    },
+    {
+      "id": "h-6fe35c75",
+      "kind": "html",
+      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
+      "tr": "Los errores de tipos que solo puede detectar el back-end de TypeScript antes apuntaban al <code>.ts</code> generado. Ahora se <strong>trasladan de vuelta a tu <code>.glyph</code></strong> (el mismo indicador de ariadne, el mismo código estable), así que un error de <code>tsc</code> se lee como uno nativo de Glyph."
+    },
+    {
+      "id": "h-6896e18a",
+      "kind": "html",
+      "en": "<strong>Debugging:</strong> you debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger. Every build ships a standard <strong>v3 source map</strong> beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers. One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
+      "tr": "<strong>Depuración:</strong> depuras el TypeScript generado con las herramientas que ya usas, como el inspector de Node, las devtools del navegador o el depurador de JS/TS de tu IDE. Cada build incluye un <strong>source map v3</strong> estándar junto a cada <code>.ts</code> (con el código fuente de Glyph incrustado), así que un depurador o un bundler que encadena mapas te lleva de vuelta a los números de línea de tu <code>.glyph</code>. Una cosa que todavía no cubre: la traza de un fallo del propio <code>glyph run</code> sigue mostrando líneas de <code>.ts</code>, porque <code>tsx</code> no encadena el mapa a través de su transformación. Reasignar esa traza es lo siguiente."
+    },
+    {
+      "id": "h-27214eb4",
+      "kind": "html",
+      "en": "<strong>Asking &ldquo;does this compile?&rdquo; without running it:</strong> <code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory). It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
+      "tr": "<strong>Preguntar &ldquo;¿esto compila?&rdquo; sin ejecutarlo:</strong> <code>glyph check path.glyph</code> comprueba los tipos de un archivo, o de un directorio entero, y termina. No escribe nada en tu árbol, algo que <code>glyph run</code> no podía prometer y que <code>glyph build</code> no hacía en absoluto (rechazaba todo lo que no fuera un directorio). Ejecuta el mismo pipeline que un build, incluido <code>tsc --strict</code> sobre el TypeScript generado, en un directorio temporal que borra al terminar. <code>--no-tsc</code> se detiene después de las etapas de Glyph cuando quieres la respuesta rápida; <code>--json</code> le da a un agente la misma forma de diagnóstico que <code>glyph build --json</code>. Un archivo se comprueba en el contexto de su propio directorio, así que un archivo hermano roto sigue haciendo fallar la comprobación. Tus tests <code>@example</code> y <code>@doc @run</code> también se ejecutan aquí, la misma comprobación que usa <code>glyph build</code>, así que un check no puede dar por limpio un árbol con el que un build fallaría; <code>--no-test</code> se los salta cuando quieres una respuesta que no ejecute nada."
+    },
+    {
+      "id": "h-1608da85",
+      "kind": "html",
+      "en": "<strong>The transcript doesn't lie to you either.</strong> A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran. The summary now prints after every stage that can turn the build red, so a red build never shows a green line. In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it. Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
+      "tr": "<strong>La transcripción tampoco te engaña.</strong> Un build fallido antes empezaba con &ldquo;no diagnostics&rdquo; y luego imprimía debajo los errores de <code>tsc</code>, porque el resumen de las etapas de Glyph se escribía antes de que se ejecutara la etapa de TypeScript. Ahora el resumen se imprime después de cada etapa que puede poner el build en rojo, así que un build en rojo nunca muestra una línea en verde. En esa misma pasada, <code>glyph run app.glyph --min -12.50</code> empezó a funcionar: un guion inicial hacía que clap rechazara el argumento antes de que tu <code>main</code> llegara a verlo. Los flags propios de glyph siguen asociados a glyph, así que pon <code>--</code> delante de un flag del programa que choque con uno de ellos."
+    },
+    {
+      "id": "h-c48aa55b",
+      "kind": "html",
+      "en": "<strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
+      "tr": "<strong>Y para el agente del ciclo:</strong> <code>glyph build --json</code> emite cada diagnóstico como JSON estructurado: un código estable, severidad, mensaje, archivo y rango de línea/columna empezando en 1, además de la ayuda y la nota, incluidos los errores de <code>tsc</code> trasladados a tu código Glyph. Un agente los lee y actúa sobre ellos directamente en lugar de rascar texto de la terminal."
+    },
+    {
+      "id": "h-4f44d56b",
+      "kind": "html",
+      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a <strong>Model Context Protocol server</strong> over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's <strong>diagnostics</strong>, the <strong>type</strong> at a position, where a name is <strong>defined</strong> (following imports), every <strong>reference</strong> to a symbol across the whole project, or a <strong>symbol search</strong>, without running a full build or reading every file. It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
+      "tr": "Para los agentes interactivos hay más que diagnósticos por lotes: <a href=\"/mcp/\"><code>glyph mcp</code></a> ejecuta un <strong>servidor de Model Context Protocol</strong> por stdio (el mismo binario, el mismo análisis que usa el editor), que expone las consultas del servidor de lenguaje como herramientas MCP. Un agente puede pedir los <strong>diagnósticos</strong> de un archivo, el <strong>tipo</strong> en una posición, dónde está <strong>definido</strong> un nombre (siguiendo los imports), cada <strong>referencia</strong> a un símbolo en todo el proyecto o una <strong>búsqueda de símbolos</strong>, sin ejecutar un build completo ni leer todos los archivos. Es un adaptador ligero sobre la misma capa de análisis pura, no una segunda implementación, así que no puede divergir de lo que ven el compilador y el editor."
+    },
+    {
+      "id": "h-b7132d5c",
+      "kind": "html",
+      "en": "<strong>Not everything is a hard error.</strong> Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
+      "tr": "<strong>No todo es un error que bloquea.</strong> Glyph tiene un nivel de avisos que señala lo que sobra sin hacer fallar el build: un <em>import sin usar</em> (<code>E0106</code>), un <code>let</code> <em>sin usar</em> (<code>E0107</code>, salvo los nombres que empiezan por <code>_</code>) y <em>código inalcanzable</em> después de un <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). Mantienen honesto un módulo: un import muerto es justo el tipo de ruido que perjudica la buscabilidad y hace que quien lee busque una dependencia que el código no tiene de verdad. Los avisos aparecen en la misma salida renderizada y en <code>--json</code>, marcados por severidad, y aun así se genera TypeScript."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Dónde está"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponible hoy"
+    },
+    {
+      "id": "h-090dcbbc",
+      "kind": "html",
+      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file; a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
+      "tr": "Un servidor de lenguaje (<code>glyph lsp</code> por stdio, cualquier editor; extensión de VS Code incluida) con resaltado, diagnósticos, hover, ir a la definición, autocompletado, símbolos, buscar referencias y renombrar en todo el workspace, y formateo al guardar, que responde a través de la frontera entre módulos desde la 0.1.124: el servidor mantiene una base de datos por proyecto con tus buffers abiertos superpuestos a los archivos del disco, así que pasar el ratón sobre una función importada o un campo de un record importado da la misma respuesta que <code>glyph query hover</code>, una edición sin guardar en un archivo se ve desde otro, y una pulsación de tecla cuesta entre un uno y un nueve por ciento más que con un solo archivo; un servidor de Model Context Protocol <code>glyph mcp</code> con once herramientas, las consultas del editor más <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> y <code>glyph_exports</code>, cada una con un verbo de <code>glyph query</code> que imprime el mismo JSON para un agente sin cliente MCP; códigos de error estables, <code>glyph --explain</code>, errores del back-end <code>tsc</code> trasladados al código <code>.glyph</code>, un nivel de avisos (import o binding sin usar, código inalcanzable) y diagnósticos estructurados con <code>--json</code>. <code>glyph check [path]</code> comprueba los tipos de un solo archivo o de un árbol sin ejecutarlo ni escribir salida. <code>glyph fmt --check</code> controla el formato en CI: no escribe nada y sale con un código distinto de cero cuando un archivo no está ya en el único formato canónico."
+    },
+    {
+      "id": "h-b63a305d",
+      "kind": "html",
+      "en": "On the way",
+      "tr": "En camino"
+    },
+    {
+      "id": "h-ad09c9c6",
+      "kind": "html",
+      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
+      "tr": "Guardar en caché el índice entre archivos en lugar de reconstruirlo en cada petición (una mejora de velocidad en árboles grandes), y reasignar la traza de los fallos del propio <code>glyph run</code>, ya que <code>tsx</code> no encadena el mapa generado a través de su transformación, así que esa traza sigue nombrando el <code>.ts</code> generado en lugar de tu <code>.glyph</code>."
+    }
+  ]
+}

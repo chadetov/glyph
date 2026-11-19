@@ -1,0 +1,224 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "pillars/abstraction/index.html",
+  "locale": "es",
+  "source_hash": "e8827b54becde411",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Abstraction · a small, orthogonal core · Glyph",
+      "tr": "Abstracción · un núcleo pequeño y ortogonal · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "Glyph's fourth pillar: one way per concept. Pattern matching over switch ladders, Result over exceptions, records over tuples, and match as the conditional.",
+      "tr": "El cuarto pilar de Glyph: una forma por concepto. Pattern matching en lugar de escaleras de switch, Result en lugar de excepciones, records en lugar de tuplas, y match como condicional."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous pillar",
+      "tr": "&larr; Pilar anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Diff stability: a one-line change is a one-line diff",
+      "tr": "Estabilidad de los diffs: un cambio de una línea es un diff de una línea"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Back to the start &rarr;",
+      "tr": "Volver al principio &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Verifiability: true at runtime",
+      "tr": "Verificabilidad: cierta en tiempo de ejecución"
+    },
+    {
+      "id": "h-f24d678d",
+      "kind": "html",
+      "en": "Pillar 04 &middot; <span class=\"polish\">The polish</span>",
+      "tr": "Pilar 04 &middot; <span class=\"polish\">El pulido</span>"
+    },
+    {
+      "id": "h-6e4fdd69",
+      "kind": "html",
+      "en": "Abstraction",
+      "tr": "Abstracción"
+    },
+    {
+      "id": "h-0e2dcb59",
+      "kind": "html",
+      "en": "Say what you mean with a <strong>small, orthogonal core</strong>: pattern matching instead of switch ladders, <code>Result</code> instead of thrown exceptions, named records instead of tuples. One good way per concept, not TypeScript's accreted layers.",
+      "tr": "Di lo que quieres decir con un <strong>núcleo pequeño y ortogonal</strong>: pattern matching en lugar de escaleras de switch, <code>Result</code> en lugar de excepciones lanzadas, records con nombre en lugar de tuplas. Una buena forma por concepto, no las capas acumuladas de TypeScript."
+    },
+    {
+      "id": "h-394d34b1",
+      "kind": "html",
+      "en": "Too many ways to say the same thing",
+      "tr": "Demasiadas formas de decir lo mismo"
+    },
+    {
+      "id": "h-350fc73d",
+      "kind": "html",
+      "en": "TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>. There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
+      "tr": "TypeScript creció por acumulación, y conservó todas las capas. Puedes modelar un conjunto fijo de casos como un <code>enum</code>, una unión de literales de string o un objeto <code>const</code>. Puedes describir una forma con una <code>interface</code>, un <code>type</code> o una <code>class</code>. Hay <code>namespace</code>s y módulos, decoradores y funciones de orden superior, cinco idiomas para casi todo, cada uno con sus casos límite."
+    },
+    {
+      "id": "h-ea5d3974",
+      "kind": "html",
+      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
+      "tr": "Para una persona eso es flexibilidad. Para un <strong>agente</strong> es un campo de minas: más formas de expresar algo significan más formas de elegir la que tiene la trampa, y más idiomas que tener claros mientras lo hace. El pilar de abstracción de Glyph es una resta deliberada: una herramienta afilada por tarea, elegida para que la forma obvia sea también la segura."
+    },
+    {
+      "id": "h-c576eb56",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
+      "tr": "<span class=\"ex-label\">01</span> <code>match</code> es el único condicional"
+    },
+    {
+      "id": "h-1a910d0c",
+      "kind": "html",
+      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value. One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
+      "tr": "No hay sentencia <code>if</code>/<code>else</code>. Bifurcar es <code>match</code>, en todas partes, y <code>match</code> es una expresión: produce un valor. Una construcción cubre una prueba booleana, un despacho sobre una unión y una tabla de valores, así que no hay que decidir <em>qué</em> forma de bifurcación usar."
+    },
+    {
+      "id": "h-fd1d8f8e",
+      "kind": "html",
+      "en": "TypeScript: statement, not a value",
+      "tr": "TypeScript: una sentencia, no un valor"
+    },
+    {
+      "id": "h-a5763ec7",
+      "kind": "html",
+      "en": "Glyph: one expression",
+      "tr": "Glyph: una expresión"
+    },
+    {
+      "id": "h-9a3a4109",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">02</span> Tagged unions and pattern matching",
+      "tr": "<span class=\"ex-label\">02</span> Uniones etiquetadas y pattern matching"
+    },
+    {
+      "id": "h-ad530d74",
+      "kind": "html",
+      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case. No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
+      "tr": "La forma de modelar \"una de estas formas\" es una unión etiquetada, y la forma de descomponerla es <code>match</code>, que desestructura el payload en el mismo paso en que elige el caso. No hay un campo discriminante que mantener a mano, ni una escalera de <code>switch</code> sobre una etiqueta de string, ni un cast dentro de cada rama para recuperar la forma."
+    },
+    {
+      "id": "h-da9f8a38",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">03</span> <code>Result</code> over exceptions",
+      "tr": "<span class=\"ex-label\">03</span> <code>Result</code> en lugar de excepciones"
+    },
+    {
+      "id": "h-b227a6fe",
+      "kind": "html",
+      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class. The error path is as visible as the happy path.",
+      "tr": "El fallo es un valor, no un salto oculto en el flujo de control. Una función que puede fallar lo dice en su tipo de retorno (<code>Result&lt;T, E&gt;</code>) y compones los fallos con el operador <code>?</code> en lugar de envolver las llamadas en <code>try</code>/<code>catch</code> y esperar que lo que corresponde lance la clase que corresponde. El camino de error es tan visible como el camino feliz."
+    },
+    {
+      "id": "h-cbb161e6",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">04</span> Named records over positional tuples",
+      "tr": "<span class=\"ex-label\">04</span> Records con nombre en lugar de tuplas posicionales"
+    },
+    {
+      "id": "h-c219a9fc",
+      "kind": "html",
+      "en": "Data is described with named fields, always. There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember. The shape reads the same at the definition, the construction, and the use.",
+      "tr": "Los datos se describen siempre con campos con nombre. No hay abreviatura de objetos literales ni se recurre a una tupla anónima cuyos <code>[0]</code> y <code>[1]</code> tienes que recordar. La forma se lee igual en la definición, en la construcción y en el uso."
+    },
+    {
+      "id": "h-acbd509b",
+      "kind": "html",
+      "en": "TypeScript: what are [0] and [1]?",
+      "tr": "TypeScript: ¿qué son [0] y [1]?"
+    },
+    {
+      "id": "h-6ef5629f",
+      "kind": "html",
+      "en": "Glyph: the names travel with the value",
+      "tr": "Glyph: los nombres viajan con el valor"
+    },
+    {
+      "id": "h-403ba4b0",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">05</span> One primitive per job",
+      "tr": "<span class=\"ex-label\">05</span> Una primitiva por tarea"
+    },
+    {
+      "id": "h-bc427179",
+      "kind": "html",
+      "en": "When a concept needs its own tool, Glyph gives it exactly one. Shared mutable state lives in a <code>std/store</code>. A file or socket handle that must be closed once is an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
+      "tr": "Cuando un concepto necesita su propia herramienta, Glyph le da exactamente una. El estado mutable compartido vive en un <code>std/store</code>. Un handle de archivo o de socket que hay que cerrar una vez es un recurso <code>owned</code>. La iteración es <code>for x in xs</code>. Cada uno es una primitiva única, con nombre y hecha a propósito, no un patrón que vuelves a construir a partir de un cajón de piezas genéricas y que te sale mal por poco."
+    },
+    {
+      "id": "h-73dda756",
+      "kind": "html",
+      "en": "Abstraction here means <strong>fewer, sharper tools</strong>, not more. Every concept has an obvious form, and the obvious form is the one you're meant to use.",
+      "tr": "Aquí abstracción significa <strong>menos herramientas y más afiladas</strong>, no más. Cada concepto tiene una forma obvia, y la forma obvia es la que se supone que debes usar."
+    },
+    {
+      "id": "h-71727b66",
+      "kind": "html",
+      "en": "The benchmark: coming",
+      "tr": "El benchmark: en camino"
+    },
+    {
+      "id": "h-b0f9e141",
+      "kind": "html",
+      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
+      "tr": "La forma de medir esto es la superficie: cuántos conceptos distintos tiene que tener en la cabeza quien lee para entender un programa, y cuánto código hace falta para expresar limpiamente una tarea común. Glyph todavía no se usa en el mundo real, así que el gráfico de abajo es un marcador de posición que se rellenará con mediciones reales cuando haya un conjunto de programas reales que comparar."
+    },
+    {
+      "id": "h-a10f7a79",
+      "kind": "html",
+      "en": "Distinct concepts to read a typical module &middot; lower is better",
+      "tr": "Conceptos distintos para leer un módulo típico &middot; menos es mejor"
+    },
+    {
+      "id": "h-301f9c4a",
+      "kind": "html",
+      "en": "TypeScript vs Glyph",
+      "tr": "TypeScript frente a Glyph"
+    },
+    {
+      "id": "h-1aff4871",
+      "kind": "html",
+      "en": "Glyph",
+      "tr": "Glyph"
+    },
+    {
+      "id": "h-62a2fed3",
+      "kind": "html",
+      "en": "pending",
+      "tr": "pendiente"
+    },
+    {
+      "id": "h-ed0504f7",
+      "kind": "html",
+      "en": "TypeScript",
+      "tr": "TypeScript"
+    },
+    {
+      "id": "h-bbacebb4",
+      "kind": "html",
+      "en": "<span class=\"h\">Not measured yet</span> We'll publish concept-count and lines-to-express-X comparisons from real programs here as soon as there are enough to measure.",
+      "tr": "<span class=\"h\">Todavía sin medir</span> Publicaremos aquí comparaciones de número de conceptos y de líneas necesarias para expresar X a partir de programas reales en cuanto haya suficientes para medir."
+    },
+    {
+      "id": "h-e129d5c1",
+      "kind": "html",
+      "en": "A smaller core is easier for a person to learn once and easier for a model to get right every time. That's the whole polish layer in one sentence: take away the choices that only added risk, and what's left is a language that says what it means.",
+      "tr": "Un núcleo más pequeño es más fácil de aprender una vez para una persona y más fácil de acertar cada vez para un modelo. Esa es toda la capa de pulido en una frase: quita las opciones que solo añadían riesgo, y lo que queda es un lenguaje que dice lo que quiere decir."
+    }
+  ]
+}

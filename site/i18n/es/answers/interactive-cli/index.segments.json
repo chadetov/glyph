@@ -1,0 +1,164 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/interactive-cli/index.html",
+  "locale": "es",
+  "source_hash": "a2332eec4a663662",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a program someone types into? · Glyph",
+      "tr": "¿Puedo escribir un programa en el que alguien teclee? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type.",
+      "tr": "io.read_line retorna en cuanto llega una línea en lugar de esperar a que se cierre stdin, así que un REPL, un bucle de juego o un cliente de chat responden mientras escribes."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I serve a web page, or only a JSON API?",
+      "tr": "¿Puedo servir una página web, o solo una API JSON?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Siguiente &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "¿Puedo escribir un servidor, o el proceso simplemente termina?"
+    },
+    {
+      "id": "h-130f3b5f",
+      "kind": "html",
+      "en": "18 &middot; Programs you type into",
+      "tr": "18 &middot; Programas en los que se teclea"
+    },
+    {
+      "id": "h-e3bd5d73",
+      "kind": "html",
+      "en": "Can I write a program someone types into?",
+      "tr": "¿Puedo escribir un programa en el que alguien teclee?"
+    },
+    {
+      "id": "h-3c9a580a",
+      "kind": "html",
+      "en": "Yes. <code>io.read_line</code> returns <strong>as soon as a full line arrives</strong> and does not wait for stdin to close, so a REPL, a game loop, or a chat client answers each line before it reads the next one. Until 0.1.62 it did wait, and that is worth saying out loud, because it made every interactive program impossible.",
+      "tr": "Sí. <code>io.read_line</code> retorna <strong>en cuanto llega una línea completa</strong> y no espera a que se cierre stdin, así que un REPL, un bucle de juego o un cliente de chat responden a cada línea antes de leer la siguiente. Hasta la 0.1.62 sí esperaba, y conviene decirlo claramente, porque hacía imposible cualquier programa interactivo."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por qué importa"
+    },
+    {
+      "id": "h-4473016d",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "Un lector de líneas que solo retorna al final de la entrada es un lector de archivos con nombre de lector de líneas. Pasarle un archivo por un pipe funciona perfectamente, y por eso nada lo detectó: todas las apps del repositorio que leían stdin leían de un pipe. Luego alguien escribió un cliente de chat, y se quedó callado mientras tecleaba y al pulsar Ctrl-D imprimió todas las respuestas de golpe."
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "Esa app se publicó como un reproductor de sesiones sobre un archivo JSON grabado, con un comentario en su código explicando por qué. Otras tres apps se habían diseñado alrededor del mismo problema sin que nadie lo nombrara: el buscaminas no podía redibujar entre jugadas, la aventura de texto no podía responder a <code>look</code> y un REPL no evaluaba nada hasta que colgabas."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Míralo"
+    },
+    {
+      "id": "h-b3adfa1a",
+      "kind": "html",
+      "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
+      "tr": "Todo el bucle de sesión en vivo de la app de chat. Leer, aplicar, imprimir, repetir:"
+    },
+    {
+      "id": "h-3e921737",
+      "kind": "html",
+      "en": "Driven at a real terminal, with each line typed about 0.6 seconds apart and stdin left open. The left column is milliseconds since the process started:",
+      "tr": "Ejecutado en una terminal real, con cada línea tecleada con unos 0.6 segundos de separación y stdin abierto. La columna de la izquierda son los milisegundos desde que arrancó el proceso:"
+    },
+    {
+      "id": "h-cb315554",
+      "kind": "html",
+      "en": "glyph run examples/apps/chat/main.glyph --stdin",
+      "tr": "glyph run examples/apps/chat/main.glyph --stdin"
+    },
+    {
+      "id": "h-c4443d66",
+      "kind": "html",
+      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "De uno a dos milisegundos desde que se teclea la línea hasta la respuesta. Antes del arreglo no se imprimía nada hasta los 6460ms, que es cuando se cerraba stdin. En una ejecución completa la primera respuesta llega hacia los 1.6 segundos, y eso es el arranque de <code>tsx</code>, no latencia de lectura."
+    },
+    {
+      "id": "h-a2b1ea84",
+      "kind": "html",
+      "en": "The parts that bite in practice",
+      "tr": "Las partes que dan problemas en la práctica"
+    },
+    {
+      "id": "h-92f12884",
+      "kind": "html",
+      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "Se elimina el <code>\\r</code> final, así que un archivo CRLF y uno LF te dan las mismas líneas y no acabas depurando un carácter invisible en una entrada de Windows. Una entrada que termina sin salto de línea final sigue devolviendo esa última línea una vez antes de <code>None</code>, así que la última fila de un archivo sin salto de línea final no se pierde sin avisar. Un carácter UTF-8 multibyte partido entre dos lecturas se retiene y se completa en lugar de convertirse en caracteres de reemplazo."
+    },
+    {
+      "id": "h-734ae2bb",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "<code>read_to_string</code> vacía el mismo buffer, así que los dos se combinan: <code>read_line</code> para una cabecera y luego <code>read_to_string</code> para el cuerpo te da el resto, no una segunda copia ni un string vacío. Si se llama primero, sigue devolviendo todo stdin. 200,000 líneas por un pipe se cuentan en unos 20ms, así que leer línea a línea no sacrifica rendimiento."
+    },
+    {
+      "id": "h-dbb27136",
+      "kind": "html",
+      "en": "A header line, then the body",
+      "tr": "Una línea de cabecera, luego el cuerpo"
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Dónde está"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponible hoy"
+    },
+    {
+      "id": "h-d2b638c8",
+      "kind": "html",
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.read_line</code> retorna cuando llega una línea, no cuando se cierra el flujo, así que los bucles de pedir, leer y responder funcionan igual en una terminal que a través de un pipe. CRLF se normaliza, una última línea sin terminar se entrega una vez, los caracteres multibyte sobreviven a los límites entre bloques y <code>read_to_string</code> toma el resto del mismo buffer. Un test de regresión mantiene stdin abierto y exige el eco de vuelta, porque un test que pasa un archivo por un pipe también pasa con la implementación rota. <code>io.print</code> y <code>io.eprint</code> escriben sin salto de línea, así que el prompt <code>&gt; </code> de un REPL se queda en la línea donde se teclea la respuesta, y <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> le dicen a un programa si está hablando con una persona o con un pipe, así que un flag como el <code>--stdin</code> de la app de chat ya no es la única forma de saberlo."
+    },
+    {
+      "id": "h-43278834",
+      "kind": "html",
+      "en": "Still rough",
+      "tr": "Todavía con asperezas"
+    },
+    {
+      "id": "h-ec1da8e1",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control: <code>std/io</code> has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.",
+      "tr": "Un programa que quiera redibujar una pantalla no tiene control del cursor: <code>std/io</code> no tiene funciones de cursor ni de pantalla y ningún otro módulo de la librería estándar las añade, así que una interfaz de terminal a pantalla completa todavía implica escribir tú mismo los códigos de escape."
+    }
+  ]
+}

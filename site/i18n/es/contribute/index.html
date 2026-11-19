@@ -1,0 +1,94 @@
+---
+title: Contribuir · cómo está hecho el compilador y cómo ayudar · Glyph
+description: Cómo está hecho el compilador de Glyph (un workspace de Rust: lexer, parser, resolución, comprobación de tipos, generación), cómo compilarlo y probarlo, y cómo funcionan los issues y los pull requests.
+source_hash: 98fd22506cb2f943
+next_steps: |
+  Adónde ir ahora
+  Empieza aquí | https://github.com/chadetov/glyph | github | El repositorio | Código fuente, issues, discusiones y versiones. | Abrirlo en GitHub
+  /design/ | design | El diseño | Los cuatro pilares y el registro de decisiones con el que se juzga cada cambio.
+---
+      <p class="q-eyebrow">Contribuir</p>
+      <h1 class="q-title">Cómo está hecho el compilador y cómo ayudar</h1>
+
+      <p class="short-answer">
+        El compilador es un workspace de Rust de doce crates en un único repositorio público, con licencia MIT o Apache-2.0. Hoy lo que más ayuda son los informes de bugs con una reproducción pequeña. Un cambio en el lenguaje empieza como un issue, porque cada regla se remonta a una decisión de diseño numerada.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">El pipeline</h2>
+        <p>
+          <code>glyph build</code> hace el análisis léxico y sintáctico, resuelve nombres, comprueba tipos y genera TypeScript, y luego ejecuta <code>tsc --strict</code> sobre lo que ha escrito. Las etapas intermedias se ejecutan como consultas incrementales sobre <a href="https://github.com/salsa-rs/salsa">salsa</a>, así que una nueva comprobación reutiliza los resultados que una edición no invalidó.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">un archivo .glyph, a través de los crates</span>
+<pre>glyph-lexer → glyph-parser → glyph-resolver → glyph-typechecker → glyph-emit → tsc --strict
+                (glyph-ast)        └──────── glyph-db (salsa) ────────┘</pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Crate</th><th>Qué hace</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Crate"><code>glyph-lexer</code></td><td data-label="What it does">Tokens, palabras clave, saltos de línea significativos, template literals</td></tr>
+            <tr><td data-label="Crate"><code>glyph-ast</code></td><td data-label="What it does">Tipos del árbol sintáctico, con un span de código fuente en cada nodo</td></tr>
+            <tr><td data-label="Crate"><code>glyph-parser</code></td><td data-label="What it does">Parser Pratt para cada decisión de la especificación, JSX incluido</td></tr>
+            <tr><td data-label="Crate"><code>glyph-resolver</code></td><td data-label="What it does">Resolución de nombres, el grafo de módulos, comprobaciones de imports entre módulos, el preludio</td></tr>
+            <tr><td data-label="Crate"><code>glyph-db</code></td><td data-label="What it does">El pipeline de consultas de salsa y la invalidación entre archivos</td></tr>
+            <tr><td data-label="Crate"><code>glyph-typechecker</code></td><td data-label="What it does">Exhaustividad, <code>?</code>, genéricos, <code>owned</code>, descriptores de runtime, el modelo de la librería estándar</td></tr>
+            <tr><td data-label="Crate"><code>glyph-emit</code></td><td data-label="What it does">El generador de TypeScript, la generación de descriptores, source maps a nivel de expresión</td></tr>
+            <tr><td data-label="Crate"><code>glyph-formatter</code></td><td data-label="What it does"><code>glyph fmt</code>: un solo formato, conserva los comentarios, idempotente</td></tr>
+            <tr><td data-label="Crate"><code>glyph-lsp</code></td><td data-label="What it does">El servidor de lenguaje y el servidor MCP, que comparten una capa de análisis</td></tr>
+            <tr><td data-label="Crate"><code>glyph-cli</code></td><td data-label="What it does">El binario <code>glyph</code> y todos sus subcomandos</td></tr>
+            <tr><td data-label="Crate"><code>glyph-wasm</code></td><td data-label="What it does">El compilador en WebAssembly, que hace funcionar el playground</td></tr>
+            <tr><td data-label="Crate"><code>glyph-runtime</code></td><td data-label="What it does">Un stub; los tests pasan por el emisor y <code>tsx</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/glyph-compiler/README.md">glyph-compiler/README.md</a> tiene las notas completas de los crates y el número actual de tests.
+        </p>
+
+        <h2 class="block-label">Compilar y probar</h2>
+        <p>
+          Rust 1.95 está fijado en <code>rust-toolchain.toml</code>. Algunos tests llaman a <code>tsc</code> y <code>tsx</code>, así que instálalos también. El CI ejecuta clippy con los warnings como errores, y ni <code>cargo build</code> ni <code>cargo test</code> lo ejecutan, así que ejecuta el script antes de hacer push.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">desde un clon</span>
+<pre>npm install -g tsx typescript
+cd glyph-compiler
+cargo build --release -p glyph-cli      <span class="cm"># target/release/glyph</span>
+cargo test --workspace
+cd .. &amp;&amp; python3 scripts/check_clippy.py  <span class="cm"># the exact clippy command CI runs</span>
+
+<span class="cm"># after an intentional syntax-tree change</span>
+INSTA_UPDATE=always cargo test -p glyph-parser --test snapshots</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Un diagnóstico nuevo viene con un programa en <code>tests/negative/</code> que tiene que fallar con ese código. Una afirmación de que Glyph detecta algo que TypeScript no detecta va en <code>catches/</code>, donde <a href="/evidence/">una comprobación ejecuta las dos mitades</a>.
+        </p>
+
+        <h2 class="block-label">Qué está planificado y qué está roto</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">docs/roadmap/releases.md</a> es el roadmap de versiones: qué hizo cada versión publicada y para qué son las siguientes. <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> es el registro de gaps, cada limitación encontrada al construir apps reales, numerada (<code>G</code> más un número) y con una marca de estado. Un gap abierto con una reproducción es un buen sitio para empezar.
+        </p>
+
+        <h2 class="block-label">Issues y pull requests</h2>
+        <p>
+          Las correcciones del toolchain, diagnósticos, documentación y ejemplos pueden ir directamente a un pull request. Un cambio de sintaxis o semántica empieza con un issue, y los más grandes pasan por el proceso de RFC en <code>docs/rfcs/</code>; un PR que relaja una regla "para ayudar" probablemente se rechazará, porque la restricción es justo lo que se busca. Limita cada pull request a un gap, normalmente de uno a tres commits, y firma cada commit (<code>git commit -s</code>). <code>main</code> está protegida y los merges solo se hacen con rebase. <a href="https://github.com/chadetov/glyph/blob/main/.github/CONTRIBUTING.md">CONTRIBUTING.md</a> tiene las reglas completas, y los issues con la etiqueta <a href="https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">good first issue</a> están acotados para un primer cambio.
+        </p>
+
+        <h2 class="block-label">Licencia</h2>
+        <p>
+          MIT o Apache-2.0, a tu elección (<a href="https://github.com/chadetov/glyph/blob/main/LICENSE-MIT">LICENSE-MIT</a>, <a href="https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE">LICENSE-APACHE</a>). Las contribuciones se aceptan bajo la misma doble licencia, certificada por la línea de sign-off.
+        </p>
+      </div>

@@ -1,0 +1,98 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "404.html",
+  "locale": "es",
+  "source_hash": "c7ed4cfc21c6376f",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Page not found · Glyph",
+      "tr": "Página no encontrada · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "There is no page at this address. The links below go to the pages most people come to the site for.",
+      "tr": "No hay ninguna página en esta dirección. Los enlaces de abajo llevan a las páginas que más visita la gente."
+    },
+    {
+      "id": "ns.heading",
+      "kind": "ns.heading",
+      "en": "Where to go instead",
+      "tr": "Adónde ir en su lugar"
+    },
+    {
+      "id": "ns.label",
+      "kind": "ns.label",
+      "en": "Most people start here",
+      "tr": "La mayoría empieza aquí"
+    },
+    {
+      "id": "ns./start/.title",
+      "kind": "ns.title",
+      "en": "Start in 10 minutes",
+      "tr": "Empieza en 10 minutos"
+    },
+    {
+      "id": "ns./start/.desc",
+      "kind": "ns.desc",
+      "en": "Install Glyph, write a program, break it on purpose and read the error.",
+      "tr": "Instala Glyph, escribe un programa, rómpelo a propósito y lee el error."
+    },
+    {
+      "id": "ns.cta",
+      "kind": "ns.cta",
+      "en": "Start here",
+      "tr": "Empieza aquí"
+    },
+    {
+      "id": "ns./catches/.title",
+      "kind": "ns.title",
+      "en": "What it catches",
+      "tr": "Qué detecta"
+    },
+    {
+      "id": "ns./catches/.desc",
+      "kind": "ns.desc",
+      "en": "The cases a fully configured TypeScript setup lets through, and what Glyph says about each.",
+      "tr": "Los casos que deja pasar una configuración de TypeScript completa, y qué dice Glyph de cada uno."
+    },
+    {
+      "id": "ns./answers/.title",
+      "kind": "ns.title",
+      "en": "Answers",
+      "tr": "Respuestas"
+    },
+    {
+      "id": "ns./answers/.desc",
+      "kind": "ns.desc",
+      "en": "Questions engineers ask about Glyph, with worked examples.",
+      "tr": "Preguntas que hacen los ingenieros sobre Glyph, con ejemplos resueltos."
+    },
+    {
+      "id": "ns./versions/.title",
+      "kind": "ns.title",
+      "en": "Versions",
+      "tr": "Versiones"
+    },
+    {
+      "id": "ns./versions/.desc",
+      "kind": "ns.desc",
+      "en": "What changed in each release, newest first.",
+      "tr": "Qué cambió en cada versión, de la más reciente a la más antigua."
+    },
+    {
+      "id": "h-fb434496",
+      "kind": "html",
+      "en": "There is no page at this address.",
+      "tr": "No hay ninguna página en esta dirección."
+    },
+    {
+      "id": "h-ab88a679",
+      "kind": "html",
+      "en": "The link may be old, or the page may have moved. If a link on this site brought you here, <a href=\"https://github.com/chadetov/glyph/issues/new\">open an issue</a> with the address and we will fix it. Or go back to the <a href=\"/\">home page</a>.",
+      "tr": "Puede que el enlace sea antiguo o que la página se haya movido. Si te ha traído aquí un enlace de este sitio, <a href=\"https://github.com/chadetov/glyph/issues/new\">abre un issue</a> con la dirección y lo corregiremos. O vuelve a la <a href=\"/\">página de inicio</a>."
+    }
+  ]
+}

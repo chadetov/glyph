@@ -1,0 +1,140 @@
+---
+title: Estabilidad de los diffs · cambio de una línea, diff de una línea · Glyph
+description: El tercer pilar de Glyph: un formato canónico, comas finales, listas que nunca se reempaquetan, sin barrel files y generación de código idempotente. El diff muestra el cambio, no ruido.
+source_hash: b485401a000696d8
+prev: /pillars/greppability/ | &larr; Pilar anterior | Buscabilidad: un nombre, un sitio
+next: /pillars/abstraction/ | Siguiente pilar &rarr; | Abstracción: un núcleo pequeño y ortogonal
+---
+      <p class="q-eyebrow">Pilar 03 &middot; <span class="polish">El pulido</span></p>
+      <h1 class="q-title">Estabilidad de los diffs</h1>
+
+      <p class="short-answer">
+        Un cambio de una línea es un <strong>diff de una línea</strong>. Un formato canónico, comas finales y una lista que va o entera en línea o entera con un elemento por línea, sin reempaquetarse nunca, así que una revisión muestra el cambio que se hizo, no el ruido a su alrededor.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Revisar es leer diffs</h2>
+        <p class="lede">
+          Casi todo lo que nos da confianza en un cambio (la revisión, el blame, el revert, el bisect) se basa en el diff. Así que la relación señal/ruido del diff es lo que cuenta de verdad. En la mayoría de los códigos es terrible: un formateador recoloca una línea partida, un ordenador de imports baraja un bloque, un renombrado toca los espacios de cada llamada, y la única línea que <em>importa</em> queda enterrada entre cincuenta que no.
+        </p>
+        <p class="lede">
+          Los agentes lo empeoran mucho. Ante una tarea pequeña, un modelo reescribe sin problema una función entera, o un archivo entero, para cambiar una cosa, porque regenerar le resulta más fácil que editar con precisión. A quien revisa le toca comparar una reescritura con el original y <em>esperar</em> que el único cambio real sea el que se pidió. Glyph está hecho para que el formato no le dé al modelo nada que remover.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">01</span> Un formato canónico, sin opciones</h2>
+        <p>
+          <code>glyph fmt</code> reimprime cada archivo con un único formato fijo: sangría de dos espacios, coma final en cada lista de varias líneas, y una lista que se queda en una línea mientras quepa en 100 columnas y pasa a un elemento por línea cuando no. Es todo o nada. El formateador nunca reempaqueta tus elementos para llenar una línea, así que una lista nunca está en parte en una fila y en parte en la siguiente, y añadir un campo es una sola línea añadida. Como hay exactamente una forma legal, no hay nada que discutir ni nada que una herramienta pueda "arreglar" por su cuenta.
+        </p>
+        <p>
+          El límite de ancho es lo que cuesta esto. Renombra un binding de forma que una llamada pase de 100 columnas y la llamada se expande a un argumento por línea: una edición de un token, un diff de cuatro líneas. A cambio, el formato depende del código y de la columna en la que empieza y de nada más, así que dos agentes que editan el mismo archivo llegan a los mismos bytes.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">Estilo recolocado: un cambio, tres líneas tocadas</span>
+          <span class="cap">git diff (formato empaquetado)</span>
+<pre><span class="del">- type User = { id: number, name:</span>
+<span class="del">-   string }</span>
+<span class="add">+ type User = { id: number, name:</span>
+<span class="add">+   string, email: string }</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph: un cambio, una línea añadida</span>
+          <span class="cap">git diff (canónico)</span>
+<pre>  type User = {
+    id: number,
+    name: string,
+<span class="add">+   email: string,</span>
+  }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          La coma final hace un trabajo discreto: como el último elemento ya termina en coma, añadir un hermano <strong>nunca edita la línea de arriba.</strong> Una inserción, una línea.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">02</span> El orden es estable, así que el historial se entiende</h2>
+        <p>
+          Un elemento por línea significa que reordenar, insertar o quitar un elemento solo toca las líneas de ese elemento, nunca las de sus vecinos. <code>git blame</code> sigue teniendo sentido: el último commit que tocó cada línea es el commit que de verdad cambió <em>ese</em> elemento, no la pasada de formato que reempaquetó la fila que compartía.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">03</span> Sin barrel files: sin ruido en los imports</h2>
+        <p>
+          Como los imports nunca reexportan y no hay capas de agregación <code>index.ts</code> (<code>E0102</code>), añadir o mover un símbolo no se propaga por un barrel que importan todos los consumidores. Las aristas de dependencia que editas son las que querías editar; el resto del grafo de imports no se mueve.
+        </p>
+
+        <h2 class="block-label"><span class="ex-label">04</span> La generación es idempotente, no un bloque opaco</h2>
+        <p>
+          La misma disciplina se extiende al código generado. <code>glyph gen</code> y <code>glyph regen</code> reimprimen su salida con el formateador canónico, así que regenerar tras un cambio en la especificación produce un diff <em>mínimo</em> que de verdad puedes revisar, un par de líneas cambiadas, no la sustitución completa de un archivo escrito por una máquina. Y cada <code>.ts</code> generado incluye un source map, así que hasta la salida compilada se puede seguir limpiamente hasta la línea que cambiaste.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">un campo añadido a la especificación &rarr; el diff regenerado</span>
+<pre>  type Task = {
+    id: number,
+    title: string,
+<span class="add">+   done: bool,</span>
+  }
+<span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label"><span class="ex-label">05</span> "TypeScript puede hacer esto con Prettier"</h2>
+        <p>
+          Con buena parte del formato, sí. Prettier con <code>trailingComma: "all"</code> pone una coma en el último elemento e imprime las listas largas con un elemento por línea, y eso te da casi toda la sección 01. Las diferencias están en tres sitios.
+        </p>
+        <p>
+          <strong>El formato depende solo del código.</strong> Prettier mantiene expandido un objeto literal si su autor puso un salto de línea después de la <code>{</code>, y lo colapsa si no lo puso, así que el mismo objeto se puede imprimir de dos formas según cómo se escribiera la primera vez. Dos agentes que escriben lo mismo producen dos formatos, y la siguiente edición de uno de ellos aparece como una recolocación. <code>glyph fmt</code> imprime <code>{ a: 1, b: 2 }</code> igual, venga como venga partida la entrada.
+        </p>
+        <p>
+          <strong>No hay nada que configurar.</strong> La salida de Prettier es lo que diga el archivo de configuración del repositorio, y algunos repositorios no tienen. Un agente que pasa de un proyecto TypeScript a otro se encuentra un formato distinto en cada uno. Un archivo Glyph tiene el mismo formato en todos los proyectos, porque el formateador no tiene opciones.
+        </p>
+        <p>
+          <strong>El formateador no puede cambiar lo que dice un archivo.</strong> <code>glyph fmt</code> se prueba parseando su propia salida y comparando el árbol sintáctico con el de la entrada, en cada ejemplo del repositorio y con un fuzzer. Cuando un comentario está en un sitio para el que el formato no tiene línea, rechaza el archivo (<code>E0500</code>) en lugar de mover el comentario junto a código que no describe.
+        </p>
+        <p>
+          Hay una cosa de la lista que todavía no está hecha: <code>glyph fmt</code> no ordena los imports, así que dos agentes que añaden un import en sitios distintos siguen produciendo bloques de imports distintos (G358).
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="pull-quote">
+          La estabilidad de los diffs es lo que convierte "el agente cambió algo" en "el agente cambió <strong>exactamente esto</strong>". Cuando el ruido de fondo es cero, revisar es rápido y la confianza sale barata.
+        </p>
+
+        <h2 class="block-label">El benchmark: en camino</h2>
+        <p>
+          La cifra que lo recoge es el tamaño del diff por cambio lógico: cuántas líneas se mueven al hacer una edición intencionada, en Glyph frente a un cambio equivalente en TypeScript pasado por un formateador típico. Glyph todavía no se usa en el mundo real, así que el gráfico de abajo es un marcador de posición que se rellenará con mediciones reales cuando haya un historial real del que sacarlas.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Líneas de diff por cambio de un campo &middot; menos es mejor</span>
+        <h3>TypeScript frente a Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 22%;">pendiente</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 58%;">pendiente</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Todavía sin medir</span> Sacaremos cifras de tamaño de diff del historial de un repositorio Glyph real y las publicaremos aquí, muestren lo que muestren.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Cuesta un poco de libertad (no puedes empaquetar una línea a mano como te guste) y a cambio da mucha legibilidad. Es el intercambio que hace cada pilar de pulido: renunciar a una elección que no importaba para conservar una señal que sí importa.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Para ver qué significa esto para las ediciones de un agente en una revisión, con un diff de antes y después, consulta <a href="/answers/diff-stability/">¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?</a>
+        </p>
+      </div>

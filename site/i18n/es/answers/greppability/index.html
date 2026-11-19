@@ -1,0 +1,72 @@
+---
+title: ¿Puede un agente (o yo) encontrar dónde está definido cualquier cosa? · Glyph
+description: Cada construcción de Glyph tiene una sola forma que buscar, así que grep (o la búsqueda de un agente) da con la única definición, no con cincuenta casi aciertos.
+source_hash: cb5e3e02dc597369
+prev: /answers/diff-stability/ | &larr; Anterior | ¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?
+next: /answers/why-typescript/ | Siguiente &rarr; | ¿Por qué TypeScript, y no Go o un lenguaje nuevo?
+---
+      <p class="q-eyebrow">03 &middot; Navegar buscando</p>
+      <h1 class="q-title">¿Puede un agente (o yo) encontrar dónde está definido cualquier cosa?</h1>
+
+      <p class="short-answer">
+        Cada construcción tiene <strong>exactamente una forma</strong> que buscar. Un <code>grep</code> normal (que es como navegan los agentes) da con la única definición, <strong>no con cincuenta casi aciertos</strong>.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué importa</h2>
+        <p>
+          Un agente no tiene todo tu repositorio en la cabeza; <strong>busca</strong>. Si un concepto se puede escribir de cinco formas distintas, la búsqueda se deja casos, y un agente seguro de sí mismo que no encuentra la definición existente se inventa una segunda. Una forma por concepto significa que la búsqueda es completa, así que el agente edita lo que hay en lugar de duplicarlo.
+        </p>
+
+        <h2 class="block-label">Míralo</h2>
+        <p>Glyph restringe la mutación a dos formas (<code>mut x = &hellip;</code> y <code>mut x.method(&hellip;)</code>), así que <em>cada</em> sitio donde cambia el estado aparece con una sola búsqueda:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/ (cada mutación del código)</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Tres mutaciones, todas, en una sola búsqueda. En TypeScript una mutación se puede esconder detrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, un setter o un spread. No hay un único token que buscar con grep, así que &ldquo;¿algo cambia esto?&rdquo; no tiene una respuesta fiable. La misma regla de una sola forma hace auditables categorías enteras:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">una búsqueda = una respuesta completa</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          No hay shorthand de objetos literales, ni una segunda forma de declarar un componente, ni sintaxis sobrecargada que desambiguar. Tener menos formas de escribir algo es una restricción, y es justo lo que se busca: es lo que hace que la búsqueda de un agente, y la tuya, sean de fiar.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          Las construcciones que Glyph deja fuera para que una búsqueda sea de fiar, y por qué una regla de lint no es la misma garantía, están en la <a href="/pillars/greppability/">página del pilar de buscabilidad</a>.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p>Una forma canónica por construcción, la mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>) y auditorías con una sola palabra clave (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">Por encima</h3>
+          <p>El servidor de lenguaje añade ir a la definición y buscar referencias en todo el workspace: la misma garantía, ahora interactiva en tu editor.</p>
+        </div>
+      </div>

@@ -1,0 +1,83 @@
+---
+title: ¿Cómo comparto estado mutable entre funciones? · Glyph
+description: Glyph no tiene variables globales mutables. El estado compartido vive en un std/store: un const a nivel de módulo cuyos get, set y update son las únicas escrituras, y que encuentras con una sola búsqueda.
+source_hash: 59f9695c32448ee8
+prev: /answers/react/ | &larr; Anterior | ¿Funciona con React: componentes, hooks y Context?
+next: /answers/language/ | Siguiente &rarr; | ¿Es un lenguaje de verdad o un juguete con huecos?
+---
+      <p class="q-eyebrow">14 &middot; Estado compartido</p>
+      <h1 class="q-title">¿Cómo comparto estado mutable entre funciones?</h1>
+
+      <p class="short-answer">
+        Con un <strong>store</strong>. Glyph no tiene variables globales mutables. Los bindings de módulo son <code>const</code>. El estado compartido vive en un <code>std/store</code>: un <code>const</code> a nivel de módulo que guarda un valor que lees con <code>get()</code> y cambias con <code>set()</code>/<code>update()</code>. El binding nunca cambia; solo cambia el valor que contiene, mediante una llamada a un método, así que cada escritura es un <code>.set(</code> o un <code>.update(</code> literal que puedes buscar con grep.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Míralo</h2>
+        <p>
+          Declara el store una vez a nivel de módulo. Todas las funciones del módulo lo comparten. Sin un <code>let</code> pasado de mano en mano desde <code>main</code>, sin closures que lo capturen:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>import std/store { create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks = create&lt;Array&lt;Task&gt;&gt;([])
+const next_id = create(0)
+
+fn add(title: string) -&gt; Task {
+  next_id.update(fn(n: number) -&gt; number {
+    return n + 1
+  })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array&lt;Task&gt;) -&gt; Array&lt;Task&gt; {
+    return array.push(cur, task)
+  })
+  return task
+}
+
+fn all() -&gt; Array&lt;Task&gt; {
+  return tasks.get()
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">toda la superficie de escritura, en un solo grep</span>
+<pre>$ grep -rn 'tasks\.\(set\|update\)' src/
+src/tasks.glyph:16:  tasks.update(fn(cur...
+
+# every place the task list can change,
+# enumerated. nothing hides in an
+# ordinary `x = ...` assignment
+# somewhere else in the file.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué un store, y no una variable global mutable</h2>
+        <p>
+          Es una decisión de diseño deliberada. Glyph restringe <code>mut</code> a las asignaciones locales y hace que los bindings de módulo sean <code>const</code>, porque un conjunto disperso de globales modificables es justo lo que hace que el estado sea difícil de razonar y difícil de <em>encontrar</em>. Un store no necesita relajar ninguna de las dos reglas: el binding <code>const s</code> es inmutable, y el valor que contiene solo cambia mediante <code>set</code>/<code>update</code>. Así que el estado compartido llega como una <strong>biblioteca, no como sintaxis nueva</strong> (sin tipos lineales, sin reglas de mutación más laxas), y la mutación vive en un único sitio auditado en lugar de repartida por todo el programa.
+        </p>
+        <p>
+          Un detalle a tener en cuenta, que también tiene TypeScript: una colección vacía no puede inferir el tipo de sus elementos, así que inicialízala con un argumento de tipo explícito: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Un store escalar (<code>create(0)</code>) se infiere sin problemas.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p><code>std/store</code> con <code>create</code>, <code>get</code>, <code>set</code> y <code>update</code>: el único sitio, fácil de buscar con grep, para el estado mutable compartido.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">En camino</h3>
+          <p>Utilidades sobre la misma primitiva (stores derivados o calculados, suscripciones), añadidas por encima sin cambiar el lenguaje.</p>
+        </div>
+      </div>

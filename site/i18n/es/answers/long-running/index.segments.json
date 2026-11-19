@@ -1,0 +1,188 @@
+{
+  "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
+  "page": "answers/long-running/index.html",
+  "locale": "es",
+  "source_hash": "babc2c3ac5bb52bc",
+  "segments": [
+    {
+      "id": "title",
+      "kind": "title",
+      "en": "Can I write a server, or does the process just exit? · Glyph",
+      "tr": "¿Puedo escribir un servidor, o el proceso simplemente termina? · Glyph"
+    },
+    {
+      "id": "description",
+      "kind": "description",
+      "en": "A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does.",
+      "tr": "Un programa en Glyph puede ser un servidor que se ejecuta indefinidamente. main prepara todo y retorna; el proceso sigue vivo mientras haya sockets y timers pendientes, exactamente como hace Node."
+    },
+    {
+      "id": "prev.label",
+      "kind": "prev.label",
+      "en": "&larr; Previous",
+      "tr": "&larr; Anterior"
+    },
+    {
+      "id": "prev.title",
+      "kind": "prev.title",
+      "en": "Can I write a program someone types into?",
+      "tr": "¿Puedo escribir un programa en el que alguien teclee?"
+    },
+    {
+      "id": "next.label",
+      "kind": "next.label",
+      "en": "Next &rarr;",
+      "tr": "Siguiente &rarr;"
+    },
+    {
+      "id": "next.title",
+      "kind": "next.title",
+      "en": "Can I handle binary data, or is everything a string?",
+      "tr": "¿Puedo manejar datos binarios, o todo es un string?"
+    },
+    {
+      "id": "h-d7b98512",
+      "kind": "html",
+      "en": "19 &middot; Servers &amp; daemons",
+      "tr": "19 &middot; Servidores y daemons"
+    },
+    {
+      "id": "h-1ceb3faf",
+      "kind": "html",
+      "en": "Can I write a server, or does the process just exit?",
+      "tr": "¿Puedo escribir un servidor, o el proceso simplemente termina?"
+    },
+    {
+      "id": "h-357d442e",
+      "kind": "html",
+      "en": "You can write a server. <code>main</code> sets things up and returns, and the process <strong>stays alive while sockets and timers are still pending</strong>, the same rule Node uses. Until 0.1.63 it did not: the runner tore the process down the moment <code>main</code> returned, so a server bound its port and died in the same tick.",
+      "tr": "Puedes escribir un servidor. <code>main</code> prepara las cosas y retorna, y el proceso <strong>sigue vivo mientras haya sockets y timers pendientes</strong>, la misma regla que usa Node. Hasta la 0.1.63 no era así: el runner terminaba el proceso en cuanto <code>main</code> retornaba, así que un servidor abría su puerto y moría en el mismo tick."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por qué importa"
+    },
+    {
+      "id": "h-802abf2b",
+      "kind": "html",
+      "en": "This is the difference between a language that can run a script and one that can run a service. A server, a file watcher, a bot holding a gateway connection, a job runner: none of them finish inside <code>main</code>. They set up handlers and hand the process over to events.",
+      "tr": "Es la diferencia entre un lenguaje que puede ejecutar un script y uno que puede ejecutar un servicio. Un servidor, un vigilante de archivos, un bot que mantiene una conexión con un gateway, un ejecutor de trabajos: ninguno termina dentro de <code>main</code>. Preparan sus handlers y dejan el proceso en manos de los eventos."
+    },
+    {
+      "id": "h-ddc1b8fa",
+      "kind": "html",
+      "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
+      "tr": "El comportamiento anterior fallaba de la peor forma posible, en silencio. <code>glyph run app.glyph --serve 4100</code> no imprimía nada, ni siquiera la línea dentro del callback de <code>listen</code>, y salía con 0. Nada en el código parecía incorrecto y pasaba la comprobación de tipos. Un agente que se topa con eso no tiene ningún error que informar ni motivo para pensar que algo ha fallado."
+    },
+    {
+      "id": "h-90eb7554",
+      "kind": "html",
+      "en": "See it",
+      "tr": "Míralo"
+    },
+    {
+      "id": "h-fbc29a6a",
+      "kind": "html",
+      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
+      "tr": "Un servidor TCP completo. <code>main</code> retorna inmediatamente; los callbacks se ejecutan mientras viva el proceso:"
+    },
+    {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "Un servidor, de principio a fin"
+    },
+    {
+      "id": "h-4c1b7d58",
+      "kind": "html",
+      "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
+      "tr": "<code>net</code> es un módulo nativo de Node, así que es un import normal, pero no es uno de los seis para los que el compilador incluye tipos ambientales (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). O instalas <code>@types/node</code>, y el build lo prefiere, o pones una declaración en <code>.types/net.d.ts</code> junto a tu código, que es lo que hace la app de chat para no necesitar ninguna dependencia."
+    },
+    {
+      "id": "h-4c982701",
+      "kind": "html",
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "Dos cosas que conviene saber. El <code>return 0</code> se ejecuta antes de que se conecte el primer cliente: es el código con el que acabará saliendo el proceso, no una indicación de cuándo sale. Y cualquier cosa que falle <em>después</em> de que <code>main</code> haya retornado tiene que fijar su propio código de salida, porque el valor de retorno de <code>main</code> ya se ha usado. Para eso está el handler de <code>error</code>. Sin él, un servidor que no puede abrir su puerto vacía su bucle de eventos y sale con 0, informando de éxito."
+    },
+    {
+      "id": "h-b957e585",
+      "kind": "html",
+      "en": "A real one",
+      "tr": "Uno de verdad"
+    },
+    {
+      "id": "h-e196848d",
+      "kind": "html",
+      "en": "<code>examples/apps/chat</code> is a chat server holding several TCP clients at once. The parts that do not touch the network stay separate and testable: line reassembly, routing, and the room engine are pure functions checked by <code>@example</code>, and one file talks to sockets.",
+      "tr": "<code>examples/apps/chat</code> es un servidor de chat que mantiene varios clientes TCP a la vez. Las partes que no tocan la red se mantienen separadas y se pueden probar: el reensamblado de líneas, el enrutado y el motor de salas son funciones puras comprobadas con <code>@example</code>, y un solo archivo habla con los sockets."
+    },
+    {
+      "id": "h-bfe5fdf1",
+      "kind": "html",
+      "en": "Three clients connected at once",
+      "tr": "Tres clientes conectados a la vez"
+    },
+    {
+      "id": "h-6ad09c69",
+      "kind": "html",
+      "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
+      "tr": "TCP no entrega mensajes, entrega bytes, así que el final de un bloque suele ser media línea. Ese reensamblado es una función pura con los casos complicados escritos como ejemplos en lugar de provocados a través de un socket:"
+    },
+    {
+      "id": "h-02e0830c",
+      "kind": "html",
+      "en": "The other direction: a long-running client",
+      "tr": "La otra dirección: un cliente que se ejecuta indefinidamente"
+    },
+    {
+      "id": "h-468113df",
+      "kind": "html",
+      "en": "A bot is the same shape pointed outward. <code>examples/apps/discord</code> is a Discord gateway client: it connects over a WebSocket, identifies, heartbeats on the interval the server dictates, tracks a sequence number so a dropped connection resumes rather than starting over, notices when the connection is open but dead, and backs off between reconnects.",
+      "tr": "Un bot tiene la misma forma, pero apuntando hacia fuera. <code>examples/apps/discord</code> es un cliente del gateway de Discord: se conecta por WebSocket, se identifica, envía heartbeats con el intervalo que dicta el servidor, lleva un número de secuencia para que una conexión caída se reanude en lugar de empezar de cero, detecta cuándo la conexión está abierta pero muerta y espera cada vez más entre reconexiones."
+    },
+    {
+      "id": "h-39d6dc9e",
+      "kind": "html",
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "Lo que merece la pena copiar es dónde vive la lógica. Decidir qué hacer ante un <code>RECONNECT</code>, un heartbeat perdido o un token rechazado es una función pura que va de una sesión y un evento a una sesión nueva y una lista de acciones. Un módulo ejecuta esas acciones sobre un socket real. Por eso la lógica de reconexión, que es la parte difícil de acertar, se comprueba con <code>@example</code> en lugar de desenchufando un cable de red:"
+    },
+    {
+      "id": "h-eb9066f0",
+      "kind": "html",
+      "en": "Those three examples are each a bug that was in the code first. Writing a mock gateway and pointing the bot at it caught one of them. The other two were caught by a second mock written from Discord's documentation instead of from the client, which sends the things a cooperative mock never does: an unprompted heartbeat request, and a close code that means \"your token is wrong, stop asking\". A mock written by the author of the client only tests the parts of the protocol the author read.",
+      "tr": "Cada uno de esos tres ejemplos es un bug que primero estuvo en el código. Escribir un gateway simulado y apuntar el bot hacia él detectó uno. Los otros dos los detectó un segundo simulador escrito a partir de la documentación de Discord en lugar de a partir del cliente, que envía las cosas que un simulador cooperativo nunca envía: una petición de heartbeat sin que nadie la pida y un código de cierre que significa \"tu token es incorrecto, deja de intentarlo\". Un simulador escrito por el autor del cliente solo prueba las partes del protocolo que el autor leyó."
+    },
+    {
+      "id": "h-b55f380c",
+      "kind": "html",
+      "en": "Where it stands",
+      "tr": "Dónde está"
+    },
+    {
+      "id": "h-c16590d1",
+      "kind": "html",
+      "en": "Shipping today",
+      "tr": "Disponible hoy"
+    },
+    {
+      "id": "h-3954ea38",
+      "kind": "html",
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "Retornar de <code>main</code> fija el código de salida sin detener el proceso, así que los servidores, los vigilantes y los bucles de eventos funcionan. Un programa que solo calcula sigue saliendo en cuanto <code>main</code> retorna, con el mismo código, así que nada cambió para los programas cortos. Los módulos nativos de Node como <code>net</code> son imports normales, y un programa que lanza una excepción durante la preparación sigue terminando, ahora después de que su diagnóstico haya llegado a un stderr redirigido en lugar de arriesgarse a quedar cortado por la salida. <code>std/timers</code> programa trabajo (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) y <code>std/websocket</code> abre una conexión, así que ninguno necesita una declaración escrita a mano."
+    },
+    {
+      "id": "h-5db269e9",
+      "kind": "html",
+      "en": "Getting sharper",
+      "tr": "Mejorando"
+    },
+    {
+      "id": "h-5f8ed8fa",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "Un listener que no consigue abrir su puerto después de que <code>main</code> haya retornado sale con 0 a menos que el programa diga otra cosa: <code>process.set_exit_code(1)</code> registra el fallo sin cortar el trabajo que sigue en marcha, y <code>process.exit(1)</code> se detiene inmediatamente. El compilador todavía no puede avisarte de que se te olvidó. Y todavía no hay forma de indicar que una función no retorna, así que el <code>main</code> de un servidor lleva un <code>return 0</code> al que nunca se llega."
+    }
+  ]
+}

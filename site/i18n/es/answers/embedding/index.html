@@ -1,0 +1,54 @@
+---
+title: ¿Puedo adoptar Glyph dentro de mi app actual? · Glyph
+description: Sin reescribir: mantén la app en TypeScript, escribe el núcleo del dominio en Glyph e importa los módulos compilados como cualquier archivo local. Funciona con Vite estándar.
+source_hash: 4dc0a3c1d0f26ab3
+prev: /answers/imports/ | &larr; Anterior | ¿Puedo usar mis librerías de TypeScript, JavaScript y npm?
+next: /answers/typed-apis/ | Siguiente &rarr; | ¿Tengo que escribir a mano un validador para cada API?
+---
+      <p class="q-eyebrow">10 &middot; Dentro de tu aplicación</p>
+      <h1 class="q-title">¿Puedo adoptar Glyph dentro de mi app actual, o es todo o nada?</h1>
+
+      <p class="short-answer">
+        Sin reescribir. Mantén la app en TypeScript y escribe en Glyph la parte en la que no te puedes permitir equivocarte (modelos, permisos, transiciones de estado, cálculos con dinero). <code>glyph build</code> genera módulos que tu app importa <strong>como cualquier archivo local</strong>, sin configurar el bundler y sin alias de rutas.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">Por qué importa</h2>
+        <p>
+          La mayoría de los equipos no pueden reescribir una aplicación, y la mayor parte de una aplicación no necesita Glyph. La parte que sí lo necesita es el núcleo del dominio: las reglas que un agente de IA editará el mes que viene y que nadie quiere que estén mal sin que se note. Mantener ese núcleo en Glyph te da <code>match</code> exhaustivo, ningún cast y fronteras validadas justo donde compensa, mientras los componentes de React, los estilos y la infraestructura siguen siendo TypeScript normal.
+        </p>
+
+        <h2 class="block-label">Míralo</h2>
+        <p>Un directorio de código Glyph, compilado dentro de la app e importado por la UI:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Una estructura híbrida: núcleo del dominio en Glyph, todo lo demás en TypeScript</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Todo lo que necesita el código generado viaja con él. Los imports son relativos, incluida la librería estándar empaquetada, así que no hay que añadir nada al <code>tsconfig.json</code> ni al bundler de tu proyecto: un proyecto Vite estándar compila y empaqueta la salida tal cual, y los mismos archivos pasan el <code>tsc --strict</code> del proyecto anfitrión. Marca con <code>pub</code> lo que importa la app; una declaración sin él es privada de su módulo. No es una hipótesis: un ingeniero de fuera <a href="https://github.com/yildizadem/glyph-kanban">construyó así un tablero Kanban en React</a>, con la matriz RBAC, las fórmulas de analítica y las transiciones de estado en cuatro módulos de Glyph bajo una UI de React escrita a mano.
+        </p>
+      </div>
+
+      <h2 class="block-label">Dónde está</h2>
+      <div class="status-row">
+        <div class="status-card today">
+          <h3 class="h">Disponible hoy</h3>
+          <p>La salida generada encaja sin cambios en un proyecto anfitrión: especificadores relativos en todas partes, tipos del preludio incluidos en el propio código, verificado con un proyecto Vite estándar, <code>tsc --strict</code> del anfitrión, esbuild y <code>tsx</code>. La <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">guía de despliegue</a> documenta la estructura híbrida.</p>
+        </div>
+        <div class="status-card next">
+          <h3 class="h">En camino</h3>
+          <p>Todavía no hay modo watch: vuelve a ejecutar <code>glyph build</code> después de editar el código <code>.glyph</code> (conéctalo a tu script <code>dev</code>). Los módulos que usan <code>std/fs</code> o <code>std/net</code> necesitan <code>@types/node</code> en el proyecto anfitrión, como cualquier TypeScript que toque Node.</p>
+        </div>
+      </div>

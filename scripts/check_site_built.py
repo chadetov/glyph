@@ -5,7 +5,8 @@ The site's pages are generated from site/, but web/ is what the Pages workflow
 deploys, so the two can drift two ways: someone edits a page in web/ directly
 (and the next build silently throws the edit away), or edits site/ and forgets
 to rebuild (and the change never ships). Either way the source and the served
-site disagree about what the site says.
+site disagree about what the site says. It also fails when site/lastmod.json,
+which dates each page for the sitemap, is not what a build would write.
 
 This renders site/ in memory and compares every file the
 generator owns with web/, byte for byte (text and the binary files copied
@@ -49,6 +50,12 @@ def main() -> int:
             problems.append((f"web/{rel}: differs from what site/ renders", diff[:12]))
     for rel in build_site.stale_pages(WEB, files):
         problems.append((f"web/{rel}: no page in site/pages/ renders it", None))
+    # The sitemap dates come from site/lastmod.json, so a page whose content
+    # changed without a build would keep its old date.
+    lm = build_site.LASTMOD
+    if not lm.is_file() or lm.read_text() != build_site.LASTMOD_TEXT:
+        problems.append(("site/lastmod.json: not what a build writes (a page's content changed "
+                         "and its date did not)", None))
     if problems:
         print("site build check FAILED: web/ is not what scripts/build_site.py renders.")
         for msg, diff in problems:

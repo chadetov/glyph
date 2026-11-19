@@ -32,7 +32,6 @@ takes the indented lines that follow it. Keys:
                          is highlighted as the current section
   subnav                 name of a sub-nav, site/partials/subnav-<name>.html
   prev, next             "href | direction label | title" for the prev/next pair
-  sitemap                "lastmod changefreq priority" for sitemap.xml
   next_steps             the "where to go next" block at the end of the page
                          (|-block): a heading line, then the primary step as
                          "label | href | icon | title | description | cta",
@@ -67,6 +66,24 @@ file per release: /versions/ shows the newest month, /versions/YYYY-MM/ each
 month, and web/versions/feed.xml is the Atom feed. Writing a release's notes
 is adding its file under site/releases/ and running this script.
 
+sitemap.xml lists every page that is its own canonical (a page whose
+canonical points at another URL, such as the newest month of releases, which
+duplicates /versions/, is left out), with a <lastmod> the generator works out
+instead of anyone writing it. site/lastmod.json, committed, maps each page's
+URL to a hash of its content and the date that content last changed. The
+hash covers the title, the description and the rendered body (generated
+blocks included), but not the chrome every page shares and not the version
+number, so a nav edit or a version bump does not re-date every page. When a
+page's hash differs from the stored one, its date becomes the build date:
+the change being dated is the one in the working tree, which is committed
+the same day in practice, and the build needs no git history (CI checks out
+one commit). SITE_BUILD_DATE=YYYY-MM-DD overrides the build date. Release
+pages are not in the file: each is dated by its newest release. The file
+started on 2026-11-19 with every page at that date, which git history
+supports: every page's body was rewritten that day when the site moved to
+this generator. scripts/check_site_built.py fails when site/lastmod.json is not
+what a build would write, which keeps the dates from drifting.
+
 Translations live in site/i18n/<locale>/ and render to web/<locale>/:
 scripts/site_i18n.py holds the locales, the UI strings the partials use as
 {{t:key}}, the language menu and the hreflang links, and
@@ -78,8 +95,11 @@ Python standard library only.
 from __future__ import annotations
 
 import argparse
+import datetime
+import hashlib
 import html
 import json
+import os
 import pathlib
 import re
 import sys
@@ -93,12 +113,13 @@ SITE = ROOT / "site"
 PAGES = SITE / "pages"
 PARTIALS = SITE / "partials"
 STATIC = SITE / "static"
+LASTMOD = SITE / "lastmod.json"
 ORIGIN = "https://glyphlang.io"
 EDIT_BASE = "https://github.com/chadetov/glyph/blob/main/site/pages/"
 
 LAYOUTS = {"home", "article", "wide", "index"}
 KEYS = {"title", "description", "canonical", "layout", "article_class", "nav",
-        "subnav", "prev", "next", "sitemap", "head", "next_steps"}
+        "subnav", "prev", "next", "head", "next_steps"}
 
 
 class SiteError(Exception):
@@ -547,13 +568,42 @@ def page_url(path: pathlib.Path) -> str:
     return "/" if rel == "." else f"/{rel}/"
 
 
+class LastMod:
+    """The date each page's content last changed, kept in site/lastmod.json
+    as {url: {"date": YYYY-MM-DD, "hash": 16 hex digits}}."""
+
+    def __init__(self, stored: dict[str, dict], today: str):
+        self.stored, self.today = stored, today
+        self.now: dict[str, dict] = {}
+
+    @classmethod
+    def load(cls) -> "LastMod":
+        stored = json.loads(LASTMOD.read_text()) if LASTMOD.is_file() else {}
+        today = os.environ.get("SITE_BUILD_DATE") or datetime.date.today().isoformat()
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", today):
+            raise SiteError(f"SITE_BUILD_DATE {today!r} is not YYYY-MM-DD")
+        return cls(stored, today)
+
+    def date(self, url: str, content: str) -> str:
+        digest = hashlib.sha256(content.encode()).hexdigest()[:16]
+        old = self.stored.get(url)
+        date = old["date"] if old and old.get("hash") == digest else self.today
+        self.now[url] = {"date": date, "hash": digest}
+        return date
+
+    def text(self) -> str:
+        lines = [f'  {json.dumps(u)}: {{"date": "{e["date"]}", "hash": "{e["hash"]}"}}'
+                 for u, e in sorted(self.now.items())]
+        return "{\n" + ",\n".join(lines) + "\n}\n"
+
+
 def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, url: str,
-           ctx: site_i18n.Ctx) -> str:
-    """One page. `url` is the page's English URL; `ctx` says which language
-    this rendering is in and which others the page has."""
+           ctx: site_i18n.Ctx, lastmod: LastMod) -> tuple[str, str]:
+    """One page, and the date its content last changed. `url` is the page's
+    English URL; `ctx` says which language this rendering is in and which
+    others the page has."""
     where = str(path.relative_to(ROOT))
     t = ctx.s
-    body = body.replace("{{version}}", version)
     body = re.sub(r"\{\{icon:([a-z-]+)\}\}", lambda m: icon(site, m.group(1), where), body)
     if fm.get("next_steps"):
         body += next_steps(site, fm["next_steps"], where)
@@ -565,6 +615,13 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
     body = stack_wide_pairs(body)
     body = mark_wrapping_blocks(body)
     body = site_i18n.english_island(body, ctx)
+    # The content as it stands before the version is filled in, so that a
+    # version bump alone does not change any page's date.
+    if fm.get("lastmod"):
+        date = fm["lastmod"]
+    else:
+        date = lastmod.date(ctx.here, f'{fm["title"]}\n{fm["description"]}\n{body}')
+    body = body.replace("{{version}}", version)
     head_values = {
         "title": fm["title"],
         "description": fm["description"],
@@ -614,7 +671,7 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
         raise SiteError(f"{where}: prev/next is only rendered by the article layout")
 
     page = site_i18n.localize_links(f"{header}{sub}{site_i18n.notices(ctx)}{main}{footer}", ctx)
-    return ("<!doctype html>\n"
+    return date, ("<!doctype html>\n"
             f'<html lang="{ctx.lang}">\n'
             "  <head>\n"
             f"{head}"
@@ -627,6 +684,8 @@ def render(path: pathlib.Path, site: dict, version: str, fm: dict, body: str, ur
 
 
 def sitemap(entries: list[dict]) -> str:
+    """The sitemap: <loc>, hreflang alternates and <lastmod>. No changefreq or
+    priority, which search engines ignore."""
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">']
     for e in entries:
@@ -634,10 +693,6 @@ def sitemap(entries: list[dict]) -> str:
         out += e.get("alternates", [])
         if e.get("lastmod"):
             out.append(f"    <lastmod>{e['lastmod']}</lastmod>")
-        if e.get("changefreq"):
-            out.append(f"    <changefreq>{e['changefreq']}</changefreq>")
-        if e.get("priority"):
-            out.append(f"    <priority>{e['priority']}</priority>")
         out.append("  </url>")
     out.append("</urlset>")
     return "\n".join(out) + "\n"
@@ -660,11 +715,19 @@ def page_files() -> list[pathlib.Path]:
                   key=lambda p: (p.relative_to(PAGES).parent.as_posix() != ".", p.relative_to(PAGES).as_posix()))
 
 
+# What the last build() worked out site/lastmod.json should hold. write()
+# saves it; scripts/check_site_built.py compares it with the committed file.
+LASTMOD_TEXT: str | None = None
+
+
 def build() -> dict[str, str | bytes]:
     """Every file the generator owns, as {path relative to web/: contents}.
-    Text files are str; the files copied from site/static/ are bytes."""
+    Text files are str; the files copied from site/static/ are bytes. The
+    dates for site/lastmod.json are left in LASTMOD_TEXT."""
+    global LASTMOD_TEXT
     site = json.loads((SITE / "site.json").read_text())
     version = workspace_version()
+    lastmod = LastMod.load()
     files: dict[str, str] = {}
     entries = []
     try:
@@ -684,31 +747,25 @@ def build() -> dict[str, str | bytes]:
             for loc in available[1:]:
                 tr = by_loc[loc]
                 versions.append((loc, site_i18n.merge_front(fm, tr), tr.body, tr.path, tr))
-            lastmod = changefreq = priority = None
-            if fm.get("sitemap"):
-                parts = fm["sitemap"].split()
-                if len(parts) != 3:
-                    raise SiteError(f"{path.relative_to(ROOT)}: sitemap must be 'lastmod changefreq priority'")
-                lastmod, changefreq, priority = parts
-                if lastmod == "-":
-                    lastmod = None
             alternates = site_i18n.sitemap_alternates(url, available)
             for loc, vfm, vbody, src, tr in versions:
                 try:
                     ctx = site_i18n.Ctx(loc, url, available, tr, translated_urls)
                     here = ctx.here
                     rel = here.strip("/") + "/index.html" if here != "/" else "index.html"
-                    files[rel] = render(src, site, version, vfm, vbody, url, ctx)
+                    date, files[rel] = render(src, site, version, vfm, vbody, url, ctx, lastmod)
                 except site_i18n.I18nError as e:
                     raise SiteError(str(e)) from None
-                entries.append({"loc": here, "lastmod": lastmod, "changefreq": changefreq,
-                                "priority": priority, "alternates": alternates})
+                # Only a page that is its own canonical belongs in the sitemap.
+                if vfm.get("canonical", ORIGIN + here) == ORIGIN + here:
+                    entries.append({"loc": here, "lastmod": date, "alternates": alternates})
     try:
         files["versions/feed.xml"] = site_versions.feed()
     except site_versions.VersionsError as e:
         raise SiteError(str(e)) from None
     entries += site.get("extra_sitemap", [])
     files["sitemap.xml"] = sitemap(entries)
+    LASTMOD_TEXT = lastmod.text()
     for css in sorted(SITE.glob("*.css")):
         files[css.name] = css.read_text()
     # Language flags for the header's language menu, with their licence.
@@ -732,6 +789,9 @@ def write(out: pathlib.Path, files: dict[str, str | bytes]) -> None:
     # that was deleted or moved in site/; leaving it would keep serving it.
     for rel in stale_pages(out, files):
         (out / rel).unlink()
+    if LASTMOD_TEXT is not None and out.resolve() == (ROOT / "web").resolve():
+        if not LASTMOD.is_file() or LASTMOD.read_text() != LASTMOD_TEXT:
+            LASTMOD.write_text(LASTMOD_TEXT)
     for rel, text in files.items():
         dst = out / rel
         dst.parent.mkdir(parents=True, exist_ok=True)

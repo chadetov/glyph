@@ -6,8 +6,9 @@ Fails (exit 1) on:
   - an HTML file that isn't well-formed (unbalanced tags)
   - an answers sub-nav that is missing an existing answer page, or points at one
     that doesn't exist
-  - a page the site serves that sitemap.xml does not list, or a sitemap entry
-    pointing at a page that no longer exists
+  - a self-canonical, indexable page that sitemap.xml does not list, a
+    sitemap entry for a page that is not one (or no longer exists), or a
+    canonical pointing at a page the sitemap does not list
 
 External links (http/https/mailto) and in-page fragments (#...) are not checked.
 Run from the repo root: python3 scripts/check_site.py
@@ -112,21 +113,36 @@ def check_answers_subnav():
             errors.append(f"answers/{d}: sub-nav lists nonexistent pages {sorted(extra)}")
 
 
+CANONICAL = re.compile(r'<link rel="canonical" href="([^"]+)"')
+NOINDEX = re.compile(r'<meta name="robots" content="[^"]*noindex')
+
+
+def page_meta(path):
+    """(canonical URL or None, noindex?) of a served HTML file."""
+    text = open(path).read()
+    m = CANONICAL.search(text)
+    return (m.group(1) if m else None), bool(NOINDEX.search(text))
+
+
 def check_sitemap():
-    """Every served page is in sitemap.xml, and every entry points at a page.
+    """sitemap.xml lists exactly the pages a crawler should index.
+
+    The rule: a served page belongs in the sitemap when it is indexable (no
+    robots noindex) and its canonical is its own URL. A page whose canonical
+    points elsewhere (the newest month of releases, which duplicates
+    /versions/) is left out, because a sitemap entry that names another URL as
+    the real one is the conflict search consoles report. A page with no
+    canonical counts as its own canonical. Every served page is held to the
+    rule in both directions: a page that qualifies and is missing is an
+    omission, and a listed page that does not qualify, or serves nothing, is
+    an error. A canonical that points elsewhere must point at a listed page,
+    so moving a page's canonical cannot quietly drop both from the sitemap.
 
     The sitemap used to be hand-maintained, so a new page reached the site and
-    never reached a crawler. Four pages had accumulated that way (the answers
-    index and the binary, embedding, and upgrades answers) before anything
-    looked. scripts/build_site.py now generates it from site/pages/, and this
-    check still holds the served set and the sitemap to each other.
-    Both directions are checked: a missing entry hides a page, and a leftover
-    entry advertises a 404.
-
-    The lastmod dates are not checked. The generator copies each page's date
-    from its front matter, so they are still written by hand; keeping them
-    true needs git history the CI checkout does not fetch, and that choice is
-    open; see the sitemap entry in docs/roadmap/releases.md.
+    never reached a crawler. scripts/build_site.py now generates it, with each
+    <lastmod> from site/lastmod.json (see its docstring), and this check still
+    holds the served set and the sitemap to each other. check_site_built.py
+    keeps the dates current.
     """
     sm = os.path.join(WEB, "sitemap.xml")
     if not os.path.isfile(sm):
@@ -134,19 +150,34 @@ def check_sitemap():
         return
     text = open(sm).read()
     listed = set(re.findall(r"<loc>https://glyphlang\.io(/[^<]*)</loc>", text))
+    if "<changefreq>" in text or "<priority>" in text:
+        errors.append("sitemap.xml: carries changefreq or priority, which the generator no longer writes")
 
-    served = set()
+    pages = {}
     for root, _dirs, files in os.walk(WEB):
         if "index.html" in files:
             rel = os.path.relpath(root, WEB)
-            served.add("/" if rel == "." else f"/{rel}/")
+            pages["/" if rel == "." else f"/{rel}/"] = os.path.join(root, "index.html")
     # /playground is the repo-root playground/ dir, merged in at deploy time.
     if os.path.isfile(os.path.join("playground", "index.html")):
-        served.add("/playground/")
+        pages["/playground/"] = os.path.join("playground", "index.html")
 
-    for path in sorted(served - listed):
+    belongs = set()
+    for url, path in sorted(pages.items()):
+        canonical, noindex = page_meta(path)
+        own = canonical in (None, "https://glyphlang.io" + url)
+        if own and not noindex:
+            belongs.add(url)
+        elif not own and canonical.removeprefix("https://glyphlang.io") not in listed:
+            errors.append(f"{url}: canonical {canonical} is not a page in sitemap.xml")
+        if url in listed and not own:
+            errors.append(f"sitemap.xml: lists {url}, whose canonical is {canonical}")
+        if url in listed and noindex:
+            errors.append(f"sitemap.xml: lists {url}, which is noindex")
+
+    for path in sorted(belongs - listed):
         errors.append(f"sitemap.xml: no entry for {path}")
-    for path in sorted(listed - served):
+    for path in sorted(listed - set(pages)):
         errors.append(f"sitemap.xml: entry for {path}, which serves no page")
 
 

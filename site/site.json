@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared data for scripts/build_site.py: the main nav, the line icons it and other components use, and sitemap entries for pages the generator does not render. The numbered sub-navs are site/partials/subnav-<name>.html. Each nav entry is a menu (`menu` id, label, columns of items, optional featured card) or a link (label, href). `match` lists the front-matter `nav:` keys of the pages that highlight it. An item's `icon` names an entry in `icons` (inner SVG markup for a 24x24 stroked icon). An item with \"count\": \"answers\" shows the number of answer pages under site/pages/answers/. A featured card's text may use {{catches:...}} counts.",
+  "_comment": "Shared data for scripts/build_site.py: the main nav, the line icons it and other components use, and sitemap entries for pages the generator does not render (their lastmod is written by hand: the last commit date of playground/index.html). The numbered sub-navs are site/partials/subnav-<name>.html. Each nav entry is a menu (`menu` id, label, columns of items, optional featured card) or a link (label, href). `match` lists the front-matter `nav:` keys of the pages that highlight it. An item's `icon` names an entry in `icons` (inner SVG markup for a 24x24 stroked icon). An item with \"count\": \"answers\" shows the number of answer pages under site/pages/answers/. A featured card's text may use {{catches:...}} counts.",
   "nav": [
     {
       "menu": "why",
@@ -194,9 +194,7 @@
   "extra_sitemap": [
     {
       "loc": "/playground/",
-      "lastmod": "2026-06-15",
-      "changefreq": "monthly",
-      "priority": "0.7"
+      "lastmod": "2026-11-18"
     }
   ],
   "actions": {

@@ -268,11 +268,13 @@
           });
         });
         function setPanel(open) {
+          // Measure the header before locking the page: the lock must not move
+          // it, and the panel never starts above the top of the screen.
+          if (open) root.style.setProperty("--nav-h", Math.max(0, header.getBoundingClientRect().bottom) + "px");
           header.classList.toggle("nav-open", open);
           root.classList.toggle("nav-locked", open);
           burger.setAttribute("aria-expanded", open ? "true" : "false");
           burger.setAttribute("aria-label", open ? "ปิดเมนู" : "เปิดเมนู");
-          if (open) root.style.setProperty("--nav-h", header.getBoundingClientRect().bottom + "px");
         }
         burger.addEventListener("click", function () {
           setPanel(!header.classList.contains("nav-open"));

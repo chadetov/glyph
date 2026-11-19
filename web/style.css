@@ -932,8 +932,9 @@ kbd {
     padding: 10px 14px;
     border: 1px solid rgba(255, 255, 255, 0.18);
   }
-  .nav-locked,
-  .nav-locked body {
+  /* Lock scrolling on the root only: overflow on body would make body the
+     scroll container and unpin the sticky header while the menu is open. */
+  .nav-locked {
     overflow: hidden;
   }
 }

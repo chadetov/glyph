@@ -1,0 +1,441 @@
+/* glyphlang.io: the catch components.
+   Source: site/catches.css, copied to web/catches.css by scripts/build_site.py.
+   Linked from the pages that show cases from catches/ (/catches/, the home
+   page, /hardening/); the markup comes from scripts/site_catches.py. Uses the
+   tokens in site/style.css, so light and dark follow the site's toggle. */
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ============ scores ============ */
+.c-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.c-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.c-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-2);
+  display: block;
+}
+.likely .c-dots i.on {
+  background: var(--violet);
+}
+.severe .c-dots i.on {
+  background: var(--red-fill);
+}
+.c-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s5);
+  align-items: center;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+.c-legend b {
+  color: var(--ink);
+}
+.c-legend p {
+  flex-basis: 100%;
+  margin: 0;
+  max-width: 80ch;
+}
+
+/* ============ filters ============ */
+.c-filters {
+  padding: var(--s4) 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: var(--s3);
+}
+.c-filters[hidden] {
+  display: none;
+}
+.c-fgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+.c-flabel {
+  font-size: var(--fs-xs);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-right: var(--s2);
+  flex-basis: 100%;
+}
+.c-chip {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.c-chip span {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  margin-left: 2px;
+}
+.c-chip:hover {
+  border-color: var(--line-2);
+}
+.c-chip[aria-pressed="true"] {
+  background: var(--violet-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.c-chip[aria-pressed="true"] span {
+  color: var(--accent);
+}
+.c-fstatus {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.c-fstatus:empty {
+  display: none;
+}
+
+/* ============ one mistake ============ */
+.catch {
+  padding: var(--s6) 0;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: var(--s4);
+}
+.catch[hidden] {
+  display: none;
+}
+.catch:target {
+  box-shadow: inset 3px 0 0 var(--violet);
+  padding-left: var(--s4);
+}
+.c-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+.c-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+}
+.c-head h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  flex: 1 1 18ch;
+  min-width: 0;
+}
+.c-anchor {
+  color: inherit;
+}
+.c-anchor:hover {
+  color: var(--accent);
+}
+.c-scores {
+  display: flex;
+  gap: var(--s4);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.c-why {
+  color: var(--muted);
+  margin: var(--s1) 0 var(--s4) 38px;
+}
+.c-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s4);
+}
+.c-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: var(--s2);
+}
+.c-lang {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.ts .c-lang {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.gl .c-lang {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.gl.warn .c-lang {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.c-verdict,
+.c-kind {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.ts .c-verdict {
+  color: var(--red);
+}
+.gl .c-kind {
+  color: var(--green);
+}
+.gl .c-verdict {
+  color: var(--muted);
+}
+.gl.warn .c-kind {
+  color: var(--amber);
+}
+.c-code {
+  margin: 0;
+}
+.c-code pre {
+  font-size: 0.8125rem;
+}
+.c-code pre.c-out {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+pre .e {
+  color: var(--code-err);
+}
+pre .o {
+  color: var(--code-ok);
+}
+pre .w {
+  color: #f3c26b;
+}
+pre .h {
+  color: var(--code-fg);
+}
+.c-result {
+  font-size: var(--fs-sm);
+  margin: var(--s3) 0 0;
+}
+.c-cfg {
+  margin: var(--s2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+.c-cfg b {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: var(--card-2);
+  color: var(--ink);
+}
+.c-cfg.none b {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.c-note {
+  margin: var(--s4) 0 0;
+  padding: var(--s3) var(--s4);
+  background: var(--violet-bg);
+  border-left: 3px solid var(--violet);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: var(--fs-sm);
+  color: var(--quote-ink);
+}
+.c-links {
+  margin: var(--s3) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) var(--s4);
+  font-size: 0.8125rem;
+}
+.c-links a {
+  color: var(--muted);
+}
+.c-links a:hover {
+  color: var(--accent);
+}
+
+/* ============ the lists after the mistakes ============ */
+.c-section {
+  border-top: 1px solid var(--line);
+  margin-top: var(--s4);
+  scroll-margin-top: var(--s4);
+}
+.c-list + .c-section {
+  border-top: 0;
+  margin-top: 0;
+}
+.c-traps {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 80ch;
+}
+.c-traps li {
+  margin-bottom: var(--s2);
+}
+.c-gaps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s3) var(--s5);
+}
+.c-gaps li {
+  font-size: var(--fs-sm);
+  padding-left: var(--s3);
+  border-left: 3px solid var(--amber-fill);
+}
+.c-gaps li span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.c-after {
+  margin-top: var(--s5);
+}
+
+/* ============ home: the hero pair and the top cards ============ */
+.c-hero {
+  margin: 0;
+  display: grid;
+  gap: var(--s3);
+  min-width: 0;
+}
+.c-hero figcaption {
+  color: var(--on-band-2);
+  font-size: var(--fs-sm);
+}
+.c-hero figcaption a {
+  color: var(--on-band);
+  font-weight: 600;
+}
+.c-hero .c-tags {
+  margin-bottom: 6px;
+}
+.c-hero .ts .c-lang {
+  background: rgba(229, 72, 77, 0.18);
+  color: #ffb3b5;
+}
+.c-hero .ts .c-verdict {
+  color: #ffb3b5;
+}
+.c-hero .gl .c-lang {
+  background: rgba(18, 161, 80, 0.2);
+  color: #8ee6b2;
+}
+.c-hero .gl .c-kind {
+  color: #8ee6b2;
+}
+.c-hero .c-code {
+  border-color: #23304d;
+}
+.c-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s4);
+}
+a.c-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s5);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  color: var(--ink);
+}
+a.c-card:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+  color: var(--ink);
+}
+.c-card-n {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+}
+.c-card h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+.c-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.c-card .c-card-v {
+  margin-top: auto;
+  display: grid;
+  gap: 2px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.c-card-v .ts {
+  color: var(--red);
+}
+.c-card-v .gl {
+  color: var(--green);
+}
+
+@media (max-width: 860px) {
+  .c-pair,
+  .c-cards,
+  .c-gaps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .c-why {
+    margin-left: 0;
+  }
+}
+@media (max-width: 640px) {
+  .c-scores {
+    flex-basis: 100%;
+    margin-left: 38px;
+  }
+  .catch:target {
+    padding-left: var(--s3);
+  }
+}

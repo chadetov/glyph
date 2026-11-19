@@ -9,8 +9,9 @@ so a nav or footer change is one edit instead of thirty-nine.
 
 web/ stays committed and is still what the Pages workflow deploys. This script
 owns every .html file in web/ (one per page under site/pages/, and a page
-whose source is gone is deleted), web/style.css (copied from site/style.css)
-and web/sitemap.xml (generated from the page list). Everything else in web/
+whose source is gone is deleted), every stylesheet in site/ (site/style.css
+for every page, and the per-page ones such as site/catches.css, which a page
+links from its `head`), and web/sitemap.xml (generated from the page list). Everything else in web/
 (llms.txt, robots.txt, favicon.svg) is left alone. scripts/check_site_built.py fails when web/ and this script disagree.
 
     python3 scripts/build_site.py            # render into web/
@@ -30,10 +31,13 @@ takes the indented lines that follow it. Keys:
   head                   extra markup for <head> (|-block)
 
 The page body is copied byte for byte, so <pre> blocks reach web/ exactly as
-written; the doc gates compile them from there. The one substitution in a body
-is {{version}}, the workspace version from glyph-compiler/Cargo.toml, so the
-home page's release pill never needs a hand edit and the bump scripts, which
-edit web/index.html, leave web/ matching what this script renders.
+written; the doc gates compile them from there. Two substitutions happen in a
+body. {{version}} is the workspace version from glyph-compiler/Cargo.toml, so
+the home page's release pill never needs a hand edit and the bump scripts,
+which edit web/index.html, leave web/ matching what this script renders.
+{{catches:...}} is markup generated from the committed cases in catches/ by
+scripts/site_catches.py, so the /catches/ page and every page that quotes it
+show what scripts/check_catches.py verified, without running a compiler here.
 
 Python standard library only.
 """
@@ -44,6 +48,8 @@ import json
 import pathlib
 import re
 import sys
+
+import site_catches
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -186,6 +192,10 @@ def render(path: pathlib.Path, site: dict, version: str) -> str:
     fm, body = parse_page(path)
     url = page_url(path)
     body = body.replace("{{version}}", version)
+    try:
+        body = site_catches.expand(body, where)
+    except site_catches.CatchesError as e:
+        raise SiteError(str(e)) from None
     head_values = {
         "title": fm["title"],
         "description": fm["description"],
@@ -268,7 +278,8 @@ def build() -> dict[str, str]:
         entries.append({"loc": url, "lastmod": lastmod, "changefreq": changefreq, "priority": priority})
     entries += site.get("extra_sitemap", [])
     files["sitemap.xml"] = sitemap(entries)
-    files["style.css"] = (SITE / "style.css").read_text()
+    for css in sorted(SITE.glob("*.css")):
+        files[css.name] = css.read_text()
     return files
 
 
@@ -304,7 +315,8 @@ def main() -> int:
         return 1
     write(args.out, files)
     pages = sum(1 for k in files if k.endswith(".html"))
-    print(f"built {pages} pages, sitemap.xml and style.css into {args.out}")
+    sheets = ", ".join(k for k in files if k.endswith(".css"))
+    print(f"built {pages} pages, sitemap.xml and {sheets} into {args.out}")
     return 0
 
 

@@ -1,0 +1,56 @@
+---
+title: Caught before it ships · mistakes TypeScript lets through · Glyph
+description: Mistakes AI agents write that pass tsc --strict, each shown as a TypeScript program that compiles and the same program in Glyph, with the real compiler output. Every case is re-run by a build gate.
+layout: wide
+nav: catches
+sitemap: 2026-11-19 weekly 0.9
+head: |
+  <link rel="stylesheet" href="/catches.css" />
+---
+      <header class="page-hero">
+        <p class="eyebrow">Mistakes TypeScript lets through</p>
+        <h1>Caught before it ships</h1>
+        <p class="lede">{{catches:measured}}</p>
+        <p class="lede">
+          Each entry is two programs in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>,
+          and the output under each one is what the tools printed. A build gate,
+          <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>,
+          re-runs every case and fails if either half stops doing what the page says.
+          The full TypeScript configuration it checks against is in that script.
+        </p>
+      </header>
+
+{{catches:legend}}
+{{catches:filters}}
+{{catches:mistakes}}
+      <section class="c-section" id="traps">
+        <h2 class="group-head">JavaScript traps that do not exist in Glyph</h2>
+        <p class="group-sub">
+          Older traps that agents still hit now and then. Glyph does not catch
+          them. It leaves out the feature behind each one, and the replacement
+          is named.
+        </p>
+{{catches:traps}}
+      </section>
+
+      <section class="c-section" id="not-yet">
+        <h2 class="group-head">What Glyph does not catch yet</h2>
+        <p class="group-sub">
+          Each of these compiles in Glyph today and does the same wrong thing as
+          in TypeScript. Every one has a reproduction in <code>catches/</code>
+          and an open gap number, and the gate fails when a fix lands so the
+          entry cannot outlive the hole.
+        </p>
+{{catches:gaps}}
+        <p class="group-sub c-after">
+          Logic errors are the largest class in every study of agent-written
+          code, and no type checker sees them: a wrong formula, or a task that
+          was misread, compiles in Glyph as it does in TypeScript.
+        </p>
+        <p class="group-sub">
+          Glyph has one escape hatch, <code>extern_ts</code>, for TypeScript it
+          cannot express. It is a fixed keyword, so <code>grep extern_ts</code>
+          lists every place the rules are suspended.
+        </p>
+      </section>
+{{catches:script}}

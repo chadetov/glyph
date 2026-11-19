@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "done\nsaved a"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "done\nsaved a"
+  }
+}

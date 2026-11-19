@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "Reports to: undefined"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0235] Error: typecheck: `?.name` over a `Nullable<Manager>` is `undefined` when the value is null, and it is not given a default with `??` or compared with `==`/`!=`\nHelp: Give the absent case a value with `??` (`n?.name ?? \"none\"`), or convert the whole value with `nullable.to_option(n)` and `match` on it."
+  }
+}

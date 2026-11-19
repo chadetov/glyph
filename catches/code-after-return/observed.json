@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "30"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0108] Warning: lint: unreachable code\nHelp: Remove it, or move the earlier `return`/`break`/`continue` so this can run."
+  }
+}

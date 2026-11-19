@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: Cannot read properties of undefined (reading 'toLowerCase')"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "not a user"
+  }
+}

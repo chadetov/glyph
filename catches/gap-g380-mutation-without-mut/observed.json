@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "smallest 1 and xs[0] is now 1"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "smallest 1 and xs[0] is now 1"
+  }
+}

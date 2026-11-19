@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "Welcome back, [object Object]!"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "Welcome back, [object Object]!"
+  }
+}

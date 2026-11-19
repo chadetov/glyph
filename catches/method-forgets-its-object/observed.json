@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: String.prototype.toUpperCase called on null or undefined"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0234] Error: typecheck: method `toUpperCase` of `string` is read without being called\nHelp: Call the method where it is read, `name.toUpperCase()`. To hand it on as a value, wrap the call in a lambda, `fn() -> string { return name.toUpperCase() }`; `.bind` and `.call` are refused like the read itself, because what they return is untyped in Glyph. `std/string` holds Glyph's own functions over a JavaScript string, which can be passed as values."
+  }
+}

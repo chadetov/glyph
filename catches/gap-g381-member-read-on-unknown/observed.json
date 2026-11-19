@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: Cannot read properties of undefined (reading 'name')"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[TS18046] Error: tsc: 'data' is of type 'unknown'.\nHelp: TypeScript's checker rejected the code this expression compiles to. The caret is on the Glyph expression that produced it."
+  }
+}

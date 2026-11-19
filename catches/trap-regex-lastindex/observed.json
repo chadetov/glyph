@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "[ true, false, true ]"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0003] Error: parse: unexpected token: Slash\nHelp: Remove or correct this token; it can't appear here."
+  }
+}

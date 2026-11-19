@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "invoice sent to typo@exmaple.com"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0211] Error: typecheck: argument type mismatch: expected `VerifiedEmail`, found `UnverifiedEmail`\nHelp: Pass a value of the expected type, or change the parameter's type."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "NaN"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "RangeError: index 3 is out of range for an array of length 3"
+  }
+}

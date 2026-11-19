@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: d.bark is not a function"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0211] Error: typecheck: argument type mismatch: expected `Array<Animal>`, found `Array<Dog>`\nHelp: Pass a value of the expected type, or change the parameter's type."
+  }
+}

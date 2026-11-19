@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "-Infinity"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0103] Error: resolve: unresolved name `Math`\nHelp: Declare it, import it, or fix the spelling."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "balance 90"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "balance 90"
+  }
+}

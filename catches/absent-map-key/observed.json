@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "undefined"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0224] Error: typecheck: `Record<string, string>` is a map, so `naem` may not be there\nHelp: Use `record.get(map, \"key\")`, which returns `Option<V>` so the absent case has somewhere to go. `record.has` tests for the key alone."
+  }
+}

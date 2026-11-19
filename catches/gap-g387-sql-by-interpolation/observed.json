@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "rows 2"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rows 2"
+  }
+}

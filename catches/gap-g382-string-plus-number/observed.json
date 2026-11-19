@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "51"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'.\nHelp: TypeScript's checker rejected code the compiler generated for this statement, so the caret covers the whole statement. The position inside it is in the generated `.ts` in the build output."
+  }
+}

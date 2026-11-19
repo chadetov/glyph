@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "timeout 30000"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0211] Error: typecheck: argument type mismatch: expected `ConnectOptions`, found `record`: missing field `timeout_ms`\nHelp: Pass a value of the expected type, or change the parameter's type."
+  }
+}

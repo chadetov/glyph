@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "suspended"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0211] Error: typecheck: argument type mismatch: expected `Status`, found `number`\nHelp: Pass a value of the expected type, or change the parameter's type."
+  }
+}

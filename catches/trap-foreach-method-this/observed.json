@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: Cannot read properties of undefined (reading 'count')"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0003] Error: parse: unexpected token: Identifier(\"class\")\nHelp: Remove or correct this token; it can't appear here."
+  }
+}

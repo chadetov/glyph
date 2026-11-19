@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "status deleted"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: [{\"path\":[\"status\"],\"message\":\"field `status` must be \\\"active\\\" | \\\"banned\\\"\",\"code\":\"type\"}]"
+  }
+}

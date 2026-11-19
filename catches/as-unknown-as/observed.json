@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: Cannot read properties of undefined (reading 'length')"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0013] Error: parse: a statement cannot begin on the line where `let cfg = raw` ends\nHelp: Glyph has no `as` cast, so `as` cannot continue the expression before it. To give a value a type, put the type on the annotation (`let r: R = h()`); to turn an `unknown` into a type, validate it with `T.parse(v)` or narrow it with `match` and `is`."
+  }
+}

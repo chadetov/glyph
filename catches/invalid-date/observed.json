@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "2025-03-02\nRangeError: Invalid time value"
+  },
+  "glyph": {
+    "command": "glyph run",
+    "output": "rejected: 2025-02-30\nrejected: next friday"
+  }
+}

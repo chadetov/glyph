@@ -517,11 +517,11 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
       <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
-          <p class="h">Shipping today</p>
+          <h3 class="h">Shipping today</h3>
           <p><code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position. <code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded. <code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>. The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.</p>
         </div>
         <div class="status-card next">
-          <p class="h">Getting sharper</p>
+          <h3 class="h">Getting sharper</h3>
           <p>There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right. The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte. Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.</p>
         </div>
       </div>

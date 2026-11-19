@@ -42,6 +42,7 @@
   --accent-hover: #4a2fc9;
   --button: #6a48f0;
   --button-hover: #5b3fe0;
+  --badge: #5b3fe0;
   --violet-bg: #f4f1ff;
   --quote-ink: #2b2550;
   --cyan-ink: #0d7570;
@@ -79,6 +80,19 @@
   --fs-xl: 1.75rem;
   --fs-2xl: 2.25rem;
   --fs-3xl: 3rem;
+  /* Headings: one scale for the site. A landing page (home, catches,
+     versions, the index pages) opens with --h1-landing; an article page
+     (answers, pillars, the journey pages) with --h1-article. Every h2 is
+     --h2 and every h3 is --h3, at weight 600. Phones get a smaller step of
+     the same scale, below. */
+  --h1-landing: 3rem;
+  --h1-article: 2.25rem;
+  --h2: 1.75rem;
+  --h3: 1.25rem;
+  /* Article prose, ledes under a section heading included, is one size;
+     the page lede under the title is the next step up. */
+  --fs-body: 1.0625rem;
+  --fs-lede: 1.25rem;
 
   /* space, radius, width */
   --s1: 4px;
@@ -92,6 +106,9 @@
   --r-sm: 6px;
   --r: 10px;
   --r-lg: 14px;
+  /* every card: a boxed, self-contained block (link cards, status cards,
+     stat cards, callout boxes); code blocks keep --r */
+  --r-card: 14px;
   /* One column for article pages: 912px of content inside the gutters holds
      two code panels side by side. Every block in the article shares its
      edges. */
@@ -174,6 +191,11 @@
 @media (max-width: 640px) {
   :root {
     --gutter: 16px;
+    --h1-landing: 2.25rem;
+    --h1-article: 1.75rem;
+    --h2: 1.5rem;
+    --h3: 1.125rem;
+    --fs-lede: 1.125rem;
   }
 }
 
@@ -1016,7 +1038,7 @@ kbd {
 }
 .ans-crumb .sep {
   margin: 0 var(--s2);
-  color: var(--line-2);
+  color: var(--muted);
 }
 .ans-crumb .n,
 .ans-grp .n {
@@ -1298,7 +1320,7 @@ kbd {
 }
 .page-hero h1 {
   color: var(--on-band);
-  font-size: var(--fs-3xl);
+  font-size: var(--h1-landing);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -1309,7 +1331,8 @@ kbd {
 }
 .page-hero .lede {
   color: var(--on-band-2);
-  font-size: var(--fs-md);
+  font-size: var(--fs-lede);
+  line-height: 1.55;
   margin: 0 0 var(--s3);
 }
 .page-hero .lede:last-child {
@@ -1334,25 +1357,25 @@ section {
   padding: var(--s6) 0;
 }
 .group-head {
-  font-size: var(--fs-xl);
+  font-size: var(--h2);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin: 0 0 var(--s2);
 }
 .group-sub {
-  color: var(--muted);
-  font-size: var(--fs-base);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
   margin: 0 0 var(--s5);
 }
 .section-head {
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: var(--h2);
+  font-weight: 600;
+  letter-spacing: -0.015em;
   margin: 0 0 var(--s3);
 }
 .friction-intro {
-  color: var(--muted);
-  font-size: var(--fs-md);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
   margin: 0 0 var(--s6);
 }
 .backlink {
@@ -1413,13 +1436,13 @@ section {
   margin: 0 0 var(--s6);
   padding: 0 0 var(--s7);
   color: var(--on-band);
-  font-size: var(--fs-2xl);
+  font-size: var(--h1-article);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
 .short-answer {
-  font-size: 1.2rem;
+  font-size: var(--fs-lede);
   line-height: 1.55;
   font-weight: 400;
   color: var(--ink);
@@ -1438,7 +1461,7 @@ section {
 .block-label,
 .detail .block-label {
   font-family: var(--sans);
-  font-size: 1.75rem;
+  font-size: var(--h2);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
@@ -1469,14 +1492,13 @@ section {
 @media (max-width: 640px) {
   .block-label,
   .detail .block-label {
-    font-size: 1.375rem;
     margin-top: var(--s7);
   }
 }
 .detail p,
 .detail li {
   color: var(--ink-2);
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   line-height: 1.7;
 }
 .detail p {
@@ -1497,7 +1519,7 @@ section {
 }
 .pillar-page .lede {
   color: var(--ink-2);
-  font-size: var(--fs-md);
+  font-size: var(--fs-body);
   line-height: 1.7;
   margin: 0 0 var(--s4);
 }
@@ -1505,7 +1527,7 @@ section {
   color: var(--ink);
 }
 .pull-quote {
-  font-size: var(--fs-md);
+  font-size: var(--fs-body);
   line-height: 1.55;
   font-weight: 500;
   color: var(--quote-ink);
@@ -1526,7 +1548,7 @@ section {
   padding: var(--s4) var(--s5);
   margin: var(--s4) 0;
   color: var(--quote-ink);
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   line-height: 1.65;
 }
 .callout strong {
@@ -1625,92 +1647,191 @@ pre .c {
 .two-up > .code {
   margin: 0;
 }
-.two-up .tag-good,
-.two-up .tag-bad {
-  display: inline-block;
-  margin: 12px 16px 4px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-family: var(--sans);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-.two-up .tag-good {
-  color: #0c7d3e;
-  background: #e7f7ee;
-}
-.two-up .tag-bad {
-  color: #b42328;
-  background: #fdecec;
-}
-.verdict {
-  display: inline-block;
-  font-family: var(--sans);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 999px;
-  margin-top: var(--s1);
-}
-.verdict.good {
-  color: #0c7d3e;
-  background: #e7f7ee;
-}
-.verdict.bad {
-  color: #b42328;
-  background: #fdecec;
-}
 @media (max-width: 820px) {
   .two-up {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
+/* ============ number badges ============ */
+/* One size for every numbered circle: a case on /catches/ and the home
+   page, a step on /hardening/. The fill is the text accent, which holds
+   white text at AA (6.5:1); the lighter --violet does not. */
+.c-num,
+.c-card-n,
+.step .n {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--badge);
+  color: #ffffff;
+  font: 700 var(--fs-sm) / 1 var(--sans);
+}
+
+/* ============ pills ============ */
+/* One component for every small rounded label: a release's Latest/Breaking,
+   a change type, a severity, a language tag over a code pane, a verdict
+   under one, an error code. Two faces share one height (22px), one size and
+   one radius: the label face in the sans, and the chip face in the mono for
+   content that is code (E0200, 0.1.148, G273). Tones come from the theme
+   tokens, so dark mode follows. A pill on a code surface, which is dark in
+   both themes, takes the code-surface tints at the end of this block. */
+.tag-good,
+.tag-bad,
+.verdict,
+.c-lang,
+.ak-verdict,
+.rel-tag,
+.fix .sev,
+.rel-list .tag,
+.c-cfg b,
+.chip,
+.ak-st-h .count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font: 600 var(--fs-xs) / 1.5 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  color: var(--ink-2);
+  background: var(--card-2);
+  vertical-align: 1px;
+}
+.chip,
+.ak-st-h .count {
+  font-family: var(--mono);
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  background: var(--card);
+}
+/* good */
+.tag-good,
+.verdict.good,
+.gl .c-lang,
+.rel-tag.latest,
+.tag.fixed,
+.chip.since {
+  color: var(--green);
+  background: var(--green-bg);
+  box-shadow: none;
+}
+/* bad */
+.tag-bad,
+.verdict.bad,
+.ts .c-lang,
+.rel-tag.breaking,
+.fix .sev.critical,
+.tag.known,
+.chip.ts,
+.c-cfg.none b {
+  color: var(--red);
+  background: var(--red-bg);
+  box-shadow: none;
+}
+/* warning */
+.gl.warn .c-lang,
+.fix .sev.high,
+.tag.changed,
+.chip.gap {
+  color: var(--amber);
+  background: var(--amber-bg);
+  box-shadow: none;
+}
+/* accent */
+.tag.added,
+.chip.code {
+  color: var(--accent);
+  background: var(--violet-bg);
+  box-shadow: none;
+}
+.tag.improved {
+  color: var(--cyan-ink);
+}
+a.chip.gap:hover {
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px var(--amber-fill);
+}
+/* on a code surface or the dark band: the same tones as tints */
+.code .tag-good,
+.code .verdict.good,
+.ak-pane.good .ak-verdict,
+.c-hero .gl .c-lang {
+  color: #9ff0c2;
+  background: rgba(18, 161, 80, 0.2);
+}
+.code .tag-bad,
+.code .verdict.bad,
+.ak-pane.bad .ak-verdict,
+.c-hero .ts .c-lang {
+  color: #ffb4b4;
+  background: rgba(229, 72, 77, 0.18);
+}
+.two-up .tag-good,
+.two-up .tag-bad {
+  margin: 12px 16px 4px;
+}
+.verdict {
+  margin-top: var(--s1);
+}
+
 /* ============ where it stands ============ */
+/* The same component as the answer kit's .ak-status (site/answer-kit.css):
+   stacked cards on the page background, a heading with a status icon. The
+   icon is drawn here from the heading's colour, so the markup stays a plain
+   <h3 class="h">. */
 .status-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--s4);
-  margin: 0 0 var(--s4);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s5);
+  margin: var(--s4) 0;
 }
 .status-card {
-  background: var(--card);
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-top: 3px solid var(--line-2);
-  border-radius: var(--r);
-  padding: var(--s4) var(--s5) var(--s5);
-}
-.status-card.today {
-  border-top-color: var(--green-fill);
-}
-.status-card.next {
-  border-top-color: var(--cyan);
+  border-radius: var(--r-card);
+  padding: var(--s4) var(--s5) var(--s4);
 }
 .status-card .h {
-  font-family: var(--mono);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
   margin: 0 0 var(--s2);
+  font-size: var(--h3);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
 }
-.status-card.today .h {
+.status-card .h::before {
+  content: "";
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  -webkit-mask: var(--st-icon) center / contain no-repeat;
+  mask: var(--st-icon) center / contain no-repeat;
+}
+.status-card.today .h::before {
   color: var(--green);
+  --st-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='6.5'/%3E%3Cpath d='M5.3 8.2l1.8 1.8 3.6-3.8'/%3E%3C/svg%3E");
 }
-.status-card.next .h {
+.status-card.next .h::before {
   color: var(--cyan-ink);
+  --st-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='6.5' stroke-dasharray='3.2 2.3'/%3E%3C/svg%3E");
 }
 .status-card p {
   margin: 0;
   color: var(--ink-2);
-  font-size: var(--fs-sm);
-  line-height: 1.65;
+  font-size: var(--fs-body);
+  line-height: 1.7;
 }
-@media (max-width: 820px) {
-  .status-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.status-card p + p {
+  margin-top: var(--s3);
 }
 
 /* ============ prev / next ============ */
@@ -1724,7 +1845,7 @@ pre .c {
   flex: 1;
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: var(--r-card);
   padding: var(--s4) var(--s5);
   background: var(--bg);
   transition: border-color 0.15s, background 0.15s;
@@ -1773,7 +1894,7 @@ pre .c {
 .chart {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   padding: var(--s5);
   margin: var(--s5) 0;
 }
@@ -1788,7 +1909,7 @@ pre .c {
 .chart h3 {
   font-weight: 600;
   margin: var(--s2) 0 var(--s5);
-  font-size: var(--fs-md);
+  font-size: var(--h3);
 }
 .bar-row {
   display: flex;
@@ -1843,7 +1964,7 @@ pre .c {
 }
 .pending-note {
   border: 1px dashed var(--amber-fill);
-  border-radius: var(--r);
+  border-radius: var(--r-card);
   padding: var(--s4) var(--s5);
   margin: var(--s2) 0;
   color: var(--ink-2);
@@ -1872,7 +1993,7 @@ pre .c {
 div.card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   padding: var(--s5);
   min-width: 0;
 }
@@ -1924,29 +2045,12 @@ div.card {
 .fix {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   padding: var(--s5);
 }
-.fix .sev {
-  display: inline-block;
-  font-size: var(--fs-xs);
+.fix h3 {
   font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 999px;
-  color: var(--ink-2);
-  background: var(--card-2);
-}
-.fix .sev.critical {
-  color: var(--red);
-  background: var(--red-bg);
-}
-.fix .sev.high {
-  color: var(--amber);
-  background: var(--amber-bg);
-}
-.fix h4 {
-  font-weight: 600;
-  font-size: var(--fs-base);
+  font-size: var(--h3);
   margin: var(--s3) 0 var(--s2);
 }
 .fix p {
@@ -1970,28 +2074,15 @@ div.card {
 .step {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   padding: var(--s5);
 }
 .step .n {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--violet);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: var(--fs-sm);
-  display: grid;
-  place-items: center;
   margin-bottom: var(--s3);
 }
-.step:nth-child(even) .n {
-  background: var(--cyan);
-  color: var(--navy);
-}
-.step h4 {
+.step h3 {
   font-weight: 600;
-  font-size: var(--fs-base);
+  font-size: var(--h3);
   margin: 0 0 var(--s2);
 }
 .step p {
@@ -2049,7 +2140,7 @@ div.card {
   display: block;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   padding: var(--s4) var(--s5);
   color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -2106,27 +2197,9 @@ section:first-of-type > .release {
 }
 .rel-ver {
   font-family: var(--mono);
-  font-size: var(--fs-lg);
+  font-size: var(--h3);
   font-weight: 600;
   color: var(--ink);
-}
-.rel-tag {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 999px;
-  color: var(--ink-2);
-  background: var(--card-2);
-}
-.rel-tag.latest {
-  color: var(--green);
-  background: var(--green-bg);
-}
-/* A release that rejects code an earlier version accepted. Established by
-   running both versions, never inferred from the note's wording. */
-.rel-tag.breaking {
-  color: var(--red);
-  background: var(--red-bg);
 }
 .rel-date {
   color: var(--muted);
@@ -2146,18 +2219,18 @@ section:first-of-type > .release {
 .breaking-note strong {
   color: var(--fg);
 }
-.rel-body h3 {
+.rel-body h4 {
   font-weight: 600;
   font-size: var(--fs-md);
   margin: var(--s4) 0 var(--s3);
 }
-.rel-body h3:first-child {
+.rel-body h4:first-child {
   margin-top: 0;
 }
 .rel-body > p,
 .rel-note {
   color: var(--ink-2);
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   line-height: 1.65;
   margin: 0 0 var(--s4);
 }
@@ -2182,7 +2255,7 @@ section:first-of-type > .release {
   padding-left: 80px;
   margin: 10px 0;
   color: var(--ink-2);
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   line-height: 1.55;
 }
 .changelist .tag,
@@ -2190,40 +2263,10 @@ section:first-of-type > .release {
   position: absolute;
   left: 0;
   top: 0.2em;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 2px 0;
-  border-radius: var(--r-sm);
   width: 68px;
-  text-align: center;
-  color: var(--ink-2);
-  background: var(--card-2);
-}
-.tag.fixed {
-  color: var(--green);
-  background: var(--green-bg);
-}
-.tag.added {
-  color: var(--accent);
-  background: var(--violet-bg);
-}
-.tag.changed {
-  color: var(--amber);
-  background: var(--amber-bg);
-}
-.tag.improved {
-  color: var(--cyan-ink);
-  background: var(--card-2);
-}
-.tag.known {
-  color: var(--red);
-  background: var(--red-bg);
-}
-.tag.site,
-.tag.note {
-  color: var(--ink-2);
-  background: var(--card-2);
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
 }
 .rel-body .code {
   margin: var(--s3) 0 var(--s4);
@@ -2240,8 +2283,8 @@ section:first-of-type > .release {
 }
 .home .hero h1 {
   color: var(--on-band);
-  font-size: 3.25rem;
-  line-height: 1.05;
+  font-size: var(--h1-landing);
+  line-height: 1.1;
   letter-spacing: -0.03em;
   font-weight: 700;
   margin: var(--s5) 0 0;
@@ -2251,7 +2294,8 @@ section:first-of-type > .release {
 }
 .home .hero .sub {
   color: var(--on-band-2);
-  font-size: var(--fs-md);
+  font-size: var(--fs-lede);
+  line-height: 1.55;
   margin: var(--s5) 0 0;
 }
 .home .pill {
@@ -2442,9 +2486,6 @@ section:first-of-type > .release {
 .home section > .wrap {
   padding-bottom: 0;
 }
-.home .section-head {
-  font-size: var(--fs-2xl);
-}
 .home .friction-intro {
   margin-bottom: var(--s5);
 }
@@ -2498,7 +2539,7 @@ section:first-of-type > .release {
   align-items: baseline;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: var(--r-card);
   padding: var(--s3) var(--s4);
 }
 .home .gloss > code {
@@ -2529,7 +2570,7 @@ section:first-of-type > .release {
   display: block;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   padding: var(--s5);
   color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -2556,7 +2597,7 @@ section:first-of-type > .release {
 .home .card h3 {
   font-weight: 600;
   margin: var(--s1) 0 var(--s2);
-  font-size: var(--fs-md);
+  font-size: var(--h3);
 }
 .home .card p {
   margin: 0;
@@ -2588,7 +2629,7 @@ section:first-of-type > .release {
   align-items: baseline;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: var(--r-card);
   padding: var(--s3) var(--s4);
   color: var(--ink);
   transition: border-color 0.15s;
@@ -2642,8 +2683,9 @@ section:first-of-type > .release {
 }
 .home .band h2 {
   color: var(--on-band);
-  font-size: var(--fs-2xl);
-  letter-spacing: -0.02em;
+  font-size: var(--h2);
+  font-weight: 600;
+  letter-spacing: -0.015em;
   margin: 0;
 }
 .home .band h2 .accent {
@@ -2678,9 +2720,6 @@ h4 code,
   }
 }
 @media (max-width: 640px) {
-  .home .hero h1 {
-    font-size: 2.25rem;
-  }
   .home .grid,
   .ans-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -2689,14 +2728,8 @@ h4 code,
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s1);
   }
-  .home .section-head {
-    font-size: var(--fs-xl);
-  }
   .home .band {
     padding: var(--s6) var(--s5);
-  }
-  .home .band h2 {
-    font-size: var(--fs-xl);
   }
 }
 
@@ -2770,23 +2803,15 @@ h4 code,
   .page-hero {
     padding: var(--s6) 0;
   }
-  .page-hero h1 {
-    font-size: 2rem;
-  }
   .answer-page > .q-eyebrow {
     padding-top: var(--s6);
   }
   .answer-page > .q-title {
-    font-size: 1.75rem;
     padding-bottom: var(--s6);
     margin-bottom: var(--s5);
   }
   .short-answer {
-    font-size: var(--fs-md);
     padding-left: var(--s4);
-  }
-  .section-head {
-    font-size: var(--fs-xl);
   }
   .rel-date {
     margin-left: 0;
@@ -2929,7 +2954,7 @@ h4 code,
   align-items: center;
   gap: var(--s5);
   padding: var(--s6) var(--s6);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   color: #ffffff;
   background:
     radial-gradient(90% 160% at 100% 0%, rgba(124, 92, 255, 0.6), transparent 62%),
@@ -3038,7 +3063,7 @@ h4 code,
   gap: var(--s2);
   padding: var(--s5);
   padding-right: var(--s7);
-  border-radius: var(--r);
+  border-radius: var(--r-card);
   background: var(--bg);
   border: 1px solid var(--line);
   color: var(--ink);

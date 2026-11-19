@@ -373,7 +373,7 @@
       <div class="releases">
         <article class="release" id="0.1.99" data-hl="h3" data-breaking>
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.99</h2>
+            <h3 class="rel-ver">0.1.99</h3>
             <span class="rel-tag breaking">Breaking</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.99" data-url="https://glyphlang.io/versions/2026-08/#0.1.99" aria-label="Link to 0.1.99">Link</a>
@@ -381,7 +381,7 @@
           <details class="rel-details">
             <summary><span class="rel-headline">Your editor tells you the type is wrong</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Your editor tells you the type is wrong</h3>
+            <h4>Your editor tells you the type is wrong</h4>
             <p>A <code>let</code> whose annotation disagreed with its value drew nothing from Glyph. TypeScript caught it at the end of the build and reported it against generated code, and the language server never runs TypeScript, so nothing said anything while you typed.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -402,14 +402,14 @@
         </article>
         <article class="release" id="0.1.98" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.98</h2>
+            <h3 class="rel-ver">0.1.98</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.98" data-url="https://glyphlang.io/versions/2026-08/#0.1.98" aria-label="Link to 0.1.98">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A two-binding loop keeps the guarantee a one-binding loop has</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A two-binding loop keeps the guarantee a one-binding loop has</h3>
+            <h4>A two-binding loop keeps the guarantee a one-binding loop has</h4>
             <p>Adding an index to a <code>for</code> used to cost you a compiler check, and the compiler suggested the thing that threw the check away.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -438,14 +438,14 @@ fn run(xs: Array&lt;Cmd&gt;) -&gt; number {
         </article>
         <article class="release" id="0.1.97" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.97</h2>
+            <h3 class="rel-ver">0.1.97</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.97" data-url="https://glyphlang.io/versions/2026-08/#0.1.97" aria-label="Link to 0.1.97">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A function keeps its type across a module boundary</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A function keeps its type across a module boundary</h3>
+            <h4>A function keeps its type across a module boundary</h4>
             <p>Calling a <code>pub fn</code> in another module gave back a value Glyph knew nothing about, so the answer came from TypeScript instead, about code you did not write.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -471,14 +471,14 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
         </article>
         <article class="release" id="0.1.96" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.96</h2>
+            <h3 class="rel-ver">0.1.96</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.96" data-url="https://glyphlang.io/versions/2026-08/#0.1.96" aria-label="Link to 0.1.96">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">An array pattern that names a variant tests it, and does not bind it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An array pattern that names a variant tests it, and does not bind it</h3>
+            <h4>An array pattern that names a variant tests it, and does not bind it</h4>
             <p>A <code>match</code> over an array whose arm named a variant returned the wrong arm&rsquo;s value. It built clean and passed <code>tsc --strict</code>, which is the class of bug this language exists to remove.</p>
             <div class="code">
               <span class="cap">main.glyph</span>
@@ -510,14 +510,14 @@ fn f(xs: Array&lt;Colour&gt;) -&gt; string {
         </article>
         <article class="release" id="0.1.95" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.95</h2>
+            <h3 class="rel-ver">0.1.95</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.95" data-url="https://glyphlang.io/versions/2026-08/#0.1.95" aria-label="Link to 0.1.95">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">An imported union is checked whether or not it is generic</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An imported union is checked whether or not it is generic</h3>
+            <h4>An imported union is checked whether or not it is generic</h4>
             <p>A <code>match</code> over a union imported from another module could leave a variant out, build clean, pass <code>tsc --strict</code>, and throw at run time. It took the type parameter to do it: delete <code>&lt;K&gt;</code> from both files and the identical program was <code>E0200</code>. A scrutinee from another module goes down its own coverage path, and the gate that reaches it asked whether the type was an imported union. <code>Tree&lt;string&gt;</code> is an <em>application</em> of one, so it matched nothing, the coverage check never ran, and the match went uncounted. The gate reads through the application now, which puts a union&rsquo;s arity out of reach of the answer.</p>
             <div class="code">
               <span class="cap">tree.glyph</span>
@@ -559,14 +559,14 @@ pub fn label(t: Tree&lt;string&gt;) -&gt; string {
         </article>
         <article class="release" id="0.1.94" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.94</h2>
+            <h3 class="rel-ver">0.1.94</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.94" data-url="https://glyphlang.io/versions/2026-08/#0.1.94" aria-label="Link to 0.1.94">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A red-black tree, written in Glyph</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A red-black tree, written in Glyph</h3>
+            <h4>A red-black tree, written in Glyph</h4>
             <p>There is no compiler change in this release. What it carries is an application, <code>examples/apps/leaderboard/main.glyph</code>, and the reason to cut a version for it is that the application compiles. Three of the last four releases each fixed a piece of one shape: a match arm that nests a constructor pattern inside another constructor pattern&rsquo;s field, over a union that names itself in its own payload and carries type parameters while doing it. That shape is Okasaki&rsquo;s <code>balance</code>, the four rotation cases of a red-black tree. Here it is, written out and running.</p>
             <p>The app is a speedrun leaderboard over an append-only JSON log. Every command re-reads the log and folds it into the tree, then answers by walking down it: a player&rsquo;s rank, the top N, how many submissions fall inside a score range. Each node carries its subtree size, which is what makes those O(log n) instead of a pass over every entry, and a submitted score is refined at the point it leaves plain text, so <code>-3</code> is rejected as <code>expected Score (int where value &gt;= 0)</code> and <code>2.5</code> as <code>expected Score (int)</code>.</p>
             <div class="code">
@@ -608,14 +608,14 @@ pub fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
         </article>
         <article class="release" id="0.1.93" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.93</h2>
+            <h3 class="rel-ver">0.1.93</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.93" data-url="https://glyphlang.io/versions/2026-08/#0.1.93" aria-label="Link to 0.1.93">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A nested variant tests the payload instead of binding it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A nested variant tests the payload instead of binding it</h3>
+            <h4>A nested variant tests the payload instead of binding it</h4>
             <p><code>Err(Blank)</code> beside <code>Err(e)</code> reads as &ldquo;skip a blank line, report every other parse error&rdquo;. It compiled to two <code>case "Err":</code> labels on the outer tag, and the first one bound the whole payload under the name <code>Blank</code>. Every error took the first arm and the second was dead code the compiler still wrote out. Nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> has nothing to say about a duplicate case label, so the build was green and the wrong arm answered. The typechecker had the right reading the whole time. Delete the second arm and it reports a non-exhaustive match on the payload union, which means the checker read <code>Blank</code> as a variant while the emitter read it as a new binding. The arm dispatches on the payload&rsquo;s own tag now, under any outer variant.</p>
             <div class="code">
               <span class="cap">repl.glyph</span>
@@ -655,14 +655,14 @@ pub fn step(line: string) -&gt; string {
         </article>
         <article class="release" id="0.1.92" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.92</h2>
+            <h3 class="rel-ver">0.1.92</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.92" data-url="https://glyphlang.io/versions/2026-08/#0.1.92" aria-label="Link to 0.1.92">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A derived return type survives a <code>match</code></span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A derived return type survives a <code>match</code></h3>
+            <h4>A derived return type survives a <code>match</code></h4>
             <p>When a combinator&rsquo;s return type is derived from the argument you passed it, as <code>Schema&lt;infer_output&lt;Shape&gt;&gt;</code> is, the compiler inserts one cast at the return, because the body assembles a value the type system cannot prove carries the shape-derived type. The cast lived in one place, and two ways of writing a return went around it. A <code>match</code> in return position becomes a <code>switch</code> whose arms carry their own <code>return</code>, and a tail <code>E?</code> returns the unwrapped payload directly. Either one dropped the cast, so a function that compiled as <code>return { name: "object", parse: ... }</code> stopped compiling the moment a <code>match</code> sat between the <code>return</code> and the value. What you saw was a <code>TS2322</code> against the generated TypeScript, on well-formed Glyph the compiler had already accepted. Both sites go through the same return now.</p>
             <div class="code">
               <span class="cap">schema.glyph</span>
@@ -707,14 +707,14 @@ pub const point_schema: Schema&lt;Point&gt; = object_schema({ x: number_schema()
         </article>
         <article class="release" id="0.1.91" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.91</h2>
+            <h3 class="rel-ver">0.1.91</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.91" data-url="https://glyphlang.io/versions/2026-08/#0.1.91" aria-label="Link to 0.1.91">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A type parameter no longer switches the checks off</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A type parameter no longer switches the checks off</h3>
+            <h4>A type parameter no longer switches the checks off</h4>
             <p>Add a <code>&lt;K&gt;</code> to a union and two things stopped working, both quietly. A nested pattern under one of its payloads was refused with <code>E0300</code>, so the rebalance arm 0.1.90 made writable had no spelling over a tree that carries a key type. And a <code>match</code> on that union was not checked for exhaustiveness at all: omit a variant and the program built, passed <code>tsc --strict</code>, and threw at run time, where the same program on <code>Tree</code> is <code>E0200</code>. One function answered both questions and it only looked at the bare form of the type, never the applied one. It unwraps the application now, so a union's arity stops being something an arm can feel.</p>
             <div class="code">
               <span class="cap">Nesting through a generic union's payload</span>
@@ -757,14 +757,14 @@ pub fn depth(t: Tree&lt;string&gt;) -&gt; int {
         </article>
         <article class="release" id="0.1.90" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.90</h2>
+            <h3 class="rel-ver">0.1.90</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.90" data-url="https://glyphlang.io/versions/2026-08/#0.1.90" aria-label="Link to 0.1.90">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A pattern can reach more than one level into a record</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A pattern can reach more than one level into a record</h3>
+            <h4>A pattern can reach more than one level into a record</h4>
             <p>A variant with several fields carries a record, so an arm that wants to recognise a shape has to look through the record's fields. That position took a name and nothing else: you could rename a field, and that was all. A variant tag there was <code>E0009</code>, and a nested constructor fell off the parser. The Okasaki red-black rebalance is four rotation cases each named by a two-level shape, and it had no spelling in Glyph at all. A field holds a pattern now.</p>
             <div class="code">
               <span class="cap">One rotation case, as one arm</span>
@@ -820,14 +820,14 @@ pub fn describe(xs: Array&lt;Color&gt;) -&gt; string {
         </article>
         <article class="release" id="0.1.89" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.89</h2>
+            <h3 class="rel-ver">0.1.89</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.89" data-url="https://glyphlang.io/versions/2026-08/#0.1.89" aria-label="Link to 0.1.89">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A bool binding you can match on</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A bool binding you can match on</h3>
+            <h4>A bool binding you can match on</h4>
             <p>A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> arrived at <code>tsc</code> typed <code>false</code>. Matching on it built clean in Glyph and then failed with <code>Type 'true' is not comparable to type 'false'</code>: an error about a <code>switch</code> you never wrote, on a program the Glyph checker found nothing wrong with. A string-literal union type failed the same way, and so did <code>==</code>.</p>
             <div class="code">
               <span class="cap">This builds now, and used to fail the tsc pass</span>
@@ -854,14 +854,14 @@ fn classify() -&gt; int {
         </article>
         <article class="release" id="0.1.88" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.88</h2>
+            <h3 class="rel-ver">0.1.88</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.88" data-url="https://glyphlang.io/versions/2026-08/#0.1.88" aria-label="Link to 0.1.88">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A variant's shape comes from where it is declared</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A variant's shape comes from where it is declared</h3>
+            <h4>A variant's shape comes from where it is declared</h4>
             <p>Matching a variant through its namespace, <code>outcome.Failed(f)</code>, read the payload's shape from your module instead of from the one that declared it. When the two disagreed the emitter reached for a field that does not exist at runtime, and the build failed somewhere unrelated or the value came back wrong.</p>
             <div class="code">
               <span class="cap">What the arm emitted, before and after</span>
@@ -884,14 +884,14 @@ const f = __m0;</pre>
         </article>
         <article class="release" id="0.1.87" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.87</h2>
+            <h3 class="rel-ver">0.1.87</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.87" data-url="https://glyphlang.io/versions/2026-08/#0.1.87" aria-label="Link to 0.1.87">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The exit code your program recorded is the one it leaves with</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The exit code your program recorded is the one it leaves with</h3>
+            <h4>The exit code your program recorded is the one it leaves with</h4>
             <p>A CLI that computes a verdict inside <code>main</code> and records it, rather than returning it, exited 0 regardless. The wrapper we generate assigned <code>process.exitCode</code> unconditionally after <code>main</code> returned, so a <code>main</code> declared <code>-&gt; void</code> had whatever it recorded written back to zero on the way out. Every shell and CI check reading that code saw success.</p>
             <div class="code">
               <span class="cap">This exits 1 now, and used to exit 0</span>
@@ -918,14 +918,14 @@ pub fn main(argv: Array&lt;string&gt;) -&gt; void {
         </article>
         <article class="release" id="0.1.86" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.86</h2>
+            <h3 class="rel-ver">0.1.86</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.86" data-url="https://glyphlang.io/versions/2026-08/#0.1.86" aria-label="Link to 0.1.86">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A variant name in a pattern matches, or the compiler says so</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A variant name in a pattern matches, or the compiler says so</h3>
+            <h4>A variant name in a pattern matches, or the compiler says so</h4>
             <p>A pattern that names a variant inside a record field looked like it tested that variant and did not. It bound the field to a new name that shadowed the constructor, so the arm fired for every value, the arms below it became unreachable, and both <code>glyph check</code> and <code>tsc --strict</code> reported nothing.</p>
             <div class="code">
               <span class="cap">What the arm used to mean</span>
@@ -961,14 +961,14 @@ pub fn describe(b: Box) -&gt; string {
         </article>
         <article class="release" id="0.1.85" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.85</h2>
+            <h3 class="rel-ver">0.1.85</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.85" data-url="https://glyphlang.io/versions/2026-08/#0.1.85" aria-label="Link to 0.1.85">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A TLS dial you can bound</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A TLS dial you can bound</h3>
+            <h4>A TLS dial you can bound</h4>
             <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one as a plain argument rather than an options field, so nothing can default it away, and refuses a deadline it cannot actually hold.</p>
             <div class="code">
               <span class="cap">A dial that cannot outlive its budget</span>
@@ -1004,14 +1004,14 @@ pub async fn reachable(host: string) -&gt; bool {
         </article>
         <article class="release" id="0.1.84" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.84</h2>
+            <h3 class="rel-ver">0.1.84</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.84" data-url="https://glyphlang.io/versions/2026-08/#0.1.84" aria-label="Link to 0.1.84">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A subprocess you can watch while it runs</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A subprocess you can watch while it runs</h3>
+            <h4>A subprocess you can watch while it runs</h4>
             <p>Node builtins have worked out of the box for a while, but <code>child_process</code> only offered the blocking calls: run the command, wait, get everything at once. A tool that reports a long build's progress needs the other one, and writing it meant installing <code>@types/node</code> first.</p>
             <div class="code">
               <span class="cap">Streaming a child's output as it arrives</span>
@@ -1033,14 +1033,14 @@ child.on("close", fn(code) { io.println("git exited ${code}") })</pre>
         </article>
         <article class="release" id="0.1.83" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.83</h2>
+            <h3 class="rel-ver">0.1.83</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.83" data-url="https://glyphlang.io/versions/2026-08/#0.1.83" aria-label="Link to 0.1.83">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Install <code>@types/node</code> and your build still works</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Install <code>@types/node</code> and your build still works</h3>
+            <h4>Install <code>@types/node</code> and your build still works</h4>
             <p>The external-imports guide tells you to install <code>@types/node</code> when you want the full node builtin surface. Doing that broke every build, inside our own runtime, on a program that contained nothing but an empty <code>main</code>. Four errors, none of them in your code.</p>
             <div class="code">
               <span class="cap">A file with no imports, after <code>npm i -D @types/node</code></span>
@@ -1061,14 +1061,14 @@ std/process.ts(41,3): Type 'string | number' is not assignable to type 'number'<
         </article>
         <article class="release" id="0.1.82" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.82</h2>
+            <h3 class="rel-ver">0.1.82</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.82" data-url="https://glyphlang.io/versions/2026-08/#0.1.82" aria-label="Link to 0.1.82">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The download runs, and the package carries its license</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The download runs, and the package carries its license</h3>
+            <h4>The download runs, and the package carries its license</h4>
             <p>If you installed from npm, none of this affected you. If you downloaded a tarball from the Releases page and followed the instructions on it, you got <code>permission denied</code>, because every archive we have ever published carried the binary without its execute bit. The npm packages were always correct, which is exactly why nobody caught it: the smoke test that runs before each release only exercises npm.</p>
             <div class="code">
               <span class="cap">What was in the tarball, and what is in it now</span>
@@ -1090,14 +1090,14 @@ std/process.ts(41,3): Type 'string | number' is not assignable to type 'number'<
         </article>
         <article class="release" id="0.1.81" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.81</h2>
+            <h3 class="rel-ver">0.1.81</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.81" data-url="https://glyphlang.io/versions/2026-08/#0.1.81" aria-label="Link to 0.1.81">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Generated output drops into your app as-is</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Generated output drops into your app as-is</h3>
+            <h4>Generated output drops into your app as-is</h4>
             <p>An outside engineer built a React Kanban board with the domain core in Glyph and the UI in TSX, and had to reverse-engineer two path aliases (one in <code>tsconfig.json</code>, one in <code>vite.config.ts</code>) before his app would compile the output. Nothing documented them. This release removes the need for both.</p>
             <div class="code">
               <span class="cap">Emitted imports, before and after</span>
@@ -1119,14 +1119,14 @@ import { schema } from "./.glyph-runtime/std/schema";</pre>
         </article>
         <article class="release" id="0.1.80" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.80</h2>
+            <h3 class="rel-ver">0.1.80</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.80" data-url="https://glyphlang.io/versions/2026-08/#0.1.80" aria-label="Link to 0.1.80">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A server is a resource now</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A server is a resource now</h3>
+            <h4>A server is a resource now</h4>
             <p><strong>Breaking:</strong> <code>serve</code> is gone from <code>std/net</code> and <code>std/http</code>, replaced by <code>listen</code>. If you call it, this is the change to read.</p>
             <div class="code">
               <span class="cap">Before, and after</span>
@@ -1161,14 +1161,14 @@ match await http.listen("127.0.0.1", 8080, handler) {
         </article>
         <article class="release" id="0.1.79" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.79</h2>
+            <h3 class="rel-ver">0.1.79</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.79" data-url="https://glyphlang.io/versions/2026-08/#0.1.79" aria-label="Link to 0.1.79">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The host boundary</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The host boundary</h3>
+            <h4>The host boundary</h4>
             <p>Four modules for the calls a program used to make raw, and the first application in the tree built on a real npm package.</p>
             <div class="code">
               <span class="cap">The last raw host call, wrapped</span>
@@ -1194,14 +1194,14 @@ match await http.listen("127.0.0.1", 8080, handler) {
         </article>
         <article class="release" id="0.1.78" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.78</h2>
+            <h3 class="rel-ver">0.1.78</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.78" data-url="https://glyphlang.io/versions/2026-08/#0.1.78" aria-label="Link to 0.1.78">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Bytes</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Bytes</h3>
+            <h4>Bytes</h4>
             <p>Two applications written independently, one a PNG reader and one an authenticator, stopped on the same sentence: Glyph had no bytes. Every boundary in the standard library was string-in, string-out, so a file whose first byte is <code>0x89</code> could not be read and an HMAC could not be given a real key.</p>
             <div class="code">
               <span class="cap">Now writable</span>
@@ -1227,14 +1227,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.77" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.77</h2>
+            <h3 class="rel-ver">0.1.77</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.77" data-url="https://glyphlang.io/versions/2026-08/#0.1.77" aria-label="Link to 0.1.77">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A lost update is now a compile error</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A lost update is now a compile error</h3>
+            <h4>A lost update is now a compile error</h4>
             <p>Two of these running at once both read <code>0</code>, both write <code>1</code>, and you get <code>1</code> instead of <code>2</code> &mdash; from a build reporting no diagnostics and a clean <code>tsc --strict</code>.</p>
             <div class="code">
               <span class="cap">Rejected as of 0.1.77 (D43, E0225)</span>
@@ -1253,14 +1253,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.76" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.76</h2>
+            <h3 class="rel-ver">0.1.76</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.76" data-url="https://glyphlang.io/versions/2026-08/#0.1.76" aria-label="Link to 0.1.76">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Tell the agent what the answer is</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Tell the agent what the answer is</h3>
+            <h4>Tell the agent what the answer is</h4>
             <p>From reading a session log an outside author shared: 14 agents and 3,377 lines of Glyph, in which the compiler produced eleven diagnostics total. Eight of the eleven were one agent guessing.</p>
             <ul class="changelist">
               <li><span class="tag improved">Improved</span> <strong>An unknown import now names the answer.</strong> Hunting one function in <code>std/random</code> cost eight builds: <code>int</code>, <code>next</code>, <code>float</code>, <code>number</code>, <code>range</code>, <code>int_range</code>, <code>between</code>, <code>shuffle</code>. The module exports exactly <code>seeded</code>, and the compiler knew that every time, because checking against the list is what produced each error. It says so now: <code>`int` is not exported by `std/random` (exports: Rng, seeded)</code>. A near miss gets the intended name instead &mdash; <code>string.repeeat</code> is <code>(did you mean `repeat`?)</code>.</li>
@@ -1272,14 +1272,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.75" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.75</h2>
+            <h3 class="rel-ver">0.1.75</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.75" data-url="https://glyphlang.io/versions/2026-08/#0.1.75" aria-label="Link to 0.1.75">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The emitted imports survive having their types stripped</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The emitted imports survive having their types stripped</h3>
+            <h4>The emitted imports survive having their types stripped</h4>
             <p>Found by an application built outside this project: a tic-tac-toe game whose engine and AI are 3,377 lines of Glyph running in a Web Worker.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <strong>A name with no runtime binding is no longer emitted as a value import.</strong> <code>import std/option { Option, Some, None }</code> emitted <code>import { Option, Some, None }</code>, and <code>Option</code> is a type: it has nothing behind it at run time. <code>tsc</code> quietly drops such a name, which is why every build was green. A type <em>stripper</em> does not, and the import then fails to link against a module that genuinely has no such export. Every emitted import now marks those names <code>import { type Option, Some, None }</code>, which is the spelling a tool with no type information can act on.</li>
@@ -1291,14 +1291,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.74" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.74</h2>
+            <h3 class="rel-ver">0.1.74</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.74" data-url="https://glyphlang.io/versions/2026-08/#0.1.74" aria-label="Link to 0.1.74">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Three ways the compiler reported green and was wrong</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Three ways the compiler reported green and was wrong</h3>
+            <h4>Three ways the compiler reported green and was wrong</h4>
             <p>A build that says <code>no diagnostics</code> and <code>tsc --strict passed</code> is the one claim everything here rests on. Three separate things could say it and be wrong.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <strong>A loop index could be a string.</strong> An array&rsquo;s pairs bind a number index, a record&rsquo;s bind a string key, and the emitter guessed the record form whenever it could not tell. So <code>for index, key in w.keys</code> made <code>index + 1</code> compute <code>"01"</code> instead of <code>1</code>, out of a completely green build. It no longer guesses: an iterand the checker settled emits directly as before, and one it did not defers to the run time, which knows what the value is.</li>
@@ -1315,14 +1315,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.73" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.73</h2>
+            <h3 class="rel-ver">0.1.73</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.73" data-url="https://glyphlang.io/versions/2026-08/#0.1.73" aria-label="Link to 0.1.73">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A project changes compiler on purpose</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A project changes compiler on purpose</h3>
+            <h4>A project changes compiler on purpose</h4>
             <p>A new release could reach your build through an <code>npm install</code> you ran for something else. Now it cannot, and you can still find out one exists.</p>
             <ul class="changelist">
               <li><span class="tag changed">Changed</span> <code>glyph init</code> pins the compiler exactly, with no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, so <code>^0.1.72</code> accepted every later 0.1.x &mdash; and a 0.1.x release may add a diagnostic that rejects code which compiled yesterday, which is usually the point of the release. Those two together meant a green build could go red without a line of your source changing.</li>
@@ -1336,14 +1336,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.72" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.72</h2>
+            <h3 class="rel-ver">0.1.72</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.72" data-url="https://glyphlang.io/versions/2026-08/#0.1.72" aria-label="Link to 0.1.72">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A typo answers in Glyph&rsquo;s own voice</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A typo answers in Glyph&rsquo;s own voice</h3>
+            <h4>A typo answers in Glyph&rsquo;s own voice</h4>
             <p>The same misspelling used to get two different answers depending on which way you had written the import.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>string.repeeat(s, 2)</code> is <code>[E0105] import: `repeeat` is not exported by `std/string`</code>. Writing <code>import std/string { repeeat }</code> had always been that error, because a named import is checked against the module&rsquo;s export list; reading the same name off a namespace was left to the back end, which answered <code>TS2551</code> about a property. Namespace member reads are recorded during resolution now and held to the same list. Turning it on found a test fixture that had been calling <code>fs.write</code> for months, where the function is <code>write_text</code>: it ran with type-checking off, and nothing else looked.</li>
@@ -1355,14 +1355,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.71" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.71</h2>
+            <h3 class="rel-ver">0.1.71</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.71" data-url="https://glyphlang.io/versions/2026-08/#0.1.71" aria-label="Link to 0.1.71">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The last place a type went missing</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The last place a type went missing</h3>
+            <h4>The last place a type went missing</h4>
             <p>One shape built with <code>0 error(s)</code> and threw at run time, and it had been there since the standard library was first modeled.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> A <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm is a compile error. It used to build clean and throw <code>non-exhaustive match</code> on the first input that did not contain the search string, because the function could not be modeled and its result was therefore untyped, so the exhaustiveness check never ran. Six standard-library functions were in that position for the same reason: each takes a trailing argument the caller may omit, and the arity check compared one number against one number, so modeling them would have reported an error on every call that omitted it. Parameters can be optional now and the check reads a minimum and a maximum, so <code>string.index_of</code>, <code>string.slice</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>array.slice</code> and <code>json.stringify</code> all carry their real return types.</li>
@@ -1375,14 +1375,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.70" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.70</h2>
+            <h3 class="rel-ver">0.1.70</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.70" data-url="https://glyphlang.io/versions/2026-08/#0.1.70" aria-label="Link to 0.1.70">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">An index that is wrong, and a type that can be called Error</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An index that is wrong, and a type that can be called Error</h3>
+            <h4>An index that is wrong, and a type that can be called Error</h4>
             <p>Two entries that had been sitting on decisions rather than on work. Both were measured before anything was written, and in both cases the options already on the table lost to one that was not.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> An out-of-range index says so. <code>cells[999]</code> type-checked clean, passed <code>tsc --strict</code>, and handed back <code>undefined</code> where the compiler had promised a value, which then travelled until something dereferenced it somewhere else. Glyph was worse than Rust here, which tells the same lie in the type but stops at the bad index. <code>xs[i]</code> keeps its type and the read is bounds-checked, so out of range throws with the index and the length. <code>array.get(xs, i)</code> returns <code>Option</code> when absence is something the program handles.</li>
@@ -1396,14 +1396,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.69" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.69</h2>
+            <h3 class="rel-ver">0.1.69</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.69" data-url="https://glyphlang.io/versions/2026-08/#0.1.69" aria-label="Link to 0.1.69">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Every open gap, and a client that can be bounded</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Every open gap, and a client that can be bounded</h3>
+            <h4>Every open gap, and a client that can be bounded</h4>
             <p>Each open entry was re-run against the previous release before anything was written, which changed the work: one of them turned out to be three separate gaps under a single number, and another had already closed.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> A <code>parse</code> could report success for a field it never checked. Every record type carries a runtime validator, and for a field whose type the compiler cannot see into (a socket, anything reached through <code>extern_ts</code>) the generated check was "is it present" while the message read <code>field `sock` must be Socket</code>. Validating such a record is now <code>E0304</code>, refused where it is written and naming the field. Declaring one is untouched, so holding a socket in a record is still ordinary. <code>unknown</code> is not caught by this: it claims nothing, so presence really is the whole check.</li>
@@ -1421,14 +1421,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.68" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.68</h2>
+            <h3 class="rel-ver">0.1.68</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.68" data-url="https://glyphlang.io/versions/2026-08/#0.1.68" aria-label="Link to 0.1.68">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Null is absence, and a loop keeps its type</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Null is absence, and a loop keeps its type</h3>
+            <h4>Null is absence, and a loop keeps its type</h4>
             <p>A wire type could not read the payload it was written for. <code>field?: T</code> accepted an omitted key and a present value, and rejected an explicit <code>null</code>, which is what every real API sends. A Discord gateway frame carries <code>"s": null</code> in every HELLO.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> An optional field treats a JSON <code>null</code> as absent. The declared type is <code>T</code>, and <code>null</code> is not a value of <code>T</code>, so a key holding null is a key holding no value. <code>glyph gen openapi</code> had documented exactly this mapping while the runtime did not implement it, so a generated type rejected the payload it was generated from. <code>Option&lt;T&gt;</code>'s tagged encoding is untouched.</li>
@@ -1440,7 +1440,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.67" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.67</h2>
+            <h3 class="rel-ver">0.1.67</h3>
             <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.67" data-url="https://glyphlang.io/versions/2026-08/#0.1.67" aria-label="Link to 0.1.67">Link</a>
@@ -1448,7 +1448,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
           <details class="rel-details">
             <summary><span class="rel-headline">Three entries that had outrun their evidence</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Three entries that had outrun their evidence</h3>
+            <h4>Three entries that had outrun their evidence</h4>
             <p>Three backlog items scheduled together, and all three closed by establishing what the compiler already does rather than by changing it. Two had been overtaken by fixes made for other reasons; the third asked for a feature that would cost the guarantee it wanted an exemption from. No language change ships here.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> The empty map is spelled <code>({})</code>, it compiles, and <code>glyph fmt</code> keeps the parentheses. A formatter test now pins that: un-spelling a workaround puts the file back into the error it was formatted out of.</li>
@@ -1460,7 +1460,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.66" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.66</h2>
+            <h3 class="rel-ver">0.1.66</h3>
             <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.66" data-url="https://glyphlang.io/versions/2026-08/#0.1.66" aria-label="Link to 0.1.66">Link</a>
@@ -1468,7 +1468,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
           <details class="rel-details">
             <summary><span class="rel-headline">Reading a key that may not be there</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Reading a key that may not be there</h3>
+            <h4>Reading a key that may not be there</h4>
             <p>A <code>Record&lt;K, V&gt;</code> has arbitrary keys, so <code>m.name</code> cannot be checked, and it was typed <code>V</code> anyway. When the key was absent the value was <code>undefined</code> under a type saying otherwise, and nothing reported it: a mistyped column name read off a database row compiled clean, passed <code>tsc --strict</code>, and rendered as the text "undefined".</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <span class="tag">E0224</span> rejects reading a key out of a map and points at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code>. Writing a key is untouched, because building a map is safe, and so is array indexing: a bound is a value a program can check with <code>array.len</code>, a map key is not.</li>
@@ -1483,7 +1483,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.65" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.65</h2>
+            <h3 class="rel-ver">0.1.65</h3>
             <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.65" data-url="https://glyphlang.io/versions/2026-08/#0.1.65" aria-label="Link to 0.1.65">Link</a>
@@ -1491,7 +1491,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
           <details class="rel-details">
             <summary><span class="rel-headline">An app does not need TypeScript</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An app does not need TypeScript</h3>
+            <h4>An app does not need TypeScript</h4>
             <p>Two example apps were reaching for the language Glyph exists to replace. The Discord bot needed a hand-written declaration file and six escapes to raw TypeScript to open a socket and run a timer; the chat server needed one to reach <code>net</code>. Every such line is a line the Glyph type checker does not see. The measure for this release was that both apps had to lose their TypeScript entirely, and both did.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>std/timers</code>: <code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>, <code>sleep</code>. Scheduling is a global in JavaScript and Glyph resolves module names rather than ambient globals, so before this there was no way to run something later without declaring Node's <code>timers</code> by hand.</li>
@@ -1505,7 +1505,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.64" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.64</h2>
+            <h3 class="rel-ver">0.1.64</h3>
             <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.64" data-url="https://glyphlang.io/versions/2026-08/#0.1.64" aria-label="Link to 0.1.64">Link</a>
@@ -1513,7 +1513,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
           <details class="rel-details">
             <summary><span class="rel-headline">A match that was exhaustive could throw</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A match that was exhaustive could throw</h3>
+            <h4>A match that was exhaustive could throw</h4>
             <p>Writing a Discord gateway client turned up a miscompile that twenty rounds of example apps had missed. A match arm that produces no value, one ending in a <code>mut</code>, emitted neither a <code>return</code> nor a <code>break</code> when it sat inside a lambda. The generated <code>switch</code> case ran straight into the compiler's own <code>default: throw new Error("non-exhaustive match")</code>. Twelve lines reproduce it: it compiles clean, <code>tsc --strict</code> passes, and it throws at run time on a match that is exhaustive.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> The <code>break</code> now depends only on being inside a <code>switch</code> case, not on whether the arm is in return position. The same code inside a top-level <code>fn</code> was always correct, which is how this survived: nothing in the suite put a valueless arm inside a lambda, and socket callbacks are lambdas containing matches. A nested match had the identical hole one level down.</li>
@@ -1526,7 +1526,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.63" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.63</h2>
+            <h3 class="rel-ver">0.1.63</h3>
             <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.63" data-url="https://glyphlang.io/versions/2026-08/#0.1.63" aria-label="Link to 0.1.63">Link</a>
@@ -1534,7 +1534,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
           <details class="rel-details">
             <summary><span class="rel-headline">A Glyph program can be a server</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A Glyph program can be a server</h3>
+            <h4>A Glyph program can be a server</h4>
             <p>The chat trip was given the same assignment twice: a server several clients talk to at once. The first time it quietly shipped a session replayer instead. The reason turned out to be one line in the runner, and it failed in the worst way, which is silently. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Every long-lived program was affected: servers, watchers, bots, REPLs.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> Returning from <code>main</code> no longer stops the process. The generated entrypoint called <code>process.exit</code> as soon as <code>main</code> came back, which Node honours immediately even while the event loop holds live handles, so a server bound its port and died in the same tick. The exit code is now assigned, leaving Node's own rule in place: leave when there is nothing left to wait for. A program that only computes still exits the moment <code>main</code> returns, with the same code.</li>
@@ -1548,7 +1548,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.62" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.62</h2>
+            <h3 class="rel-ver">0.1.62</h3>
             <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.62" data-url="https://glyphlang.io/versions/2026-08/#0.1.62" aria-label="Link to 0.1.62">Link</a>
@@ -1556,7 +1556,7 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
           <details class="rel-details">
             <summary><span class="rel-headline">A program can answer while you are still typing</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A program can answer while you are still typing</h3>
+            <h4>A program can answer while you are still typing</h4>
             <p>Building a chat client turned up something that had been true since <code>std/io</code> was written: <code>io.read_line</code> was never a line reader. It slurped stdin to end of input, split the result, and handed out the pieces. Piping a file works. Typing into it does not, so the program sat silent while you typed and every answer arrived at once after Ctrl-D. That made a whole category of program unwritable in Glyph, and three apps in the repository had been quietly shaped around it.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>io.read_line</code> returns as soon as a full line arrives and does not wait for stdin to close. stdin is read one chunk at a time into a shared buffer, so a prompt/read/respond loop answers while the writer is still connected. On <code>(printf 'a\n'; sleep 2; printf 'b\n')</code> the two lines now print 1ms and 1405ms in; before, both printed at the end.</li>
@@ -1570,14 +1570,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.61" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.61</h2>
+            <h3 class="rel-ver">0.1.61</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.61" data-url="https://glyphlang.io/versions/2026-08/#0.1.61" aria-label="Link to 0.1.61">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A directory can say it is a project</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A directory can say it is a project</h3>
+            <h4>A directory can say it is a project</h4>
             <p>A local import resolves from a root, and until now that root was whatever directory you handed to <code>glyph build</code>. That made a project uncombinable with anything: an app whose modules resolved perfectly on its own stopped resolving the moment you built the directory above it, and the failure named neither imports nor layout. A <code>package.json</code> carrying a <code>"glyph"</code> key now marks its directory as a resolution root, nearest one wins, so a tree of projects builds in one command and each project still builds alone.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>D41</code>. A directory holding a <code>package.json</code> with a <code>"glyph"</code> key is a module-resolution root. The key already existed: <code>glyph init</code> writes it and <code>glyph publish</code> reads it, so this honours a marker the toolchain already had rather than inventing one. It amends <code>D15</code> and does not replace it, since imports are still slash-separated from a root and still never relative.</li>
@@ -1591,14 +1591,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.60" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.60</h2>
+            <h3 class="rel-ver">0.1.60</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.60" data-url="https://glyphlang.io/versions/2026-08/#0.1.60" aria-label="Link to 0.1.60">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The compiler stops blaming the wrong line</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The compiler stops blaming the wrong line</h3>
+            <h4>The compiler stops blaming the wrong line</h4>
             <p>Five small things, none of which changes the language. Three are the same defect in different clothes: the compiler knew something was wrong and reported it somewhere you could not act on. A type you declared named <code>Issue</code> came back as a <code>tsc</code> error about generated code you never wrote. An import that resolved to nothing came back as a non-exhaustive-match error on a <code>match</code> that was exhaustive, so the message asked you to add an arm for a case that could not happen. Those are worse than no message. A wrong error costs you the time to chase it and then the trust you had in the next one.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> Declaring a type named <code>Issue</code> or <code>Record</code> is <code>E0110</code>, reported at the declaration. Every descriptor's <code>parse</code> writes <code>Issue[]</code> whether or not you did, so a local <code>Issue</code> won the name and the build failed with TS2353 pointing into <code>dist/</code>. <code>Record</code> sits with the JavaScript globals rather than the prelude names, because it is a TypeScript built-in and saying otherwise would make the message wrong about where the name comes from. <code>Schema</code>, <code>Component</code> and <code>Option</code> stay legal: the emitter writes those only because you wrote them in an annotation, so declaring one shadows nothing.</li>
@@ -1612,14 +1612,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.59" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.59</h2>
+            <h3 class="rel-ver">0.1.59</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.59" data-url="https://glyphlang.io/versions/2026-08/#0.1.59" aria-label="Link to 0.1.59">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The boundary knew which rule you broke and would not say</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The boundary knew which rule you broke and would not say</h3>
+            <h4>The boundary knew which rule you broke and would not say</h4>
             <p>A record's <code>parse</code> checked three separate things about every field and reported all three with the same sentence. A missing <code>password</code>, a <code>password</code> that was a number, and a <code>password</code> that was a string of four characters failing <code>string where value.length &gt;= 8</code> all came back as <code>field `password` is missing or has the wrong type</code>. One of those is a client that forgot a field and one is a client that chose a weak password, which is a 400 and a 422, and the validator had computed the difference and then dropped it. Building a signup and login API in <code>examples/apps/auth_api</code>, the way out was a second copy of every payload type with the constraints removed, parsed a second time on the failure path, purely to recover the bit the first parse already had. Two types, two parses, a helper each, and a constant restating the rule that was already written on the type.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> Each field is tested absent first, then wrong, with a message for each. An absent required field reads <code>field `password` is required</code>; a present one of the wrong type reads <code>field `email` must be string</code>, naming the type as the declaration spells it. An optional field (<code>f?: T</code>) is never reported missing.</li>
@@ -1635,14 +1635,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.58" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.58</h2>
+            <h3 class="rel-ver">0.1.58</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.58" data-url="https://glyphlang.io/versions/2026-08/#0.1.58" aria-label="Link to 0.1.58">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">An imported record arrived without its fields, and the loop over it counted in strings</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>An imported record arrived without its fields, and the loop over it counted in strings</h3>
+            <h4>An imported record arrived without its fields, and the loop over it counted in strings</h4>
             <p>Splitting a program into modules used to cost you two checks. A record type declared in one file and used in another arrived with nothing known about it, so <code>sheet.rowz</code> on an imported <code>Sheet</code> drew no Glyph error at all, and <code>for i, r in sheet.rows</code> emitted <code>Object.entries(sheet.rows)</code> instead of <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>"0"</code>, so <code>i + 1</code> concatenates: a row labelled <code>line 01</code> where it should read <code>line 1</code>, and <code>line 11</code> for row 2. <code>tsc</code> catches the arithmetic uses of that index and reports them against a variable Glyph bound for you. It cannot catch the ones where a string works and is wrong, which is interpolation, concatenation, and <code>record.get</code> keys. The query engine in <code>examples/apps/csvql</code> carried three <code>let</code> hoists and a four-line comment whose only job was to tell the emitter what an imported field's type was.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> An imported type keeps its identity. It lowers to a new <code>Ty::Imported { module, name }</code> keyed on the declaring module and the name that module declares, so <code>import catalog { Sheet }</code>, <code>import catalog</code> with <code>catalog.Sheet</code>, and <code>import catalog as c</code> with <code>c.Sheet</code> all mean the same type. A typo'd field is now <code>E0210</code> saying <code>type `Sheet` has no field `rowz`</code>, naming the record rather than saying <code>record</code>, and <code>for i, r in sheet.rows</code> binds a number with no annotation. The declaration is fetched on demand and lowered on the declaring module's side, which is the part a consumer cannot do, so a self-referential type and a two-module cycle both terminate with no cycle guard.</li>
@@ -1655,14 +1655,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.57" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.57</h2>
+            <h3 class="rel-ver">0.1.57</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.57" data-url="https://glyphlang.io/versions/2026-08/#0.1.57" aria-label="Link to 0.1.57">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The compiler asked you to delete an exhaustive match</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The compiler asked you to delete an exhaustive match</h3>
+            <h4>The compiler asked you to delete an exhaustive match</h4>
             <p>A string enum is one of the few places TypeScript already does well, and Glyph adds the part it is missing: <code>match</code> every value and you need no <code>else</code>, drop one and the build fails. That stopped at the file boundary. <code>type ColType = "text" | "int" | "real" | "bool"</code> declared in one module and imported into another lost its four values on the way across, so a <code>match</code> covering all four came back <code>E0218</code>, with help text reading "Add an <code>else</code> arm. A <code>number</code>/<code>string</code> match with only literal arms can never be exhaustive." That was false about the code in front of it, and doing what it said turns a compile error into a silent runtime fallthrough. This came out of writing a query engine over CSV, where the author did what it said: a dead <code>else =&gt; None</code> shipped in the app, with a comment recording what it cost.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> An imported string-literal union keeps its literals. A <code>match</code> covering every one of them compiles with no <code>else</code>, and omitting one is <code>E0200</code> naming what you left out, the same as if you had declared the type in the file you are matching in. All three spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with a <code>catalog.ColType</code> annotation, and <code>import catalog as c</code> with <code>c.ColType</code>.</li>
@@ -1673,14 +1673,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.56" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.56</h2>
+            <h3 class="rel-ver">0.1.56</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.56" data-url="https://glyphlang.io/versions/2026-08/#0.1.56" aria-label="Link to 0.1.56">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">How you imported the union decided whether it was checked</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>How you imported the union decided whether it was checked</h3>
+            <h4>How you imported the union decided whether it was checked</h4>
             <p>Exhaustive <code>match</code> is the guarantee Glyph leans on hardest, and it was off for one of the two ways you can import a union. <code>match c { model.Yes(_) =&gt; …, model.No(_) =&gt; … }</code> over a three-variant union reported no diagnostics, passed <code>tsc --strict</code>, and then threw <code>Error: non-exhaustive match</code> at run time. Writing the same match with <code>import model { Yes, No }</code> was <code>E0200</code>. This came out of writing a statechart replay engine, where every module carried an eighteen-name variant import so its matches would be checked, with a comment in the source explaining the import lists as a syntax rule. They were not a syntax rule. They were a workaround.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> A qualified arm is checked like a bare one. <code>import model</code> with <code>model.Yes(_)</code> arms, and <code>import model as m</code> with <code>m.Yes(_)</code>, are held to the same exhaustiveness bar as <code>import model { Yes }</code> with bare arms. The lookup used to try to resolve <code>Yes</code> as a symbol, which under a namespace import it never is, so it found no union and checked nothing. It now resolves the arm through the head of the path.</li>
@@ -1693,14 +1693,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.55" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.55</h2>
+            <h3 class="rel-ver">0.1.55</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.55" data-url="https://glyphlang.io/versions/2026-08/#0.1.55" aria-label="Link to 0.1.55">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A loop index that was a string</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A loop index that was a string</h3>
+            <h4>A loop index that was a string</h4>
             <p>Read a <code>Record</code>, <code>match</code> the <code>Option</code> it hands back, walk the array inside it with an index. Three ordinary things, and the chain miscompiled: the two-binding <code>for</code> took the record lowering, so the index bound the string key <code>"0"</code> instead of the number <code>0</code>, and the program printed <code>01:x</code> where it should print <code>1:x</code>. No diagnostics, and <code>tsc --strict</code> passed. This came out of writing a dependency resolver, where the fix for it had been a <code>let path: Array&lt;string&gt;</code> annotation with a comment saying the annotation was load-bearing.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>std/record</code> is modeled in the checker. All six of <code>get</code>, <code>has</code>, <code>keys</code>, <code>values</code>, <code>set</code> and <code>remove</code> carry their return type, and the value type is read off the record you pass, so <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code> and the <code>Some(p)</code> arm binds an <code>Array&lt;string&gt;</code>. It was the last of the three core modules with no types at all: <code>record.get</code> used to be <code>Unknown</code>, which meant everything downstream of it was too. The ordered walk gets it as well, since <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code> and <code>array.sort(record.keys(t), cmp)</code> now keeps its element type.</li>
@@ -1713,14 +1713,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.54" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.54</h2>
+            <h3 class="rel-ver">0.1.54</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.54" data-url="https://glyphlang.io/versions/2026-08/#0.1.54" aria-label="Link to 0.1.54">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A declaration can't quietly take a name the module needs</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A declaration can't quietly take a name the module needs</h3>
+            <h4>A declaration can't quietly take a name the module needs</h4>
             <p>Every top-level name you write reaches the emitted TypeScript verbatim, including the constructors of a tagged union. So a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level, and the <code>new Error(...)</code> the compiler writes below it calls your variant instead. The name is legal TypeScript, so nothing downstream noticed. You saw it as a <code>tsc</code> error twenty lines away, about something else. This came out of writing a spreadsheet, where a cell is a number, a label, nothing, or an error, and two of those four words are already taken.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>E0110</code> rejects a top-level <code>fn</code>, <code>type</code>, <code>const</code>, <code>component</code>, or variant whose name is already bound in every emitted module: the JavaScript globals the emitter refers to (<code>Object</code>, <code>Array</code>, <code>Promise</code>, <code>Number</code>, <code>Error</code>) and the prelude names in scope without an import (<code>number</code>, <code>par</code>, <code>print</code>, <code>assert</code>, and the primitive type names). The span is your declaration, which is where the rename goes. The list is derived from the emitter rather than from a general list of JavaScript globals, and a test greps the emitter and fails when a new global reference appears without an entry. <code>Number</code> was harmless until <code>int</code> shipped and started emitting <code>Number.isInteger</code>, which is how this reached a release. <code>Date</code>, <code>Math</code> and <code>JSON</code> stay free, because nothing Glyph emits mentions them.</li>
@@ -1734,14 +1734,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.53" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.53</h2>
+            <h3 class="rel-ver">0.1.53</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.53" data-url="https://glyphlang.io/versions/2026-08/#0.1.53" aria-label="Link to 0.1.53">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The checker knows what the standard library returns</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The checker knows what the standard library returns</h3>
+            <h4>The checker knows what the standard library returns</h4>
             <p>Glyph's typechecker modeled the standard library's function signatures and nothing about its types, so a value stopped having a type the moment it came out of <code>std/string</code>, <code>std/array</code> or <code>std/fs</code>. You noticed it as a loop index that was a string, or a <code>match</code> on a filesystem error that nothing checked.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> Return types for the fixed-arity half of <code>std/string</code> and <code>std/array</code>. <code>string.split</code> is an <code>Array&lt;string&gt;</code>, <code>string.starts_with</code> is a <code>bool</code>, <code>array.find</code> is an <code>Option&lt;T&gt;</code>, and the element type travels, so <code>array.filter(names, keep)</code> over an <code>Array&lt;string&gt;</code> stays one. The visible payoff is the loop: <code>for i, part in string.split(text, ",")</code> binds <code>i</code> as a number with no annotation, where before it took the record lowering and handed you a string key.</li>
@@ -1756,14 +1756,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.52" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.52</h2>
+            <h3 class="rel-ver">0.1.52</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.52" data-url="https://glyphlang.io/versions/2026-08/#0.1.52" aria-label="Link to 0.1.52">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A parsed value is a real <code>Result</code></span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A parsed value is a real <code>Result</code></h3>
+            <h4>A parsed value is a real <code>Result</code></h4>
             <p>Glyph's typechecker said <code>T.parse</code> returned <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>. The generated TypeScript said something narrower, so passing a parse result straight back from a function returning a <code>Result</code> was a <code>tsc</code> error. Two checkers, two answers.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>T.parse</code> returns the prelude <code>Result</code>, so it composes with everything else that takes one. <code>return User.parse(req.body)</code> from a function returning <code>Result&lt;User, Array&lt;Issue&gt;&gt;</code> compiles, and <code>User.parse(body).map_err(to_http_error)</code> works instead of failing with TS2339. The old emission was a bare <code>{ tag, value }</code> object, written that way so a module holding a <code>type</code> would not depend on <code>std/result</code>; the cost of that was the whole combinator API. A module with a <code>pub type</code> in it now imports <code>std/result</code> at runtime even if it never writes <code>Result</code>, which is the price of the fix.</li>
@@ -1776,14 +1776,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.51" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.51</h2>
+            <h3 class="rel-ver">0.1.51</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.51" data-url="https://glyphlang.io/versions/2026-08/#0.1.51" aria-label="Link to 0.1.51">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Ask whether it compiles without running it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Ask whether it compiles without running it</h3>
+            <h4>Ask whether it compiles without running it</h4>
             <p>There was no way to type-check a single file. <code>glyph build</code> refused anything that was not a directory, so the only door into the typechecker was <code>glyph run</code>, which starts your program. <code>glyph check</code> is that door.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>glyph check [path]</code> takes a <code>.glyph</code> file or a directory, runs the same pipeline a build runs into a temp directory it deletes on the way out, and type-checks the emitted TypeScript with <code>tsc --strict</code>. Nothing is written into your tree and your program never starts. <code>--no-tsc</code> stops after the Glyph stages; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. Two things to know: a file is checked in the context of its own directory, so a broken sibling fails the check, and your <code>@example</code> tests do not run here, because running them would run your code.</li>
@@ -1798,14 +1798,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.50" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.50</h2>
+            <h3 class="rel-ver">0.1.50</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.50" data-url="https://glyphlang.io/versions/2026-08/#0.1.50" aria-label="Link to 0.1.50">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline"><code>glyph fmt</code> stops being the thing that breaks your build</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3><code>glyph fmt</code> stops being the thing that breaks your build</h3>
+            <h4><code>glyph fmt</code> stops being the thing that breaks your build</h4>
             <p>Three formatter problems, one of which was a correctness bug: running <code>glyph fmt</code> on a file that built could leave you with a file that did not. You run a formatter without reading its output, so that is the worst thing it can do.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>X =&gt; ({})</code> in a <code>match</code> arm means the empty record. It parses, builds, and passes <code>tsc --strict</code>. <code>glyph fmt</code> used to reprint it as <code>X =&gt; {}</code>, which is an empty <em>block</em>, and the formatted file failed to build. The printer now keeps the parentheses on the one shape that would change meaning without them, so the output reparses to the same program and emits the same TypeScript.</li>
@@ -1819,14 +1819,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.49" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.49</h2>
+            <h3 class="rel-ver">0.1.49</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.49" data-url="https://glyphlang.io/versions/2026-08/#0.1.49" aria-label="Link to 0.1.49">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Four things <code>tsc</code> caught and Glyph did not</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Four things <code>tsc</code> caught and Glyph did not</h3>
+            <h4>Four things <code>tsc</code> caught and Glyph did not</h4>
             <p>Four apps in this repo each filed a version of the same complaint: <code>glyph build</code> said ok, and the mistake showed up later, either as a TypeScript error on generated code or as <code>undefined</code> at run time. This release adds four diagnostics, all reported against your own source with your own line numbers.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>E0222</code>: <code>await</code> in a plain <code>fn</code> used to build clean and fail at <code>tsc</code> with TS1308. The innermost enclosing callable decides, the same rule TypeScript uses, so a synchronous lambda inside an <code>async fn</code> is flagged and <code>async fn(x) { ... }</code> is not. An <code>await</code> in a module-level <code>const</code> initializer has no enclosing callable and the emitted module accepts it, so that one case is still allowed.</li>
@@ -1842,14 +1842,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.48" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.48</h2>
+            <h3 class="rel-ver">0.1.48</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.48" data-url="https://glyphlang.io/versions/2026-08/#0.1.48" aria-label="Link to 0.1.48">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The link checker stops working around the standard library</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The link checker stops working around the standard library</h3>
+            <h4>The link checker stops working around the standard library</h4>
             <p>One app in this repo walks a directory, scans Markdown for links, and checks them over HTTP. It could not do any of those three things with the standard library alone. It imported node's <code>readdirSync</code> directly, worked out which paths were directories by reading them and inspecting the <code>errno</code>, hand-wrote a 180-line character scanner because <code>regex.find_all</code> drops capture groups, and used a fail-fast pool that threw away every result when one host went down. This release adds the four missing pieces and then rewrites the app until none of the workarounds are left.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>fs.read_dir</code> returns the entry names one level down, <code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does, and <code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds. There is no recursive <code>walk</code> and no glob: a walk is those three plus <code>path.join</code> in about ten lines.</li>
@@ -1864,14 +1864,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.47" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.47</h2>
+            <h3 class="rel-ver">0.1.47</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.47" data-url="https://glyphlang.io/versions/2026-08/#0.1.47" aria-label="Link to 0.1.47">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The eleven standard-library functions every app kept hand-rolling</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The eleven standard-library functions every app kept hand-rolling</h3>
+            <h4>The eleven standard-library functions every app kept hand-rolling</h4>
             <p>Five dogfooding trips in a row filed the same finding: <code>std/string</code> and <code>std/array</code> are short of the basics, so every program writes them again. Six apps in the repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and every total was a <code>mut</code> in a loop because there was no <code>fold</code>. This release adds the functions and then deletes the copies.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>std/string</code> gains <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>slice</code>, <code>index_of</code>, <code>replace_all</code>, <code>trim_start</code>, and <code>trim_end</code>. Indices are UTF-16 code units, the same space <code>len</code> and <code>split</code> already use, and <code>slice</code> matches <code>array.slice</code>: exclusive end, negative indices counting back from the end.</li>
@@ -1886,14 +1886,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.46" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.46</h2>
+            <h3 class="rel-ver">0.1.46</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.46" data-url="https://glyphlang.io/versions/2026-08/#0.1.46" aria-label="Link to 0.1.46">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline"><code>std/http</code> can serve a web page, not just JSON</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3><code>std/http</code> can serve a web page, not just JSON</h3>
+            <h4><code>std/http</code> can serve a web page, not just JSON</h4>
             <p>A response was <code>{ status, body }</code> with nowhere to put a header, and the server chose the content type from the body's shape: a string went out as <code>text/plain</code>, anything else as JSON. So a 302 <code>Location</code> and a <code>text/html</code> page were both unspellable, and the only way to serve a browser was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your entire request path outside the type checker. A URL shortener in the repo was doing exactly that, in 121 lines it should never have had to write.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>Response</code> carries <code>headers: Record&lt;string, string&gt;</code>, and three constructors build one: <code>html(status, body)</code>, <code>redirect(status, location)</code>, and <code>with_header(resp, name, value)</code>, which returns a new response because Glyph has no record-field mutation. The field is required rather than optional, so reading <code>resp.headers</code> never needs an absence check.</li>
@@ -1908,14 +1908,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.45" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.45</h2>
+            <h3 class="rel-ver">0.1.45</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.45" data-url="https://glyphlang.io/versions/2026-08/#0.1.45" aria-label="Link to 0.1.45">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A value that came out of a <code>match</code> keeps its type</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A value that came out of a <code>match</code> keeps its type</h3>
+            <h4>A value that came out of a <code>match</code> keeps its type</h4>
             <p>Glyph has no <code>if</code>, so <code>match</code> is how you branch, and the type checker recorded nothing for it: every <code>match</code> expression in every program typed as unknown. Bind one to a <code>let</code> and everything after that point was flying blind. A field typo on the binding came back as a <code>TS2339</code> on generated TypeScript instead of Glyph's own <code>E0210</code>, and a two-binding <code>for</code> over one of its fields picked the wrong lowering: <code>i</code> came out as the string <code>"0"</code>, the build was clean, <code>tsc --strict</code> was clean, and the program printed <code>01:a</code> where it should print <code>1:a</code>. An expense splitter found it, and was carrying an <code>Array&lt;T&gt;</code> annotation with a comment above it explaining why the annotation could not be deleted.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> A <code>match</code> takes its arms' type when they agree. An arm ending in <code>return</code>, <code>break</code>, or <code>continue</code> diverges and does not vote; every other arm contributes the type of its value. Arms that disagree, or an arm the checker cannot decide, leave the result unknown exactly as before, so nothing that compiled stops compiling. There is no widening and no union of arm types.</li>
@@ -1928,14 +1928,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.44" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.44</h2>
+            <h3 class="rel-ver">0.1.44</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.44" data-url="https://glyphlang.io/versions/2026-08/#0.1.44" aria-label="Link to 0.1.44">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Editing a hand-written shim rebuilds instead of running the old one</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Editing a hand-written shim rebuilds instead of running the old one</h3>
+            <h4>Editing a hand-written shim rebuilds instead of running the old one</h4>
             <p><code>glyph run</code> caches a build under a fingerprint of your sources so a repeated run of unchanged code just executes. The fingerprint hashed every <code>.glyph</code> file and every <code>.d.ts</code> under <code>.types/</code>, and stopped there. A <code>.ts</code> you wrote yourself under <code>&lt;src&gt;/extern/</code> was left out, even though the build stages it into the output and <code>tsc</code> checks it with the rest of your code. So you edited your shim, ran the program, and got a clean type-checked build of the version you had before the edit. A URL shortener found it: the app declared its response shape twice, once in Glyph and once in the shim, and the <code>tsc</code> pass that was supposed to keep the two in agreement was reading the stale copy.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> The fingerprint hashes every <code>.ts</code> and <code>.tsx</code> under <code>&lt;src&gt;/extern/</code>, by path as well as by contents, so editing a shim, renaming one, adding one, or deleting one rebuilds and re-runs <code>tsc</code>. Before the fix, renaming a field in the shim left the app compiling against the old declaration; now it is a <code>TS2353</code> on the <code>.glyph</code> line that builds the wrong object.</li>
@@ -1948,14 +1948,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.43" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.43</h2>
+            <h3 class="rel-ver">0.1.43</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.43" data-url="https://glyphlang.io/versions/2026-08/#0.1.43" aria-label="Link to 0.1.43">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Your <code>@example</code>s run on every build</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Your <code>@example</code>s run on every build</h3>
+            <h4>Your <code>@example</code>s run on every build</h4>
             <p>Glyph puts tests next to the code: an <code>@example</code> above a function, or a <code>@run</code> fence inside a <code>@doc</code>, is an assertion the compiler is supposed to execute. It executed them only when you passed <code>--test</code>, so a plain build of a project whose own assertion was false printed no diagnostics, printed <code>tsc --strict passed</code>, and exited 0. The <code>--json</code> output that agents and CI read was worse: it returned before the examples ran at all, so even <code>--test --json</code> reported <code>"ok": true</code>. A tournament bracket app found it by carrying 23 examples that a plain build never touched.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>glyph build</code> runs every <code>@example</code> and <code>@doc @run</code> with no flag to remember, and a false one fails the build. The bracket app now reports <code>23 example(s) passed</code>; break one assertion and the build prints <code>example failed: bracket example #16</code> and exits 1, with the <code>tsc --strict passed</code> line withheld.</li>
@@ -1970,14 +1970,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.42" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.42</h2>
+            <h3 class="rel-ver">0.1.42</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.42" data-url="https://glyphlang.io/versions/2026-08/#0.1.42" aria-label="Link to 0.1.42">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A <code>match</code> you assign is a switch, not a closure</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A <code>match</code> you assign is a switch, not a closure</h3>
+            <h4>A <code>match</code> you assign is a switch, not a closure</h4>
             <p>Glyph has no <code>if</code>, so <code>match</code> is the conditional, and in real code it is usually the right-hand side of a binding. The emitter had two ways to lower it, a flat <code>switch</code> and a closure for a <code>match</code> used inside a bigger expression, and it picked between them by asking whether any arm had a block body instead of whether the <code>match</code> was the whole value being assigned. Three unrelated-looking failures came out of that one condition, and all three passed <code>glyph build</code> and then failed at <code>tsc</code>. A Markdown link checker found them.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> An <code>await</code> in a match arm no longer lands inside a synchronous arrow. <code>let cache = match args.offline { true =&gt; no_cache(), false =&gt; await fetch_all(urls), }</code> emits the <code>await</code> directly in the enclosing async function. It used to emit TS1308.</li>
@@ -1993,14 +1993,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.41" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.41</h2>
+            <h3 class="rel-ver">0.1.41</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.41" data-url="https://glyphlang.io/versions/2026-08/#0.1.41" aria-label="Link to 0.1.41">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Every descriptor the compiler emits, the compiler can find</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Every descriptor the compiler emits, the compiler can find</h3>
+            <h4>Every descriptor the compiler emits, the compiler can find</h4>
             <p>A type carries a runtime descriptor so data crossing a boundary is checked against what the type declares. The descriptors were emitted. The code that decided whether to <em>call</em> one recognized a record and a tagged union defined in the same file, and nothing else. Everything else got a check that the key was present, which validates nothing about the value under it. A scheduling app found it: <code>type Instant = string where is_instant(value)</code> rejected <code>Instant.parse("no")</code> and accepted <code>Block.parse({ start: "no" })</code>.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> A <code>where</code> refinement runs its predicate wherever the type appears, not only at a direct <code>Name.parse</code>. A record field typed <code>Name</code>, an <code>Array&lt;Name&gt;</code> element, an <code>Option&lt;Name&gt;</code> payload, a union variant's payload, <code>json.parse&lt;Name&gt;</code>, and <code>is Name</code> narrowing in a <code>match</code> all call the descriptor now.</li>
@@ -2015,14 +2015,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.40" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.40</h2>
+            <h3 class="rel-ver">0.1.40</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.40" data-url="https://glyphlang.io/versions/2026-08/#0.1.40" aria-label="Link to 0.1.40">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline"><code>glyph run</code> reports what <code>glyph build</code> reports</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3><code>glyph run</code> reports what <code>glyph build</code> reports</h3>
+            <h4><code>glyph run</code> reports what <code>glyph build</code> reports</h4>
             <p><code>glyph run app.glyph</code> printed the program's output and exited 0. <code>glyph build</code> on the same directory, seconds later, printed a warning on <em>that same file</em> and an error on a sibling. Same compiler, same sources. The run path built everything, read the list of emitted files out of the report, and dropped the diagnostics on the floor.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>glyph run</code> prints every diagnostic the build computed, warnings included, on the file you named and on its siblings, and follows the program's output with <code>glyph run: N error(s), M warning(s) in the source tree</code>. Nothing had decided to suppress them; <code>run_file</code> returned only an outcome, so there was nowhere for them to go. It now returns the outcome plus the diagnostics, and the CLI does the printing.</li>
@@ -2035,14 +2035,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.39" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.39</h2>
+            <h3 class="rel-ver">0.1.39</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.39" data-url="https://glyphlang.io/versions/2026-08/#0.1.39" aria-label="Link to 0.1.39">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline"><code>time.parse_iso</code> parses ISO-8601, and nothing else</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3><code>time.parse_iso</code> parses ISO-8601, and nothing else</h3>
+            <h4><code>time.parse_iso</code> parses ISO-8601, and nothing else</h4>
             <p>It was a bare <code>Date.parse</code> underneath, so it took free-form text, read an unpadded date in whatever timezone the process ran in, and reported an impossible day as a success. The reference docs said <em>None if invalid</em>. Now they are true.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>time.parse_iso</code> returns <code>None</code> for <code>"January 5 2026"</code>, <code>"2026-1-3"</code>, <code>"2026-13-01"</code>, <code>"2026-02-31"</code> (which used to come back as March 3), and <code>"2026-02-29"</code> in a non-leap year. It accepts a bare <code>YYYY-MM-DD</code> as UTC midnight, or <code>YYYY-MM-DDTHH:MM(:SS)?(.sss)?</code> with an explicit <code>Z</code>, <code>+HH:MM</code>, or <code>-HH:MM</code>. Three stages do it: an anchored shape check before <code>Date.parse</code> sees the string, the existing <code>NaN</code> check, then arithmetic validation of the year/month/day triple with real month lengths and leap years, because calendar rollover is reported as success and no <code>NaN</code> check can see it.</li>
@@ -2055,14 +2055,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.38" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.38</h2>
+            <h3 class="rel-ver">0.1.38</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.38" data-url="https://glyphlang.io/versions/2026-08/#0.1.38" aria-label="Link to 0.1.38">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">The formatter keeps a comment where you wrote it</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>The formatter keeps a comment where you wrote it</h3>
+            <h4>The formatter keeps a comment where you wrote it</h4>
             <p>A <code>//</code> comment written inside a record, a union variant list, an array or object literal, an argument list, or above a <code>match</code> arm used to be re-emitted above the next declaration or statement, where it read as documentation for something else. It now stays with the item it was written above.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>glyph fmt</code> flushed pending comments at declaration and statement granularity only, so any comment inside a construct drifted downward. One pass over a nine-line file produced three separate corruptions, including a comment that escaped its <code>const</code> and landed above an unrelated <code>type</code>. Nothing warned: exit 0, <code>tsc</code> passed, and the mangled output was a fixed point, so <code>glyph fmt --check</code> in CI accepted it. Comments are now flushed above the item that followed them in source, with a drain before the closing delimiter.</li>
@@ -2074,14 +2074,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.37" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.37</h2>
+            <h3 class="rel-ver">0.1.37</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.37" data-url="https://glyphlang.io/versions/2026-08/#0.1.37" aria-label="Link to 0.1.37">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A misspelled match arm is a compile error, not a silent catch-all</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A misspelled match arm is a compile error, not a silent catch-all</h3>
+            <h4>A misspelled match arm is a compile error, not a silent catch-all</h4>
             <p>A capitalized <code>match</code> arm head is a reference to a variant, not a fresh binding. A typo that names no variant used to be read as a catch-all that made the match look total; now it stops the build and suggests the nearest real variant.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> A PascalCase arm head that names no variant of the union (<code>Loadign</code> for <code>Loading</code>, or a variant from the wrong union) is now <code>E0220</code> with a nearest-variant suggestion, instead of being read as an irrefutable binding that swallowed the arm. Before, the typo passed exhaustiveness and misrouted values at runtime; the variant you actually skipped is now reported as <code>E0200</code> right alongside. Covers all three arm shapes: bare <code>Loadign</code>, payload-bearing <code>Loadign(x)</code>, and qualified <code>Feed.Loadign</code>. Scope is a union decidable in the same module; a union imported from another file is checked for coverage but not yet for this typo.</li>
@@ -2091,14 +2091,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.36" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.36</h2>
+            <h3 class="rel-ver">0.1.36</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.36" data-url="https://glyphlang.io/versions/2026-08/#0.1.36" aria-label="Link to 0.1.36">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Generic validators check the same across module boundaries</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Generic validators check the same across module boundaries</h3>
+            <h4>Generic validators check the same across module boundaries</h4>
             <p>A generic type's <code>.parse&lt;T&gt;</code> and <code>is</code> checks now thread their per-element runtime check even when the generic type is defined in another file and imported. Which module the type lives in no longer changes what gets validated.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <code>Imported.parse&lt;User&gt;(v)</code> on a generic type imported from another module now validates each element as a <code>User</code>, the same as a module-local <code>Paginated.parse&lt;User&gt;</code>. Before, the checker argument was dropped across the import and the call failed <code>tsc</code>. The build now carries a project-wide map of each generic type's arity and resolves an imported receiver through its import symbol.</li>
@@ -2109,14 +2109,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.35" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.35</h2>
+            <h3 class="rel-ver">0.1.35</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.35" data-url="https://glyphlang.io/versions/2026-08/#0.1.35" aria-label="Link to 0.1.35">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">Drop to TypeScript when you need to, and bound your concurrency</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>Drop to TypeScript when you need to, and bound your concurrency</h3>
+            <h4>Drop to TypeScript when you need to, and bound your concurrency</h4>
             <p>The last four of the sixteen gaps the webhook app surfaced. Interop is now first-class in both directions, and "at most N at a time" is a one-liner.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> <code>import extern/&lt;name&gt;</code> reaches hand-written TypeScript under <code>&lt;src&gt;/extern/</code>: for a node-stream loop, a <code>new Promise</code>, anything Glyph can't spell. The build stages it, <code>tsc</code> type-checks it with your Glyph code (a wrong argument is a real error), and a rebuild never deletes it. Relative imports stay illegal in Glyph source; this is the one reserved, greppable path to a local <code>.ts</code>.</li>
@@ -2128,14 +2128,14 @@ match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10
         </article>
         <article class="release" id="0.1.34" data-hl="h3">
           <div class="rel-head">
-            <h2 class="rel-ver">0.1.34</h2>
+            <h3 class="rel-ver">0.1.34</h3>
             <span class="rel-date">August 2026</span>
             <a class="rel-link" href="/versions/2026-08/#0.1.34" data-url="https://glyphlang.io/versions/2026-08/#0.1.34" aria-label="Link to 0.1.34">Link</a>
           </div>
           <details class="rel-details">
             <summary><span class="rel-headline">A whole app in Glyph: I/O boundaries and code that reads like Glyph</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
-            <h3>A whole app in Glyph: I/O boundaries and code that reads like Glyph</h3>
+            <h4>A whole app in Glyph: I/O boundaries and code that reads like Glyph</h4>
             <p>Building a webhook receiver end to end surfaced sixteen gaps. These closed twelve of them, in two batches: the I/O boundaries a real service hits, then the papercuts that made otherwise-natural code verbose.</p>
             <ul class="changelist">
               <li><span class="tag added">Added</span> The unparsed request body. <code>http.raw(req)</code> returns the exact bytes a client sent, so you can verify an HMAC signature over the payload and keep a signed-webhook receiver entirely in Glyph. The parsed <code>req.body</code> is unchanged.</li>

@@ -432,11 +432,11 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
       <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
       <div class="status-row">
         <div class="status-card today">
-          <p class="h">Shipping today</p>
+          <h3 class="h">Shipping today</h3>
           <p>Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment guide</a> documents the hybrid layout.</p>
         </div>
         <div class="status-card next">
-          <p class="h">On the way</p>
+          <h3 class="h">On the way</h3>
           <p>No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.</p>
         </div>
       </div>

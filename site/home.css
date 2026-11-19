@@ -19,7 +19,7 @@
   padding: var(--s4) var(--s5);
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: var(--r-card);
   color: var(--ink);
 }
 a.h-tile:hover {
@@ -45,11 +45,12 @@ a.h-tile:hover {
   padding: var(--s6);
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
 }
 .h-measured p {
   margin: 0;
   color: var(--ink-2);
+  font-size: var(--fs-body);
 }
 .h-measured .h-big {
   font-size: var(--fs-xl);
@@ -73,6 +74,7 @@ a.h-tile:hover {
   background: var(--amber-bg);
   border-radius: 0 var(--r) var(--r) 0;
   color: var(--ink-2);
+  font-size: var(--fs-body);
 }
 .home > section:last-of-type {
   padding-bottom: var(--s8);

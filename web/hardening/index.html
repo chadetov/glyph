@@ -409,22 +409,22 @@
         <div class="steps">
           <div class="step">
             <div class="n">1</div>
-            <h4>Explore</h4>
+            <h3>Explore</h3>
             <p>Persona agents build real programs (forms, backends, stateful UI) and record every place the language fought them.</p>
           </div>
           <div class="step">
             <div class="n">2</div>
-            <h4>Reproduce</h4>
+            <h3>Reproduce</h3>
             <p>Each finding is minimized to the smallest failing program and re-run against the compiler. Anything that can't be reproduced is dropped.</p>
           </div>
           <div class="step">
             <div class="n">3</div>
-            <h4>Fix</h4>
+            <h3>Fix</h3>
             <p>Root-cause fix in the Rust compiler with a regression test that fails before and passes after. The full suite must stay green, or the change reverts.</p>
           </div>
           <div class="step">
             <div class="n">4</div>
-            <h4>Verify</h4>
+            <h3>Verify</h3>
             <p>An independent pass re-runs every repro against the freshly built compiler, catching &ldquo;the agent thought it was fixed&rdquo; gaps before anything ships.</p>
           </div>
         </div>
@@ -440,7 +440,7 @@
         <div class="fixgrid">
           <div class="fix">
             <span class="sev critical">Critical, fixed</span>
-            <h4>Nullary error variants in a <code>Result</code> match</h4>
+            <h3>Nullary error variants in a <code>Result</code> match</h3>
             <p>A <code>match</code> over <code>Result&lt;T, Empty | BadQty(...)&gt;</code> lowered to two
               duplicate <code>case&nbsp;"Err"</code> branches; the first swallowed every error and
               silently dispatched to the wrong arm.</p>
@@ -448,7 +448,7 @@
           </div>
           <div class="fix">
             <span class="sev critical">Critical, fixed</span>
-            <h4>Misspelled constructor as a silent catch-all</h4>
+            <h3>Misspelled constructor as a silent catch-all</h3>
             <p>A typo'd variant in a match arm (<code>Loded</code> for <code>Loaded</code>) was silently
               bound as an irrefutable catch-all, masking non-exhaustiveness and misrouting at runtime,
               with no diagnostic.</p>
@@ -456,14 +456,14 @@
           </div>
           <div class="fix">
             <span class="sev high">High, fixed</span>
-            <h4>Partial <code>bool</code> match slipped past exhaustiveness</h4>
+            <h3>Partial <code>bool</code> match slipped past exhaustiveness</h3>
             <p><code>match n &gt; 0 { true =&gt; ... }</code> (missing the <code>false</code> arm)
               compiled and passed <code>tsc</code>, then threw at runtime.</p>
             <p class="now">Now: a compile-time non-exhaustive-match error.</p>
           </div>
           <div class="fix">
             <span class="sev high">High, fixed</span>
-            <h4>Multi-parameter components mis-bound props</h4>
+            <h3>Multi-parameter components mis-bound props</h3>
             <p><code>component C(a, b)</code> emitted positional params, but React calls components
               props-first, so <code>a</code> silently bound to the whole props object. It passed
               <code>tsc</code>.</p>
@@ -471,14 +471,14 @@
           </div>
           <div class="fix">
             <span class="sev high">High, fixed</span>
-            <h4>JSX <code>&lt;match&gt;</code> skipped exhaustiveness</h4>
+            <h3>JSX <code>&lt;match&gt;</code> skipped exhaustiveness</h3>
             <p>A JSX <code>&lt;match&gt;</code> with a missing <code>&lt;case&gt;</code> compiled green and
               threw at runtime, unlike value-level <code>match</code>, which was checked.</p>
             <p class="now">Now: the same exhaustiveness check applies; a missing case is a compile error.</p>
           </div>
           <div class="fix">
             <span class="sev high">High, fixed</span>
-            <h4>Record payload bound to the wrong field</h4>
+            <h3>Record payload bound to the wrong field</h3>
             <p>Binding a record-payload variant to a name (<code>BadQty(b)</code>) read a nonexistent
               <code>.value</code> off the flattened payload.</p>
             <p class="now">Now: the payload binds correctly, so <code>b.sku</code> works.</p>
@@ -493,25 +493,25 @@
         <div class="fixgrid">
           <div class="fix">
             <span class="sev high">Fixed</span>
-            <h4>Call arity</h4>
+            <h3>Call arity</h3>
             <p>Too few or too many arguments were accepted (and ran to <code>NaN</code>). Now
               <code>E0213</code> rejects a wrong argument count.</p>
           </div>
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>The <code>?</code> error type, across the stdlib boundary</h4>
+            <h3>The <code>?</code> error type, across the stdlib boundary</h3>
             <p>The exact-error-type rule was skipped when the error came from a stdlib wrapper. Now it's
               enforced there too.</p>
           </div>
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>Aliasing an <code>owned</code> handle</h4>
+            <h3>Aliasing an <code>owned</code> handle</h3>
             <p><code>let g = f</code> on a resource handle created a second binding that could double-close.
               Now rejected (<code>E0215</code>).</p>
           </div>
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>Unreachable arms &amp; deeper validation</h4>
+            <h3>Unreachable arms &amp; deeper validation</h3>
             <p>An arm after a catch-all is now flagged; <code>json.parse&lt;T&gt;</code> now structurally
               validates <code>Record</code> fields instead of only checking presence.</p>
           </div>
@@ -525,25 +525,25 @@
         <div class="fixgrid">
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>Accessibility &amp; data attributes</h4>
+            <h3>Accessibility &amp; data attributes</h3>
             <p><code>aria-label</code> and <code>data-*</code> parsed as subtraction. Now they work, and
               emit as proper React props.</p>
           </div>
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>npm package names</h4>
+            <h3>npm package names</h3>
             <p>Hyphenated and scoped specifiers (<code>react-hook-form</code>,
               <code>@hookform/resolvers/zod</code>) were rejected. Now they import directly.</p>
           </div>
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>Browser-bundle first run</h4>
+            <h3>Browser-bundle first run</h3>
             <p>The runtime bootstrap wasn't loaded in a browser build, crashing on first run. Every emitted
               module now pulls it in.</p>
           </div>
           <div class="fix">
             <span class="sev">Fixed</span>
-            <h4>Error messages that misdirect</h4>
+            <h3>Error messages that misdirect</h3>
             <p>Writing <code>if</code> now points at <code>match</code>; a range pattern says so directly;
               JSX whitespace and a bare <code>$</code> in text are handled.</p>
           </div>

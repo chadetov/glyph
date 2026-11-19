@@ -45,12 +45,15 @@ declare const number: {
 /// failure so a handler can branch on it without matching the human-readable
 /// `message`: `"missing"` for a required field that was absent, `"type"` for a
 /// value of the wrong shape, `"refinement"` for a value that passed its base
-/// type but failed a `where` predicate, and `"unexpected"` for a key the type
-/// does not declare. It is optional, so an `Issue` built by hand still checks.
+/// type but failed a `where` predicate, `"unexpected"` for a key the type
+/// does not declare, and `"depth"` for a value nested more than 1000 objects
+/// and arrays deep, which no generated check walks past (D50; the limit is
+/// `MAX_DEPTH` in `std/schema`). It is optional, so an `Issue` built by hand
+/// still checks.
 type Issue = {
   path: ReadonlyArray<string | number>;
   message: string;
-  code?: "missing" | "type" | "refinement" | "unexpected";
+  code?: "missing" | "type" | "refinement" | "unexpected" | "depth";
 };
 
 /// A runtime validator for `T`, produced by `T.schema` and consumed by

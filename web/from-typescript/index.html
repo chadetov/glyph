@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coming from TypeScript · what changes in Glyph · Glyph</title>
+    <meta name="description" content="Glyph reads almost like TypeScript and compiles to TypeScript that passes tsc --strict. This page lists what changes: a handful of syntax deltas, the TypeScript off-switches that do not exist (any, as, !, type guards, ts-ignore), the one greppable escape hatch, how npm interop works, and what the emitted TypeScript looks like." />
+    <link rel="canonical" href="https://glyphlang.io/from-typescript/" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("glyph-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0d1424" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+        <div class="nav-links">
+          <a href="/playground/">Playground</a>
+          <a href="/pillars/verifiability/">Why Glyph</a>
+          <a href="/answers/">Answers</a>
+          <a href="/hardening/">Hardening</a>
+          <a href="/benchmarks/">Benchmarks</a>
+          <a href="/llms.txt">For agents</a>
+          <a href="/mcp/">MCP</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Colour theme: auto (follows your system). Switch to light.">
+          <span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span>
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+    <article class="answer-page">
+      <p class="q-eyebrow">Coming from TypeScript</p>
+      <h1 class="q-title">What changes when you already write TypeScript</h1>
+
+      <p class="short-answer">
+        Less than you'd expect. Glyph compiles to TypeScript that passes <code>tsc --strict</code>,
+        keeps npm and your deploy, and reads almost the same. The differences are a handful of
+        deltas, and each one trades a way to be wrong for a check the compiler makes.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">If you know TypeScript, you know most of this</p>
+        <p>
+          You don't learn a new language, just these four. They are the ones in every sample on
+          this site.
+        </p>
+      </div>
+
+      <dl class="gloss-list">
+        <div>
+          <dt><code>match</code></dt>
+          <dd>An exhaustive <code>switch</code>: the compiler makes you handle every case. There is no <code>if</code>/<code>else</code>; <code>match</code> is the only conditional, so a case can't be silently forgotten.</dd>
+        </div>
+        <div>
+          <dt><code>Result&lt;T, E&gt;</code></dt>
+          <dd>Errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.</dd>
+        </div>
+        <div>
+          <dt><code>fn f() -&gt; T</code></dt>
+          <dd>A function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.</dd>
+        </div>
+        <div>
+          <dt><code>mut x = e</code></dt>
+          <dd>Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.</dd>
+        </div>
+      </dl>
+
+      <div class="detail">
+        <p>
+          "Agents" on this site means AI coding assistants such as Claude, Copilot and Cursor.
+          Glyph helps them most, but the checks are the same whether a person or a model wrote the
+          code. If you already run strict TypeScript with zod and eslint,
+          <a href="/answers/vs-tooled-ts/">here is what a language adds over that</a>.
+        </p>
+
+        <p class="block-label">The tax you already pay</p>
+        <p>
+          If you build with AI agents on a TypeScript codebase, these are the daily costs. Each
+          one has a specific answer in Glyph, linked from the list.
+        </p>
+      </div>
+
+      <ul class="tax-list">
+        <li>Agents hallucinate APIs, because TypeScript erases its types and the runtime no longer agrees with compile time. Glyph types carry a runtime check (<code>T.parse</code>, <code>T.is</code>), see <a href="/answers/typed-apis/">typed APIs</a>.</li>
+        <li>Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them. Neither exists in Glyph, see the table below.</li>
+        <li>You ask for a one-line change and get a whole file rewritten, because the formatter cascades on every edit. <code>glyph fmt</code> has one layout with no options, see <a href="/answers/diff-stability/">clean diffs</a>.</li>
+        <li>You keep a hand-written validator next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles. In Glyph the type is the validator.</li>
+        <li>You <code>grep</code> for a symbol and find ten unrelated matches: overloads, decorators, merged namespaces. Glyph has none of those, see <a href="/answers/greppability/">finding things</a>.</li>
+      </ul>
+
+      <div class="detail">
+        <p class="block-label">The off-switches TypeScript gives you, and what Glyph has instead</p>
+        <p>
+          Each TypeScript construct below tells the checker to stop checking. None of them is
+          Glyph syntax. The middle column is what <code>glyph check --no-tsc</code> printed for
+          each one on 0.1.149.
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>TypeScript</th><th>In Glyph</th><th>What you write instead</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="TypeScript"><code>x!</code></td><td data-label="In Glyph">Not syntax: <code>E0013</code></td><td data-label="What you write instead">An <code>Option&lt;T&gt;</code> handled with <code>match</code>, or passed up with <code>?</code></td></tr>
+            <tr><td data-label="TypeScript"><code>x as T</code>, <code>as unknown as T</code></td><td data-label="In Glyph">No cast exists: <code>E0013</code>, whose help says to validate</td><td data-label="What you write instead"><code>T.parse(x)</code>, which returns a <code>Result</code></td></tr>
+            <tr><td data-label="TypeScript"><code>any</code></td><td data-label="In Glyph">Not a type: <code>E0103</code>, unresolved name</td><td data-label="What you write instead"><code>unknown</code>, narrowed by <code>T.parse</code>, <code>T.is</code> or a <code>match</code> arm <code>is T</code></td></tr>
+            <tr><td data-label="TypeScript"><code>(v): v is T</code></td><td data-label="In Glyph">No user-written type guards: <code>E0002</code></td><td data-label="What you write instead">The generated <code>T.is(v)</code>, which checks the declared shape, so a guard can't check less than it claims</td></tr>
+            <tr><td data-label="TypeScript"><code>// @ts-ignore</code>, <code>// eslint-disable</code></td><td data-label="In Glyph">An ordinary comment; the error under it still fires</td><td data-label="What you write instead">Nothing. No comment or flag turns a Glyph diagnostic off</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph check</code> has flags that skip a whole pass (<code>--no-tsc</code> skips the
+          <code>tsc --strict</code> run, <code>--no-test</code> skips the <code>@example</code>
+          tests), and none that silence one check. The full list of what a TypeScript project
+          accepts and Glyph refuses, each case run under both compilers, is on
+          <a href="/catches/">the catches page</a>.
+        </p>
+
+        <p class="block-label">One escape hatch, and you can grep for it</p>
+        <p>
+          When you need TypeScript that Glyph can't spell, <code>extern_ts("...")</code> takes one
+          inline type or expression, and <code>tsc</code> still checks it. For a whole module, put
+          the <code>.ts</code> under <code>src/extern/</code> and write <code>import extern/name</code>;
+          relative imports are otherwise illegal, so that path is the only way in. Both forms
+          contain the word <code>extern</code>, so <code>grep -rn extern src/</code> lists every
+          place the checker hands over to TypeScript.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">src/clock.glyph</span>
+<pre>module clock
+
+pub fn now_ms() -&gt; number {
+  return extern_ts("Date.now()")
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">What the emitted TypeScript looks like</p>
+        <p>
+          Plain TypeScript, one file per module, that you can read and commit. A union becomes a
+          discriminated union plus a value carrying its runtime check, and a <code>match</code>
+          becomes a <code>switch</code> on the tag. This is <code>glyph build</code>'s output for
+          the module on the left, with the import lines trimmed.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">plan.glyph</span>
+<pre>module plan
+
+pub type Plan = Free | Pro | Team
+
+pub fn seats(p: Plan) -&gt; number {
+  return match p {
+    Free =&gt; 1,
+    Pro =&gt; 5,
+    Team =&gt; 50,
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">plan.ts (emitted, trimmed)</span>
+<pre>export type Plan =
+  | { tag: "Free" }
+  | { tag: "Pro" }
+  | { tag: "Team" };
+
+export const Free: Plan = { tag: "Free" };
+export const Pro: Plan = { tag: "Pro" };
+export const Team: Plan = { tag: "Team" };
+export const Plan = {
+  is(value: unknown): value is Plan { ... },
+  parse(value: unknown) { ... },
+  schema: ...,
+};
+
+export function seats(p: Plan): number {
+  const __m0 = p;
+  switch (__m0.tag) {
+    case "Free": { return 1; }
+    case "Pro": { return 5; }
+    case "Team": { return 50; }
+    default: throw new Error("non-exhaustive match");
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Delete the <code>Team</code> arm and the build stops before any TypeScript is written:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check --no-tsc (trimmed)</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Plan`: missing variants `Team`</span>
+   ╭─[ plan:6:10 ]
+   │
+ 6 │ ╭─▶   return match p {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── non-exhaustive match on `Plan`: missing variants `Team`
+   │     Help: Add an arm for each missing variant.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          If you stop using Glyph, the emitted <code>.ts</code> is what you keep. It has no runtime
+          dependency beyond a small bundled support directory the build writes next to it.
+        </p>
+
+        <p class="block-label">npm, and the TypeScript you already have</p>
+        <p>
+          A <code>.glyph</code> module imports an npm package by name (<code>import kafkajs { Kafka }</code>),
+          typed from the package's own declarations, and your existing <code>.ts</code> imports the
+          emitted Glyph modules like any local file. So you can start with one module inside an app
+          that stays TypeScript. The details are in three answers.
+        </p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/answers/imports/"><span class="q">Can I use my existing TypeScript, JavaScript, and npm libraries?</span><p>Importing packages, keeping a <code>.ts</code> shim, and importing Glyph back into <code>.ts</code>.</p></a>
+        <a class="a-card" href="/answers/embedding/"><span class="q">Can I adopt Glyph inside my existing app?</span><p>The domain core in Glyph, the rest in TypeScript, in a stock Vite scaffold.</p></a>
+        <a class="a-card" href="/answers/react/"><span class="q">Does it work with React?</span><p>Components, JSX, hooks, Context, and where <code>tsc</code> still does the checking.</p></a>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Where to go next</p>
+      </div>
+
+      <div class="ans-cards">
+        <a class="a-card" href="/catches/"><span class="q">See what TypeScript lets through</span><p>Each mistake run under <code>tsc --strict</code> and under Glyph, with the error.</p></a>
+        <a class="a-card" href="/start/"><span class="q">Write your first program</span><p>Install, scaffold, run, break it on purpose, read the error. About ten minutes.</p></a>
+        <a class="a-card" href="/playground/"><span class="q">Try it in the browser</span><p>The compiler runs in the page, with nothing to install.</p></a>
+      </div>
+    </article>
+    </main>
+    <footer class="site-footer">
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h2>Product</h2>
+            <a href="/playground/">Playground</a>
+            <a href="/versions/">Versions</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases on GitHub</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h2>Learn</h2>
+            <a href="/answers/">Answers</a>
+            <a href="/answers/verifiability/">Read the answers in order</a>
+            <a href="/answers/tooling/">Editor &amp; agent tooling</a>
+            <a href="/hardening/">Hardening</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h2>Source</h2>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/site/pages/from-typescript/index.html">Edit this page</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>Glyph: TypeScript your agents can't quietly break.</span>
+          <span>&copy; 2026 Glyph &middot; MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        var order = ["auto", "light", "dark"];
+        var names = { auto: "Auto", light: "Light", dark: "Dark" };
+        var root = document.documentElement;
+        var btn = document.querySelector("[data-theme-toggle]");
+        if (!btn) return;
+        function current() {
+          var t = root.getAttribute("data-theme");
+          return t === "light" || t === "dark" ? t : "auto";
+        }
+        function show(mode) {
+          var next = order[(order.indexOf(mode) + 1) % order.length];
+          btn.querySelector(".theme-label").textContent = names[mode];
+          btn.setAttribute("data-mode", mode);
+          btn.setAttribute(
+            "aria-label",
+            "Colour theme: " + names[mode].toLowerCase() + (mode === "auto" ? " (follows your system)" : "") + ". Switch to " + names[next].toLowerCase() + "."
+          );
+        }
+        btn.addEventListener("click", function () {
+          var mode = order[(order.indexOf(current()) + 1) % order.length];
+          if (mode === "auto") root.removeAttribute("data-theme");
+          else root.setAttribute("data-theme", mode);
+          try {
+            if (mode === "auto") localStorage.removeItem("glyph-theme");
+            else localStorage.setItem("glyph-theme", mode);
+          } catch (e) {}
+          show(mode);
+        });
+        show(current());
+      })();
+    </script>
+  </body>
+</html>

@@ -179,8 +179,15 @@
     margin-left: 0;
   }
   .lang-btn {
-    height: 34px;
-    padding: 0 9px;
+    position: relative;
+    height: 36px;
+    padding: 0 10px;
+  }
+  /* the hit area reaches 44px without a bigger pill (style.css, touch targets) */
+  .lang-btn::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
   }
   .lang-drop {
     position: fixed;

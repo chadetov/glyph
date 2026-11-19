@@ -233,3 +233,42 @@ h3.rel-ver {
     font-size: var(--fs-base);
   }
 }
+
+/* ============ touch targets on a phone ============ */
+@media (max-width: 860px) {
+  /* padding, not a flex box: the month and its count are inline spans and
+     the space between them has to survive */
+  .month-nav a {
+    padding: 10px 14px;
+  }
+  .breaking-only {
+    min-height: 44px;
+  }
+  .month-pager a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+/* at this width the link is absolutely placed (above), so it anchors its own
+   hit area */
+@media (max-width: 720px) {
+  .releases .rel-link::after,
+  .releases .rel-toggle::before {
+    content: "";
+    position: absolute;
+    inset: -12px -3px;
+  }
+  /* the headline row is the control too: taller to a thumb, not to the eye */
+  .rel-details > summary {
+    padding: 10px 0;
+    margin: -10px 0;
+  }
+  .rel-details[open] > summary {
+    margin-bottom: calc(var(--s4) - 10px);
+  }
+  .release[data-hl="sentence"] .rel-details[open] > summary {
+    padding: 12px 0;
+    margin: -12px 0 calc(var(--s2) - 12px);
+  }
+}

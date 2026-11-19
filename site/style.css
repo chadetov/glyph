@@ -753,11 +753,12 @@ kbd {
     margin-left: auto;
   }
   .js .nav-burger {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     flex: none;
     color: var(--on-band);
     background: transparent;
@@ -3180,5 +3181,84 @@ h4 code,
   .ns-card.span-3,
   .ns-card.span-6 {
     grid-column: auto;
+  }
+}
+
+/* ============ touch targets on a phone ============ */
+/* Every control a thumb uses gets a hit area at least 44px on each side
+   (WCAG 2.5.5). Where the visible shape should stay as drawn, a transparent
+   ::after carries the extra area; elsewhere the control itself grows. The
+   header's three buttons stay 36px to the eye so the bar still fits one row
+   at 360px with the longest language label.
+   Links inside running text are exempt and keep the line's height. */
+@media (max-width: 860px) {
+  .brand {
+    min-height: 44px;
+  }
+  .nav-version,
+  .theme-toggle,
+  .home .pill,
+  .home .copy {
+    position: relative;
+  }
+  .nav-version::after,
+  .theme-toggle::after,
+  .js .nav-burger::after,
+  .home .pill::after,
+  .home .copy::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+  }
+  .nav-version::after {
+    inset: -12px -4px;
+  }
+  .home .pill::after {
+    inset: -7px 0;
+  }
+  .home .copy::after {
+    inset: -10px -6px;
+  }
+  .theme-toggle {
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+  .foot-col a {
+    padding: 11px 0;
+  }
+  .ans-step,
+  .ans-all,
+  .ans-all-link {
+    height: 44px;
+  }
+  /* the number and the title are inline spans; a flex box would drop the
+     space between them, so the hit area grows by padding the line instead */
+  .ans-crumb a.cur {
+    display: inline-block;
+    padding-block: 13px;
+    margin-block: -13px;
+  }
+  .backlink,
+  .card-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  a.chip {
+    position: relative;
+  }
+  a.chip::after {
+    content: "";
+    position: absolute;
+    inset: -12px -2px;
+  }
+  /* a link that is a line of text, not a control: vertical padding on an
+     inline box widens what a tap hits without moving the line */
+  td a,
+  .h-tile-try a,
+  .i18n-note a {
+    padding-block: 13px;
   }
 }

@@ -666,3 +666,17 @@ details.more > .body .code {
 .answer-page.ak .two-up.fit pre {
   padding: 12px 14px;
 }
+
+/* ============ touch targets on a phone ============ */
+@media (max-width: 860px) {
+  details.more > summary {
+    min-height: 44px;
+  }
+  .ak-list details.more.mini > summary {
+    min-height: 44px;
+    padding: 0;
+  }
+  .ak-toc a {
+    padding: 10px 14px;
+  }
+}

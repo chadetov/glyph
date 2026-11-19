@@ -57,7 +57,8 @@
     "footer.gh_releases": "GitHub のリリース",
     "footer.edit": "このページを編集する",
     "footer.tagline": "Glyph: エージェントが気づかれずに壊すことのできない TypeScript。",
-    "footer.license": "MIT または Apache-2.0"
+    "footer.license": "MIT または Apache-2.0",
+    "footer.pillars": "4 つの柱"
   },
   "nav": {
     "Why Glyph": "なぜ Glyph か",
@@ -102,6 +103,13 @@
     "cases that nothing in a fully configured TypeScript setup catches": "最も厳しく設定した TypeScript 環境でも何も検出できないケース",
     "See what it catches": "検出できるものを見る",
     "Versions": "バージョン",
-    "Playground": "Playground"
+    "Playground": "Playground",
+    "Connect your agent": "エージェントをつなぐ",
+    "MCP server": "MCP サーバー",
+    "Wire your agent into the compiler's queries": "エージェントをコンパイラのクエリにつなぐ",
+    "Ask the compiler": "コンパイラに聞く",
+    "Look up a symbol, a type or a change before editing": "編集の前にシンボル、型、変更の影響を調べる",
+    "The four pillars": "4 つの柱",
+    "Verifiability, greppability, abstraction, diff stability": "検証可能性、grep しやすさ、抽象化、差分の安定性"
   }
 }

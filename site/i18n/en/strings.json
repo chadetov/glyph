@@ -58,6 +58,7 @@
     "footer.gh_releases": "Releases on GitHub",
     "footer.edit": "Edit this page",
     "footer.tagline": "Glyph: TypeScript your agents can't quietly break.",
-    "footer.license": "MIT or Apache-2.0"
+    "footer.license": "MIT or Apache-2.0",
+    "footer.pillars": "The four pillars"
   }
 }

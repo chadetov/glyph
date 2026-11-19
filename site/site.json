@@ -9,12 +9,19 @@
         "from-typescript",
         "teams",
         "agents",
-        "design"
+        "design",
+        "pillars"
       ],
       "columns": [
         {
           "title": "Who it is for",
           "items": [
+            {
+              "label": "For agent builders",
+              "href": "/agents/",
+              "icon": "agents",
+              "desc": "The MCP server and the queries it answers"
+            },
             {
               "label": "Coming from TypeScript",
               "href": "/from-typescript/",
@@ -26,12 +33,6 @@
               "href": "/teams/",
               "icon": "teams",
               "desc": "What it guarantees and what adopting it costs"
-            },
-            {
-              "label": "For agent builders",
-              "href": "/agents/",
-              "icon": "agents",
-              "desc": "The MCP server and the queries it answers"
             }
           ]
         },
@@ -43,6 +44,12 @@
               "href": "/design/",
               "icon": "design",
               "desc": "The four pillars and what was left out on purpose"
+            },
+            {
+              "label": "The four pillars",
+              "href": "/pillars/verifiability/",
+              "icon": "design",
+              "desc": "Verifiability, greppability, abstraction, diff stability"
             },
             {
               "label": "Glyph vs Effect",
@@ -73,7 +80,8 @@
       "match": [
         "start",
         "answers",
-        "contribute"
+        "contribute",
+        "mcp"
       ],
       "columns": [
         {
@@ -101,6 +109,29 @@
           ]
         },
         {
+          "title": "Connect your agent",
+          "items": [
+            {
+              "label": "MCP server",
+              "href": "/mcp/",
+              "icon": "agents",
+              "desc": "Wire your agent into the compiler's queries"
+            },
+            {
+              "label": "Ask the compiler",
+              "href": "/answers/ask-the-compiler/",
+              "icon": "answers",
+              "desc": "Look up a symbol, a type or a change before editing"
+            },
+            {
+              "label": "llms.txt for agents",
+              "href": "/llms.txt",
+              "icon": "file",
+              "desc": "The language in one file an agent can read"
+            }
+          ]
+        },
+        {
           "title": "Reference",
           "items": [
             {
@@ -108,12 +139,6 @@
               "href": "https://github.com/chadetov/glyph/blob/main/docs/language/spec.md",
               "icon": "spec",
               "desc": "The full spec, on GitHub"
-            },
-            {
-              "label": "llms.txt for agents",
-              "href": "/llms.txt",
-              "icon": "file",
-              "desc": "The language in one file an agent can read"
             }
           ]
         }

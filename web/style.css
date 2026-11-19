@@ -3288,6 +3288,16 @@ h4 code,
   }
 
 /* ============ page stamp ============ */
+
+/* ============ links in running text, page stamp ============ */
+/* A link inside prose is underlined, so it does not depend on its colour to
+   stand out from the text around it. Navigation and card links keep their
+   own styles. */
+main :is(p, li, td, dd, figcaption, blockquote) a:not([class]):not(nav a) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
 .page-stamp {
   grid-column: 1 / -1;
   margin: var(--s4) 0 0;

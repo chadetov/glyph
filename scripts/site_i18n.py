@@ -354,7 +354,7 @@ def switcher(ctx: Ctx) -> str:
                    f'{s("lang.read_en")}</a>')
     lis = "\n".join(f"              {i}" for i in items)
     return f"""        <details class="lang-menu">
-          <summary class="lang-btn" aria-label="{s('lang.label')}: {name}">{flag(ctx.loc).replace('loading="lazy" ', '')}<span class="lang-cur">{name}</span><span class="lang-short" aria-hidden="true">{short}</span><span class="nav-chev" aria-hidden="true"></span></summary>
+          <summary class="lang-btn" aria-label="{s('lang.label')}: {name} ({short})">{flag(ctx.loc).replace('loading="lazy" ', '')}<span class="lang-cur">{name}</span><span class="lang-short" aria-hidden="true">{short}</span><span class="nav-chev" aria-hidden="true"></span></summary>
           <div class="lang-drop">
             <p class="lang-head">{s("lang.label")}</p>
             <ul>

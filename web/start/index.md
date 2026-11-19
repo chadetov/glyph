@@ -119,7 +119,7 @@ $ glyph run
 ───╯
 ```
 
-It didn't run. In TypeScript the equivalent `switch` would compile clean and return `undefined` at runtime; here the missing case is a compile error with a stable code (`E0200`), the exact spot, and a one-line fix. Run `glyph --explain E0200` any time you want the long version.
+It didn't run. In TypeScript this exact function, with its return type written out, is refused too (TS2366). A `switch` that only logs or updates state, or one with a `default:`, compiles clean and quietly skips the new case. Here every non-exhaustive match is a compile error with a stable code (`E0200`), the exact spot, and a one-line fix. Run `glyph --explain E0200` any time you want the long version.
 
 ## 6 · Fix it
 

@@ -74,7 +74,6 @@ a.h-tile:hover {
   background: var(--amber-bg);
   border-radius: 0 var(--r) var(--r) 0;
   color: var(--ink-2);
-  max-width: 80ch;
 }
 .home > section:last-of-type {
   padding-bottom: var(--s8);
